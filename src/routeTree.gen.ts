@@ -18,6 +18,7 @@ import { Route as TalentIndexRouteImport } from './routes/talent.index'
 import { Route as AgencyIndexRouteImport } from './routes/agency.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TalentVaultRouteImport } from './routes/talent.vault'
+import { Route as TalentSharingRouteImport } from './routes/talent.sharing'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
 import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
 import { Route as AgencyQuotesInvoicesRouteImport } from './routes/agency.quotes-invoices'
@@ -75,6 +76,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const TalentVaultRoute = TalentVaultRouteImport.update({
   id: '/vault',
   path: '/vault',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentSharingRoute = TalentSharingRouteImport.update({
+  id: '/sharing',
+  path: '/sharing',
   getParentRoute: () => TalentRoute,
 } as any)
 const AgencyTalentRoute = AgencyTalentRouteImport.update({
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
+  '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
   '/admin/': typeof AdminIndexRoute
   '/agency/': typeof AgencyIndexRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
+  '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
   '/admin': typeof AdminIndexRoute
   '/agency': typeof AgencyIndexRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
+  '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
   '/admin/': typeof AdminIndexRoute
   '/agency/': typeof AgencyIndexRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
+    | '/talent/sharing'
     | '/talent/vault'
     | '/admin/'
     | '/agency/'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
+    | '/talent/sharing'
     | '/talent/vault'
     | '/admin'
     | '/agency'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
+    | '/talent/sharing'
     | '/talent/vault'
     | '/admin/'
     | '/agency/'
@@ -356,6 +368,13 @@ declare module '@tanstack/react-router' {
       path: '/vault'
       fullPath: '/talent/vault'
       preLoaderRoute: typeof TalentVaultRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/sharing': {
+      id: '/talent/sharing'
+      path: '/sharing'
+      fullPath: '/talent/sharing'
+      preLoaderRoute: typeof TalentSharingRouteImport
       parentRoute: typeof TalentRoute
     }
     '/agency/talent': {
@@ -529,11 +548,13 @@ const AgencyRouteWithChildren =
   AgencyRoute._addFileChildren(AgencyRouteChildren)
 
 interface TalentRouteChildren {
+  TalentSharingRoute: typeof TalentSharingRoute
   TalentVaultRoute: typeof TalentVaultRoute
   TalentIndexRoute: typeof TalentIndexRoute
 }
 
 const TalentRouteChildren: TalentRouteChildren = {
+  TalentSharingRoute: TalentSharingRoute,
   TalentVaultRoute: TalentVaultRoute,
   TalentIndexRoute: TalentIndexRoute,
 }
