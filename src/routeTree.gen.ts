@@ -19,6 +19,7 @@ import { Route as AgencyIndexRouteImport } from './routes/agency.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TalentVaultRouteImport } from './routes/talent.vault'
 import { Route as TalentSharingRouteImport } from './routes/talent.sharing'
+import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
 import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
 import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
@@ -82,6 +83,11 @@ const TalentVaultRoute = TalentVaultRouteImport.update({
 const TalentSharingRoute = TalentSharingRouteImport.update({
   id: '/sharing',
   path: '/sharing',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentSettingsRoute = TalentSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => TalentRoute,
 } as any)
 const TalentBudgetRoute = TalentBudgetRouteImport.update({
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/talent/budget': typeof TalentBudgetRoute
+  '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
   '/admin/': typeof AdminIndexRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/talent/budget': typeof TalentBudgetRoute
+  '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
   '/admin': typeof AdminIndexRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/talent/budget': typeof TalentBudgetRoute
+  '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
   '/admin/': typeof AdminIndexRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/agency/settings'
     | '/agency/talent'
     | '/talent/budget'
+    | '/talent/settings'
     | '/talent/sharing'
     | '/talent/vault'
     | '/admin/'
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/agency/settings'
     | '/agency/talent'
     | '/talent/budget'
+    | '/talent/settings'
     | '/talent/sharing'
     | '/talent/vault'
     | '/admin'
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/agency/settings'
     | '/agency/talent'
     | '/talent/budget'
+    | '/talent/settings'
     | '/talent/sharing'
     | '/talent/vault'
     | '/admin/'
@@ -387,6 +399,13 @@ declare module '@tanstack/react-router' {
       path: '/sharing'
       fullPath: '/talent/sharing'
       preLoaderRoute: typeof TalentSharingRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/settings': {
+      id: '/talent/settings'
+      path: '/settings'
+      fullPath: '/talent/settings'
+      preLoaderRoute: typeof TalentSettingsRouteImport
       parentRoute: typeof TalentRoute
     }
     '/talent/budget': {
@@ -568,6 +587,7 @@ const AgencyRouteWithChildren =
 
 interface TalentRouteChildren {
   TalentBudgetRoute: typeof TalentBudgetRoute
+  TalentSettingsRoute: typeof TalentSettingsRoute
   TalentSharingRoute: typeof TalentSharingRoute
   TalentVaultRoute: typeof TalentVaultRoute
   TalentIndexRoute: typeof TalentIndexRoute
@@ -575,6 +595,7 @@ interface TalentRouteChildren {
 
 const TalentRouteChildren: TalentRouteChildren = {
   TalentBudgetRoute: TalentBudgetRoute,
+  TalentSettingsRoute: TalentSettingsRoute,
   TalentSharingRoute: TalentSharingRoute,
   TalentVaultRoute: TalentVaultRoute,
   TalentIndexRoute: TalentIndexRoute,
@@ -593,3 +614,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
