@@ -67,6 +67,7 @@ function InvitationsPage() {
             <select className="tvp-select"><option>Status: All</option></select>
             <select className="tvp-select"><option>Sent By: All</option></select>
             <select className="tvp-select"><option>Agency Type: All</option></select>
+            <select className="tvp-select"><option>Sort by: Newest</option><option>Oldest</option><option>Status</option><option>Agency Name</option></select>
           </div>
         </div>
         <table className="tvp-table">
