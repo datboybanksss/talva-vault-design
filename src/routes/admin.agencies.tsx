@@ -23,6 +23,7 @@ const tabs = [
   { key: "Incomplete", label: "Incomplete", icon: Clock, count: 8, tone: "purple" },
   { key: "Suspended", label: "Suspended", icon: Ban, count: 2, tone: "amber" },
   { key: "Declined", label: "Declined", icon: X, count: 1, tone: "red" },
+  { key: "Cancelled", label: "Cancelled", icon: X, count: 1, tone: "neutral" },
 ];
 
 function AgenciesPage() {
