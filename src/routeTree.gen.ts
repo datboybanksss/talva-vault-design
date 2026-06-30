@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgencyIndexRouteImport } from './routes/agency.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
+import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
 import { Route as AgencyQuotesInvoicesRouteImport } from './routes/agency.quotes-invoices'
 import { Route as AgencyInvitationsRouteImport } from './routes/agency.invitations'
 import { Route as AgencyFolderTemplatesRouteImport } from './routes/agency.folder-templates'
@@ -67,6 +68,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const AgencyTalentRoute = AgencyTalentRouteImport.update({
   id: '/talent',
   path: '/talent',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencySettingsRoute = AgencySettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AgencyRoute,
 } as any)
 const AgencyQuotesInvoicesRoute = AgencyQuotesInvoicesRouteImport.update({
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
   '/agency/invitations': typeof AgencyInvitationsRoute
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
+  '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/agency/': typeof AgencyIndexRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
   '/agency/invitations': typeof AgencyInvitationsRoute
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
+  '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/agency': typeof AgencyIndexRoute
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
   '/agency/invitations': typeof AgencyInvitationsRoute
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
+  '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/agency/': typeof AgencyIndexRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/agency/folder-templates'
     | '/agency/invitations'
     | '/agency/quotes-invoices'
+    | '/agency/settings'
     | '/agency/talent'
     | '/admin/'
     | '/agency/'
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
     | '/agency/folder-templates'
     | '/agency/invitations'
     | '/agency/quotes-invoices'
+    | '/agency/settings'
     | '/agency/talent'
     | '/admin'
     | '/agency'
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/agency/folder-templates'
     | '/agency/invitations'
     | '/agency/quotes-invoices'
+    | '/agency/settings'
     | '/agency/talent'
     | '/admin/'
     | '/agency/'
@@ -315,6 +327,13 @@ declare module '@tanstack/react-router' {
       path: '/talent'
       fullPath: '/agency/talent'
       preLoaderRoute: typeof AgencyTalentRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/settings': {
+      id: '/agency/settings'
+      path: '/settings'
+      fullPath: '/agency/settings'
+      preLoaderRoute: typeof AgencySettingsRouteImport
       parentRoute: typeof AgencyRoute
     }
     '/agency/quotes-invoices': {
@@ -455,6 +474,7 @@ interface AgencyRouteChildren {
   AgencyFolderTemplatesRoute: typeof AgencyFolderTemplatesRoute
   AgencyInvitationsRoute: typeof AgencyInvitationsRoute
   AgencyQuotesInvoicesRoute: typeof AgencyQuotesInvoicesRoute
+  AgencySettingsRoute: typeof AgencySettingsRoute
   AgencyTalentRoute: typeof AgencyTalentRouteWithChildren
   AgencyIndexRoute: typeof AgencyIndexRoute
 }
@@ -464,6 +484,7 @@ const AgencyRouteChildren: AgencyRouteChildren = {
   AgencyFolderTemplatesRoute: AgencyFolderTemplatesRoute,
   AgencyInvitationsRoute: AgencyInvitationsRoute,
   AgencyQuotesInvoicesRoute: AgencyQuotesInvoicesRoute,
+  AgencySettingsRoute: AgencySettingsRoute,
   AgencyTalentRoute: AgencyTalentRouteWithChildren,
   AgencyIndexRoute: AgencyIndexRoute,
 }
@@ -481,3 +502,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
