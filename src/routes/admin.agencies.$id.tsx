@@ -15,7 +15,7 @@ function AgencyDetail() {
   const [tab, setTab] = useState<Tab>("overview");
   const name = id
     .split("-")
-    .map((w) => w[0]?.toUpperCase() + w.slice(1))
+    .map((w: string) => w[0]?.toUpperCase() + w.slice(1))
     .join(" ");
 
   return (
@@ -40,7 +40,7 @@ function AgencyDetail() {
       </div>
 
       <div className="tvp-card tvp-agency-hero">
-        <div className="tvp-logo-box">{name.split(" ").map((w) => w[0]).slice(0, 3).join("")}</div>
+        <div className="tvp-logo-box">{name.split(" ").map((w: string) => w[0]).slice(0, 3).join("")}</div>
         <div>
           <h2 className="tvp-h2">{name}</h2>
           <p className="tvp-muted">Sport agency · Reg. 2026/045678/07</p>

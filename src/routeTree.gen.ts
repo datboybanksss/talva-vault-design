@@ -14,6 +14,13 @@ import { Route as LovedOneRouteImport } from './routes/loved-one'
 import { Route as AgencyRouteImport } from './routes/agency'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
+import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
+import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
+import { Route as AdminAgenciesIdRouteImport } from './routes/admin.agencies.$id'
 
 const TalentRoute = TalentRouteImport.update({
   id: '/talent',
@@ -40,40 +47,131 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInvitationsRoute = AdminInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAgenciesRoute = AdminAgenciesRouteImport.update({
+  id: '/agencies',
+  path: '/agencies',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdministratorsRoute = AdminAdministratorsRouteImport.update({
+  id: '/administrators',
+  path: '/administrators',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInvitationsNewRoute = AdminInvitationsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminInvitationsRoute,
+} as any)
+const AdminAgenciesIdRoute = AdminAgenciesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminAgenciesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/agency': typeof AgencyRoute
   '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRoute
+  '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/agencies': typeof AdminAgenciesRouteWithChildren
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/invitations': typeof AdminInvitationsRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
+  '/admin/agencies/$id': typeof AdminAgenciesIdRoute
+  '/admin/invitations/new': typeof AdminInvitationsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/agency': typeof AgencyRoute
   '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRoute
+  '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/agencies': typeof AdminAgenciesRouteWithChildren
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/invitations': typeof AdminInvitationsRouteWithChildren
+  '/admin': typeof AdminIndexRoute
+  '/admin/agencies/$id': typeof AdminAgenciesIdRoute
+  '/admin/invitations/new': typeof AdminInvitationsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/agency': typeof AgencyRoute
   '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRoute
+  '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/agencies': typeof AdminAgenciesRouteWithChildren
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/invitations': typeof AdminInvitationsRouteWithChildren
+  '/admin/': typeof AdminIndexRoute
+  '/admin/agencies/$id': typeof AdminAgenciesIdRoute
+  '/admin/invitations/new': typeof AdminInvitationsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/agency' | '/loved-one' | '/talent'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/agency'
+    | '/loved-one'
+    | '/talent'
+    | '/admin/administrators'
+    | '/admin/agencies'
+    | '/admin/audit'
+    | '/admin/invitations'
+    | '/admin/'
+    | '/admin/agencies/$id'
+    | '/admin/invitations/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/agency' | '/loved-one' | '/talent'
-  id: '__root__' | '/' | '/admin' | '/agency' | '/loved-one' | '/talent'
+  to:
+    | '/'
+    | '/agency'
+    | '/loved-one'
+    | '/talent'
+    | '/admin/administrators'
+    | '/admin/agencies'
+    | '/admin/audit'
+    | '/admin/invitations'
+    | '/admin'
+    | '/admin/agencies/$id'
+    | '/admin/invitations/new'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/agency'
+    | '/loved-one'
+    | '/talent'
+    | '/admin/administrators'
+    | '/admin/agencies'
+    | '/admin/audit'
+    | '/admin/invitations'
+    | '/admin/'
+    | '/admin/agencies/$id'
+    | '/admin/invitations/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AgencyRoute: typeof AgencyRoute
   LovedOneRoute: typeof LovedOneRoute
   TalentRoute: typeof TalentRoute
@@ -116,12 +214,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/invitations': {
+      id: '/admin/invitations'
+      path: '/invitations'
+      fullPath: '/admin/invitations'
+      preLoaderRoute: typeof AdminInvitationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/agencies': {
+      id: '/admin/agencies'
+      path: '/agencies'
+      fullPath: '/admin/agencies'
+      preLoaderRoute: typeof AdminAgenciesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/administrators': {
+      id: '/admin/administrators'
+      path: '/administrators'
+      fullPath: '/admin/administrators'
+      preLoaderRoute: typeof AdminAdministratorsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/invitations/new': {
+      id: '/admin/invitations/new'
+      path: '/new'
+      fullPath: '/admin/invitations/new'
+      preLoaderRoute: typeof AdminInvitationsNewRouteImport
+      parentRoute: typeof AdminInvitationsRoute
+    }
+    '/admin/agencies/$id': {
+      id: '/admin/agencies/$id'
+      path: '/$id'
+      fullPath: '/admin/agencies/$id'
+      preLoaderRoute: typeof AdminAgenciesIdRouteImport
+      parentRoute: typeof AdminAgenciesRoute
+    }
   }
 }
 
+interface AdminAgenciesRouteChildren {
+  AdminAgenciesIdRoute: typeof AdminAgenciesIdRoute
+}
+
+const AdminAgenciesRouteChildren: AdminAgenciesRouteChildren = {
+  AdminAgenciesIdRoute: AdminAgenciesIdRoute,
+}
+
+const AdminAgenciesRouteWithChildren = AdminAgenciesRoute._addFileChildren(
+  AdminAgenciesRouteChildren,
+)
+
+interface AdminInvitationsRouteChildren {
+  AdminInvitationsNewRoute: typeof AdminInvitationsNewRoute
+}
+
+const AdminInvitationsRouteChildren: AdminInvitationsRouteChildren = {
+  AdminInvitationsNewRoute: AdminInvitationsNewRoute,
+}
+
+const AdminInvitationsRouteWithChildren =
+  AdminInvitationsRoute._addFileChildren(AdminInvitationsRouteChildren)
+
+interface AdminRouteChildren {
+  AdminAdministratorsRoute: typeof AdminAdministratorsRoute
+  AdminAgenciesRoute: typeof AdminAgenciesRouteWithChildren
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminInvitationsRoute: typeof AdminInvitationsRouteWithChildren
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdministratorsRoute: AdminAdministratorsRoute,
+  AdminAgenciesRoute: AdminAgenciesRouteWithChildren,
+  AdminAuditRoute: AdminAuditRoute,
+  AdminInvitationsRoute: AdminInvitationsRouteWithChildren,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AgencyRoute: AgencyRoute,
   LovedOneRoute: LovedOneRoute,
   TalentRoute: TalentRoute,
