@@ -152,6 +152,33 @@ function AdminDashboard() {
           <Link to="/admin/agencies" className="tvp-link">View all agencies →</Link>
         </div>
 
+        <div className="flex flex-wrap gap-2 mb-4">
+          <select className="tvp-select">
+            <option>Agency Type: All</option>
+            <option>Sports Agency</option>
+            <option>Arts Agency</option>
+            <option>Talent Agency</option>
+            <option>Mixed Agency</option>
+          </select>
+          <select className="tvp-select">
+            <option>Owner: All</option>
+            <option>Thandi Ndlovu</option>
+            <option>Lara Prasad</option>
+            <option>Israel Noko</option>
+            <option>Aviwe Okafor</option>
+          </select>
+          <select className="tvp-select">
+            <option>Status: All</option>
+            <option>Incomplete</option>
+            <option>Invited</option>
+            <option>Accepted</option>
+            <option>Expired</option>
+            <option>Declined</option>
+            <option>Suspended</option>
+          </select>
+          <button className="tvp-link" onClick={() => setFilter("all")}>Reset filters</button>
+        </div>
+
         <div className="tvp-life-chips">
           {(Object.keys(counts) as Status[]).map((s) => (
             <button
