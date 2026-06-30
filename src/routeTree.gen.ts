@@ -14,6 +14,7 @@ import { Route as LovedOneRouteImport } from './routes/loved-one'
 import { Route as AgencyRouteImport } from './routes/agency'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgencyIndexRouteImport } from './routes/agency.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
@@ -46,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AgencyIndexRoute = AgencyIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgencyRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
@@ -86,7 +92,7 @@ const AdminAgenciesIdRoute = AdminAgenciesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/agency': typeof AgencyRoute
+  '/agency': typeof AgencyRouteWithChildren
   '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -94,12 +100,12 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AdminAuditRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/agency/': typeof AgencyIndexRoute
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agency': typeof AgencyRoute
   '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -107,6 +113,7 @@ export interface FileRoutesByTo {
   '/admin/audit': typeof AdminAuditRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin': typeof AdminIndexRoute
+  '/agency': typeof AgencyIndexRoute
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
 }
@@ -114,7 +121,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/agency': typeof AgencyRoute
+  '/agency': typeof AgencyRouteWithChildren
   '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -122,6 +129,7 @@ export interface FileRoutesById {
   '/admin/audit': typeof AdminAuditRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/agency/': typeof AgencyIndexRoute
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
 }
@@ -138,12 +146,12 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/invitations'
     | '/admin/'
+    | '/agency/'
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/agency'
     | '/loved-one'
     | '/talent'
     | '/admin/administrators'
@@ -151,6 +159,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/invitations'
     | '/admin'
+    | '/agency'
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
   id:
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/invitations'
     | '/admin/'
+    | '/agency/'
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
   fileRoutesById: FileRoutesById
@@ -172,7 +182,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
-  AgencyRoute: typeof AgencyRoute
+  AgencyRoute: typeof AgencyRouteWithChildren
   LovedOneRoute: typeof LovedOneRoute
   TalentRoute: typeof TalentRoute
 }
@@ -213,6 +223,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/agency/': {
+      id: '/agency/'
+      path: '/'
+      fullPath: '/agency/'
+      preLoaderRoute: typeof AgencyIndexRouteImport
+      parentRoute: typeof AgencyRoute
     }
     '/admin/': {
       id: '/admin/'
@@ -307,10 +324,21 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface AgencyRouteChildren {
+  AgencyIndexRoute: typeof AgencyIndexRoute
+}
+
+const AgencyRouteChildren: AgencyRouteChildren = {
+  AgencyIndexRoute: AgencyIndexRoute,
+}
+
+const AgencyRouteWithChildren =
+  AgencyRoute._addFileChildren(AgencyRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
-  AgencyRoute: AgencyRoute,
+  AgencyRoute: AgencyRouteWithChildren,
   LovedOneRoute: LovedOneRoute,
   TalentRoute: TalentRoute,
 }
