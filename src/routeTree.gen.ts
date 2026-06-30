@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgencyIndexRouteImport } from './routes/agency.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
+import { Route as AgencyQuotesInvoicesRouteImport } from './routes/agency.quotes-invoices'
 import { Route as AgencyInvitationsRouteImport } from './routes/agency.invitations'
 import { Route as AgencyDocumentVaultRouteImport } from './routes/agency.document-vault'
 import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
@@ -65,6 +66,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const AgencyTalentRoute = AgencyTalentRouteImport.update({
   id: '/talent',
   path: '/talent',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyQuotesInvoicesRoute = AgencyQuotesInvoicesRouteImport.update({
+  id: '/quotes-invoices',
+  path: '/quotes-invoices',
   getParentRoute: () => AgencyRoute,
 } as any)
 const AgencyInvitationsRoute = AgencyInvitationsRouteImport.update({
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/invitations': typeof AgencyInvitationsRoute
+  '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/agency/': typeof AgencyIndexRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/invitations': typeof AgencyInvitationsRoute
+  '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/admin': typeof AdminIndexRoute
   '/agency': typeof AgencyIndexRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/invitations': typeof AgencyInvitationsRoute
+  '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/admin/': typeof AdminIndexRoute
   '/agency/': typeof AgencyIndexRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/admin/invitations'
     | '/agency/document-vault'
     | '/agency/invitations'
+    | '/agency/quotes-invoices'
     | '/agency/talent'
     | '/admin/'
     | '/agency/'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/admin/invitations'
     | '/agency/document-vault'
     | '/agency/invitations'
+    | '/agency/quotes-invoices'
     | '/agency/talent'
     | '/admin'
     | '/agency'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/admin/invitations'
     | '/agency/document-vault'
     | '/agency/invitations'
+    | '/agency/quotes-invoices'
     | '/agency/talent'
     | '/admin/'
     | '/agency/'
@@ -291,6 +303,13 @@ declare module '@tanstack/react-router' {
       path: '/talent'
       fullPath: '/agency/talent'
       preLoaderRoute: typeof AgencyTalentRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/quotes-invoices': {
+      id: '/agency/quotes-invoices'
+      path: '/quotes-invoices'
+      fullPath: '/agency/quotes-invoices'
+      preLoaderRoute: typeof AgencyQuotesInvoicesRouteImport
       parentRoute: typeof AgencyRoute
     }
     '/agency/invitations': {
@@ -415,6 +434,7 @@ const AgencyTalentRouteWithChildren = AgencyTalentRoute._addFileChildren(
 interface AgencyRouteChildren {
   AgencyDocumentVaultRoute: typeof AgencyDocumentVaultRoute
   AgencyInvitationsRoute: typeof AgencyInvitationsRoute
+  AgencyQuotesInvoicesRoute: typeof AgencyQuotesInvoicesRoute
   AgencyTalentRoute: typeof AgencyTalentRouteWithChildren
   AgencyIndexRoute: typeof AgencyIndexRoute
 }
@@ -422,6 +442,7 @@ interface AgencyRouteChildren {
 const AgencyRouteChildren: AgencyRouteChildren = {
   AgencyDocumentVaultRoute: AgencyDocumentVaultRoute,
   AgencyInvitationsRoute: AgencyInvitationsRoute,
+  AgencyQuotesInvoicesRoute: AgencyQuotesInvoicesRoute,
   AgencyTalentRoute: AgencyTalentRouteWithChildren,
   AgencyIndexRoute: AgencyIndexRoute,
 }
