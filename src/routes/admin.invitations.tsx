@@ -27,6 +27,20 @@ function InvitationsPage() {
   const [tab, setTab] = useState("all");
   const visible = tab === "all" ? invites : invites.filter((i) => i.status === tab);
 
+  const exportCsv = () => {
+    const headers = ["Agency", "Code", "Contact", "Email", "Sent By", "Sent Date", "Expires In", "Status"];
+    const rows = visible.map((i) => [i.agency, i.code, i.contact, i.email, i.sentBy, i.sentDate, i.expires.label, i.status]);
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `invitations-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <div className="tvp-topbar">
@@ -35,12 +49,13 @@ function InvitationsPage() {
           <div className="tvp-subtitle">Track and manage agency invitations sent by TalVault Admin.</div>
         </div>
         <div className="tvp-actions">
-          <button className="tvp-secondary"><Download className="h-4 w-4" />Export</button>
+          <button className="tvp-secondary" onClick={exportCsv}><Download className="h-4 w-4" />Export</button>
           <Link to="/admin/invitations/new" className="tvp-primary">
             <Send className="h-4 w-4" />Send Invitation
           </Link>
         </div>
       </div>
+
 
       <div className="tvp-callout">
         <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
