@@ -30,6 +30,20 @@ function AgenciesPage() {
   const [tab, setTab] = useState("all");
   const visible = tab === "all" ? agencies : agencies.filter((a) => a.status === tab);
 
+  const exportCsv = () => {
+    const headers = ["Agency", "Registration", "Status", "Owner", "Joined", "Talent", "Next Action"];
+    const rows = visible.map((a) => [a.name, a.reg, a.status, a.owner, a.joined, String(a.talent), a.next]);
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `agencies-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <div className="tvp-topbar">
@@ -38,8 +52,9 @@ function AgenciesPage() {
           <div className="tvp-subtitle">Manage and monitor all agency accounts.</div>
         </div>
         <div className="tvp-actions">
-          <button className="tvp-secondary"><Download className="h-4 w-4" />Export</button>
+          <button className="tvp-secondary" onClick={exportCsv}><Download className="h-4 w-4" />Export</button>
           <button className="tvp-secondary"><Filter className="h-4 w-4" />Filters</button>
+
           <Link to="/admin/invitations/new" className="tvp-primary">
             <Plus className="h-4 w-4" />Add Agency
           </Link>
