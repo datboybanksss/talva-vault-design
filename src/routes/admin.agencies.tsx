@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Filter, Plus, MoreVertical, Building2, CheckCircle2, Send, Clock, Ban, X } from "lucide-react";
+import { Download, Filter, Plus, MoreVertical, Building2, CheckCircle2, Send, Clock, Ban, X, Lock } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/admin/agencies")({
