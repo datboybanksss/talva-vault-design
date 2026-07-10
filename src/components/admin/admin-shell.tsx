@@ -55,6 +55,7 @@ const initialNotifications: Notification[] = [
 export function AdminShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +66,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
   }, []);
+
+  const dismissNotification = (id: string) =>
+    setNotifications((ns) => ns.filter((n) => n.id !== id));
 
   const isActive = (item: NavItem) => {
     if (item.match === "exact") return pathname === item.to;
