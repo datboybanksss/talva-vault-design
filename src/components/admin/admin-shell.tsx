@@ -13,7 +13,7 @@ import {
   Info,
   Clock,
   Users,
-} from "lucide-react";
+  X,
 
 type NavItem = {
   to: string;
