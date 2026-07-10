@@ -182,7 +182,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                       <div style={{ flex: 1 }}>
                         <strong>{n.title}</strong>
                         <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                          {n.detail} <span style={{ opacity: 0.7 }}>· {n.rule}</span>
+                          {n.detail}
                         </div>
                       </div>
                     </>
