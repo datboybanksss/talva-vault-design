@@ -169,12 +169,7 @@ function InvitationsPage() {
 
       <div className="tvp-callout">
         <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
-        <div>
-          <strong>Invitation rules apply:</strong> each invite link is unique to the recipient (BR-INV-001).
-          Copying a link never extends or reactivates it (BR-INV-002). Recipient email can only be edited
-          before acceptance (BR-INV-003/004). Resending logs a new send event and may refresh expiry (BR-INV-005).
-          Every resend, copy, email update and revoke is audit-logged (BR-INV-006).
-        </div>
+        <div><strong>This screen shows only invitations sent by TalVault Admin to agency contacts.</strong></div>
       </div>
 
       <div className="tvp-tabs">
