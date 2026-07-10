@@ -29,6 +29,7 @@ const manage: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
   { to: "/admin/agencies", label: "Agencies", icon: <Building2 />, badge: 9 },
   { to: "/admin/invitations", label: <>Agency<br />Invitations</>, icon: <Send />, badge: 3 },
+  { to: "/admin/quotes-invoices", label: <>Quotes &<br />Invoices</>, icon: <FileText /> },
   { to: "/admin/audit", label: "Audit & Support Log", icon: <ScrollText /> },
 ];
 
