@@ -266,7 +266,7 @@ function InvitationsPage() {
       <div className="tvp-card tvp-panel" style={{ marginTop: 16 }}>
         <div className="tvp-panel-head">
           <h2 className="tvp-h2"><ShieldCheck className="h-4 w-4 inline mr-1" /> Invitation audit trail</h2>
-          <span className="tvp-muted">BR-INV-006 · session-only view</span>
+          <span className="tvp-muted">Session-only view</span>
         </div>
         {audit.length === 0 ? (
           <div className="tvp-muted" style={{ padding: "8px 2px" }}>
