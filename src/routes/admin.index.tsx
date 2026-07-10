@@ -58,6 +58,28 @@ function AdminDashboard() {
     return c;
   }, []);
 
+  const [refreshedAt, setRefreshedAt] = useState<Date>(() => new Date());
+  const [nowTick, setNowTick] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const freshnessLabel = useMemo(() => {
+    const diffSec = Math.max(0, Math.round((nowTick - refreshedAt.getTime()) / 1000));
+    if (diffSec < 60) return "just now";
+    const mins = Math.floor(diffSec / 60);
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs}h ago`;
+  }, [nowTick, refreshedAt]);
+
+  const refreshMetrics = () => {
+    setRefreshedAt(new Date());
+    setNowTick(Date.now());
+  };
+
   return (
     <>
       <div className="tvp-topbar">
@@ -67,13 +89,23 @@ function AdminDashboard() {
             A consolidated reporting view across agencies, talent, documents and invitation activity.
           </div>
         </div>
+        <div className="tvp-actions">
+          <span className="tvp-muted" style={{ fontSize: 12 }}>
+            Metrics refreshed {freshnessLabel} · BR-REP-006
+          </span>
+          <button className="tvp-secondary" onClick={refreshMetrics}>
+            <RefreshCw className="h-4 w-4" />Refresh
+          </button>
+        </div>
       </div>
 
       <div className="tvp-reporting-note">
         <div className="tvp-note-icon"><Info className="h-4 w-4" /></div>
         <div>
-          <strong>Admin reporting rule:</strong> aggregate platform-level counts and operational metadata only.
-          Admin cannot view Talent Private Vault document contents from this dashboard.
+          <strong>Admin reporting rule (BR-REP-001…005):</strong> aggregate platform-level counts and
+          operational metadata only. Private Vault totals are shown as counts — Admin cannot open or
+          preview Talent Private Vault contents from this dashboard (BR-REP-004 / BR-PERM-002).
+          Agency Shared Folder content access requires explicit support / legal permission (BR-REP-005 / BR-PERM-003).
         </div>
       </div>
 
