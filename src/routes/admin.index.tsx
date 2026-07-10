@@ -91,7 +91,7 @@ function AdminDashboard() {
         </div>
         <div className="tvp-actions">
           <span className="tvp-muted" style={{ fontSize: 12 }}>
-            Metrics refreshed {freshnessLabel} · BR-REP-006
+            Metrics refreshed {freshnessLabel}
           </span>
           <button className="tvp-secondary" onClick={refreshMetrics}>
             <RefreshCw className="h-4 w-4" />Refresh
