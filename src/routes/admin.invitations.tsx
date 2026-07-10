@@ -169,12 +169,7 @@ function InvitationsPage() {
 
       <div className="tvp-callout">
         <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
-        <div>
-          <strong>Invitation rules apply:</strong> each invite link is unique to the recipient (BR-INV-001).
-          Copying a link never extends or reactivates it (BR-INV-002). Recipient email can only be edited
-          before acceptance (BR-INV-003/004). Resending logs a new send event and may refresh expiry (BR-INV-005).
-          Every resend, copy, email update and revoke is audit-logged (BR-INV-006).
-        </div>
+        <div><strong>This screen shows only invitations sent by TalVault Admin to agency contacts.</strong></div>
       </div>
 
       <div className="tvp-tabs">
@@ -208,12 +203,12 @@ function InvitationsPage() {
             {visible.map((i) => {
               const isInvited = i.status === "Invited";
               const isExpired = i.status === "Expired";
-              const canEditEmail = isInvited || isExpired; // BR-INV-003
-              const canResend = isInvited || isExpired;    // BR-INV-005
+              const canEditEmail = isInvited || isExpired;
+              const canResend = isInvited || isExpired;
               const canRevoke = isInvited || isExpired;
               const canCopy = i.status !== "Revoked";
               const emailEditReason = i.status === "Accepted"
-                ? "Email locked — account already accepted (BR-INV-004). Use account update process."
+                ? "Email locked — account already accepted. Use account update process."
                 : i.status === "Declined"
                 ? "Declined invites cannot be edited."
                 : i.status === "Revoked"
@@ -271,7 +266,7 @@ function InvitationsPage() {
       <div className="tvp-card tvp-panel" style={{ marginTop: 16 }}>
         <div className="tvp-panel-head">
           <h2 className="tvp-h2"><ShieldCheck className="h-4 w-4 inline mr-1" /> Invitation audit trail</h2>
-          <span className="tvp-muted">BR-INV-006 · session-only view</span>
+          <span className="tvp-muted">Session-only view</span>
         </div>
         {audit.length === 0 ? (
           <div className="tvp-muted" style={{ padding: "8px 2px" }}>
@@ -316,7 +311,7 @@ function InvitationsPage() {
               <button className="tvp-mini-btn" onClick={() => setEditing(null)}><X className="h-4 w-4" /></button>
             </div>
             <div className="tvp-muted" style={{ marginBottom: 10 }}>
-              {editing.agency} · {editing.code}. Allowed only before acceptance (BR-INV-003).
+              {editing.agency} · {editing.code}. Allowed only before acceptance.
             </div>
             <input
               className="tvp-search"

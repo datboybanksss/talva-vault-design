@@ -164,7 +164,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 </div>
                 {notifications.length === 0 && (
                   <div className="tvp-muted" style={{ padding: "10px 2px" }}>
-                    All caught up. New reminders appear here per BR-BELL-001…006.
+                    All caught up.
                   </div>
                 )}
                 {notifications.map((n) => {
@@ -182,7 +182,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                       <div style={{ flex: 1 }}>
                         <strong>{n.title}</strong>
                         <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                          {n.detail} <span style={{ opacity: 0.7 }}>· {n.rule}</span>
+                          {n.detail}
                         </div>
                       </div>
                     </>

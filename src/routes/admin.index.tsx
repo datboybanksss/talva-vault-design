@@ -91,7 +91,7 @@ function AdminDashboard() {
         </div>
         <div className="tvp-actions">
           <span className="tvp-muted" style={{ fontSize: 12 }}>
-            Metrics refreshed {freshnessLabel} · BR-REP-006
+            Metrics refreshed {freshnessLabel}
           </span>
           <button className="tvp-secondary" onClick={refreshMetrics}>
             <RefreshCw className="h-4 w-4" />Refresh
@@ -99,15 +99,6 @@ function AdminDashboard() {
         </div>
       </div>
 
-      <div className="tvp-reporting-note">
-        <div className="tvp-note-icon"><Info className="h-4 w-4" /></div>
-        <div>
-          <strong>Admin reporting rule (BR-REP-001…005):</strong> aggregate platform-level counts and
-          operational metadata only. Private Vault totals are shown as counts — Admin cannot open or
-          preview Talent Private Vault contents from this dashboard (BR-REP-004 / BR-PERM-002).
-          Agency Shared Folder content access requires explicit support / legal permission (BR-REP-005 / BR-PERM-003).
-        </div>
-      </div>
 
       <div className="tvp-grid tvp-kpi-grid">
         <Link to="/admin/agencies" className="tvp-card tvp-kpi tvp-clickable">

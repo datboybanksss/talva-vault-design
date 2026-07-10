@@ -104,7 +104,7 @@ function AgenciesPage() {
                     {a.status === "Suspended" && (
                       <span
                         className="tvp-muted"
-                        title="Suspended: active actions blocked, read-only + export preserved (BR-PERM-004)"
+                        title="Suspended: active actions blocked, read-only + export preserved"
                         style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, fontSize: 11 }}
                       >
                         <Lock className="h-3 w-3" /> read-only
@@ -120,7 +120,7 @@ function AgenciesPage() {
                       className="tvp-mini-btn"
                       disabled={a.status === "Suspended"}
                       title={a.status === "Suspended"
-                        ? "Active actions blocked while suspended (BR-PERM-004). Use Export for read-only access."
+                        ? "Active actions blocked while suspended. Use Export for read-only access."
                         : "Row actions"}
                     >
                       <MoreVertical className="h-4 w-4" />
