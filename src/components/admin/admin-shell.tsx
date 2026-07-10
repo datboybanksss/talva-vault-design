@@ -13,7 +13,9 @@ import {
   Info,
   Clock,
   Users,
+  X,
 } from "lucide-react";
+
 
 type NavItem = {
   to: string;
@@ -34,17 +36,28 @@ const settings: NavItem[] = [
   { to: "/admin/administrators", label: "Administrators", icon: <ShieldCheck /> },
 ];
 
-const notifications = [
-  { tone: "amber", icon: "✈", title: "2 agency invites expiring soon", detail: "Within the configured reminder window." },
-  { tone: "red", icon: "!", title: "1 agency invite expired", detail: "Requires resend, correction, or close-out." },
-  { tone: "purple", icon: "…", title: "5 agencies incomplete", detail: "Onboarding or document review outstanding." },
-  { tone: "blue", icon: "👥", title: "2 Talent invites pending too long", detail: "From agency-level Talent invite records." },
-  { tone: "teal", icon: "§", title: "System copy / legal review reminder", detail: "T&Cs and privacy disclaimers due review." },
+type Notification = {
+  id: string;
+  tone: string;
+  title: string;
+  detail: string;
+  rule: string;
+  to?: string;
+};
+
+const initialNotifications: Notification[] = [
+  { id: "bell-001", tone: "amber", title: "2 agency invites expiring soon", detail: "Within the configured reminder window.", rule: "BR-BELL-001", to: "/admin/invitations" },
+  { id: "bell-002", tone: "red", title: "1 agency invite expired", detail: "Requires resend, correction, or close-out.", rule: "BR-BELL-002", to: "/admin/invitations" },
+  { id: "bell-003", tone: "purple", title: "5 agencies incomplete", detail: "Onboarding or document review outstanding.", rule: "BR-BELL-003", to: "/admin/agencies" },
+  { id: "bell-004", tone: "blue", title: "2 Talent invites pending too long", detail: "From agency-level Talent invite records.", rule: "BR-BELL-004", to: "/admin/agencies" },
+  { id: "bell-005", tone: "red", title: "1 suspended agency needs review", detail: "Suspension follow-up outstanding.", rule: "BR-BELL-005", to: "/admin/agencies" },
+  { id: "bell-006", tone: "teal", title: "Legal / copy review reminder", detail: "T&Cs and privacy disclaimers due review.", rule: "BR-BELL-006" },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +68,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
   }, []);
+
+  const dismissNotification = (id: string) =>
+    setNotifications((ns) => ns.filter((n) => n.id !== id));
 
   const isActive = (item: NavItem) => {
     if (item.match === "exact") return pathname === item.to;
@@ -131,7 +147,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
-              <span className="tvp-dot">6</span>
+              {notifications.length > 0 && (
+                <span className="tvp-dot">{notifications.length}</span>
+              )}
             </button>
             {bellOpen && (
               <div className="tvp-notification-panel">
@@ -144,24 +162,59 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     View audit log
                   </Link>
                 </div>
-                {notifications.map((n, i) => {
+                {notifications.length === 0 && (
+                  <div className="tvp-muted" style={{ padding: "10px 2px" }}>
+                    All caught up. New reminders appear here per BR-BELL-001…006.
+                  </div>
+                )}
+                {notifications.map((n) => {
                   const Icon =
                     n.tone === "amber" ? Clock :
                     n.tone === "red" ? AlertTriangle :
                     n.tone === "blue" ? Users :
                     n.tone === "purple" ? Info :
                     Info;
-                  return (
-                    <div className="tvp-notification-item" key={i}>
+                  const body = (
+                    <>
                       <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <strong>{n.title}</strong>
                         <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                          {n.detail}
+                          {n.detail} <span style={{ opacity: 0.7 }}>· {n.rule}</span>
                         </div>
                       </div>
+                    </>
+                  );
+                  return (
+                    <div
+                      className="tvp-notification-item"
+                      key={n.id}
+                      style={{ alignItems: "flex-start", gap: 8 }}
+                    >
+                      {n.to ? (
+                        <Link
+                          to={n.to}
+                          onClick={() => setBellOpen(false)}
+                          style={{ display: "flex", gap: 10, flex: 1, textDecoration: "none", color: "inherit" }}
+                        >
+                          {body}
+                        </Link>
+                      ) : (
+                        <div style={{ display: "flex", gap: 10, flex: 1 }}>{body}</div>
+                      )}
+                      <button
+                        className="tvp-mini-btn"
+                        title="Dismiss reminder"
+                        aria-label="Dismiss reminder"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dismissNotification(n.id);
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   );
                 })}
