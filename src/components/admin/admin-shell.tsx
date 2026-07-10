@@ -145,7 +145,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
-              <span className="tvp-dot">6</span>
+              {notifications.length > 0 && (
+                <span className="tvp-dot">{notifications.length}</span>
+              )}
             </button>
             {bellOpen && (
               <div className="tvp-notification-panel">
@@ -158,24 +160,59 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     View audit log
                   </Link>
                 </div>
-                {notifications.map((n, i) => {
+                {notifications.length === 0 && (
+                  <div className="tvp-muted" style={{ padding: "10px 2px" }}>
+                    All caught up. New reminders appear here per BR-BELL-001…006.
+                  </div>
+                )}
+                {notifications.map((n) => {
                   const Icon =
                     n.tone === "amber" ? Clock :
                     n.tone === "red" ? AlertTriangle :
                     n.tone === "blue" ? Users :
                     n.tone === "purple" ? Info :
                     Info;
-                  return (
-                    <div className="tvp-notification-item" key={i}>
+                  const body = (
+                    <>
                       <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <strong>{n.title}</strong>
                         <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                          {n.detail}
+                          {n.detail} <span style={{ opacity: 0.7 }}>· {n.rule}</span>
                         </div>
                       </div>
+                    </>
+                  );
+                  return (
+                    <div
+                      className="tvp-notification-item"
+                      key={n.id}
+                      style={{ alignItems: "flex-start", gap: 8 }}
+                    >
+                      {n.to ? (
+                        <Link
+                          to={n.to}
+                          onClick={() => setBellOpen(false)}
+                          style={{ display: "flex", gap: 10, flex: 1, textDecoration: "none", color: "inherit" }}
+                        >
+                          {body}
+                        </Link>
+                      ) : (
+                        <div style={{ display: "flex", gap: 10, flex: 1 }}>{body}</div>
+                      )}
+                      <button
+                        className="tvp-mini-btn"
+                        title="Dismiss reminder"
+                        aria-label="Dismiss reminder"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dismissNotification(n.id);
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   );
                 })}
