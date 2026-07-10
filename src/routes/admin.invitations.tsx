@@ -203,12 +203,12 @@ function InvitationsPage() {
             {visible.map((i) => {
               const isInvited = i.status === "Invited";
               const isExpired = i.status === "Expired";
-              const canEditEmail = isInvited || isExpired; // BR-INV-003
-              const canResend = isInvited || isExpired;    // BR-INV-005
+              const canEditEmail = isInvited || isExpired;
+              const canResend = isInvited || isExpired;
               const canRevoke = isInvited || isExpired;
               const canCopy = i.status !== "Revoked";
               const emailEditReason = i.status === "Accepted"
-                ? "Email locked — account already accepted (BR-INV-004). Use account update process."
+                ? "Email locked — account already accepted. Use account update process."
                 : i.status === "Declined"
                 ? "Declined invites cannot be edited."
                 : i.status === "Revoked"
