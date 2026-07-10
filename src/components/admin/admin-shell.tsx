@@ -14,6 +14,8 @@ import {
   Clock,
   Users,
   X,
+} from "lucide-react";
+
 
 type NavItem = {
   to: string;
