@@ -34,12 +34,22 @@ const settings: NavItem[] = [
   { to: "/admin/administrators", label: "Administrators", icon: <ShieldCheck /> },
 ];
 
-const notifications = [
-  { tone: "amber", icon: "✈", title: "2 agency invites expiring soon", detail: "Within the configured reminder window." },
-  { tone: "red", icon: "!", title: "1 agency invite expired", detail: "Requires resend, correction, or close-out." },
-  { tone: "purple", icon: "…", title: "5 agencies incomplete", detail: "Onboarding or document review outstanding." },
-  { tone: "blue", icon: "👥", title: "2 Talent invites pending too long", detail: "From agency-level Talent invite records." },
-  { tone: "teal", icon: "§", title: "System copy / legal review reminder", detail: "T&Cs and privacy disclaimers due review." },
+type Notification = {
+  id: string;
+  tone: string;
+  title: string;
+  detail: string;
+  rule: string;
+  to?: string;
+};
+
+const initialNotifications: Notification[] = [
+  { id: "bell-001", tone: "amber", title: "2 agency invites expiring soon", detail: "Within the configured reminder window.", rule: "BR-BELL-001", to: "/admin/invitations" },
+  { id: "bell-002", tone: "red", title: "1 agency invite expired", detail: "Requires resend, correction, or close-out.", rule: "BR-BELL-002", to: "/admin/invitations" },
+  { id: "bell-003", tone: "purple", title: "5 agencies incomplete", detail: "Onboarding or document review outstanding.", rule: "BR-BELL-003", to: "/admin/agencies" },
+  { id: "bell-004", tone: "blue", title: "2 Talent invites pending too long", detail: "From agency-level Talent invite records.", rule: "BR-BELL-004", to: "/admin/agencies" },
+  { id: "bell-005", tone: "red", title: "1 suspended agency needs review", detail: "Suspension follow-up outstanding.", rule: "BR-BELL-005", to: "/admin/agencies" },
+  { id: "bell-006", tone: "teal", title: "Legal / copy review reminder", detail: "T&Cs and privacy disclaimers due review.", rule: "BR-BELL-006" },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {
