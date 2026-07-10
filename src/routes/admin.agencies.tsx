@@ -99,12 +99,33 @@ function AgenciesPage() {
                     </Link>
                     <br /><span className="tvp-muted">{a.reg}</span>
                   </td>
-                  <td><span className={`tvp-status tvp-${a.tone}`}>{a.status}</span></td>
+                  <td>
+                    <span className={`tvp-status tvp-${a.tone}`}>{a.status}</span>
+                    {a.status === "Suspended" && (
+                      <span
+                        className="tvp-muted"
+                        title="Suspended: active actions blocked, read-only + export preserved (BR-PERM-004)"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, fontSize: 11 }}
+                      >
+                        <Lock className="h-3 w-3" /> read-only
+                      </span>
+                    )}
+                  </td>
                   <td>{a.owner}</td>
                   <td>{a.joined}</td>
                   <td>{a.talent}</td>
                   <td>{a.next}</td>
-                  <td><button className="tvp-mini-btn"><MoreVertical className="h-4 w-4" /></button></td>
+                  <td>
+                    <button
+                      className="tvp-mini-btn"
+                      disabled={a.status === "Suspended"}
+                      title={a.status === "Suspended"
+                        ? "Active actions blocked while suspended (BR-PERM-004). Use Export for read-only access."
+                        : "Row actions"}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
