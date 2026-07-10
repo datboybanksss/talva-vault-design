@@ -311,7 +311,7 @@ function InvitationsPage() {
               <button className="tvp-mini-btn" onClick={() => setEditing(null)}><X className="h-4 w-4" /></button>
             </div>
             <div className="tvp-muted" style={{ marginBottom: 10 }}>
-              {editing.agency} · {editing.code}. Allowed only before acceptance (BR-INV-003).
+              {editing.agency} · {editing.code}. Allowed only before acceptance.
             </div>
             <input
               className="tvp-search"
