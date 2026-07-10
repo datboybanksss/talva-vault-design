@@ -6,6 +6,7 @@ import {
   Building2,
   Send,
   ScrollText,
+  FileText,
   ShieldCheck,
   Bell,
   LogOut,
