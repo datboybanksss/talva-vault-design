@@ -12,6 +12,8 @@ import {
   friendlyAuthError,
 } from "@/lib/password";
 
+const searchSchema = z.object({ next: z.string().optional() });
+
 export const Route = createFileRoute("/auth")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
