@@ -477,7 +477,9 @@
   & .tvp-user-dot {
     width: 42px; height: 42px; border-radius: 50%; background: #0A93A1; color: white;
     display: grid; place-items: center; font-weight: 900; font-size: 14px;
+    text-decoration: none; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease;
   }
+  & a.tvp-user-dot:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(8,106,112,.22); }
   & .tvp-search-top { width: 240px; height: 42px; border: 1px solid var(--tvp-line-strong); background: white; border-radius: 12px; padding: 0 14px; font-size: 13px; color: var(--tvp-ink); }
   & .tvp-search-top:focus { outline: none; border-color: var(--tvp-teal-2); box-shadow: 0 0 0 3px rgba(16,139,149,.18); }
 
