@@ -344,73 +344,8 @@ function AdminsPage() {
             </table>
           </div>
         </>
-      )}
 
 
-      {tab === "legal" && (
-        <div className="tvp-card">
-          <div className="tvp-toolbar">
-            <h2 className="tvp-h2">Legal & Copy Review</h2>
-            <span className="tvp-muted" style={{ fontSize: 12 }}>
-              T&Cs, disclaimers and system copy. Placeholder items appear in the bell until approved.
-            </span>
-          </div>
-          <table className="tvp-table">
-            <thead>
-              <tr>
-                <th>Item</th><th>Status</th><th>Updated</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(legal.data ?? []).length === 0 && !legal.isLoading && (
-                <tr><td colSpan={4} className="tvp-muted">No legal / copy items configured yet.</td></tr>
-              )}
-              {(legal.data ?? []).map((l: any) => (
-                <tr key={l.id}>
-                  <td>
-                    <strong>{l.title}</strong>
-                    {l.body && (
-                      <>
-                        <br />
-                        <span className="tvp-muted" style={{ fontSize: 12 }}>{l.body}</span>
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    <span
-                      className={`tvp-status tvp-${
-                        l.status === "approved"
-                          ? "green"
-                          : l.status === "in_review"
-                            ? "amber"
-                            : "red"
-                      }`}
-                    >
-                      {l.status.replace("_", " ")}
-                    </span>
-                  </td>
-                  <td>
-                    {new Date(l.updated_at).toLocaleDateString("en-GB", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
-                  </td>
-                  <td>
-                    {l.status !== "approved" && canEdit && (
-                      <button
-                        className="tvp-secondary"
-                        onClick={() => approve.mutate(l.id)}
-                        disabled={approve.isPending}
-                      >
-                        Mark approved
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
 
 
