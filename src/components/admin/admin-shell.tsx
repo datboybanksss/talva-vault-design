@@ -1,6 +1,6 @@
 import { type ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ChevronLeft,
@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { whoami, listNotifications } from "@/lib/admin.functions";
+import { whoami, listNotifications, dismissNotification } from "@/lib/admin.functions";
 
 type NavItem = {
   to: string;
@@ -78,6 +78,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const whoamiFn = useServerFn(whoami);
   const listNotificationsFn = useServerFn(listNotifications);
+  const dismissFn = useServerFn(dismissNotification);
 
   const { data: me } = useQuery({
     queryKey: ["whoami"],
@@ -89,10 +90,16 @@ export function AdminShell({ children }: { children: ReactNode }) {
     refetchInterval: 60_000,
   });
 
+  const dismissM = useMutation({
+    mutationFn: (id: string) => dismissFn({ data: { id } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] }),
+  });
+
   const items = [
-    ...(notifs?.computed ?? []),
+    ...(notifs?.computed ?? []).map((c: any) => ({ ...c, persisted: false })),
     ...(notifs?.persisted ?? []).map((p: any) => ({
       id: p.id,
+      persisted: true,
       kind: p.kind,
       tone:
         p.kind === "suspended_review"
@@ -260,6 +267,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
                         </Link>
                       ) : (
                         <div style={{ display: "flex", gap: 10, flex: 1 }}>{body}</div>
+                      )}
+                      {n.persisted && (
+                        <button
+                          className="tvp-mini-btn"
+                          title="Dismiss"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismissM.mutate(n.id);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       )}
                     </div>
                   );

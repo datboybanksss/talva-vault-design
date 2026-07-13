@@ -241,6 +241,65 @@ export const unsuspendAgency = createServerFn({ method: "POST" })
     return updated;
   });
 
+export const listAgencyInvitationsForAgency = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ agency_id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { data: rows, error } = await supabase
+      .from("agency_invitations")
+      .select("*")
+      .eq("agency_id", data.agency_id)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ agency_id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { data: rows, error } = await supabase
+      .from("talent_invitations")
+      .select("*")
+      .eq("agency_id", data.agency_id)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const getInvitationById = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { data: inv, error } = await supabase
+      .from("agency_invitations")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return inv;
+  });
+
+export const dismissNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { error } = await supabase
+      .from("admin_notifications")
+      .update({ dismissed_at: new Date().toISOString(), dismissed_by: userId })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // -----------------------------------------------------------------------------
 // Invitations
 // -----------------------------------------------------------------------------
