@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TalentRouteImport } from './routes/talent'
 import { Route as LovedOneRouteImport } from './routes/loved-one'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgencyRouteImport } from './routes/agency'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -44,6 +45,11 @@ const TalentRoute = TalentRouteImport.update({
 const LovedOneRoute = LovedOneRouteImport.update({
   id: '/loved-one',
   path: '/loved-one',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgencyRoute = AgencyRouteImport.update({
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/agency': typeof AgencyRouteWithChildren
+  '/auth': typeof AuthRoute
   '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/loved-one': typeof LovedOneRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/agency': typeof AgencyRouteWithChildren
+  '/auth': typeof AuthRoute
   '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/agency'
+    | '/auth'
     | '/loved-one'
     | '/talent'
     | '/admin/administrators'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/loved-one'
     | '/admin/administrators'
     | '/admin/agencies'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/agency'
+    | '/auth'
     | '/loved-one'
     | '/talent'
     | '/admin/administrators'
@@ -337,6 +349,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AgencyRoute: typeof AgencyRouteWithChildren
+  AuthRoute: typeof AuthRoute
   LovedOneRoute: typeof LovedOneRoute
   TalentRoute: typeof TalentRouteWithChildren
 }
@@ -355,6 +368,13 @@ declare module '@tanstack/react-router' {
       path: '/loved-one'
       fullPath: '/loved-one'
       preLoaderRoute: typeof LovedOneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agency': {
@@ -629,19 +649,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AgencyRoute: AgencyRouteWithChildren,
+  AuthRoute: AuthRoute,
   LovedOneRoute: LovedOneRoute,
   TalentRoute: TalentRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

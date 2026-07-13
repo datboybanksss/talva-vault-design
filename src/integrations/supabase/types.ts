@@ -1,0 +1,744 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          detail: Json | null
+          id: string
+          target_id: string | null
+          target_label: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          detail: string | null
+          dismissed_at: string | null
+          dismissed_by: string | null
+          id: string
+          kind: Database["public"]["Enums"]["notif_kind"]
+          target_id: string | null
+          target_type: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["notif_kind"]
+          target_id?: string | null
+          target_type?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["notif_kind"]
+          target_id?: string | null
+          target_type?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      agencies: {
+        Row: {
+          contact_email: string | null
+          contact_person: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: Database["public"]["Enums"]["agency_status"]
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["agency_status"]
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["agency_status"]
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agency_billing_docs: {
+        Row: {
+          agency_id: string
+          client_name: string | null
+          created_at: string
+          currency: string
+          id: string
+          issued_at: string
+          kind: Database["public"]["Enums"]["doc_kind"]
+          number: string
+          status: Database["public"]["Enums"]["doc_status"]
+          total_cents: number
+        }
+        Insert: {
+          agency_id: string
+          client_name?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          issued_at?: string
+          kind: Database["public"]["Enums"]["doc_kind"]
+          number: string
+          status?: Database["public"]["Enums"]["doc_status"]
+          total_cents?: number
+        }
+        Update: {
+          agency_id?: string
+          client_name?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          issued_at?: string
+          kind?: Database["public"]["Enums"]["doc_kind"]
+          number?: string
+          status?: Database["public"]["Enums"]["doc_status"]
+          total_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_billing_docs_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_documents: {
+        Row: {
+          agency_id: string
+          id: string
+          private_vault_count: number
+          shared_folder_count: number
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          id?: string
+          private_vault_count?: number
+          shared_folder_count?: number
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          id?: string
+          private_vault_count?: number
+          shared_folder_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_documents_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_invitations: {
+        Row: {
+          accepted_at: string | null
+          agency_id: string | null
+          agency_name: string
+          contact_person: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          last_sent_at: string
+          send_count: number
+          status: Database["public"]["Enums"]["invitation_status"]
+          supporting_docs: Json | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          agency_id?: string | null
+          agency_name: string
+          contact_person?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          last_sent_at?: string
+          send_count?: number
+          status?: Database["public"]["Enums"]["invitation_status"]
+          supporting_docs?: Json | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          agency_id?: string | null
+          agency_name?: string
+          contact_person?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          last_sent_at?: string
+          send_count?: number
+          status?: Database["public"]["Enums"]["invitation_status"]
+          supporting_docs?: Json | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_invitations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_members: {
+        Row: {
+          agency_id: string
+          created_at: string
+          id: string
+          role: string
+          suspended: boolean
+          suspended_reason: string | null
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          suspended?: boolean
+          suspended_reason?: string | null
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          suspended?: boolean
+          suspended_reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_members_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_copy_items: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          body: string | null
+          id: string
+          slug: string
+          status: Database["public"]["Enums"]["legal_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body?: string | null
+          id?: string
+          slug: string
+          status?: Database["public"]["Enums"]["legal_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body?: string | null
+          id?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["legal_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loved_one_shares: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          loved_one_email: string
+          talent_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          loved_one_email: string
+          talent_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          loved_one_email?: string
+          talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loved_one_shares_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      talent_invitations: {
+        Row: {
+          accepted_at: string | null
+          agency_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          last_sent_at: string
+          send_count: number
+          status: Database["public"]["Enums"]["invitation_status"]
+          talent_name: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          agency_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          last_sent_at?: string
+          send_count?: number
+          status?: Database["public"]["Enums"]["invitation_status"]
+          talent_name?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          agency_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          last_sent_at?: string
+          send_count?: number
+          status?: Database["public"]["Enums"]["invitation_status"]
+          talent_name?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_invitations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_profiles: {
+        Row: {
+          agency_id: string | null
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_test: boolean
+          user_id: string | null
+        }
+        Insert: {
+          agency_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          is_test?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          agency_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_test?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_profiles_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          is_main_admin: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_main_admin?: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_main_admin?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_main_admin: { Args: { _user_id: string }; Returns: boolean }
+    }
+    Enums: {
+      agency_status:
+        | "incomplete"
+        | "invited"
+        | "accepted"
+        | "expired"
+        | "declined"
+        | "suspended"
+      app_role:
+        | "admin"
+        | "agency_owner"
+        | "agency_member"
+        | "talent"
+        | "loved_one"
+      doc_kind: "quote" | "invoice"
+      doc_status:
+        | "draft"
+        | "sent"
+        | "accepted"
+        | "paid"
+        | "overdue"
+        | "cancelled"
+      invitation_status:
+        | "pending"
+        | "accepted"
+        | "expired"
+        | "declined"
+        | "revoked"
+      legal_status: "placeholder" | "in_review" | "approved"
+      notif_kind:
+        | "invite_expiring"
+        | "invite_expired"
+        | "agency_incomplete"
+        | "talent_invite_pending"
+        | "suspended_review"
+        | "legal_copy_review"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      agency_status: [
+        "incomplete",
+        "invited",
+        "accepted",
+        "expired",
+        "declined",
+        "suspended",
+      ],
+      app_role: [
+        "admin",
+        "agency_owner",
+        "agency_member",
+        "talent",
+        "loved_one",
+      ],
+      doc_kind: ["quote", "invoice"],
+      doc_status: ["draft", "sent", "accepted", "paid", "overdue", "cancelled"],
+      invitation_status: [
+        "pending",
+        "accepted",
+        "expired",
+        "declined",
+        "revoked",
+      ],
+      legal_status: ["placeholder", "in_review", "approved"],
+      notif_kind: [
+        "invite_expiring",
+        "invite_expired",
+        "agency_incomplete",
+        "talent_invite_pending",
+        "suspended_review",
+        "legal_copy_review",
+      ],
+    },
+  },
+} as const
