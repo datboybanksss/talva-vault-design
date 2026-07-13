@@ -46,6 +46,7 @@ function AgencyDetail() {
   const listAgencyInvFn = useServerFn(listAgencyInvitationsForAgency);
   const listTalentInvFn = useServerFn(listTalentInvitationsForAgency);
   const qc = useQueryClient();
+  const [suspendOpen, setSuspendOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin", "agency", id],
