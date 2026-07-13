@@ -220,7 +220,7 @@ function EmailCard({ me }: { me: any }) {
         subtitle="Requires confirmation via a link sent to the new address."
       />
 
-      <form onSubmit={request} style={{ marginTop: 12 }} noValidate>
+      <form onSubmit={request} style={{ marginTop: 8 }} noValidate>
         <div className="tv-auth-field" style={{ marginTop: 0 }}>
           <label htmlFor="email">Email</label>
           <input
@@ -239,7 +239,7 @@ function EmailCard({ me }: { me: any }) {
         {error && <div className="tv-form-alert tv-form-alert-error">{error}</div>}
         {info && <div className="tv-form-alert tv-form-alert-info">{info}</div>}
 
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 10 }}>
           <button
             type="submit"
             className="tvp-primary"
