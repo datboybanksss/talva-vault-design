@@ -687,8 +687,15 @@ function TwoFactorCard({ email }: { email: string }) {
                 borderRadius: 12,
                 width: "fit-content",
               }}
-              dangerouslySetInnerHTML={{ __html: qrSvg }}
-            />
+            >
+              <img
+                src={qrSvg}
+                alt="Two-factor authentication QR code"
+                width={192}
+                height={192}
+                style={{ display: "block" }}
+              />
+            </div>
           )}
           {secret && (
             <div className="tv-auth-hint" style={{ marginTop: 8 }}>
