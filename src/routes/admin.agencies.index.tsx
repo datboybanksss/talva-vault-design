@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Plus, Lock, Ban, RotateCcw } from "lucide-react";
+import { Download, Plus, Lock, Ban, RotateCcw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,6 +9,7 @@ import {
   unsuspendAgency,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 
 export const Route = createFileRoute("/admin/agencies/")({
   head: () => ({ meta: [{ title: "Agencies · TalVault Admin" }] }),
