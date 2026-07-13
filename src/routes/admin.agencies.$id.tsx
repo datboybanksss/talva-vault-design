@@ -110,10 +110,7 @@ function AgencyDetail() {
             ) : (
               <button
                 className="tvp-secondary"
-                onClick={() => {
-                  const reason = window.prompt(`Reason for suspending ${a.name}?`)?.trim();
-                  if (reason) suspendM.mutate(reason);
-                }}
+                onClick={() => setSuspendOpen(true)}
               >
                 <Ban className="h-4 w-4" />Suspend
               </button>
