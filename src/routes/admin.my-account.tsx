@@ -115,7 +115,7 @@ function ProfileCard({ me }: { me: any }) {
           e.preventDefault();
           save.mutate();
         }}
-        style={{ marginTop: 12 }}
+        style={{ marginTop: 8 }}
       >
         <div
           style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}
@@ -160,7 +160,7 @@ function ProfileCard({ me }: { me: any }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
           <button
             type="submit"
             className="tvp-primary"
