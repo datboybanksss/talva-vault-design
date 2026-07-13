@@ -9,6 +9,7 @@ import {
   unsuspendAgency,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 
 export const Route = createFileRoute("/admin/agencies/")({
   head: () => ({ meta: [{ title: "Agencies · TalVault Admin" }] }),
@@ -63,6 +64,7 @@ function AgenciesPage() {
 
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [suspendTarget, setSuspendTarget] = useState<{ id: string; name: string } | null>(null);
 
   const list = agencies.data ?? [];
   const visible = useMemo(() => {
@@ -105,9 +107,7 @@ function AgenciesPage() {
   };
 
   const doSuspend = (id: string, name: string) => {
-    const reason = window.prompt(`Reason for suspending "${name}"?`)?.trim();
-    if (!reason) return;
-    suspendM.mutate({ id, reason });
+    setSuspendTarget({ id, name });
   };
 
   return (
@@ -227,6 +227,20 @@ function AgenciesPage() {
           </table>
         </div>
       </div>
+
+      {suspendTarget && (
+        <SuspendAgencyDialog
+          agencyName={suspendTarget.name}
+          isPending={suspendM.isPending}
+          onCancel={() => setSuspendTarget(null)}
+          onConfirm={(reason) => {
+            suspendM.mutate(
+              { id: suspendTarget.id, reason },
+              { onSuccess: () => setSuspendTarget(null) },
+            );
+          }}
+        />
+      )}
     </>
   );
 }

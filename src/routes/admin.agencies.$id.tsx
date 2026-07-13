@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Ban, RotateCcw, Send, Users } from "lucide-react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -10,6 +11,7 @@ import {
   listTalentInvitationsForAgency,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 
 export const Route = createFileRoute("/admin/agencies/$id")({
   head: () => ({ meta: [{ title: "Agency · TalVault Admin" }] }),
@@ -44,6 +46,7 @@ function AgencyDetail() {
   const listAgencyInvFn = useServerFn(listAgencyInvitationsForAgency);
   const listTalentInvFn = useServerFn(listTalentInvitationsForAgency);
   const qc = useQueryClient();
+  const [suspendOpen, setSuspendOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin", "agency", id],
@@ -107,10 +110,7 @@ function AgencyDetail() {
             ) : (
               <button
                 className="tvp-secondary"
-                onClick={() => {
-                  const reason = window.prompt(`Reason for suspending ${a.name}?`)?.trim();
-                  if (reason) suspendM.mutate(reason);
-                }}
+                onClick={() => setSuspendOpen(true)}
               >
                 <Ban className="h-4 w-4" />Suspend
               </button>
@@ -229,6 +229,19 @@ function AgencyDetail() {
             </table>
           </div>
         </div>
+      )}
+
+      {a && suspendOpen && (
+        <SuspendAgencyDialog
+          agencyName={a.name}
+          isPending={suspendM.isPending}
+          onCancel={() => setSuspendOpen(false)}
+          onConfirm={(reason) => {
+            suspendM.mutate(reason, {
+              onSuccess: () => setSuspendOpen(false),
+            });
+          }}
+        />
       )}
     </>
   );
