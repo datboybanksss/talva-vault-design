@@ -230,6 +230,19 @@ function AgencyDetail() {
           </div>
         </div>
       )}
+
+      {a && suspendOpen && (
+        <SuspendAgencyDialog
+          agencyName={a.name}
+          isPending={suspendM.isPending}
+          onCancel={() => setSuspendOpen(false)}
+          onConfirm={(reason) => {
+            suspendM.mutate(reason, {
+              onSuccess: () => setSuspendOpen(false),
+            });
+          }}
+        />
+      )}
     </>
   );
 }
