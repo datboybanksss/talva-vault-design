@@ -1,6 +1,11 @@
 
 # Admin Portal — Backend Wiring Plan
 
+## ⚠️ Pre-launch checklist
+
+- [ ] **Re-enable "Confirm email"** in Cloud auth settings. It is currently OFF for dev/testing convenience (auto-confirm ON) — MUST be turned back on before any real launch.
+
+
 Goal: replace the Admin Portal's in-memory mock data with real, authenticated, role-gated data from Lovable Cloud, while leaving the Agency, Talent, and Loved One portals on their existing mock data for now. Schema will be designed to support all four roles from day one so we don't migrate again later.
 
 No code is changed in this plan step.
