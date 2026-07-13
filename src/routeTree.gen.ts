@@ -36,6 +36,7 @@ import { Route as AdminAdministratorsRouteImport } from './routes/admin.administ
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
 import { Route as AdminAgenciesIdRouteImport } from './routes/admin.agencies.$id'
+import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
 
 const TalentRoute = TalentRouteImport.update({
   id: '/talent',
@@ -172,6 +173,12 @@ const AdminAgenciesIdRoute = AdminAgenciesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminAgenciesRoute,
 } as any)
+const AdminInvitationsIdEmailPreviewRoute =
+  AdminInvitationsIdEmailPreviewRouteImport.update({
+    id: '/$id/email-preview',
+    path: '/$id/email-preview',
+    getParentRoute: () => AdminInvitationsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -227,6 +235,7 @@ export interface FileRoutesByTo {
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -257,6 +266,7 @@ export interface FileRoutesById {
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
     | '/agency/talent/invite'
+    | '/admin/invitations/$id/email-preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
     | '/agency/talent/invite'
+    | '/admin/invitations/$id/email-preview'
   id:
     | '__root__'
     | '/'
@@ -343,6 +355,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
     | '/agency/talent/invite'
+    | '/admin/invitations/$id/email-preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -545,6 +558,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAgenciesIdRouteImport
       parentRoute: typeof AdminAgenciesRoute
     }
+    '/admin/invitations/$id/email-preview': {
+      id: '/admin/invitations/$id/email-preview'
+      path: '/$id/email-preview'
+      fullPath: '/admin/invitations/$id/email-preview'
+      preLoaderRoute: typeof AdminInvitationsIdEmailPreviewRouteImport
+      parentRoute: typeof AdminInvitationsRoute
+    }
   }
 }
 
@@ -562,10 +582,12 @@ const AdminAgenciesRouteWithChildren = AdminAgenciesRoute._addFileChildren(
 
 interface AdminInvitationsRouteChildren {
   AdminInvitationsNewRoute: typeof AdminInvitationsNewRoute
+  AdminInvitationsIdEmailPreviewRoute: typeof AdminInvitationsIdEmailPreviewRoute
 }
 
 const AdminInvitationsRouteChildren: AdminInvitationsRouteChildren = {
   AdminInvitationsNewRoute: AdminInvitationsNewRoute,
+  AdminInvitationsIdEmailPreviewRoute: AdminInvitationsIdEmailPreviewRoute,
 }
 
 const AdminInvitationsRouteWithChildren =

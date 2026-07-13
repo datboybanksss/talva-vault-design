@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Send, Link2, RefreshCw, Ban, Pencil, X } from "lucide-react";
+import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -200,6 +200,14 @@ function InvitationsPage() {
                     <td>{i.send_count}</td>
                     <td>
                       <div style={{ display: "flex", gap: 4 }}>
+                        <Link
+                          to="/admin/invitations/$id/email-preview"
+                          params={{ id: i.id }}
+                          className="tvp-mini-btn"
+                          title="Preview branded email"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Link>
                         <button
                           className="tvp-mini-btn"
                           title="Copy invite link (does not extend expiry)"
