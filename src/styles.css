@@ -883,3 +883,17 @@
   .tv-auth .tv-auth-hero { display: none; }
   .tv-auth .tv-auth-panel { padding: 32px 20px; }
 }
+
+/* Reusable form alerts for admin/self-service pages (My Account, etc.) */
+.tv-form-alert {
+  margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+  font-size: 12.5px; line-height: 1.45; font-weight: 700;
+}
+.tv-form-alert-error {
+  background: var(--red-bg); color: var(--red);
+  border: 1px solid color-mix(in oklab, var(--red) 20%, transparent);
+}
+.tv-form-alert-info {
+  background: var(--teal-50); color: var(--teal);
+  border: 1px solid var(--teal-200);
+}
