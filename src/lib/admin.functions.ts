@@ -675,7 +675,7 @@ export const listAdministrators = createServerFn({ method: "GET" })
     await assertAdmin(supabase, userId);
     const { data: roles, error } = await supabase
       .from("user_roles")
-      .select("user_id, role, is_main_admin, created_at")
+      .select("user_id, role, is_main_admin, permission_level, created_at")
       .eq("role", "admin");
     if (error) throw new Error(error.message);
     const ids = (roles ?? []).map((r: any) => r.user_id);
@@ -690,8 +690,126 @@ export const listAdministrators = createServerFn({ method: "GET" })
       email: (profMap.get(r.user_id) as any)?.email ?? "",
       display_name: (profMap.get(r.user_id) as any)?.display_name ?? "",
       is_main_admin: r.is_main_admin,
+      permission_level: r.permission_level as "view_only" | "edit",
       created_at: r.created_at,
     }));
+  });
+
+// -----------------------------------------------------------------------------
+// Administrator invitations (Main-admin only for writes)
+// -----------------------------------------------------------------------------
+export const listAdminInvitations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { data, error } = await supabase
+      .from("admin_invitations")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const inviteAdministrator = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        email: z.string().email(),
+        permission_level: z.enum(["view_only", "edit"]),
+        expiry_days: z.number().int().min(1).max(60).default(14),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertMainAdmin(supabase, userId);
+
+    // Reject if email is already an admin
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("email", data.email)
+      .maybeSingle();
+    if (existingProfile?.id) {
+      const { data: hasAdmin } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("user_id", existingProfile.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (hasAdmin) throw new Error("That user is already an administrator.");
+    }
+
+    // Reject if a pending non-expired invite already exists
+    const { data: dupe } = await supabase
+      .from("admin_invitations")
+      .select("id")
+      .ilike("email", data.email)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (dupe?.id) throw new Error("A pending invitation already exists for that email.");
+
+    const expiresAt = new Date(
+      Date.now() + data.expiry_days * 24 * 3600 * 1000,
+    ).toISOString();
+
+    const { data: inv, error } = await supabase
+      .from("admin_invitations")
+      .insert({
+        email: data.email,
+        permission_level: data.permission_level,
+        invited_by: userId,
+        invited_by_email: claims?.email ?? null,
+        expires_at: expiresAt,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "invite_administrator",
+      "admin_invitation",
+      inv.id,
+      data.email,
+      { permission_level: data.permission_level, expires_at: expiresAt },
+    );
+    return inv;
+  });
+
+export const revokeAdminInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertMainAdmin(supabase, userId);
+    const { data: inv, error } = await supabase
+      .from("admin_invitations")
+      .update({
+        status: "revoked",
+        revoked_at: new Date().toISOString(),
+        revoked_by: userId,
+      })
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "revoke_admin_invitation",
+      "admin_invitation",
+      data.id,
+      inv.email,
+      { permission_level: inv.permission_level },
+    );
+    return inv;
   });
 
 // Records an audit event when a signed-in admin changes their OWN password.
