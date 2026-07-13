@@ -1,5 +1,7 @@
 import { type ReactNode, useState, useEffect, useRef } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -16,21 +18,40 @@ import {
   Users,
   X,
 } from "lucide-react";
-
+import { supabase } from "@/integrations/supabase/client";
+import { whoami, listNotifications } from "@/lib/admin.functions";
 
 type NavItem = {
   to: string;
   label: ReactNode;
   icon: ReactNode;
-  badge?: number;
   match?: string;
 };
 
 const manage: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
-  { to: "/admin/agencies", label: "Agencies", icon: <Building2 />, badge: 9 },
-  { to: "/admin/invitations", label: <>Agency<br />Invitations</>, icon: <Send />, badge: 3 },
-  { to: "/admin/quotes-invoices", label: <>Quotes &<br />Invoices</>, icon: <FileText /> },
+  { to: "/admin/agencies", label: "Agencies", icon: <Building2 /> },
+  {
+    to: "/admin/invitations",
+    label: (
+      <>
+        Agency
+        <br />
+        Invitations
+      </>
+    ),
+    icon: <Send />,
+  },
+  {
+    to: "/admin/quotes-invoices",
+    label: (
+      <>
+        Quotes &<br />
+        Invoices
+      </>
+    ),
+    icon: <FileText />,
+  },
   { to: "/admin/audit", label: "Audit & Support Log", icon: <ScrollText /> },
 ];
 
@@ -38,30 +59,56 @@ const settings: NavItem[] = [
   { to: "/admin/administrators", label: "Administrators", icon: <ShieldCheck /> },
 ];
 
-type Notification = {
-  id: string;
-  tone: string;
-  title: string;
-  detail: string;
-  rule: string;
-  to?: string;
+const toneIcon: Record<string, any> = {
+  amber: Clock,
+  red: AlertTriangle,
+  blue: Users,
+  purple: Info,
+  teal: ShieldCheck,
+  green: Info,
 };
-
-const initialNotifications: Notification[] = [
-  { id: "bell-001", tone: "amber", title: "2 agency invites expiring soon", detail: "Within the configured reminder window.", rule: "BR-BELL-001", to: "/admin/invitations" },
-  { id: "bell-002", tone: "red", title: "1 agency invite expired", detail: "Requires resend, correction, or close-out.", rule: "BR-BELL-002", to: "/admin/invitations" },
-  { id: "bell-003", tone: "purple", title: "5 agencies incomplete", detail: "Onboarding or document review outstanding.", rule: "BR-BELL-003", to: "/admin/agencies" },
-  { id: "bell-004", tone: "blue", title: "2 Talent invites pending too long", detail: "From agency-level Talent invite records.", rule: "BR-BELL-004", to: "/admin/agencies" },
-  { id: "bell-005", tone: "red", title: "1 suspended agency needs review", detail: "Suspension follow-up outstanding.", rule: "BR-BELL-005", to: "/admin/agencies" },
-  { id: "bell-006", tone: "teal", title: "Legal / copy review reminder", detail: "T&Cs and privacy disclaimers due review.", rule: "BR-BELL-006" },
-];
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const whoamiFn = useServerFn(whoami);
+  const listNotificationsFn = useServerFn(listNotifications);
+
+  const { data: me } = useQuery({
+    queryKey: ["whoami"],
+    queryFn: () => whoamiFn(),
+  });
+  const { data: notifs } = useQuery({
+    queryKey: ["admin", "notifications"],
+    queryFn: () => listNotificationsFn(),
+    refetchInterval: 60_000,
+  });
+
+  const items = [
+    ...(notifs?.computed ?? []),
+    ...(notifs?.persisted ?? []).map((p: any) => ({
+      id: p.id,
+      kind: p.kind,
+      tone:
+        p.kind === "suspended_review"
+          ? "red"
+          : p.kind === "invite_expired"
+            ? "red"
+            : p.kind === "invite_expiring"
+              ? "amber"
+              : p.kind === "legal_copy_review"
+                ? "teal"
+                : "blue",
+      title: p.title,
+      detail: p.detail ?? "",
+      to: p.target_type === "agency" ? "/admin/agencies" : undefined,
+    })),
+  ];
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -71,16 +118,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("click", onClick);
   }, []);
 
-  const dismissNotification = (id: string) =>
-    setNotifications((ns) => ns.filter((n) => n.id !== id));
-
   const isActive = (item: NavItem) => {
     if (item.match === "exact") return pathname === item.to;
     return pathname === item.to || pathname.startsWith(item.to + "/");
   };
 
-  const renderNav = (items: NavItem[]) =>
-    items.map((item) => (
+  const renderNav = (list: NavItem[]) =>
+    list.map((item) => (
       <Link
         key={item.to}
         to={item.to}
@@ -88,11 +132,22 @@ export function AdminShell({ children }: { children: ReactNode }) {
       >
         <span className="shrink-0">{item.icon}</span>
         <span className="tvp-nav-label">{item.label}</span>
-        {item.badge !== undefined && (
-          <span className="tvp-nav-badge">{item.badge}</span>
-        )}
       </Link>
     ));
+
+  const handleSignOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  };
+
+  const initials = (me?.displayName || me?.email || "?")
+    .split(/\s+|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s: string) => s[0]?.toUpperCase())
+    .join("");
 
   return (
     <div className={`tv-app${collapsed ? " tv-collapsed" : ""}`}>
@@ -122,22 +177,23 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <nav className="tvp-nav">{renderNav(settings)}</nav>
 
         <div className="tvp-sidebar-footer">
-          <div className="tvp-avatar">IN</div>
+          <div className="tvp-avatar">{initials || "?"}</div>
           <div className="tvp-profile-copy">
-            <div className="tvp-profile-name">Israel Noko</div>
-            <div className="tvp-profile-role">Main Administrator</div>
+            <div className="tvp-profile-name">
+              {me?.displayName || me?.email?.split("@")[0] || "Loading..."}
+            </div>
+            <div className="tvp-profile-role">
+              {me?.isMainAdmin ? "Main Administrator" : me?.isAdmin ? "Administrator" : ""}
+            </div>
           </div>
-          <button className="tvp-logout" aria-label="Log out">
+          <button className="tvp-logout" aria-label="Log out" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />
           </button>
         </div>
       </aside>
 
       <main className="tvp-main">
-        <div
-          className="flex items-center gap-3 justify-end mb-2"
-          ref={wrapRef}
-        >
+        <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
           <input className="tvp-search-top" placeholder="Search..." />
           <div className="tvp-notification-wrap">
             <button
@@ -149,36 +205,29 @@ export function AdminShell({ children }: { children: ReactNode }) {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
-              {notifications.length > 0 && (
-                <span className="tvp-dot">{notifications.length}</span>
-              )}
+              {items.length > 0 && <span className="tvp-dot">{items.length}</span>}
             </button>
             {bellOpen && (
               <div className="tvp-notification-panel">
-                <div
-                  className="flex items-center justify-between"
-                  style={{ marginBottom: 6 }}
-                >
+                <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
                   <div className="tvp-h2">Admin Reminders</div>
                   <Link to="/admin/audit" className="tvp-link">
                     View audit log
                   </Link>
                 </div>
-                {notifications.length === 0 && (
+                {items.length === 0 && (
                   <div className="tvp-muted" style={{ padding: "10px 2px" }}>
                     All caught up.
                   </div>
                 )}
-                {notifications.map((n) => {
-                  const Icon =
-                    n.tone === "amber" ? Clock :
-                    n.tone === "red" ? AlertTriangle :
-                    n.tone === "blue" ? Users :
-                    n.tone === "purple" ? Info :
-                    Info;
+                {items.map((n) => {
+                  const Icon = toneIcon[n.tone] ?? Info;
                   const body = (
                     <>
-                      <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
+                      <div
+                        className={`tvp-kpi-icon tvp-bg-${n.tone}`}
+                        style={{ width: 32, height: 32 }}
+                      >
                         <Icon className="h-4 w-4" />
                       </div>
                       <div style={{ flex: 1 }}>
@@ -199,31 +248,26 @@ export function AdminShell({ children }: { children: ReactNode }) {
                         <Link
                           to={n.to}
                           onClick={() => setBellOpen(false)}
-                          style={{ display: "flex", gap: 10, flex: 1, textDecoration: "none", color: "inherit" }}
+                          style={{
+                            display: "flex",
+                            gap: 10,
+                            flex: 1,
+                            textDecoration: "none",
+                            color: "inherit",
+                          }}
                         >
                           {body}
                         </Link>
                       ) : (
                         <div style={{ display: "flex", gap: 10, flex: 1 }}>{body}</div>
                       )}
-                      <button
-                        className="tvp-mini-btn"
-                        title="Dismiss reminder"
-                        aria-label="Dismiss reminder"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          dismissNotification(n.id);
-                        }}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
-          <div className="tvp-user-dot">IN</div>
+          <div className="tvp-user-dot">{initials || "?"}</div>
         </div>
         {children}
       </main>
