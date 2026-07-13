@@ -232,12 +232,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   const body = (
                     <>
                       <div
-                        className={`tvp-kpi-icon tvp-bg-${n.tone}`}
+                        className={`tvp-kpi-icon tvp-bg-${n.tone} shrink-0`}
                         style={{ width: 32, height: 32 }}
                       >
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div className="tvp-notification-text">
                         <strong>{n.title}</strong>
                         <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
                           {n.detail}
@@ -246,27 +246,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     </>
                   );
                   return (
-                    <div
-                      className="tvp-notification-item"
-                      key={n.id}
-                      style={{ alignItems: "flex-start", gap: 8 }}
-                    >
+                    <div className="tvp-notification-item" key={n.id}>
                       {n.to ? (
-                        <Link
-                          to={n.to}
-                          onClick={() => setBellOpen(false)}
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            flex: 1,
-                            textDecoration: "none",
-                            color: "inherit",
-                          }}
-                        >
+                        <Link to={n.to} onClick={() => setBellOpen(false)}>
                           {body}
                         </Link>
                       ) : (
-                        <div style={{ display: "flex", gap: 10, flex: 1 }}>{body}</div>
+                        <div className="tvp-notification-body">{body}</div>
                       )}
                       {n.persisted && (
                         <button
