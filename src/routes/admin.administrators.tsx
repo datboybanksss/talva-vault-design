@@ -155,9 +155,6 @@ function AdminsPage() {
         </div>
       )}
 
-      {tab === "admins" && me.data?.email && (
-        <ChangeOwnPasswordCard email={me.data.email} />
-      )}
 
       {tab === "legal" && (
         <div className="tvp-card">
