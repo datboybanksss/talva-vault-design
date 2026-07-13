@@ -110,9 +110,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             ? "red"
             : p.kind === "invite_expiring"
               ? "amber"
-              : p.kind === "legal_copy_review"
-                ? "teal"
-                : "blue",
+              : "blue",
       title: p.title,
       detail: p.detail ?? "",
       to: p.target_type === "agency" ? "/admin/agencies" : undefined,
