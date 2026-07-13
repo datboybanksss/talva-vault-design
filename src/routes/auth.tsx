@@ -261,12 +261,14 @@ function AuthPage() {
         <div className="tv-auth-card">
           <div className="tv-auth-eyebrow">{isSignIn ? "Welcome back" : "Get started"}</div>
           <h2 className="tv-auth-title">
-            {isSignIn ? "Sign in to TalVault Admin" : "Create your admin account"}
+            {isSignIn
+              ? `Sign in to TalVault ${portal.name}`
+              : `Create your ${portal.key === "admin" ? "admin" : portal.name.toLowerCase()} account`}
           </h2>
           <p className="tv-auth-tag">
             {isSignIn
               ? "Use your work email or continue with Google."
-              : "Set up your credentials to access the admin console."}
+              : `Set up your credentials to access the ${portal.workspace}.`}
           </p>
 
           {!mfaFactorId && (
