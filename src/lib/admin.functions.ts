@@ -876,7 +876,7 @@ export const listNotifications = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
 
     // Computed live signals
-    const [expiring, expired, incomplete, talentPending, suspended, legal] =
+    const [expiring, expired, incomplete, talentPending, suspended] =
       await Promise.all([
         supabase
           .from("agency_invitations")
@@ -901,10 +901,6 @@ export const listNotifications = createServerFn({ method: "GET" })
           .from("agencies")
           .select("id", { count: "exact", head: true })
           .eq("status", "suspended"),
-        supabase
-          .from("legal_copy_items")
-          .select("id", { count: "exact", head: true })
-          .neq("status", "approved"),
       ]);
 
     const computed: Array<{
