@@ -7,6 +7,8 @@ import { z } from "zod";
 import { PasswordInput } from "@/components/password-input";
 import {
   MIN_PW_LENGTH,
+  PW_POLICY_HINT,
+  checkRequirements,
   scorePassword,
   validateNewPassword,
   friendlyAuthError,
@@ -38,13 +40,28 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  // MFA challenge state (after successful password sign-in on an MFA-enrolled account)
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted && data.session) nav({ to: sanitizeNext(search.next) as any });
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      if (session) nav({ to: sanitizeNext(search.next) as any });
+    // Only auto-redirect to next when we already have an AAL2 session (or the
+    // account has no verified MFA factor). Otherwise we'd bypass the challenge.
+    (async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      if (!mounted || !sess.session) return;
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return;
+      nav({ to: sanitizeNext(search.next) as any });
+    })();
+    const { data: sub } = supabase.auth.onAuthStateChange(async (evt, session) => {
+      if (!session) return;
+      if (evt === "MFA_CHALLENGE_VERIFIED" || evt === "SIGNED_IN" || evt === "TOKEN_REFRESHED") {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return;
+        nav({ to: sanitizeNext(search.next) as any });
+      }
     });
     return () => {
       mounted = false;
@@ -55,6 +72,7 @@ function AuthPage() {
   const isSignIn = mode === "sign-in";
 
   const strength = useMemo(() => scorePassword(password), [password]);
+  const req = useMemo(() => checkRequirements(password), [password]);
 
   const validateSignUp = (): string | null => validateNewPassword(password);
 
@@ -76,6 +94,23 @@ function AuthPage() {
       if (isSignIn) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Check if this account requires an MFA challenge.
+        const { data: aal, error: aalErr } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalErr) throw aalErr;
+        if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") {
+          const { data: factors, error: fErr } = await supabase.auth.mfa.listFactors();
+          if (fErr) throw fErr;
+          const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
+          if (!totp) {
+            // No verified factor but AAL2 required — safest is to sign out.
+            await supabase.auth.signOut();
+            throw new Error("Two-factor authentication is required but no factor is configured.");
+          }
+          setMfaFactorId(totp.id);
+          setMfaCode("");
+          setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -93,6 +128,46 @@ function AuthPage() {
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaFactorId) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({
+        factorId: mfaFactorId,
+      });
+      if (cErr) throw cErr;
+      const { error: vErr } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaCode.trim(),
+      });
+      if (vErr) throw vErr;
+      // onAuthStateChange (MFA_CHALLENGE_VERIFIED) will redirect us.
+      setInfo("Verified — redirecting…");
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancelMfa = async () => {
+    // If the user bails out of the MFA challenge, drop the aal1 session so
+    // nothing else in the app runs as a half-authenticated user.
+    setBusy(true);
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      setMfaFactorId(null);
+      setMfaCode("");
+      setError(null);
+      setInfo(null);
       setBusy(false);
     }
   };
@@ -171,20 +246,67 @@ function AuthPage() {
               : "Set up your credentials to access the admin console."}
           </p>
 
-          <div style={{ marginTop: 22 }}>
-            <button
-              type="button"
-              className="tv-auth-google"
-              onClick={signInWithGoogle}
-              disabled={busy}
-            >
-              <GoogleGlyph />
-              Continue with Google
-            </button>
-          </div>
+          {!mfaFactorId && (
+            <>
+              <div style={{ marginTop: 22 }}>
+                <button
+                  type="button"
+                  className="tv-auth-google"
+                  onClick={signInWithGoogle}
+                  disabled={busy}
+                >
+                  <GoogleGlyph />
+                  Continue with Google
+                </button>
+              </div>
+              <div className="tv-auth-divider">or with email</div>
+            </>
+          )}
 
-          <div className="tv-auth-divider">or with email</div>
-
+          {mfaFactorId ? (
+            <form onSubmit={verifyMfa} noValidate>
+              <div className="tv-auth-hint" style={{ marginTop: 8 }}>
+                Two-factor authentication is enabled on this account. Enter the
+                current 6-digit code from your authenticator app to finish
+                signing in.
+              </div>
+              <div className="tv-auth-field">
+                <label htmlFor="mfa-code">Authentication code</label>
+                <input
+                  id="mfa-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={mfaCode}
+                  onChange={(e) =>
+                    setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  placeholder="123456"
+                  autoFocus
+                />
+              </div>
+              {error && <div className="tv-auth-alert">{error}</div>}
+              {info && <div className="tv-auth-alert tv-info">{info}</div>}
+              <button
+                type="submit"
+                className="tv-auth-submit"
+                disabled={busy || mfaCode.length !== 6}
+              >
+                {busy ? "Verifying…" : "Verify & sign in"}
+              </button>
+              <div className="tv-auth-switch">
+                <button
+                  className="tv-auth-link"
+                  type="button"
+                  onClick={cancelMfa}
+                  disabled={busy}
+                >
+                  Cancel and sign out
+                </button>
+              </div>
+            </form>
+          ) : (
           <form onSubmit={submit} noValidate>
             {!isSignIn && (
               <div className="tv-auth-field">
@@ -221,28 +343,44 @@ function AuthPage() {
               />
               {!isSignIn && (
                 <>
-                  <div className="tv-auth-hint">
-                    Minimum {MIN_PW_LENGTH} characters. No forced complexity — length &amp;
-                    unpredictability beat symbol-soup.
-                  </div>
+                  <div className="tv-auth-hint">{PW_POLICY_HINT}</div>
                   {password.length > 0 && (
-                    <div className="tv-auth-strength" aria-live="polite">
-                      <div className="tv-auth-strength-bar">
-                        <div
-                          className="tv-auth-strength-fill"
-                          style={{
-                            width: `${strength.pct}%`,
-                            background: strength.color,
-                          }}
-                        />
+                    <>
+                      <ul className="tv-auth-reqs" aria-live="polite">
+                        <li className={req.length ? "ok" : ""}>
+                          {req.length ? "✓" : "•"} At least {MIN_PW_LENGTH} characters
+                        </li>
+                        <li className={req.upper ? "ok" : ""}>
+                          {req.upper ? "✓" : "•"} An uppercase letter
+                        </li>
+                        <li className={req.lower ? "ok" : ""}>
+                          {req.lower ? "✓" : "•"} A lowercase letter
+                        </li>
+                        <li className={req.number ? "ok" : ""}>
+                          {req.number ? "✓" : "•"} A number
+                        </li>
+                        <li className={req.special ? "ok" : ""}>
+                          {req.special ? "✓" : "•"} A special character
+                        </li>
+                      </ul>
+                      <div className="tv-auth-strength" aria-live="polite">
+                        <div className="tv-auth-strength-bar">
+                          <div
+                            className="tv-auth-strength-fill"
+                            style={{
+                              width: `${strength.pct}%`,
+                              background: strength.color,
+                            }}
+                          />
+                        </div>
+                        <div className="tv-auth-strength-row">
+                          <span className="tv-auth-strength-label">Strength</span>
+                          <span className={`tv-auth-strength-value ${strength.tier}`}>
+                            {strength.label}
+                          </span>
+                        </div>
                       </div>
-                      <div className="tv-auth-strength-row">
-                        <span className="tv-auth-strength-label">Strength</span>
-                        <span className={`tv-auth-strength-value ${strength.tier}`}>
-                          {strength.label}
-                        </span>
-                      </div>
-                    </div>
+                    </>
                   )}
                 </>
               )}
@@ -255,7 +393,9 @@ function AuthPage() {
               {busy ? "Please wait…" : isSignIn ? "Sign in" : "Create account"}
             </button>
           </form>
+          )}
 
+          {!mfaFactorId && (
           <div className="tv-auth-switch">
             {isSignIn ? (
               <>
@@ -289,6 +429,7 @@ function AuthPage() {
               </>
             )}
           </div>
+          )}
 
           <div className="tv-auth-back">
             <Link to="/" className="tv-auth-link">

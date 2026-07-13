@@ -102,6 +102,28 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
 
+    // Load current profile + is-main-admin so we can enforce that only Main
+    // Admins may change their own designation.
+    const { data: current } = await supabase
+      .from("profiles")
+      .select("designation")
+      .eq("id", userId)
+      .maybeSingle();
+    const { data: isMain } = await supabase.rpc("is_main_admin", {
+      _user_id: userId,
+    });
+
+    const currentDesignation = (current?.designation as string | null) ?? null;
+    const requestedDesignation = data.designation || null;
+    const designationChanged = requestedDesignation !== currentDesignation;
+    if (designationChanged && !isMain) {
+      throw new Error(
+        "Forbidden: only the Main Administrator can change the designation field.",
+      );
+    }
+    // Non-main admins can save name changes; keep existing designation intact.
+    const nextDesignation = isMain ? requestedDesignation : currentDesignation;
+
     const display_name =
       [data.first_name, data.last_name].filter(Boolean).join(" ").trim() ||
       (claims?.email ? String(claims.email).split("@")[0] : null);
@@ -111,7 +133,7 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
       .update({
         first_name: data.first_name || null,
         last_name: data.last_name || null,
-        designation: data.designation || null,
+        designation: nextDesignation,
         display_name,
       })
       .eq("id", userId)
@@ -130,7 +152,8 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
       {
         first_name: data.first_name || null,
         last_name: data.last_name || null,
-        designation: data.designation || null,
+        designation: nextDesignation,
+        designation_changed: designationChanged,
       },
     );
     return updated;
@@ -682,13 +705,14 @@ export const listAdministrators = createServerFn({ method: "GET" })
     if (ids.length === 0) return [];
     const { data: profs } = await supabase
       .from("profiles")
-      .select("id, email, display_name")
+      .select("id, email, display_name, designation")
       .in("id", ids);
     const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
     return (roles ?? []).map((r: any) => ({
       user_id: r.user_id,
       email: (profMap.get(r.user_id) as any)?.email ?? "",
       display_name: (profMap.get(r.user_id) as any)?.display_name ?? "",
+      designation: (profMap.get(r.user_id) as any)?.designation ?? "",
       is_main_admin: r.is_main_admin,
       permission_level: r.permission_level as "view_only" | "edit",
       created_at: r.created_at,
@@ -994,3 +1018,137 @@ export const markLegalCopyApproved = createServerFn({ method: "POST" })
     );
     return item;
   });
+
+// -----------------------------------------------------------------------------
+// MFA audit-log (never accepts or logs codes or secrets)
+// -----------------------------------------------------------------------------
+export const logMfaEnrolled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ factor_type: z.string().default("totp") }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdmin(supabase, userId);
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "mfa_enrolled",
+      "user",
+      userId,
+      claims?.email ?? "self",
+      { factor_type: data.factor_type },
+    );
+    return { ok: true };
+  });
+
+export const logMfaDisabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdmin(supabase, userId);
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "mfa_disabled",
+      "user",
+      userId,
+      claims?.email ?? "self",
+    );
+    return { ok: true };
+  });
+
+// -----------------------------------------------------------------------------
+// Main-admin only: edit another (or own) administrator's designation and/or
+// permission level. Server-side enforcement is authoritative.
+// -----------------------------------------------------------------------------
+export const updateAdministrator = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        user_id: z.string().uuid(),
+        designation: z.string().trim().max(120).nullable().optional(),
+        permission_level: z.enum(["view_only", "edit"]).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertMainAdmin(supabase, userId);
+
+    // Load target role + profile to build a proper audit diff and to protect
+    // main admins from being demoted to view-only via this path.
+    const { data: targetRole, error: rErr } = await supabase
+      .from("user_roles")
+      .select("user_id, role, is_main_admin, permission_level")
+      .eq("user_id", data.user_id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (rErr) throw new Error(rErr.message);
+    if (!targetRole) throw new Error("That user is not an administrator.");
+
+    const { data: targetProfile } = await supabase
+      .from("profiles")
+      .select("id, email, display_name, designation")
+      .eq("id", data.user_id)
+      .maybeSingle();
+
+    const targetLabel =
+      (targetProfile?.display_name as string) ||
+      (targetProfile?.email as string) ||
+      data.user_id;
+
+    const changes: Record<string, { from: string | null; to: string | null }> = {};
+
+    // Designation
+    if (data.designation !== undefined) {
+      const nextDesignation = data.designation && data.designation.length > 0
+        ? data.designation
+        : null;
+      const currentDesignation = (targetProfile?.designation as string | null) ?? null;
+      if (nextDesignation !== currentDesignation) {
+        const { error: pErr } = await supabase
+          .from("profiles")
+          .update({ designation: nextDesignation })
+          .eq("id", data.user_id);
+        if (pErr) throw new Error(pErr.message);
+        changes.designation = { from: currentDesignation, to: nextDesignation };
+      }
+    }
+
+    // Permission level (guard against demoting main admins here — they always keep 'edit')
+    if (data.permission_level && data.permission_level !== targetRole.permission_level) {
+      if (targetRole.is_main_admin && data.permission_level !== "edit") {
+        throw new Error("The Main Administrator must retain edit rights.");
+      }
+      const { error: uErr } = await supabase
+        .from("user_roles")
+        .update({ permission_level: data.permission_level })
+        .eq("user_id", data.user_id)
+        .eq("role", "admin");
+      if (uErr) throw new Error(uErr.message);
+      changes.permission_level = {
+        from: targetRole.permission_level,
+        to: data.permission_level,
+      };
+    }
+
+    if (Object.keys(changes).length > 0) {
+      await logAudit(
+        supabase,
+        userId,
+        claims?.email,
+        data.user_id === userId ? "update_own_admin_profile" : "update_admin_profile",
+        "user",
+        data.user_id,
+        targetLabel,
+        { changes },
+      );
+    }
+
+    return { ok: true, changes };
+  });
+
