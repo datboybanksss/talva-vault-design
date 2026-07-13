@@ -219,7 +219,7 @@ function AuthPage() {
           </div>
           <div>
             <div className="tv-auth-brand-title">TalVault</div>
-            <div className="tv-auth-brand-sub">ADMIN PORTAL</div>
+            <div className="tv-auth-brand-sub">{portal.name.toUpperCase()} PORTAL</div>
           </div>
         </div>
 
