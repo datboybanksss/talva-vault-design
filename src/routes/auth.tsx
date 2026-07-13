@@ -56,15 +56,7 @@ function AuthPage() {
 
   const strength = useMemo(() => scorePassword(password), [password]);
 
-  const validateSignUp = (): string | null => {
-    if (password.length < MIN_PW_LENGTH) {
-      return `Password must be at least ${MIN_PW_LENGTH} characters.`;
-    }
-    if (COMMON_PASSWORDS.has(password.toLowerCase())) {
-      return "That password is on the common-passwords list. Please choose a less predictable one.";
-    }
-    return null;
-  };
+  const validateSignUp = (): string | null => validateNewPassword(password);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
