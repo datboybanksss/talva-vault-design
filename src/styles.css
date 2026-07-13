@@ -593,6 +593,17 @@
   & .tvp-checklist { border: 1px solid var(--tvp-line); border-radius: 12px; padding: 14px; margin: 12px 0; }
   & .tvp-checklist-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: var(--tvp-muted); font-size: 12px; }
   & .tvp-footer-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+  & .tvp-invite-panel { padding: 16px; }
+  & .tvp-invite-panel .tvp-panel-head { margin-bottom: 10px; }
+  & .tvp-invite-panel .tvp-invite-desc { margin: 0 0 10px; }
+  & .tvp-invite-panel .tvp-invite-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  & .tvp-invite-panel .tvp-invite-form-row .tvp-form-group { margin-top: 0; gap: 4px; }
+  & .tvp-invite-panel .tvp-invite-hint { display: block; font-size: 12px; margin: 6px 0 0; }
+  & .tvp-invite-panel .tvp-footer-actions { margin-top: 12px; }
+  @media (max-width: 720px) {
+    & .tvp-invite-panel .tvp-invite-form-row { grid-template-columns: 1fr; }
+  }
   & .tvp-upload-box {
     border: 1.5px dashed var(--tvp-teal-200); background: var(--tvp-teal-50); border-radius: 14px;
     padding: 18px; display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; align-items: center; margin-top: 12px;

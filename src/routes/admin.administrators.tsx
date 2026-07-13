@@ -267,11 +267,11 @@ function AdminsPage() {
             </div>
             {isMain && inviteOpen && (
               <div
-                className="tvp-card"
+                className="tvp-card tvp-invite-panel"
                 style={{ margin: "0 0 16px", background: "var(--tvp-muted-bg, #f8fafc)" }}
               >
                 <div className="tvp-panel-head">
-                  <h3 className="tvp-h3" style={{ margin: 0 }}>New invitation</h3>
+                  <h3 className="tvp-h3">New invitation</h3>
                   <button
                     className="tvp-mini-btn"
                     onClick={() => setInviteOpen(false)}
@@ -280,11 +280,11 @@ function AdminsPage() {
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="tvp-muted" style={{ fontSize: 12 }}>
+                <p className="tvp-muted tvp-invite-desc" style={{ fontSize: 12 }}>
                   The invitee becomes an administrator at the selected permission level as
                   soon as they sign up with this email. This action is recorded in the audit log.
                 </p>
-                <div className="tvp-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="tvp-invite-form-row">
                   <div className="tvp-form-group">
                     <label>Email address</label>
                     <input
@@ -306,12 +306,12 @@ function AdminsPage() {
                     </select>
                   </div>
                 </div>
-                <span className="tvp-muted" style={{ fontSize: 12, marginTop: 4, display: "block" }}>
+                <span className="tvp-muted tvp-invite-hint">
                   {invitePerm === "edit"
                     ? "Can perform all administrator actions (suspend agencies, send invites, approve legal copy, etc.)."
                     : "Can view every admin screen but cannot perform any write action."}
                 </span>
-                <div className="tvp-footer-actions" style={{ marginTop: 12 }}>
+                <div className="tvp-footer-actions">
                   <button className="tvp-secondary" onClick={() => setInviteOpen(false)}>
                     Cancel
                   </button>
