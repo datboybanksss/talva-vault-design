@@ -12,7 +12,7 @@ import {
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/invitations")({
+export const Route = createFileRoute("/admin/invitations/")({
   head: () => ({ meta: [{ title: "Agency Invitations · TalVault Admin" }] }),
   component: InvitationsPage,
 });
