@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, CheckCircle2, ShieldCheck, UserPlus, X } from "lucide-react";
+import { Users, CheckCircle2, ShieldCheck, UserPlus, X, Pencil } from "lucide-react";
 import {
   listAdministrators,
   whoami,
@@ -11,6 +11,7 @@ import {
   listAdminInvitations,
   inviteAdministrator,
   revokeAdminInvitation,
+  updateAdministrator,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 
@@ -27,6 +28,7 @@ function AdminsPage() {
   const listInvFn = useServerFn(listAdminInvitations);
   const inviteFn = useServerFn(inviteAdministrator);
   const revokeFn = useServerFn(revokeAdminInvitation);
+  const updateAdminFn = useServerFn(updateAdministrator);
   const qc = useQueryClient();
 
   const admins = useQuery({
@@ -86,6 +88,33 @@ function AdminsPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePerm, setInvitePerm] = useState<"view_only" | "edit">("edit");
+
+  // Per-row edit (Main-admin only)
+  const [editAdmin, setEditAdmin] = useState<any | null>(null);
+  const [editDesignation, setEditDesignation] = useState("");
+  const [editPermission, setEditPermission] = useState<"view_only" | "edit">("edit");
+
+  useEffect(() => {
+    if (editAdmin) {
+      setEditDesignation(editAdmin.designation ?? "");
+      setEditPermission(editAdmin.permission_level ?? "edit");
+    }
+  }, [editAdmin]);
+
+  const updateAdminMut = useMutation({
+    mutationFn: (input: {
+      user_id: string;
+      designation: string | null;
+      permission_level: "view_only" | "edit";
+    }) => updateAdminFn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
+      qc.invalidateQueries({ queryKey: ["whoami"] });
+      toast.success("Administrator updated.");
+      setEditAdmin(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
+  });
 
   const list = admins.data ?? [];
   const stats = useMemo(() => {
@@ -169,12 +198,12 @@ function AdminsPage() {
             <table className="tvp-table">
               <thead>
                 <tr>
-                  <th>Administrator</th><th>Email</th><th>Role</th><th>Access</th><th>Granted</th>
+                  <th>Administrator</th><th>Email</th><th>Designation</th><th>Role</th><th>Access</th><th>Granted</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {admins.isLoading && (
-                  <tr><td colSpan={5} className="tvp-muted">Loading…</td></tr>
+                  <tr><td colSpan={7} className="tvp-muted">Loading…</td></tr>
                 )}
                 {list.map((a: any) => (
                   <tr key={a.user_id}>
@@ -190,6 +219,7 @@ function AdminsPage() {
                       )}
                     </td>
                     <td>{a.email}</td>
+                    <td className="tvp-muted">{a.designation || "—"}</td>
                     <td>
                       <span
                         className={`tvp-status tvp-${a.is_main_admin ? "purple" : "blue"}`}
@@ -208,6 +238,18 @@ function AdminsPage() {
                       {new Date(a.created_at).toLocaleDateString("en-GB", {
                         day: "numeric", month: "short", year: "numeric",
                       })}
+                    </td>
+                    <td>
+                      {isMain && (
+                        <button
+                          className="tvp-secondary"
+                          onClick={() => setEditAdmin(a)}
+                          title="Edit designation & permission level"
+                        >
+                          <Pencil className="h-3 w-3" style={{ marginRight: 4 }} />
+                          Edit
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -419,6 +461,98 @@ function AdminsPage() {
                 disabled={invite.isPending || !/.+@.+\..+/.test(inviteEmail.trim())}
               >
                 {invite.isPending ? "Sending…" : "Send invitation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editAdmin && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => !updateAdminMut.isPending && setEditAdmin(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
+          }}
+        >
+          <div
+            className="tvp-card tvp-panel"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(520px, 92vw)" }}
+          >
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">
+                Edit administrator — {editAdmin.display_name || editAdmin.email}
+              </h2>
+              <button
+                className="tvp-mini-btn"
+                onClick={() => setEditAdmin(null)}
+                aria-label="Close"
+                disabled={updateAdminMut.isPending}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="tvp-muted" style={{ fontSize: 12 }}>
+              Only the Main Administrator can change these fields. Every change
+              is written to the audit log.
+            </p>
+            <div className="tvp-form-group">
+              <label>Designation / title</label>
+              <input
+                type="text"
+                value={editDesignation}
+                onChange={(e) => setEditDesignation(e.target.value)}
+                placeholder="e.g. Platform Operations Lead"
+                maxLength={120}
+              />
+            </div>
+            <div className="tvp-form-group">
+              <label>Permission level</label>
+              <select
+                value={editPermission}
+                onChange={(e) => setEditPermission(e.target.value as any)}
+                disabled={editAdmin.is_main_admin}
+              >
+                <option value="edit">Edit rights — full access</option>
+                <option value="view_only">View only — read-only access</option>
+              </select>
+              {editAdmin.is_main_admin && (
+                <span
+                  className="tvp-muted"
+                  style={{ fontSize: 12, marginTop: 6, display: "block" }}
+                >
+                  The Main Administrator always keeps edit rights.
+                </span>
+              )}
+            </div>
+            <div className="tvp-footer-actions">
+              <button
+                className="tvp-secondary"
+                onClick={() => setEditAdmin(null)}
+                disabled={updateAdminMut.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                className="tvp-primary"
+                onClick={() =>
+                  updateAdminMut.mutate({
+                    user_id: editAdmin.user_id,
+                    designation: editDesignation.trim() || null,
+                    permission_level: editPermission,
+                  })
+                }
+                disabled={updateAdminMut.isPending}
+              >
+                {updateAdminMut.isPending ? "Saving…" : "Save changes"}
               </button>
             </div>
           </div>
