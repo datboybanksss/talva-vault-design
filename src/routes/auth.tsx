@@ -1,24 +1,18 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { ShieldCheck, Lock, FileCheck2, Users, Eye, EyeOff } from "lucide-react";
+import { ShieldCheck, Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
+import { PasswordInput } from "@/components/password-input";
+import {
+  MIN_PW_LENGTH,
+  scorePassword,
+  validateNewPassword,
+  friendlyAuthError,
+} from "@/lib/password";
 
 const searchSchema = z.object({ next: z.string().optional() });
-
-const MIN_PW_LENGTH = 12;
-
-// Small in-app blocklist of extremely common / trivially-guessable passwords.
-// The Supabase HIBP check is the authoritative breach lookup — this is just a
-// fast client-side reject so users get instant feedback instead of a round trip.
-const COMMON_PASSWORDS = new Set([
-  "password", "password1", "password12", "password123", "password1234",
-  "passw0rd", "p@ssword", "p@ssw0rd", "qwerty123456", "qwertyuiop12",
-  "123456789012", "1234567890123", "iloveyou1234", "letmein12345",
-  "welcome12345", "adminadmin12", "administrator", "trustno1234",
-  "abcdefghijkl", "aaaaaaaaaaaa", "monkey123456",
-]);
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -62,15 +56,7 @@ function AuthPage() {
 
   const strength = useMemo(() => scorePassword(password), [password]);
 
-  const validateSignUp = (): string | null => {
-    if (password.length < MIN_PW_LENGTH) {
-      return `Password must be at least ${MIN_PW_LENGTH} characters.`;
-    }
-    if (COMMON_PASSWORDS.has(password.toLowerCase())) {
-      return "That password is on the common-passwords list. Please choose a less predictable one.";
-    }
-    return null;
-  };
+  const validateSignUp = (): string | null => validateNewPassword(password);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -317,128 +303,6 @@ function AuthPage() {
 
 /* --------------------------------- helpers -------------------------------- */
 
-const REVEAL_MS = 10_000;
-
-function PasswordInput({
-  id,
-  value,
-  onChange,
-  autoComplete,
-  placeholder,
-  minLength,
-}: {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete: string;
-  placeholder: string;
-  minLength: number;
-}) {
-  const [revealed, setRevealed] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const timerRef = useRef<number | null>(null);
-  const intervalRef = useRef<number | null>(null);
-
-  const clearTimers = () => {
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    if (intervalRef.current) window.clearInterval(intervalRef.current);
-    timerRef.current = null;
-    intervalRef.current = null;
-  };
-
-  useEffect(() => () => clearTimers(), []);
-
-  const reveal = () => {
-    setRevealed(true);
-    setCountdown(Math.ceil(REVEAL_MS / 1000));
-    clearTimers();
-    intervalRef.current = window.setInterval(() => {
-      setCountdown((c) => (c > 1 ? c - 1 : 0));
-    }, 1000);
-    timerRef.current = window.setTimeout(() => {
-      setRevealed(false);
-      setCountdown(0);
-      clearTimers();
-    }, REVEAL_MS);
-  };
-
-  const mask = () => {
-    setRevealed(false);
-    setCountdown(0);
-    clearTimers();
-  };
-
-  return (
-    <div className="tv-auth-input-wrap">
-      <input
-        id={id}
-        type={revealed ? "text" : "password"}
-        required
-        minLength={minLength}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
-      {revealed && countdown > 0 && (
-        <span className="tv-auth-eye-count" aria-hidden="true">
-          {countdown}s
-        </span>
-      )}
-      <button
-        type="button"
-        className="tv-auth-eye"
-        onClick={revealed ? mask : reveal}
-        aria-label={revealed ? "Hide password" : `Show password for ${REVEAL_MS / 1000} seconds`}
-        aria-pressed={revealed}
-        tabIndex={-1}
-      >
-        {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-    </div>
-  );
-}
-
-type StrengthTier = "weak" | "fair" | "good" | "strong";
-function scorePassword(pw: string): {
-  tier: StrengthTier;
-  label: string;
-  pct: number;
-  color: string;
-} {
-  if (!pw) return { tier: "weak", label: "—", pct: 0, color: "var(--red)" };
-
-  // Rough NIST-flavored entropy estimate: log2(pool^length), penalised for
-  // simple repetition. Composition is NOT required — length dominates.
-  const pool =
-    (/[a-z]/.test(pw) ? 26 : 0) +
-    (/[A-Z]/.test(pw) ? 26 : 0) +
-    (/[0-9]/.test(pw) ? 10 : 0) +
-    (/[^a-zA-Z0-9]/.test(pw) ? 32 : 0) || 26;
-  let entropy = pw.length * Math.log2(pool);
-  const uniq = new Set(pw).size;
-  if (uniq < 4) entropy *= 0.55;
-  if (/^(.)\1+$/.test(pw)) entropy *= 0.3;
-  if (COMMON_PASSWORDS.has(pw.toLowerCase())) entropy = Math.min(entropy, 20);
-
-  const pct = Math.max(4, Math.min(100, Math.round((entropy / 80) * 100)));
-
-  if (entropy < 28 || pw.length < MIN_PW_LENGTH)
-    return { tier: "weak", label: "Weak", pct, color: "var(--red)" };
-  if (entropy < 48)
-    return { tier: "fair", label: "Fair", pct, color: "var(--amber)" };
-  if (entropy < 64)
-    return { tier: "good", label: "Good", pct, color: "var(--teal-2)" };
-  return { tier: "strong", label: "Strong", pct, color: "var(--green)" };
-}
-
-function friendlyAuthError(err: unknown): string {
-  const msg = err instanceof Error ? err.message : String(err);
-  if (/pwned|leaked|compromised|breached/i.test(msg))
-    return "That password has appeared in a known data breach. Please choose a different one.";
-  if (/weak/i.test(msg)) return msg;
-  return msg;
-}
 
 function GoogleGlyph() {
   return (

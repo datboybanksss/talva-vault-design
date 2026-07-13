@@ -601,6 +601,26 @@ export const listAdministrators = createServerFn({ method: "GET" })
     }));
   });
 
+// Records an audit event when a signed-in admin changes their OWN password.
+// The password value itself is deliberately NEVER accepted or logged here —
+// the actual credential update happens client-side via supabase.auth.
+export const logOwnPasswordChange = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdmin(supabase, userId);
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "change_own_password",
+      "user",
+      userId,
+      claims?.email ?? "self",
+    );
+    return { ok: true };
+  });
+
 // -----------------------------------------------------------------------------
 // Notifications (bell) — computed live from data
 // -----------------------------------------------------------------------------
