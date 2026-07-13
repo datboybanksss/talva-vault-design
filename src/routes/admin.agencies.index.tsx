@@ -227,6 +227,20 @@ function AgenciesPage() {
           </table>
         </div>
       </div>
+
+      {suspendTarget && (
+        <SuspendAgencyDialog
+          agencyName={suspendTarget.name}
+          isPending={suspendM.isPending}
+          onCancel={() => setSuspendTarget(null)}
+          onConfirm={(reason) => {
+            suspendM.mutate(
+              { id: suspendTarget.id, reason },
+              { onSuccess: () => setSuspendTarget(null) },
+            );
+          }}
+        />
+      )}
     </>
   );
 }
