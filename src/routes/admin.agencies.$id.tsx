@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Ban, RotateCcw, Send, Users } from "lucide-react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -10,6 +11,7 @@ import {
   listTalentInvitationsForAgency,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 
 export const Route = createFileRoute("/admin/agencies/$id")({
   head: () => ({ meta: [{ title: "Agency · TalVault Admin" }] }),
