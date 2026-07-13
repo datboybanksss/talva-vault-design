@@ -1,5 +1,7 @@
 import { type ReactNode, useState, useEffect, useRef } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -14,23 +16,32 @@ import {
   ShieldCheck,
   AlertTriangle,
   Info,
-  CheckCircle2,
+  Clock,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { agencyWhoami, listAgencyNotifications } from "@/lib/agency.functions";
 
 type NavItem = {
   to: string;
   label: ReactNode;
   icon: ReactNode;
-  badge?: number;
   match?: string;
 };
 
 const manage: NavItem[] = [
   { to: "/agency", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
-  { to: "/agency/talent", label: "Talent", icon: <Users />, badge: 24 },
-  { to: "/agency/invitations", label: "Invitations", icon: <Send />, badge: 6 },
+  { to: "/agency/talent", label: "Talent", icon: <Users /> },
+  { to: "/agency/invitations", label: "Invitations", icon: <Send /> },
   { to: "/agency/document-vault", label: "Document Vault", icon: <Folder /> },
-  { to: "/agency/quotes-invoices", label: <>Quotes &<br />Invoices</>, icon: <Receipt /> },
+  {
+    to: "/agency/quotes-invoices",
+    label: (
+      <>
+        Quotes &<br />Invoices
+      </>
+    ),
+    icon: <Receipt />,
+  },
 ];
 
 const settings: NavItem[] = [
@@ -38,18 +49,43 @@ const settings: NavItem[] = [
   { to: "/agency/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
 
-const notifications = [
-  { tone: "amber", Icon: AlertTriangle, title: "6 invitations need action", detail: "3 Talent invites expiring soon · 2 Staff invites awaiting acceptance" },
-  { tone: "blue", Icon: Info, title: "8 documents need review", detail: "AI suggestions require confirmation before filing." },
-  { tone: "green", Icon: CheckCircle2, title: "4 rules need confirmation", detail: "Document validity rules still need Agency owner confirmation." },
-  { tone: "red", Icon: AlertTriangle, title: "2 invoices marked late", detail: "Review and capture updated payment status manually." },
-];
+const toneIcon: Record<string, any> = {
+  amber: Clock,
+  red: AlertTriangle,
+  blue: Users,
+  purple: Info,
+  teal: ShieldCheck,
+  green: Info,
+};
 
 export function AgencyShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const whoamiFn = useServerFn(agencyWhoami);
+  const listNotifsFn = useServerFn(listAgencyNotifications);
+
+  const { data: me } = useQuery({
+    queryKey: ["agency", "whoami"],
+    queryFn: () => whoamiFn(),
+    refetchOnMount: "always",
+    staleTime: 0,
+  });
+
+  const { data: notifs } = useQuery({
+    queryKey: ["agency", "notifications"],
+    queryFn: () => listNotifsFn(),
+    refetchInterval: 60_000,
+  });
+
+  const items = [
+    ...(notifs?.computed ?? []),
+    ...(notifs?.persisted ?? []),
+  ];
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -64,8 +100,8 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     return pathname === item.to || pathname.startsWith(item.to + "/");
   };
 
-  const renderNav = (items: NavItem[]) =>
-    items.map((item) => (
+  const renderNav = (list: NavItem[]) =>
+    list.map((item) => (
       <Link
         key={item.to}
         to={item.to}
@@ -73,11 +109,31 @@ export function AgencyShell({ children }: { children: ReactNode }) {
       >
         <span className="shrink-0">{item.icon}</span>
         <span className="tvp-nav-label">{item.label}</span>
-        {item.badge !== undefined && (
-          <span className="tvp-nav-badge">{item.badge}</span>
-        )}
       </Link>
     ));
+
+  const handleSignOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  };
+
+  const initials = (me?.displayName || me?.email || "?")
+    .split(/\s+|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s: string) => s[0]?.toUpperCase())
+    .join("");
+
+  const roleLabel =
+    me?.role === "owner"
+      ? "Agency Owner"
+      : me?.role === "manager"
+        ? "Manager"
+        : me?.role
+          ? "Staff"
+          : "";
 
   return (
     <div className={`tv-app${collapsed ? " tv-collapsed" : ""}`}>
@@ -107,12 +163,18 @@ export function AgencyShell({ children }: { children: ReactNode }) {
         <nav className="tvp-nav">{renderNav(settings)}</nav>
 
         <div className="tvp-sidebar-footer">
-          <div className="tvp-avatar">TN</div>
+          <div className="tvp-avatar">{initials || "?"}</div>
           <div className="tvp-profile-copy">
-            <div className="tvp-profile-name">Thandi Ndlovu</div>
-            <div className="tvp-profile-role">Agency Owner</div>
+            <div className="tvp-profile-name">
+              {me?.displayName || me?.email?.split("@")[0] || "Loading..."}
+            </div>
+            <div className="tvp-profile-role">{roleLabel}</div>
           </div>
-          <button className="tvp-logout" aria-label="Log out">
+          <button
+            className="tvp-logout"
+            aria-label="Log out"
+            onClick={handleSignOut}
+          >
             <LogOut className="h-4 w-4" />
           </button>
         </div>
@@ -131,31 +193,53 @@ export function AgencyShell({ children }: { children: ReactNode }) {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
-              <span className="tvp-dot">4</span>
+              {items.length > 0 && <span className="tvp-dot">{items.length}</span>}
             </button>
             {bellOpen && (
               <div className="tvp-notification-panel">
-                <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+                <div
+                  className="flex items-center justify-between"
+                  style={{ marginBottom: 6 }}
+                >
                   <div className="tvp-h2">Reminders</div>
-                  <button className="tvp-link">View all</button>
                 </div>
-                {notifications.map((n, i) => (
-                  <div className="tvp-notification-item" key={i}>
-                    <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
-                      <n.Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <strong>{n.title}</strong>
-                      <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                        {n.detail}
+                {items.length === 0 && (
+                  <div className="tvp-muted" style={{ padding: "10px 2px" }}>
+                    All caught up.
+                  </div>
+                )}
+                {items.map((n: any) => {
+                  const Icon = toneIcon[n.tone] ?? Info;
+                  return (
+                    <div className="tvp-notification-item" key={n.id ?? n.title}>
+                      <div
+                        className={`tvp-kpi-icon tvp-bg-${n.tone} shrink-0`}
+                        style={{ width: 32, height: 32 }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="tvp-notification-text">
+                        <strong>{n.title}</strong>
+                        <div
+                          className="tvp-muted"
+                          style={{ fontSize: 12, marginTop: 2 }}
+                        >
+                          {n.detail}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
-          <div className="tvp-user-dot">TN</div>
+          <div
+            className="tvp-user-dot"
+            aria-label="My account"
+            title={me?.displayName || me?.email || "My account"}
+          >
+            {initials || "?"}
+          </div>
         </div>
         {children}
       </main>
