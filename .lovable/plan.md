@@ -1,111 +1,88 @@
+## Design drift findings: `agency-shell.tsx` vs `admin-shell.tsx`
 
-# Admin Portal — Backend Wiring Plan
+Both files use the same `tvp-*` design tokens and CSS classes, same Lucide icon set, same sidebar/main layout skeleton — so the visual system is already aligned. The drift is behavioural / data-wiring inside the shell:
 
-## ⚠️ Pre-launch checklist
+1. **Hardcoded user identity.** Agency shows `TN` avatar + "Thandi Ndlovu / Agency Owner" as string literals. Admin renders these from the `whoami` server fn (real name, initials, role).
+2. **No logout wired.** Agency's `LogOut` button has no `onClick`. Admin calls `supabase.auth.signOut()` + `queryClient.clear()` + `navigate('/auth')`.
+3. **Hardcoded notifications array.** Agency has a static `notifications` const with 4 fake items. Admin queries `listNotifications` every 60s, supports dismiss via mutation, filters by tone → icon map.
+4. **Static badge counts on nav items.** Agency hardcodes `badge: 24` (Talent) and `badge: 6` (Invitations). Admin has no badges — counts live inside each page. Either drop the badges or derive them from queries.
+5. **No auth/role gate on `/agency` route.** `src/routes/agency.tsx` has no `beforeLoad` (compared to `admin.tsx`, which does `getUser()` + `has_role('admin')` redirect). Any signed-in user can currently open the agency portal.
+6. Minor: brand sub-label is `AGENCY` (fine) but there's no visual differentiator vs Admin's `ADMIN` — matches pattern, no change needed.
 
-- [ ] **Re-enable "Confirm email"** in Cloud auth settings. It is currently OFF for dev/testing convenience (auto-confirm ON) — MUST be turned back on before any real launch.
+Everything else (colors, cards, tables, chips, KPI tiles, callouts, tabs, buttons) already uses the shared tokens correctly.
 
+## Schema plan — reuse vs add
 
-Goal: replace the Admin Portal's in-memory mock data with real, authenticated, role-gated data from Lovable Cloud, while leaving the Agency, Talent, and Loved One portals on their existing mock data for now. Schema will be designed to support all four roles from day one so we don't migrate again later.
+**Reuse as-is:**
+- `agencies` — the tenant row. Already has status/suspension. No changes.
+- `agency_members(agency_id, user_id, role, suspended)` — this IS the "how do you become an agency user" table. Set on accept of `agency_invitations`. Roles today are free-text `text`; we'll standardize the allowed values in app code (`'owner' | 'manager' | 'staff'`).
+- `agency_invitations` — admin→agency onboarding. Already has `accepted_at`; when accepted it should upsert an `agency_members` row (owner). Verify the `handle_new_user` / accept flow does this; if not, add a trigger or accept-server-fn step.
+- `talent_invitations` — agency→talent onboarding. Already exists (13 cols). Needs an `agency_id` column check — likely already there; confirm at build time.
+- `agency_documents` — currently only aggregate counters (`shared_folder_count`, `private_vault_count`). Keep as a rollup surface but we need a real per-document table (see below).
+- `talent_profiles` — reuse for Talent list joins.
+- `agency_billing_docs` — powers the Quotes & Invoices screen. Already covers kind/number/client/issued_at/currency/total/status. Reuse.
 
-No code is changed in this plan step.
+**Add (new migrations):**
 
----
+a. **`agency_talent_links`** — the talent-agency relationship (one talent ↔ one or more agencies, with lifecycle state). Columns:
+   - `id`, `agency_id → agencies`, `talent_user_id → auth.users` (nullable until accepted), `talent_profile_id → talent_profiles` (nullable), `talent_invitation_id → talent_invitations`, `manager_user_id → auth.users` (assigned agency staff), `status` enum (`active | invited | expired | read_only | revoked | needs_review`), `talent_type` text (Athlete/Artist/Model — free-text for now), `next_action` text, timestamps.
+   - RLS: agency members of `agency_id` can select/update; talent themselves can select their own row.
 
-## 1. Enable Lovable Cloud
+b. **`agency_documents_items`** (rename in code; table can be `talent_shared_documents`) — real per-document rows powering Document Vault. Columns:
+   - `id`, `agency_id`, `talent_link_id`, `name`, `folder`, `status` enum (`ai_suggested | filed | needs_review`), `validity_expires_at` (nullable), `ai_suggested_folder`, `ai_suggested_expiry`, `uploaded_by`, `storage_path` (nullable — files come later), timestamps.
+   - RLS: agency members of `agency_id` OR the talent owner.
 
-- Enable Lovable Cloud (managed Supabase: Postgres + Auth + Storage + server functions).
-- Add `_authenticated/route.tsx` (integration-managed gate) and the bearer-attaching middleware in `src/start.ts`.
-- Add an `/auth` public route (email/password + Google — Google via the Lovable broker).
-- Assumption: email/password + Google is the intended admin sign-in. If SSO/SAML only, flag before build.
+c. **`agency_folder_templates`** + **`agency_folder_template_items`** — per-agency folder template library backing the Folder Templates screen. Columns on parent: `id`, `agency_id`, `name`, `description`, `is_default`. Items: `template_id`, `folder_name`, `required_docs jsonb`.
+   - RLS: agency members of `agency_id`.
 
-## 2. Roles & Access Control
+d. **`app_role` enum extension (or new `agency_role` enum)** — decide at build time whether to promote existing `agency_members.role` text to an enum `agency_role ∈ {'owner','manager','staff'}` with a check constraint. Non-blocking; can start as text with app-level validation.
 
-App-wide role model, even though only Admin is functional now:
+e. **Helper security-definer functions:**
+   - `is_agency_member(_user_id uuid, _agency_id uuid) returns boolean`
+   - `current_user_agency_id() returns uuid` (returns the single agency the caller belongs to; NULL if multi/none — we'll assume one agency per user for v1 to keep RLS simple, and revisit if needed).
+   - `has_agency_role(_user_id, _agency_id, _role)` for owner-only actions (invite staff, edit settings).
 
-- Enum `app_role`: `admin`, `agency_owner`, `agency_member`, `talent`, `loved_one`.
-- Separate `user_roles` table (never on `profiles`) — required to prevent privilege escalation.
-- `has_role(_user_id uuid, _role app_role)` SECURITY DEFINER function used in every RLS policy.
-- Admin gate: pathless layout `src/routes/admin` calls a server fn that checks `has_role(auth.uid(), 'admin')`; non-admins get redirected. Same pattern will later gate `/agency`, `/talent`, `/loved-one`.
-- Two admin sub-roles handled via a boolean `is_main_admin` on `user_roles` row (for the "Main Administrator" concept already visible in the sidebar) — or a second enum value `main_admin`. Decision to confirm at build time; leaning `is_main_admin` flag to keep enum stable.
+All new tables ship `GRANT SELECT,INSERT,UPDATE,DELETE ... TO authenticated` + `GRANT ALL TO service_role` in the same migration, RLS enabled, policies scoped via `is_agency_member`, and `updated_at` triggers where relevant.
 
-## 3. Database Schema (Admin-driving, multi-role-ready)
+## Auth / role model
 
-All tables in `public`, all with explicit `GRANT`s + RLS. Admin policies via `has_role(auth.uid(),'admin')`; per-role policies stubbed but only admin ones exercised now.
+- Someone becomes an agency user in one of two ways:
+  1. **Admin invites an agency** (`agency_invitations`, already built). On sign-up via that invite, we insert an `agency_members` row with `role='owner'` for the new `agency_id`. This may already be wired in `handle_new_user` — verify; if missing, add.
+  2. **Agency owner/manager invites staff** (new agency-side invitation flow using a table like `agency_staff_invitations`, or reuse `agency_invitations` with a `kind` discriminator — cleaner to add `agency_staff_invitations` to keep semantics distinct). On accept, insert `agency_members` row with the invited role.
+- `/agency` route gate: `beforeLoad` does `supabase.auth.getUser()` → check user has at least one row in `agency_members` (not suspended) → set `agency_id` in route context. Otherwise redirect to `/auth`.
+- All agency server functions use `requireSupabaseAuth` + a helper `getCallerAgencyId(context)` that reads `agency_members`, throws if none, and scopes every query.
+- Admin users are NOT auto-agency users (separation of concerns). If they need to inspect an agency, they use the existing Admin agency-detail screen.
 
-Core identity:
-- `profiles` (id = auth.users.id, display_name, email, avatar_url, created_at)
-- `user_roles` (user_id, role app_role, is_main_admin bool, created_at, unique(user_id, role))
+## Build order (5 screens)
 
-Agencies domain:
-- `agencies` (id, name, registration_no, status enum: accepted|invited|incomplete|suspended|declined|cancelled, owner_user_id, joined_at, next_action_note, created_at, updated_at)
-- `agency_members` (agency_id, user_id, role: owner|member, created_at) — future-proofs agency portal
-- `agency_invitations` (id, agency_id?, email, invited_by, status enum: draft|sent|accepted|expired|declined|cancelled, sent_at, expires_at, accepted_at, token_hash, notes)
-- `talent_invitations` (id, agency_id, email, status, sent_at, expires_at) — needed for BR-BELL-004 counts
+Do the shell + auth + one vertical slice first, then broaden — mirrors how Admin was built.
 
-Documents / reporting (Quotes & Invoices reporting screen):
-- `agency_documents` (id, agency_id, type enum: quote|invoice, number, client_name, issued_on, currency, total_cents, status enum, created_at) — admin sees aggregates + read-only rows; agencies later own writes.
+1. **Schema + auth foundation (no UI yet).**
+   - Migrations for `agency_talent_links`, `talent_shared_documents`, `agency_folder_templates(+items)`, `agency_staff_invitations`, helper functions, RLS.
+   - Backfill/verify `agency_members` insertion on `agency_invitations` accept.
+   - `beforeLoad` gate on `src/routes/agency.tsx`.
+   - Rewire `agency-shell.tsx`: `whoami` (reused; extend to return agency_id + role), real notifications via a new `listAgencyNotifications` server fn (start with empty list — populated as each feature ships), logout wiring, remove hardcoded badges (or derive from cheap count queries).
 
-Platform ops:
-- `admin_audit_log` (id, actor_user_id, action text, target_type, target_id, target_label, metadata jsonb, created_at) — replaces the current session-only audit UI.
-- `admin_notifications` (id, tone, title, detail, rule_code, link_path, dismissed_by jsonb or separate `admin_notification_dismissals(user_id, notification_id)`, created_at) — drives the bell.
-- `administrators` view = join of `user_roles` where role='admin' + profiles (for `/admin/administrators`).
+2. **Dashboard (`agency.index.tsx`).** KPI tiles from real counts (`agency_talent_links`, `talent_shared_documents`, `agency_staff_invitations` + `talent_invitations`, `agency_billing_docs`). Talent workspace table + status chips from `agency_talent_links` with the existing filters. This is the highest-value screen and exercises most joins — good second step.
 
-Enums, grants, RLS policies, and `has_role`-based admin-read/admin-write policies included in one migration. Anon gets no grants on these tables.
+3. **Invitations (`agency.invitations.tsx`).** Two tabs: Talent (backed by `talent_invitations`, filter `agency_id = current`) and Staff (new `agency_staff_invitations`). Actions: copy link, resend, revoke. Reuse the token/email plumbing from the Admin agency-invitation flow. Delivers the "invite talent" primary CTA on the dashboard.
 
-## 4. Screens to Rewire
+4. **Document Vault (`agency.document-vault.tsx`).** Rewire tabs (All / Needs Review / Expiring / Recently Updated) to `talent_shared_documents` queries. AI Filing Suggestions panel filters `status='ai_suggested'` with confirm/edit mutations. Upload defers real file storage — capture metadata rows now, wire Storage bucket in a follow-up.
 
-Each currently uses hardcoded arrays; rewire to server functions + TanStack Query (`ensureQueryData` in loader, `useSuspenseQuery` in component).
+5. **Folder Templates (`agency.folder-templates.tsx`).** CRUD over `agency_folder_templates(+items)`. Simplest of the remaining screens; independent of talent data.
 
-| Route | Today | After |
-|---|---|---|
-| `/admin` (index) | Mock KPIs, freshness label ticks off `Date.now()` | KPIs from aggregate server fns over agencies/invitations/documents; freshness from last query time |
-| `/admin/agencies` | `agencies` const array, tab counts hardcoded | `list_agencies` server fn + tab counts from `select status, count(*)` |
-| `/admin/agencies/$id` | Mock detail | `get_agency(id)` server fn joining members, invitations, doc totals |
-| `/admin/invitations` | Local `useState` seed rows | `list_agency_invitations` + `create_invitation` / `resend` / `cancel` server fns; expiry computed server-side |
-| `/admin/invitations/new` | Client-only form | `create_invitation` server fn; writes audit log |
-| `/admin/quotes-invoices` | 7 hardcoded `Doc` rows, session-only audit | `list_agency_documents` (read-only for admin — BR-QI-002 enforced by RLS: no admin update/insert policy), `log_audit(view/export)` server fn — BR-QI-003 |
-| `/admin/audit` | Mock rows | `list_admin_audit(filters)` from `admin_audit_log` |
-| `/admin/administrators` | Mock list | `list_administrators` server fn; add/remove admin uses `supabaseAdmin` inside handler with authorization check |
-| `AdminShell` bell | Static `initialNotifications` | `list_admin_notifications` + `dismiss_notification` (per-admin dismissal) |
-| Sidebar counts (`badge: 9`, `badge: 3`) | Hardcoded | Derived from same queries powering pages |
+6. **Quotes & Invoices (`agency.quotes-invoices.tsx`).** Wire to `agency_billing_docs` with `agency_id` scope. Reuse most of the Admin quotes/invoices UI patterns. PDF generation stays out of scope for this pass.
 
-Placeholders staying visual-only for now (called out so we don't overbuild):
-- Global top search input (no backing search yet)
-- "Legal / copy review reminder" bell item (no legal-review table — keep as static or drop until spec exists)
+## Out of scope for this pass (call out now)
 
-## 5. Auth Flow & Middleware
+- Real file uploads to Storage (Document Vault will have metadata rows + placeholder actions; wire a `talent-docs` bucket in a follow-up).
+- Sending real invitation emails from `talvault.com` — depends on the Lovable Emails domain verification still in flight. Invitation records + tokenized accept links land now; email delivery hooks in once the domain is verified.
+- Multi-agency membership per user (v1 assumes one).
+- Talent-side portal changes (separate track).
 
-- `src/routes/auth.tsx` — public sign-in (email/password + Google via `lovable.auth.signInWithOAuth`).
-- `src/routes/_authenticated/route.tsx` — integration-managed gate, `ssr:false`, redirects to `/auth`.
-- Move admin routes under `_authenticated/admin.*` (this is the breaking file move — see §6).
-- Admin-only `beforeLoad` in `_authenticated/admin.tsx` calls a `requireSupabaseAuth`-guarded server fn `assertAdmin()` that throws redirect to `/` if `has_role(uid,'admin')` is false.
-- `src/start.ts` gets bearer-attaching `functionMiddleware`.
-- Root `__root.tsx` adds `onAuthStateChange` subscriber (filtered to SIGNED_IN/OUT/USER_UPDATED) to invalidate router + query cache.
+## Questions before I start building
 
-## 6. Risks / Migrations / Breaking Changes
-
-- **Route file relocation**: `src/routes/admin.*.tsx` → `src/routes/_authenticated/admin.*.tsx`. All internal `<Link to="/admin/...">` URLs stay the same (pathless layout), but the file tree changes and `routeTree.gen.ts` regenerates. Low risk, mechanical.
-- **`/auth` route is net-new** and public; must be added before the admin gate is enabled or admins get locked out during dev. Plan: land schema + `/auth` + role seeding in one migration/PR, then flip admin routes to gated.
-- **First admin seeding**: needs one row in `user_roles` with `role='admin'` for the developer's auth user before the gate goes live. Handled via a one-shot SQL insert after first sign-in, not a public signup path.
-- **Other portals (Agency, Talent, Loved One) stay on mock data.** They currently live at top-level `/agency.*`, `/talent.*`, `/loved-one.tsx`. We leave those files untouched. They're not gated yet, so no regression. Schema for their future data (agency_members, talent_invitations, etc.) exists but is unused by their UIs — no breakage.
-- **Quotes & Invoices audit UI** currently shows session-only entries; switching to DB-backed `admin_audit_log` changes semantics (persistent, cross-session, potentially larger). We paginate and cap query.
-- **Bell notifications** move from static to DB-derived. Dismissals will be persisted per admin — behavior change from current "dismiss = forget until reload".
-- **Type generation**: after migration, `src/integrations/supabase/types.ts` regenerates; a few imports may need updating. No app-logic breakage expected.
-- **Server-only imports**: any `supabaseAdmin` usage must live in `*.server.ts` or inside `.handler()` bodies with dynamic import, per project rules.
-
-## 7. Suggested Build Sequence (for after approval)
-
-1. Enable Cloud + generate types.
-2. Migration: enums, tables, grants, RLS, `has_role`, seed the current dev user as admin.
-3. Add `/auth`, `_authenticated` layout, admin gate, start.ts middleware.
-4. Move admin routes under `_authenticated/`.
-5. Rewire screens page-by-page in order: agencies list → agency detail → invitations → invitations/new → quotes-invoices → audit → administrators → dashboard KPIs → bell.
-6. Delete now-unused mock arrays.
-
-## Open questions (please confirm before build)
-
-1. Admin sign-in: email/password + Google, or SSO only?
-2. "Main Administrator" vs regular admin — flag on `user_roles`, or a distinct enum value?
-3. Should admins be able to CREATE agency documents (quotes/invoices) from the admin side, or strictly read-only per BR-QI-002? (Plan assumes strictly read-only — no admin write policy at all.)
-4. Bell "Legal / copy review reminder" — real backing data or leave static?
+1. **One agency per user, correct?** Simplifies RLS + `current_user_agency_id()`. Confirm.
+2. **Agency staff invitations** — new `agency_staff_invitations` table (cleaner) vs reusing `agency_invitations` with a discriminator (fewer tables)? I'd default to the new table.
+3. **Nav badge counts** on the sidebar (Talent: 24, Invitations: 6) — drop them, or derive from real counts? Admin doesn't have them; I'd drop for consistency.
+4. **The static "Reminders" bell content** on Agency — start with an empty state and populate per feature (like Admin did), or design a fixed set of agency reminder rules up front?
