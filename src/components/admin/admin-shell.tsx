@@ -201,6 +201,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
+          {me?.isAdmin && !me?.canEdit && (
+            <span
+              className="tvp-status tvp-amber"
+              title="You have view-only access. Write actions are disabled."
+              style={{ marginRight: "auto" }}
+            >
+              View only — no edit access
+            </span>
+          )}
           <input className="tvp-search-top" placeholder="Search..." />
           <div className="tvp-notification-wrap">
             <button
