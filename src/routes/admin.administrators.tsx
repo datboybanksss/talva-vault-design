@@ -137,12 +137,6 @@ function AdminsPage() {
             Platform administrators and legal / copy review items (bell reminders).
           </div>
         </div>
-        {isMain && (
-          <button className="tvp-primary" onClick={() => setInviteOpen(true)}>
-            <UserPlus className="h-4 w-4" style={{ marginRight: 6 }} />
-            Invite administrator
-          </button>
-        )}
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
