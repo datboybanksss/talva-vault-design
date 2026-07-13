@@ -135,37 +135,10 @@ function AdminsPage() {
             <div className="tvp-kpi-label">Main Administrators</div>
           </div>
         </div>
-        <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">
-              {(legal.data ?? []).filter((l: any) => l.status === "approved").length}
-            </div>
-            <div className="tvp-kpi-label">Approved Legal / Copy Items</div>
-          </div>
-        </div>
       </div>
 
-      <div className="tvp-tabs">
-        <button
-          className={`tvp-tab${tab === "admins" ? " tvp-active" : ""}`}
-          onClick={() => setTab("admins")}
-        >
-          Administrators
-        </button>
-        <button
-          className={`tvp-tab${tab === "legal" ? " tvp-active" : ""}`}
-          onClick={() => setTab("legal")}
-        >
-          Legal & Copy Review
-          <span className={`tvp-status tvp-amber`}>
-            {(legal.data ?? []).filter((l: any) => l.status !== "approved").length}
-          </span>
-        </button>
-      </div>
+      <>
 
-      {tab === "admins" && (
-        <>
           <div className="tvp-card">
             <div className="tvp-toolbar">
               <h2 className="tvp-h2">Administrators</h2>
