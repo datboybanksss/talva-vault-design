@@ -623,14 +623,14 @@ function TwoFactorCard({ email }: { email: string }) {
       />
 
       {loading ? (
-        <div className="tvp-muted" style={{ marginTop: 12 }}>Loading…</div>
+        <div className="tvp-muted" style={{ marginTop: 8 }}>Loading…</div>
       ) : enrolled && !disabling ? (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 8 }}>
           <div className="tv-form-alert tv-form-alert-info">
             2FA is <strong>enabled</strong> on this account. You'll be prompted for a
             code from your authenticator app when you sign in.
           </div>
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 10 }}>
             <button
               type="button"
               className="tvp-secondary"
@@ -642,11 +642,11 @@ function TwoFactorCard({ email }: { email: string }) {
           </div>
         </div>
       ) : disabling ? (
-        <form onSubmit={confirmDisable} style={{ marginTop: 12 }} noValidate>
+        <form onSubmit={confirmDisable} style={{ marginTop: 8 }} noValidate>
           <div className="tv-form-alert tv-form-alert-info">
             Confirm your password to disable two-factor authentication.
           </div>
-          <div className="tv-auth-field" style={{ marginTop: 12 }}>
+          <div className="tv-auth-field" style={{ marginTop: 10 }}>
             <label htmlFor="mfa-disable-pw">Current password</label>
             <PasswordInput
               id="mfa-disable-pw"
@@ -658,7 +658,7 @@ function TwoFactorCard({ email }: { email: string }) {
             />
           </div>
           {error && <div className="tv-form-alert tv-form-alert-error">{error}</div>}
-          <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
             <button type="submit" className="tvp-danger" disabled={busy || !disablePw}>
               {busy ? "Disabling…" : "Disable 2FA"}
             </button>
@@ -673,7 +673,7 @@ function TwoFactorCard({ email }: { email: string }) {
           </div>
         </form>
       ) : enrolling ? (
-        <form onSubmit={verifyEnroll} style={{ marginTop: 12 }} noValidate>
+        <form onSubmit={verifyEnroll} style={{ marginTop: 8 }} noValidate>
           <div className="tvp-muted" style={{ fontSize: 12 }}>
             Scan the QR code below with an authenticator app (Google Authenticator,
             Authy, 1Password, etc.), then enter the 6-digit code it displays.
@@ -681,7 +681,7 @@ function TwoFactorCard({ email }: { email: string }) {
           {qrSvg && (
             <div
               style={{
-                marginTop: 12,
+                marginTop: 10,
                 background: "white",
                 padding: 12,
                 borderRadius: 12,
@@ -698,7 +698,7 @@ function TwoFactorCard({ email }: { email: string }) {
             </div>
           )}
           {secret && (
-            <div className="tv-auth-hint" style={{ marginTop: 8 }}>
+            <div className="tv-auth-hint" style={{ marginTop: 6 }}>
               Can't scan? Enter this key manually:{" "}
               <code
                 style={{
@@ -728,7 +728,7 @@ function TwoFactorCard({ email }: { email: string }) {
             />
           </div>
           {error && <div className="tv-form-alert tv-form-alert-error">{error}</div>}
-          <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
             <button
               type="submit"
               className="tvp-primary"
@@ -747,17 +747,17 @@ function TwoFactorCard({ email }: { email: string }) {
           </div>
         </form>
       ) : (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 8 }}>
           <div className="tvp-muted" style={{ fontSize: 13 }}>
             Add an extra sign-in step using a time-based code from an authenticator
             app on your phone. Recommended for all administrators.
           </div>
           {error && (
-            <div className="tv-form-alert tv-form-alert-error" style={{ marginTop: 12 }}>
+            <div className="tv-form-alert tv-form-alert-error" style={{ marginTop: 10 }}>
               {error}
             </div>
           )}
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 10 }}>
             <button
               type="button"
               className="tvp-primary"
@@ -770,7 +770,7 @@ function TwoFactorCard({ email }: { email: string }) {
         </div>
       )}
       {info && !enrolling && !disabling && (
-        <div className="tv-form-alert tv-form-alert-info" style={{ marginTop: 12 }}>
+        <div className="tv-form-alert tv-form-alert-info" style={{ marginTop: 10 }}>
           {info}
         </div>
       )}
