@@ -2,23 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, CheckCircle2, ShieldCheck, KeyRound } from "lucide-react";
+import { Users, CheckCircle2, ShieldCheck } from "lucide-react";
 import {
   listAdministrators,
   whoami,
   listLegalCopyItems,
   markLegalCopyApproved,
-  logOwnPasswordChange,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { PasswordInput } from "@/components/password-input";
-import {
-  MIN_PW_LENGTH,
-  scorePassword,
-  validateNewPassword,
-  friendlyAuthError,
-} from "@/lib/password";
 
 export const Route = createFileRoute("/admin/administrators")({
   head: () => ({ meta: [{ title: "Administrators · TalVault Admin" }] }),
