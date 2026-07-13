@@ -137,12 +137,6 @@ function AdminsPage() {
             Platform administrators and legal / copy review items (bell reminders).
           </div>
         </div>
-        {isMain && (
-          <button className="tvp-primary" onClick={() => setInviteOpen(true)}>
-            <UserPlus className="h-4 w-4" style={{ marginRight: 6 }} />
-            Invite administrator
-          </button>
-        )}
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
@@ -257,12 +251,91 @@ function AdminsPage() {
           </div>
 
           <div className="tvp-card" style={{ marginTop: 16 }}>
-            <div className="tvp-toolbar">
-              <h2 className="tvp-h2">Administrator invitations</h2>
-              <span className="tvp-muted" style={{ fontSize: 12 }}>
-                Sent invites become active when the invitee signs up with the matching email.
-              </span>
+            <div className="tvp-toolbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <h2 className="tvp-h2">Administrator invitations</h2>
+                <span className="tvp-muted" style={{ fontSize: 12 }}>
+                  Sent invites become active when the invitee signs up with the matching email.
+                </span>
+              </div>
+              {isMain && !inviteOpen && (
+                <button className="tvp-primary" onClick={() => setInviteOpen(true)}>
+                  <UserPlus className="h-4 w-4" style={{ marginRight: 6 }} />
+                  Add
+                </button>
+              )}
             </div>
+            {isMain && inviteOpen && (
+              <div
+                className="tvp-card"
+                style={{ margin: "0 0 16px", background: "var(--tvp-muted-bg, #f8fafc)" }}
+              >
+                <div className="tvp-panel-head">
+                  <h3 className="tvp-h3" style={{ margin: 0 }}>New invitation</h3>
+                  <button
+                    className="tvp-mini-btn"
+                    onClick={() => setInviteOpen(false)}
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="tvp-muted" style={{ fontSize: 12 }}>
+                  The invitee becomes an administrator at the selected permission level as
+                  soon as they sign up with this email. This action is recorded in the audit log.
+                </p>
+                <div className="tvp-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div className="tvp-form-group">
+                    <label>Email address</label>
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="new.admin@example.com"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="tvp-form-group">
+                    <label>Access level</label>
+                    <select
+                      value={invitePerm}
+                      onChange={(e) => setInvitePerm(e.target.value as any)}
+                    >
+                      <option value="edit">Edit rights — full access</option>
+                      <option value="view_only">View only — read-only access</option>
+                    </select>
+                  </div>
+                </div>
+                <span className="tvp-muted" style={{ fontSize: 12, marginTop: 4, display: "block" }}>
+                  {invitePerm === "edit"
+                    ? "Can perform all administrator actions (suspend agencies, send invites, approve legal copy, etc.)."
+                    : "Can view every admin screen but cannot perform any write action."}
+                </span>
+                <div className="tvp-footer-actions" style={{ marginTop: 12 }}>
+                  <button className="tvp-secondary" onClick={() => setInviteOpen(false)}>
+                    Cancel
+                  </button>
+                  {(() => {
+                    const valid = /.+@.+\..+/.test(inviteEmail.trim()) && !!invitePerm;
+                    return (
+                      <button
+                        className="tvp-primary"
+                        onClick={() =>
+                          invite.mutate({
+                            email: inviteEmail.trim(),
+                            permission_level: invitePerm,
+                          })
+                        }
+                        disabled={invite.isPending || !valid}
+                      >
+                        {invite.isPending ? "Sending…" : valid ? "Invite" : "Add"}
+                      </button>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
             <table className="tvp-table">
               <thead>
                 <tr>
@@ -385,86 +458,8 @@ function AdminsPage() {
         </div>
       )}
 
-      {inviteOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setInviteOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
-        >
-          <div
-            className="tvp-card tvp-panel"
-            onClick={(e) => e.stopPropagation()}
-            style={{ width: "min(520px, 92vw)" }}
-          >
-            <div className="tvp-panel-head">
-              <h2 className="tvp-h2">Invite administrator</h2>
-              <button
-                className="tvp-mini-btn"
-                onClick={() => setInviteOpen(false)}
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="tvp-muted" style={{ fontSize: 12 }}>
-              The invitee will become an administrator at the selected permission level
-              as soon as they sign up with this email. This action is recorded in the
-              audit log.
-            </p>
-            <div className="tvp-form-group">
-              <label>Email address</label>
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="new.admin@example.com"
-                autoFocus
-              />
-            </div>
-            <div className="tvp-form-group">
-              <label>Permission level</label>
-              <select
-                value={invitePerm}
-                onChange={(e) => setInvitePerm(e.target.value as any)}
-              >
-                <option value="edit">Edit rights — full access</option>
-                <option value="view_only">View only — read-only access</option>
-              </select>
-              <span className="tvp-muted" style={{ fontSize: 12, marginTop: 6, display: "block" }}>
-                {invitePerm === "edit"
-                  ? "Can perform all administrator actions (suspend agencies, send invites, approve legal copy, etc.)."
-                  : "Can view every admin screen but cannot perform any write action."}
-              </span>
-            </div>
-            <div className="tvp-footer-actions">
-              <button className="tvp-secondary" onClick={() => setInviteOpen(false)}>
-                Cancel
-              </button>
-              <button
-                className="tvp-primary"
-                onClick={() =>
-                  invite.mutate({
-                    email: inviteEmail.trim(),
-                    permission_level: invitePerm,
-                  })
-                }
-                disabled={invite.isPending || !/.+@.+\..+/.test(inviteEmail.trim())}
-              >
-                {invite.isPending ? "Sending…" : "Send invitation"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
+
 
       {editAdmin && (
         <div
