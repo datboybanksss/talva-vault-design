@@ -1,24 +1,16 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { ShieldCheck, Lock, FileCheck2, Users, Eye, EyeOff } from "lucide-react";
+import { ShieldCheck, Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
-
-const searchSchema = z.object({ next: z.string().optional() });
-
-const MIN_PW_LENGTH = 12;
-
-// Small in-app blocklist of extremely common / trivially-guessable passwords.
-// The Supabase HIBP check is the authoritative breach lookup — this is just a
-// fast client-side reject so users get instant feedback instead of a round trip.
-const COMMON_PASSWORDS = new Set([
-  "password", "password1", "password12", "password123", "password1234",
-  "passw0rd", "p@ssword", "p@ssw0rd", "qwerty123456", "qwertyuiop12",
-  "123456789012", "1234567890123", "iloveyou1234", "letmein12345",
-  "welcome12345", "adminadmin12", "administrator", "trustno1234",
-  "abcdefghijkl", "aaaaaaaaaaaa", "monkey123456",
-]);
+import { PasswordInput } from "@/components/password-input";
+import {
+  MIN_PW_LENGTH,
+  scorePassword,
+  validateNewPassword,
+  friendlyAuthError,
+} from "@/lib/password";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
