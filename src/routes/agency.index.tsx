@@ -73,7 +73,19 @@ function AgencyDashboard() {
   const [manager, setManager] = useState("all");
   const [type, setType] = useState("all");
 
-  const rows = talent.data ?? [];
+  type TalentRow = {
+    id: string;
+    displayName: string;
+    status: string;
+    talentType: string | null;
+    managerUserId: string | null;
+    managerName: string;
+    nextAction: string | null;
+    docCount: number;
+    createdAt: string;
+    updatedAt: string;
+  };
+  const rows: TalentRow[] = (talent.data ?? []) as TalentRow[];
 
   const managerOptions = useMemo(
     () => Array.from(new Set(rows.map((r) => r.managerName).filter(Boolean))),
@@ -83,6 +95,7 @@ function AgencyDashboard() {
     () => Array.from(new Set(rows.map((r) => r.talentType).filter(Boolean) as string[])),
     [rows],
   );
+
 
   const chips = useMemo(() => {
     const counts = new Map<string, number>();
