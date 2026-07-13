@@ -107,9 +107,7 @@ function AgenciesPage() {
   };
 
   const doSuspend = (id: string, name: string) => {
-    const reason = window.prompt(`Reason for suspending "${name}"?`)?.trim();
-    if (!reason) return;
-    suspendM.mutate({ id, reason });
+    setSuspendTarget({ id, name });
   };
 
   return (
