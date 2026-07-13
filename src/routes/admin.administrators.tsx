@@ -1,66 +1,153 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Plus, Users, CheckCircle2, Clock, XCircle, MoreVertical } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Users, CheckCircle2, ShieldCheck } from "lucide-react";
+import {
+  listAdministrators,
+  whoami,
+  listLegalCopyItems,
+  markLegalCopyApproved,
+} from "@/lib/admin.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/administrators")({
   head: () => ({ meta: [{ title: "Administrators · TalVault Admin" }] }),
   component: AdminsPage,
 });
 
-const admins = [
-  { name: "Israel Noko", you: true, email: "israel@npiconsulting.co.za", role: "Main Administrator", roleTone: "purple", status: "Accepted", statusTone: "green", last: "Just now" },
-  { name: "Lara Prasad", email: "laranel@outlook.com", role: "Main Administrator", roleTone: "purple", status: "Accepted", statusTone: "green", last: "1h ago" },
-  { name: "Thandi M.", email: "thandi@talvault.com", role: "Administrator", roleTone: "blue", status: "Accepted", statusTone: "green", last: "2h ago" },
-  { name: "Ndiphi T.", email: "ndiphi@talvault.com", role: "Administrator", roleTone: "blue", status: "Invited", statusTone: "blue", last: "—" },
-];
-
 function AdminsPage() {
-  const [tab, setTab] = useState<"admins" | "account">("admins");
+  const listFn = useServerFn(listAdministrators);
+  const whoamiFn = useServerFn(whoami);
+  const listLegalFn = useServerFn(listLegalCopyItems);
+  const approveLegalFn = useServerFn(markLegalCopyApproved);
+  const qc = useQueryClient();
+
+  const admins = useQuery({
+    queryKey: ["admin", "administrators"],
+    queryFn: () => listFn(),
+  });
+  const me = useQuery({ queryKey: ["whoami"], queryFn: () => whoamiFn() });
+  const legal = useQuery({
+    queryKey: ["admin", "legal"],
+    queryFn: () => listLegalFn(),
+  });
+
+  const approve = useMutation({
+    mutationFn: (id: string) => approveLegalFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Legal / copy item approved.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
+
+  const [tab, setTab] = useState<"admins" | "legal">("admins");
+
+  const list = admins.data ?? [];
+  const stats = useMemo(() => {
+    return {
+      total: list.length,
+      main: list.filter((a: any) => a.is_main_admin).length,
+    };
+  }, [list]);
 
   return (
     <>
       <div className="tvp-topbar">
         <div>
-          <h1 className="tvp-h1">Administrators</h1>
-          <div className="tvp-subtitle">Manage platform administrators, invitations and access.</div>
-        </div>
-        <div className="tvp-actions">
-          <button className="tvp-primary"><Plus className="h-4 w-4" />Invite Administrator</button>
+          <h1 className="tvp-h1">Administrators & Legal Review</h1>
+          <div className="tvp-subtitle">
+            Platform administrators and legal / copy review items (bell reminders).
+          </div>
         </div>
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
-        <div className="tvp-card tvp-kpi"><div className="tvp-kpi-icon tvp-bg-teal"><Users className="h-5 w-5" /></div><div><div className="tvp-kpi-value">24</div><div className="tvp-kpi-label">Total Administrators</div></div></div>
-        <div className="tvp-card tvp-kpi"><div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div><div><div className="tvp-kpi-value">18</div><div className="tvp-kpi-label">Active Administrators</div></div></div>
-        <div className="tvp-card tvp-kpi"><div className="tvp-kpi-icon tvp-bg-amber"><Clock className="h-5 w-5" /></div><div><div className="tvp-kpi-value">6</div><div className="tvp-kpi-label">Pending Invitations</div></div></div>
-        <div className="tvp-card tvp-kpi"><div className="tvp-kpi-icon tvp-bg-red"><XCircle className="h-5 w-5" /></div><div><div className="tvp-kpi-value">2</div><div className="tvp-kpi-label">Deactivated</div></div></div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-teal"><Users className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{stats.total}</div>
+            <div className="tvp-kpi-label">Total Administrators</div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-purple"><ShieldCheck className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{stats.main}</div>
+            <div className="tvp-kpi-label">Main Administrators</div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">
+              {(legal.data ?? []).filter((l: any) => l.status === "approved").length}
+            </div>
+            <div className="tvp-kpi-label">Approved Legal / Copy Items</div>
+          </div>
+        </div>
       </div>
 
       <div className="tvp-tabs">
-        <button className={`tvp-tab${tab === "admins" ? " tvp-active" : ""}`} onClick={() => setTab("admins")}>Administrators</button>
-        <button className={`tvp-tab${tab === "account" ? " tvp-active" : ""}`} onClick={() => setTab("account")}>My Account</button>
+        <button
+          className={`tvp-tab${tab === "admins" ? " tvp-active" : ""}`}
+          onClick={() => setTab("admins")}
+        >
+          Administrators
+        </button>
+        <button
+          className={`tvp-tab${tab === "legal" ? " tvp-active" : ""}`}
+          onClick={() => setTab("legal")}
+        >
+          Legal & Copy Review
+          <span className={`tvp-status tvp-amber`}>
+            {(legal.data ?? []).filter((l: any) => l.status !== "approved").length}
+          </span>
+        </button>
       </div>
 
       {tab === "admins" && (
         <div className="tvp-card">
           <div className="tvp-toolbar">
             <h2 className="tvp-h2">Administrators</h2>
-            <input className="tvp-search" placeholder="Search administrators..." />
           </div>
           <table className="tvp-table">
-            <thead><tr><th>Administrator</th><th>Email</th><th>Role</th><th>Status</th><th>Last Active</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th>Administrator</th><th>Email</th><th>Role</th><th>Granted</th>
+              </tr>
+            </thead>
             <tbody>
-              {admins.map((a) => (
-                <tr key={a.email}>
+              {admins.isLoading && (
+                <tr><td colSpan={4} className="tvp-muted">Loading…</td></tr>
+              )}
+              {list.map((a: any) => (
+                <tr key={a.user_id}>
                   <td>
-                    <strong>{a.name}</strong>
-                    {a.you && <span className="tvp-status tvp-blue" style={{ marginLeft: 8, padding: "3px 7px", fontSize: 10 }}>You</span>}
+                    <strong>{a.display_name || a.email.split("@")[0]}</strong>
+                    {a.user_id === me.data?.userId && (
+                      <span
+                        className="tvp-status tvp-blue"
+                        style={{ marginLeft: 8, padding: "3px 7px", fontSize: 10 }}
+                      >
+                        You
+                      </span>
+                    )}
                   </td>
                   <td>{a.email}</td>
-                  <td><span className={`tvp-status tvp-${a.roleTone}`}>{a.role}</span></td>
-                  <td><span className={`tvp-status tvp-${a.statusTone}`}>{a.status}</span></td>
-                  <td>{a.last}</td>
-                  <td><button className="tvp-mini-btn"><MoreVertical className="h-4 w-4" /></button></td>
+                  <td>
+                    <span
+                      className={`tvp-status tvp-${a.is_main_admin ? "purple" : "blue"}`}
+                    >
+                      {a.is_main_admin ? "Main Administrator" : "Administrator"}
+                    </span>
+                  </td>
+                  <td>
+                    {new Date(a.created_at).toLocaleDateString("en-GB", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -68,46 +155,68 @@ function AdminsPage() {
         </div>
       )}
 
-      {tab === "account" && (
-        <div className="tvp-card tvp-panel">
-          <div className="tvp-panel-head">
-            <div>
-              <h2 className="tvp-h2">My Account</h2>
-              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Update the email address and password you use to access TalVault Admin.</p>
-            </div>
-            <button className="tvp-secondary">View access history</button>
+      {tab === "legal" && (
+        <div className="tvp-card">
+          <div className="tvp-toolbar">
+            <h2 className="tvp-h2">Legal & Copy Review</h2>
+            <span className="tvp-muted" style={{ fontSize: 12 }}>
+              T&Cs, disclaimers and system copy. Placeholder items appear in the bell until approved.
+            </span>
           </div>
-          <div className="tvp-form-layout">
-            <div>
-              <div className="tvp-sub-card" style={{ marginTop: 0 }}>
-                <h3 className="tvp-h3">Update email address</h3>
-                <div className="tvp-form-group"><label>Current email address</label><input defaultValue="israel@npiconsulting.co.za" /></div>
-                <div className="tvp-form-group"><label>New email address</label><input placeholder="Enter new email address" /></div>
-                <div className="tvp-form-group"><label>Confirm new email address</label><input placeholder="Confirm new email address" /></div>
-                <div className="tvp-footer-actions" style={{ justifyContent: "flex-start" }}>
-                  <button className="tvp-primary">Save email address</button>
-                </div>
-              </div>
-              <div className="tvp-sub-card">
-                <h3 className="tvp-h3">Change password</h3>
-                <div className="tvp-form-group"><label>Current password</label><input type="password" defaultValue="TalVault101!!" /></div>
-                <div className="tvp-form-group"><label>New password</label><input type="password" placeholder="Enter new password" /></div>
-                <div className="tvp-form-group"><label>Confirm new password</label><input type="password" placeholder="Confirm new password" /></div>
-                <div className="tvp-footer-actions" style={{ justifyContent: "flex-start" }}>
-                  <button className="tvp-primary">Update password</button>
-                </div>
-              </div>
-            </div>
-            <div>
-              <div className="tvp-card tvp-panel">
-                <h3 className="tvp-h3">Account guidance</h3>
-                <div className="tvp-checklist-row">✓ Use an email address you can access.</div>
-                <div className="tvp-checklist-row">✓ Password changes are logged.</div>
-                <div className="tvp-checklist-row">✓ Use a strong password with upper, lower, number and symbol.</div>
-                <div className="tvp-checklist-row">✓ If your email changes, future login must use the new email.</div>
-              </div>
-            </div>
-          </div>
+          <table className="tvp-table">
+            <thead>
+              <tr>
+                <th>Item</th><th>Status</th><th>Updated</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(legal.data ?? []).length === 0 && !legal.isLoading && (
+                <tr><td colSpan={4} className="tvp-muted">No legal / copy items configured yet.</td></tr>
+              )}
+              {(legal.data ?? []).map((l: any) => (
+                <tr key={l.id}>
+                  <td>
+                    <strong>{l.title}</strong>
+                    {l.body && (
+                      <>
+                        <br />
+                        <span className="tvp-muted" style={{ fontSize: 12 }}>{l.body}</span>
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <span
+                      className={`tvp-status tvp-${
+                        l.status === "approved"
+                          ? "green"
+                          : l.status === "in_review"
+                            ? "amber"
+                            : "red"
+                      }`}
+                    >
+                      {l.status.replace("_", " ")}
+                    </span>
+                  </td>
+                  <td>
+                    {new Date(l.updated_at).toLocaleDateString("en-GB", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </td>
+                  <td>
+                    {l.status !== "approved" && (
+                      <button
+                        className="tvp-secondary"
+                        onClick={() => approve.mutate(l.id)}
+                        disabled={approve.isPending}
+                      >
+                        Mark approved
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </>

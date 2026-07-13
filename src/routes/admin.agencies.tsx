@@ -1,38 +1,98 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Filter, Plus, MoreVertical, Building2, CheckCircle2, Send, Clock, Ban, X, Lock } from "lucide-react";
-import { useState } from "react";
+import { Download, Plus, Lock, Ban, RotateCcw } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  listAgencies,
+  suspendAgency,
+  unsuspendAgency,
+} from "@/lib/admin.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/agencies")({
   head: () => ({ meta: [{ title: "Agencies · TalVault Admin" }] }),
   component: AgenciesPage,
 });
 
-const agencies = [
-  { id: "mbeki-sports", name: "Mbeki Sports Management", reg: "Reg. 2026/045678/07", status: "Accepted", tone: "green", owner: "Thandi Ndlovu", joined: "12 May 2026", talent: 24, next: "View agency" },
-  { id: "starburst", name: "StarBurst Talent Agency", reg: "Reg. 2026/036789/08", status: "Invited", tone: "blue", owner: "Lara Prasad", joined: "28 May 2026", talent: 18, next: "Await agency response" },
-  { id: "elite", name: "Elite Performers SA", reg: "Reg. 2026/051234/08", status: "Incomplete", tone: "purple", owner: "Israel Noko", joined: "25 May 2026", talent: 15, next: "Complete and send invite" },
-  { id: "nextgen", name: "Next Gen Artists", reg: "Reg. 2026/061789/07", status: "Incomplete", tone: "purple", owner: "Aviwe Okafor", joined: "3 Jun 2026", talent: 8, next: "Complete onboarding details" },
-  { id: "summit", name: "Summit Entertainment", reg: "Reg. 2026/047111/07", status: "Suspended", tone: "amber", owner: "Thandi Ndlovu", joined: "20 Apr 2026", talent: 12, next: "Review suspension" },
-  { id: "creative-hub", name: "Creative Artists Hub", reg: "Reg. 2026/088890/07", status: "Accepted", tone: "green", owner: "Israel Noko", joined: "18 Apr 2026", talent: 22, next: "View agency" },
-];
-
-const tabs = [
-  { key: "all", label: "All", icon: Building2, count: 47, tone: "neutral" },
-  { key: "Accepted", label: "Accepted", icon: CheckCircle2, count: 28, tone: "green" },
-  { key: "Invited", label: "Invited", icon: Send, count: 5, tone: "blue" },
-  { key: "Incomplete", label: "Incomplete", icon: Clock, count: 8, tone: "purple" },
-  { key: "Suspended", label: "Suspended", icon: Ban, count: 2, tone: "amber" },
-  { key: "Declined", label: "Declined", icon: X, count: 1, tone: "red" },
-  { key: "Cancelled", label: "Cancelled", icon: X, count: 1, tone: "neutral" },
-];
+const statusLabel: Record<string, string> = {
+  incomplete: "Incomplete",
+  invited: "Invited",
+  accepted: "Accepted",
+  expired: "Expired",
+  declined: "Declined",
+  suspended: "Suspended",
+};
+const statusTone: Record<string, string> = {
+  incomplete: "purple",
+  invited: "blue",
+  accepted: "green",
+  expired: "amber",
+  declined: "red",
+  suspended: "teal",
+};
 
 function AgenciesPage() {
-  const [tab, setTab] = useState("all");
-  const visible = tab === "all" ? agencies : agencies.filter((a) => a.status === tab);
+  const listFn = useServerFn(listAgencies);
+  const suspendFn = useServerFn(suspendAgency);
+  const unsuspendFn = useServerFn(unsuspendAgency);
+  const qc = useQueryClient();
+
+  const agencies = useQuery({
+    queryKey: ["admin", "agencies"],
+    queryFn: () => listFn(),
+  });
+
+  const suspendM = useMutation({
+    mutationFn: (v: { id: string; reason: string }) =>
+      suspendFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Agency suspended and logged.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to suspend"),
+  });
+  const unsuspendM = useMutation({
+    mutationFn: (id: string) => unsuspendFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Agency reinstated.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to reinstate"),
+  });
+
+  const [tab, setTab] = useState<string>("all");
+  const [search, setSearch] = useState("");
+
+  const list = agencies.data ?? [];
+  const visible = useMemo(() => {
+    return list.filter((a: any) => {
+      if (tab !== "all" && a.status !== tab) return false;
+      if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [list, tab, search]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {
+      all: list.length,
+      incomplete: 0, invited: 0, accepted: 0, expired: 0, declined: 0, suspended: 0,
+    };
+    for (const a of list) c[a.status] = (c[a.status] ?? 0) + 1;
+    return c;
+  }, [list]);
 
   const exportCsv = () => {
-    const headers = ["Agency", "Registration", "Status", "Owner", "Joined", "Talent", "Next Action"];
-    const rows = visible.map((a) => [a.name, a.reg, a.status, a.owner, a.joined, String(a.talent), a.next]);
+    const headers = ["Agency", "Status", "Contact person", "Contact email", "Country", "Talent", "Created"];
+    const rows = visible.map((a: any) => [
+      a.name,
+      statusLabel[a.status],
+      a.contact_person ?? "",
+      a.contact_email ?? "",
+      a.country ?? "",
+      String(a.talent_count),
+      new Date(a.created_at).toISOString().slice(0, 10),
+    ]);
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const csv = [headers, ...rows].map((r) => r.map(esc).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -44,6 +104,12 @@ function AgenciesPage() {
     URL.revokeObjectURL(url);
   };
 
+  const doSuspend = (id: string, name: string) => {
+    const reason = window.prompt(`Reason for suspending "${name}"?`)?.trim();
+    if (!reason) return;
+    suspendM.mutate({ id, reason });
+  };
+
   return (
     <>
       <div className="tvp-topbar">
@@ -52,79 +118,108 @@ function AgenciesPage() {
           <div className="tvp-subtitle">Manage and monitor all agency accounts.</div>
         </div>
         <div className="tvp-actions">
-          <button className="tvp-secondary" onClick={exportCsv}><Download className="h-4 w-4" />Export</button>
-          <button className="tvp-secondary"><Filter className="h-4 w-4" />Filters</button>
-
+          <button className="tvp-secondary" onClick={exportCsv}>
+            <Download className="h-4 w-4" />Export
+          </button>
           <Link to="/admin/invitations/new" className="tvp-primary">
-            <Plus className="h-4 w-4" />Add Agency
+            <Plus className="h-4 w-4" />Invite Agency
           </Link>
         </div>
       </div>
 
       <div className="tvp-tabs">
-        {tabs.map((t) => (
+        {(["all", "accepted", "invited", "incomplete", "suspended", "expired", "declined"] as const).map((k) => (
           <button
-            key={t.key}
-            className={`tvp-tab${tab === t.key ? " tvp-active" : ""}`}
-            onClick={() => setTab(t.key)}
+            key={k}
+            className={`tvp-tab${tab === k ? " tvp-active" : ""}`}
+            onClick={() => setTab(k)}
           >
-            <t.icon className="h-4 w-4" />
-            {t.label}
-            <span className={`tvp-status tvp-${t.tone}`}>{t.count}</span>
+            {k === "all" ? "All" : statusLabel[k]}
+            <span className={`tvp-status tvp-${k === "all" ? "neutral" : statusTone[k]}`}>
+              {counts[k] ?? 0}
+            </span>
           </button>
         ))}
       </div>
 
       <div className="tvp-card">
         <div className="tvp-toolbar">
-          <input className="tvp-search" placeholder="Search agencies..." />
-          <div className="tvp-row-actions" style={{ flexWrap: "wrap" }}>
-            <select className="tvp-select"><option>Status: All</option></select>
-            <select className="tvp-select"><option>Owner: All</option></select>
-            <select className="tvp-select"><option>Agency Type: All</option></select>
-            <select className="tvp-select"><option>Sort by: Newest</option></select>
-          </div>
+          <input
+            className="tvp-search"
+            placeholder="Search agencies..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
         <div className="tvp-table-wrap">
           <table className="tvp-table">
             <thead>
-              <tr><th>Agency</th><th>Status</th><th>Owner</th><th>Joined</th><th>Talent</th><th>Next Action</th><th></th></tr>
+              <tr>
+                <th>Agency</th><th>Status</th><th>Contact</th><th>Country</th><th>Talent</th><th>Created</th><th></th>
+              </tr>
             </thead>
             <tbody>
-              {visible.map((a) => (
+              {agencies.isLoading && (
+                <tr><td colSpan={7} className="tvp-muted">Loading agencies…</td></tr>
+              )}
+              {!agencies.isLoading && visible.length === 0 && (
+                <tr><td colSpan={7} className="tvp-muted">
+                  No agencies to show. <Link to="/admin/invitations/new" className="tvp-link">Invite an agency →</Link>
+                </td></tr>
+              )}
+              {visible.map((a: any) => (
                 <tr key={a.id}>
                   <td>
                     <Link to="/admin/agencies/$id" params={{ id: a.id }}>
                       <strong>{a.name}</strong>
                     </Link>
-                    <br /><span className="tvp-muted">{a.reg}</span>
+                    {a.contact_email && (
+                      <>
+                        <br />
+                        <span className="tvp-muted">{a.contact_email}</span>
+                      </>
+                    )}
                   </td>
                   <td>
-                    <span className={`tvp-status tvp-${a.tone}`}>{a.status}</span>
-                    {a.status === "Suspended" && (
+                    <span className={`tvp-status tvp-${statusTone[a.status]}`}>
+                      {statusLabel[a.status]}
+                    </span>
+                    {a.status === "suspended" && (
                       <span
                         className="tvp-muted"
-                        title="Suspended: active actions blocked, read-only + export preserved"
+                        title="Active actions blocked, read-only / export preserved"
                         style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, fontSize: 11 }}
                       >
                         <Lock className="h-3 w-3" /> read-only
                       </span>
                     )}
                   </td>
-                  <td>{a.owner}</td>
-                  <td>{a.joined}</td>
-                  <td>{a.talent}</td>
-                  <td>{a.next}</td>
+                  <td>{a.contact_person ?? "—"}</td>
+                  <td>{a.country ?? "—"}</td>
+                  <td>{a.talent_count}</td>
                   <td>
-                    <button
-                      className="tvp-mini-btn"
-                      disabled={a.status === "Suspended"}
-                      title={a.status === "Suspended"
-                        ? "Active actions blocked while suspended. Use Export for read-only access."
-                        : "Row actions"}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
+                    {new Date(a.created_at).toLocaleDateString("en-GB", {
+                      day: "numeric", month: "short", year: "numeric",
+                    })}
+                  </td>
+                  <td>
+                    {a.status === "suspended" ? (
+                      <button
+                        className="tvp-mini-btn"
+                        title="Reinstate agency"
+                        onClick={() => unsuspendM.mutate(a.id)}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <button
+                        className="tvp-mini-btn"
+                        title="Suspend agency"
+                        onClick={() => doSuspend(a.id, a.name)}
+                      >
+                        <Ban className="h-4 w-4" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

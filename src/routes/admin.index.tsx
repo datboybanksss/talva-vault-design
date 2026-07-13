@@ -1,83 +1,84 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Building2,
   Mail,
   CheckCircle2,
   FileText,
-  Folder,
-  Lock,
   Heart,
   Ban,
-  Info,
-  MoreVertical,
   RefreshCw,
+  Lock,
 } from "lucide-react";
+import {
+  getDashboardMetrics,
+  listAgencies,
+} from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/")({
-  head: () => ({
-    meta: [{ title: "Platform Overview · TalVault Admin" }],
-  }),
+  head: () => ({ meta: [{ title: "Platform Overview · TalVault Admin" }] }),
   component: AdminDashboard,
 });
 
-type Status = "Incomplete" | "Invited" | "Accepted" | "Expired" | "Declined" | "Suspended";
-
-const statusToTone: Record<Status, string> = {
-  Incomplete: "purple",
-  Invited: "blue",
-  Accepted: "green",
-  Expired: "amber",
-  Declined: "red",
-  Suspended: "teal",
+const statusLabel: Record<string, string> = {
+  incomplete: "Incomplete",
+  invited: "Invited",
+  accepted: "Accepted",
+  expired: "Expired",
+  declined: "Declined",
+  suspended: "Suspended",
 };
 
-const rows: {
-  agency: string; reg: string; status: Status; since: string;
-  next: string; owner: string; type: string;
-}[] = [
-  { agency: "Mbeki Sports Management", reg: "Reg. 2026/045678/07", status: "Accepted", since: "12 May 2026", next: "View agency", owner: "Thandi Ndlovu", type: "Sports Agency" },
-  { agency: "StarBurst Talent Agency", reg: "Reg. 2026/036789/08", status: "Invited", since: "28 May 2026", next: "Await agency response", owner: "Lara Prasad", type: "Talent Agency" },
-  { agency: "Elite Performers SA", reg: "Reg. 2026/051234/08", status: "Incomplete", since: "25 May 2026", next: "Complete and send invite", owner: "Israel Noko", type: "Sports Agency" },
-  { agency: "Next Gen Artists", reg: "Reg. 2026/061789/07", status: "Incomplete", since: "3 Jun 2026", next: "Complete onboarding details", owner: "Aviwe Okafor", type: "Arts Agency" },
-  { agency: "Summit Entertainment", reg: "Reg. 2026/047111/07", status: "Suspended", since: "2 days ago", next: "Review suspension", owner: "Thandi Ndlovu", type: "Mixed Agency" },
-  { agency: "Canvas Artists Co", reg: "Reg. 2026/044502/07", status: "Expired", since: "1 Jun 2026", next: "Reissue invite", owner: "Israel Noko", type: "Arts Agency" },
-  { agency: "BlueLine Models", reg: "Reg. 2026/049320/08", status: "Declined", since: "29 May 2026", next: "Contact agency", owner: "Lara Prasad", type: "Talent Agency" },
-];
+const statusTone: Record<string, string> = {
+  incomplete: "purple",
+  invited: "blue",
+  accepted: "green",
+  expired: "amber",
+  declined: "red",
+  suspended: "teal",
+};
 
 function AdminDashboard() {
-  const [filter, setFilter] = useState<Status | "all">("all");
+  const getMetricsFn = useServerFn(getDashboardMetrics);
+  const listAgenciesFn = useServerFn(listAgencies);
 
-  const visible = useMemo(
-    () => (filter === "all" ? rows : rows.filter((r) => r.status === filter)),
-    [filter],
-  );
+  const metrics = useQuery({
+    queryKey: ["admin", "metrics"],
+    queryFn: () => getMetricsFn(),
+    refetchInterval: 60_000,
+  });
+  const agencies = useQuery({
+    queryKey: ["admin", "agencies"],
+    queryFn: () => listAgenciesFn(),
+  });
 
-  const counts = useMemo(() => {
-    const c: Record<Status, number> = { Incomplete: 7, Invited: 5, Accepted: 28, Expired: 2, Declined: 1, Suspended: 2 };
-    return c;
-  }, []);
+  const [filter, setFilter] = useState<string>("all");
+  const [refreshedAt, setRefreshedAt] = useState(() => new Date());
 
-  const [refreshedAt, setRefreshedAt] = useState<Date>(() => new Date());
-  const [nowTick, setNowTick] = useState<number>(() => Date.now());
+  const visible = useMemo(() => {
+    const list = agencies.data ?? [];
+    return filter === "all" ? list : list.filter((a: any) => a.status === filter);
+  }, [agencies.data, filter]);
 
-  useEffect(() => {
-    const id = window.setInterval(() => setNowTick(Date.now()), 30_000);
-    return () => window.clearInterval(id);
-  }, []);
+  const counts = metrics.data?.statusCounts ?? {
+    incomplete: 0, invited: 0, accepted: 0, expired: 0, declined: 0, suspended: 0,
+  };
 
   const freshnessLabel = useMemo(() => {
-    const diffSec = Math.max(0, Math.round((nowTick - refreshedAt.getTime()) / 1000));
+    const src = metrics.dataUpdatedAt ? new Date(metrics.dataUpdatedAt) : refreshedAt;
+    const diffSec = Math.max(0, Math.round((Date.now() - src.getTime()) / 1000));
     if (diffSec < 60) return "just now";
     const mins = Math.floor(diffSec / 60);
     if (mins < 60) return `${mins} min ago`;
-    const hrs = Math.floor(mins / 60);
-    return `${hrs}h ago`;
-  }, [nowTick, refreshedAt]);
+    return `${Math.floor(mins / 60)}h ago`;
+  }, [metrics.dataUpdatedAt, refreshedAt]);
 
   const refreshMetrics = () => {
+    metrics.refetch();
+    agencies.refetch();
     setRefreshedAt(new Date());
-    setNowTick(Date.now());
   };
 
   return (
@@ -94,68 +95,56 @@ function AdminDashboard() {
             Metrics refreshed {freshnessLabel}
           </span>
           <button className="tvp-secondary" onClick={refreshMetrics}>
-            <RefreshCw className="h-4 w-4" />Refresh
+            <RefreshCw className="h-4 w-4" />
+            Refresh
           </button>
         </div>
       </div>
-
 
       <div className="tvp-grid tvp-kpi-grid">
         <Link to="/admin/agencies" className="tvp-card tvp-kpi tvp-clickable">
           <div className="tvp-kpi-icon tvp-bg-teal"><Building2 className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">45</div>
+            <div className="tvp-kpi-value">{metrics.data?.totalAgencies ?? "—"}</div>
             <div className="tvp-kpi-label">Total Agencies</div>
-            <div className="tvp-kpi-sub">28 accepted · 17 in progress</div>
+            <div className="tvp-kpi-sub">
+              {counts.accepted} accepted · {counts.incomplete + counts.invited} in progress
+            </div>
           </div>
         </Link>
         <Link to="/admin/invitations" className="tvp-card tvp-kpi tvp-clickable">
           <div className="tvp-kpi-icon tvp-bg-amber"><Mail className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">14</div>
+            <div className="tvp-kpi-value">{counts.invited}</div>
             <div className="tvp-kpi-label">Open Agency Invites</div>
-            <div className="tvp-kpi-sub tvp-warn">2 expiring soon</div>
+            <div className="tvp-kpi-sub tvp-warn">Sent, awaiting acceptance</div>
           </div>
         </Link>
         <div className="tvp-card tvp-kpi">
           <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">124</div>
+            <div className="tvp-kpi-value">{metrics.data?.totalTalent ?? "—"}</div>
             <div className="tvp-kpi-label">Total Talent Onboarded</div>
-            <div className="tvp-kpi-sub">Across all agencies</div>
+            <div className="tvp-kpi-sub">Excludes deleted / test records</div>
           </div>
         </div>
-        <div className="tvp-card tvp-kpi">
+        <div className="tvp-card tvp-kpi" title="Aggregate count only. Admin never previews Talent Private Vault contents.">
           <div className="tvp-kpi-icon tvp-bg-blue"><FileText className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">1,284</div>
+            <div className="tvp-kpi-value">{metrics.data?.totalDocuments ?? "—"}</div>
             <div className="tvp-kpi-label">Total Documents Uploaded</div>
-            <div className="tvp-kpi-sub tvp-info">Agency + Talent aggregate</div>
+            <div className="tvp-kpi-sub tvp-info" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Lock className="h-3 w-3" /> Aggregate only · vault contents never exposed
+            </div>
           </div>
         </div>
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-blue"><Folder className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">742</div>
-            <div className="tvp-kpi-label">Agency Shared Folder Docs</div>
-            <div className="tvp-kpi-sub tvp-info">Metadata / reporting count</div>
-          </div>
-        </div>
-        <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-purple"><Lock className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">542</div>
-            <div className="tvp-kpi-label">Talent Private Vault Docs</div>
-            <div className="tvp-kpi-sub tvp-warn">Aggregate only · no content access</div>
-          </div>
-        </div>
-        <div className="tvp-card tvp-kpi">
           <div className="tvp-kpi-icon tvp-bg-green"><Heart className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">36</div>
+            <div className="tvp-kpi-value">{metrics.data?.activeShares ?? "—"}</div>
             <div className="tvp-kpi-label">Active Loved One Shares</div>
             <div className="tvp-kpi-sub">Across all Talent</div>
           </div>
@@ -163,7 +152,7 @@ function AdminDashboard() {
         <div className="tvp-card tvp-kpi">
           <div className="tvp-kpi-icon tvp-bg-red"><Ban className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">2</div>
+            <div className="tvp-kpi-value">{counts.suspended}</div>
             <div className="tvp-kpi-label">Suspended Agencies</div>
             <div className="tvp-kpi-sub tvp-warn">Read-only / export rules apply</div>
           </div>
@@ -176,79 +165,53 @@ function AdminDashboard() {
           <Link to="/admin/agencies" className="tvp-link">View all agencies →</Link>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          <select className="tvp-select">
-            <option>Agency Type: All</option>
-            <option>Sports Agency</option>
-            <option>Arts Agency</option>
-            <option>Talent Agency</option>
-            <option>Mixed Agency</option>
-          </select>
-          <select className="tvp-select">
-            <option>Owner: All</option>
-            <option>Thandi Ndlovu</option>
-            <option>Lara Prasad</option>
-            <option>Israel Noko</option>
-            <option>Aviwe Okafor</option>
-          </select>
-          <select className="tvp-select">
-            <option>Status: All</option>
-            <option>Incomplete</option>
-            <option>Invited</option>
-            <option>Accepted</option>
-            <option>Expired</option>
-            <option>Declined</option>
-            <option>Suspended</option>
-          </select>
-          <button className="tvp-link" onClick={() => setFilter("all")}>Reset filters</button>
-        </div>
-
         <div className="tvp-life-chips">
-          {(Object.keys(counts) as Status[]).map((s) => (
+          {(Object.keys(counts) as string[]).map((s) => (
             <button
               key={s}
-              className={`tvp-life-chip${filter === s ? " tvp-active-filter" : ""} tvp-bg-${statusToTone[s]}`}
+              className={`tvp-life-chip${filter === s ? " tvp-active-filter" : ""} tvp-bg-${statusTone[s]}`}
               onClick={() => setFilter(filter === s ? "all" : s)}
             >
-              <div className="tvp-label">{s}</div>
-              <div className="tvp-num">{counts[s]}</div>
+              <div className="tvp-label">{statusLabel[s]}</div>
+              <div className="tvp-num">{counts[s] ?? 0}</div>
             </button>
           ))}
         </div>
         <div className="tvp-small" style={{ margin: "-4px 0 14px 2px" }}>
-          {filter === "all" ? "Showing all agencies" : `Filtered by ${filter}`}
+          {filter === "all" ? "Showing all agencies" : `Filtered by ${statusLabel[filter]}`}
         </div>
 
         <div className="tvp-table-wrap">
           <table className="tvp-table">
             <thead>
               <tr>
-                <th>Agency</th><th>Status</th><th>Stage Since</th>
-                <th>Next Action</th><th>Owner</th><th>Type</th><th></th>
+                <th>Agency</th><th>Status</th><th>Contact</th><th>Country</th><th>Created</th>
               </tr>
             </thead>
             <tbody>
-              {visible.map((r) => (
-                <tr key={r.agency}>
+              {agencies.isLoading && (
+                <tr><td colSpan={5} className="tvp-muted">Loading agencies…</td></tr>
+              )}
+              {!agencies.isLoading && visible.length === 0 && (
+                <tr><td colSpan={5} className="tvp-muted">
+                  No agencies yet. Use <Link to="/admin/invitations/new" className="tvp-link">Invite an agency</Link> to add the first one.
+                </td></tr>
+              )}
+              {visible.map((r: any) => (
+                <tr key={r.id}>
                   <td>
-                    <Link
-                      to="/admin/agencies/$id"
-                      params={{ id: r.agency.toLowerCase().replace(/\s+/g, "-") }}
-                      className="text-ink"
-                    >
-                      <strong>{r.agency}</strong>
+                    <Link to="/admin/agencies/$id" params={{ id: r.id }} className="text-ink">
+                      <strong>{r.name}</strong>
                     </Link>
-                    <br />
-                    <span className="tvp-muted">{r.reg}</span>
                   </td>
-                  <td><span className={`tvp-status tvp-${statusToTone[r.status]}`}>{r.status}</span></td>
-                  <td>{r.since}</td>
-                  <td>{r.next}</td>
-                  <td>{r.owner}</td>
-                  <td>{r.type}</td>
                   <td>
-                    <button className="tvp-mini-btn"><MoreVertical className="h-4 w-4" /></button>
+                    <span className={`tvp-status tvp-${statusTone[r.status]}`}>
+                      {statusLabel[r.status]}
+                    </span>
                   </td>
+                  <td>{r.contact_person ?? r.contact_email ?? "—"}</td>
+                  <td>{r.country ?? "—"}</td>
+                  <td>{new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</td>
                 </tr>
               ))}
             </tbody>
