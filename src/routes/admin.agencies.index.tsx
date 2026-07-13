@@ -64,6 +64,7 @@ function AgenciesPage() {
 
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [suspendTarget, setSuspendTarget] = useState<{ id: string; name: string } | null>(null);
 
   const list = agencies.data ?? [];
   const visible = useMemo(() => {
