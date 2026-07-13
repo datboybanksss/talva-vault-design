@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, CheckCircle2, ShieldCheck, UserPlus, X, Pencil } from "lucide-react";
+import { Users, ShieldCheck, UserPlus, X, Pencil } from "lucide-react";
 import {
   listAdministrators,
   whoami,
@@ -113,9 +113,9 @@ function AdminsPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <h1 className="tvp-h1">Administrators & Legal Review</h1>
+          <h1 className="tvp-h1">Administrators</h1>
           <div className="tvp-subtitle">
-            Platform administrators and legal / copy review items (bell reminders).
+            Platform administrators and their access levels.
           </div>
         </div>
       </div>
