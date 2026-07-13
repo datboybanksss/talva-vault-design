@@ -42,17 +42,7 @@ function AdminsPage() {
     queryFn: () => listInvFn(),
   });
 
-  const canEdit = !!me.data?.canEdit;
   const isMain = !!me.data?.isMainAdmin;
-
-  const approve = useMutation({
-    mutationFn: (id: string) => approveLegalFn({ data: { id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Legal / copy item approved.");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
-  });
 
   const invite = useMutation({
     mutationFn: (input: { email: string; permission_level: "view_only" | "edit" }) =>
@@ -76,7 +66,6 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
-  const [tab, setTab] = useState<"admins" | "legal">("admins");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePerm, setInvitePerm] = useState<"view_only" | "edit">("edit");
