@@ -195,66 +195,65 @@ function AdminsPage() {
             <div className="tvp-toolbar">
               <h2 className="tvp-h2">Administrators</h2>
             </div>
-            <table className="tvp-table">
-              <thead>
-                <tr>
-                  <th>Administrator</th><th>Email</th><th>Designation</th><th>Role</th><th>Access</th><th>Granted</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {admins.isLoading && (
-                  <tr><td colSpan={7} className="tvp-muted">Loading…</td></tr>
-                )}
-                {list.map((a: any) => (
-                  <tr key={a.user_id}>
-                    <td>
-                      <strong>{a.display_name || a.email.split("@")[0]}</strong>
-                      {a.user_id === me.data?.userId && (
-                        <span
-                          className="tvp-status tvp-blue"
-                          style={{ marginLeft: 8, padding: "3px 7px", fontSize: 10 }}
-                        >
-                          You
-                        </span>
-                      )}
-                    </td>
-                    <td>{a.email}</td>
-                    <td className="tvp-muted">{a.designation || "—"}</td>
-                    <td>
-                      <span
-                        className={`tvp-status tvp-${a.is_main_admin ? "purple" : "blue"}`}
-                      >
-                        {a.is_main_admin ? "Main Administrator" : "Administrator"}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={`tvp-status tvp-${a.permission_level === "edit" ? "green" : "amber"}`}
-                      >
-                        {a.permission_level === "edit" ? "Edit rights" : "View only"}
-                      </span>
-                    </td>
-                    <td>
-                      {new Date(a.created_at).toLocaleDateString("en-GB", {
-                        day: "numeric", month: "short", year: "numeric",
-                      })}
-                    </td>
-                    <td>
-                      {isMain && (
-                        <button
-                          className="tvp-secondary"
-                          onClick={() => setEditAdmin(a)}
-                          title="Edit designation & permission level"
-                        >
-                          <Pencil className="h-3 w-3" style={{ marginRight: 4 }} />
-                          Edit
-                        </button>
-                      )}
-                    </td>
+            <div className="tvp-table-wrap">
+              <table className="tvp-table">
+                <thead>
+                  <tr>
+                    <th>Administrator</th><th>Email</th><th>Designation</th><th>Role</th><th>Access</th><th>Granted</th><th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {admins.isLoading && (
+                    <tr><td colSpan={7} className="tvp-muted">Loading…</td></tr>
+                  )}
+                  {list.map((a: any) => (
+                    <tr key={a.user_id}>
+                      <td>
+                        <strong>{a.display_name || a.email.split("@")[0]}</strong>
+                        {a.user_id === me.data?.userId && (
+                          <span className="tvp-status tvp-blue" style={{ marginLeft: 8 }}>
+                            You
+                          </span>
+                        )}
+                      </td>
+                      <td>{a.email}</td>
+                      <td className="tvp-muted">{a.designation || "—"}</td>
+                      <td>
+                        <span
+                          className={`tvp-status tvp-${a.is_main_admin ? "purple" : "blue"}`}
+                        >
+                          {a.is_main_admin ? "Main Administrator" : "Administrator"}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`tvp-status tvp-${a.permission_level === "edit" ? "green" : "amber"}`}
+                        >
+                          {a.permission_level === "edit" ? "Edit rights" : "View only"}
+                        </span>
+                      </td>
+                      <td>
+                        {new Date(a.created_at).toLocaleDateString("en-GB", {
+                          day: "numeric", month: "short", year: "numeric",
+                        })}
+                      </td>
+                      <td>
+                        {isMain && (
+                          <button
+                            className="tvp-mini-btn"
+                            onClick={() => setEditAdmin(a)}
+                            title="Edit designation & permission level"
+                            aria-label="Edit administrator"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div className="tvp-card" style={{ marginTop: 16 }}>

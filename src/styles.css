@@ -535,9 +535,10 @@
 
   & .tvp-table-wrap { overflow: auto; }
   & .tvp-table { width: 100%; border-collapse: collapse; }
-  & .tvp-table th { font-size: 11px; color: var(--tvp-muted); font-weight: 900; text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--tvp-line); text-transform: uppercase; letter-spacing: .04em; }
-  & .tvp-table td { font-size: 13px; padding: 14px; border-bottom: 1px solid var(--tvp-line); vertical-align: middle; color: var(--tvp-text); }
+  & .tvp-table th { font-size: 11px; color: var(--tvp-muted); font-weight: 900; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--tvp-line); text-transform: uppercase; letter-spacing: .04em; line-height: 1.2; }
+  & .tvp-table td { font-size: 13px; padding: 12px 14px; border-bottom: 1px solid var(--tvp-line); vertical-align: middle; color: var(--tvp-text); line-height: 1.35; }
   & .tvp-table tr:hover td { background: var(--tvp-surface-soft); }
+  & .tvp-table td > .tvp-status { vertical-align: middle; }
   & .tvp-row-actions { display: flex; align-items: center; gap: 6px; }
   & .tvp-mini-btn { width: 32px; height: 32px; border: 1px solid var(--tvp-line-strong); background: white; border-radius: 8px; display: grid; place-items: center; color: var(--tvp-text); }
   & .tvp-mini-btn:hover { background: var(--tvp-teal-50); border-color: var(--tvp-teal-200); color: var(--tvp-teal); }
