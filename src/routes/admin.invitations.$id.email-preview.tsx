@@ -56,7 +56,6 @@ function EmailPreviewPage() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.2 }}>TalVault</div>
-                  <div style={{ fontSize: 11, opacity: 0.85, letterSpacing: 1 }}>BY MINERVA</div>
                 </div>
               </div>
               <h1 style={{ fontSize: 22, fontWeight: 700, margin: "22px 0 6px" }}>
@@ -125,7 +124,7 @@ function EmailPreviewPage() {
 
             {/* Footer */}
             <div style={{ padding: "18px 32px", background: "#0f172a", color: "#cbd5e1", fontSize: 12, lineHeight: 1.6 }}>
-              <div style={{ fontWeight: 700, color: "#fff", marginBottom: 4 }}>TalVault · A Minerva product</div>
+              <div style={{ fontWeight: 700, color: "#fff", marginBottom: 4 }}>TalVault</div>
               <div>Sent to {inv.email} · <a href="#" style={{ color: "#a5b4fc", textDecoration: "none" }}>Privacy</a> · <a href="#" style={{ color: "#a5b4fc", textDecoration: "none" }}>Terms</a></div>
             </div>
           </div>
