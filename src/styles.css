@@ -704,3 +704,140 @@
   .tv-app .tvp-form-grid,
   .tv-app .tvp-review-grid { grid-template-columns: 1fr !important; }
 }
+
+/* TalVault Auth screen — scoped styles matching admin design language ------- */
+.tv-auth {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  position: relative;
+  overflow: hidden;
+}
+.tv-auth::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(1200px 600px at -10% -10%, rgba(16,139,149,.10), transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, rgba(8,106,112,.08), transparent 60%);
+  pointer-events: none;
+}
+.tv-auth .tv-auth-hero {
+  position: relative;
+  background: linear-gradient(160deg, #086A70 0%, #0A7B8A 55%, #108B95 100%);
+  color: white;
+  padding: 56px 56px 48px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  overflow: hidden;
+}
+.tv-auth .tv-auth-hero::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(500px 260px at 85% 15%, rgba(255,255,255,.14), transparent 60%),
+    radial-gradient(600px 320px at 10% 90%, rgba(255,255,255,.08), transparent 60%);
+  pointer-events: none;
+}
+.tv-auth .tv-auth-hero > * { position: relative; z-index: 1; }
+.tv-auth .tv-auth-brand { display: flex; align-items: center; gap: 14px; }
+.tv-auth .tv-auth-mark {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: rgba(255,255,255,.16);
+  display: grid; place-items: center;
+  border: 1px solid rgba(255,255,255,.18);
+}
+.tv-auth .tv-auth-brand-title { font-size: 22px; font-weight: 900; letter-spacing: -.4px; line-height: 1; }
+.tv-auth .tv-auth-brand-sub { font-size: 11px; letter-spacing: 2.5px; color: #D9F0F2; margin-top: 6px; font-weight: 800; }
+.tv-auth .tv-auth-headline { font-size: 34px; font-weight: 900; line-height: 1.12; letter-spacing: -.6px; max-width: 460px; }
+.tv-auth .tv-auth-sub { color: #D9F0F2; font-size: 14px; line-height: 1.55; max-width: 440px; margin-top: 14px; }
+.tv-auth .tv-auth-points { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; }
+.tv-auth .tv-auth-point { display: flex; align-items: center; gap: 12px; color: #EAF6F7; font-size: 13.5px; font-weight: 700; }
+.tv-auth .tv-auth-point-dot {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: rgba(255,255,255,.14); display: grid; place-items: center;
+  border: 1px solid rgba(255,255,255,.16);
+}
+.tv-auth .tv-auth-footnote { font-size: 11px; letter-spacing: .12em; color: #BFDDDF; text-transform: uppercase; font-weight: 800; }
+
+.tv-auth .tv-auth-panel {
+  position: relative;
+  display: grid; place-items: center;
+  padding: 48px 40px;
+}
+.tv-auth .tv-auth-card {
+  width: 100%; max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: 32px;
+}
+.tv-auth .tv-auth-eyebrow { font-size: 11px; letter-spacing: .2em; color: var(--teal); font-weight: 900; text-transform: uppercase; }
+.tv-auth .tv-auth-title { font-size: 24px; font-weight: 900; color: var(--ink); letter-spacing: -.3px; margin-top: 8px; }
+.tv-auth .tv-auth-tag { color: var(--muted-fg); font-size: 13.5px; margin-top: 6px; }
+
+.tv-auth .tv-auth-google {
+  width: 100%; height: 44px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  background: white; color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 10px;
+  font-weight: 800; font-size: 13.5px; cursor: pointer;
+  transition: .15s ease;
+}
+.tv-auth .tv-auth-google:hover:not(:disabled) { border-color: var(--teal-2); background: var(--surface-soft); }
+.tv-auth .tv-auth-google:disabled { opacity: .6; cursor: not-allowed; }
+
+.tv-auth .tv-auth-divider {
+  display: flex; align-items: center; gap: 12px; margin: 18px 0 6px;
+  color: var(--muted-fg); font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+}
+.tv-auth .tv-auth-divider::before,
+.tv-auth .tv-auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.tv-auth .tv-auth-field { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.tv-auth .tv-auth-field label { font-size: 12px; font-weight: 900; color: var(--ink); }
+.tv-auth .tv-auth-field input {
+  height: 44px; padding: 0 12px;
+  border: 1px solid var(--line-strong); border-radius: 10px;
+  background: white; color: var(--ink); font-size: 13.5px;
+  transition: .15s ease;
+}
+.tv-auth .tv-auth-field input:focus {
+  outline: none; border-color: var(--teal-2);
+  box-shadow: 0 0 0 3px rgba(16,139,149,.18);
+}
+
+.tv-auth .tv-auth-submit {
+  width: 100%; height: 46px; margin-top: 18px;
+  border: 0; border-radius: 10px;
+  background: var(--teal); color: white;
+  font-weight: 900; font-size: 14px; letter-spacing: .01em;
+  cursor: pointer; box-shadow: 0 6px 16px rgba(8,106,112,.22);
+  transition: .15s ease;
+}
+.tv-auth .tv-auth-submit:hover:not(:disabled) { background: var(--teal-2); }
+.tv-auth .tv-auth-submit:disabled { opacity: .7; cursor: not-allowed; }
+
+.tv-auth .tv-auth-alert {
+  margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+  font-size: 12.5px; line-height: 1.45; font-weight: 700;
+  background: var(--red-bg); color: var(--red);
+  border: 1px solid color-mix(in oklab, var(--red) 20%, transparent);
+}
+.tv-auth .tv-auth-alert.tv-info { background: var(--teal-50); color: var(--teal); border-color: var(--teal-200); }
+
+.tv-auth .tv-auth-switch { margin-top: 16px; text-align: center; font-size: 13px; color: var(--text-body); }
+.tv-auth .tv-auth-link {
+  background: transparent; border: 0; padding: 0;
+  color: var(--teal); font-weight: 900; cursor: pointer;
+}
+.tv-auth .tv-auth-link:hover { color: var(--teal-2); }
+.tv-auth .tv-auth-back { margin-top: 22px; text-align: center; font-size: 11.5px; color: var(--muted-fg); letter-spacing: .04em; }
+
+@media (max-width: 900px) {
+  .tv-auth { grid-template-columns: 1fr; }
+  .tv-auth .tv-auth-hero { display: none; }
+  .tv-auth .tv-auth-panel { padding: 32px 20px; }
+}
