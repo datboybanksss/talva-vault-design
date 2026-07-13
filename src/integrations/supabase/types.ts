@@ -261,6 +261,79 @@ export type Database = {
           },
         ]
       }
+      agency_folder_template_items: {
+        Row: {
+          created_at: string
+          folder_name: string
+          id: string
+          required_docs: Json
+          sort_order: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_name: string
+          id?: string
+          required_docs?: Json
+          sort_order?: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_name?: string
+          id?: string
+          required_docs?: Json
+          sort_order?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_folder_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "agency_folder_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_folder_templates: {
+        Row: {
+          agency_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_folder_templates_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_invitations: {
         Row: {
           accepted_at: string | null
@@ -272,7 +345,9 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string | null
+          kind: Database["public"]["Enums"]["agency_invitation_kind"]
           last_sent_at: string
+          role: string | null
           send_count: number
           status: Database["public"]["Enums"]["invitation_status"]
           supporting_docs: Json | null
@@ -289,7 +364,9 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string | null
+          kind?: Database["public"]["Enums"]["agency_invitation_kind"]
           last_sent_at?: string
+          role?: string | null
           send_count?: number
           status?: Database["public"]["Enums"]["invitation_status"]
           supporting_docs?: Json | null
@@ -306,7 +383,9 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string | null
+          kind?: Database["public"]["Enums"]["agency_invitation_kind"]
           last_sent_at?: string
+          role?: string | null
           send_count?: number
           status?: Database["public"]["Enums"]["invitation_status"]
           supporting_docs?: Json | null
@@ -357,6 +436,73 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_talent_links: {
+        Row: {
+          agency_id: string
+          created_at: string
+          display_name: string
+          id: string
+          manager_user_id: string | null
+          next_action: string | null
+          status: Database["public"]["Enums"]["agency_talent_link_status"]
+          talent_invitation_id: string | null
+          talent_profile_id: string | null
+          talent_type: string | null
+          talent_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          display_name: string
+          id?: string
+          manager_user_id?: string | null
+          next_action?: string | null
+          status?: Database["public"]["Enums"]["agency_talent_link_status"]
+          talent_invitation_id?: string | null
+          talent_profile_id?: string | null
+          talent_type?: string | null
+          talent_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          manager_user_id?: string | null
+          next_action?: string | null
+          status?: Database["public"]["Enums"]["agency_talent_link_status"]
+          talent_invitation_id?: string | null
+          talent_profile_id?: string | null
+          talent_type?: string | null
+          talent_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_talent_links_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_talent_links_talent_invitation_id_fkey"
+            columns: ["talent_invitation_id"]
+            isOneToOne: false
+            referencedRelation: "talent_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_talent_links_talent_profile_id_fkey"
+            columns: ["talent_profile_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -559,6 +705,69 @@ export type Database = {
           },
         ]
       }
+      talent_shared_documents: {
+        Row: {
+          agency_id: string
+          ai_suggested_expiry: string | null
+          ai_suggested_folder: string | null
+          created_at: string
+          folder: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["shared_document_status"]
+          storage_path: string | null
+          talent_link_id: string | null
+          updated_at: string
+          uploaded_by: string | null
+          validity_expires_at: string | null
+        }
+        Insert: {
+          agency_id: string
+          ai_suggested_expiry?: string | null
+          ai_suggested_folder?: string | null
+          created_at?: string
+          folder?: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["shared_document_status"]
+          storage_path?: string | null
+          talent_link_id?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          validity_expires_at?: string | null
+        }
+        Update: {
+          agency_id?: string
+          ai_suggested_expiry?: string | null
+          ai_suggested_folder?: string | null
+          created_at?: string
+          folder?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["shared_document_status"]
+          storage_path?: string | null
+          talent_link_id?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          validity_expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_shared_documents_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_shared_documents_talent_link_id_fkey"
+            columns: ["talent_link_id"]
+            isOneToOne: false
+            referencedRelation: "agency_talent_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -592,6 +801,11 @@ export type Database = {
     }
     Functions: {
       can_admin_edit: { Args: { _user_id: string }; Returns: boolean }
+      current_user_agency_id: { Args: never; Returns: string }
+      has_agency_role: {
+        Args: { _agency_id: string; _role: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -599,10 +813,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_agency_member: {
+        Args: { _agency_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_main_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       admin_permission_level: "view_only" | "edit"
+      agency_invitation_kind: "agency_onboarding" | "staff"
       agency_status:
         | "incomplete"
         | "invited"
@@ -610,6 +829,13 @@ export type Database = {
         | "expired"
         | "declined"
         | "suspended"
+      agency_talent_link_status:
+        | "active"
+        | "invited"
+        | "expired"
+        | "read_only"
+        | "revoked"
+        | "needs_review"
       app_role:
         | "admin"
         | "agency_owner"
@@ -638,6 +864,7 @@ export type Database = {
         | "talent_invite_pending"
         | "suspended_review"
         | "legal_copy_review"
+      shared_document_status: "ai_suggested" | "filed" | "needs_review"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -766,6 +993,7 @@ export const Constants = {
   public: {
     Enums: {
       admin_permission_level: ["view_only", "edit"],
+      agency_invitation_kind: ["agency_onboarding", "staff"],
       agency_status: [
         "incomplete",
         "invited",
@@ -773,6 +1001,14 @@ export const Constants = {
         "expired",
         "declined",
         "suspended",
+      ],
+      agency_talent_link_status: [
+        "active",
+        "invited",
+        "expired",
+        "read_only",
+        "revoked",
+        "needs_review",
       ],
       app_role: [
         "admin",
@@ -799,6 +1035,7 @@ export const Constants = {
         "suspended_review",
         "legal_copy_review",
       ],
+      shared_document_status: ["ai_suggested", "filed", "needs_review"],
     },
   },
 } as const
