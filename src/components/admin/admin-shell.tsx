@@ -83,6 +83,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { data: me } = useQuery({
     queryKey: ["whoami"],
     queryFn: () => whoamiFn(),
+    refetchOnMount: "always",
+    staleTime: 0,
   });
   const { data: notifs } = useQuery({
     queryKey: ["admin", "notifications"],
