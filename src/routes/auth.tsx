@@ -16,16 +16,37 @@ import {
 
 const searchSchema = z.object({ next: z.string().optional() });
 
+type PortalContext = {
+  key: "admin" | "agency" | "talent" | "loved-one";
+  name: string;      // "Admin", "Agency", "Talent", "Loved One"
+  workspace: string; // "admin portal", "agency workspace", ...
+  home: string;      // default landing route
+};
+
+function portalFromNext(next?: string): PortalContext {
+  const path = next && next.startsWith("/") && !next.startsWith("//") ? next : "";
+  if (path.startsWith("/agency"))
+    return { key: "agency", name: "Agency", workspace: "agency workspace", home: "/agency" };
+  if (path.startsWith("/talent"))
+    return { key: "talent", name: "Talent", workspace: "talent workspace", home: "/talent" };
+  if (path.startsWith("/loved-one"))
+    return { key: "loved-one", name: "Loved One", workspace: "loved-one workspace", home: "/loved-one" };
+  return { key: "admin", name: "Admin", workspace: "admin portal", home: "/admin" };
+}
+
 export const Route = createFileRoute("/auth")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
-  head: () => ({
-    meta: [
-      { title: "Sign in · TalVault Admin" },
-      { name: "description", content: "Sign in to the TalVault Admin portal." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ match }) => {
+    const p = portalFromNext((match.search as { next?: string }).next);
+    return {
+      meta: [
+        { title: `Sign in · TalVault ${p.name}` },
+        { name: "description", content: `Sign in to the TalVault ${p.workspace}.` },
+        { name: "robots", content: "noindex" },
+      ],
+    };
+  },
   component: AuthPage,
 });
 
