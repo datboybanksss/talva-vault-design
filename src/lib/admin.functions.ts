@@ -48,7 +48,7 @@ export const whoami = createServerFn({ method: "GET" })
       .eq("user_id", userId);
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, email, display_name, avatar_url")
+      .select("id, email, display_name, avatar_url, first_name, last_name, designation")
       .eq("id", userId)
       .maybeSingle();
     const isAdmin = !!roles?.some((r: any) => r.role === "admin");
@@ -57,11 +57,84 @@ export const whoami = createServerFn({ method: "GET" })
       userId: userId as string,
       email: (profile?.email as string) ?? (claims?.email as string) ?? "",
       displayName: (profile?.display_name as string) ?? "",
+      firstName: (profile?.first_name as string) ?? "",
+      lastName: (profile?.last_name as string) ?? "",
+      designation: (profile?.designation as string) ?? "",
       avatarUrl: (profile?.avatar_url as string) ?? null,
       isAdmin,
       isMainAdmin: isMain,
       roles: roles ?? [],
     };
+  });
+
+export const updateOwnProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        first_name: z.string().trim().max(80).optional().default(""),
+        last_name: z.string().trim().max(80).optional().default(""),
+        designation: z.string().trim().max(120).optional().default(""),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdmin(supabase, userId);
+
+    const display_name =
+      [data.first_name, data.last_name].filter(Boolean).join(" ").trim() ||
+      (claims?.email ? String(claims.email).split("@")[0] : null);
+
+    const { data: updated, error } = await supabase
+      .from("profiles")
+      .update({
+        first_name: data.first_name || null,
+        last_name: data.last_name || null,
+        designation: data.designation || null,
+        display_name,
+      })
+      .eq("id", userId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "update_own_profile",
+      "user",
+      userId,
+      display_name ?? claims?.email ?? "self",
+      {
+        first_name: data.first_name || null,
+        last_name: data.last_name || null,
+        designation: data.designation || null,
+      },
+    );
+    return updated;
+  });
+
+export const logOwnEmailChangeRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ new_email: z.string().email() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdmin(supabase, userId);
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "request_own_email_change",
+      "user",
+      userId,
+      claims?.email ?? "self",
+      { new_email: data.new_email },
+    );
+    return { ok: true };
   });
 
 // -----------------------------------------------------------------------------

@@ -477,7 +477,9 @@
   & .tvp-user-dot {
     width: 42px; height: 42px; border-radius: 50%; background: #0A93A1; color: white;
     display: grid; place-items: center; font-weight: 900; font-size: 14px;
+    text-decoration: none; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease;
   }
+  & a.tvp-user-dot:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(8,106,112,.22); }
   & .tvp-search-top { width: 240px; height: 42px; border: 1px solid var(--tvp-line-strong); background: white; border-radius: 12px; padding: 0 14px; font-size: 13px; color: var(--tvp-ink); }
   & .tvp-search-top:focus { outline: none; border-color: var(--tvp-teal-2); box-shadow: 0 0 0 3px rgba(16,139,149,.18); }
 
@@ -880,4 +882,18 @@
   .tv-auth { grid-template-columns: 1fr; }
   .tv-auth .tv-auth-hero { display: none; }
   .tv-auth .tv-auth-panel { padding: 32px 20px; }
+}
+
+/* Reusable form alerts for admin/self-service pages (My Account, etc.) */
+.tv-form-alert {
+  margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+  font-size: 12.5px; line-height: 1.45; font-weight: 700;
+}
+.tv-form-alert-error {
+  background: var(--red-bg); color: var(--red);
+  border: 1px solid color-mix(in oklab, var(--red) 20%, transparent);
+}
+.tv-form-alert-info {
+  background: var(--teal-50); color: var(--teal);
+  border: 1px solid var(--teal-200);
 }

@@ -29,6 +29,7 @@ import { Route as AgencyInvitationsRouteImport } from './routes/agency.invitatio
 import { Route as AgencyFolderTemplatesRouteImport } from './routes/agency.folder-templates'
 import { Route as AgencyDocumentVaultRouteImport } from './routes/agency.document-vault'
 import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
+import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
 import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
@@ -140,6 +141,11 @@ const AdminQuotesInvoicesRoute = AdminQuotesInvoicesRouteImport.update({
   path: '/quotes-invoices',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMyAccountRoute = AdminMyAccountRouteImport.update({
+  id: '/my-account',
+  path: '/my-account',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInvitationsRoute = AdminInvitationsRouteImport.update({
   id: '/invitations',
   path: '/invitations',
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
+  '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/loved-one': typeof LovedOneRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
+  '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -297,6 +306,7 @@ export interface FileRouteTypes {
     | '/admin/agencies'
     | '/admin/audit'
     | '/admin/invitations'
+    | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/loved-one'
     | '/admin/administrators'
     | '/admin/audit'
+    | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/admin/agencies'
     | '/admin/audit'
     | '/admin/invitations'
+    | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -529,6 +541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminQuotesInvoicesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/my-account': {
+      id: '/admin/my-account'
+      path: '/my-account'
+      fullPath: '/admin/my-account'
+      preLoaderRoute: typeof AdminMyAccountRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/invitations': {
       id: '/admin/invitations'
       path: '/invitations'
@@ -636,6 +655,7 @@ interface AdminRouteChildren {
   AdminAgenciesRoute: typeof AdminAgenciesRouteWithChildren
   AdminAuditRoute: typeof AdminAuditRoute
   AdminInvitationsRoute: typeof AdminInvitationsRouteWithChildren
+  AdminMyAccountRoute: typeof AdminMyAccountRoute
   AdminQuotesInvoicesRoute: typeof AdminQuotesInvoicesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -645,6 +665,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAgenciesRoute: AdminAgenciesRouteWithChildren,
   AdminAuditRoute: AdminAuditRoute,
   AdminInvitationsRoute: AdminInvitationsRouteWithChildren,
+  AdminMyAccountRoute: AdminMyAccountRoute,
   AdminQuotesInvoicesRoute: AdminQuotesInvoicesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
@@ -716,3 +737,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

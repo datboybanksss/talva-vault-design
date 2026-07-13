@@ -272,7 +272,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </div>
             )}
           </div>
-          <div className="tvp-user-dot">{initials || "?"}</div>
+          <Link
+            to="/admin/my-account"
+            className="tvp-user-dot"
+            aria-label="My account"
+            title={me?.displayName || me?.email || "My account"}
+          >
+            {initials || "?"}
+          </Link>
         </div>
         {children}
       </main>
