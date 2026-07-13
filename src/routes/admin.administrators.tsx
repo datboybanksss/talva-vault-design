@@ -6,8 +6,6 @@ import { Users, CheckCircle2, ShieldCheck, UserPlus, X, Pencil } from "lucide-re
 import {
   listAdministrators,
   whoami,
-  listLegalCopyItems,
-  markLegalCopyApproved,
   listAdminInvitations,
   inviteAdministrator,
   revokeAdminInvitation,
@@ -23,8 +21,6 @@ export const Route = createFileRoute("/admin/administrators")({
 function AdminsPage() {
   const listFn = useServerFn(listAdministrators);
   const whoamiFn = useServerFn(whoami);
-  const listLegalFn = useServerFn(listLegalCopyItems);
-  const approveLegalFn = useServerFn(markLegalCopyApproved);
   const listInvFn = useServerFn(listAdminInvitations);
   const inviteFn = useServerFn(inviteAdministrator);
   const revokeFn = useServerFn(revokeAdminInvitation);
@@ -40,10 +36,6 @@ function AdminsPage() {
     queryFn: () => whoamiFn(),
     refetchOnMount: "always",
     staleTime: 0,
-  });
-  const legal = useQuery({
-    queryKey: ["admin", "legal"],
-    queryFn: () => listLegalFn(),
   });
   const invitations = useQuery({
     queryKey: ["admin", "admin-invitations"],
