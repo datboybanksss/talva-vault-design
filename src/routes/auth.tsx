@@ -65,6 +65,8 @@ function AuthPage() {
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
 
+  const portal = useMemo(() => portalFromNext(search.next), [search.next]);
+
   useEffect(() => {
     let mounted = true;
     // Only auto-redirect to next when we already have an AAL2 session (or the
