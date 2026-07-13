@@ -16,16 +16,37 @@ import {
 
 const searchSchema = z.object({ next: z.string().optional() });
 
+type PortalContext = {
+  key: "admin" | "agency" | "talent" | "loved-one";
+  name: string;      // "Admin", "Agency", "Talent", "Loved One"
+  workspace: string; // "admin portal", "agency workspace", ...
+  home: string;      // default landing route
+};
+
+function portalFromNext(next?: string): PortalContext {
+  const path = next && next.startsWith("/") && !next.startsWith("//") ? next : "";
+  if (path.startsWith("/agency"))
+    return { key: "agency", name: "Agency", workspace: "agency workspace", home: "/agency" };
+  if (path.startsWith("/talent"))
+    return { key: "talent", name: "Talent", workspace: "talent workspace", home: "/talent" };
+  if (path.startsWith("/loved-one"))
+    return { key: "loved-one", name: "Loved One", workspace: "loved-one workspace", home: "/loved-one" };
+  return { key: "admin", name: "Admin", workspace: "admin portal", home: "/admin" };
+}
+
 export const Route = createFileRoute("/auth")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
-  head: () => ({
-    meta: [
-      { title: "Sign in · TalVault Admin" },
-      { name: "description", content: "Sign in to the TalVault Admin portal." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ match }) => {
+    const p = portalFromNext((match.search as { next?: string }).next);
+    return {
+      meta: [
+        { title: `Sign in · TalVault ${p.name}` },
+        { name: "description", content: `Sign in to the TalVault ${p.workspace}.` },
+        { name: "robots", content: "noindex" },
+      ],
+    };
+  },
   component: AuthPage,
 });
 
@@ -43,6 +64,8 @@ function AuthPage() {
   // MFA challenge state (after successful password sign-in on an MFA-enrolled account)
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
+
+  const portal = useMemo(() => portalFromNext(search.next), [search.next]);
 
   useEffect(() => {
     let mounted = true;
@@ -116,7 +139,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/admin`,
+            emailRedirectTo: `${window.location.origin}${portal.home}`,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
@@ -196,7 +219,7 @@ function AuthPage() {
           </div>
           <div>
             <div className="tv-auth-brand-title">TalVault</div>
-            <div className="tv-auth-brand-sub">ADMIN PORTAL</div>
+            <div className="tv-auth-brand-sub">{portal.name.toUpperCase()} PORTAL</div>
           </div>
         </div>
 
@@ -238,12 +261,14 @@ function AuthPage() {
         <div className="tv-auth-card">
           <div className="tv-auth-eyebrow">{isSignIn ? "Welcome back" : "Get started"}</div>
           <h2 className="tv-auth-title">
-            {isSignIn ? "Sign in to TalVault Admin" : "Create your admin account"}
+            {isSignIn
+              ? `Sign in to TalVault ${portal.name}`
+              : `Create your ${portal.key === "admin" ? "admin" : portal.name.toLowerCase()} account`}
           </h2>
           <p className="tv-auth-tag">
             {isSignIn
               ? "Use your work email or continue with Google."
-              : "Set up your credentials to access the admin console."}
+              : `Set up your credentials to access the ${portal.workspace}.`}
           </p>
 
           {!mfaFactorId && (
