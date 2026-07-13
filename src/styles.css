@@ -600,8 +600,11 @@
     border: 1px solid var(--tvp-line); border-radius: 16px; box-shadow: var(--tvp-shadow);
     padding: 14px; z-index: 80;
   }
-  & .tvp-notification-item { display: grid; grid-template-columns: 36px 1fr; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--tvp-line); font-size: 13px; }
+  & .tvp-notification-item { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--tvp-line); font-size: 13px; }
   & .tvp-notification-item:last-child { border-bottom: 0; }
+  & .tvp-notification-item > a, & .tvp-notification-item > .tvp-notification-body { display: flex; flex: 1 1 auto; min-width: 0; gap: 10px; align-items: flex-start; text-decoration: none; color: inherit; }
+  & .tvp-notification-item .tvp-notification-text { flex: 1 1 auto; min-width: 0; word-break: break-word; }
+  & .tvp-notification-item .tvp-mini-btn { flex-shrink: 0; }
 
   & .tvp-help-note { margin-top: 18px; border: 1px solid var(--tvp-line); border-radius: 12px; padding: 14px 18px; background: white; font-size: 13px; color: var(--tvp-text); }
 
