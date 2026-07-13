@@ -43,8 +43,10 @@ function MyAccountPage() {
       {me.isLoading && <div className="tvp-card tvp-muted">Loading…</div>}
 
       {me.data && (
-        <div className="tvp-grid" style={{ gap: 18, maxWidth: 720 }}>
-          <ProfileCard me={me.data} />
+        <div className="tvp-account-grid">
+          <div className="tvp-account-full">
+            <ProfileCard me={me.data} />
+          </div>
           <EmailCard me={me.data} />
           <ChangePasswordCard email={me.data.email} />
         </div>
