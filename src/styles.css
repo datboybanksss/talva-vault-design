@@ -799,15 +799,15 @@
 .tv-auth .tv-auth-divider::before,
 .tv-auth .tv-auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
-.tv-auth .tv-auth-field { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
-.tv-auth .tv-auth-field label { font-size: 12px; font-weight: 900; color: var(--ink); }
-.tv-auth .tv-auth-field input {
+.tv-auth-field { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.tv-auth-field label { font-size: 12px; font-weight: 900; color: var(--ink); }
+.tv-auth-field input {
   height: 44px; padding: 0 12px;
   border: 1px solid var(--line-strong); border-radius: 10px;
   background: white; color: var(--ink); font-size: 13.5px;
   transition: .15s ease;
 }
-.tv-auth .tv-auth-field input:focus {
+.tv-auth-field input:focus {
   outline: none; border-color: var(--teal-2);
   box-shadow: 0 0 0 3px rgba(16,139,149,.18);
 }
