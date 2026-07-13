@@ -231,7 +231,7 @@ function AuthPage() {
           </ul>
         </div>
 
-        <div className="tv-auth-footnote">TalVault · Minerva Platform</div>
+        <div className="tv-auth-footnote">TalVault Platform</div>
       </aside>
 
       <section className="tv-auth-panel">

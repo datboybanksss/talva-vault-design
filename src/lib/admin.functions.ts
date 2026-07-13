@@ -876,7 +876,7 @@ export const listNotifications = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
 
     // Computed live signals
-    const [expiring, expired, incomplete, talentPending, suspended, legal] =
+    const [expiring, expired, incomplete, talentPending, suspended] =
       await Promise.all([
         supabase
           .from("agency_invitations")
@@ -901,10 +901,6 @@ export const listNotifications = createServerFn({ method: "GET" })
           .from("agencies")
           .select("id", { count: "exact", head: true })
           .eq("status", "suspended"),
-        supabase
-          .from("legal_copy_items")
-          .select("id", { count: "exact", head: true })
-          .neq("status", "approved"),
       ]);
 
     const computed: Array<{
@@ -961,63 +957,10 @@ export const listNotifications = createServerFn({ method: "GET" })
         detail: "Suspension follow-up outstanding.",
         to: "/admin/agencies",
       });
-    if ((legal.count ?? 0) > 0)
-      computed.push({
-        id: "auto-legal-copy",
-        kind: "legal_copy_review",
-        tone: "teal",
-        title: `${legal.count} legal/copy item${legal.count === 1 ? "" : "s"} awaiting review`,
-        detail: "T&Cs, disclaimers or system copy still placeholder.",
-        to: "/admin/administrators",
-      });
 
     return { persisted: persisted ?? [], computed };
   });
 
-// -----------------------------------------------------------------------------
-// Legal / copy items (bell backing)
-// -----------------------------------------------------------------------------
-export const listLegalCopyItems = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
-    const { data, error } = await supabase
-      .from("legal_copy_items")
-      .select("*")
-      .order("updated_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
-
-export const markLegalCopyApproved = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
-    await assertAdminCanEdit(supabase, userId);
-    const { data: item, error } = await supabase
-      .from("legal_copy_items")
-      .update({
-        status: "approved",
-        approved_at: new Date().toISOString(),
-        approved_by: userId,
-      })
-      .eq("id", data.id)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    await logAudit(
-      supabase,
-      userId,
-      claims?.email,
-      "approve_legal_copy",
-      "legal_copy",
-      data.id,
-      item.title,
-    );
-    return item;
-  });
 
 // -----------------------------------------------------------------------------
 // MFA audit-log (never accepts or logs codes or secrets)

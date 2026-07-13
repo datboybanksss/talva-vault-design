@@ -2,12 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, CheckCircle2, ShieldCheck, UserPlus, X, Pencil } from "lucide-react";
+import { Users, ShieldCheck, UserPlus, X, Pencil } from "lucide-react";
 import {
   listAdministrators,
   whoami,
-  listLegalCopyItems,
-  markLegalCopyApproved,
   listAdminInvitations,
   inviteAdministrator,
   revokeAdminInvitation,
@@ -23,8 +21,6 @@ export const Route = createFileRoute("/admin/administrators")({
 function AdminsPage() {
   const listFn = useServerFn(listAdministrators);
   const whoamiFn = useServerFn(whoami);
-  const listLegalFn = useServerFn(listLegalCopyItems);
-  const approveLegalFn = useServerFn(markLegalCopyApproved);
   const listInvFn = useServerFn(listAdminInvitations);
   const inviteFn = useServerFn(inviteAdministrator);
   const revokeFn = useServerFn(revokeAdminInvitation);
@@ -41,26 +37,12 @@ function AdminsPage() {
     refetchOnMount: "always",
     staleTime: 0,
   });
-  const legal = useQuery({
-    queryKey: ["admin", "legal"],
-    queryFn: () => listLegalFn(),
-  });
   const invitations = useQuery({
     queryKey: ["admin", "admin-invitations"],
     queryFn: () => listInvFn(),
   });
 
-  const canEdit = !!me.data?.canEdit;
   const isMain = !!me.data?.isMainAdmin;
-
-  const approve = useMutation({
-    mutationFn: (id: string) => approveLegalFn({ data: { id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Legal / copy item approved.");
-    },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
-  });
 
   const invite = useMutation({
     mutationFn: (input: { email: string; permission_level: "view_only" | "edit" }) =>
@@ -84,7 +66,6 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
-  const [tab, setTab] = useState<"admins" | "legal">("admins");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePerm, setInvitePerm] = useState<"view_only" | "edit">("edit");
@@ -132,9 +113,9 @@ function AdminsPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <h1 className="tvp-h1">Administrators & Legal Review</h1>
+          <h1 className="tvp-h1">Administrators</h1>
           <div className="tvp-subtitle">
-            Platform administrators and legal / copy review items (bell reminders).
+            Platform administrators and their access levels.
           </div>
         </div>
       </div>
@@ -154,37 +135,10 @@ function AdminsPage() {
             <div className="tvp-kpi-label">Main Administrators</div>
           </div>
         </div>
-        <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">
-              {(legal.data ?? []).filter((l: any) => l.status === "approved").length}
-            </div>
-            <div className="tvp-kpi-label">Approved Legal / Copy Items</div>
-          </div>
-        </div>
       </div>
 
-      <div className="tvp-tabs">
-        <button
-          className={`tvp-tab${tab === "admins" ? " tvp-active" : ""}`}
-          onClick={() => setTab("admins")}
-        >
-          Administrators
-        </button>
-        <button
-          className={`tvp-tab${tab === "legal" ? " tvp-active" : ""}`}
-          onClick={() => setTab("legal")}
-        >
-          Legal & Copy Review
-          <span className={`tvp-status tvp-amber`}>
-            {(legal.data ?? []).filter((l: any) => l.status !== "approved").length}
-          </span>
-        </button>
-      </div>
+      <>
 
-      {tab === "admins" && (
-        <>
           <div className="tvp-card">
             <div className="tvp-toolbar">
               <h2 className="tvp-h2">Administrators</h2>
@@ -390,73 +344,8 @@ function AdminsPage() {
             </table>
           </div>
         </>
-      )}
 
 
-      {tab === "legal" && (
-        <div className="tvp-card">
-          <div className="tvp-toolbar">
-            <h2 className="tvp-h2">Legal & Copy Review</h2>
-            <span className="tvp-muted" style={{ fontSize: 12 }}>
-              T&Cs, disclaimers and system copy. Placeholder items appear in the bell until approved.
-            </span>
-          </div>
-          <table className="tvp-table">
-            <thead>
-              <tr>
-                <th>Item</th><th>Status</th><th>Updated</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(legal.data ?? []).length === 0 && !legal.isLoading && (
-                <tr><td colSpan={4} className="tvp-muted">No legal / copy items configured yet.</td></tr>
-              )}
-              {(legal.data ?? []).map((l: any) => (
-                <tr key={l.id}>
-                  <td>
-                    <strong>{l.title}</strong>
-                    {l.body && (
-                      <>
-                        <br />
-                        <span className="tvp-muted" style={{ fontSize: 12 }}>{l.body}</span>
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    <span
-                      className={`tvp-status tvp-${
-                        l.status === "approved"
-                          ? "green"
-                          : l.status === "in_review"
-                            ? "amber"
-                            : "red"
-                      }`}
-                    >
-                      {l.status.replace("_", " ")}
-                    </span>
-                  </td>
-                  <td>
-                    {new Date(l.updated_at).toLocaleDateString("en-GB", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
-                  </td>
-                  <td>
-                    {l.status !== "approved" && canEdit && (
-                      <button
-                        className="tvp-secondary"
-                        onClick={() => approve.mutate(l.id)}
-                        disabled={approve.isPending}
-                      >
-                        Mark approved
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
 
 
