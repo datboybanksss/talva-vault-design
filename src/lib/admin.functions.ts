@@ -271,7 +271,7 @@ export const suspendAgency = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanEdit(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
       .update({
@@ -309,7 +309,7 @@ export const unsuspendAgency = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanEdit(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
       .update({
@@ -424,7 +424,7 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanEdit(supabase, userId);
     const expiresAt = new Date(
       Date.now() + data.expiry_days * 24 * 3600 * 1000,
     ).toISOString();
@@ -478,7 +478,7 @@ export const resendInvitation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanEdit(supabase, userId);
     const expires_at = new Date(
       Date.now() + data.extend_days * 24 * 3600 * 1000,
     ).toISOString();
@@ -517,7 +517,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanEdit(supabase, userId);
     const { data: inv, error } = await supabase
       .from("agency_invitations")
       .update({ status: "revoked" })
@@ -544,7 +544,7 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanEdit(supabase, userId);
     const { data: existing, error: exErr } = await supabase
       .from("agency_invitations")
       .select("status, email, agency_name")
@@ -853,7 +853,7 @@ export const markLegalCopyApproved = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanEdit(supabase, userId);
     const { data: item, error } = await supabase
       .from("legal_copy_items")
       .update({
