@@ -320,7 +320,7 @@ function ChangePasswordCard({ email }: { email: string }) {
         subtitle={`Updates the password for ${email}.`}
       />
 
-      <form onSubmit={submit} style={{ marginTop: 12 }} noValidate>
+      <form onSubmit={submit} style={{ marginTop: 8 }} noValidate>
         <div className="tv-auth-field" style={{ marginTop: 0 }}>
           <label htmlFor="pw-current">Current password</label>
           <PasswordInput
@@ -405,7 +405,7 @@ function ChangePasswordCard({ email }: { email: string }) {
         {error && <div className="tv-form-alert tv-form-alert-error">{error}</div>}
         {info && <div className="tv-form-alert tv-form-alert-info">{info}</div>}
 
-        <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
           <button type="submit" className="tvp-primary" disabled={busy}>
             {busy ? "Updating…" : "Update password"}
           </button>
