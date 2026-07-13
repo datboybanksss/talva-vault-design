@@ -33,7 +33,12 @@ function AdminsPage() {
     queryKey: ["admin", "administrators"],
     queryFn: () => listFn(),
   });
-  const me = useQuery({ queryKey: ["whoami"], queryFn: () => whoamiFn() });
+  const me = useQuery({
+    queryKey: ["whoami"],
+    queryFn: () => whoamiFn(),
+    refetchOnMount: "always",
+    staleTime: 0,
+  });
   const legal = useQuery({
     queryKey: ["admin", "legal"],
     queryFn: () => listLegalFn(),
