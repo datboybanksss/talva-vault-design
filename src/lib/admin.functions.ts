@@ -14,6 +14,20 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
+async function assertAdminCanEdit(supabase: any, userId: string) {
+  await assertAdmin(supabase, userId);
+  const { data, error } = await supabase.rpc("can_admin_edit", { _user_id: userId });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: view-only administrators cannot perform this action.");
+}
+
+async function assertMainAdmin(supabase: any, userId: string) {
+  await assertAdmin(supabase, userId);
+  const { data, error } = await supabase.rpc("is_main_admin", { _user_id: userId });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: main administrator only.");
+}
+
 async function logAudit(
   supabase: any,
   userId: string,
