@@ -58,15 +58,19 @@ export const whoami = createServerFn({ method: "GET" })
     const { supabase, userId, claims } = context as any;
     const { data: roles } = await supabase
       .from("user_roles")
-      .select("role, is_main_admin")
+      .select("role, is_main_admin, permission_level")
       .eq("user_id", userId);
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, email, display_name, avatar_url, first_name, last_name, designation")
       .eq("id", userId)
       .maybeSingle();
-    const isAdmin = !!roles?.some((r: any) => r.role === "admin");
-    const isMain = !!roles?.some((r: any) => r.role === "admin" && r.is_main_admin);
+    const adminRow = (roles ?? []).find((r: any) => r.role === "admin");
+    const isAdmin = !!adminRow;
+    const isMain = !!adminRow?.is_main_admin;
+    const permissionLevel: "view_only" | "edit" =
+      (adminRow?.permission_level as any) ?? "edit";
+    const canEdit = isAdmin && permissionLevel === "edit";
     return {
       userId: userId as string,
       email: (profile?.email as string) ?? (claims?.email as string) ?? "",
@@ -77,6 +81,8 @@ export const whoami = createServerFn({ method: "GET" })
       avatarUrl: (profile?.avatar_url as string) ?? null,
       isAdmin,
       isMainAdmin: isMain,
+      permissionLevel,
+      canEdit,
       roles: roles ?? [],
     };
   });
