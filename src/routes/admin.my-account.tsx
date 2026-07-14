@@ -54,7 +54,10 @@ function MyAccountPage() {
           <EmailCard me={me.data} />
           <ChangePasswordCard email={me.data.email} />
           <div className="tvp-account-full">
-            <TwoFactorCard email={me.data.email} />
+            <TwoFactorCard
+              email={me.data.email}
+              required={!!me.data.isMainAdmin || me.data.permissionLevel === "edit"}
+            />
           </div>
         </div>
       )}
@@ -454,7 +457,7 @@ function SectionHeader({
 
 /* ---------------------- Two-factor authentication --------------------- */
 
-function TwoFactorCard({ email }: { email: string }) {
+function TwoFactorCard({ email, required = false }: { email: string; required?: boolean }) {
   const logEnrolledFn = useServerFn(logMfaEnrolled);
   const logDisabledFn = useServerFn(logMfaDisabled);
 
@@ -619,7 +622,11 @@ function TwoFactorCard({ email }: { email: string }) {
         icon={<Smartphone className="h-4 w-4" />}
         tone="purple"
         title="Two-factor authentication"
-        subtitle="Require a 6-digit code from your authenticator app on every sign-in."
+        subtitle={
+          required
+            ? "Required for your administrator role. A 6-digit code from your authenticator app is needed on every sign-in."
+            : "Require a 6-digit code from your authenticator app on every sign-in."
+        }
       />
 
       {loading ? (
@@ -629,17 +636,22 @@ function TwoFactorCard({ email }: { email: string }) {
           <div className="tv-form-alert tv-form-alert-info">
             2FA is <strong>enabled</strong> on this account. You'll be prompted for a
             code from your authenticator app when you sign in.
+            {required && (
+              <> Two-factor authentication is required for your role and cannot be disabled.</>
+            )}
           </div>
-          <div style={{ marginTop: 10 }}>
-            <button
-              type="button"
-              className="tvp-secondary"
-              onClick={startDisable}
-              disabled={busy}
-            >
-              Disable 2FA
-            </button>
-          </div>
+          {!required && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                className="tvp-secondary"
+                onClick={startDisable}
+                disabled={busy}
+              >
+                Disable 2FA
+              </button>
+            </div>
+          )}
         </div>
       ) : disabling ? (
         <form onSubmit={confirmDisable} style={{ marginTop: 8 }} noValidate>
@@ -750,7 +762,10 @@ function TwoFactorCard({ email }: { email: string }) {
         <div style={{ marginTop: 8 }}>
           <div className="tvp-muted" style={{ fontSize: 13 }}>
             Add an extra sign-in step using a time-based code from an authenticator
-            app on your phone. Recommended for all administrators.
+            app on your phone.{" "}
+            {required
+              ? "Required for your administrator role — you must enable 2FA to keep accessing the admin console."
+              : "Recommended for all administrators."}
           </div>
           {error && (
             <div className="tv-form-alert tv-form-alert-error" style={{ marginTop: 10 }}>
