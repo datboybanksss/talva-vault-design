@@ -33,6 +33,7 @@ import { Route as AgencyDocumentRulesRouteImport } from './routes/agency.documen
 import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
 import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
 import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
+import { Route as AdminEnroll2faRouteImport } from './routes/admin.enroll-2fa'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
 import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
@@ -163,6 +164,11 @@ const AdminInvitationsRoute = AdminInvitationsRouteImport.update({
   path: '/invitations',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEnroll2faRoute = AdminEnroll2faRouteImport.update({
+  id: '/enroll-2fa',
+  path: '/enroll-2fa',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/enroll-2fa': typeof AdminEnroll2faRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/loved-one': typeof LovedOneRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/enroll-2fa': typeof AdminEnroll2faRoute
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/enroll-2fa': typeof AdminEnroll2faRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
@@ -323,6 +332,7 @@ export interface FileRouteTypes {
     | '/admin/administrators'
     | '/admin/agencies'
     | '/admin/audit'
+    | '/admin/enroll-2fa'
     | '/admin/invitations'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/loved-one'
     | '/admin/administrators'
     | '/admin/audit'
+    | '/admin/enroll-2fa'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/agency/document-rules'
@@ -388,6 +399,7 @@ export interface FileRouteTypes {
     | '/admin/administrators'
     | '/admin/agencies'
     | '/admin/audit'
+    | '/admin/enroll-2fa'
     | '/admin/invitations'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
@@ -594,6 +606,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInvitationsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/enroll-2fa': {
+      id: '/admin/enroll-2fa'
+      path: '/enroll-2fa'
+      fullPath: '/admin/enroll-2fa'
+      preLoaderRoute: typeof AdminEnroll2faRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/audit': {
       id: '/admin/audit'
       path: '/audit'
@@ -693,6 +712,7 @@ interface AdminRouteChildren {
   AdminAdministratorsRoute: typeof AdminAdministratorsRoute
   AdminAgenciesRoute: typeof AdminAgenciesRouteWithChildren
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminEnroll2faRoute: typeof AdminEnroll2faRoute
   AdminInvitationsRoute: typeof AdminInvitationsRouteWithChildren
   AdminMyAccountRoute: typeof AdminMyAccountRoute
   AdminQuotesInvoicesRoute: typeof AdminQuotesInvoicesRoute
@@ -703,6 +723,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdministratorsRoute: AdminAdministratorsRoute,
   AdminAgenciesRoute: AdminAgenciesRouteWithChildren,
   AdminAuditRoute: AdminAuditRoute,
+  AdminEnroll2faRoute: AdminEnroll2faRoute,
   AdminInvitationsRoute: AdminInvitationsRouteWithChildren,
   AdminMyAccountRoute: AdminMyAccountRoute,
   AdminQuotesInvoicesRoute: AdminQuotesInvoicesRoute,

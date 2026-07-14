@@ -54,7 +54,10 @@ function MyAccountPage() {
           <EmailCard me={me.data} />
           <ChangePasswordCard email={me.data.email} />
           <div className="tvp-account-full">
-            <TwoFactorCard email={me.data.email} />
+            <TwoFactorCard
+              email={me.data.email}
+              required={!!me.data.isMainAdmin || me.data.permissionLevel === "edit"}
+            />
           </div>
         </div>
       )}
