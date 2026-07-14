@@ -365,6 +365,50 @@ export function VaultPage() {
       )}
 
       {preview && <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />}
+
+      {versionsFor && (
+        <VersionsDialog
+          doc={versionsFor}
+          onClose={() => setVersionsFor(null)}
+        />
+      )}
+
+      {newVersionFor && (
+        <NewVersionDialog
+          doc={newVersionFor}
+          agencyId={me.agency?.id ?? ""}
+          onClose={() => setNewVersionFor(null)}
+          onDone={() => {
+            setNewVersionFor(null);
+            qc.invalidateQueries({ queryKey: ["agency", "vault"] });
+          }}
+        />
+      )}
+
+      {overrideFor && (
+        <OverrideDialog
+          doc={overrideFor}
+          onClose={() => setOverrideFor(null)}
+          onSave={async (years, description) => {
+            try {
+              await upsertRuleFn({
+                data: {
+                  scope: "document",
+                  document_id: overrideFor.id,
+                  retention_years: years,
+                  description: description || null,
+                },
+              });
+              toast.success("Retention override set");
+              qc.invalidateQueries({ queryKey: ["agency", "vault"] });
+              qc.invalidateQueries({ queryKey: ["agency", "retention"] });
+              setOverrideFor(null);
+            } catch (e: any) {
+              toast.error(e?.message ?? "Failed");
+            }
+          }}
+        />
+      )}
     </>
   );
 }
