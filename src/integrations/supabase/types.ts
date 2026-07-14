@@ -487,6 +487,60 @@ export type Database = {
           },
         ]
       }
+      agency_retention_rules: {
+        Row: {
+          agency_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_id: string | null
+          id: string
+          retention_years: number
+          scope: Database["public"]["Enums"]["retention_scope"]
+          scope_value: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_id?: string | null
+          id?: string
+          retention_years: number
+          scope: Database["public"]["Enums"]["retention_scope"]
+          scope_value?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_id?: string | null
+          id?: string
+          retention_years?: number
+          scope?: Database["public"]["Enums"]["retention_scope"]
+          scope_value?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_retention_rules_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_retention_rules_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "talent_shared_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_talent_links: {
         Row: {
           agency_id: string
@@ -752,15 +806,62 @@ export type Database = {
           },
         ]
       }
+      talent_shared_document_versions: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          mime_type: string | null
+          name: string
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string | null
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          mime_type?: string | null
+          name: string
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string | null
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          mime_type?: string | null
+          name?: string
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_shared_document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "talent_shared_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_shared_documents: {
         Row: {
           agency_id: string
           ai_suggested_expiry: string | null
           ai_suggested_folder: string | null
           created_at: string
+          current_version_id: string | null
           folder: string
           id: string
+          locked_until: string | null
           name: string
+          revoked_at: string | null
           status: Database["public"]["Enums"]["shared_document_status"]
           storage_path: string | null
           talent_link_id: string | null
@@ -773,9 +874,12 @@ export type Database = {
           ai_suggested_expiry?: string | null
           ai_suggested_folder?: string | null
           created_at?: string
+          current_version_id?: string | null
           folder?: string
           id?: string
+          locked_until?: string | null
           name: string
+          revoked_at?: string | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
           talent_link_id?: string | null
@@ -788,9 +892,12 @@ export type Database = {
           ai_suggested_expiry?: string | null
           ai_suggested_folder?: string | null
           created_at?: string
+          current_version_id?: string | null
           folder?: string
           id?: string
+          locked_until?: string | null
           name?: string
+          revoked_at?: string | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
           talent_link_id?: string | null
@@ -848,6 +955,10 @@ export type Database = {
     }
     Functions: {
       can_admin_edit: { Args: { _user_id: string }; Returns: boolean }
+      compute_document_locked_until: {
+        Args: { _doc_id: string }
+        Returns: string
+      }
       current_user_agency_id: { Args: never; Returns: string }
       has_agency_role: {
         Args: { _agency_id: string; _role: string; _user_id: string }
@@ -911,6 +1022,7 @@ export type Database = {
         | "talent_invite_pending"
         | "suspended_review"
         | "legal_copy_review"
+      retention_scope: "folder" | "document"
       shared_document_status: "ai_suggested" | "filed" | "needs_review"
     }
     CompositeTypes: {
@@ -1082,6 +1194,7 @@ export const Constants = {
         "suspended_review",
         "legal_copy_review",
       ],
+      retention_scope: ["folder", "document"],
       shared_document_status: ["ai_suggested", "filed", "needs_review"],
     },
   },
