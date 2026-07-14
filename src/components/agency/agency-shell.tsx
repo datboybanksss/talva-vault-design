@@ -46,6 +46,7 @@ const manage: NavItem[] = [
 
 const settings: NavItem[] = [
   { to: "/agency/folder-templates", label: "Folder Templates", icon: <FolderCog /> },
+  { to: "/agency/document-rules", label: "Document Rules", icon: <ShieldCheck /> },
   { to: "/agency/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
 

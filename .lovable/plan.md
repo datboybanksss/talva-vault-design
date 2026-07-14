@@ -1,88 +1,106 @@
-## Design drift findings: `agency-shell.tsx` vs `admin-shell.tsx`
 
-Both files use the same `tvp-*` design tokens and CSS classes, same Lucide icon set, same sidebar/main layout skeleton — so the visual system is already aligned. The drift is behavioural / data-wiring inside the shell:
+# Phase 5 — Retention Rules & Versioning (Agency Document Vault)
 
-1. **Hardcoded user identity.** Agency shows `TN` avatar + "Thandi Ndlovu / Agency Owner" as string literals. Admin renders these from the `whoami` server fn (real name, initials, role).
-2. **No logout wired.** Agency's `LogOut` button has no `onClick`. Admin calls `supabase.auth.signOut()` + `queryClient.clear()` + `navigate('/auth')`.
-3. **Hardcoded notifications array.** Agency has a static `notifications` const with 4 fake items. Admin queries `listNotifications` every 60s, supports dismiss via mutation, filters by tone → icon map.
-4. **Static badge counts on nav items.** Agency hardcodes `badge: 24` (Talent) and `badge: 6` (Invitations). Admin has no badges — counts live inside each page. Either drop the badges or derive them from queries.
-5. **No auth/role gate on `/agency` route.** `src/routes/agency.tsx` has no `beforeLoad` (compared to `admin.tsx`, which does `getUser()` + `has_role('admin')` redirect). Any signed-in user can currently open the agency portal.
-6. Minor: brand sub-label is `AGENCY` (fine) but there's no visual differentiator vs Admin's `ADMIN` — matches pattern, no change needed.
+## 0. Ambiguities to flag before building
 
-Everything else (colors, cards, tables, chips, KPI tiles, callouts, tabs, buttons) already uses the shared tokens correctly.
+- **"Revoke access" without a Talent Portal.** Today, `talent_shared_documents` is agency-owned metadata + files in the `talent-documents` bucket. There is no talent-side account that "has access" to revoke. I'll treat "revoke access" as a future concept and design the schema so it fits, but the *only enforcement surface today* is: agency delete + agency-side "unshare/hide" toggle. I'll add a `revoked_at` column now (nullable) so the future Talent Portal reads `WHERE revoked_at IS NULL`, but no UI wiring to talent yet. **Confirm this is acceptable, or tell me you want a stub Talent view now.**
+- **Retention scope key.** Vault rows have a free-text `folder` column (not FK to `agency_folder_template_items`). Rules therefore key on `(agency_id, folder_name)` string match, plus optional `document_category` (we don't have a category column today — proposal below adds one, defaulting from the folder). Confirm you want a category dimension, or keep it folder-only for v1.
+- **Who can configure retention rules.** Assumption: agency **owner only** (staff can upload/view/delete but not set compliance policy). Say the word if staff should also edit rules.
+- **Clock semantics.** Retention starts from `created_at` of the document (upload time). Alternative: from a "document effective date" field. I'll go with upload time unless you say otherwise.
+- **Legal hold.** Not in the brief, but worth noting: an admin override to *extend* a lock beyond expiry (e.g. active litigation). Out of scope for v1; schema will leave room (`legal_hold boolean`) but no UI.
 
-## Schema plan — reuse vs add
+## 1. Schema
 
-**Reuse as-is:**
-- `agencies` — the tenant row. Already has status/suspension. No changes.
-- `agency_members(agency_id, user_id, role, suspended)` — this IS the "how do you become an agency user" table. Set on accept of `agency_invitations`. Roles today are free-text `text`; we'll standardize the allowed values in app code (`'owner' | 'manager' | 'staff'`).
-- `agency_invitations` — admin→agency onboarding. Already has `accepted_at`; when accepted it should upsert an `agency_members` row (owner). Verify the `handle_new_user` / accept flow does this; if not, add a trigger or accept-server-fn step.
-- `talent_invitations` — agency→talent onboarding. Already exists (13 cols). Needs an `agency_id` column check — likely already there; confirm at build time.
-- `agency_documents` — currently only aggregate counters (`shared_folder_count`, `private_vault_count`). Keep as a rollup surface but we need a real per-document table (see below).
-- `talent_profiles` — reuse for Talent list joins.
-- `agency_billing_docs` — powers the Quotes & Invoices screen. Already covers kind/number/client/issued_at/currency/total/status. Reuse.
+Two new tables + small additions to `talent_shared_documents`.
 
-**Add (new migrations):**
+### `agency_retention_rules` (per-agency policy)
+```text
+id uuid pk
+agency_id uuid fk agencies
+scope             enum('folder','category','document')  -- v1 ships 'folder'; 'document' = per-doc override
+scope_value       text            -- folder name, or category slug; null when scope='document'
+document_id       uuid            -- only set when scope='document', fk talent_shared_documents
+retention_years   int not null check (retention_years between 0 and 100)
+description       text
+created_by        uuid
+created_at / updated_at
+unique(agency_id, scope, scope_value, document_id)
+```
+Resolution order at enforcement time: **document override → folder rule → (no rule)**. No global default in v1.
 
-a. **`agency_talent_links`** — the talent-agency relationship (one talent ↔ one or more agencies, with lifecycle state). Columns:
-   - `id`, `agency_id → agencies`, `talent_user_id → auth.users` (nullable until accepted), `talent_profile_id → talent_profiles` (nullable), `talent_invitation_id → talent_invitations`, `manager_user_id → auth.users` (assigned agency staff), `status` enum (`active | invited | expired | read_only | revoked | needs_review`), `talent_type` text (Athlete/Artist/Model — free-text for now), `next_action` text, timestamps.
-   - RLS: agency members of `agency_id` can select/update; talent themselves can select their own row.
+### `talent_shared_documents` additions
+```text
+current_version_id  uuid          -- points to latest row in doc_versions
+revoked_at          timestamptz   -- future Talent Portal read gate
+locked_until        timestamptz   -- denormalised cache: max(retention_expiry across applicable rules); recomputed on insert/rule change
+```
+`locked_until` is a cache for cheap enforcement + UI badges; the source of truth is the rules table + `created_at`.
 
-b. **`agency_documents_items`** (rename in code; table can be `talent_shared_documents`) — real per-document rows powering Document Vault. Columns:
-   - `id`, `agency_id`, `talent_link_id`, `name`, `folder`, `status` enum (`ai_suggested | filed | needs_review`), `validity_expires_at` (nullable), `ai_suggested_folder`, `ai_suggested_expiry`, `uploaded_by`, `storage_path` (nullable — files come later), timestamps.
-   - RLS: agency members of `agency_id` OR the talent owner.
+### `talent_shared_document_versions` (versioning)
+```text
+id uuid pk
+document_id     uuid fk talent_shared_documents on delete cascade
+version_number  int  not null    -- 1,2,3…
+storage_path    text not null    -- each version = its own object in the bucket
+name            text not null    -- filename at time of upload
+size_bytes      bigint
+mime_type       text
+uploaded_by     uuid
+created_at
+unique(document_id, version_number)
+```
+"Replace" = insert a new version row, bump `current_version_id`, keep old storage objects. Download/View defaults to current; a "Version history" dialog lists prior versions with view/download (no delete while locked).
 
-c. **`agency_folder_templates`** + **`agency_folder_template_items`** — per-agency folder template library backing the Folder Templates screen. Columns on parent: `id`, `agency_id`, `name`, `description`, `is_default`. Items: `template_id`, `folder_name`, `required_docs jsonb`.
-   - RLS: agency members of `agency_id`.
+Storage layout stays `<agency_id>/<talent_link_id>/<uuid>-<filename>` — each version gets its own uuid so paths never collide.
 
-d. **`app_role` enum extension (or new `agency_role` enum)** — decide at build time whether to promote existing `agency_members.role` text to an enum `agency_role ∈ {'owner','manager','staff'}` with a check constraint. Non-blocking; can start as text with app-level validation.
+### RLS / GRANTs
+- Both new tables: `authenticated` + `service_role` GRANTs, RLS enabled, policies scoped via `is_agency_member(auth.uid(), agency_id)` (matches existing vault model — owner + staff).
+- Rule **write** policies restricted to owners: `has_agency_role(auth.uid(), agency_id, 'owner')`. Confirm if you want staff to write too.
 
-e. **Helper security-definer functions:**
-   - `is_agency_member(_user_id uuid, _agency_id uuid) returns boolean`
-   - `current_user_agency_id() returns uuid` (returns the single agency the caller belongs to; NULL if multi/none — we'll assume one agency per user for v1 to keep RLS simple, and revisit if needed).
-   - `has_agency_role(_user_id, _agency_id, _role)` for owner-only actions (invite staff, edit settings).
+## 2. Enforcement (server-side, not just UI)
 
-All new tables ship `GRANT SELECT,INSERT,UPDATE,DELETE ... TO authenticated` + `GRANT ALL TO service_role` in the same migration, RLS enabled, policies scoped via `is_agency_member`, and `updated_at` triggers where relevant.
+Locking is enforced in **three places**:
 
-## Auth / role model
+1. **`deleteAgencyVaultDocument` server fn** — before deleting DB row/storage, recompute the effective lock:
+   - resolve applicable rule (doc override > folder rule)
+   - `lock_expiry = created_at + retention_years`
+   - if `now() < lock_expiry`, throw `Error("RETENTION_LOCKED: this document is locked until <date> by rule '<name>'")`
+   - the UI catches the `RETENTION_LOCKED:` prefix and shows a toast with the unlock date.
+2. **DB trigger `enforce_retention_lock` on `talent_shared_documents` BEFORE DELETE / BEFORE UPDATE OF revoked_at** — same check in SQL, using `locked_until` cache with a `now()` comparison. Defense in depth: even a direct SQL delete or a future Talent Portal action can't bypass it.
+3. **After expiry**: nothing special — `now() >= locked_until` means both trigger and server fn pass, and delete behaves exactly like today.
 
-- Someone becomes an agency user in one of two ways:
-  1. **Admin invites an agency** (`agency_invitations`, already built). On sign-up via that invite, we insert an `agency_members` row with `role='owner'` for the new `agency_id`. This may already be wired in `handle_new_user` — verify; if missing, add.
-  2. **Agency owner/manager invites staff** (new agency-side invitation flow using a table like `agency_staff_invitations`, or reuse `agency_invitations` with a `kind` discriminator — cleaner to add `agency_staff_invitations` to keep semantics distinct). On accept, insert `agency_members` row with the invited role.
-- `/agency` route gate: `beforeLoad` does `supabase.auth.getUser()` → check user has at least one row in `agency_members` (not suspended) → set `agency_id` in route context. Otherwise redirect to `/auth`.
-- All agency server functions use `requireSupabaseAuth` + a helper `getCallerAgencyId(context)` that reads `agency_members`, throws if none, and scopes every query.
-- Admin users are NOT auto-agency users (separation of concerns). If they need to inspect an agency, they use the existing Admin agency-detail screen.
+**Version upload is never blocked by retention** (retention protects history, doesn't stop new versions).
 
-## Build order (5 screens)
+**Rule changes recompute cache**: when a rule is created/edited/deleted, a server fn re-runs `UPDATE talent_shared_documents SET locked_until = ...` for affected rows. Also recomputed on document insert.
 
-Do the shell + auth + one vertical slice first, then broaden — mirrors how Admin was built.
+## 3. UI
 
-1. **Schema + auth foundation (no UI yet).**
-   - Migrations for `agency_talent_links`, `talent_shared_documents`, `agency_folder_templates(+items)`, `agency_staff_invitations`, helper functions, RLS.
-   - Backfill/verify `agency_members` insertion on `agency_invitations` accept.
-   - `beforeLoad` gate on `src/routes/agency.tsx`.
-   - Rewire `agency-shell.tsx`: `whoami` (reused; extend to return agency_id + role), real notifications via a new `listAgencyNotifications` server fn (start with empty list — populated as each feature ships), logout wiring, remove hardcoded badges (or derive from cheap count queries).
+### New sidebar item under Agency Portal: **"Document Rules"**
+Route: `src/routes/agency.document-rules.tsx`. Sits between "Folder Templates" and "Document Vault" in the sidebar. Rationale: it's a distinct compliance concept, deserves its own page rather than burying in Settings.
 
-2. **Dashboard (`agency.index.tsx`).** KPI tiles from real counts (`agency_talent_links`, `talent_shared_documents`, `agency_staff_invitations` + `talent_invitations`, `agency_billing_docs`). Talent workspace table + status chips from `agency_talent_links` with the existing filters. This is the highest-value screen and exercises most joins — good second step.
+Sections on the page:
+- **Folder retention rules** — table: Folder name · Retention (years) · Description · Actions (edit/delete). "Add rule" dialog with folder dropdown (distinct folders present in vault + template folder names) + years input + description.
+- **Per-document overrides** — table of documents that have an explicit override, with "remove override" action. Overrides are also creatable inline from the Document Vault row menu.
+- **Preview panel**: "X documents currently locked, Y unlock in the next 90 days."
 
-3. **Invitations (`agency.invitations.tsx`).** Two tabs: Talent (backed by `talent_invitations`, filter `agency_id = current`) and Staff (new `agency_staff_invitations`). Actions: copy link, resend, revoke. Reuse the token/email plumbing from the Admin agency-invitation flow. Delivers the "invite talent" primary CTA on the dashboard.
+### Document Vault changes
+- New column (or icon in the name cell): **🔒 lock badge** when `locked_until > now()`, tooltip "Locked by retention rule until <date> — cannot be deleted."
+- Delete button on locked rows: rendered but **disabled**, tooltip shows unlock date. Server still enforces.
+- Row menu gets **"Version history"** (opens dialog listing versions) and **"Upload new version"** (file picker → creates new version, bumps `current_version_id`).
+- Row menu gets **"Set retention override"** (owner-only) → shortcut to create a `scope='document'` rule for that row.
 
-4. **Document Vault (`agency.document-vault.tsx`).** Rewire tabs (All / Needs Review / Expiring / Recently Updated) to `talent_shared_documents` queries. AI Filing Suggestions panel filters `status='ai_suggested'` with confirm/edit mutations. Upload defers real file storage — capture metadata rows now, wire Storage bucket in a follow-up.
+### Folder Templates (`agency.folder-templates.tsx`) — small addition
+Add an optional **"Default retention (years)"** field per folder template item. On template application (or manually), it becomes an `agency_retention_rules` row with `scope='folder'`. This keeps templates as the *authoring* surface for defaults, while the Document Rules page is the *management* surface. No breaking changes to the existing template flow.
 
-5. **Folder Templates (`agency.folder-templates.tsx`).** CRUD over `agency_folder_templates(+items)`. Simplest of the remaining screens; independent of talent data.
+## 4. Verification plan
 
-6. **Quotes & Invoices (`agency.quotes-invoices.tsx`).** Wire to `agency_billing_docs` with `agency_id` scope. Reuse most of the Admin quotes/invoices UI patterns. PDF generation stays out of scope for this pass.
+- Seed a rule "Contracts / 10 years", upload a doc to folder "Contracts", confirm 🔒 badge, confirm delete throws `RETENTION_LOCKED`, confirm trigger also blocks a raw SQL delete.
+- Backdate `created_at` past expiry, confirm badge clears and delete succeeds.
+- Upload a new version, confirm old version still downloadable, `current_version_id` updated, storage retains both objects.
+- Delete the rule, confirm `locked_until` recomputes to null and delete works.
 
-## Out of scope for this pass (call out now)
-
-- Real file uploads to Storage (Document Vault will have metadata rows + placeholder actions; wire a `talent-docs` bucket in a follow-up).
-- Sending real invitation emails from `talvault.com` — depends on the Lovable Emails domain verification still in flight. Invitation records + tokenized accept links land now; email delivery hooks in once the domain is verified.
-- Multi-agency membership per user (v1 assumes one).
-- Talent-side portal changes (separate track).
-
-## Questions before I start building
-
-1. **One agency per user, correct?** Simplifies RLS + `current_user_agency_id()`. Confirm.
-2. **Agency staff invitations** — new `agency_staff_invitations` table (cleaner) vs reusing `agency_invitations` with a discriminator (fewer tables)? I'd default to the new table.
-3. **Nav badge counts** on the sidebar (Talent: 24, Invitations: 6) — drop them, or derive from real counts? Admin doesn't have them; I'd drop for consistency.
-4. **The static "Reminders" bell content** on Agency — start with an empty state and populate per feature (like Admin did), or design a fixed set of agency reminder rules up front?
+## Open questions to answer before I build
+1. `revoked_at` stub for future Talent Portal — OK to add now with no UI?
+2. Rules keyed on folder string only, or add a `category` dimension?
+3. Staff can edit retention rules, or owner-only?
+4. Retention clock from upload time, or need a separate "effective date" field?
