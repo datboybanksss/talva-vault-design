@@ -578,3 +578,224 @@ function UploadDialog({
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Version history dialog
+// ---------------------------------------------------------------------------
+function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }) {
+  const listFn = useServerFn(listAgencyDocumentVersions);
+  const signedFn = useServerFn(getAgencyVersionSignedUrl);
+  const { data, isLoading } = useQuery({
+    queryKey: ["agency", "vault", "versions", doc.id],
+    queryFn: () => listFn({ data: { document_id: doc.id } }),
+  });
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
+
+  async function open(versionId: string, disposition: "inline" | "attachment") {
+    try {
+      const { url, name } = await signedFn({ data: { version_id: versionId, disposition } });
+      if (disposition === "inline") setPreview({ url, name });
+      else window.open(url, "_blank", "noopener");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not open version");
+    }
+  }
+
+  const versions = data?.versions ?? [];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
+        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="tvp-card"
+        style={{ width: "min(800px, 100%)", padding: 24 }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h2 className="tvp-h2">Version history</h2>
+            <div className="tvp-muted" style={{ fontSize: 13 }}>{doc.name}</div>
+          </div>
+          <button className="tvp-mini-btn" onClick={onClose} title="Close"><X className="h-4 w-4" /></button>
+        </div>
+
+        {isLoading ? (
+          <div className="tvp-muted" style={{ padding: 24, textAlign: "center" }}>
+            <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…
+          </div>
+        ) : versions.length === 0 ? (
+          <p className="tvp-muted" style={{ padding: 12 }}>
+            Only the current file exists. New uploads under "Upload new version" will appear here.
+          </p>
+        ) : (
+          <table className="tvp-table" style={{ marginTop: 12 }}>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>File name</th>
+                <th>Uploaded</th>
+                <th style={{ width: 140 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {versions.map((v: any) => (
+                <tr key={v.id}>
+                  <td><strong>v{v.version_number}</strong>{data?.currentVersionId === v.id ? " · current" : ""}</td>
+                  <td>{v.name}</td>
+                  <td className="tvp-muted">{new Date(v.created_at).toLocaleString()}</td>
+                  <td>
+                    <div className="flex gap-1 justify-end">
+                      <button className="tvp-mini-btn" title="View" onClick={() => open(v.id, "inline")}>
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button className="tvp-mini-btn" title="Download" onClick={() => open(v.id, "attachment")}>
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {preview && <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// New version upload dialog
+// ---------------------------------------------------------------------------
+function NewVersionDialog({
+  doc, agencyId, onClose, onDone,
+}: { doc: VaultDoc; agencyId: string; onClose: () => void; onDone: () => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const registerVersion = useServerFn(registerAgencyDocumentVersion);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const file = fileRef.current?.files?.[0];
+    if (!file) return toast.error("Pick a file first");
+    if (!agencyId) return toast.error("No agency context");
+
+    setBusy(true);
+    try {
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${agencyId}/${doc.talentLinkId || "unassigned"}/${crypto.randomUUID()}-${safeName}`;
+      const { error: upErr } = await supabase.storage
+        .from("talent-documents")
+        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+      if (upErr) throw upErr;
+      await registerVersion({
+        data: {
+          document_id: doc.id,
+          storage_path: path,
+          name: file.name,
+          size_bytes: file.size,
+          mime_type: file.type || null,
+        },
+      });
+      toast.success("New version uploaded");
+      onDone();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
+        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+      }}
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+        className="tvp-card"
+        style={{ width: 480, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
+      >
+        <h2 className="tvp-h2">Upload new version</h2>
+        <p className="tvp-muted" style={{ fontSize: 13 }}>
+          Replacing "{doc.name}" — the previous file is preserved in version history.
+        </p>
+        <label className="tvp-muted" style={{ fontSize: 13 }}>File</label>
+        <input ref={fileRef} type="file" required />
+        <div className="flex gap-2 mt-2 justify-end">
+          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="submit" className="tvp-primary" disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Upload version
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Per-document retention override dialog
+// ---------------------------------------------------------------------------
+function OverrideDialog({
+  doc, onClose, onSave,
+}: {
+  doc: VaultDoc;
+  onClose: () => void;
+  onSave: (years: number, description: string) => Promise<void>;
+}) {
+  const [years, setYears] = useState<number>(5);
+  const [description, setDescription] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
+        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+      }}
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={async (e) => { e.preventDefault(); setBusy(true); try { await onSave(Number(years), description); } finally { setBusy(false); } }}
+        className="tvp-card"
+        style={{ width: 480, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
+      >
+        <h2 className="tvp-h2">Set retention override</h2>
+        <p className="tvp-muted" style={{ fontSize: 13 }}>
+          Locks "{doc.name}" from deletion for the specified number of years from its upload date.
+          This overrides any folder-level rule for this document.
+        </p>
+        <label className="tvp-muted" style={{ fontSize: 13 }}>Retention (years)</label>
+        <input
+          className="tvp-select"
+          type="number"
+          min={0}
+          max={100}
+          value={years}
+          onChange={(e) => setYears(Number(e.target.value))}
+          required
+        />
+        <label className="tvp-muted" style={{ fontSize: 13 }}>Description (optional)</label>
+        <input
+          className="tvp-select"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <div className="flex gap-2 mt-2 justify-end">
+          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="submit" className="tvp-primary" disabled={busy}>Set override</button>
+        </div>
+      </form>
+    </div>
+  );
+}
