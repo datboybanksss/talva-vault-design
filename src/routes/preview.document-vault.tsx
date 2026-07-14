@@ -57,7 +57,11 @@ qc.setQueryData(meQO.queryKey, {
 export const Route = createFileRoute("/preview/document-vault")({
   component: () => (
     <QueryClientProvider client={qc}>
-      <VaultPage />
+      <div className="tv-app">
+        <main className="tvp-main">
+          <VaultPage />
+        </main>
+      </div>
     </QueryClientProvider>
   ),
 });
