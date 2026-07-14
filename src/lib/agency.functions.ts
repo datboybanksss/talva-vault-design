@@ -848,3 +848,300 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
     if (sErr) throw new Error(sErr.message);
     return { url: signed.signedUrl as string, name: v.name as string };
   });
+
+// -----------------------------------------------------------------------------
+// Folder Templates — owner writes, member reads
+// -----------------------------------------------------------------------------
+
+const templateItemSchema = z.object({
+  id: z.string().uuid().optional(),
+  folder_name: z.string().min(1).max(120),
+  sort_order: z.number().int().min(0).default(0),
+  default_retention_years: z.number().int().min(0).max(100).nullable().optional(),
+});
+
+export const listAgencyFolderTemplates = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId, role } = await getCallerAgency(supabase, userId);
+
+    const { data: templates, error } = await supabase
+      .from("agency_folder_templates")
+      .select("id, name, description, is_default, created_at, updated_at")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    const ids = (templates ?? []).map((t: any) => t.id);
+    let items: any[] = [];
+    if (ids.length) {
+      const { data: itemRows, error: iErr } = await supabase
+        .from("agency_folder_template_items")
+        .select("id, template_id, folder_name, sort_order, default_retention_years")
+        .in("template_id", ids)
+        .order("sort_order", { ascending: true });
+      if (iErr) throw new Error(iErr.message);
+      items = itemRows ?? [];
+    }
+    return { role, templates: templates ?? [], items };
+  });
+
+export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      name: z.string().min(1).max(120),
+      description: z.string().max(500).nullable().optional(),
+      is_default: z.boolean().optional(),
+      items: z.array(templateItemSchema).default([]),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    let templateId = data.id;
+    if (templateId) {
+      const { error } = await supabase
+        .from("agency_folder_templates")
+        .update({
+          name: data.name,
+          description: data.description ?? null,
+          is_default: data.is_default ?? false,
+        })
+        .eq("id", templateId)
+        .eq("agency_id", agencyId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { data: row, error } = await supabase
+        .from("agency_folder_templates")
+        .insert({
+          agency_id: agencyId,
+          name: data.name,
+          description: data.description ?? null,
+          is_default: data.is_default ?? false,
+        })
+        .select("id").single();
+      if (error) throw new Error(error.message);
+      templateId = row.id;
+    }
+
+    // Replace items
+    await supabase.from("agency_folder_template_items").delete().eq("template_id", templateId);
+    if (data.items.length) {
+      const rows = data.items.map((it, idx) => ({
+        template_id: templateId,
+        folder_name: it.folder_name,
+        sort_order: it.sort_order ?? idx,
+        default_retention_years: it.default_retention_years ?? null,
+        required_docs: [],
+      }));
+      const { error } = await supabase.from("agency_folder_template_items").insert(rows);
+      if (error) throw new Error(error.message);
+    }
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      data.id ? "update_folder_template" : "create_folder_template",
+      "agency_folder_template", templateId, data.name,
+      { item_count: data.items.length });
+
+    return { id: templateId };
+  });
+
+export const deleteAgencyFolderTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: row, error } = await supabase
+      .from("agency_folder_templates")
+      .delete()
+      .eq("id", data.id).eq("agency_id", agencyId)
+      .select("id, name").single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "delete_folder_template", "agency_folder_template", row.id, row.name);
+    return { ok: true };
+  });
+
+export const applyAgencyFolderTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ template_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: tmpl, error: tErr } = await supabase
+      .from("agency_folder_templates")
+      .select("id, name, agency_id")
+      .eq("id", data.template_id).single();
+    if (tErr) throw new Error(tErr.message);
+    if (tmpl.agency_id !== agencyId) throw new Error("Forbidden");
+
+    const { data: items, error: iErr } = await supabase
+      .from("agency_folder_template_items")
+      .select("folder_name, default_retention_years")
+      .eq("template_id", data.template_id);
+    if (iErr) throw new Error(iErr.message);
+
+    let created = 0;
+    for (const it of items ?? []) {
+      if (!it.default_retention_years || it.default_retention_years <= 0) continue;
+      const { data: existing } = await supabase
+        .from("agency_retention_rules")
+        .select("id")
+        .eq("agency_id", agencyId)
+        .eq("scope", "folder")
+        .eq("scope_value", it.folder_name)
+        .maybeSingle();
+      if (existing) {
+        await supabase.from("agency_retention_rules")
+          .update({ retention_years: it.default_retention_years })
+          .eq("id", existing.id);
+      } else {
+        await supabase.from("agency_retention_rules").insert({
+          agency_id: agencyId,
+          scope: "folder",
+          scope_value: it.folder_name,
+          retention_years: it.default_retention_years,
+          description: `Applied from template: ${tmpl.name}`,
+          created_by: userId,
+        });
+        created += 1;
+      }
+    }
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "apply_folder_template", "agency_folder_template", tmpl.id, tmpl.name,
+      { rules_created: created });
+
+    return { ok: true, rules_created: created };
+  });
+
+// -----------------------------------------------------------------------------
+// Quotes & Invoices — agency-side CRUD
+// -----------------------------------------------------------------------------
+
+const billingKind = z.enum(["quote", "invoice"]);
+const billingStatus = z.enum(["draft", "sent", "accepted", "paid", "overdue", "cancelled"]);
+
+export const listAgencyBillingDocs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, client_name, talent_name, issued_at, due_date, currency, total_cents, status, notes, created_at, updated_at")
+      .eq("agency_id", agencyId)
+      .order("issued_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      kind: billingKind,
+      number: z.string().min(1).max(64),
+      client_name: z.string().max(200).nullable().optional(),
+      talent_name: z.string().max(200).nullable().optional(),
+      issued_at: z.string().min(10),
+      due_date: z.string().min(10).nullable().optional(),
+      currency: z.string().min(3).max(3).default("ZAR"),
+      total_cents: z.number().int().min(0),
+      status: billingStatus.default("draft"),
+      notes: z.string().max(2000).nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const payload: any = {
+      agency_id: agencyId,
+      kind: data.kind,
+      number: data.number,
+      client_name: data.client_name ?? null,
+      talent_name: data.talent_name ?? null,
+      issued_at: data.issued_at,
+      due_date: data.due_date ?? null,
+      currency: data.currency,
+      total_cents: data.total_cents,
+      status: data.status,
+      notes: data.notes ?? null,
+    };
+
+    let row;
+    if (data.id) {
+      const { data: r, error } = await supabase
+        .from("agency_billing_docs")
+        .update(payload)
+        .eq("id", data.id).eq("agency_id", agencyId)
+        .select().single();
+      if (error) throw new Error(error.message);
+      row = r;
+    } else {
+      const { data: r, error } = await supabase
+        .from("agency_billing_docs")
+        .insert(payload)
+        .select().single();
+      if (error) throw new Error(error.message);
+      row = r;
+    }
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      data.id ? "update_billing_doc" : "create_billing_doc",
+      "agency_billing_doc", row.id, `${row.kind.toUpperCase()} ${row.number}`,
+      { status: row.status, total_cents: row.total_cents });
+
+    return row;
+  });
+
+export const updateAgencyBillingDocStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), status: billingStatus }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: row, error } = await supabase
+      .from("agency_billing_docs")
+      .update({ status: data.status })
+      .eq("id", data.id).eq("agency_id", agencyId)
+      .select().single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "update_billing_doc_status", "agency_billing_doc", row.id,
+      `${row.kind.toUpperCase()} ${row.number}`, { new_status: data.status });
+    return row;
+  });
+
+export const deleteAgencyBillingDoc = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: row, error } = await supabase
+      .from("agency_billing_docs")
+      .delete()
+      .eq("id", data.id).eq("agency_id", agencyId)
+      .select("id, kind, number").single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "delete_billing_doc", "agency_billing_doc", row.id,
+      `${row.kind.toUpperCase()} ${row.number}`);
+    return { ok: true };
+  });
