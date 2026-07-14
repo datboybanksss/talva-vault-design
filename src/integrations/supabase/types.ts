@@ -235,36 +235,48 @@ export type Database = {
           client_name: string | null
           created_at: string
           currency: string
+          due_date: string | null
           id: string
           issued_at: string
           kind: Database["public"]["Enums"]["doc_kind"]
+          notes: string | null
           number: string
           status: Database["public"]["Enums"]["doc_status"]
+          talent_name: string | null
           total_cents: number
+          updated_at: string
         }
         Insert: {
           agency_id: string
           client_name?: string | null
           created_at?: string
           currency?: string
+          due_date?: string | null
           id?: string
           issued_at?: string
           kind: Database["public"]["Enums"]["doc_kind"]
+          notes?: string | null
           number: string
           status?: Database["public"]["Enums"]["doc_status"]
+          talent_name?: string | null
           total_cents?: number
+          updated_at?: string
         }
         Update: {
           agency_id?: string
           client_name?: string | null
           created_at?: string
           currency?: string
+          due_date?: string | null
           id?: string
           issued_at?: string
           kind?: Database["public"]["Enums"]["doc_kind"]
+          notes?: string | null
           number?: string
           status?: Database["public"]["Enums"]["doc_status"]
+          talent_name?: string | null
           total_cents?: number
+          updated_at?: string
         }
         Relationships: [
           {
@@ -311,6 +323,7 @@ export type Database = {
       agency_folder_template_items: {
         Row: {
           created_at: string
+          default_retention_years: number | null
           folder_name: string
           id: string
           required_docs: Json
@@ -319,6 +332,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_retention_years?: number | null
           folder_name: string
           id?: string
           required_docs?: Json
@@ -327,6 +341,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_retention_years?: number | null
           folder_name?: string
           id?: string
           required_docs?: Json
