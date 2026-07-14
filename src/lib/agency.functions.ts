@@ -435,3 +435,157 @@ export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
       `copy_${data.type}_invitation_link`, `${data.type}_invitation`, data.id);
     return { ok: true };
   });
+
+// -----------------------------------------------------------------------------
+// Document Vault — talent_shared_documents + storage bucket "talent-documents"
+// Path convention: <agency_id>/<talent_link_id_or_"unassigned">/<uuid>-<filename>
+// -----------------------------------------------------------------------------
+
+export const listAgencyVaultDocuments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: docs, error } = await supabase
+      .from("talent_shared_documents")
+      .select("id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const rows = docs ?? [];
+    const linkIds = Array.from(new Set(rows.map((r: any) => r.talent_link_id).filter(Boolean)));
+    let talentMap = new Map<string, string>();
+    if (linkIds.length) {
+      const { data: links } = await supabase
+        .from("agency_talent_links")
+        .select("id, display_name")
+        .in("id", linkIds);
+      for (const l of links ?? []) talentMap.set(l.id as string, l.display_name as string);
+    }
+
+    return rows.map((r: any) => ({
+      id: r.id as string,
+      name: r.name as string,
+      folder: r.folder as string,
+      status: r.status as string,
+      validityExpiresAt: (r.validity_expires_at as string) ?? null,
+      storagePath: (r.storage_path as string) ?? null,
+      talentLinkId: (r.talent_link_id as string) ?? null,
+      talentName: r.talent_link_id ? (talentMap.get(r.talent_link_id) ?? "Unassigned") : "Unassigned",
+      uploadedBy: (r.uploaded_by as string) ?? null,
+      createdAt: r.created_at as string,
+      updatedAt: r.updated_at as string,
+    }));
+  });
+
+export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name")
+      .eq("agency_id", agencyId)
+      .order("display_name", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => ({ id: r.id as string, displayName: r.display_name as string }));
+  });
+
+export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      name: z.string().min(1),
+      folder: z.string().min(1),
+      storage_path: z.string().min(1),
+      talent_link_id: z.string().uuid().nullable().optional(),
+      status: z.enum(["ai_suggested", "filed", "needs_review"]).default("needs_review"),
+      validity_expires_at: z.string().nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    // Storage path must live under this agency's folder (defense in depth; storage RLS also enforces).
+    if (!data.storage_path.startsWith(`${agencyId}/`)) {
+      throw new Error("Invalid storage path for this agency.");
+    }
+
+    const { data: inserted, error } = await supabase
+      .from("talent_shared_documents")
+      .insert({
+        agency_id: agencyId,
+        talent_link_id: data.talent_link_id ?? null,
+        name: data.name,
+        folder: data.folder,
+        status: data.status,
+        validity_expires_at: data.validity_expires_at ?? null,
+        storage_path: data.storage_path,
+        uploaded_by: userId,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "upload_vault_document", "talent_shared_document", inserted.id, data.name,
+      { folder: data.folder, talent_link_id: data.talent_link_id ?? null });
+    return inserted;
+  });
+
+export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: row, error } = await supabase
+      .from("talent_shared_documents")
+      .select("storage_path, agency_id, name")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    if (row.agency_id !== agencyId) throw new Error("Forbidden");
+    if (!row.storage_path) throw new Error("No file attached to this document.");
+
+    const { data: signed, error: sErr } = await supabase
+      .storage.from("talent-documents")
+      .createSignedUrl(row.storage_path, 60 * 30, { download: row.name });
+    if (sErr) throw new Error(sErr.message);
+    return { url: signed.signedUrl as string, name: row.name as string };
+  });
+
+export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: row, error } = await supabase
+      .from("talent_shared_documents")
+      .select("id, agency_id, name, storage_path, folder")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    if (row.agency_id !== agencyId) throw new Error("Forbidden");
+
+    if (row.storage_path) {
+      const { error: rmErr } = await supabase.storage
+        .from("talent-documents").remove([row.storage_path]);
+      if (rmErr) throw new Error(rmErr.message);
+    }
+    const { error: dErr } = await supabase
+      .from("talent_shared_documents").delete().eq("id", row.id);
+    if (dErr) throw new Error(dErr.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "delete_vault_document", "talent_shared_document", row.id, row.name,
+      { folder: row.folder, storage_path: row.storage_path });
+    return { ok: true };
+  });
