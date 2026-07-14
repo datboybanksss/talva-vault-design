@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
-import { Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Info, Loader2 } from "lucide-react";
+import { Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Info, Loader2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
