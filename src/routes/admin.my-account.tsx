@@ -457,7 +457,7 @@ function SectionHeader({
 
 /* ---------------------- Two-factor authentication --------------------- */
 
-function TwoFactorCard({ email }: { email: string }) {
+function TwoFactorCard({ email, required = false }: { email: string; required?: boolean }) {
   const logEnrolledFn = useServerFn(logMfaEnrolled);
   const logDisabledFn = useServerFn(logMfaDisabled);
 
