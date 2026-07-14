@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
-import { Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Info, Loader2 } from "lucide-react";
+import { Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Loader2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -29,17 +29,17 @@ type VaultDoc = {
 };
 type TalentLinkLite = { id: string; displayName: string };
 
-const docsQO = queryOptions({
+export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
-  queryFn: () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
+  queryFn:  () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
 });
-const talentLinksQO = queryOptions({
+export const talentLinksQO = queryOptions({
   queryKey: ["agency", "vault", "talent-links"],
-  queryFn: () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
+  queryFn:  () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
 });
-const meQO = queryOptions({
+export const meQO = queryOptions({
   queryKey: ["agency", "whoami"],
-  queryFn: () => agencyWhoami(),
+  queryFn:  () => agencyWhoami(),
 });
 
 export const Route = createFileRoute("/agency/document-vault")({
@@ -86,7 +86,7 @@ function daysUntil(iso: string | null): number | null {
   return Math.round((new Date(iso).getTime() - Date.now()) / 86400000);
 }
 
-function VaultPage() {
+export function VaultPage() {
   const qc = useQueryClient();
   const { data: docs } = useSuspenseQuery(docsQO);
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
@@ -166,11 +166,28 @@ function VaultPage() {
         </div>
       </div>
 
-      <div className="tvp-callout">
-        <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
-        <div>
-          <strong>Talent Private Vault remains private.</strong> Only documents intentionally placed in an Agency Shared Folder appear here.
-        </div>
+      <div className="tvp-card" style={{ marginBottom: 16 }}>
+        <h2 className="tvp-h2" style={{ marginBottom: 12 }}>Expiring soon</h2>
+        {expiring.length === 0 ? (
+          <p className="tvp-muted" style={{ fontSize: 13 }}>
+            Nothing expiring in the next 180 days.
+          </p>
+        ) : (
+          <div className="tvp-list">
+            {expiring.map((d) => (
+              <div key={d.id} className="tvp-list-item">
+                <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
+                <div>
+                  <strong>{d.talentName} · {d.name}</strong>
+                  <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
+                </div>
+                <span className={`tvp-status tvp-${(d.days ?? 0) <= 60 ? "amber" : "blue"}`}>
+                  {d.days} days
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="tvp-tabs">
@@ -279,30 +296,6 @@ function VaultPage() {
                 Suggestions will appear here once the AI filer is wired up.
               </div>
             </div>
-          </div>
-
-          <div className="tvp-card tvp-panel">
-            <h2 className="tvp-h2">Expiring soon</h2>
-            {expiring.length === 0 ? (
-              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 8 }}>
-                Nothing expiring in the next 180 days.
-              </p>
-            ) : (
-              <div className="tvp-list">
-                {expiring.map((d) => (
-                  <div key={d.id} className="tvp-list-item">
-                    <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
-                    <div>
-                      <strong>{d.talentName} · {d.name}</strong>
-                      <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
-                    </div>
-                    <span className={`tvp-status tvp-${(d.days ?? 0) <= 60 ? "amber" : "blue"}`}>
-                      {d.days} days
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
