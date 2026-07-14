@@ -297,30 +297,6 @@ function VaultPage() {
               </div>
             </div>
           </div>
-
-          <div className="tvp-card tvp-panel">
-            <h2 className="tvp-h2">Expiring soon</h2>
-            {expiring.length === 0 ? (
-              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 8 }}>
-                Nothing expiring in the next 180 days.
-              </p>
-            ) : (
-              <div className="tvp-list">
-                {expiring.map((d) => (
-                  <div key={d.id} className="tvp-list-item">
-                    <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
-                    <div>
-                      <strong>{d.talentName} · {d.name}</strong>
-                      <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
-                    </div>
-                    <span className={`tvp-status tvp-${(d.days ?? 0) <= 60 ? "amber" : "blue"}`}>
-                      {d.days} days
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
