@@ -1,0 +1,1 @@
+ALTER FUNCTION public.enforce_retention_lock_delete() SET search_path = public;
