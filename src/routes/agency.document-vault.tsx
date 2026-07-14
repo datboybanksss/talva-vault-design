@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
-import { Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Loader2 } from "lucide-react";
+import {
+  Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Loader2,
+  Lock, History, ShieldPlus,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -10,6 +13,10 @@ import {
   getAgencyVaultSignedUrl,
   deleteAgencyVaultDocument,
   agencyWhoami,
+  listAgencyDocumentVersions,
+  registerAgencyDocumentVersion,
+  getAgencyVersionSignedUrl,
+  upsertAgencyRetentionRule,
 } from "@/lib/agency.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
