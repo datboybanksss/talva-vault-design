@@ -86,7 +86,7 @@ function daysUntil(iso: string | null): number | null {
   return Math.round((new Date(iso).getTime() - Date.now()) / 86400000);
 }
 
-function VaultPage() {
+export function VaultPage() {
   const qc = useQueryClient();
   const { data: docs } = useSuspenseQuery(docsQO);
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
