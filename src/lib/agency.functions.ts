@@ -575,15 +575,30 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, agency_id, name, storage_path, folder")
+      .select("id, agency_id, name, storage_path, folder, locked_until")
       .eq("id", data.id)
       .single();
     if (error) throw new Error(error.message);
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
 
-    if (row.storage_path) {
-      const { error: rmErr } = await supabase.storage
-        .from("talent-documents").remove([row.storage_path]);
+    if (row.locked_until && new Date(row.locked_until) > new Date()) {
+      throw new Error(
+        `RETENTION_LOCKED: this document is locked until ${new Date(row.locked_until).toLocaleDateString()} by an active retention rule.`,
+      );
+    }
+
+    const { data: versions } = await supabase
+      .from("talent_shared_document_versions")
+      .select("storage_path")
+      .eq("document_id", row.id);
+    const paths = Array.from(
+      new Set(
+        [row.storage_path as string | null, ...(versions ?? []).map((v: any) => v.storage_path)]
+          .filter(Boolean) as string[],
+      ),
+    );
+    if (paths.length) {
+      const { error: rmErr } = await supabase.storage.from("talent-documents").remove(paths);
       if (rmErr) throw new Error(rmErr.message);
     }
     const { error: dErr } = await supabase
@@ -594,4 +609,240 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       "delete_vault_document", "talent_shared_document", row.id, row.name,
       { folder: row.folder, storage_path: row.storage_path });
     return { ok: true };
+  });
+
+// -----------------------------------------------------------------------------
+// Retention rules
+// -----------------------------------------------------------------------------
+export const listAgencyRetentionRules = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agency_retention_rules")
+      .select("id, scope, scope_value, document_id, retention_years, description, created_at, updated_at")
+      .eq("agency_id", agencyId)
+      .order("scope", { ascending: true })
+      .order("scope_value", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    const docIds = (data ?? []).map((r: any) => r.document_id).filter(Boolean);
+    const docMap = new Map<string, { name: string; folder: string }>();
+    if (docIds.length) {
+      const { data: docs } = await supabase
+        .from("talent_shared_documents")
+        .select("id, name, folder")
+        .in("id", docIds);
+      for (const d of docs ?? []) docMap.set(d.id, { name: d.name, folder: d.folder });
+    }
+
+    return (data ?? []).map((r: any) => ({
+      id: r.id as string,
+      scope: r.scope as "folder" | "document",
+      scopeValue: (r.scope_value as string) ?? null,
+      documentId: (r.document_id as string) ?? null,
+      retentionYears: r.retention_years as number,
+      description: (r.description as string) ?? null,
+      createdAt: r.created_at as string,
+      updatedAt: r.updated_at as string,
+      documentLabel: r.document_id ? docMap.get(r.document_id)?.name ?? "—" : null,
+      documentFolder: r.document_id ? docMap.get(r.document_id)?.folder ?? null : null,
+    }));
+  });
+
+export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid().optional(),
+      scope: z.enum(["folder", "document"]),
+      scope_value: z.string().min(1).nullable().optional(),
+      document_id: z.string().uuid().nullable().optional(),
+      retention_years: z.number().int().min(0).max(100),
+      description: z.string().nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const payload: Record<string, unknown> = {
+      agency_id: agencyId,
+      scope: data.scope,
+      scope_value: data.scope === "folder" ? data.scope_value ?? null : null,
+      document_id: data.scope === "document" ? data.document_id ?? null : null,
+      retention_years: data.retention_years,
+      description: data.description ?? null,
+      created_by: userId,
+    };
+
+    let row: any;
+    if (data.id) {
+      const { data: r, error } = await supabase
+        .from("agency_retention_rules").update(payload)
+        .eq("id", data.id).eq("agency_id", agencyId).select().single();
+      if (error) throw new Error(error.message);
+      row = r;
+    } else {
+      const { data: r, error } = await supabase
+        .from("agency_retention_rules").insert(payload).select().single();
+      if (error) throw new Error(error.message);
+      row = r;
+    }
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      data.id ? "update_retention_rule" : "create_retention_rule",
+      "agency_retention_rule", row.id,
+      data.scope === "folder" ? data.scope_value ?? "" : data.document_id ?? "",
+      { scope: data.scope, retention_years: data.retention_years });
+    return row;
+  });
+
+export const deleteAgencyRetentionRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+    const { data: row, error } = await supabase
+      .from("agency_retention_rules").delete()
+      .eq("id", data.id).eq("agency_id", agencyId).select().single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "delete_retention_rule", "agency_retention_rule", row.id, row.scope_value ?? row.document_id);
+    return { ok: true };
+  });
+
+// -----------------------------------------------------------------------------
+// Versioning
+// -----------------------------------------------------------------------------
+export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ document_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: doc, error: dErr } = await supabase
+      .from("talent_shared_documents")
+      .select("id, agency_id, name, storage_path, current_version_id")
+      .eq("id", data.document_id).single();
+    if (dErr) throw new Error(dErr.message);
+    if (doc.agency_id !== agencyId) throw new Error("Forbidden");
+
+    const { data: versions, error } = await supabase
+      .from("talent_shared_document_versions")
+      .select("id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at")
+      .eq("document_id", data.document_id)
+      .order("version_number", { ascending: false });
+    if (error) throw new Error(error.message);
+    return {
+      currentVersionId: (doc.current_version_id as string) ?? null,
+      currentStoragePath: (doc.storage_path as string) ?? null,
+      versions: versions ?? [],
+    };
+  });
+
+export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      document_id: z.string().uuid(),
+      storage_path: z.string().min(1),
+      name: z.string().min(1),
+      size_bytes: z.number().int().nullable().optional(),
+      mime_type: z.string().nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    if (!data.storage_path.startsWith(`${agencyId}/`)) {
+      throw new Error("Invalid storage path for this agency.");
+    }
+
+    const { data: doc, error: dErr } = await supabase
+      .from("talent_shared_documents")
+      .select("id, agency_id, storage_path, name")
+      .eq("id", data.document_id).single();
+    if (dErr) throw new Error(dErr.message);
+    if (doc.agency_id !== agencyId) throw new Error("Forbidden");
+
+    const { data: last } = await supabase
+      .from("talent_shared_document_versions")
+      .select("version_number")
+      .eq("document_id", data.document_id)
+      .order("version_number", { ascending: false })
+      .limit(1).maybeSingle();
+
+    let nextNumber = ((last?.version_number as number | undefined) ?? 0) + 1;
+    if (!last && doc.storage_path && doc.storage_path !== data.storage_path) {
+      await supabase.from("talent_shared_document_versions").insert({
+        document_id: data.document_id,
+        version_number: 1,
+        storage_path: doc.storage_path,
+        name: doc.name,
+        uploaded_by: userId,
+      });
+      nextNumber = 2;
+    }
+
+    const { data: version, error } = await supabase
+      .from("talent_shared_document_versions")
+      .insert({
+        document_id: data.document_id,
+        version_number: nextNumber,
+        storage_path: data.storage_path,
+        name: data.name,
+        size_bytes: data.size_bytes ?? null,
+        mime_type: data.mime_type ?? null,
+        uploaded_by: userId,
+      })
+      .select().single();
+    if (error) throw new Error(error.message);
+
+    await supabase
+      .from("talent_shared_documents")
+      .update({
+        current_version_id: version.id,
+        storage_path: data.storage_path,
+        name: data.name,
+      })
+      .eq("id", data.document_id);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "upload_document_version", "talent_shared_document", data.document_id, data.name,
+      { version_number: nextNumber });
+    return version;
+  });
+
+export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      version_id: z.string().uuid(),
+      disposition: z.enum(["inline", "attachment"]).default("inline"),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: v, error } = await supabase
+      .from("talent_shared_document_versions")
+      .select("storage_path, name, document_id, talent_shared_documents!inner(agency_id)")
+      .eq("id", data.version_id).single();
+    if (error) throw new Error(error.message);
+    if ((v as any).talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
+
+    const options = data.disposition === "attachment" ? { download: v.name as string } : undefined;
+    const { data: signed, error: sErr } = await supabase.storage
+      .from("talent-documents")
+      .createSignedUrl(v.storage_path as string, 60 * 30, options);
+    if (sErr) throw new Error(sErr.message);
+    return { url: signed.signedUrl as string, name: v.name as string };
   });
