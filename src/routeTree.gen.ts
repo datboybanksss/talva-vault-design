@@ -22,6 +22,7 @@ import { Route as TalentVaultRouteImport } from './routes/talent.vault'
 import { Route as TalentSharingRouteImport } from './routes/talent.sharing'
 import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
 import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
 import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
 import { Route as AgencyQuotesInvoicesRouteImport } from './routes/agency.quotes-invoices'
@@ -106,6 +107,11 @@ const TalentBudgetRoute = TalentBudgetRouteImport.update({
   id: '/budget',
   path: '/budget',
   getParentRoute: () => TalentRoute,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AgencyTalentRoute = AgencyTalentRouteImport.update({
   id: '/talent',
@@ -224,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
+  '/invite/$token': typeof InviteTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
+  '/invite/$token': typeof InviteTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
+  '/invite/$token': typeof InviteTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
+    | '/invite/$token'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -353,6 +363,7 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
+    | '/invite/$token'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
+    | '/invite/$token'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -409,6 +421,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LovedOneRoute: typeof LovedOneRoute
   TalentRoute: typeof TalentRouteWithChildren
+  InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -503,6 +516,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/talent/budget'
       preLoaderRoute: typeof TalentBudgetRouteImport
       parentRoute: typeof TalentRoute
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/agency/talent': {
       id: '/agency/talent'
@@ -754,6 +774,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LovedOneRoute: LovedOneRoute,
   TalentRoute: TalentRouteWithChildren,
+  InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
