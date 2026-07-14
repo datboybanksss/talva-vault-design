@@ -232,9 +232,17 @@ function VaultPage() {
                       <div className="flex gap-1 justify-end">
                         <button
                           className="tvp-mini-btn"
-                          title="View / download"
-                          disabled={!d.storagePath || openMut.isPending}
-                          onClick={() => openMut.mutate(d.id)}
+                          title="View"
+                          disabled={!d.storagePath || viewMut.isPending}
+                          onClick={() => viewMut.mutate(d.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          className="tvp-mini-btn"
+                          title="Download"
+                          disabled={!d.storagePath || downloadMut.isPending}
+                          onClick={() => downloadMut.mutate(d.id)}
                         >
                           <Download className="h-4 w-4" />
                         </button>
