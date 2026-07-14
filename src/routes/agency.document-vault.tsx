@@ -29,17 +29,17 @@ type VaultDoc = {
 };
 type TalentLinkLite = { id: string; displayName: string };
 
-const docsQO = queryOptions({
+export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
-  queryFn: () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
+  queryFn:  () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
 });
-const talentLinksQO = queryOptions({
+export const talentLinksQO = queryOptions({
   queryKey: ["agency", "vault", "talent-links"],
-  queryFn: () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
+  queryFn:  () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
 });
-const meQO = queryOptions({
+export const meQO = queryOptions({
   queryKey: ["agency", "whoami"],
-  queryFn: () => agencyWhoami(),
+  queryFn:  () => agencyWhoami(),
 });
 
 export const Route = createFileRoute("/agency/document-vault")({
