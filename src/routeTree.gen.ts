@@ -22,7 +22,6 @@ import { Route as TalentVaultRouteImport } from './routes/talent.vault'
 import { Route as TalentSharingRouteImport } from './routes/talent.sharing'
 import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
 import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
-import { Route as PreviewDocumentVaultRouteImport } from './routes/preview.document-vault'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
 import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
 import { Route as AgencyQuotesInvoicesRouteImport } from './routes/agency.quotes-invoices'
@@ -106,11 +105,6 @@ const TalentBudgetRoute = TalentBudgetRouteImport.update({
   id: '/budget',
   path: '/budget',
   getParentRoute: () => TalentRoute,
-} as any)
-const PreviewDocumentVaultRoute = PreviewDocumentVaultRouteImport.update({
-  id: '/preview/document-vault',
-  path: '/preview/document-vault',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AgencyTalentRoute = AgencyTalentRouteImport.update({
   id: '/talent',
@@ -223,7 +217,6 @@ export interface FileRoutesByFullPath {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
-  '/preview/document-vault': typeof PreviewDocumentVaultRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -252,7 +245,6 @@ export interface FileRoutesByTo {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
-  '/preview/document-vault': typeof PreviewDocumentVaultRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -287,7 +279,6 @@ export interface FileRoutesById {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
-  '/preview/document-vault': typeof PreviewDocumentVaultRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -323,7 +314,6 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
-    | '/preview/document-vault'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -352,7 +342,6 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
-    | '/preview/document-vault'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -386,7 +375,6 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
-    | '/preview/document-vault'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -409,7 +397,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   LovedOneRoute: typeof LovedOneRoute
   TalentRoute: typeof TalentRouteWithChildren
-  PreviewDocumentVaultRoute: typeof PreviewDocumentVaultRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -504,13 +491,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/talent/budget'
       preLoaderRoute: typeof TalentBudgetRouteImport
       parentRoute: typeof TalentRoute
-    }
-    '/preview/document-vault': {
-      id: '/preview/document-vault'
-      path: '/preview/document-vault'
-      fullPath: '/preview/document-vault'
-      preLoaderRoute: typeof PreviewDocumentVaultRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/agency/talent': {
       id: '/agency/talent'
@@ -753,18 +733,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   LovedOneRoute: LovedOneRoute,
   TalentRoute: TalentRouteWithChildren,
-  PreviewDocumentVaultRoute: PreviewDocumentVaultRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
