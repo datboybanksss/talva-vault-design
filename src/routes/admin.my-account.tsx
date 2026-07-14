@@ -762,7 +762,10 @@ function TwoFactorCard({ email, required = false }: { email: string; required?: 
         <div style={{ marginTop: 8 }}>
           <div className="tvp-muted" style={{ fontSize: 13 }}>
             Add an extra sign-in step using a time-based code from an authenticator
-            app on your phone. Recommended for all administrators.
+            app on your phone.{" "}
+            {required
+              ? "Required for your administrator role — you must enable 2FA to keep accessing the admin console."
+              : "Recommended for all administrators."}
           </div>
           {error && (
             <div className="tv-form-alert tv-form-alert-error" style={{ marginTop: 10 }}>
