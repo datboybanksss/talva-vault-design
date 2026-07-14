@@ -244,15 +244,27 @@ export function VaultPage() {
                   <th>Folder</th>
                   <th>Status</th>
                   <th>Validity</th>
-                  <th style={{ width: 120 }}></th>
+                  <th style={{ width: 200 }}></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((d) => (
+                {filtered.map((d) => {
+                  const isLocked = !!d.lockedUntil && new Date(d.lockedUntil).getTime() > Date.now();
+                  const lockDate = d.lockedUntil ? new Date(d.lockedUntil).toLocaleDateString() : "";
+                  return (
                   <tr key={d.id}>
                     <td>
                       <FileText className="inline h-4 w-4 mr-2 text-[var(--tvp-muted)]" />
                       <strong>{d.name}</strong>
+                      {isLocked && (
+                        <span
+                          title={`Locked by retention rule until ${lockDate} — cannot be deleted.`}
+                          style={{ marginLeft: 6, display: "inline-flex", alignItems: "center", gap: 4, color: "var(--tvp-amber, #b45309)", fontSize: 12 }}
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                          Locked · {lockDate}
+                        </span>
+                      )}
                     </td>
                     <td>{d.talentName}</td>
                     <td>{d.folder}</td>
@@ -280,10 +292,33 @@ export function VaultPage() {
                         </button>
                         <button
                           className="tvp-mini-btn"
-                          title="Delete"
-                          disabled={deleteMut.isPending}
+                          title="Version history"
+                          onClick={() => setVersionsFor(d)}
+                        >
+                          <History className="h-4 w-4" />
+                        </button>
+                        <button
+                          className="tvp-mini-btn"
+                          title="Upload new version"
+                          onClick={() => setNewVersionFor(d)}
+                        >
+                          <Upload className="h-4 w-4" />
+                        </button>
+                        {isOwner && (
+                          <button
+                            className="tvp-mini-btn"
+                            title="Set retention override"
+                            onClick={() => setOverrideFor(d)}
+                          >
+                            <ShieldPlus className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          className="tvp-mini-btn"
+                          title={isLocked ? `Locked until ${lockDate}` : "Delete"}
+                          disabled={isLocked || deleteMut.isPending}
                           onClick={() => {
-                            if (confirm(`Delete "${d.name}"? This removes the file and the record.`)) {
+                            if (confirm(`Delete "${d.name}"? This removes the file and all versions.`)) {
                               deleteMut.mutate(d.id);
                             }
                           }}
@@ -293,7 +328,8 @@ export function VaultPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}
