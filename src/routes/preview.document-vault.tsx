@@ -42,7 +42,7 @@ qc.setQueryData(talentLinksQO.queryKey, [
   { id: "talent-1", displayName: "Jane Doe" },
 ]);
 
-qc.setQueryData(meQO.queryKey, { agency: { id: "agency-1" } });
+qc.setQueryData(meQO.queryKey, { agency: { id: "agency-1", name: "Preview Agency" } });
 
 export const Route = createFileRoute("/preview/document-vault")({
   component: () => (
