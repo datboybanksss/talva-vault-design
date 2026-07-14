@@ -33,6 +33,8 @@ type VaultDoc = {
   uploadedBy: string | null;
   createdAt: string;
   updatedAt: string;
+  lockedUntil: string | null;
+  currentVersionId: string | null;
 };
 type TalentLinkLite = { id: string; displayName: string };
 
