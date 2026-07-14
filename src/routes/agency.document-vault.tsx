@@ -107,6 +107,12 @@ export function VaultPage() {
   const [talentFilter, setTalentFilter] = useState<string>("all");
   const [showUpload, setShowUpload] = useState(false);
   const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
+  const [versionsFor, setVersionsFor] = useState<VaultDoc | null>(null);
+  const [newVersionFor, setNewVersionFor] = useState<VaultDoc | null>(null);
+  const [overrideFor, setOverrideFor] = useState<VaultDoc | null>(null);
+
+  const isOwner = me?.role === "owner";
+  const upsertRuleFn = useServerFn(upsertAgencyRetentionRule);
 
   const registerFn = useServerFn(registerAgencyVaultDocument);
   const signedFn = useServerFn(getAgencyVaultSignedUrl);
