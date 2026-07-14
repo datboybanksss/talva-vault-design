@@ -202,3 +202,236 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     }));
   });
 
+
+// -----------------------------------------------------------------------------
+// Invitations — talent + staff, scoped to caller's agency
+// -----------------------------------------------------------------------------
+type InviteRow = {
+  id: string;
+  type: "talent" | "staff";
+  recipient_name: string | null;
+  email: string;
+  status: string;
+  token: string;
+  invited_by: string | null;
+  invited_by_label: string;
+  last_sent_at: string;
+  expires_at: string;
+  send_count: number;
+  created_at: string;
+  role: string | null;
+};
+
+export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const [talentRes, staffRes] = await Promise.all([
+      supabase
+        .from("talent_invitations")
+        .select("id, talent_name, email, status, token, invited_by, last_sent_at, expires_at, send_count, created_at")
+        .eq("agency_id", agencyId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("agency_invitations")
+        .select("id, contact_person, email, status, token, invited_by, last_sent_at, expires_at, send_count, created_at, role")
+        .eq("agency_id", agencyId)
+        .eq("kind", "staff")
+        .order("created_at", { ascending: false }),
+    ]);
+    if (talentRes.error) throw new Error(talentRes.error.message);
+    if (staffRes.error) throw new Error(staffRes.error.message);
+
+    const inviterIds = Array.from(
+      new Set([
+        ...(talentRes.data ?? []).map((r: any) => r.invited_by).filter(Boolean),
+        ...(staffRes.data ?? []).map((r: any) => r.invited_by).filter(Boolean),
+      ]),
+    );
+    let inviterMap = new Map<string, string>();
+    if (inviterIds.length) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, first_name, last_name, email")
+        .in("id", inviterIds);
+      for (const p of profiles ?? []) {
+        inviterMap.set(
+          p.id as string,
+          (p.display_name as string) ||
+            [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+            (p.email as string) ||
+            "Team member",
+        );
+      }
+    }
+    const labelFor = (id: string | null) =>
+      !id ? "—" : id === userId ? "You" : inviterMap.get(id) ?? "Team member";
+
+    const talent: InviteRow[] = (talentRes.data ?? []).map((r: any) => ({
+      id: r.id, type: "talent", recipient_name: r.talent_name ?? null,
+      email: r.email, status: r.status, token: r.token,
+      invited_by: r.invited_by, invited_by_label: labelFor(r.invited_by),
+      last_sent_at: r.last_sent_at, expires_at: r.expires_at,
+      send_count: r.send_count, created_at: r.created_at, role: null,
+    }));
+    const staff: InviteRow[] = (staffRes.data ?? []).map((r: any) => ({
+      id: r.id, type: "staff", recipient_name: r.contact_person ?? null,
+      email: r.email, status: r.status, token: r.token,
+      invited_by: r.invited_by, invited_by_label: labelFor(r.invited_by),
+      last_sent_at: r.last_sent_at, expires_at: r.expires_at,
+      send_count: r.send_count, created_at: r.created_at, role: r.role ?? "staff",
+    }));
+
+    const rows = [...talent, ...staff].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+    return rows;
+  });
+
+export const createTalentInvitationMine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      talent_name: z.string().min(1),
+      email: z.string().email(),
+      expiry_days: z.number().int().min(1).max(60).default(14),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+    const expires_at = new Date(Date.now() + data.expiry_days * 86400000).toISOString();
+
+    const { data: inv, error } = await supabase
+      .from("talent_invitations")
+      .insert({
+        agency_id: agencyId,
+        talent_name: data.talent_name,
+        email: data.email,
+        expires_at,
+        invited_by: userId,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "create_talent_invitation", "talent_invitation", inv.id, data.talent_name,
+      { email: data.email, expires_at });
+    return inv;
+  });
+
+export const createStaffInvitationMine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      contact_person: z.string().optional(),
+      email: z.string().email(),
+      role: z.string().default("staff"),
+      expiry_days: z.number().int().min(1).max(60).default(14),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    // Fetch agency name (needed for NOT NULL agency_name column)
+    const { data: ag } = await supabase
+      .from("agencies").select("name").eq("id", agencyId).single();
+    if (!ag) throw new Error("Agency not found");
+
+    const expires_at = new Date(Date.now() + data.expiry_days * 86400000).toISOString();
+    const { data: inv, error } = await supabase
+      .from("agency_invitations")
+      .insert({
+        agency_id: agencyId,
+        agency_name: ag.name,
+        contact_person: data.contact_person ?? null,
+        email: data.email,
+        kind: "staff",
+        role: data.role,
+        expires_at,
+        invited_by: userId,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "create_staff_invitation", "agency_invitation", inv.id,
+      data.contact_person ?? data.email,
+      { email: data.email, role: data.role, expires_at });
+    return inv;
+  });
+
+export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string(),
+      type: z.enum(["talent", "staff"]),
+      extend_days: z.number().int().min(1).max(60).default(14),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+    const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
+    const expires_at = new Date(Date.now() + data.extend_days * 86400000).toISOString();
+
+    const { data: cur } = await supabase.from(table).select("send_count, email").eq("id", data.id).single();
+    const { data: inv, error } = await supabase
+      .from(table)
+      .update({
+        last_sent_at: new Date().toISOString(),
+        send_count: (cur?.send_count ?? 0) + 1,
+        expires_at,
+        status: "pending",
+      })
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      `resend_${data.type}_invitation`, `${data.type}_invitation`, data.id, cur?.email,
+      { new_expires_at: expires_at });
+    return inv;
+  });
+
+export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string(), type: z.enum(["talent", "staff"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+    const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
+    const { data: inv, error } = await supabase
+      .from(table).update({ status: "revoked" }).eq("id", data.id).select().single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      `revoke_${data.type}_invitation`, `${data.type}_invitation`, data.id, inv?.email);
+    return inv;
+  });
+
+export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string(), type: z.enum(["talent", "staff"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      `copy_${data.type}_invitation_link`, `${data.type}_invitation`, data.id);
+    return { ok: true };
+  });
