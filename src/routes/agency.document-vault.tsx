@@ -14,13 +14,28 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+type VaultDoc = {
+  id: string;
+  name: string;
+  folder: string;
+  status: string;
+  validityExpiresAt: string | null;
+  storagePath: string | null;
+  talentLinkId: string | null;
+  talentName: string;
+  uploadedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+type TalentLinkLite = { id: string; displayName: string };
+
 const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
-  queryFn: () => listAgencyVaultDocuments(),
+  queryFn: () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
 });
 const talentLinksQO = queryOptions({
   queryKey: ["agency", "vault", "talent-links"],
-  queryFn: () => listAgencyTalentLinksLite(),
+  queryFn: () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
 });
 const meQO = queryOptions({
   queryKey: ["agency", "whoami"],
