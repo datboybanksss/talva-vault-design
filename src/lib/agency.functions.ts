@@ -1,5 +1,39 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+
+async function logAgencyAudit(
+  supabase: any,
+  agencyId: string,
+  userId: string,
+  email: string | undefined,
+  action: string,
+  targetType?: string,
+  targetId?: string,
+  targetLabel?: string,
+  detail: Record<string, unknown> = {},
+) {
+  await supabase.from("agency_audit_log").insert({
+    agency_id: agencyId,
+    actor_id: userId,
+    actor_email: email ?? null,
+    action,
+    target_type: targetType ?? null,
+    target_id: targetId ?? null,
+    target_label: targetLabel ?? null,
+    detail,
+  });
+}
+
+async function assertAgencyOwner(supabase: any, userId: string, agencyId: string) {
+  const { data, error } = await supabase.rpc("has_agency_role", {
+    _user_id: userId,
+    _agency_id: agencyId,
+    _role: "owner",
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: only agency owners may perform this action.");
+}
 
 // -----------------------------------------------------------------------------
 // Helpers
