@@ -1,106 +1,106 @@
+# Agency Activation Wizard
 
-# Phase 5 — Retention Rules & Versioning (Agency Document Vault)
+Replaces the current path where invitees land on generic `/auth`. Introduces a dedicated route at `/agency/activate?token=…` that resolves the invite, locks the email, walks the user through 4 steps, then creates the auth account and lands them in `/agency`.
 
-## 0. Ambiguities to flag before building
+## Scope — which invitations this applies to
 
-- **"Revoke access" without a Talent Portal.** Today, `talent_shared_documents` is agency-owned metadata + files in the `talent-documents` bucket. There is no talent-side account that "has access" to revoke. I'll treat "revoke access" as a future concept and design the schema so it fits, but the *only enforcement surface today* is: agency delete + agency-side "unshare/hide" toggle. I'll add a `revoked_at` column now (nullable) so the future Talent Portal reads `WHERE revoked_at IS NULL`, but no UI wiring to talent yet. **Confirm this is acceptable, or tell me you want a stub Talent view now.**
-- **Retention scope key.** Vault rows have a free-text `folder` column (not FK to `agency_folder_template_items`). Rules therefore key on `(agency_id, folder_name)` string match, plus optional `document_category` (we don't have a category column today — proposal below adds one, defaulting from the folder). Confirm you want a category dimension, or keep it folder-only for v1.
-- **Who can configure retention rules.** Assumption: agency **owner only** (staff can upload/view/delete but not set compliance policy). Say the word if staff should also edit rules.
-- **Clock semantics.** Retention starts from `created_at` of the document (upload time). Alternative: from a "document effective date" field. I'll go with upload time unless you say otherwise.
-- **Legal hold.** Not in the brief, but worth noting: an admin override to *extend* a lock beyond expiry (e.g. active litigation). Out of scope for v1; schema will leave room (`legal_hold boolean`) but no UI.
+Both types in `agency_invitations`:
+- `kind = 'agency_onboarding'` → Agency **Owner** initial activation (created by main-admin from the Admin panel).
+- `kind = 'staff'` → Staff invitation (created by an existing agency owner from `/agency/invitations`).
 
-## 1. Schema
+`handle_new_user()` already provisions the agency + owner membership for `agency_onboarding` and the staff membership for `staff` once an auth user exists with the matching email, so the wizard's job is: validate the invite, collect the profile fields, then create the auth account with the exact invited email.
 
-Two new tables + small additions to `talent_shared_documents`.
+Talent invites (`talent_invitations`) are out of scope for this plan — they'll need their own analogous flow later.
 
-### `agency_retention_rules` (per-agency policy)
-```text
-id uuid pk
-agency_id uuid fk agencies
-scope             enum('folder','category','document')  -- v1 ships 'folder'; 'document' = per-doc override
-scope_value       text            -- folder name, or category slug; null when scope='document'
-document_id       uuid            -- only set when scope='document', fk talent_shared_documents
-retention_years   int not null check (retention_years between 0 and 100)
-description       text
-created_by        uuid
-created_at / updated_at
-unique(agency_id, scope, scope_value, document_id)
-```
-Resolution order at enforcement time: **document override → folder rule → (no rule)**. No global default in v1.
+## Assumptions (flag if wrong)
 
-### `talent_shared_documents` additions
-```text
-current_version_id  uuid          -- points to latest row in doc_versions
-revoked_at          timestamptz   -- future Talent Portal read gate
-locked_until        timestamptz   -- denormalised cache: max(retention_expiry across applicable rules); recomputed on insert/rule change
-```
-`locked_until` is a cache for cheap enforcement + UI badges; the source of truth is the rules table + `created_at`.
+1. `agency_invitations.token` is already generated and included in the invite email link — I'll reuse it. The email link target changes from `/auth?...` to `/agency/activate?token=<token>`.
+2. Step 2 fields (with reasoning): **display name** (required, defaults from `contact_person` if present), **phone** (optional). Agency name is fixed from the invite (owner flow) or already tied to the agency (staff flow) — not editable in either case. Role is not editable (server-controlled).
+3. Terms & Conditions: a checkbox + link to a `/legal/terms` route (we don't have real T&C content yet — I'll link to a placeholder page unless you supply copy). Acceptance is recorded on the profile as `terms_accepted_at` timestamp (new column) so we have an audit trail.
+4. If the invitee is already signed in as a different user when they hit the link, we sign them out first, then show step 1.
 
-### `talent_shared_document_versions` (versioning)
-```text
-id uuid pk
-document_id     uuid fk talent_shared_documents on delete cascade
-version_number  int  not null    -- 1,2,3…
-storage_path    text not null    -- each version = its own object in the bucket
-name            text not null    -- filename at time of upload
-size_bytes      bigint
-mime_type       text
-uploaded_by     uuid
-created_at
-unique(document_id, version_number)
-```
-"Replace" = insert a new version row, bump `current_version_id`, keep old storage objects. Download/View defaults to current; a "Version history" dialog lists prior versions with view/download (no delete while locked).
+## New route
 
-Storage layout stays `<agency_id>/<talent_link_id>/<uuid>-<filename>` — each version gets its own uuid so paths never collide.
+`src/routes/agency.activate.tsx` — public route (not under `_authenticated`), SSR-safe shell.
 
-### RLS / GRANTs
-- Both new tables: `authenticated` + `service_role` GRANTs, RLS enabled, policies scoped via `is_agency_member(auth.uid(), agency_id)` (matches existing vault model — owner + staff).
-- Rule **write** policies restricted to owners: `has_agency_role(auth.uid(), agency_id, 'owner')`. Confirm if you want staff to write too.
+Layout matches the spec:
+- Left: teal full-height panel, TalVault Agency logo/wordmark, headline, description, feature bullet list.
+- Right: cream background, white card, 4-segment progress bar, current step body.
+- Reuses design tokens from existing `/auth` styling.
 
-## 2. Enforcement (server-side, not just UI)
+### Step 1 — Accept Agency Invite
+- Server call resolves the token → returns `{ agency_name, email, kind, contact_person, status, expired }`.
+- If invalid/expired/accepted/revoked → show a clear terminal error state (no wizard).
+- Shows "You've been invited to activate the workspace for **{agency_name}**."
+- Email field: read-only, pre-filled from invite. Info callout below.
+- Continue button.
 
-Locking is enforced in **three places**:
+### Step 2 — Your details
+- Display name (required, min 2 chars, prefilled from `contact_person`).
+- Phone (optional, light format check).
+- Continue / Back buttons.
 
-1. **`deleteAgencyVaultDocument` server fn** — before deleting DB row/storage, recompute the effective lock:
-   - resolve applicable rule (doc override > folder rule)
-   - `lock_expiry = created_at + retention_years`
-   - if `now() < lock_expiry`, throw `Error("RETENTION_LOCKED: this document is locked until <date> by rule '<name>'")`
-   - the UI catches the `RETENTION_LOCKED:` prefix and shows a toast with the unlock date.
-2. **DB trigger `enforce_retention_lock` on `talent_shared_documents` BEFORE DELETE / BEFORE UPDATE OF revoked_at** — same check in SQL, using `locked_until` cache with a `now()` comparison. Defense in depth: even a direct SQL delete or a future Talent Portal action can't bypass it.
-3. **After expiry**: nothing special — `now() >= locked_until` means both trigger and server fn pass, and delete behaves exactly like today.
+### Step 3 — Create password
+- Reuses `src/components/password-input.tsx` (eye toggle) and `src/lib/password.ts` (NIST rules + strength meter) — no new implementation.
+- Confirm-password field, must match.
+- Continue / Back buttons.
 
-**Version upload is never blocked by retention** (retention protects history, doesn't stop new versions).
+### Step 4 — Terms & Conditions
+- Full-width checkbox: "I have read and accept the Terms & Conditions and Privacy Policy." with link.
+- **Complete setup** button disabled until checked.
+- On submit: calls one server function that (a) re-validates the token, (b) creates the auth user with the exact invited email + chosen password via `supabaseAdmin.auth.admin.createUser({ email_confirm: true })`, (c) sets `terms_accepted_at`, phone, display_name on the row created by `handle_new_user()` (or upserts), (d) signs the user in client-side with the just-set password, (e) redirects to `/agency`.
+- If the auth user already exists for that email (edge case: user pre-registered separately), fall back to signing in with the provided password; if that fails, show "An account already exists for this email — sign in instead" with a link to `/auth`.
 
-**Rule changes recompute cache**: when a rule is created/edited/deleted, a server fn re-runs `UPDATE talent_shared_documents SET locked_until = ...` for affected rows. Also recomputed on document insert.
+## Server functions (`src/lib/agency-activation.functions.ts` — new, public, no auth middleware)
 
-## 3. UI
+1. `resolveAgencyInvitationToken({ token })` — public. Loads invitation by token via `supabaseAdmin` (loaded inside handler). Returns sanitized fields only (`agency_name, email, kind, contact_person, status, expires_at`). Never returns the token or other invitations.
+2. `activateAgencyInvitation({ token, email, display_name, phone, password, terms_accepted })` — public.
+   - Zod validation (email format, password against NIST rules, terms must be true, phone optional).
+   - Reload invite by token; assert `status='pending'`, not expired, and `lower(input.email) === lower(invite.email)` — else specific error codes.
+   - `supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { display_name } })`.
+   - `handle_new_user()` trigger then creates profile + owner/staff membership + marks invite accepted.
+   - Follow-up update on `profiles` to set `phone`, `terms_accepted_at = now()`.
+   - Returns `{ ok: true, email }` so client can `supabase.auth.signInWithPassword` and navigate.
+   - Writes to `admin_audit_log` / `agency_audit_log` as appropriate.
 
-### New sidebar item under Agency Portal: **"Document Rules"**
-Route: `src/routes/agency.document-rules.tsx`. Sits between "Folder Templates" and "Document Vault" in the sidebar. Rationale: it's a distinct compliance concept, deserves its own page rather than burying in Settings.
+Both use `await import("@/integrations/supabase/client.server")` inside the handler.
 
-Sections on the page:
-- **Folder retention rules** — table: Folder name · Retention (years) · Description · Actions (edit/delete). "Add rule" dialog with folder dropdown (distinct folders present in vault + template folder names) + years input + description.
-- **Per-document overrides** — table of documents that have an explicit override, with "remove override" action. Overrides are also creatable inline from the Document Vault row menu.
-- **Preview panel**: "X documents currently locked, Y unlock in the next 90 days."
+## Database migration
 
-### Document Vault changes
-- New column (or icon in the name cell): **🔒 lock badge** when `locked_until > now()`, tooltip "Locked by retention rule until <date> — cannot be deleted."
-- Delete button on locked rows: rendered but **disabled**, tooltip shows unlock date. Server still enforces.
-- Row menu gets **"Version history"** (opens dialog listing versions) and **"Upload new version"** (file picker → creates new version, bumps `current_version_id`).
-- Row menu gets **"Set retention override"** (owner-only) → shortcut to create a `scope='document'` rule for that row.
+- `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone text, ADD COLUMN IF NOT EXISTS terms_accepted_at timestamptz;`
+- No RLS/policy changes required (profiles already covered).
+- No changes to `handle_new_user()` — it already handles both `agency_onboarding` and `staff` kinds correctly.
 
-### Folder Templates (`agency.folder-templates.tsx`) — small addition
-Add an optional **"Default retention (years)"** field per folder template item. On template application (or manually), it becomes an `agency_retention_rules` row with `scope='folder'`. This keeps templates as the *authoring* surface for defaults, while the Document Rules page is the *management* surface. No breaking changes to the existing template flow.
+## Email link update
 
-## 4. Verification plan
+Wherever we currently compose the invite URL for `agency_invitations` (email preview / send path), swap `/auth?token=…` (or equivalent) for `/agency/activate?token=<token>`. I'll grep and update every call site in the same change — admin owner-invite path and agency staff-invite path.
 
-- Seed a rule "Contracts / 10 years", upload a doc to folder "Contracts", confirm 🔒 badge, confirm delete throws `RETENTION_LOCKED`, confirm trigger also blocks a raw SQL delete.
-- Backdate `created_at` past expiry, confirm badge clears and delete succeeds.
-- Upload a new version, confirm old version still downloadable, `current_version_id` updated, storage retains both objects.
-- Delete the rule, confirm `locked_until` recomputes to null and delete works.
+## Error/edge cases handled
 
-## Open questions to answer before I build
-1. `revoked_at` stub for future Talent Portal — OK to add now with no UI?
-2. Rules keyed on folder string only, or add a `category` dimension?
-3. Staff can edit retention rules, or owner-only?
-4. Retention clock from upload time, or need a separate "effective date" field?
+- Missing/invalid/expired/accepted/revoked token → terminal error card with "Contact your administrator" copy.
+- Different email attempted → blocked server-side with clear message (email is read-only on the client, but we still validate server-side).
+- Auth user already exists for the invited email → offer sign-in path.
+- User navigates away mid-wizard → state kept in component only (no persistence); fine because the token is idempotent and can be reopened.
+- User already signed in as someone else → force `supabase.auth.signOut()` before rendering step 1.
+
+## Reuse
+
+- Password rules + strength meter: `src/lib/password.ts` + `src/components/password-input.tsx`.
+- Card/button/input primitives: existing shadcn components used on `/auth`.
+- Toast + form patterns: same as `agency.talent.invite.tsx`.
+
+## Verification
+
+Manual end-to-end with two invites created via existing UIs (one owner, one staff), stepping through the wizard, then confirming:
+- New user lands in `/agency` with correct membership row and role.
+- Invitation row moves to `status='accepted'` with `accepted_at` set.
+- `profiles.terms_accepted_at` and `phone` populated.
+- Attempting to reuse the same token afterwards shows the terminal error.
+
+## Deliverables
+
+- New route `src/routes/agency.activate.tsx`.
+- New server module `src/lib/agency-activation.functions.ts`.
+- One migration adding `profiles.phone` + `profiles.terms_accepted_at`.
+- Edits to invite-link composition in `src/lib/admin.functions.ts` and `src/lib/agency.functions.ts` (+ any email preview route referencing the URL).
+- Placeholder `/legal/terms` route (thin) unless you'd rather link elsewhere.
