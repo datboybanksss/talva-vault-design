@@ -539,7 +539,12 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
 
 export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      disposition: z.enum(["inline", "attachment"]).default("attachment"),
+    }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
@@ -553,9 +558,10 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
     if (!row.storage_path) throw new Error("No file attached to this document.");
 
+    const options = data.disposition === "attachment" ? { download: row.name as string } : undefined;
     const { data: signed, error: sErr } = await supabase
       .storage.from("talent-documents")
-      .createSignedUrl(row.storage_path, 60 * 30, { download: row.name });
+      .createSignedUrl(row.storage_path, 60 * 30, options);
     if (sErr) throw new Error(sErr.message);
     return { url: signed.signedUrl as string, name: row.name as string };
   });
