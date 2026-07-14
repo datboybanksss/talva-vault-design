@@ -97,6 +97,7 @@ function VaultPage() {
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [talentFilter, setTalentFilter] = useState<string>("all");
   const [showUpload, setShowUpload] = useState(false);
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
 
   const registerFn = useServerFn(registerAgencyVaultDocument);
   const signedFn = useServerFn(getAgencyVaultSignedUrl);
@@ -111,10 +112,16 @@ function VaultPage() {
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
-  const openMut = useMutation({
-    mutationFn: (id: string) => signedFn({ data: { id } }),
-    onSuccess: ({ url }) => window.open(url, "_blank", "noopener"),
+  const viewMut = useMutation({
+    mutationFn: (id: string) => signedFn({ data: { id, disposition: "inline" } }),
+    onSuccess: ({ url, name }) => setPreview({ url, name }),
     onError: (e: any) => toast.error(e?.message ?? "Could not open file"),
+  });
+
+  const downloadMut = useMutation({
+    mutationFn: (id: string) => signedFn({ data: { id, disposition: "attachment" } }),
+    onSuccess: ({ url }) => window.open(url, "_blank", "noopener"),
+    onError: (e: any) => toast.error(e?.message ?? "Could not download file"),
   });
 
   const filtered = useMemo(() => {
