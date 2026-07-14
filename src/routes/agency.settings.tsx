@@ -56,15 +56,6 @@ function AgencySettings() {
           </div>
         </div>
 
-        <div>
-          <div className="tvp-card tvp-panel">
-            <h3 className="tvp-h3">Settings guidance</h3>
-            <div className="tvp-checklist-row">✓ Profile changes apply across the workspace.</div>
-            <div className="tvp-checklist-row">✓ Billing details appear on quotes and invoices.</div>
-            <div className="tvp-checklist-row">✓ Messaging defaults can be edited per draft.</div>
-            <div className="tvp-checklist-row">✓ T&Cs are shown on the generated PDF.</div>
-          </div>
-        </div>
       </div>
     </>
   );
