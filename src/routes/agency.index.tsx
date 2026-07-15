@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Users, FileText, Mail, FileSpreadsheet, MoreVertical, Info } from "lucide-react";
+import { toast } from "sonner";
 import {
   agencyWhoami,
   getAgencyDashboardMetrics,
   listAgencyTalent,
+  endTalentRelationship,
+  reactivateTalentRelationship,
 } from "@/lib/agency.functions";
 
 export const Route = createFileRoute("/agency/")({
@@ -21,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
   read_only: "Read-only",
   revoked: "Revoked",
   needs_review: "Needs Review",
+  ended: "Ended",
 };
 
 const STATUS_TONE: Record<string, string> = {
@@ -30,6 +34,7 @@ const STATUS_TONE: Record<string, string> = {
   read_only: "teal",
   revoked: "red",
   needs_review: "purple",
+  ended: "neutral",
 };
 
 const CHIP_ORDER: Array<{ key: string; tone: string }> = [
@@ -39,6 +44,7 @@ const CHIP_ORDER: Array<{ key: string; tone: string }> = [
   { key: "read_only", tone: "teal" },
   { key: "revoked", tone: "red" },
   { key: "needs_review", tone: "purple" },
+  { key: "ended", tone: "neutral" },
 ];
 
 function formatDate(iso: string) {
