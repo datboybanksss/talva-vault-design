@@ -589,6 +589,21 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
       throw new Error("Invalid storage path for this agency.");
     }
 
+    // Block new uploads (or new versions via new doc) when the talent relationship has ended.
+    if (data.talent_link_id) {
+      const { data: link, error: linkErr } = await supabase
+        .from("agency_talent_links")
+        .select("status, agency_id")
+        .eq("id", data.talent_link_id)
+        .maybeSingle();
+      if (linkErr) throw new Error(linkErr.message);
+      if (!link || link.agency_id !== agencyId) throw new Error("Invalid talent for this agency.");
+      if (link.status === "ended") {
+        throw new Error("RELATIONSHIP_ENDED: this talent relationship has ended — new uploads are blocked. Reactivate the relationship to share new documents.");
+      }
+    }
+
+
     const { data: inserted, error } = await supabase
       .from("talent_shared_documents")
       .insert({
