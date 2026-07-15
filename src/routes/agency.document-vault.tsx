@@ -482,7 +482,7 @@ function UploadDialog({
   registerFn,
 }: {
   agencyId: string;
-  talentLinks: { id: string; displayName: string }[];
+  talentLinks: { id: string; displayName: string; status: string }[];
   onClose: () => void;
   onDone: () => void;
   registerFn: ReturnType<typeof useServerFn<typeof registerAgencyVaultDocument>>;
