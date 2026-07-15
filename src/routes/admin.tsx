@@ -142,6 +142,7 @@ function TwoFactorBanner() {
 function AdminLayout() {
   return (
     <AdminShell>
+      <TwoFactorBanner />
       <Outlet />
     </AdminShell>
   );
