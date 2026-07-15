@@ -36,7 +36,7 @@ type VaultDoc = {
   lockedUntil: string | null;
   currentVersionId: string | null;
 };
-type TalentLinkLite = { id: string; displayName: string };
+type TalentLinkLite = { id: string; displayName: string; status: string };
 
 export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
@@ -482,13 +482,15 @@ function UploadDialog({
   registerFn,
 }: {
   agencyId: string;
-  talentLinks: { id: string; displayName: string }[];
+  talentLinks: { id: string; displayName: string; status: string }[];
   onClose: () => void;
   onDone: () => void;
   registerFn: ReturnType<typeof useServerFn<typeof registerAgencyVaultDocument>>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [talentLinkId, setTalentLinkId] = useState<string>(talentLinks[0]?.id ?? "");
+  const [talentLinkId, setTalentLinkId] = useState<string>(
+    talentLinks.find((l) => l.status !== "ended")?.id ?? "",
+  );
   const [folder, setFolder] = useState<string>(FOLDER_OPTIONS[0]);
   const [status, setStatus] = useState<"filed" | "needs_review" | "ai_suggested">("needs_review");
   const [expiry, setExpiry] = useState<string>("");
@@ -549,7 +551,11 @@ function UploadDialog({
         <label className="tvp-muted" style={{ fontSize: 13 }}>Talent</label>
         <select className="tvp-select" value={talentLinkId} onChange={(e) => setTalentLinkId(e.target.value)}>
           <option value="">Unassigned</option>
-          {talentLinks.map((l) => <option key={l.id} value={l.id}>{l.displayName}</option>)}
+          {talentLinks.map((l) => (
+            <option key={l.id} value={l.id} disabled={l.status === "ended"}>
+              {l.displayName}{l.status === "ended" ? " (ended — new uploads blocked)" : ""}
+            </option>
+          ))}
         </select>
 
         <label className="tvp-muted" style={{ fontSize: 13 }}>Folder</label>

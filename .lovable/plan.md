@@ -104,3 +104,10 @@ Manual end-to-end with two invites created via existing UIs (one owner, one staf
 - One migration adding `profiles.phone` + `profiles.terms_accepted_at`.
 - Edits to invite-link composition in `src/lib/admin.functions.ts` and `src/lib/agency.functions.ts` (+ any email preview route referencing the URL).
 - Placeholder `/legal/terms` route (thin) unless you'd rather link elsewhere.
+
+---
+
+## Pre-launch checklist (must re-enable before launch)
+
+- [ ] **Mandatory 2FA for admins** — flip `ENFORCE_ADMIN_2FA` back to `true` in `src/routes/admin.tsx`. Currently `false` for dev/testing convenience; a soft dismissible banner recommends enrollment in the meantime.
+- [ ] Email auto-confirm — re-enable email confirmation flow before launch.

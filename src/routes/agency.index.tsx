@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Users, FileText, Mail, FileSpreadsheet, MoreVertical, Info } from "lucide-react";
+import { toast } from "sonner";
 import {
   agencyWhoami,
   getAgencyDashboardMetrics,
   listAgencyTalent,
+  endTalentRelationship,
+  reactivateTalentRelationship,
 } from "@/lib/agency.functions";
 
 export const Route = createFileRoute("/agency/")({
@@ -21,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
   read_only: "Read-only",
   revoked: "Revoked",
   needs_review: "Needs Review",
+  ended: "Ended",
 };
 
 const STATUS_TONE: Record<string, string> = {
@@ -30,6 +34,7 @@ const STATUS_TONE: Record<string, string> = {
   read_only: "teal",
   revoked: "red",
   needs_review: "purple",
+  ended: "neutral",
 };
 
 const CHIP_ORDER: Array<{ key: string; tone: string }> = [
@@ -39,6 +44,7 @@ const CHIP_ORDER: Array<{ key: string; tone: string }> = [
   { key: "read_only", tone: "teal" },
   { key: "revoked", tone: "red" },
   { key: "needs_review", tone: "purple" },
+  { key: "ended", tone: "neutral" },
 ];
 
 function formatDate(iso: string) {
@@ -54,9 +60,12 @@ function formatDate(iso: string) {
 }
 
 function AgencyDashboard() {
+  const qc = useQueryClient();
   const whoamiFn = useServerFn(agencyWhoami);
   const getMetricsFn = useServerFn(getAgencyDashboardMetrics);
   const listTalentFn = useServerFn(listAgencyTalent);
+  const endFn = useServerFn(endTalentRelationship);
+  const reactivateFn = useServerFn(reactivateTalentRelationship);
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
   const metrics = useQuery({
@@ -69,6 +78,28 @@ function AgencyDashboard() {
     queryFn: () => listTalentFn(),
   });
 
+  const isOwner = who.data?.role === "owner";
+
+  const endMut = useMutation({
+    mutationFn: (id: string) => endFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Relationship ended. Existing documents remain accessible; new uploads are blocked.");
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+      qc.invalidateQueries({ queryKey: ["agency", "vault", "talent-links"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to end relationship"),
+  });
+  const reactivateMut = useMutation({
+    mutationFn: (id: string) => reactivateFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Relationship reactivated.");
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+      qc.invalidateQueries({ queryKey: ["agency", "vault", "talent-links"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to reactivate"),
+  });
+
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [manager, setManager] = useState("all");
   const [type, setType] = useState("all");
@@ -284,7 +315,55 @@ function AgencyDashboard() {
                 <td>{r.managerName}</td>
                 <td>{r.docCount}</td>
                 <td>{r.nextAction ?? "—"}</td>
-                <td><button className="tvp-mini-btn"><MoreVertical className="h-4 w-4" /></button></td>
+                <td style={{ position: "relative" }}>
+                  <button
+                    className="tvp-mini-btn"
+                    title="Actions"
+                    onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
+                    disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  {openMenuId === r.id && isOwner && (
+                    <div
+                      style={{
+                        position: "absolute", right: 8, top: 32, zIndex: 20,
+                        background: "white", border: "1px solid var(--tvp-border, #e5e7eb)",
+                        borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+                        minWidth: 200, padding: 4,
+                      }}
+                      onMouseLeave={() => setOpenMenuId(null)}
+                    >
+                      {r.status === "ended" ? (
+                        <button
+                          className="tvp-mini-btn"
+                          style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px" }}
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            if (confirm(`Reactivate relationship with ${r.displayName}? New uploads will be allowed again.`)) {
+                              reactivateMut.mutate(r.id);
+                            }
+                          }}
+                        >
+                          Reactivate relationship
+                        </button>
+                      ) : (
+                        <button
+                          className="tvp-mini-btn"
+                          style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "var(--tvp-red, #b91c1c)" }}
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            if (confirm(`End working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
+                              endMut.mutate(r.id);
+                            }
+                          }}
+                        >
+                          End relationship…
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

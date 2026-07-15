@@ -489,11 +489,83 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name")
+      .select("id, display_name, status")
       .eq("agency_id", agencyId)
       .order("display_name", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []).map((r: any) => ({ id: r.id as string, displayName: r.display_name as string }));
+    return (data ?? []).map((r: any) => ({
+      id: r.id as string,
+      displayName: r.display_name as string,
+      status: r.status as string,
+    }));
+  });
+
+// End / reactivate a talent relationship. Owner-only.
+export const endTalentRelationship = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: link, error: fetchErr } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name, agency_id, status")
+      .eq("id", data.id)
+      .single();
+    if (fetchErr) throw new Error(fetchErr.message);
+    if (link.agency_id !== agencyId) throw new Error("Forbidden");
+
+    const { data: updated, error } = await supabase
+      .from("agency_talent_links")
+      .update({
+        status: "ended",
+        ended_at: new Date().toISOString(),
+        ended_by: userId,
+      })
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "end_talent_relationship", "agency_talent_link", data.id, link.display_name,
+      { previous_status: link.status });
+    return updated;
+  });
+
+export const reactivateTalentRelationship = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: link, error: fetchErr } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name, agency_id, status")
+      .eq("id", data.id)
+      .single();
+    if (fetchErr) throw new Error(fetchErr.message);
+    if (link.agency_id !== agencyId) throw new Error("Forbidden");
+
+    const { data: updated, error } = await supabase
+      .from("agency_talent_links")
+      .update({
+        status: "active",
+        ended_at: null,
+        ended_by: null,
+      })
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "reactivate_talent_relationship", "agency_talent_link", data.id, link.display_name);
+    return updated;
   });
 
 export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
@@ -516,6 +588,21 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
     if (!data.storage_path.startsWith(`${agencyId}/`)) {
       throw new Error("Invalid storage path for this agency.");
     }
+
+    // Block new uploads (or new versions via new doc) when the talent relationship has ended.
+    if (data.talent_link_id) {
+      const { data: link, error: linkErr } = await supabase
+        .from("agency_talent_links")
+        .select("status, agency_id")
+        .eq("id", data.talent_link_id)
+        .maybeSingle();
+      if (linkErr) throw new Error(linkErr.message);
+      if (!link || link.agency_id !== agencyId) throw new Error("Invalid talent for this agency.");
+      if (link.status === "ended") {
+        throw new Error("RELATIONSHIP_ENDED: this talent relationship has ended — new uploads are blocked. Reactivate the relationship to share new documents.");
+      }
+    }
+
 
     const { data: inserted, error } = await supabase
       .from("talent_shared_documents")
@@ -769,10 +856,21 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
 
     const { data: doc, error: dErr } = await supabase
       .from("talent_shared_documents")
-      .select("id, agency_id, storage_path, name")
+      .select("id, agency_id, storage_path, name, talent_link_id")
       .eq("id", data.document_id).single();
     if (dErr) throw new Error(dErr.message);
     if (doc.agency_id !== agencyId) throw new Error("Forbidden");
+
+    if (doc.talent_link_id) {
+      const { data: link } = await supabase
+        .from("agency_talent_links")
+        .select("status")
+        .eq("id", doc.talent_link_id)
+        .maybeSingle();
+      if (link?.status === "ended") {
+        throw new Error("RELATIONSHIP_ENDED: this talent relationship has ended — new versions are blocked. Reactivate the relationship to share new documents.");
+      }
+    }
 
     const { data: last } = await supabase
       .from("talent_shared_document_versions")
