@@ -561,6 +561,8 @@ export type Database = {
           agency_id: string
           created_at: string
           display_name: string
+          ended_at: string | null
+          ended_by: string | null
           id: string
           manager_user_id: string | null
           next_action: string | null
@@ -575,6 +577,8 @@ export type Database = {
           agency_id: string
           created_at?: string
           display_name: string
+          ended_at?: string | null
+          ended_by?: string | null
           id?: string
           manager_user_id?: string | null
           next_action?: string | null
@@ -589,6 +593,8 @@ export type Database = {
           agency_id?: string
           created_at?: string
           display_name?: string
+          ended_at?: string | null
+          ended_by?: string | null
           id?: string
           manager_user_id?: string | null
           next_action?: string | null
@@ -1015,6 +1021,7 @@ export type Database = {
         | "read_only"
         | "revoked"
         | "needs_review"
+        | "ended"
       app_role:
         | "admin"
         | "agency_owner"
@@ -1189,6 +1196,7 @@ export const Constants = {
         "read_only",
         "revoked",
         "needs_review",
+        "ended",
       ],
       app_role: [
         "admin",
