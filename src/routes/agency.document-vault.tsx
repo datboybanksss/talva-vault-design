@@ -551,7 +551,11 @@ function UploadDialog({
         <label className="tvp-muted" style={{ fontSize: 13 }}>Talent</label>
         <select className="tvp-select" value={talentLinkId} onChange={(e) => setTalentLinkId(e.target.value)}>
           <option value="">Unassigned</option>
-          {talentLinks.map((l) => <option key={l.id} value={l.id}>{l.displayName}</option>)}
+          {talentLinks.map((l) => (
+            <option key={l.id} value={l.id} disabled={l.status === "ended"}>
+              {l.displayName}{l.status === "ended" ? " (ended — new uploads blocked)" : ""}
+            </option>
+          ))}
         </select>
 
         <label className="tvp-muted" style={{ fontSize: 13 }}>Folder</label>
