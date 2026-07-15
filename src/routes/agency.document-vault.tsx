@@ -36,7 +36,7 @@ type VaultDoc = {
   lockedUntil: string | null;
   currentVersionId: string | null;
 };
-type TalentLinkLite = { id: string; displayName: string };
+type TalentLinkLite = { id: string; displayName: string; status: string };
 
 export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
