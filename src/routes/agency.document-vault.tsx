@@ -488,7 +488,9 @@ function UploadDialog({
   registerFn: ReturnType<typeof useServerFn<typeof registerAgencyVaultDocument>>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [talentLinkId, setTalentLinkId] = useState<string>(talentLinks[0]?.id ?? "");
+  const [talentLinkId, setTalentLinkId] = useState<string>(
+    talentLinks.find((l) => l.status !== "ended")?.id ?? "",
+  );
   const [folder, setFolder] = useState<string>(FOLDER_OPTIONS[0]);
   const [status, setStatus] = useState<"filed" | "needs_review" | "ai_suggested">("needs_review");
   const [expiry, setExpiry] = useState<string>("");
