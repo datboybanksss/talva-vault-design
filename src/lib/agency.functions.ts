@@ -856,10 +856,21 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
 
     const { data: doc, error: dErr } = await supabase
       .from("talent_shared_documents")
-      .select("id, agency_id, storage_path, name")
+      .select("id, agency_id, storage_path, name, talent_link_id")
       .eq("id", data.document_id).single();
     if (dErr) throw new Error(dErr.message);
     if (doc.agency_id !== agencyId) throw new Error("Forbidden");
+
+    if (doc.talent_link_id) {
+      const { data: link } = await supabase
+        .from("agency_talent_links")
+        .select("status")
+        .eq("id", doc.talent_link_id)
+        .maybeSingle();
+      if (link?.status === "ended") {
+        throw new Error("RELATIONSHIP_ENDED: this talent relationship has ended — new versions are blocked. Reactivate the relationship to share new documents.");
+      }
+    }
 
     const { data: last } = await supabase
       .from("talent_shared_document_versions")
