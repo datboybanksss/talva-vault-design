@@ -60,9 +60,12 @@ function formatDate(iso: string) {
 }
 
 function AgencyDashboard() {
+  const qc = useQueryClient();
   const whoamiFn = useServerFn(agencyWhoami);
   const getMetricsFn = useServerFn(getAgencyDashboardMetrics);
   const listTalentFn = useServerFn(listAgencyTalent);
+  const endFn = useServerFn(endTalentRelationship);
+  const reactivateFn = useServerFn(reactivateTalentRelationship);
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
   const metrics = useQuery({
@@ -75,6 +78,28 @@ function AgencyDashboard() {
     queryFn: () => listTalentFn(),
   });
 
+  const isOwner = who.data?.role === "owner";
+
+  const endMut = useMutation({
+    mutationFn: (id: string) => endFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Relationship ended. Existing documents remain accessible; new uploads are blocked.");
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+      qc.invalidateQueries({ queryKey: ["agency", "vault", "talent-links"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to end relationship"),
+  });
+  const reactivateMut = useMutation({
+    mutationFn: (id: string) => reactivateFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Relationship reactivated.");
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+      qc.invalidateQueries({ queryKey: ["agency", "vault", "talent-links"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to reactivate"),
+  });
+
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [manager, setManager] = useState("all");
   const [type, setType] = useState("all");
