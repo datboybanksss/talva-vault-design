@@ -73,7 +73,25 @@ export const Route = createFileRoute("/agency/document-vault")({
 const tabs = ["All Documents", "Needs Review", "Expiring", "Recently Updated"] as const;
 type Tab = typeof tabs[number];
 
-const FOLDER_OPTIONS = ["Contracts", "ID Documents", "Travel", "Tax", "Other"];
+const FOLDER_OPTIONS = ["Contracts", "Endorsements", "Invoices", "ID Documents", "Travel", "Tax", "Other"];
+
+type FolderMeta = {
+  key: string;
+  label: string;
+  description: string;
+  icon: any;
+};
+const ALLOWED_FOLDERS: FolderMeta[] = [
+  { key: "Contracts", label: "Contracts", description: "Agreements, riders, addenda", icon: FileSignature },
+  { key: "Endorsements", label: "Endorsements", description: "Brand deals, partnerships", icon: Award },
+  { key: "Invoices", label: "Invoices", description: "Billing documents shared with talent", icon: Receipt },
+  { key: "ID Documents", label: "ID Documents", description: "Passport, visa, work authorisation", icon: IdCard },
+];
+const BLOCKED_FOLDERS: FolderMeta[] = [
+  { key: "family", label: "Family / Loved Ones", description: "Talent's personal contacts", icon: UsersIcon },
+  { key: "medical", label: "Medical / Insurance", description: "Health records, insurance", icon: HeartPulse },
+  { key: "finance", label: "Personal Finance", description: "Bank statements, taxes", icon: Landmark },
+];
 
 function statusTone(status: string): "purple" | "green" | "amber" {
   if (status === "ai_suggested") return "purple";
