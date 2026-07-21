@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Save, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, Send, Sparkles, Check, Settings2, ShieldCheck, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/agency/talent/invite")({
   head: () => ({ meta: [{ title: "Invite Talent · TalVault" }] }),
@@ -14,13 +14,22 @@ const steps = [
   { num: 4, title: "Review & Send", sub: "Send invite" },
 ];
 
-const folders = [
-  "ID Documents", "Contracts", "Travel", "Certified Documents",
-  "Tax", "Proof of Accounts", "Property", "Sponsorships",
+const defaultFolders = [
+  "ID Documents", "Contracts", "Travel", "Certified Documents", "Tax", "Proof of Accounts",
 ];
+const optionalFolders = ["Property", "Sponsorships"];
+const allFolders = [...defaultFolders, ...optionalFolders];
 
 function InviteTalent() {
   const [step, setStep] = useState(1);
+  const [folderMode, setFolderMode] = useState<"standard" | "custom">("standard");
+  const [selected, setSelected] = useState<string[]>(defaultFolders);
+
+  const toggle = (f: string) =>
+    setSelected((s) => (s.includes(f) ? s.filter((x) => x !== f) : [...s, f]));
+
+  const activeFolders = folderMode === "standard" ? defaultFolders : selected;
+
 
   return (
     <>
@@ -73,16 +82,72 @@ function InviteTalent() {
             )}
             {step === 3 && (
               <div className="tvp-sub-card" style={{ marginTop: 0 }}>
-                <h3 className="tvp-h3">Shared folders</h3>
-                <p className="tvp-muted">Pick the Agency Shared Folders to enable at onboarding. Talent may still add their own private folders.</p>
-                <div className="tvp-rule-grid" style={{ marginTop: 16 }}>
-                  {folders.map((f, i) => (
-                    <label key={f} className="tvp-rule-card">
-                      <span><input type="checkbox" defaultChecked={i < 6} />{f}</span>
-                      <span className="tvp-small">{i < 6 ? "Recommended" : "Optional"}</span>
-                    </label>
-                  ))}
+                <h3 className="tvp-h3">Roster Shared Folder setup</h3>
+                <div
+                  className="tvp-ai-box"
+                  style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "flex-start" }}
+                >
+                  <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="tvp-small">
+                    Roster Shared Folder is visible to both you and the talent. It is separate
+                    from the talent's Private Vault, which only they can see.
+                  </div>
                 </div>
+
+                <div className="tvp-onboard-choice" style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => setFolderMode("standard")}
+                    className={`tvp-rule-card ${folderMode === "standard" ? "tvp-active" : ""}`}
+                    style={{ textAlign: "left", flexDirection: "column", alignItems: "stretch", cursor: "pointer" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <Check className="h-4 w-4" /> Use my standard set
+                      </strong>
+                      <span className="tvp-small tvp-muted">Recommended</span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                      {defaultFolders.map((f) => (
+                        <span key={f} className="tvp-badge">{f}</span>
+                      ))}
+                    </div>
+                    <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
+                      One click. Same six folders you use across the roster.
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFolderMode("custom")}
+                    className={`tvp-rule-card ${folderMode === "custom" ? "tvp-active" : ""}`}
+                    style={{ textAlign: "left", flexDirection: "column", alignItems: "stretch", cursor: "pointer" }}
+                  >
+                    <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Settings2 className="h-4 w-4" /> Customise for this talent
+                    </strong>
+                    <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
+                      Pick and choose folders. Useful for atypical engagements.
+                    </div>
+                  </button>
+                </div>
+
+                {folderMode === "custom" && (
+                  <div className="tvp-rule-grid" style={{ marginTop: 16 }}>
+                    {allFolders.map((f) => {
+                      const on = selected.includes(f);
+                      const rec = defaultFolders.includes(f);
+                      return (
+                        <label key={f} className="tvp-rule-card">
+                          <span>
+                            <input type="checkbox" checked={on} onChange={() => toggle(f)} /> {f}
+                          </span>
+                          <span className="tvp-small">{rec ? "Recommended" : "Optional"}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
             {step === 4 && (
@@ -92,7 +157,13 @@ function InviteTalent() {
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent</span><strong>Caster Semenya</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Email</span><strong>caster@example.com</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Manager</span><strong>Thandi Ndlovu</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Folders</span><strong>6 enabled</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Folders</span><strong>{activeFolders.length} enabled{folderMode === "standard" ? " (standard set)" : " (custom)"}</strong></div>
+                </div>
+                <div className="tvp-ai-box" style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="tvp-small">
+                    The talent's Private Vault stays private — nothing you configure here grants access to it.
+                  </div>
                 </div>
                 <div className="tvp-ai-box" style={{ marginTop: 16 }}>
                   <strong><Sparkles className="inline h-4 w-4 mr-1" />Invite preview</strong>
