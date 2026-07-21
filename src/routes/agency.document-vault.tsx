@@ -9,6 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   listAgencyVaultDocuments,
   listAgencyTalentLinksLite,
+  listAgencyTalentFolders,
   registerAgencyVaultDocument,
   getAgencyVaultSignedUrl,
   deleteAgencyVaultDocument,
