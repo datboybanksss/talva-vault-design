@@ -1,113 +1,167 @@
-# Agency Activation Wizard
 
-Replaces the current path where invitees land on generic `/auth`. Introduces a dedicated route at `/agency/activate?token=…` that resolves the invite, locks the email, walks the user through 4 steps, then creates the auth account and lands them in `/agency`.
+# Agency Portal — Prototype (M0–M7) vs. Current Build
 
-## Scope — which invitations this applies to
-
-Both types in `agency_invitations`:
-- `kind = 'agency_onboarding'` → Agency **Owner** initial activation (created by main-admin from the Admin panel).
-- `kind = 'staff'` → Staff invitation (created by an existing agency owner from `/agency/invitations`).
-
-`handle_new_user()` already provisions the agency + owner membership for `agency_onboarding` and the staff membership for `staff` once an auth user exists with the matching email, so the wizard's job is: validate the invite, collect the profile fields, then create the auth account with the exact invited email.
-
-Talent invites (`talent_invitations`) are out of scope for this plan — they'll need their own analogous flow later.
-
-## Assumptions (flag if wrong)
-
-1. `agency_invitations.token` is already generated and included in the invite email link — I'll reuse it. The email link target changes from `/auth?...` to `/agency/activate?token=<token>`.
-2. Step 2 fields (with reasoning): **display name** (required, defaults from `contact_person` if present), **phone** (optional). Agency name is fixed from the invite (owner flow) or already tied to the agency (staff flow) — not editable in either case. Role is not editable (server-controlled).
-3. Terms & Conditions: a checkbox + link to a `/legal/terms` route (we don't have real T&C content yet — I'll link to a placeholder page unless you supply copy). Acceptance is recorded on the profile as `terms_accepted_at` timestamp (new column) so we have an audit trail.
-4. If the invitee is already signed in as a different user when they hit the link, we sign them out first, then show step 1.
-
-## New route
-
-`src/routes/agency.activate.tsx` — public route (not under `_authenticated`), SSR-safe shell.
-
-Layout matches the spec:
-- Left: teal full-height panel, TalVault Agency logo/wordmark, headline, description, feature bullet list.
-- Right: cream background, white card, 4-segment progress bar, current step body.
-- Reuses design tokens from existing `/auth` styling.
-
-### Step 1 — Accept Agency Invite
-- Server call resolves the token → returns `{ agency_name, email, kind, contact_person, status, expired }`.
-- If invalid/expired/accepted/revoked → show a clear terminal error state (no wizard).
-- Shows "You've been invited to activate the workspace for **{agency_name}**."
-- Email field: read-only, pre-filled from invite. Info callout below.
-- Continue button.
-
-### Step 2 — Your details
-- Display name (required, min 2 chars, prefilled from `contact_person`).
-- Phone (optional, light format check).
-- Continue / Back buttons.
-
-### Step 3 — Create password
-- Reuses `src/components/password-input.tsx` (eye toggle) and `src/lib/password.ts` (NIST rules + strength meter) — no new implementation.
-- Confirm-password field, must match.
-- Continue / Back buttons.
-
-### Step 4 — Terms & Conditions
-- Full-width checkbox: "I have read and accept the Terms & Conditions and Privacy Policy." with link.
-- **Complete setup** button disabled until checked.
-- On submit: calls one server function that (a) re-validates the token, (b) creates the auth user with the exact invited email + chosen password via `supabaseAdmin.auth.admin.createUser({ email_confirm: true })`, (c) sets `terms_accepted_at`, phone, display_name on the row created by `handle_new_user()` (or upserts), (d) signs the user in client-side with the just-set password, (e) redirects to `/agency`.
-- If the auth user already exists for that email (edge case: user pre-registered separately), fall back to signing in with the provided password; if that fails, show "An account already exists for this email — sign in instead" with a link to `/auth`.
-
-## Server functions (`src/lib/agency-activation.functions.ts` — new, public, no auth middleware)
-
-1. `resolveAgencyInvitationToken({ token })` — public. Loads invitation by token via `supabaseAdmin` (loaded inside handler). Returns sanitized fields only (`agency_name, email, kind, contact_person, status, expires_at`). Never returns the token or other invitations.
-2. `activateAgencyInvitation({ token, email, display_name, phone, password, terms_accepted })` — public.
-   - Zod validation (email format, password against NIST rules, terms must be true, phone optional).
-   - Reload invite by token; assert `status='pending'`, not expired, and `lower(input.email) === lower(invite.email)` — else specific error codes.
-   - `supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { display_name } })`.
-   - `handle_new_user()` trigger then creates profile + owner/staff membership + marks invite accepted.
-   - Follow-up update on `profiles` to set `phone`, `terms_accepted_at = now()`.
-   - Returns `{ ok: true, email }` so client can `supabase.auth.signInWithPassword` and navigate.
-   - Writes to `admin_audit_log` / `agency_audit_log` as appropriate.
-
-Both use `await import("@/integrations/supabase/client.server")` inside the handler.
-
-## Database migration
-
-- `ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone text, ADD COLUMN IF NOT EXISTS terms_accepted_at timestamptz;`
-- No RLS/policy changes required (profiles already covered).
-- No changes to `handle_new_user()` — it already handles both `agency_onboarding` and `staff` kinds correctly.
-
-## Email link update
-
-Wherever we currently compose the invite URL for `agency_invitations` (email preview / send path), swap `/auth?token=…` (or equivalent) for `/agency/activate?token=<token>`. I'll grep and update every call site in the same change — admin owner-invite path and agency staff-invite path.
-
-## Error/edge cases handled
-
-- Missing/invalid/expired/accepted/revoked token → terminal error card with "Contact your administrator" copy.
-- Different email attempted → blocked server-side with clear message (email is read-only on the client, but we still validate server-side).
-- Auth user already exists for the invited email → offer sign-in path.
-- User navigates away mid-wizard → state kept in component only (no persistence); fine because the token is idempotent and can be reopened.
-- User already signed in as someone else → force `supabase.auth.signOut()` before rendering step 1.
-
-## Reuse
-
-- Password rules + strength meter: `src/lib/password.ts` + `src/components/password-input.tsx`.
-- Card/button/input primitives: existing shadcn components used on `/auth`.
-- Toast + form patterns: same as `agency.talent.invite.tsx`.
-
-## Verification
-
-Manual end-to-end with two invites created via existing UIs (one owner, one staff), stepping through the wizard, then confirming:
-- New user lands in `/agency` with correct membership row and role.
-- Invitation row moves to `status='accepted'` with `accepted_at` set.
-- `profiles.terms_accepted_at` and `phone` populated.
-- Attempting to reuse the same token afterwards shows the terminal error.
-
-## Deliverables
-
-- New route `src/routes/agency.activate.tsx`.
-- New server module `src/lib/agency-activation.functions.ts`.
-- One migration adding `profiles.phone` + `profiles.terms_accepted_at`.
-- Edits to invite-link composition in `src/lib/admin.functions.ts` and `src/lib/agency.functions.ts` (+ any email preview route referencing the URL).
-- Placeholder `/legal/terms` route (thin) unless you'd rather link elsewhere.
+**Scope:** read-only comparison. No code changes proposed here. At the end I list the decisions I need from you before any build phase.
 
 ---
 
-## Pre-launch checklist (must re-enable before launch)
+## Terminology gap (applies across every screen)
 
-- [ ] **Mandatory 2FA for admins** — flip `ENFORCE_ADMIN_2FA` back to `true` in `src/routes/admin.tsx`. Currently `false` for dev/testing convenience; a soft dismissible banner recommends enrollment in the meantime.
-- [ ] Email auto-confirm — re-enable email confirmation flow before launch.
+| Prototype term | Current build term | Notes |
+|---|---|---|
+| Talent Manager / Manager | Agency / Agency Owner / Manager | "Manager" is currently only one of three roles (`owner`, `manager`, `staff`). Spec seems to use "Manager" as the *portal role*, not a sub-role. |
+| Talent Roster | Talent (page) / talent list | Naming only; same underlying `agency_talent_links`. |
+| Roster Shared Folder | Document Vault / Talent Shared Folder | Same concept — agency-visible docs. |
+| Private Vault | (mentioned in copy only; no screen) | We don't yet render the talent-private side because the Talent Portal isn't built. |
+| Unfiled Documents | (none) | New concept — inbox for docs uploaded/received but not yet placed in a folder. |
+| Document Requests | (none) | New concept — the agency *requests* a doc from talent; talent uploads against the request. Tied to M4. |
+| Manager-led documents | (none — status badges apply to everything) | Compliance caveat in M1's footnote. |
+
+**Decision needed:** do we rename portal-wide ("Agency" → "Manager", "Document Vault" → "Roster Shared Folder", etc.) or keep current names and treat prototype names as design-doc variants? This affects sidebar labels, page titles, head meta, subtitles, empty-state copy, toasts, and audit log messages.
+
+---
+
+## M0 — Empty-state onboarding
+
+- **Current:** none. A brand-new agency that just accepted the onboarding invite lands on `/agency` (dashboard) with KPIs showing zeros and the talent table showing a plain "No talent connected yet. Invite talent to get started." row. No two-path CTA, no explainer cards.
+- **Prototype requires:** dedicated empty state with two CTAs ("Invite your first talent" / "Set up agency defaults first") + three-step explainer cards.
+- **Gap:** entire screen. Simplest wiring is a conditional render in `agency.index.tsx` when `talentCount === 0 && folderTemplates === 0 && billingDocs === 0`.
+
+---
+
+## M1 — Manager Dashboard
+
+**Current** (`src/routes/agency.index.tsx`):
+- KPI tiles: Talent Profiles, Vault Documents, Invitations, Quotes & Invoices.
+- "Talent Workspace Overview" table with Status/Manager/Type filters + status chip row (7 statuses).
+- No warning banner. No "Recent activity" table. No compliance footnote.
+
+**Prototype requires:**
+- KPI tiles named: **Total talent, Fully compliant, Needs review, Expiring 30d**. Only "Total talent" maps 1:1 to current. The other three require compliance-computed metrics we don't have.
+- Warning banner summarising items needing attention (aggregate of expiring/needs-review across all talent).
+- **Recent talent activity** table (chronological event feed) — different shape from the current "one row per talent" overview.
+- Footnote clarifying compliance badges only cover **manager-led** documents (talent's Private Vault items excluded from counts).
+
+**Gaps:**
+1. KPI set is different — need new derivations (`fully_compliant`, `needs_review_count`, `expiring_30d_count`) and a "manager-led" flag on documents to filter counts (currently no such flag; every doc in `talent_shared_documents` is agency-visible by definition — decision needed on whether the flag is even meaningful pre-Talent-Portal).
+2. Warning banner: new component.
+3. Recent activity table: needs an event stream. We have `agency_audit_log` but it captures agency admin actions, not talent-facing events (uploads, reviews, resubmissions). Overlaps with M7 — likely one shared event source.
+4. Current overview table + status chips + Status/Manager/Type filters are richer than the prototype's spec but aren't what the prototype describes. **Decision needed:** replace with the prototype's activity feed, or keep both (activity feed + collapsible overview)?
+
+---
+
+## M2 — Onboarding modal ("Use standard set" vs "Customise")
+
+- **Current:** no onboarding modal at all. Folder templates are managed on a standalone `/agency/folder-templates` page and applied via a "Play" icon action — no "at first talent invite / at first talent acceptance" moment triggers a modal.
+- **Prototype requires:** single-click "Use my standard set" (recommended, shows 6 default folder badges) vs "Customise for this talent", plus a Roster-Shared-Folder-vs-Private-Vault clarifier banner.
+- **Gaps:**
+  1. Trigger point undefined in current build. **Decision needed:** does this modal fire (a) on first talent acceptance, (b) when the owner clicks "Invite Talent" and no default template exists, or (c) on first login to a fresh agency (M0 flow)?
+  2. Requires a seeded 6-folder default. Current default folder list is the informal `FOLDER_OPTIONS` array (`Contracts, ID Documents, Travel, Tax, Other` in vault; `Contracts, ID Documents, Travel, Tax, Certified Documents, Proof of Accounts, Property, Sponsorships, Other` in rules). **Decision needed:** what are the 6 official defaults?
+  3. "Customise" path: presumably drops the user into folder-template creation. Need to define whether this creates a *per-talent* template or a reusable one.
+
+---
+
+## M3 — Upload screen with visible-but-blocked destinations
+
+- **Current** (`UploadDialog` inside `agency.document-vault.tsx`): a simple modal with a Folder `<select>` (5 options) and a Talent `<select>`. No allowed/blocked distinction. Private Vault is *not represented at all* — invisible, not "visible but blocked".
+- **Prototype requires:** explicit rows for allowed destinations (Contracts, Endorsements, Invoices, ID Documents) AND explicit rows for blocked destinations (Family/Loved Ones, Medical/Insurance, Finance) with lock icons + explanation. Teaching UX, not hiding UX.
+- **Gaps:**
+  1. Prototype's allowed set differs from ours: it names **Endorsements** and **Invoices** as agency-uploadable folders — we currently treat Endorsements not-at-all and Invoices as a separate billing module, not a doc folder.
+  2. We have no data model for "Private Vault folders" (Family/Loved Ones, Medical/Insurance, Finance) at all. There is a `loved_one_shares` table + a `/loved-one` route, but no Private-Vault folder taxonomy. **Decision needed:** do we define these Private Vault folders now (as static labels the upload UI knows to block) or wait for the Talent Portal?
+  3. Redesign from `<select>` to a row-based picker with lock icons + tooltips.
+
+---
+
+## M4 — Document review with resubmission workflow
+
+- **Current:** nothing close. `talent_shared_documents` has a `status` column that today can be `filed`, `needs_review`, `ai_suggested` — no `resubmission_required`, no reason codes, no submission history. The vault UI shows the status as a static badge; there is no "Review" action, no accept/reject flow, no notes-to-talent field. There are no "previous submissions" — replacing a file uses the versions table (`talent_shared_document_versions`) but that's for owner-driven re-uploads, not talent-driven resubmissions against a rejection.
+- **Prototype requires:** Complete / Resubmission required / Cancel request outcomes, mandatory reason-code dropdown + free-text notes on resubmission, previous-submission history retained (never deleted), presumably a **Document Request** entity that binds an outcome + reason + history together.
+- **Gaps:** essentially an entire new feature.
+  1. New `document_requests` table (agency → talent request for a specific document with title / folder / due date / status).
+  2. Status enum: `open`, `submitted`, `complete`, `resubmission_required`, `cancelled`.
+  3. Reason-code enum (needs a client-supplied list — spec doesn't enumerate).
+  4. Submission history: extend `talent_shared_document_versions` with a `submission_outcome` + `reason_code` + `reviewer_notes` per version, or create a sibling `document_submissions` table.
+  5. UI: a Review action on the doc row → modal with the three outcomes, reason dropdown, notes.
+  6. **Blocker:** the "talent resubmits" half of this loop is inert without the Talent Portal. **Decision needed:** build the agency-side review UI now against seeded/manual submissions, or defer M4 until Talent Portal exists?
+
+---
+
+## M5 — Quotes & Invoices
+
+**Current** (`src/routes/agency.quotes-invoices.tsx`):
+- KPI tiles: **Outstanding, Paid (90d), Quotes pending, Late** — close but not identical.
+- Table columns: Ref, Client, Talent, Type, Status, Amount, Issued, Due.
+- Status enum: `draft, sent, accepted, paid, overdue, cancelled`.
+- No "Shared with talent" toggle/column.
+- No quote→invoice conversion tracking (`agency_billing_docs` has no `converted_from_quote_id` or similar link).
+- Tabs: Records / Clients / Settings.
+
+**Prototype requires:**
+- KPI tiles: Outstanding, **Paid 30d** (we have 90d), Quotes pending, **Conversion rate** (we have "Late" instead).
+- **Shared with talent** column/toggle per document.
+- **Quote → Invoice conversion tracking** with cross-reference (a "Convert to invoice" action from a quote; the resulting invoice references the source quote).
+
+**Gaps:**
+1. KPI "Late" → "Conversion rate": rename + change computation to `(quotes converted to invoices) / (total sent quotes)`. Requires quote→invoice link.
+2. `agency_billing_docs` needs: `shared_with_talent boolean` (default false), `converted_from_id uuid null` (self-ref to quote), and possibly `converted_at`.
+3. "Paid (90d)" → "Paid 30d" — trivial constant change; confirm which the client actually wants.
+4. UI: add Share toggle in table + editor, add "Convert to invoice" action on quotes, add source-quote badge on invoices.
+
+---
+
+## M6 — Contract detail page with Related Invoices tab
+
+- **Current:** no contract detail page. Contracts are just documents in the vault with `folder = "Contracts"` — no dedicated route, no tabs, no cross-linking to billing docs.
+- **Prototype requires:** a full contract detail view with tabs (at minimum "Overview" and "Related invoices"), a summary bar (Invoiced / Paid / Outstanding), and a "Create invoice" button that pre-fills contract context (client, talent, currency).
+- **Gaps:** entirely new territory.
+  1. New route `agency.talent.$linkId.contracts.$docId.tsx` (or similar) — placement is a design decision.
+  2. Relation between a contract (document row) and billing docs (`agency_billing_docs`): today they're unlinked. Options: (a) add `contract_document_id` FK on `agency_billing_docs`, or (b) introduce a `contracts` table separate from documents. **Recommended:** option (a) — minimal, contract *is* the doc.
+  3. "Create invoice" pre-fill: needs to know the client, currency, and preferably contract value — currently `talent_shared_documents` doesn't carry a value. **Decision needed:** add `contract_value_cents`, `contract_currency`, `contract_client_name` optional columns to `talent_shared_documents` (only meaningful when folder = Contracts), or introduce a proper `contracts` table?
+  4. Summary bar totals: derivable from linked billing docs.
+
+---
+
+## M7 — Activity log
+
+- **Current** (`agency_audit_log` table): captures agency admin actions (invite created/resent/revoked, talent relationship ended/reactivated, doc uploaded, template applied, etc.). Fields: `agency_id, actor_user_id, action, target_type, target_id, metadata jsonb, created_at`. No IP, no device, no city. No dedicated UI to view it — it exists as a table only.
+- **Prototype requires:**
+  1. A visible route (`/agency/activity` or similar) with a filterable list.
+  2. Filter by action type.
+  3. Each row shows **device + IP address + city/location** alongside the timestamp.
+- **Gaps:**
+  1. UI route + component don't exist.
+  2. `agency_audit_log` needs new columns: `ip_address inet`, `user_agent text`, `city text`, `country text`. IP + UA are captureable from request headers in server functions; city/country requires geo-IP lookup (typically MaxMind or an equivalent service — needs a client call). **Decision needed:** ship IP + UA now, defer geo lookup, and mark geo as pre-launch? Or add a geo service (extra dependency/cost)?
+  3. This overlaps with M1's "Recent talent activity" and M4's submission history — **strong recommendation** to unify: one events table with type filters, exposed as the M7 log AND as a filtered slice on M1.
+
+---
+
+## Summary matrix
+
+| Screen | Exists | Match | Missing |
+|---|---|---|---|
+| M0 Empty state | No | — | Whole screen |
+| M1 Dashboard | Partial | 30% | KPI set, warning banner, activity feed, compliance footnote |
+| M2 Onboarding modal | No | — | Whole modal + trigger + default folder set |
+| M3 Upload (blocked rows) | Partial | 40% | Row-based UI, blocked destinations, teaching model |
+| M4 Doc review | No | — | Whole feature (requests + submissions + reasons + history) |
+| M5 Quotes & Invoices | Partial | 70% | Shared-with-talent toggle, conversion tracking + KPI |
+| M6 Contract detail | No | — | Whole page + doc↔invoice linkage |
+| M7 Activity log | Backend partial | 25% | UI, filter, IP/device/city capture |
+
+---
+
+## Decisions I need before building any of this
+
+1. **Terminology switch** — do we rename portal-wide to Manager / Talent Roster / Roster Shared Folder / Unfiled Documents / Document Requests, or keep current names?
+2. **M1 dashboard** — replace current overview table with prototype's activity feed, or keep both?
+3. **"Manager-led documents" flag** — meaningful now, or defer until Talent Portal exists (in which case the M1 footnote is copy only)?
+4. **M2 trigger point** — where does the onboarding modal fire? What are the 6 official default folders?
+5. **M3 Private Vault folder taxonomy** — define now as static labels, or defer to Talent Portal?
+6. **M4 build now vs defer** — build the agency-side half against seed data now, or wait for Talent Portal so the loop is testable end-to-end?
+7. **M4 reason-code list** — need the enumerated values from the client.
+8. **M5 KPI swap** — confirm "Paid 30d" replaces "Paid 90d" and "Conversion rate" replaces "Late".
+9. **M6 data model** — extend `talent_shared_documents` with contract fields, or introduce a `contracts` table?
+10. **M7 geo-IP** — ship without city/country and mark as pre-launch, or add a geo service now?
+11. **Priority / phasing** — build order for M0–M7? My suggested order (cheapest → most valuable last, given Talent Portal isn't built): terminology decision → M0 → M7 (log UI + IP/UA) → M5 (shared + conversion) → M1 (new KPIs + activity feed, reusing M7 events) → M2 (onboarding modal) → M3 (upload redesign) → M6 (contract detail) → M4 (defer until Talent Portal).
+
+Approve/adjust and I'll turn the answered decisions into a build plan phase-by-phase.
