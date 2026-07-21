@@ -1381,7 +1381,8 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
       action: z.string().optional(),
       target_type: z.string().optional(),
       actor_id: z.string().optional(),
-      limit: z.number().int().min(1).max(500).default(200),
+      since: z.string().optional(),
+      limit: z.number().int().min(1).max(1000).default(500),
     }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
@@ -1397,6 +1398,8 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
     if (data.action) q = q.eq("action", data.action);
     if (data.target_type) q = q.eq("target_type", data.target_type);
     if (data.actor_id) q = q.eq("actor_id", data.actor_id);
+    if (data.since) q = q.gte("created_at", data.since);
+
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
