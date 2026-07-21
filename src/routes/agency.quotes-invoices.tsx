@@ -232,6 +232,28 @@ function QIPage() {
     onError: (e: any) => toast.error(e.message ?? "Delete failed"),
   });
 
+  const toggleShare = useMutation({
+    mutationFn: ({ id, shared }: { id: string; shared: boolean }) => shareFn({ data: { id, shared } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "billing"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
+
+  const convert = useMutation({
+    mutationFn: (quote: Row) => {
+      const suggested = `INV-${new Date().getFullYear()}-${quote.number.replace(/[^0-9]/g, "").slice(-4) || "001"}`;
+      const num = window.prompt(`Invoice number for conversion of ${quote.number}:`, suggested);
+      if (!num) return Promise.reject(new Error("Cancelled"));
+      return convertFn({ data: { quote_id: quote.id, invoice_number: num.trim() } });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "billing"] });
+      toast.success("Invoice created from quote");
+    },
+    onError: (e: any) => { if (e.message !== "Cancelled") toast.error(e.message ?? "Conversion failed"); },
+  });
+
   return (
     <>
       <div className="tvp-topbar">
