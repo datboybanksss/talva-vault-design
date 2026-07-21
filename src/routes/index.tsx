@@ -39,9 +39,9 @@ const portals = [
   {
     to: "/agency",
     icon: Building2,
-    label: "Talent Agency Portal",
+    label: "Talent Manager Portal",
     blurb:
-      "Manage talent, shared folders, quotes, invoices, clients and AI review.",
+      "Manage your talent roster, Roster Shared Folders, quotes, invoices, clients and AI review.",
   },
   {
     to: "/talent",

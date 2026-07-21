@@ -408,7 +408,7 @@ function Step4({
           background: "rgba(0,0,0,0.02)",
         }}
       >
-        <p><strong>TalVault Agency Terms of Service (Summary)</strong></p>
+        <p><strong>TalVault Manager Terms of Service (Summary)</strong></p>
         <p>By activating this workspace you agree to safeguard talent data, respect retention policies configured by administrators, and use the platform only for legitimate agency operations. Full terms and our Privacy Policy govern your use of TalVault.</p>
         <p>You acknowledge that all actions are audit logged, that document retention locks are legally binding, and that account credentials must not be shared.</p>
       </div>
