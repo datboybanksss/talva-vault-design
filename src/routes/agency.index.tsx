@@ -140,6 +140,22 @@ function AgencyDashboard() {
     onError: (e: any) => toast.error(e?.message ?? "Failed to reactivate"),
   });
 
+  const listActivityFn = useServerFn(listAgencyAuditLog);
+  const [activityFilter, setActivityFilter] = useState<string>("all");
+  const activity = useQuery({
+    queryKey: ["agency", "dashboard-activity"],
+    queryFn: () => listActivityFn({ data: {} }) as Promise<any[]>,
+    refetchInterval: 60_000,
+  });
+  const activityRows: any[] = activity.data ?? [];
+  const filteredActivity = useMemo(() => {
+    const f = ACTIVITY_FILTERS.find((x) => x.key === activityFilter);
+    const list = !f || f.actions.length === 0
+      ? activityRows
+      : activityRows.filter((r) => f.actions.includes(r.action));
+    return list.slice(0, 8);
+  }, [activityRows, activityFilter]);
+
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [manager, setManager] = useState("all");
