@@ -144,7 +144,7 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
     const in30d = new Date(Date.now() + 30 * 86400000).toISOString();
     const nowIso = new Date().toISOString();
 
-    const [talentRes, docsRes, talentInvRes, staffInvRes, billingRes, needsReviewRes, expiringRes] = await Promise.all([
+    const [talentRes, docsRes, talentInvRes, staffInvRes, billingRes, needsReviewRes, expiringRes, overdueRes] = await Promise.all([
       supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
       supabase.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
       supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending"),
@@ -158,6 +158,7 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
         .not("validity_expires_at", "is", null)
         .gte("validity_expires_at", nowIso)
         .lte("validity_expires_at", in30d),
+      supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "overdue"),
     ]);
 
     return {
@@ -168,6 +169,7 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
       billingDocsCount: billingRes.count ?? 0,
       needsReviewCount: needsReviewRes.count ?? 0,
       expiringSoonCount: expiringRes.count ?? 0,
+      overdueInvoicesCount: overdueRes.count ?? 0,
     };
   });
 
