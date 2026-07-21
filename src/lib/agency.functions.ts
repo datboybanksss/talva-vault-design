@@ -1356,5 +1356,7 @@ export const listAgencyAuditActions = createServerFn({ method: "GET" })
       .eq("agency_id", agencyId)
       .limit(1000);
     if (error) throw new Error(error.message);
-    return Array.from(new Set((data ?? []).map((r: any) => r.action as string))).sort();
+    const actions = Array.from(new Set((data ?? []).map((r: any) => r.action as string))) as string[];
+    return actions.sort();
   });
+
