@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, FileText, Mail, FileSpreadsheet, MoreVertical, Info, AlertTriangle, UserPlus, Settings, FolderCog, Sparkles } from "lucide-react";
+import { Users, FileText, Mail, FileSpreadsheet, MoreVertical, Info, AlertTriangle, UserPlus, Settings, FolderCog, Sparkles, Activity } from "lucide-react";
 import { toast } from "sonner";
 import {
   agencyWhoami,
@@ -10,7 +10,48 @@ import {
   listAgencyTalent,
   endTalentRelationship,
   reactivateTalentRelationship,
+  listAgencyAuditLog,
 } from "@/lib/agency.functions";
+
+const ACTIVITY_ACTION_LABELS: Record<string, string> = {
+  create_talent_invitation: "Invited talent",
+  resend_talent_invitation: "Resent talent invitation",
+  revoke_talent_invitation: "Revoked talent invitation",
+  create_staff_invitation: "Invited staff member",
+  upload_vault_document: "Uploaded document",
+  delete_vault_document: "Deleted document",
+  update_vault_document: "Updated document",
+  end_talent_relationship: "Ended talent relationship",
+  reactivate_talent_relationship: "Reactivated talent relationship",
+  create_billing_doc: "Created quote/invoice",
+  update_billing_doc: "Updated quote/invoice",
+  delete_billing_doc: "Deleted quote/invoice",
+  share_billing_doc: "Shared with talent",
+  unshare_billing_doc: "Unshared with talent",
+  convert_quote_to_invoice: "Converted quote to invoice",
+};
+
+const ACTIVITY_FILTERS: Array<{ key: string; label: string; actions: string[] }> = [
+  { key: "all", label: "All activity", actions: [] },
+  { key: "invitations", label: "Invitations", actions: ["create_talent_invitation", "resend_talent_invitation", "revoke_talent_invitation", "create_staff_invitation"] },
+  { key: "documents", label: "Documents", actions: ["upload_vault_document", "delete_vault_document", "update_vault_document"] },
+  { key: "billing", label: "Quotes & invoices", actions: ["create_billing_doc", "update_billing_doc", "delete_billing_doc", "share_billing_doc", "unshare_billing_doc", "convert_quote_to_invoice"] },
+  { key: "roster", label: "Roster changes", actions: ["end_talent_relationship", "reactivate_talent_relationship"] },
+];
+
+function formatRelative(iso: string) {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diff = Date.now() - then;
+  const m = Math.round(diff / 60000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
 
 export const Route = createFileRoute("/agency/")({
   head: () => ({ meta: [{ title: "Manager dashboard · TalVault" }] }),
@@ -98,6 +139,22 @@ function AgencyDashboard() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to reactivate"),
   });
+
+  const listActivityFn = useServerFn(listAgencyAuditLog);
+  const [activityFilter, setActivityFilter] = useState<string>("all");
+  const activity = useQuery({
+    queryKey: ["agency", "dashboard-activity"],
+    queryFn: () => listActivityFn({ data: {} }) as Promise<any[]>,
+    refetchInterval: 60_000,
+  });
+  const activityRows: any[] = activity.data ?? [];
+  const filteredActivity = useMemo(() => {
+    const f = ACTIVITY_FILTERS.find((x) => x.key === activityFilter);
+    const list = !f || f.actions.length === 0
+      ? activityRows
+      : activityRows.filter((r) => f.actions.includes(r.action));
+    return list.slice(0, 8);
+  }, [activityRows, activityFilter]);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -309,6 +366,66 @@ function AgencyDashboard() {
           </div>
         </Link>
       </div>
+
+      <div className="tvp-card tvp-panel" style={{ marginBottom: 20 }}>
+        <div className="tvp-panel-head">
+          <h2 className="tvp-h2">
+            <Activity className="inline h-5 w-5" style={{ marginRight: 6, verticalAlign: -3 }} />
+            Recent talent activity
+          </h2>
+          <Link to="/agency/activity" className="tvp-link">View full activity log →</Link>
+        </div>
+        <div className="flex flex-wrap gap-2 pb-3">
+          {ACTIVITY_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              className={`tvp-life-chip${activityFilter === f.key ? " tvp-active-filter" : ""}`}
+              onClick={() => setActivityFilter(f.key)}
+              style={{ padding: "6px 12px" }}
+            >
+              <div className="tvp-label">{f.label}</div>
+            </button>
+          ))}
+        </div>
+        <table className="tvp-table">
+          <thead>
+            <tr>
+              <th style={{ width: 120 }}>When</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Target</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activity.isLoading && (
+              <tr><td colSpan={4} className="tvp-muted">Loading activity…</td></tr>
+            )}
+            {!activity.isLoading && filteredActivity.length === 0 && (
+              <tr>
+                <td colSpan={4} className="tvp-muted">
+                  {activityRows.length === 0
+                    ? "No activity yet. Actions across your workspace will appear here."
+                    : "No activity matches this filter."}
+                </td>
+              </tr>
+            )}
+            {filteredActivity.map((r) => (
+              <tr key={r.id}>
+                <td className="tvp-muted" style={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                  {formatRelative(r.createdAt)}
+                </td>
+                <td>{r.actorName}</td>
+                <td>{ACTIVITY_ACTION_LABELS[r.action] ?? r.action.replace(/_/g, " ")}</td>
+                <td>{r.targetLabel ?? <span className="tvp-muted">—</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+          Status reflects manager-led documents only. Talent's Private Vault items are excluded.
+        </div>
+      </div>
+
 
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
