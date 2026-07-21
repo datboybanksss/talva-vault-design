@@ -302,12 +302,15 @@ function QIPage() {
               </div>
             </div>
             <table className="tvp-table">
-              <thead><tr><th>Ref</th><th>Client</th><th>Talent</th><th>Type</th><th>Status</th><th>Amount</th><th>Issued</th><th>Due</th><th></th></tr></thead>
+              <thead><tr><th>Ref</th><th>Client</th><th>Talent</th><th>Type</th><th>Status</th><th>Amount</th><th>Issued</th><th>Due</th><th>Shared</th><th>Linked</th><th></th></tr></thead>
               <tbody>
                 {visible.length === 0 && (
-                  <tr><td colSpan={9} className="tvp-muted" style={{ padding: 24 }}>No records yet. Click New Quote or New Invoice to create one.</td></tr>
+                  <tr><td colSpan={11} className="tvp-muted" style={{ padding: 24 }}>No records yet. Click New Quote or New Invoice to create one.</td></tr>
                 )}
-                {visible.map((r) => (
+                {visible.map((r) => {
+                  const linkedInvoice = r.kind === "quote" ? quoteToInvoice.get(r.id) : null;
+                  const sourceQuote = r.kind === "invoice" && r.converted_from_quote_id ? rowById.get(r.converted_from_quote_id) : null;
+                  return (
                   <tr key={r.id}>
                     <td><strong>{r.number}</strong></td>
                     <td>{r.client_name ?? "—"}</td>
@@ -327,13 +330,41 @@ function QIPage() {
                     <td>{r.issued_at}</td>
                     <td>{r.due_date ?? "—"}</td>
                     <td>
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: r.talent_name ? "pointer" : "not-allowed", opacity: r.talent_name ? 1 : 0.5 }} title={r.talent_name ? "Toggle visibility to the linked talent" : "Set a talent to enable sharing"}>
+                        <input
+                          type="checkbox"
+                          checked={r.shared_with_talent}
+                          disabled={!r.talent_name}
+                          onChange={(e) => toggleShare.mutate({ id: r.id, shared: e.target.checked })}
+                        />
+                        <span className="tvp-muted" style={{ fontSize: 12 }}>{r.shared_with_talent ? "Shared" : "Private"}</span>
+                      </label>
+                    </td>
+                    <td>
+                      {linkedInvoice && (
+                        <span className="tvp-status tvp-green" title={`Converted to invoice ${linkedInvoice.number}`}>
+                          <Link2 className="h-3 w-3 inline mr-1" />{linkedInvoice.number}
+                        </span>
+                      )}
+                      {sourceQuote && (
+                        <span className="tvp-status tvp-blue" title={`From quote ${sourceQuote.number}`}>
+                          <Link2 className="h-3 w-3 inline mr-1" />{sourceQuote.number}
+                        </span>
+                      )}
+                      {!linkedInvoice && !sourceQuote && <span className="tvp-muted">—</span>}
+                    </td>
+                    <td>
                       <div className="flex gap-2">
+                        {r.kind === "quote" && !linkedInvoice && (
+                          <button className="tvp-mini-btn" title="Convert to invoice" onClick={() => convert.mutate(r)}><ArrowRightLeft className="h-4 w-4" /></button>
+                        )}
                         <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></button>
                         <button className="tvp-mini-btn" title="Delete" onClick={() => { if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id); }}><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
