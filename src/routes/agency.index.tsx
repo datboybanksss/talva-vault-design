@@ -356,37 +356,48 @@ function AgencyDashboard() {
           <div className="tvp-kpi-icon tvp-bg-teal"><Users className="h-5 w-5" /></div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.talentCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Talent Profiles</div>
-            <div className="tvp-kpi-sub">Across your workspace</div>
-          </div>
-        </Link>
-        <Link to="/agency/document-vault" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-blue"><FileText className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">{metrics.data?.vaultDocumentsCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Vault Documents</div>
-            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-blue)" }}>Shared with your agency</div>
-          </div>
-        </Link>
-        <Link to="/agency/invitations" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-amber"><Mail className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">{metrics.data?.invitationsCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Invitations</div>
-            <div className="tvp-kpi-sub tvp-warn">
-              {metrics.data?.invitationsNeedAction ?? 0} need action
+            <div className="tvp-kpi-label">Total talent</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-teal)" }}>
+              {(metrics.data?.newTalentThisMonth ?? 0) > 0
+                ? `+${metrics.data?.newTalentThisMonth} this month`
+                : "No new talent this month"}
             </div>
           </div>
         </Link>
-        <Link to="/agency/quotes-invoices" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-purple"><FileSpreadsheet className="h-5 w-5" /></div>
+        <Link to="/agency/talent" className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-green"><ShieldCheck className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">{metrics.data?.billingDocsCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Quotes & Invoices</div>
-            <div className="tvp-kpi-sub">Across all talent</div>
+            <div className="tvp-kpi-value">{metrics.data?.fullyCompliantCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Fully compliant</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-green)" }}>
+              {(() => {
+                const t = metrics.data?.talentCount ?? 0;
+                const c = metrics.data?.fullyCompliantCount ?? 0;
+                return t > 0 ? `${Math.round((c / t) * 100)}% compliance` : "—";
+              })()}
+            </div>
+          </div>
+        </Link>
+        <Link to="/agency/talent" className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-purple"><ClipboardCheck className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{metrics.data?.needsReviewCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Needs review</div>
+            <div className="tvp-kpi-sub tvp-warn">
+              {metrics.data?.needsReviewOver48Count ?? 0} over 48 hrs
+            </div>
+          </div>
+        </Link>
+        <Link to="/agency/document-vault" className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-amber"><CalendarClock className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{metrics.data?.expiringSoonCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Expiring 30d</div>
+            <div className="tvp-kpi-sub">Includes endorsements</div>
           </div>
         </Link>
       </div>
+
 
       <div className="tvp-card tvp-panel" style={{ marginBottom: 20 }}>
         <div className="tvp-panel-head">
