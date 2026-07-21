@@ -34,7 +34,7 @@ function humanAction(a: string) {
   return ACTION_LABELS[a] ?? a.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 }
 
-function parseDevice(ua: string | null): { icon: JSX.Element; label: string } {
+function parseDevice(ua: string | null): { icon: ReactElement; label: string } {
   if (!ua) return { icon: <Globe className="h-4 w-4" />, label: "Unknown device" };
   const u = ua.toLowerCase();
   let device: "mobile" | "tablet" | "desktop" = "desktop";
