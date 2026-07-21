@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
   Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Loader2,
-  Lock, History, ShieldPlus,
+  Lock, History, ShieldPlus, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -73,7 +73,25 @@ export const Route = createFileRoute("/agency/document-vault")({
 const tabs = ["All Documents", "Needs Review", "Expiring", "Recently Updated"] as const;
 type Tab = typeof tabs[number];
 
-const FOLDER_OPTIONS = ["Contracts", "ID Documents", "Travel", "Tax", "Other"];
+const FOLDER_OPTIONS = ["Contracts", "Endorsements", "Invoices", "ID Documents", "Travel", "Tax", "Other"];
+
+type FolderMeta = {
+  key: string;
+  label: string;
+  description: string;
+  icon: any;
+};
+const ALLOWED_FOLDERS: FolderMeta[] = [
+  { key: "Contracts", label: "Contracts", description: "Agreements, riders, addenda", icon: FileSignature },
+  { key: "Endorsements", label: "Endorsements", description: "Brand deals, partnerships", icon: Award },
+  { key: "Invoices", label: "Invoices", description: "Billing documents shared with talent", icon: Receipt },
+  { key: "ID Documents", label: "ID Documents", description: "Passport, visa, work authorisation", icon: IdCard },
+];
+const BLOCKED_FOLDERS: FolderMeta[] = [
+  { key: "family", label: "Family / Loved Ones", description: "Talent's personal contacts", icon: UsersIcon },
+  { key: "medical", label: "Medical / Insurance", description: "Health records, insurance", icon: HeartPulse },
+  { key: "finance", label: "Personal Finance", description: "Bank statements, taxes", icon: Landmark },
+];
 
 function statusTone(status: string): "purple" | "green" | "amber" {
   if (status === "ai_suggested") return "purple";
@@ -535,16 +553,34 @@ function UploadDialog({
       onClick={onClose}
       style={{
         position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24,
       }}
     >
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
         className="tvp-card"
-        style={{ width: 480, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
+        style={{ width: "min(680px, 100%)", maxHeight: "90vh", overflow: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
       >
-        <h2 className="tvp-h2">Upload document</h2>
+        <h2 className="tvp-h2">Upload document to Roster Shared Folder</h2>
+
+        <div
+          style={{
+            display: "flex", alignItems: "flex-start", gap: 10,
+            padding: "10px 12px", borderRadius: 8,
+            background: "rgba(180, 83, 9, 0.08)",
+            border: "1px solid rgba(180, 83, 9, 0.25)",
+          }}
+        >
+          <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: "var(--tvp-amber, #b45309)", marginTop: 2 }} />
+          <div style={{ fontSize: 13 }}>
+            <strong>Managers can only upload to the Roster Shared Folder.</strong>
+            <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+              Talent's Private Vault (Family, Medical, Personal Finance) is shown below as locked so you can see the access boundary — those folders are for the talent only.
+            </div>
+          </div>
+        </div>
+
         <label className="tvp-muted" style={{ fontSize: 13 }}>File</label>
         <input ref={fileRef} type="file" required />
 
@@ -558,12 +594,70 @@ function UploadDialog({
           ))}
         </select>
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Folder</label>
-        <select className="tvp-select" value={folder} onChange={(e) => setFolder(e.target.value)}>
-          {FOLDER_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
-        </select>
+        <div className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Destination folder</div>
+        <div style={{ fontSize: 12, color: "var(--tvp-muted)", marginTop: -4, textTransform: "uppercase", letterSpacing: 0.4 }}>
+          Roster Shared Folder · Allowed
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {ALLOWED_FOLDERS.map((f) => {
+            const Icon = f.icon;
+            const active = folder === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFolder(f.key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 12px", borderRadius: 8, textAlign: "left",
+                  background: active ? "rgba(37, 99, 235, 0.08)" : "white",
+                  border: `1px solid ${active ? "rgba(37, 99, 235, 0.5)" : "var(--tvp-border, #e5e7eb)"}`,
+                  cursor: "pointer",
+                }}
+              >
+                <Icon className="h-4 w-4" style={{ color: active ? "#2563eb" : "var(--tvp-muted)" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{f.label}</div>
+                  <div className="tvp-muted" style={{ fontSize: 12 }}>{f.description}</div>
+                </div>
+                <span className="tvp-status tvp-green" style={{ fontSize: 11 }}>Allowed</span>
+              </button>
+            );
+          })}
+        </div>
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Status</label>
+        <div style={{ fontSize: 12, color: "var(--tvp-muted)", marginTop: 8, textTransform: "uppercase", letterSpacing: 0.4 }}>
+          Private Vault · Blocked
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.65 }}>
+          {BLOCKED_FOLDERS.map((f) => {
+            const Icon = f.icon;
+            return (
+              <div
+                key={f.key}
+                title="This folder lives in the talent's Private Vault. Managers cannot upload here."
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 12px", borderRadius: 8,
+                  background: "rgba(15, 23, 42, 0.04)",
+                  border: "1px dashed var(--tvp-border, #cbd5e1)",
+                  cursor: "not-allowed",
+                }}
+              >
+                <Icon className="h-4 w-4 text-[var(--tvp-muted)]" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Lock className="h-3.5 w-3.5" /> {f.label}
+                  </div>
+                  <div className="tvp-muted" style={{ fontSize: 12 }}>{f.description}</div>
+                </div>
+                <span className="tvp-status tvp-amber" style={{ fontSize: 11 }}>Blocked</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <label className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Status</label>
         <select className="tvp-select" value={status} onChange={(e) => setStatus(e.target.value as any)}>
           <option value="needs_review">Needs review</option>
           <option value="filed">Filed</option>
