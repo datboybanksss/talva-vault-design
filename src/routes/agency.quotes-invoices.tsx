@@ -69,6 +69,7 @@ type EditorState = {
   total_amount: string;
   status: Row["status"];
   notes: string;
+  shared_with_talent: boolean;
 };
 
 const emptyEditor = (kind: "quote" | "invoice"): EditorState => ({
@@ -82,6 +83,7 @@ const emptyEditor = (kind: "quote" | "invoice"): EditorState => ({
   total_amount: "",
   status: "draft",
   notes: "",
+  shared_with_talent: false,
 });
 
 function QIPage() {
