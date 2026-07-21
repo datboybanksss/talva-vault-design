@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
   Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Loader2,
@@ -273,7 +273,13 @@ export function VaultPage() {
                   <tr key={d.id}>
                     <td>
                       <FileText className="inline h-4 w-4 mr-2 text-[var(--tvp-muted)]" />
-                      <strong>{d.name}</strong>
+                      {d.folder === "Contracts" ? (
+                        <Link to="/agency/contracts/$id" params={{ id: d.id }} className="tvp-link">
+                          <strong>{d.name}</strong>
+                        </Link>
+                      ) : (
+                        <strong>{d.name}</strong>
+                      )}
                       {isLocked && (
                         <span
                           title={`Locked by retention rule until ${lockDate} — cannot be deleted.`}

@@ -239,6 +239,7 @@ export type Database = {
         Row: {
           agency_id: string
           client_name: string | null
+          contract_document_id: string | null
           converted_from_quote_id: string | null
           created_at: string
           currency: string
@@ -257,6 +258,7 @@ export type Database = {
         Insert: {
           agency_id: string
           client_name?: string | null
+          contract_document_id?: string | null
           converted_from_quote_id?: string | null
           created_at?: string
           currency?: string
@@ -275,6 +277,7 @@ export type Database = {
         Update: {
           agency_id?: string
           client_name?: string | null
+          contract_document_id?: string | null
           converted_from_quote_id?: string | null
           created_at?: string
           currency?: string
@@ -299,10 +302,157 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agency_billing_docs_contract_document_id_fkey"
+            columns: ["contract_document_id"]
+            isOneToOne: false
+            referencedRelation: "talent_shared_documents"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agency_billing_docs_converted_from_quote_id_fkey"
             columns: ["converted_from_quote_id"]
             isOneToOne: false
             referencedRelation: "agency_billing_docs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_document_request_history: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          agency_id: string
+          created_at: string
+          document_id: string | null
+          event: string
+          id: string
+          notes: string | null
+          reason_code: string | null
+          request_id: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          agency_id: string
+          created_at?: string
+          document_id?: string | null
+          event: string
+          id?: string
+          notes?: string | null
+          reason_code?: string | null
+          request_id: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          agency_id?: string
+          created_at?: string
+          document_id?: string | null
+          event?: string
+          id?: string
+          notes?: string | null
+          reason_code?: string | null
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_document_request_history_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_document_request_history_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "talent_shared_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_document_request_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "agency_document_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_document_requests: {
+        Row: {
+          agency_id: string
+          created_at: string
+          current_document_id: string | null
+          due_date: string | null
+          folder: string
+          id: string
+          instructions: string | null
+          reason_code: string | null
+          requested_by: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["doc_request_status"]
+          talent_link_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          current_document_id?: string | null
+          due_date?: string | null
+          folder: string
+          id?: string
+          instructions?: string | null
+          reason_code?: string | null
+          requested_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["doc_request_status"]
+          talent_link_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          current_document_id?: string | null
+          due_date?: string | null
+          folder?: string
+          id?: string
+          instructions?: string | null
+          reason_code?: string | null
+          requested_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["doc_request_status"]
+          talent_link_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_document_requests_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_document_requests_current_document_id_fkey"
+            columns: ["current_document_id"]
+            isOneToOne: false
+            referencedRelation: "talent_shared_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_document_requests_talent_link_id_fkey"
+            columns: ["talent_link_id"]
+            isOneToOne: false
+            referencedRelation: "agency_talent_links"
             referencedColumns: ["id"]
           },
         ]
@@ -901,6 +1051,12 @@ export type Database = {
           agency_id: string
           ai_suggested_expiry: string | null
           ai_suggested_folder: string | null
+          contract_client_name: string | null
+          contract_currency: string | null
+          contract_end_date: string | null
+          contract_notes: string | null
+          contract_start_date: string | null
+          contract_total_cents: number | null
           created_at: string
           current_version_id: string | null
           folder: string
@@ -919,6 +1075,12 @@ export type Database = {
           agency_id: string
           ai_suggested_expiry?: string | null
           ai_suggested_folder?: string | null
+          contract_client_name?: string | null
+          contract_currency?: string | null
+          contract_end_date?: string | null
+          contract_notes?: string | null
+          contract_start_date?: string | null
+          contract_total_cents?: number | null
           created_at?: string
           current_version_id?: string | null
           folder?: string
@@ -937,6 +1099,12 @@ export type Database = {
           agency_id?: string
           ai_suggested_expiry?: string | null
           ai_suggested_folder?: string | null
+          contract_client_name?: string | null
+          contract_currency?: string | null
+          contract_end_date?: string | null
+          contract_notes?: string | null
+          contract_start_date?: string | null
+          contract_total_cents?: number | null
           created_at?: string
           current_version_id?: string | null
           folder?: string
@@ -1048,6 +1216,12 @@ export type Database = {
         | "talent"
         | "loved_one"
       doc_kind: "quote" | "invoice"
+      doc_request_status:
+        | "pending"
+        | "submitted"
+        | "completed"
+        | "resubmission_required"
+        | "cancelled"
       doc_status:
         | "draft"
         | "sent"
@@ -1225,6 +1399,13 @@ export const Constants = {
         "loved_one",
       ],
       doc_kind: ["quote", "invoice"],
+      doc_request_status: [
+        "pending",
+        "submitted",
+        "completed",
+        "resubmission_required",
+        "cancelled",
+      ],
       doc_status: ["draft", "sent", "accepted", "paid", "overdue", "cancelled"],
       invitation_status: [
         "pending",
