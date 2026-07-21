@@ -22,7 +22,6 @@ import { Route as TalentVaultRouteImport } from './routes/talent.vault'
 import { Route as TalentSharingRouteImport } from './routes/talent.sharing'
 import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
 import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
-import { Route as PreviewDocumentVaultRouteImport } from './routes/preview.document-vault'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
 import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
@@ -109,11 +108,6 @@ const TalentBudgetRoute = TalentBudgetRouteImport.update({
   id: '/budget',
   path: '/budget',
   getParentRoute: () => TalentRoute,
-} as any)
-const PreviewDocumentVaultRoute = PreviewDocumentVaultRouteImport.update({
-  id: '/preview/document-vault',
-  path: '/preview/document-vault',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
@@ -244,7 +238,6 @@ export interface FileRoutesByFullPath {
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
-  '/preview/document-vault': typeof PreviewDocumentVaultRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -276,7 +269,6 @@ export interface FileRoutesByTo {
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
-  '/preview/document-vault': typeof PreviewDocumentVaultRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -314,7 +306,6 @@ export interface FileRoutesById {
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
-  '/preview/document-vault': typeof PreviewDocumentVaultRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
@@ -353,7 +344,6 @@ export interface FileRouteTypes {
     | '/agency/settings'
     | '/agency/talent'
     | '/invite/$token'
-    | '/preview/document-vault'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -385,7 +375,6 @@ export interface FileRouteTypes {
     | '/agency/settings'
     | '/agency/talent'
     | '/invite/$token'
-    | '/preview/document-vault'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -422,7 +411,6 @@ export interface FileRouteTypes {
     | '/agency/settings'
     | '/agency/talent'
     | '/invite/$token'
-    | '/preview/document-vault'
     | '/talent/budget'
     | '/talent/settings'
     | '/talent/sharing'
@@ -446,7 +434,6 @@ export interface RootRouteChildren {
   LovedOneRoute: typeof LovedOneRoute
   TalentRoute: typeof TalentRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
-  PreviewDocumentVaultRoute: typeof PreviewDocumentVaultRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -541,13 +528,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/talent/budget'
       preLoaderRoute: typeof TalentBudgetRouteImport
       parentRoute: typeof TalentRoute
-    }
-    '/preview/document-vault': {
-      id: '/preview/document-vault'
-      path: '/preview/document-vault'
-      fullPath: '/preview/document-vault'
-      preLoaderRoute: typeof PreviewDocumentVaultRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -816,18 +796,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovedOneRoute: LovedOneRoute,
   TalentRoute: TalentRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
-  PreviewDocumentVaultRoute: PreviewDocumentVaultRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
