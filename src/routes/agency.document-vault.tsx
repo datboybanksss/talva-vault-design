@@ -516,16 +516,42 @@ function UploadDialog({
   const [talentLinkId, setTalentLinkId] = useState<string>(
     talentLinks.find((l) => l.status !== "ended")?.id ?? "",
   );
-  const [folder, setFolder] = useState<string>(FOLDER_OPTIONS[0]);
+  const [folder, setFolder] = useState<string>("");
   const [status, setStatus] = useState<"filed" | "needs_review" | "ai_suggested">("needs_review");
   const [expiry, setExpiry] = useState<string>("");
   const [busy, setBusy] = useState(false);
+
+  const listFoldersFn = useServerFn(listAgencyTalentFolders);
+  const { data: allowedFolders, isLoading: foldersLoading } = useQuery({
+    queryKey: ["agency", "vault", "talent-folders", talentLinkId],
+    queryFn: () => listFoldersFn({ data: { talent_link_id: talentLinkId } }),
+    enabled: !!talentLinkId,
+  });
+
+  // Reset folder selection when talent changes
+  const folderKeys = (allowedFolders ?? []).map((f) => f.folderName).join("|");
+  useMemo(() => {
+    if (allowedFolders && allowedFolders.length > 0) {
+      if (!allowedFolders.find((f) => f.folderName === folder)) {
+        setFolder(allowedFolders[0].folderName);
+      }
+    } else {
+      setFolder("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderKeys]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
     if (!file) return toast.error("Pick a file first");
     if (!agencyId) return toast.error("No agency context");
+    if (!talentLinkId) return toast.error("Select a talent");
+    if (!folder) return toast.error("Select an allowed destination folder");
+    // Guard: folder must be one of the talent's provisioned allowed folders.
+    if (!(allowedFolders ?? []).some((f) => f.folderName === folder)) {
+      return toast.error("That folder isn't allowed for this talent");
+    }
 
     setBusy(true);
     try {
