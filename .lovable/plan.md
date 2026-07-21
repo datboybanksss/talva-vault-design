@@ -1,199 +1,94 @@
+# Home Page (`/`) vs Prototype Design System — Gap Report
 
-# Agency Portal — Prototype (M0–M7) vs. Current Build
+Comparison only. No code changes proposed yet. Current values pulled from `src/styles.css` (`:root` + `.tv-app` scoped tokens) and `src/routes/index.tsx`.
 
-Read-only comparison. No code changes proposed. Tight per-screen summary + terminology recommendation at the end.
-
----
-
-## Legend
-- **Match** — implemented and equivalent
-- **Partial** — implemented but with notable differences
-- **Missing** — not built
+Note upfront: the project has **two token layers** — the global `:root` tokens the home page uses, and the `.tv-app` scoped `--tvp-*` tokens used inside the authenticated portal shells. They are close but not identical. The M0-M7 prototype spec you're quoting looks closer to a **third variant** (deeper teal-700, amber accent, tighter neutrals, smaller radii). The home page uses the global `:root` layer.
 
 ---
 
-## M0 · First login empty state
+## 1. Color tokens
 
-**Verdict: Missing (entire screen)**
+| Token | Prototype spec | `:root` (home page uses) | `.tv-app` (portal uses) | Match? |
+|---|---|---|---|---|
+| Primary teal | `#064E58` (teal-700) | `--teal: #086A70` | `--tvp-teal: #086A70` | ❌ Ours is lighter/greener than spec |
+| Teal hover | (not specified) | `--teal-2: #108B95` | `--tvp-teal-2: #0A7B8A` | Two different hover shades already |
+| Amber accent | `#E89348` (amber-500, secondary accent) | `--amber: #D97706` (semantic warning only) | `--tvp-amber: #D97706` | ❌ Different hue; and we treat amber as *status*, not *brand accent* |
+| Ink | `#1A1F2A` | `--ink: #142033` | `--tvp-ink: #142033` | ❌ Ours is bluer/darker |
+| Ink-soft | `#4B5563` | `--text-body: #384254` | `--tvp-text: #384254` | ❌ Ours is bluer/darker |
+| Background | `#FAFAF9` (near-white warm) | `--bg: #FDF9F5` (warmer cream) | `--tvp-bg: #FDF9F5` | ❌ Ours is noticeably warmer/cream |
+| Surface | `#FFFFFF` | `--surface: #FFFFFF` | `--tvp-surface: #FFFFFF` | ✅ |
+| Line | (not specified in your summary) | `--line: #EDE8E0` (warm) | `--tvp-line: #EDE8E0` | Warm neutral, likely drifts from spec's cooler grays |
 
-- No dedicated empty state today. A fresh agency lands on `/agency` with zero-value KPIs and a "No talent connected yet" table row.
-- No two-CTA card, no 3-step explainer, no distinct "Home" landing.
+**Also missing entirely from our tokens:** amber as a brand accent (only exists as a warning color), a "color-coded divider under headers" pattern.
 
-**Key mismatches**
-- Sidebar item set differs — see terminology section.
-- Prototype has a personalised "Welcome, John" header we don't render.
+## 2. Radius scale
 
----
-
-## M1 · Manager dashboard
-
-**Verdict: Partial (~30%)**
-
-**Matches**
-- KPI grid exists (4 tiles).
-- Talent table exists with filter chips.
-
-**Key mismatches**
-- KPI tiles are the wrong four. Ours: *Talent Profiles / Vault Documents / Invitations / Quotes & Invoices*. Prototype: *Total talent / Fully compliant / Needs review / Expiring 30d*, each with a delta line. Three of the four require compliance metrics we don't compute.
-- **No warning banner** ("N items need your attention" with counts + Review-now CTA).
-- The table is a per-talent overview, **not** a chronological "Recent talent activity" feed. Filter chips differ too (ours: 7 statuses; prototype: All / Needs review / Action needed / Compliant).
-- No "Pending / Last activity / Open" columns; no delta metadata under tile values.
-- No footnote about manager-led scope (BR-DOC-013).
-- No topbar meta line (agency name · N active talent · storage used) or notification-bell dot indicator styled as spec.
-
-**Big-gap flag** — this is closer to a redesign than a wire-up. The activity feed also overlaps M7 (shared event source).
-
----
-
-## M2 · Onboard talent modal
-
-**Verdict: Missing**
-
-- We have no post-invite folder-selection modal at all. Folder templates live on a separate settings page and are applied manually with a Play button. There is no "at this moment, pick a folder set for this talent" flow tied to the invite action.
-
-**Key mismatches**
-- No two-radio "standard set vs customise" pattern.
-- No 6-folder default badges. Our informal folder lists vary between vault (5) and rules (9) — no canonical "6 default folders" (prototype: ID, Contracts, Invoices, Tax, Endorsements, Legal).
-- No "Roster Shared Folder vs Private Vault" clarifier banner.
-- No deep-link to Settings → Agency Profile → Default folders (that settings section doesn't exist).
-
----
-
-## M3 · Upload — Roster Shared Folder constraint
-
-**Verdict: Partial (~30%)**
-
-**Matches**
-- Upload modal exists; picks folder + talent; supports file upload to the same underlying bucket.
-
-**Key mismatches**
-- UI is a `<select>` dropdown, not a **two-section row-based picker** with per-row doc counts, sizes, and Allowed/Blocked badges.
-- Private Vault is **invisible** in our UI, not "visible but blocked". Prototype uses the blocked rows as teaching UX — you see the locked folders so you understand the access model.
-- No danger banner at top explaining the constraint.
-- Allowed set differs: prototype names **Endorsements** and **Invoices** as agency-uploadable folders — Endorsements is not a current folder, and Invoices is currently a separate billing module (not a doc folder).
-- Blocked set (Family/Loved Ones, Medical/Insurance, Finance) has no representation at all in our data model.
-
----
-
-## M4 · Document review — Resubmission workflow
-
-**Verdict: Missing (entire feature)**
-
-- We have no Review action, no request/fulfillment model, no reason codes, no resubmission history. Document status is a static badge (`filed / needs_review / ai_suggested`) with no state machine and no "reject with reason".
-- Versions table exists but tracks owner re-uploads, not talent resubmissions against a rejection.
-
-**Key mismatches**
-- No `document_requests` entity linking a request to submissions and outcomes.
-- No split-layout review page (preview + context + outcome radios).
-- No reason-code enum (spec's six values: Unclear/blurry, Wrong document, Expired, Incomplete/missing pages, Wrong person/name, Other).
-- No "Previous submissions" archive view; the archive-never-delete rule isn't enforced anywhere.
-
-**Big-gap flag + dependency** — the resubmission half of the loop needs the Talent Portal to be genuinely testable. Building only the manager side means seeded/mock submissions until that portal exists.
-
----
-
-## M5 · Quotes & Invoices
-
-**Verdict: Partial (~65%)**
-
-**Matches**
-- KPI grid with 4 tiles, filterable table, status enum broadly overlaps, editor for quote/invoice, client rollup tab.
-
-**Key mismatches**
-- KPI #2: **Paid 30d** (prototype) vs Paid 90d (ours).
-- KPI #4: **Conversion rate** (prototype) vs Late (ours) — different metric, requires quote→invoice link.
-- **No "Shared with talent"** column/toggle on billing docs. No `shared_with_talent` column in `agency_billing_docs`.
-- **No quote → invoice conversion.** No `converted_from_id` on billing docs, no "Convert to invoice" action, no "Converted → INV-…" cross-reference in the row.
-- No "(re: talent name)" secondary line under client cell.
-- No paid/overdue lock on financial edits (BR-INV-011).
-- No branding footnote surfaced in UI (BR-INVB-001/002).
-- Filter chips are `<select>` dropdowns in ours vs the prototype's chip row (All/Draft/Sent/Partially paid/Paid/Overdue/Quotes only). Notably no "Partially paid" status exists in our enum.
-
----
-
-## M6 · Contract detail with cross-linked invoices
-
-**Verdict: Missing (entire page)**
-
-- Contracts today are just documents with `folder = "Contracts"`. No detail route, no tabs, no linkage to billing docs, no contract-level totals.
-
-**Key mismatches**
-- No breadcrumb pattern for `Talent Roster > [Talent] > Contracts > [Contract]`.
-- No relationship between `talent_shared_documents` and `agency_billing_docs`. No FK, no "Related invoices" query.
-- No contract metadata (counterparty, signed date, expires date, retention-protected flag surfaced on the header) as first-class fields. `talent_shared_documents.validity_expires_at` exists but no signed date / counterparty / value.
-- No "Create invoice" pre-fill action from a contract.
-- No Invoiced/Paid/Outstanding summary bar.
-
-**Big-gap flag** — new schema decisions required: extend the documents table with contract fields (light), or introduce a `contracts` table (heavier). Trade-off is not obvious.
-
----
-
-## M7 · Activity log
-
-**Verdict: Partial (~25%)**
-
-**Matches**
-- Backend audit table exists (`agency_audit_log`) capturing admin actions with actor + action + metadata + timestamp.
-
-**Key mismatches**
-- **No UI route** to view the log. It's a table, not a screen.
-- No filter chips (All / Talent activity / Document operations / Sharing / Invoice activity). Our `action` strings aren't grouped into these categories today.
-- No **date range** selector, no **Export**.
-- No **device / IP / city / country** capture. Adding IP + UA is straightforward from request headers; city/country needs a geo-IP lookup service.
-- Coverage gap: prototype logs **talent-side events** too (talent uploads, talent shares with loved-one, talent accepts invite). Our audit log is agency-actor-scoped and would need broadening to be the source for M7's stream.
-- No icon-by-type styling (upload=green, resubmission=amber, etc.).
-
----
-
-## Summary matrix
-
-| Screen | Verdict | Match % | Biggest gap |
-|---|---|---:|---|
-| M0 Empty state | Missing | 0% | Whole screen |
-| M1 Dashboard | Partial | 30% | KPI set, warning banner, activity feed |
-| M2 Onboarding modal | Missing | 0% | Modal + trigger point + canonical 6 defaults |
-| M3 Upload | Partial | 30% | Row-based picker + visible-blocked rows |
-| M4 Doc review | Missing | 0% | Request/fulfillment model + reason codes + archive |
-| M5 Quotes & Invoices | Partial | 65% | Shared toggle, quote→invoice conversion, KPI swap |
-| M6 Contract detail | Missing | 0% | Whole page + doc↔invoice linkage |
-| M7 Activity log | Partial | 25% | UI, filters, IP/device/geo, talent-side events |
-
----
-
-## Terminology — neutral flag with recommendation
-
-| Prototype term | Current build term | Same thing? | Recommendation |
+| Token | Prototype spec | Ours (`:root`) | Ours (`.tv-app`) |
 |---|---|---|---|
-| **Talent Manager / Manager** | Agency / Agency Owner | Yes (portal role) | **Recommend adopt "Manager".** Pros: matches spec end-to-end, matches how the client is describing it. Cons: collides with our existing `manager` sub-role in `user_roles` (owner/manager/staff). Would need to rename sub-role (e.g. `lead` / `admin`) to avoid two "Manager"s. |
-| **Talent Roster** | Talent (page label) | Yes | **Recommend adopt "Talent Roster".** Pros: cheap, no data-model impact, matches spec. Cons: none material. |
-| **Roster Shared Folder** | Document Vault | Yes (agency-visible doc area) | **Recommend adopt "Roster Shared Folder".** Pros: prototype leans on this name to distinguish from Private Vault; the whole M3 teaching UX depends on the pair reading naturally ("Roster Shared Folder" vs "Private Vault"). Cons: longer name, existing sidebar/routes/toasts all say "Document Vault" — non-trivial copy sweep. Route path could stay `/agency/document-vault` even with UI rename. |
-| **Private Vault** | (none — Talent Portal not built) | New concept | **Recommend adopt as-is when we build the Talent Portal.** For M3 purposes we only need the *label* to exist as a UI concept; no data-model work now. |
-| **Unfiled Documents** | (none) | New concept | **Recommend defer decision.** Not clear from the M-screens alone whether this is (a) an inbox for talent uploads not yet placed in a folder, or (b) a manager-side triage queue. Ask client to define scope before naming. |
-| **Document Requests** | (none — closest is `talent_shared_documents.status = 'needs_review'`) | New concept | **Recommend adopt "Document Requests" as a distinct entity.** Pros: cleanly models the request→submission→review loop M4 needs; separates "request lifecycle" from "document lifecycle". Cons: new table, new page, new server functions. This is the right abstraction if we're building M4 seriously. |
-| **Agency Profile** (Settings area) | Settings | Overlap | **Recommend split.** "Settings" today mixes agency identity with operational preferences. Prototype implies **Agency Profile** = identity/branding/default folders, and **Settings** = everything else. Pros: matches M2's deep-link "Settings → Agency Profile → Default folders". Cons: minor IA refactor. |
-| **Home** (sidebar) | Dashboard | Same landing | **Recommend keep "Dashboard".** Pros: more descriptive of what M1 actually is. Cons: diverges from spec label. Low-stakes either way. |
-| **Activity Log** (sidebar) | (no sidebar entry) | Same as our audit table | **Recommend adopt.** Straightforward addition. |
+| sm | 6px | `calc(var(--radius) - 4px)` = **10px** | `--tvp-radius-sm: 10px` |
+| base | 10px | `--radius: 14px` | `--tvp-radius-md: 14px` |
+| lg | 14px | `--radius-lg: 18px` | `--tvp-radius-lg: 18px` |
+| xl | — | `--radius-xl: 22px` | `--tvp-radius-xl: 22px` |
 
-**Meta-recommendation on terminology:** if you adopt Manager + Talent Roster + Roster Shared Folder + Agency Profile as a batch, it's one coordinated copy sweep touching ~15 files (sidebar, route heads, page titles, subtitles, empty states, toasts, audit action labels). If you adopt piecemeal you'll be revisiting the same files repeatedly. Cheaper to do the sweep once.
+❌ **Every step is ~4-8px larger than the spec.** Our design is visibly rounder/softer than the prototype target. The home page portal cards specifically inherit `tv-card` → `border-radius: var(--radius-xl)` = **22px**, vs spec's 10px card radius.
+
+## 3. Typography
+
+| Aspect | Prototype spec | Home page actual |
+|---|---|---|
+| Font stack | `-apple-system, Segoe UI, Roboto, ...` | `Arial, Helvetica, "Liberation Sans", sans-serif` (from `@theme inline --font-sans` + `body`) |
+| Base body size | 13-14px | Tailwind default 16px; portal card body uses `text-[13.5px]` inline |
+| Large heading weight | 700 | Home H1 uses `font-black` = **900** |
+| Large heading tracking | -0.2 to -0.8px | `letter-spacing: -0.01em` on h1-h4 globally; home H1 adds `tracking-tight` |
+| Portal card title | — | `text-[17px] font-black` (900) |
+
+❌ Font family is completely different (Arial vs system stack). ❌ Heading weight is 900 across the board, spec is 700. Tracking is in the right direction but not calibrated to the spec's pixel values.
+
+## 4. Cards & buttons
+
+**Portal cards on the home page** (`tv-card` utility applied in `src/routes/index.tsx`):
+- Border: `1px solid var(--line)` ✅ matches spec's "1px solid border"
+- Radius: **22px** (`--radius-xl`) ❌ spec is 10px
+- Padding: `p-6` = **24px** ❌ spec is `22px 26px` (asymmetric)
+- Shadow: `--shadow-soft: 0 5px 18px rgba(20,32,51,0.05)` — spec didn't specify, but present
+
+**Buttons on the home page:** The landing page has **no buttons** — only `<Link>`-wrapped cards. So there's nothing to compare against `.btn-primary` / `.btn-secondary` on this specific page. The utilities `tv-btn-primary` (teal bg, height 48px, radius 12px, weight 800) and `tv-btn-secondary` (white + `--line-strong` border) exist elsewhere and roughly match the spec's shape but with heavier font-weight (800 vs implied 700) and different radius (12px vs 10px).
+
+## 5. Icons
+
+Prototype: custom inline SVG, stroke-based, `stroke-width: 1.7`, unfilled.
+
+Home page (`src/routes/index.tsx`): uses **lucide-react** (`Building2`, `Users`, `User`, `Heart`, `ShieldCheck`, `ArrowRight`). Lucide defaults to `stroke-width: 2`, stroke-based, unfilled.
+
+Partial match: ✅ stroke-based / unfilled style is right. ❌ Stroke width is 2 vs spec's 1.7, and they're not the prototype's hand-authored SVG set — different shapes for the same concepts.
+
+## 6. Other home-page-specific observations
+
+- The teal brand mark tile uses inline `background: var(--teal)` = `#086A70`, same drift as row 1 above.
+- The "Portal selector · Demo" eyebrow uses `text-teal` (again `#086A70`, not the spec's deeper `#064E58`).
+- No amber accent anywhere on the page — the spec's "color-coded divider under headers" pattern isn't present at all on this page.
+- Hero copy uses `text-[40px] md:text-[52px] font-black` — the spec doesn't cover a hero this large, so this is invented, not drifted.
 
 ---
 
-## What I need from you next
+## Summary of drift
 
-1. **Terminology batch** — accept, reject, or partial (which ones)?
-2. **Phasing** — which screens do you want to tackle first? My suggested order given Talent-Portal is not built:
-   - Terminology sweep (one PR) →
-   - M0 (cheap) + M1 warning banner (cheap) →
-   - M7 UI + IP/UA capture (unblocks M1 activity feed) →
-   - M5 shared toggle + conversion (contained, high value) →
-   - M1 activity feed + new KPIs (depends on M7 events) →
-   - M2 onboarding modal + default folders →
-   - M3 upload redesign →
-   - M6 contract detail →
-   - M4 (defer until Talent Portal, or build manager side against seed data).
-3. **M4 timing** — build manager-side against seeds now, or park?
-4. **M6 data model** — extend documents table with contract fields (light), or introduce a `contracts` table (heavier)?
-5. **M7 geo** — ship without city/country first, add later; or add geo service now?
-6. **Unfiled Documents** — get scope clarification from the client before I include it in phasing.
+| Area | Verdict |
+|---|---|
+| Teal primary hue | Off — ours is `#086A70`, spec is `#064E58` (deeper) |
+| Amber as brand accent | **Missing** — we only have amber as a warning color |
+| Neutral grays (ink, ink-soft, bg) | Off — ours are bluer + warmer background |
+| Radius scale | Off — ours is 4-8px rounder at every step |
+| Font family | Off — Arial vs system stack |
+| Heading weight | Off — 900 vs 700 |
+| Icon style | Close — stroke-based, unfilled ✓; stroke-width and specific icon set differ |
+| Card border + surface color | ✅ matches |
+| Buttons on this specific page | N/A — page has no buttons |
 
-Approve any subset of these and I'll turn the answered ones into a concrete build plan.
+## Open questions before any redesign
+
+1. Is the M0-M7 prototype spec's token set intended to **replace** our current TalVault tokens across the whole app, or is it a **third look** applied only to the landing page? If it replaces globally, the change is much larger than the home page.
+2. Does "amber as secondary accent + color-coded divider under headers" apply to the landing page specifically, or is it a portal-page pattern that the home page shouldn't adopt?
+3. Do you want the deeper teal `#064E58` to become the canonical brand token (updating sidebar, buttons, badges everywhere), or only the landing page's brand mark and headings?
+
+I'll wait for direction on scope before proposing an implementation plan.
