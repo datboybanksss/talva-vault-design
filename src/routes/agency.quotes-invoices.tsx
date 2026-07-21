@@ -2,13 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, MoreVertical, FileSpreadsheet, Receipt, Clock, AlertTriangle, Trash2, Pencil, X, Save } from "lucide-react";
+import { Plus, FileSpreadsheet, Receipt, Clock, AlertTriangle, Trash2, Pencil, X, Save, ArrowRightLeft, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listAgencyBillingDocs,
   upsertAgencyBillingDoc,
   updateAgencyBillingDocStatus,
   deleteAgencyBillingDoc,
+  setBillingDocShared,
+  convertQuoteToInvoice,
 } from "@/lib/agency.functions";
 
 type Row = {
@@ -23,6 +25,8 @@ type Row = {
   total_cents: number;
   status: "draft" | "sent" | "accepted" | "paid" | "overdue" | "cancelled";
   notes: string | null;
+  shared_with_talent: boolean;
+  converted_from_quote_id: string | null;
 };
 
 const listQO = queryOptions({
