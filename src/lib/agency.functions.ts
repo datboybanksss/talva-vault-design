@@ -118,12 +118,23 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
-    const [talentRes, docsRes, talentInvRes, staffInvRes, billingRes] = await Promise.all([
+    const in30d = new Date(Date.now() + 30 * 86400000).toISOString();
+    const nowIso = new Date().toISOString();
+
+    const [talentRes, docsRes, talentInvRes, staffInvRes, billingRes, needsReviewRes, expiringRes] = await Promise.all([
       supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
       supabase.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
       supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending"),
       supabase.from("agency_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("kind", "staff").eq("status", "pending"),
       supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
+      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "needs_review"),
+      supabase
+        .from("talent_shared_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .not("validity_expires_at", "is", null)
+        .gte("validity_expires_at", nowIso)
+        .lte("validity_expires_at", in30d),
     ]);
 
     return {
@@ -132,8 +143,11 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
       invitationsCount: (talentInvRes.count ?? 0) + (staffInvRes.count ?? 0),
       invitationsNeedAction: (talentInvRes.count ?? 0) + (staffInvRes.count ?? 0),
       billingDocsCount: billingRes.count ?? 0,
+      needsReviewCount: needsReviewRes.count ?? 0,
+      expiringSoonCount: expiringRes.count ?? 0,
     };
   });
+
 
 // -----------------------------------------------------------------------------
 // Talent links (with manager profile + shared doc count) scoped to agency.
