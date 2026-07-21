@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, FileText, Mail, FileSpreadsheet, MoreVertical, Info, AlertTriangle, UserPlus, Settings, FolderCog, Sparkles, Activity } from "lucide-react";
+import { Users, FileText, Mail, FileSpreadsheet, MoreVertical, Info, AlertTriangle, UserPlus, Settings, FolderCog, Sparkles, Activity, ShieldCheck, ClipboardCheck, CalendarClock, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   agencyWhoami,
