@@ -1,6 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+
+function extractRequestMeta(): { ip_address: string | null; user_agent: string | null } {
+  try {
+    const req = getRequest();
+    const h = req?.headers;
+    if (!h) return { ip_address: null, user_agent: null };
+    const fwd = h.get("cf-connecting-ip")
+      || h.get("x-real-ip")
+      || (h.get("x-forwarded-for") ?? "").split(",")[0].trim()
+      || null;
+    return {
+      ip_address: fwd || null,
+      user_agent: h.get("user-agent") || null,
+    };
+  } catch {
+    return { ip_address: null, user_agent: null };
+  }
+}
 
 async function logAgencyAudit(
   supabase: any,
@@ -13,6 +32,7 @@ async function logAgencyAudit(
   targetLabel?: string,
   detail: Record<string, unknown> = {},
 ) {
+  const { ip_address, user_agent } = extractRequestMeta();
   await supabase.from("agency_audit_log").insert({
     agency_id: agencyId,
     actor_id: userId,
@@ -22,8 +42,11 @@ async function logAgencyAudit(
     target_id: targetId ?? null,
     target_label: targetLabel ?? null,
     detail,
+    ip_address,
+    user_agent,
   });
 }
+
 
 async function assertAgencyOwner(supabase: any, userId: string, agencyId: string) {
   const { data, error } = await supabase.rpc("has_agency_role", {
