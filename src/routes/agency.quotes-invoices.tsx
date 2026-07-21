@@ -2,13 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, MoreVertical, FileSpreadsheet, Receipt, Clock, AlertTriangle, Trash2, Pencil, X, Save } from "lucide-react";
+import { Plus, FileSpreadsheet, Receipt, Clock, AlertTriangle, Trash2, Pencil, X, Save, ArrowRightLeft, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listAgencyBillingDocs,
   upsertAgencyBillingDoc,
   updateAgencyBillingDocStatus,
   deleteAgencyBillingDoc,
+  setBillingDocShared,
+  convertQuoteToInvoice,
 } from "@/lib/agency.functions";
 
 type Row = {
@@ -23,6 +25,8 @@ type Row = {
   total_cents: number;
   status: "draft" | "sent" | "accepted" | "paid" | "overdue" | "cancelled";
   notes: string | null;
+  shared_with_talent: boolean;
+  converted_from_quote_id: string | null;
 };
 
 const listQO = queryOptions({
@@ -65,6 +69,7 @@ type EditorState = {
   total_amount: string;
   status: Row["status"];
   notes: string;
+  shared_with_talent: boolean;
 };
 
 const emptyEditor = (kind: "quote" | "invoice"): EditorState => ({
@@ -78,6 +83,7 @@ const emptyEditor = (kind: "quote" | "invoice"): EditorState => ({
   total_amount: "",
   status: "draft",
   notes: "",
+  shared_with_talent: false,
 });
 
 function QIPage() {
@@ -86,6 +92,8 @@ function QIPage() {
   const upsertFn = useServerFn(upsertAgencyBillingDoc);
   const statusFn = useServerFn(updateAgencyBillingDocStatus);
   const deleteFn = useServerFn(deleteAgencyBillingDoc);
+  const shareFn = useServerFn(setBillingDocShared);
+  const convertFn = useServerFn(convertQuoteToInvoice);
 
   const [tab, setTab] = useState<"records" | "clients" | "settings">("records");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -116,15 +124,34 @@ function QIPage() {
 
   const kpis = useMemo(() => {
     const now = Date.now();
-    const days90 = 90 * 24 * 60 * 60 * 1000;
-    let outstanding = 0, paid90 = 0, quotesPending = 0, late = 0;
+    const days30 = 30 * 24 * 60 * 60 * 1000;
+    let outstanding = 0, paid30 = 0, quotesPending = 0;
+    let quotesTotal = 0, quotesConverted = 0;
     for (const r of rows) {
       if (r.kind === "invoice" && (r.status === "sent" || r.status === "overdue")) outstanding += r.total_cents;
-      if (r.kind === "invoice" && r.status === "paid" && now - new Date(r.issued_at).getTime() < days90) paid90 += r.total_cents;
+      if (r.kind === "invoice" && r.status === "paid" && now - new Date(r.issued_at).getTime() < days30) paid30 += r.total_cents;
       if (r.kind === "quote" && (r.status === "sent" || r.status === "draft")) quotesPending += r.total_cents;
-      if (r.status === "overdue") late += r.total_cents;
+      if (r.kind === "quote") {
+        quotesTotal += 1;
+        if (r.status === "accepted") quotesConverted += 1;
+      }
     }
-    return { outstanding, paid90, quotesPending, late };
+    const conversionRate = quotesTotal === 0 ? 0 : Math.round((quotesConverted / quotesTotal) * 100);
+    return { outstanding, paid30, quotesPending, conversionRate };
+  }, [rows]);
+
+  // Build cross-reference: quote_id -> invoice row (from converted_from_quote_id)
+  const quoteToInvoice = useMemo(() => {
+    const m = new Map<string, Row>();
+    for (const r of rows) {
+      if (r.kind === "invoice" && r.converted_from_quote_id) m.set(r.converted_from_quote_id, r);
+    }
+    return m;
+  }, [rows]);
+  const rowById = useMemo(() => {
+    const m = new Map<string, Row>();
+    for (const r of rows) m.set(r.id, r);
+    return m;
   }, [rows]);
 
   const clientAgg = useMemo(() => {
@@ -156,6 +183,7 @@ function QIPage() {
       total_amount: (r.total_cents / 100).toString(),
       status: r.status,
       notes: r.notes ?? "",
+      shared_with_talent: r.shared_with_talent,
     });
     setEditorOpen(true);
   }
@@ -178,6 +206,7 @@ function QIPage() {
           total_cents: Math.round(amt * 100),
           status: editor.status,
           notes: editor.notes.trim() || null,
+          shared_with_talent: editor.shared_with_talent,
         },
       });
     },
@@ -207,6 +236,28 @@ function QIPage() {
     onError: (e: any) => toast.error(e.message ?? "Delete failed"),
   });
 
+  const toggleShare = useMutation({
+    mutationFn: ({ id, shared }: { id: string; shared: boolean }) => shareFn({ data: { id, shared } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "billing"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
+
+  const convert = useMutation({
+    mutationFn: (quote: Row) => {
+      const suggested = `INV-${new Date().getFullYear()}-${quote.number.replace(/[^0-9]/g, "").slice(-4) || "001"}`;
+      const num = window.prompt(`Invoice number for conversion of ${quote.number}:`, suggested);
+      if (!num) return Promise.reject(new Error("Cancelled"));
+      return convertFn({ data: { quote_id: quote.id, invoice_number: num.trim() } });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "billing"] });
+      toast.success("Invoice created from quote");
+    },
+    onError: (e: any) => { if (e.message !== "Cancelled") toast.error(e.message ?? "Conversion failed"); },
+  });
+
   return (
     <>
       <div className="tvp-topbar">
@@ -230,9 +281,9 @@ function QIPage() {
         <>
           <div className="tvp-finance-grid">
             <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Outstanding</div><div className="tvp-amount">{fmtMoney(kpis.outstanding, "ZAR")}</div><div className="tvp-note">Sent & overdue invoices</div></div>
-            <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Paid (90d)</div><div className="tvp-amount">{fmtMoney(kpis.paid90, "ZAR")}</div><div className="tvp-note">Invoices paid, last 90 days</div></div>
+            <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Paid (30d)</div><div className="tvp-amount">{fmtMoney(kpis.paid30, "ZAR")}</div><div className="tvp-note">Invoices paid, last 30 days</div></div>
             <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Quotes pending</div><div className="tvp-amount">{fmtMoney(kpis.quotesPending, "ZAR")}</div><div className="tvp-note">Draft & sent quotes</div></div>
-            <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Late</div><div className="tvp-amount" style={{ color: "var(--tvp-red)" }}>{fmtMoney(kpis.late, "ZAR")}</div><div className="tvp-note">Marked overdue</div></div>
+            <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Conversion rate</div><div className="tvp-amount">{kpis.conversionRate}%</div><div className="tvp-note">Quotes accepted / total</div></div>
           </div>
 
           <div className="tvp-card">
@@ -255,12 +306,15 @@ function QIPage() {
               </div>
             </div>
             <table className="tvp-table">
-              <thead><tr><th>Ref</th><th>Client</th><th>Talent</th><th>Type</th><th>Status</th><th>Amount</th><th>Issued</th><th>Due</th><th></th></tr></thead>
+              <thead><tr><th>Ref</th><th>Client</th><th>Talent</th><th>Type</th><th>Status</th><th>Amount</th><th>Issued</th><th>Due</th><th>Shared</th><th>Linked</th><th></th></tr></thead>
               <tbody>
                 {visible.length === 0 && (
-                  <tr><td colSpan={9} className="tvp-muted" style={{ padding: 24 }}>No records yet. Click New Quote or New Invoice to create one.</td></tr>
+                  <tr><td colSpan={11} className="tvp-muted" style={{ padding: 24 }}>No records yet. Click New Quote or New Invoice to create one.</td></tr>
                 )}
-                {visible.map((r) => (
+                {visible.map((r) => {
+                  const linkedInvoice = r.kind === "quote" ? quoteToInvoice.get(r.id) : null;
+                  const sourceQuote = r.kind === "invoice" && r.converted_from_quote_id ? rowById.get(r.converted_from_quote_id) : null;
+                  return (
                   <tr key={r.id}>
                     <td><strong>{r.number}</strong></td>
                     <td>{r.client_name ?? "—"}</td>
@@ -280,13 +334,41 @@ function QIPage() {
                     <td>{r.issued_at}</td>
                     <td>{r.due_date ?? "—"}</td>
                     <td>
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: r.talent_name ? "pointer" : "not-allowed", opacity: r.talent_name ? 1 : 0.5 }} title={r.talent_name ? "Toggle visibility to the linked talent" : "Set a talent to enable sharing"}>
+                        <input
+                          type="checkbox"
+                          checked={r.shared_with_talent}
+                          disabled={!r.talent_name}
+                          onChange={(e) => toggleShare.mutate({ id: r.id, shared: e.target.checked })}
+                        />
+                        <span className="tvp-muted" style={{ fontSize: 12 }}>{r.shared_with_talent ? "Shared" : "Private"}</span>
+                      </label>
+                    </td>
+                    <td>
+                      {linkedInvoice && (
+                        <span className="tvp-status tvp-green" title={`Converted to invoice ${linkedInvoice.number}`}>
+                          <Link2 className="h-3 w-3 inline mr-1" />{linkedInvoice.number}
+                        </span>
+                      )}
+                      {sourceQuote && (
+                        <span className="tvp-status tvp-blue" title={`From quote ${sourceQuote.number}`}>
+                          <Link2 className="h-3 w-3 inline mr-1" />{sourceQuote.number}
+                        </span>
+                      )}
+                      {!linkedInvoice && !sourceQuote && <span className="tvp-muted">—</span>}
+                    </td>
+                    <td>
                       <div className="flex gap-2">
+                        {r.kind === "quote" && !linkedInvoice && (
+                          <button className="tvp-mini-btn" title="Convert to invoice" onClick={() => convert.mutate(r)}><ArrowRightLeft className="h-4 w-4" /></button>
+                        )}
                         <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></button>
                         <button className="tvp-mini-btn" title="Delete" onClick={() => { if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id); }}><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -379,6 +461,19 @@ function QIPage() {
             <div className="tvp-form-group" style={{ marginTop: 12 }}>
               <label>Notes</label>
               <textarea value={editor.notes} onChange={(e) => setEditor({ ...editor, notes: e.target.value })} rows={3} />
+            </div>
+            <div className="tvp-form-group" style={{ marginTop: 12 }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={editor.shared_with_talent}
+                  onChange={(e) => setEditor({ ...editor, shared_with_talent: e.target.checked })}
+                />
+                Share with linked talent
+              </label>
+              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 4 }}>
+                When shared, the talent named above can view this record from their portal.
+              </div>
             </div>
 
             <div className="flex justify-end gap-2" style={{ marginTop: 16 }}>

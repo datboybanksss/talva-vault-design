@@ -239,6 +239,7 @@ export type Database = {
         Row: {
           agency_id: string
           client_name: string | null
+          converted_from_quote_id: string | null
           created_at: string
           currency: string
           due_date: string | null
@@ -247,6 +248,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["doc_kind"]
           notes: string | null
           number: string
+          shared_with_talent: boolean
           status: Database["public"]["Enums"]["doc_status"]
           talent_name: string | null
           total_cents: number
@@ -255,6 +257,7 @@ export type Database = {
         Insert: {
           agency_id: string
           client_name?: string | null
+          converted_from_quote_id?: string | null
           created_at?: string
           currency?: string
           due_date?: string | null
@@ -263,6 +266,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["doc_kind"]
           notes?: string | null
           number: string
+          shared_with_talent?: boolean
           status?: Database["public"]["Enums"]["doc_status"]
           talent_name?: string | null
           total_cents?: number
@@ -271,6 +275,7 @@ export type Database = {
         Update: {
           agency_id?: string
           client_name?: string | null
+          converted_from_quote_id?: string | null
           created_at?: string
           currency?: string
           due_date?: string | null
@@ -279,6 +284,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["doc_kind"]
           notes?: string | null
           number?: string
+          shared_with_talent?: boolean
           status?: Database["public"]["Enums"]["doc_status"]
           talent_name?: string | null
           total_cents?: number
@@ -290,6 +296,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_billing_docs_converted_from_quote_id_fkey"
+            columns: ["converted_from_quote_id"]
+            isOneToOne: false
+            referencedRelation: "agency_billing_docs"
             referencedColumns: ["id"]
           },
         ]
