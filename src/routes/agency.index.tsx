@@ -367,6 +367,66 @@ function AgencyDashboard() {
         </Link>
       </div>
 
+      <div className="tvp-card tvp-panel" style={{ marginBottom: 20 }}>
+        <div className="tvp-panel-head">
+          <h2 className="tvp-h2">
+            <Activity className="inline h-5 w-5" style={{ marginRight: 6, verticalAlign: -3 }} />
+            Recent talent activity
+          </h2>
+          <Link to="/agency/activity" className="tvp-link">View full activity log →</Link>
+        </div>
+        <div className="flex flex-wrap gap-2 pb-3">
+          {ACTIVITY_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              className={`tvp-life-chip${activityFilter === f.key ? " tvp-active-filter" : ""}`}
+              onClick={() => setActivityFilter(f.key)}
+              style={{ padding: "6px 12px" }}
+            >
+              <div className="tvp-label">{f.label}</div>
+            </button>
+          ))}
+        </div>
+        <table className="tvp-table">
+          <thead>
+            <tr>
+              <th style={{ width: 120 }}>When</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Target</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activity.isLoading && (
+              <tr><td colSpan={4} className="tvp-muted">Loading activity…</td></tr>
+            )}
+            {!activity.isLoading && filteredActivity.length === 0 && (
+              <tr>
+                <td colSpan={4} className="tvp-muted">
+                  {activityRows.length === 0
+                    ? "No activity yet. Actions across your workspace will appear here."
+                    : "No activity matches this filter."}
+                </td>
+              </tr>
+            )}
+            {filteredActivity.map((r) => (
+              <tr key={r.id}>
+                <td className="tvp-muted" style={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                  {formatRelative(r.createdAt)}
+                </td>
+                <td>{r.actorName}</td>
+                <td>{ACTIVITY_ACTION_LABELS[r.action] ?? r.action.replace(/_/g, " ")}</td>
+                <td>{r.targetLabel ?? <span className="tvp-muted">—</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+          Status reflects manager-led documents only. Talent's Private Vault items are excluded.
+        </div>
+      </div>
+
+
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">
