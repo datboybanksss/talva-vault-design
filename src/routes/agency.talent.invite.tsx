@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Save, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, Send, Sparkles, Check, Settings2, ShieldCheck, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/agency/talent/invite")({
   head: () => ({ meta: [{ title: "Invite Talent · TalVault" }] }),
@@ -14,10 +14,11 @@ const steps = [
   { num: 4, title: "Review & Send", sub: "Send invite" },
 ];
 
-const folders = [
-  "ID Documents", "Contracts", "Travel", "Certified Documents",
-  "Tax", "Proof of Accounts", "Property", "Sponsorships",
+const defaultFolders = [
+  "ID Documents", "Contracts", "Travel", "Certified Documents", "Tax", "Proof of Accounts",
 ];
+const optionalFolders = ["Property", "Sponsorships"];
+const allFolders = [...defaultFolders, ...optionalFolders];
 
 function InviteTalent() {
   const [step, setStep] = useState(1);
