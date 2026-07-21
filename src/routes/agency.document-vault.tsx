@@ -9,6 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   listAgencyVaultDocuments,
   listAgencyTalentLinksLite,
+  listAgencyTalentFolders,
   registerAgencyVaultDocument,
   getAgencyVaultSignedUrl,
   deleteAgencyVaultDocument,
@@ -515,16 +516,42 @@ function UploadDialog({
   const [talentLinkId, setTalentLinkId] = useState<string>(
     talentLinks.find((l) => l.status !== "ended")?.id ?? "",
   );
-  const [folder, setFolder] = useState<string>(FOLDER_OPTIONS[0]);
+  const [folder, setFolder] = useState<string>("");
   const [status, setStatus] = useState<"filed" | "needs_review" | "ai_suggested">("needs_review");
   const [expiry, setExpiry] = useState<string>("");
   const [busy, setBusy] = useState(false);
+
+  const listFoldersFn = useServerFn(listAgencyTalentFolders);
+  const { data: allowedFolders, isLoading: foldersLoading } = useQuery({
+    queryKey: ["agency", "vault", "talent-folders", talentLinkId],
+    queryFn: () => listFoldersFn({ data: { talent_link_id: talentLinkId } }),
+    enabled: !!talentLinkId,
+  });
+
+  // Reset folder selection when talent changes
+  const folderKeys = (allowedFolders ?? []).map((f: { folderName: string }) => f.folderName).join("|");
+  useMemo(() => {
+    if (allowedFolders && allowedFolders.length > 0) {
+      if (!allowedFolders.find((f: { folderName: string }) => f.folderName === folder)) {
+        setFolder(allowedFolders[0].folderName);
+      }
+    } else {
+      setFolder("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderKeys]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
     if (!file) return toast.error("Pick a file first");
     if (!agencyId) return toast.error("No agency context");
+    if (!talentLinkId) return toast.error("Select a talent");
+    if (!folder) return toast.error("Select an allowed destination folder");
+    // Guard: folder must be one of the talent's provisioned allowed folders.
+    if (!(allowedFolders ?? []).some((f: { folderName: string }) => f.folderName === folder)) {
+      return toast.error("That folder isn't allowed for this talent");
+    }
 
     setBusy(true);
     try {
@@ -600,41 +627,80 @@ function UploadDialog({
           ))}
         </select>
 
-        <div className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Destination folder</div>
+        <div className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+          Destination folder{" "}
+          {talentLinkId && (
+            <span style={{ fontWeight: 600 }}>
+              · {talentLinks.find((l) => l.id === talentLinkId)?.displayName ?? ""}
+            </span>
+          )}
+        </div>
         <div style={{ fontSize: 12, color: "var(--tvp-muted)", marginTop: -4, textTransform: "uppercase", letterSpacing: 0.4 }}>
           Roster Shared Folder · Allowed
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {ALLOWED_FOLDERS.map((f) => {
-            const Icon = f.icon;
-            const active = folder === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFolder(f.key)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 12px", borderRadius: 8, textAlign: "left",
-                  background: active ? "rgba(37, 99, 235, 0.08)" : "white",
-                  border: `1px solid ${active ? "rgba(37, 99, 235, 0.5)" : "var(--tvp-border, #e5e7eb)"}`,
-                  cursor: "pointer",
-                }}
-              >
-                <Icon className="h-4 w-4" style={{ color: active ? "#2563eb" : "var(--tvp-muted)" }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{f.label}</div>
-                  <div className="tvp-muted" style={{ fontSize: 12 }}>{f.description}</div>
-                </div>
-                <span className="tvp-status tvp-green" style={{ fontSize: 11 }}>Allowed</span>
-              </button>
-            );
-          })}
+          {!talentLinkId ? (
+            <div className="tvp-muted" style={{ fontSize: 12, padding: "8px 4px" }}>
+              Select a talent to see their allowed destinations.
+            </div>
+          ) : foldersLoading ? (
+            <div className="tvp-muted" style={{ fontSize: 12, padding: "8px 4px" }}>
+              <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" /> Loading folders…
+            </div>
+          ) : (allowedFolders ?? []).length === 0 ? (
+            <div
+              style={{
+                fontSize: 12, padding: "10px 12px", borderRadius: 8,
+                background: "rgba(180, 83, 9, 0.08)",
+                border: "1px solid rgba(180, 83, 9, 0.25)",
+              }}
+            >
+              <strong>No folders provisioned for this talent.</strong>
+              <div className="tvp-muted" style={{ marginTop: 2 }}>
+                Set one up under <Link to="/agency/folder-templates" className="tvp-link">Folder Templates</Link>{" "}
+                or re-invite with a folder selection.
+              </div>
+            </div>
+          ) : (
+            (allowedFolders ?? []).map((f: { id: string; folderName: string }) => {
+              const meta = ALLOWED_FOLDERS.find((m) => m.key === f.folderName);
+              const Icon = meta?.icon ?? FileText;
+              const active = folder === f.folderName;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFolder(f.folderName)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px", borderRadius: 8, textAlign: "left",
+                    background: active ? "rgba(37, 99, 235, 0.08)" : "white",
+                    border: `1px solid ${active ? "rgba(37, 99, 235, 0.5)" : "var(--tvp-border, #e5e7eb)"}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Icon className="h-4 w-4" style={{ color: active ? "#2563eb" : "var(--tvp-muted)" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{f.folderName}</div>
+                    {meta?.description && (
+                      <div className="tvp-muted" style={{ fontSize: 12 }}>{meta.description}</div>
+                    )}
+                  </div>
+                  <span className="tvp-status tvp-green" style={{ fontSize: 11 }}>Allowed</span>
+                </button>
+              );
+            })
+          )}
         </div>
 
+
         <div style={{ fontSize: 12, color: "var(--tvp-muted)", marginTop: 8, textTransform: "uppercase", letterSpacing: 0.4 }}>
-          Private Vault · Blocked
+          Talent Private Vault · Read-only to you
         </div>
+        <div className="tvp-muted" style={{ fontSize: 11, marginTop: -2 }}>
+          Representative list — the Talent Portal isn't wired yet, so these aren't per-talent real folders.
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.65 }}>
           {BLOCKED_FOLDERS.map((f) => {
             const Icon = f.icon;

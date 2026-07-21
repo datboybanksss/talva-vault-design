@@ -626,6 +626,29 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
     }));
   });
 
+// List folders provisioned for a specific talent link (from M2 invite selection).
+export const listAgencyTalentFolders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ talent_link_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: rows, error } = await supabase
+      .from("agency_talent_folders")
+      .select("id, folder_name, sort_order")
+      .eq("agency_id", agencyId)
+      .eq("talent_link_id", data.talent_link_id)
+      .order("sort_order", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r: any) => ({
+      id: r.id as string,
+      folderName: r.folder_name as string,
+      sortOrder: r.sort_order as number,
+    }));
+  });
+
+
+
 // End / reactivate a talent relationship. Owner-only.
 export const endTalentRelationship = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
