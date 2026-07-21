@@ -33,6 +33,7 @@ const manage: NavItem[] = [
   { to: "/agency/talent", label: "Talent Roster", icon: <Users /> },
   { to: "/agency/invitations", label: "Invitations", icon: <Send /> },
   { to: "/agency/document-vault", label: "Roster Shared Folder", icon: <Folder /> },
+  { to: "/agency/document-requests", label: "Document Requests", icon: <ShieldCheck /> },
   {
     to: "/agency/quotes-invoices",
     label: (
