@@ -347,16 +347,12 @@ function AgencyDashboard() {
           </Link>
         </div>
       )}
-
-
-
-
       <div className="tvp-grid tvp-kpi-grid">
-        <Link to="/agency/talent" className="tvp-card tvp-kpi">
+        <Link to="/agency/talent" className="tvp-card tvp-kpi tvp-clickable">
           <div className="tvp-kpi-icon tvp-bg-teal"><Users className="h-5 w-5" /></div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.talentCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Total talent</div>
+            <div className="tvp-kpi-label">Talent Profiles</div>
             <div className="tvp-kpi-sub" style={{ color: "var(--tvp-teal)" }}>
               {(metrics.data?.newTalentThisMonth ?? 0) > 0
                 ? `+${metrics.data?.newTalentThisMonth} this month`
@@ -364,111 +360,207 @@ function AgencyDashboard() {
             </div>
           </div>
         </Link>
-        <Link to="/agency/talent" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-green"><ShieldCheck className="h-5 w-5" /></div>
+        <Link to="/agency/document-vault" className="tvp-card tvp-kpi tvp-clickable">
+          <div className="tvp-kpi-icon tvp-bg-blue"><FileText className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">{metrics.data?.fullyCompliantCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Fully compliant</div>
-            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-green)" }}>
-              {(() => {
-                const t = metrics.data?.talentCount ?? 0;
-                const c = metrics.data?.fullyCompliantCount ?? 0;
-                return t > 0 ? `${Math.round((c / t) * 100)}% compliance` : "—";
-              })()}
+            <div className="tvp-kpi-value">{metrics.data?.vaultDocumentsCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Vault Documents</div>
+            <div className="tvp-kpi-sub">
+              {(metrics.data?.expiringSoonCount ?? 0) > 0
+                ? `${metrics.data?.expiringSoonCount} expiring in 30d`
+                : "All up to date"}
             </div>
           </div>
         </Link>
-        <Link to="/agency/talent" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-purple"><ClipboardCheck className="h-5 w-5" /></div>
+        <Link to="/agency/invitations" className="tvp-card tvp-kpi tvp-clickable">
+          <div className="tvp-kpi-icon tvp-bg-amber"><Mail className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">{metrics.data?.needsReviewCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Needs review</div>
+            <div className="tvp-kpi-value">{metrics.data?.invitationsCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Invitations</div>
             <div className="tvp-kpi-sub tvp-warn">
-              {metrics.data?.needsReviewOver48Count ?? 0} over 48 hrs
+              {(metrics.data?.invitationsNeedAction ?? 0) > 0
+                ? `${metrics.data?.invitationsNeedAction} need action`
+                : "None pending"}
             </div>
           </div>
         </Link>
-        <Link to="/agency/document-vault" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-amber"><CalendarClock className="h-5 w-5" /></div>
+        <Link to="/agency/quotes-invoices" className="tvp-card tvp-kpi tvp-clickable">
+          <div className="tvp-kpi-icon tvp-bg-purple"><FileSpreadsheet className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">{metrics.data?.expiringSoonCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Expiring 30d</div>
-            <div className="tvp-kpi-sub">Includes endorsements</div>
+            <div className="tvp-kpi-value">{metrics.data?.billingDocsCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Quotes &amp; Invoices</div>
+            <div className="tvp-kpi-sub tvp-warn">
+              {(metrics.data?.overdueInvoicesCount ?? 0) > 0
+                ? `${metrics.data?.overdueInvoicesCount} need follow-up`
+                : "No overdue items"}
+            </div>
           </div>
         </Link>
       </div>
 
-
-      <div className="tvp-card tvp-panel" style={{ marginBottom: 20 }}>
+      <div className="tvp-card tvp-panel" style={{ marginTop: 20 }}>
         <div className="tvp-panel-head">
-          <h2 className="tvp-h2">
-            <Activity className="inline h-5 w-5" style={{ marginRight: 6, verticalAlign: -3 }} />
-            Recent workspace activity
-          </h2>
-
-          <Link to="/agency/activity" className="tvp-link">View full activity log →</Link>
+          <h2 className="tvp-h2">Talent Workspace Overview</h2>
+          <Link to="/agency/talent" className="tvp-link">View full roster →</Link>
         </div>
-        <div className="flex flex-wrap gap-2 pb-3">
-          {ACTIVITY_FILTERS.map((f) => (
+
+        <div className="flex flex-wrap items-center gap-3 pb-3">
+          <select
+            className="tvp-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All statuses</option>
+            {CHIP_ORDER.map((c) => (
+              <option key={c.key} value={c.key}>{STATUS_LABEL[c.key]}</option>
+            ))}
+          </select>
+          <select
+            className="tvp-select"
+            value={manager}
+            onChange={(e) => setManager(e.target.value)}
+          >
+            <option value="all">All managers</option>
+            {managerOptions.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+          <select
+            className="tvp-select"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+          >
+            <option value="all">All talent types</option>
+            {typeOptions.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          {(statusFilter !== "all" || manager !== "all" || type !== "all") && (
+            <button className="tvp-link" onClick={reset}>Reset filters</button>
+          )}
+        </div>
+
+        <div className="tvp-life-chips">
+          {chips.map((c) => (
             <button
-              key={f.key}
-              className={`tvp-life-chip${activityFilter === f.key ? " tvp-active-filter" : ""}`}
-              onClick={() => setActivityFilter(f.key)}
-              style={{ padding: "6px 12px" }}
+              key={c.key}
+              className={`tvp-life-chip${statusFilter === c.key ? " tvp-active-filter" : ""} tvp-bg-${c.tone}`}
+              onClick={() => setStatusFilter(statusFilter === c.key ? "all" : c.key)}
             >
-              <div className="tvp-label">{f.label}</div>
+              <div className="tvp-label">{c.label}</div>
+              <div className="tvp-num">{c.num}</div>
             </button>
           ))}
         </div>
-        <table className="tvp-table">
-          <thead>
-            <tr>
-              <th style={{ width: 120 }}>When</th>
-              <th>Actor</th>
-              <th>Action</th>
-              <th>Target</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activity.isLoading && (
-              <tr><td colSpan={4} className="tvp-muted">Loading activity…</td></tr>
-            )}
-            {!activity.isLoading && filteredActivity.length === 0 && (
+
+        <div className="tvp-table-wrap" style={{ marginTop: 14 }}>
+          <table className="tvp-table">
+            <thead>
               <tr>
-                <td colSpan={4} className="tvp-muted">
-                  {activityRows.length === 0
-                    ? "No activity yet. Actions across your workspace will appear here."
-                    : "No activity matches this filter."}
-                </td>
+                <th>Talent</th>
+                <th>Status</th>
+                <th>Manager</th>
+                <th>Type</th>
+                <th>Last activity</th>
+                <th></th>
               </tr>
-            )}
-            {filteredActivity.map((r) => (
-              <tr key={r.id}>
-                <td className="tvp-muted" style={{ whiteSpace: "nowrap", fontSize: 13 }}>
-                  {formatRelative(r.createdAt)}
-                </td>
-                <td>{r.actorName}</td>
-                <td>{ACTIVITY_ACTION_LABELS[r.action] ?? r.action.replace(/_/g, " ")}</td>
-                <td>{r.targetLabel ?? <span className="tvp-muted">—</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
-          Status reflects manager-led documents only. Talent's Private Vault items are excluded.
+            </thead>
+            <tbody>
+              {talent.isLoading && (
+                <tr><td colSpan={6} className="tvp-muted">Loading talent…</td></tr>
+              )}
+              {!talent.isLoading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="tvp-muted">
+                    {rows.length === 0
+                      ? "No talent on your roster yet."
+                      : "No talent matches these filters."}
+                  </td>
+                </tr>
+              )}
+              {filtered.map((r) => {
+                const last = r.lastDocumentAt ?? r.updatedAt;
+                return (
+                  <tr key={r.id}>
+                    <td>
+                      <strong>{r.displayName}</strong>
+                      <br />
+                      <span className="tvp-muted" style={{ fontSize: 12 }}>
+                        {r.status === "invited"
+                          ? `Invited ${formatDate(r.createdAt)}`
+                          : `Joined ${formatDate(r.createdAt)}`}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`tvp-status tvp-${STATUS_TONE[r.status] ?? "neutral"}`}>
+                        {STATUS_LABEL[r.status] ?? r.status}
+                      </span>
+                    </td>
+                    <td>{r.managerName || "—"}</td>
+                    <td>{r.talentType || "—"}</td>
+                    <td className="tvp-muted" style={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                      {formatRelative(last)}
+                    </td>
+                    <td style={{ position: "relative", whiteSpace: "nowrap" }}>
+                      <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13 }}>
+                        Open <ArrowRight className="inline h-3 w-3" />
+                      </Link>
+                      <button
+                        className="tvp-mini-btn"
+                        title="Actions"
+                        onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
+                        disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
+                        style={{ marginLeft: 6 }}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                      {openMenuId === r.id && isOwner && (
+                        <div
+                          style={{
+                            position: "absolute", right: 8, top: 32, zIndex: 20,
+                            background: "white", border: "1px solid var(--tvp-border, #e5e7eb)",
+                            borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
+                            minWidth: 200, padding: 4,
+                          }}
+                          onMouseLeave={() => setOpenMenuId(null)}
+                        >
+                          {r.status === "ended" ? (
+                            <button
+                              className="tvp-mini-btn"
+                              style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px" }}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                if (confirm(`Reactivate relationship with ${r.displayName}?`)) {
+                                  reactivateMut.mutate(r.id);
+                                }
+                              }}
+                            >
+                              Reactivate relationship
+                            </button>
+                          ) : (
+                            <button
+                              className="tvp-mini-btn"
+                              style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "var(--tvp-red, #b91c1c)" }}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                if (confirm(`End working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
+                                  endMut.mutate(r.id);
+                                }
+                              }}
+                            >
+                              End relationship…
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
-
-
-      <RecentTalentActivity
-        rows={rows}
-        isLoading={talent.isLoading}
-        isOwner={isOwner}
-        openMenuId={openMenuId}
-        setOpenMenuId={setOpenMenuId}
-        endMut={endMut}
-        reactivateMut={reactivateMut}
-      />
     </>
   );
 }
