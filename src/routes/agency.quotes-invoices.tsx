@@ -122,15 +122,34 @@ function QIPage() {
 
   const kpis = useMemo(() => {
     const now = Date.now();
-    const days90 = 90 * 24 * 60 * 60 * 1000;
-    let outstanding = 0, paid90 = 0, quotesPending = 0, late = 0;
+    const days30 = 30 * 24 * 60 * 60 * 1000;
+    let outstanding = 0, paid30 = 0, quotesPending = 0;
+    let quotesTotal = 0, quotesConverted = 0;
     for (const r of rows) {
       if (r.kind === "invoice" && (r.status === "sent" || r.status === "overdue")) outstanding += r.total_cents;
-      if (r.kind === "invoice" && r.status === "paid" && now - new Date(r.issued_at).getTime() < days90) paid90 += r.total_cents;
+      if (r.kind === "invoice" && r.status === "paid" && now - new Date(r.issued_at).getTime() < days30) paid30 += r.total_cents;
       if (r.kind === "quote" && (r.status === "sent" || r.status === "draft")) quotesPending += r.total_cents;
-      if (r.status === "overdue") late += r.total_cents;
+      if (r.kind === "quote") {
+        quotesTotal += 1;
+        if (r.status === "accepted") quotesConverted += 1;
+      }
     }
-    return { outstanding, paid90, quotesPending, late };
+    const conversionRate = quotesTotal === 0 ? 0 : Math.round((quotesConverted / quotesTotal) * 100);
+    return { outstanding, paid30, quotesPending, conversionRate };
+  }, [rows]);
+
+  // Build cross-reference: quote_id -> invoice row (from converted_from_quote_id)
+  const quoteToInvoice = useMemo(() => {
+    const m = new Map<string, Row>();
+    for (const r of rows) {
+      if (r.kind === "invoice" && r.converted_from_quote_id) m.set(r.converted_from_quote_id, r);
+    }
+    return m;
+  }, [rows]);
+  const rowById = useMemo(() => {
+    const m = new Map<string, Row>();
+    for (const r of rows) m.set(r.id, r);
+    return m;
   }, [rows]);
 
   const clientAgg = useMemo(() => {
