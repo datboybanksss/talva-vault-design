@@ -72,6 +72,21 @@ function formatDateTime(iso: string) {
   }
 }
 
+type AuditRow = {
+  id: string;
+  actorId: string | null;
+  actorName: string;
+  actorEmail: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  targetLabel: string | null;
+  detail: unknown;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+};
+
 function AgencyActivityLog() {
   const listFn = useServerFn(listAgencyAuditLog);
   const actionsFn = useServerFn(listAgencyAuditActions);
@@ -80,15 +95,15 @@ function AgencyActivityLog() {
 
   const actions = useQuery({
     queryKey: ["agency", "audit-actions"],
-    queryFn: () => actionsFn(),
+    queryFn: () => actionsFn() as Promise<string[]>,
   });
   const rows = useQuery({
     queryKey: ["agency", "audit", actionFilter],
     queryFn: () =>
-      listFn({ data: actionFilter === "all" ? {} : { action: actionFilter } }),
+      listFn({ data: actionFilter === "all" ? {} : { action: actionFilter } }) as Promise<AuditRow[]>,
   });
 
-  const list = rows.data ?? [];
+  const list: AuditRow[] = rows.data ?? [];
 
   const actorOptions = useMemo(
     () => Array.from(new Set(list.map((r) => r.actorName))).sort(),
@@ -100,6 +115,7 @@ function AgencyActivityLog() {
     () => list.filter((r) => actorFilter === "all" || r.actorName === actorFilter),
     [list, actorFilter],
   );
+
 
   return (
     <>
