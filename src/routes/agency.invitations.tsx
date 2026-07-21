@@ -15,7 +15,7 @@ import {
 } from "@/lib/agency.functions";
 
 export const Route = createFileRoute("/agency/invitations")({
-  head: () => ({ meta: [{ title: "Invitations · TalVault Agency" }] }),
+  head: () => ({ meta: [{ title: "Invitations · TalVault" }] }),
   component: InvitationsPage,
 });
 
@@ -351,8 +351,8 @@ function NewInvitationModal({
             <div className="tvp-form-group">
               <label>Role</label>
               <select value={role} onChange={(e) => setRole(e.target.value)}>
-                <option value="staff">Staff</option>
-                <option value="manager">Manager</option>
+                <option value="staff">Staff manager (view + limited actions)</option>
+                <option value="lead">Lead manager (full talent operations)</option>
               </select>
             </div>
           )}

@@ -30,9 +30,9 @@ type NavItem = {
 
 const manage: NavItem[] = [
   { to: "/agency", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
-  { to: "/agency/talent", label: "Talent", icon: <Users /> },
+  { to: "/agency/talent", label: "Talent Roster", icon: <Users /> },
   { to: "/agency/invitations", label: "Invitations", icon: <Send /> },
-  { to: "/agency/document-vault", label: "Document Vault", icon: <Folder /> },
+  { to: "/agency/document-vault", label: "Roster Shared Folder", icon: <Folder /> },
   {
     to: "/agency/quotes-invoices",
     label: (
@@ -47,7 +47,7 @@ const manage: NavItem[] = [
 const settings: NavItem[] = [
   { to: "/agency/folder-templates", label: "Folder Templates", icon: <FolderCog /> },
   { to: "/agency/document-rules", label: "Document Rules", icon: <ShieldCheck /> },
-  { to: "/agency/settings", label: "Settings", icon: <SettingsIcon /> },
+  { to: "/agency/settings", label: "Agency Profile", icon: <SettingsIcon /> },
 ];
 
 const toneIcon: Record<string, any> = {
@@ -129,11 +129,11 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
   const roleLabel =
     me?.role === "owner"
-      ? "Agency Owner"
-      : me?.role === "manager"
-        ? "Manager"
+      ? "Manager (Owner)"
+      : me?.role === "lead"
+        ? "Manager (Lead)"
         : me?.role
-          ? "Staff"
+          ? "Manager (Staff)"
           : "";
 
   return (

@@ -31,7 +31,7 @@ const listQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/quotes-invoices")({
-  head: () => ({ meta: [{ title: "Quotes & Invoices · TalVault Agency" }] }),
+  head: () => ({ meta: [{ title: "Quotes & Invoices · TalVault" }] }),
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(listQO);
   },

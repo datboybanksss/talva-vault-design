@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Save } from "lucide-react";
 
 export const Route = createFileRoute("/agency/settings")({
-  head: () => ({ meta: [{ title: "Settings · TalVault Agency" }] }),
+  head: () => ({ meta: [{ title: "Agency Profile · TalVault" }] }),
   component: AgencySettings,
 });
 
@@ -11,8 +11,8 @@ function AgencySettings() {
     <>
       <div className="tvp-topbar">
         <div>
-          <h1 className="tvp-h1">Settings</h1>
-          <div className="tvp-subtitle">Agency profile, billing details and messaging defaults.</div>
+          <h1 className="tvp-h1">Agency Profile</h1>
+          <div className="tvp-subtitle">Identity, billing details, default folders and messaging defaults.</div>
         </div>
         <div className="tvp-actions">
           <button className="tvp-primary"><Save className="h-4 w-4" />Save changes</button>
