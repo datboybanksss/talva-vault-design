@@ -403,8 +403,9 @@ function AgencyDashboard() {
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">
             <Activity className="inline h-5 w-5" style={{ marginRight: 6, verticalAlign: -3 }} />
-            Recent talent activity
+            Recent workspace activity
           </h2>
+
           <Link to="/agency/activity" className="tvp-link">View full activity log →</Link>
         </div>
         <div className="flex flex-wrap gap-2 pb-3">
