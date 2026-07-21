@@ -90,6 +90,8 @@ function QIPage() {
   const upsertFn = useServerFn(upsertAgencyBillingDoc);
   const statusFn = useServerFn(updateAgencyBillingDocStatus);
   const deleteFn = useServerFn(deleteAgencyBillingDoc);
+  const shareFn = useServerFn(setBillingDocShared);
+  const convertFn = useServerFn(convertQuoteToInvoice);
 
   const [tab, setTab] = useState<"records" | "clients" | "settings">("records");
   const [typeFilter, setTypeFilter] = useState<string>("all");
