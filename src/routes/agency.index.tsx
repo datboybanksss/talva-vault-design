@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, FileText, Mail, FileSpreadsheet, MoreVertical, Info, AlertTriangle, UserPlus, Settings, FolderCog, Sparkles, Activity } from "lucide-react";
+import { Users, FileText, Mail, FileSpreadsheet, MoreVertical, Info, AlertTriangle, UserPlus, Settings, FolderCog, Sparkles, Activity, ShieldCheck, ClipboardCheck, CalendarClock, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   agencyWhoami,
@@ -170,10 +170,13 @@ function AgencyDashboard() {
     managerName: string;
     nextAction: string | null;
     docCount: number;
+    expiringDocsCount: number;
+    lastDocumentAt: string | null;
     createdAt: string;
     updatedAt: string;
   };
   const rows: TalentRow[] = (talent.data ?? []) as TalentRow[];
+
 
   const managerOptions = useMemo(
     () => Array.from(new Set(rows.map((r) => r.managerName).filter(Boolean))),
@@ -353,44 +356,56 @@ function AgencyDashboard() {
           <div className="tvp-kpi-icon tvp-bg-teal"><Users className="h-5 w-5" /></div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.talentCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Talent Profiles</div>
-            <div className="tvp-kpi-sub">Across your workspace</div>
-          </div>
-        </Link>
-        <Link to="/agency/document-vault" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-blue"><FileText className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">{metrics.data?.vaultDocumentsCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Vault Documents</div>
-            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-blue)" }}>Shared with your agency</div>
-          </div>
-        </Link>
-        <Link to="/agency/invitations" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-amber"><Mail className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">{metrics.data?.invitationsCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Invitations</div>
-            <div className="tvp-kpi-sub tvp-warn">
-              {metrics.data?.invitationsNeedAction ?? 0} need action
+            <div className="tvp-kpi-label">Total talent</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-teal)" }}>
+              {(metrics.data?.newTalentThisMonth ?? 0) > 0
+                ? `+${metrics.data?.newTalentThisMonth} this month`
+                : "No new talent this month"}
             </div>
           </div>
         </Link>
-        <Link to="/agency/quotes-invoices" className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-purple"><FileSpreadsheet className="h-5 w-5" /></div>
+        <Link to="/agency/talent" className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-green"><ShieldCheck className="h-5 w-5" /></div>
           <div>
-            <div className="tvp-kpi-value">{metrics.data?.billingDocsCount ?? "—"}</div>
-            <div className="tvp-kpi-label">Quotes & Invoices</div>
-            <div className="tvp-kpi-sub">Across all talent</div>
+            <div className="tvp-kpi-value">{metrics.data?.fullyCompliantCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Fully compliant</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-green)" }}>
+              {(() => {
+                const t = metrics.data?.talentCount ?? 0;
+                const c = metrics.data?.fullyCompliantCount ?? 0;
+                return t > 0 ? `${Math.round((c / t) * 100)}% compliance` : "—";
+              })()}
+            </div>
+          </div>
+        </Link>
+        <Link to="/agency/talent" className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-purple"><ClipboardCheck className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{metrics.data?.needsReviewCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Needs review</div>
+            <div className="tvp-kpi-sub tvp-warn">
+              {metrics.data?.needsReviewOver48Count ?? 0} over 48 hrs
+            </div>
+          </div>
+        </Link>
+        <Link to="/agency/document-vault" className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-amber"><CalendarClock className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{metrics.data?.expiringSoonCount ?? "—"}</div>
+            <div className="tvp-kpi-label">Expiring 30d</div>
+            <div className="tvp-kpi-sub">Includes endorsements</div>
           </div>
         </Link>
       </div>
+
 
       <div className="tvp-card tvp-panel" style={{ marginBottom: 20 }}>
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">
             <Activity className="inline h-5 w-5" style={{ marginRight: 6, verticalAlign: -3 }} />
-            Recent talent activity
+            Recent workspace activity
           </h2>
+
           <Link to="/agency/activity" className="tvp-link">View full activity log →</Link>
         </div>
         <div className="flex flex-wrap gap-2 pb-3">
@@ -445,94 +460,140 @@ function AgencyDashboard() {
       </div>
 
 
-      <div className="tvp-card tvp-panel">
-        <div className="tvp-panel-head">
-          <h2 className="tvp-h2">
-            Talent Roster overview <Info className="inline h-4 w-4 text-[var(--tvp-muted)]" />
-          </h2>
-          <Link to="/agency/talent" className="tvp-link">View full roster →</Link>
-        </div>
+      <RecentTalentActivity
+        rows={rows}
+        isLoading={talent.isLoading}
+        isOwner={isOwner}
+        openMenuId={openMenuId}
+        setOpenMenuId={setOpenMenuId}
+        endMut={endMut}
+        reactivateMut={reactivateMut}
+      />
+    </>
+  );
+}
 
-        <div className="flex flex-wrap gap-3 pb-4">
-          <select
-            className="tvp-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+function classifyTalent(r: {
+  status: string;
+  nextAction: string | null;
+  expiringDocsCount: number;
+}): "needs_review" | "action_needed" | "compliant" | "other" {
+  if (r.status === "needs_review") return "needs_review";
+  if (r.status === "active" && !r.nextAction && r.expiringDocsCount === 0) return "compliant";
+  if (r.nextAction || r.expiringDocsCount > 0 || r.status === "expired" || r.status === "invited") return "action_needed";
+  return "other";
+}
+
+function pendingLabel(r: { status: string; nextAction: string | null; expiringDocsCount: number }) {
+  if (r.status === "needs_review") return "Awaiting review";
+  if (r.expiringDocsCount > 0) return `${r.expiringDocsCount} doc${r.expiringDocsCount === 1 ? "" : "s"} expiring soon`;
+  if (r.status === "invited") return "Invitation pending";
+  if (r.status === "expired") return "Access expired";
+  if (r.nextAction) return r.nextAction;
+  return "—";
+}
+
+function RecentTalentActivity({
+  rows, isLoading, isOwner, openMenuId, setOpenMenuId, endMut, reactivateMut,
+}: {
+  rows: Array<{
+    id: string; displayName: string; status: string; talentType: string | null;
+    managerName: string; nextAction: string | null; docCount: number;
+    expiringDocsCount: number; lastDocumentAt: string | null;
+    createdAt: string; updatedAt: string;
+  }>;
+  isLoading: boolean;
+  isOwner: boolean;
+  openMenuId: string | null;
+  setOpenMenuId: (v: string | null) => void;
+  endMut: any;
+  reactivateMut: any;
+}) {
+  const [chip, setChip] = useState<"all" | "needs_review" | "action_needed" | "compliant">("all");
+
+  const counts = useMemo(() => {
+    const c = { all: rows.length, needs_review: 0, action_needed: 0, compliant: 0 };
+    for (const r of rows) {
+      const k = classifyTalent(r);
+      if (k === "needs_review") c.needs_review++;
+      else if (k === "action_needed") c.action_needed++;
+      else if (k === "compliant") c.compliant++;
+    }
+    return c;
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const withKey = rows.map((r) => ({ r, k: classifyTalent(r) }));
+    const list = chip === "all"
+      ? withKey
+      : withKey.filter((x) => x.k === chip);
+    // Sort by last activity desc
+    return list
+      .map(({ r }) => r)
+      .sort((a, b) => {
+        const ta = new Date(a.lastDocumentAt ?? a.updatedAt).getTime();
+        const tb = new Date(b.lastDocumentAt ?? b.updatedAt).getTime();
+        return tb - ta;
+      })
+      .slice(0, 10);
+  }, [rows, chip]);
+
+  const chipDefs: Array<{ key: typeof chip; label: string; count: number; tone: string }> = [
+    { key: "all", label: "All", count: counts.all, tone: "neutral" },
+    { key: "needs_review", label: "Needs review", count: counts.needs_review, tone: "purple" },
+    { key: "action_needed", label: "Action needed", count: counts.action_needed, tone: "amber" },
+    { key: "compliant", label: "Compliant", count: counts.compliant, tone: "green" },
+  ];
+
+  return (
+    <div className="tvp-card tvp-panel">
+      <div className="tvp-panel-head">
+        <h2 className="tvp-h2">
+          Recent talent activity <Info className="inline h-4 w-4 text-[var(--tvp-muted)]" />
+        </h2>
+        <Link to="/agency/talent" className="tvp-link">View full roster →</Link>
+      </div>
+
+      <div className="flex flex-wrap gap-2 pb-3">
+        {chipDefs.map((c) => (
+          <button
+            key={c.key}
+            className={`tvp-life-chip${chip === c.key ? " tvp-active-filter" : ""}`}
+            onClick={() => setChip(c.key)}
+            style={{ background: `var(--tvp-${c.tone}-bg)`, color: `var(--tvp-${c.tone})`, padding: "6px 12px" }}
           >
-            <option value="all">Status: All</option>
-            {CHIP_ORDER.map((c) => (
-              <option key={c.key} value={c.key}>{STATUS_LABEL[c.key]}</option>
-            ))}
-          </select>
-          <select
-            className="tvp-select"
-            value={manager}
-            onChange={(e) => setManager(e.target.value)}
-          >
-            <option value="all">Lead: All</option>
-            {managerOptions.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-          <select
-            className="tvp-select"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            <option value="all">Talent Type: All</option>
-            {typeOptions.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-          <button className="tvp-secondary" onClick={reset}>Reset filters</button>
-        </div>
+            <div className="tvp-label">{c.label}</div>
+            <div className="tvp-num">{c.count}</div>
+          </button>
+        ))}
+      </div>
 
-        <div className="tvp-life-chips">
-          {chips.map((c) => (
-            <button
-              key={c.key}
-              className={`tvp-life-chip${statusFilter === c.key ? " tvp-active-filter" : ""}`}
-              onClick={() => setStatusFilter(statusFilter === c.key ? "all" : c.key)}
-              style={{ background: `var(--tvp-${c.tone}-bg)`, color: `var(--tvp-${c.tone})` }}
-            >
-              <div className="tvp-label">{c.label}</div>
-              <div className="tvp-num">{c.num}</div>
-            </button>
-          ))}
-        </div>
-
-        <div className="tvp-muted" style={{ fontSize: 12, margin: "-4px 0 14px 2px" }}>
-          {statusFilter === "all" && manager === "all" && type === "all"
-            ? `Showing all ${rows.length} roster entries`
-            : `Showing ${filtered.length} of ${rows.length} roster entries`}
-        </div>
-
-        <table className="tvp-table">
-          <thead>
+      <table className="tvp-table">
+        <thead>
+          <tr>
+            <th>Talent</th>
+            <th>Status</th>
+            <th>Pending</th>
+            <th>Last activity</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {isLoading && (
+            <tr><td colSpan={5} className="tvp-muted">Loading talent…</td></tr>
+          )}
+          {!isLoading && filtered.length === 0 && (
             <tr>
-              <th>Talent</th>
-              <th>Status</th>
-              <th>Type</th>
-              <th>Lead</th>
-              <th>Shared Docs</th>
-              <th>Next Action</th>
-              <th></th>
+              <td colSpan={5} className="tvp-muted">
+                {rows.length === 0
+                  ? "No talent on your roster yet. Invite talent to get started."
+                  : "No talent matches this filter."}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {talent.isLoading && (
-              <tr><td colSpan={7} className="tvp-muted">Loading talent…</td></tr>
-            )}
-            {!talent.isLoading && filtered.length === 0 && (
-              <tr>
-                <td colSpan={7} className="tvp-muted">
-                  {rows.length === 0
-                    ? "No talent on your roster yet. Invite talent to get started."
-                    : "No roster entries match the current filters."}
-                </td>
-              </tr>
-            )}
-            {filtered.map((r) => (
+          )}
+          {filtered.map((r) => {
+            const last = r.lastDocumentAt ?? r.updatedAt;
+            return (
               <tr key={r.id}>
                 <td>
                   <strong>{r.displayName}</strong>
@@ -541,7 +602,7 @@ function AgencyDashboard() {
                     {r.talentType ? `${r.talentType} · ` : ""}
                     {r.status === "invited"
                       ? `Invited ${formatDate(r.createdAt)}`
-                      : `Updated ${formatDate(r.updatedAt)}`}
+                      : `Joined ${formatDate(r.createdAt)}`}
                   </span>
                 </td>
                 <td>
@@ -549,16 +610,20 @@ function AgencyDashboard() {
                     {STATUS_LABEL[r.status] ?? r.status}
                   </span>
                 </td>
-                <td>{r.talentType ?? "—"}</td>
-                <td>{r.managerName}</td>
-                <td>{r.docCount}</td>
-                <td>{r.nextAction ?? "—"}</td>
-                <td style={{ position: "relative" }}>
+                <td>{pendingLabel(r)}</td>
+                <td className="tvp-muted" style={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                  {formatRelative(last)}
+                </td>
+                <td style={{ position: "relative", whiteSpace: "nowrap" }}>
+                  <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13 }}>
+                    Open <ArrowRight className="inline h-3 w-3" />
+                  </Link>
                   <button
                     className="tvp-mini-btn"
                     title="Actions"
                     onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
                     disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
+                    style={{ marginLeft: 6 }}
                   >
                     <MoreVertical className="h-4 w-4" />
                   </button>
@@ -578,7 +643,7 @@ function AgencyDashboard() {
                           style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px" }}
                           onClick={() => {
                             setOpenMenuId(null);
-                            if (confirm(`Reactivate relationship with ${r.displayName}? New uploads will be allowed again.`)) {
+                            if (confirm(`Reactivate relationship with ${r.displayName}?`)) {
                               reactivateMut.mutate(r.id);
                             }
                           }}
@@ -603,10 +668,14 @@ function AgencyDashboard() {
                   )}
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            );
+          })}
+        </tbody>
+      </table>
+      <div className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+        Status badges apply only to manager-led documents · Talent's Private Vault items are not counted.
       </div>
-    </>
+    </div>
   );
 }
+
