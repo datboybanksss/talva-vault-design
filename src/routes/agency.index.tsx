@@ -679,7 +679,3 @@ function RecentTalentActivity({
   );
 }
 
-// Trailing exports/utilities intentionally not needed here.
-function _unusedCleanup() {
-
-}
