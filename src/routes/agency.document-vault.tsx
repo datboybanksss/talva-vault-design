@@ -168,7 +168,7 @@ export function VaultPage() {
 
   return (
     <>
-      <div className="tvp-topbar">
+      <div className="tvp-topbar" style={{ marginBottom: 12 }}>
         <div>
           <h1 className="tvp-h1">Document Vault</h1>
           <div className="tvp-subtitle">Agency-visible documents across Talent Shared Folders.</div>
@@ -181,14 +181,14 @@ export function VaultPage() {
         </div>
       </div>
 
-      <div className="tvp-card" style={{ marginBottom: 16 }}>
-        <h2 className="tvp-h2" style={{ marginBottom: 12 }}>Expiring soon</h2>
+      <div className="tvp-card" style={{ marginBottom: 10, padding: "10px 14px" }}>
+        <h2 className="tvp-h2" style={{ marginBottom: 4 }}>Expiring soon</h2>
         {expiring.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13 }}>
+          <p className="tvp-muted" style={{ fontSize: 13, margin: 0 }}>
             Nothing expiring in the next 180 days.
           </p>
         ) : (
-          <div className="tvp-list">
+          <div className="tvp-list" style={{ marginTop: 6 }}>
             {expiring.map((d) => (
               <div key={d.id} className="tvp-list-item">
                 <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
@@ -205,7 +205,7 @@ export function VaultPage() {
         )}
       </div>
 
-      <div className="tvp-tabs">
+      <div className="tvp-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
         {tabs.map((t) => (
           <button key={t} className={`tvp-tab${tab === t ? " tvp-active" : ""}`} onClick={() => setTab(t)}>{t}</button>
         ))}
