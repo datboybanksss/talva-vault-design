@@ -255,9 +255,9 @@ function QIPage() {
         <>
           <div className="tvp-finance-grid">
             <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Outstanding</div><div className="tvp-amount">{fmtMoney(kpis.outstanding, "ZAR")}</div><div className="tvp-note">Sent & overdue invoices</div></div>
-            <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Paid (90d)</div><div className="tvp-amount">{fmtMoney(kpis.paid90, "ZAR")}</div><div className="tvp-note">Invoices paid, last 90 days</div></div>
+            <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Paid (30d)</div><div className="tvp-amount">{fmtMoney(kpis.paid30, "ZAR")}</div><div className="tvp-note">Invoices paid, last 30 days</div></div>
             <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Quotes pending</div><div className="tvp-amount">{fmtMoney(kpis.quotesPending, "ZAR")}</div><div className="tvp-note">Draft & sent quotes</div></div>
-            <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Late</div><div className="tvp-amount" style={{ color: "var(--tvp-red)" }}>{fmtMoney(kpis.late, "ZAR")}</div><div className="tvp-note">Marked overdue</div></div>
+            <div className="tvp-card tvp-finance-card"><div className="tvp-label-cap">Conversion rate</div><div className="tvp-amount">{kpis.conversionRate}%</div><div className="tvp-note">Quotes accepted / total</div></div>
           </div>
 
           <div className="tvp-card">
