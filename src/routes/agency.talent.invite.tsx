@@ -164,6 +164,7 @@ function InviteTalent() {
                   <div className="tvp-small">
                     The talent's Private Vault stays private — nothing you configure here grants access to it.
                   </div>
+                </div>
                 <div className="tvp-ai-box" style={{ marginTop: 16 }}>
                   <strong><Sparkles className="inline h-4 w-4 mr-1" />Invite preview</strong>
                   <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>The Talent will receive a secure invitation email with onboarding steps and folder setup.</p>
