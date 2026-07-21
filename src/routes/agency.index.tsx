@@ -220,8 +220,17 @@ function AgencyDashboard() {
   const needsReview = metrics.data?.needsReviewCount ?? 0;
   const expiringSoon = metrics.data?.expiringSoonCount ?? 0;
   const invitesPending = metrics.data?.invitationsNeedAction ?? 0;
-  const attentionTotal = needsReview + expiringSoon + invitesPending;
+  const overdueInvoices = metrics.data?.overdueInvoicesCount ?? 0;
+  const attentionTotal = needsReview + expiringSoon + invitesPending + overdueInvoices;
   const isEmpty = !metrics.isLoading && !talent.isLoading && talentCount === 0 && invitesPending === 0;
+
+  const reviewTarget = needsReview > 0
+    ? "/agency/talent"
+    : expiringSoon > 0
+      ? "/agency/document-vault"
+      : overdueInvoices > 0
+        ? "/agency/quotes-invoices"
+        : "/agency/invitations";
 
   return (
     <>
@@ -238,11 +247,11 @@ function AgencyDashboard() {
         <div className="tvp-card tvp-panel" style={{ padding: 28, marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
             <Sparkles className="h-5 w-5" style={{ color: "var(--tvp-teal)" }} />
-            <h2 className="tvp-h2" style={{ margin: 0 }}>Welcome to {agencyName}</h2>
+            <h2 className="tvp-h2" style={{ margin: 0 }}>No talent yet</h2>
           </div>
           <p className="tvp-muted" style={{ maxWidth: 640, marginBottom: 20 }}>
             Your Talent Roster is empty. Choose how you'd like to begin — invite your first talent now,
-            or set up agency defaults first so every new talent inherits a consistent structure.
+            or set up agency defaults first so every new talent inherits a consistent folder structure and document rules.
           </p>
           <div className="flex flex-wrap gap-3" style={{ marginBottom: 28 }}>
             <Link to="/agency/talent/invite" className="tvp-primary">
@@ -257,29 +266,29 @@ function AgencyDashboard() {
           <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
             <div className="tvp-card" style={{ padding: 16 }}>
               <div className="tvp-kpi-icon tvp-bg-teal" style={{ marginBottom: 10 }}>
-                <FolderCog className="h-5 w-5" />
-              </div>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>1. Configure defaults</div>
-              <div className="tvp-muted" style={{ fontSize: 13 }}>
-                Pick your standard folder set and document rules — applied to every new talent.
-              </div>
-            </div>
-            <div className="tvp-card" style={{ padding: 16 }}>
-              <div className="tvp-kpi-icon tvp-bg-blue" style={{ marginBottom: 10 }}>
                 <UserPlus className="h-5 w-5" />
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>2. Invite talent</div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>1. Invite talent</div>
               <div className="tvp-muted" style={{ fontSize: 13 }}>
                 Send an invite — they accept, and their Roster Shared Folder is provisioned automatically.
               </div>
             </div>
             <div className="tvp-card" style={{ padding: 16 }}>
-              <div className="tvp-kpi-icon tvp-bg-purple" style={{ marginBottom: 10 }}>
+              <div className="tvp-kpi-icon tvp-bg-blue" style={{ marginBottom: 10 }}>
                 <FileText className="h-5 w-5" />
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>3. Manage documents</div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>2. Request documents</div>
               <div className="tvp-muted" style={{ fontSize: 13 }}>
-                Upload contracts, endorsements, invoices; talent keeps a separate Private Vault you can't see.
+                Ask talent for specific documents — ID, contracts, tax forms — and track submissions in one place.
+              </div>
+            </div>
+            <div className="tvp-card" style={{ padding: 16 }}>
+              <div className="tvp-kpi-icon tvp-bg-purple" style={{ marginBottom: 10 }}>
+                <FolderCog className="h-5 w-5" />
+              </div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>3. Manage compliance</div>
+              <div className="tvp-muted" style={{ fontSize: 13 }}>
+                Watch expirations, request resubmissions, and keep the Roster Shared Folder audit-ready.
               </div>
             </div>
           </div>
@@ -315,6 +324,11 @@ function AgencyDashboard() {
                   {expiringSoon} document{expiringSoon === 1 ? "" : "s"} expiring in 30 days
                 </Link>
               )}
+              {overdueInvoices > 0 && (
+                <Link to="/agency/quotes-invoices" className="tvp-link">
+                  {overdueInvoices} invoice{overdueInvoices === 1 ? "" : "s"} overdue
+                </Link>
+              )}
               {invitesPending > 0 && (
                 <Link to="/agency/invitations" className="tvp-link">
                   {invitesPending} invitation{invitesPending === 1 ? "" : "s"} pending
@@ -325,8 +339,12 @@ function AgencyDashboard() {
               Status reflects manager-led documents only. Talent's Private Vault items are excluded.
             </div>
           </div>
+          <Link to={reviewTarget} className="tvp-primary" style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+            Review now
+          </Link>
         </div>
       )}
+
 
 
 
