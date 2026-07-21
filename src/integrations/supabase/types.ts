@@ -191,9 +191,11 @@ export type Database = {
           created_at: string
           detail: Json
           id: string
+          ip_address: string | null
           target_id: string | null
           target_label: string | null
           target_type: string | null
+          user_agent: string | null
         }
         Insert: {
           action: string
@@ -203,9 +205,11 @@ export type Database = {
           created_at?: string
           detail?: Json
           id?: string
+          ip_address?: string | null
           target_id?: string | null
           target_label?: string | null
           target_type?: string | null
+          user_agent?: string | null
         }
         Update: {
           action?: string
@@ -215,9 +219,11 @@ export type Database = {
           created_at?: string
           detail?: Json
           id?: string
+          ip_address?: string | null
           target_id?: string | null
           target_label?: string | null
           target_type?: string | null
+          user_agent?: string | null
         }
         Relationships: [
           {
