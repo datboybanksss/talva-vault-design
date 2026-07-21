@@ -157,8 +157,13 @@ function InviteTalent() {
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent</span><strong>Caster Semenya</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Email</span><strong>caster@example.com</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Manager</span><strong>Thandi Ndlovu</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Folders</span><strong>6 enabled</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Folders</span><strong>{activeFolders.length} enabled{folderMode === "standard" ? " (standard set)" : " (custom)"}</strong></div>
                 </div>
+                <div className="tvp-ai-box" style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="tvp-small">
+                    The talent's Private Vault stays private — nothing you configure here grants access to it.
+                  </div>
                 <div className="tvp-ai-box" style={{ marginTop: 16 }}>
                   <strong><Sparkles className="inline h-4 w-4 mr-1" />Invite preview</strong>
                   <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>The Talent will receive a secure invitation email with onboarding steps and folder setup.</p>
