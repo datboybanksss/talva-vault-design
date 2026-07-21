@@ -725,6 +725,54 @@ export type Database = {
           },
         ]
       }
+      agency_talent_folders: {
+        Row: {
+          agency_id: string
+          created_at: string
+          folder_name: string
+          id: string
+          retention_years: number | null
+          sort_order: number
+          talent_link_id: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          folder_name: string
+          id?: string
+          retention_years?: number | null
+          sort_order?: number
+          talent_link_id: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          folder_name?: string
+          id?: string
+          retention_years?: number | null
+          sort_order?: number
+          talent_link_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_talent_folders_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_talent_folders_talent_link_id_fkey"
+            columns: ["talent_link_id"]
+            isOneToOne: false
+            referencedRelation: "agency_talent_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_talent_links: {
         Row: {
           agency_id: string
@@ -912,6 +960,8 @@ export type Database = {
           created_at: string
           email: string
           expires_at: string
+          folder_mode: string
+          folder_selection: Json
           id: string
           invited_by: string | null
           last_sent_at: string
@@ -927,6 +977,8 @@ export type Database = {
           created_at?: string
           email: string
           expires_at?: string
+          folder_mode?: string
+          folder_selection?: Json
           id?: string
           invited_by?: string | null
           last_sent_at?: string
@@ -942,6 +994,8 @@ export type Database = {
           created_at?: string
           email?: string
           expires_at?: string
+          folder_mode?: string
+          folder_selection?: Json
           id?: string
           invited_by?: string | null
           last_sent_at?: string
@@ -1168,6 +1222,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_talent_invitation: {
+        Args: { _email: string; _invitation_id: string; _user_id: string }
+        Returns: string
+      }
       can_admin_edit: { Args: { _user_id: string }; Returns: boolean }
       compute_document_locked_until: {
         Args: { _doc_id: string }
