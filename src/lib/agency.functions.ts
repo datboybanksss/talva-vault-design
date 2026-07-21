@@ -229,7 +229,9 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     );
     const linkIds = rows.map((r: any) => r.id);
 
-    const [managersRes, docsRes] = await Promise.all([
+    const in30dIso = new Date(Date.now() + 30 * 86400000).toISOString();
+    const nowIso = new Date().toISOString();
+    const [managersRes, docsRes, expiringRes, lastDocRes] = await Promise.all([
       managerIds.length
         ? supabase
             .from("profiles")
@@ -241,6 +243,22 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
             .from("talent_shared_documents")
             .select("talent_link_id")
             .in("talent_link_id", linkIds)
+        : Promise.resolve({ data: [] as any[] }),
+      linkIds.length
+        ? supabase
+            .from("talent_shared_documents")
+            .select("talent_link_id")
+            .in("talent_link_id", linkIds)
+            .not("validity_expires_at", "is", null)
+            .gte("validity_expires_at", nowIso)
+            .lte("validity_expires_at", in30dIso)
+        : Promise.resolve({ data: [] as any[] }),
+      linkIds.length
+        ? supabase
+            .from("talent_shared_documents")
+            .select("talent_link_id, created_at")
+            .in("talent_link_id", linkIds)
+            .order("created_at", { ascending: false })
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
@@ -259,6 +277,17 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       const k = d.talent_link_id as string;
       docCount.set(k, (docCount.get(k) ?? 0) + 1);
     }
+    const expiringCount = new Map<string, number>();
+    for (const d of (expiringRes as any).data ?? []) {
+      const k = d.talent_link_id as string;
+      expiringCount.set(k, (expiringCount.get(k) ?? 0) + 1);
+    }
+    const lastDocAt = new Map<string, string>();
+    for (const d of (lastDocRes as any).data ?? []) {
+      const k = d.talent_link_id as string;
+      if (!lastDocAt.has(k)) lastDocAt.set(k, d.created_at as string);
+    }
+
 
     return rows.map((r: any) => ({
       id: r.id as string,
