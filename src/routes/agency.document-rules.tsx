@@ -103,10 +103,10 @@ function DocumentRulesPage() {
           <button
             className="tvp-primary"
             disabled={!isOwner}
-            title={isOwner ? "Add a folder retention rule" : "Only agency owners can manage retention rules"}
+            title={isOwner ? "Add a folder or per-document retention rule" : "Only agency owners can manage retention rules"}
             onClick={() => setEditing({ scope: "folder", retentionYears: 5 })}
           >
-            <Plus className="h-4 w-4" />Add folder rule
+            <Plus className="h-4 w-4" />New retention rule
           </button>
         </div>
       </div>
