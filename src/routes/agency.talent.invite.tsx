@@ -22,6 +22,14 @@ const allFolders = [...defaultFolders, ...optionalFolders];
 
 function InviteTalent() {
   const [step, setStep] = useState(1);
+  const [folderMode, setFolderMode] = useState<"standard" | "custom">("standard");
+  const [selected, setSelected] = useState<string[]>(defaultFolders);
+
+  const toggle = (f: string) =>
+    setSelected((s) => (s.includes(f) ? s.filter((x) => x !== f) : [...s, f]));
+
+  const activeFolders = folderMode === "standard" ? defaultFolders : selected;
+
 
   return (
     <>
