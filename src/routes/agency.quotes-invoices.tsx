@@ -183,6 +183,7 @@ function QIPage() {
       total_amount: (r.total_cents / 100).toString(),
       status: r.status,
       notes: r.notes ?? "",
+      shared_with_talent: r.shared_with_talent,
     });
     setEditorOpen(true);
   }
