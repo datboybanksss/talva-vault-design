@@ -30,6 +30,7 @@ import { Route as AgencyInvitationsRouteImport } from './routes/agency.invitatio
 import { Route as AgencyFolderTemplatesRouteImport } from './routes/agency.folder-templates'
 import { Route as AgencyDocumentVaultRouteImport } from './routes/agency.document-vault'
 import { Route as AgencyDocumentRulesRouteImport } from './routes/agency.document-rules'
+import { Route as AgencyDocumentRequestsRouteImport } from './routes/agency.document-requests'
 import { Route as AgencyActivityRouteImport } from './routes/agency.activity'
 import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
 import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
@@ -41,6 +42,7 @@ import { Route as AdminAdministratorsRouteImport } from './routes/admin.administ
 import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invitations.index'
 import { Route as AdminAgenciesIndexRouteImport } from './routes/admin.agencies.index'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
+import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
 import { Route as AdminAgenciesIdRouteImport } from './routes/admin.agencies.$id'
 import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
@@ -150,6 +152,11 @@ const AgencyDocumentRulesRoute = AgencyDocumentRulesRouteImport.update({
   path: '/document-rules',
   getParentRoute: () => AgencyRoute,
 } as any)
+const AgencyDocumentRequestsRoute = AgencyDocumentRequestsRouteImport.update({
+  id: '/document-requests',
+  path: '/document-requests',
+  getParentRoute: () => AgencyRoute,
+} as any)
 const AgencyActivityRoute = AgencyActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -205,6 +212,11 @@ const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
   path: '/invite',
   getParentRoute: () => AgencyTalentRoute,
 } as any)
+const AgencyContractsIdRoute = AgencyContractsIdRouteImport.update({
+  id: '/contracts/$id',
+  path: '/contracts/$id',
+  getParentRoute: () => AgencyRoute,
+} as any)
 const AdminInvitationsNewRoute = AdminInvitationsNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -237,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/agency/activity': typeof AgencyActivityRoute
+  '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -254,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/talent/': typeof TalentIndexRoute
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
+  '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
@@ -269,6 +283,7 @@ export interface FileRoutesByTo {
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/agency/activity': typeof AgencyActivityRoute
+  '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -286,6 +301,7 @@ export interface FileRoutesByTo {
   '/talent': typeof TalentIndexRoute
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
+  '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
@@ -307,6 +323,7 @@ export interface FileRoutesById {
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/agency/activity': typeof AgencyActivityRoute
+  '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -324,6 +341,7 @@ export interface FileRoutesById {
   '/talent/': typeof TalentIndexRoute
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
+  '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
@@ -346,6 +364,7 @@ export interface FileRouteTypes {
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/agency/activity'
+    | '/agency/document-requests'
     | '/agency/document-rules'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -363,6 +382,7 @@ export interface FileRouteTypes {
     | '/talent/'
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
+    | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/admin/agencies/'
     | '/admin/invitations/'
@@ -378,6 +398,7 @@ export interface FileRouteTypes {
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/agency/activity'
+    | '/agency/document-requests'
     | '/agency/document-rules'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -395,6 +416,7 @@ export interface FileRouteTypes {
     | '/talent'
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
+    | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/admin/agencies'
     | '/admin/invitations'
@@ -415,6 +437,7 @@ export interface FileRouteTypes {
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/agency/activity'
+    | '/agency/document-requests'
     | '/agency/document-rules'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -432,6 +455,7 @@ export interface FileRouteTypes {
     | '/talent/'
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
+    | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/admin/agencies/'
     | '/admin/invitations/'
@@ -597,6 +621,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyDocumentRulesRouteImport
       parentRoute: typeof AgencyRoute
     }
+    '/agency/document-requests': {
+      id: '/agency/document-requests'
+      path: '/document-requests'
+      fullPath: '/agency/document-requests'
+      preLoaderRoute: typeof AgencyDocumentRequestsRouteImport
+      parentRoute: typeof AgencyRoute
+    }
     '/agency/activity': {
       id: '/agency/activity'
       path: '/activity'
@@ -673,6 +704,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/agency/talent/invite'
       preLoaderRoute: typeof AgencyTalentInviteRouteImport
       parentRoute: typeof AgencyTalentRoute
+    }
+    '/agency/contracts/$id': {
+      id: '/agency/contracts/$id'
+      path: '/contracts/$id'
+      fullPath: '/agency/contracts/$id'
+      preLoaderRoute: typeof AgencyContractsIdRouteImport
+      parentRoute: typeof AgencyRoute
     }
     '/admin/invitations/new': {
       id: '/admin/invitations/new'
@@ -765,6 +803,7 @@ const AgencyTalentRouteWithChildren = AgencyTalentRoute._addFileChildren(
 
 interface AgencyRouteChildren {
   AgencyActivityRoute: typeof AgencyActivityRoute
+  AgencyDocumentRequestsRoute: typeof AgencyDocumentRequestsRoute
   AgencyDocumentRulesRoute: typeof AgencyDocumentRulesRoute
   AgencyDocumentVaultRoute: typeof AgencyDocumentVaultRoute
   AgencyFolderTemplatesRoute: typeof AgencyFolderTemplatesRoute
@@ -773,10 +812,12 @@ interface AgencyRouteChildren {
   AgencySettingsRoute: typeof AgencySettingsRoute
   AgencyTalentRoute: typeof AgencyTalentRouteWithChildren
   AgencyIndexRoute: typeof AgencyIndexRoute
+  AgencyContractsIdRoute: typeof AgencyContractsIdRoute
 }
 
 const AgencyRouteChildren: AgencyRouteChildren = {
   AgencyActivityRoute: AgencyActivityRoute,
+  AgencyDocumentRequestsRoute: AgencyDocumentRequestsRoute,
   AgencyDocumentRulesRoute: AgencyDocumentRulesRoute,
   AgencyDocumentVaultRoute: AgencyDocumentVaultRoute,
   AgencyFolderTemplatesRoute: AgencyFolderTemplatesRoute,
@@ -785,6 +826,7 @@ const AgencyRouteChildren: AgencyRouteChildren = {
   AgencySettingsRoute: AgencySettingsRoute,
   AgencyTalentRoute: AgencyTalentRouteWithChildren,
   AgencyIndexRoute: AgencyIndexRoute,
+  AgencyContractsIdRoute: AgencyContractsIdRoute,
 }
 
 const AgencyRouteWithChildren =

@@ -55,8 +55,8 @@ function ContractDetail() {
   const updateFn = useServerFn(updateAgencyContractMeta);
   const createInvFn = useServerFn(createInvoiceForContract);
 
-  const invoiced = c.invoices.reduce((s, i) => s + (i.totalCents ?? 0), 0);
-  const paid = c.invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.totalCents, 0);
+  const invoiced = c.invoices.reduce((s: number, i: any) => s + (i.totalCents ?? 0), 0);
+  const paid = c.invoices.filter((i: any) => i.status === "paid").reduce((s: number, i: any) => s + i.totalCents, 0);
   const outstanding = invoiced - paid;
   const ccy = c.currency || c.invoices[0]?.currency || "ZAR";
 
@@ -213,7 +213,7 @@ function ContractDetail() {
                 </tr>
               </thead>
               <tbody>
-                {c.invoices.map(i => (
+                {c.invoices.map((i: any) => (
                   <tr key={i.id}>
                     <td>
                       <Link2 className="inline h-4 w-4 mr-1 text-[var(--tvp-muted)]" />
