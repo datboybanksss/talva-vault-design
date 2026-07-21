@@ -393,6 +393,12 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
     return rows;
   });
 
+const folderSelectionItem = z.object({
+  name: z.string().min(1).max(120),
+  sort_order: z.number().int().min(0).optional(),
+  retention_years: z.number().int().min(0).max(100).nullable().optional(),
+});
+
 export const createTalentInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -400,6 +406,8 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
       talent_name: z.string().min(1),
       email: z.string().email(),
       expiry_days: z.number().int().min(1).max(60).default(14),
+      folder_mode: z.enum(["standard", "custom"]).default("standard"),
+      folder_selection: z.array(folderSelectionItem).default([]),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -407,6 +415,13 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const expires_at = new Date(Date.now() + data.expiry_days * 86400000).toISOString();
+
+    // Normalize sort_order across the selection
+    const selection = data.folder_selection.map((f, i) => ({
+      name: f.name,
+      sort_order: f.sort_order ?? i,
+      retention_years: f.retention_years ?? null,
+    }));
 
     const { data: inv, error } = await supabase
       .from("talent_invitations")
@@ -416,6 +431,8 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
         email: data.email,
         expires_at,
         invited_by: userId,
+        folder_mode: data.folder_mode,
+        folder_selection: selection,
       })
       .select()
       .single();
@@ -423,9 +440,15 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
 
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       "create_talent_invitation", "talent_invitation", inv.id, data.talent_name,
-      { email: data.email, expires_at });
+      {
+        email: data.email,
+        expires_at,
+        folder_mode: data.folder_mode,
+        folder_count: selection.length,
+      });
     return inv;
   });
+
 
 export const createStaffInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
