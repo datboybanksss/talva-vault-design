@@ -298,6 +298,8 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       managerName: r.manager_user_id ? managerMap.get(r.manager_user_id) ?? "Unassigned" : "Unassigned",
       nextAction: (r.next_action as string) ?? null,
       docCount: docCount.get(r.id) ?? 0,
+      expiringDocsCount: expiringCount.get(r.id) ?? 0,
+      lastDocumentAt: lastDocAt.get(r.id) ?? null,
       createdAt: r.created_at as string,
       updatedAt: r.updated_at as string,
     }));
