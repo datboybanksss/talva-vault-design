@@ -529,10 +529,10 @@ function UploadDialog({
   });
 
   // Reset folder selection when talent changes
-  const folderKeys = (allowedFolders ?? []).map((f) => f.folderName).join("|");
+  const folderKeys = (allowedFolders ?? []).map((f: { folderName: string }) => f.folderName).join("|");
   useMemo(() => {
     if (allowedFolders && allowedFolders.length > 0) {
-      if (!allowedFolders.find((f) => f.folderName === folder)) {
+      if (!allowedFolders.find((f: { folderName: string }) => f.folderName === folder)) {
         setFolder(allowedFolders[0].folderName);
       }
     } else {
