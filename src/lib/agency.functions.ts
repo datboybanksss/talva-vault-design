@@ -1448,3 +1448,287 @@ export const listAgencyAuditActions = createServerFn({ method: "GET" })
     return actions.sort();
   });
 
+
+// -----------------------------------------------------------------------------
+// M6 — Contract detail (contracts live in talent_shared_documents, folder='Contracts')
+// -----------------------------------------------------------------------------
+
+export const getAgencyContract = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: doc, error } = await supabase
+      .from("talent_shared_documents")
+      .select("id, agency_id, name, folder, status, storage_path, talent_link_id, validity_expires_at, contract_client_name, contract_start_date, contract_end_date, contract_total_cents, contract_currency, contract_notes, created_at, updated_at")
+      .eq("id", data.id).eq("agency_id", agencyId).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!doc) throw new Error("Contract not found");
+
+    let talentName = "Unassigned";
+    if (doc.talent_link_id) {
+      const { data: link } = await supabase
+        .from("agency_talent_links").select("display_name").eq("id", doc.talent_link_id).maybeSingle();
+      if (link) talentName = link.display_name as string;
+    }
+
+    const { data: invoices } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, issued_at, due_date, currency, total_cents, status, shared_with_talent")
+      .eq("agency_id", agencyId)
+      .eq("contract_document_id", data.id)
+      .order("issued_at", { ascending: false });
+
+    return {
+      id: doc.id as string,
+      name: doc.name as string,
+      folder: doc.folder as string,
+      status: doc.status as string,
+      storagePath: (doc.storage_path as string) ?? null,
+      talentLinkId: (doc.talent_link_id as string) ?? null,
+      talentName,
+      validityExpiresAt: (doc.validity_expires_at as string) ?? null,
+      clientName: (doc.contract_client_name as string) ?? null,
+      startDate: (doc.contract_start_date as string) ?? null,
+      endDate: (doc.contract_end_date as string) ?? null,
+      totalCents: (doc.contract_total_cents as number) ?? null,
+      currency: (doc.contract_currency as string) ?? null,
+      notes: (doc.contract_notes as string) ?? null,
+      createdAt: doc.created_at as string,
+      updatedAt: doc.updated_at as string,
+      invoices: (invoices ?? []).map((r: any) => ({
+        id: r.id, kind: r.kind, number: r.number,
+        issuedAt: r.issued_at, dueDate: r.due_date,
+        currency: r.currency, totalCents: r.total_cents,
+        status: r.status, sharedWithTalent: r.shared_with_talent,
+      })),
+    };
+  });
+
+export const updateAgencyContractMeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    id: z.string().uuid(),
+    contract_client_name: z.string().max(200).nullable().optional(),
+    contract_start_date: z.string().nullable().optional(),
+    contract_end_date: z.string().nullable().optional(),
+    contract_total_cents: z.number().int().min(0).nullable().optional(),
+    contract_currency: z.string().min(3).max(3).nullable().optional(),
+    contract_notes: z.string().max(4000).nullable().optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { id, ...rest } = data;
+    const { data: row, error } = await supabase
+      .from("talent_shared_documents")
+      .update(rest)
+      .eq("id", id).eq("agency_id", agencyId)
+      .select("id, name").single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "update_contract_meta", "talent_shared_document", row.id, row.name);
+    return row;
+  });
+
+export const createInvoiceForContract = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    contract_id: z.string().uuid(),
+    number: z.string().min(1).max(64),
+    total_cents: z.number().int().min(0),
+    issued_at: z.string().min(10).optional(),
+    due_date: z.string().min(10).nullable().optional(),
+    notes: z.string().max(2000).nullable().optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: contract, error: cErr } = await supabase
+      .from("talent_shared_documents")
+      .select("id, name, talent_link_id, contract_client_name, contract_currency")
+      .eq("id", data.contract_id).eq("agency_id", agencyId).maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!contract) throw new Error("Contract not found");
+
+    let talentName: string | null = null;
+    if (contract.talent_link_id) {
+      const { data: link } = await supabase
+        .from("agency_talent_links").select("display_name").eq("id", contract.talent_link_id).maybeSingle();
+      talentName = link?.display_name ?? null;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: invoice, error } = await supabase
+      .from("agency_billing_docs")
+      .insert({
+        agency_id: agencyId,
+        kind: "invoice",
+        number: data.number,
+        client_name: contract.contract_client_name ?? null,
+        talent_name: talentName,
+        issued_at: data.issued_at ?? today,
+        due_date: data.due_date ?? null,
+        currency: contract.contract_currency ?? "ZAR",
+        total_cents: data.total_cents,
+        status: "draft",
+        notes: data.notes ?? null,
+        contract_document_id: contract.id,
+      })
+      .select().single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "create_contract_invoice", "agency_billing_doc", invoice.id,
+      `${invoice.number} for ${contract.name}`, { contract_id: contract.id });
+
+    return invoice;
+  });
+
+// -----------------------------------------------------------------------------
+// M4 — Document Requests (review workflow)
+// -----------------------------------------------------------------------------
+
+const reviewReasonCodes = z.enum([
+  "illegible", "wrong_document", "expired", "incomplete", "wrong_person", "other",
+]);
+
+export const listAgencyDocumentRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: rows, error } = await supabase
+      .from("agency_document_requests")
+      .select("id, talent_link_id, title, folder, instructions, status, due_date, reason_code, review_notes, reviewed_at, created_at, updated_at, current_document_id")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const linkIds = Array.from(new Set((rows ?? []).map((r: any) => r.talent_link_id).filter(Boolean)));
+    const talentMap = new Map<string, string>();
+    if (linkIds.length) {
+      const { data: links } = await supabase
+        .from("agency_talent_links").select("id, display_name").in("id", linkIds);
+      for (const l of links ?? []) talentMap.set(l.id as string, l.display_name as string);
+    }
+
+    return (rows ?? []).map((r: any) => ({
+      id: r.id, talentLinkId: r.talent_link_id,
+      talentName: talentMap.get(r.talent_link_id) ?? "Unknown",
+      title: r.title, folder: r.folder, instructions: r.instructions,
+      status: r.status, dueDate: r.due_date,
+      reasonCode: r.reason_code, reviewNotes: r.review_notes,
+      reviewedAt: r.reviewed_at, createdAt: r.created_at, updatedAt: r.updated_at,
+      currentDocumentId: r.current_document_id,
+    }));
+  });
+
+export const getAgencyDocumentRequest = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: req, error } = await supabase
+      .from("agency_document_requests")
+      .select("*")
+      .eq("id", data.id).eq("agency_id", agencyId).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!req) throw new Error("Request not found");
+
+    const { data: history } = await supabase
+      .from("agency_document_request_history")
+      .select("id, event, document_id, reason_code, notes, actor_email, created_at")
+      .eq("request_id", data.id)
+      .order("created_at", { ascending: false });
+
+    return { request: req, history: history ?? [] };
+  });
+
+export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    talent_link_id: z.string().uuid(),
+    title: z.string().min(1).max(200),
+    folder: z.string().min(1).max(100),
+    instructions: z.string().max(2000).nullable().optional(),
+    due_date: z.string().nullable().optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: row, error } = await supabase
+      .from("agency_document_requests")
+      .insert({
+        agency_id: agencyId,
+        talent_link_id: data.talent_link_id,
+        requested_by: userId,
+        title: data.title,
+        folder: data.folder,
+        instructions: data.instructions ?? null,
+        due_date: data.due_date ?? null,
+      })
+      .select().single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "create_document_request", "agency_document_request", row.id, data.title);
+    return row;
+  });
+
+export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    id: z.string().uuid(),
+    outcome: z.enum(["completed", "resubmission_required", "cancelled"]),
+    reason_code: reviewReasonCodes.optional(),
+    notes: z.string().max(2000).optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    if (data.outcome === "resubmission_required" && !data.reason_code) {
+      throw new Error("A reason code is required when requesting resubmission.");
+    }
+
+    const { data: req, error: rErr } = await supabase
+      .from("agency_document_requests")
+      .select("id, title, current_document_id")
+      .eq("id", data.id).eq("agency_id", agencyId).maybeSingle();
+    if (rErr) throw new Error(rErr.message);
+    if (!req) throw new Error("Request not found");
+
+    const { data: updated, error } = await supabase
+      .from("agency_document_requests")
+      .update({
+        status: data.outcome,
+        reason_code: data.reason_code ?? null,
+        review_notes: data.notes ?? null,
+        reviewed_by: userId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", data.id).eq("agency_id", agencyId)
+      .select().single();
+    if (error) throw new Error(error.message);
+
+    // History row — never delete previous submissions.
+    await supabase.from("agency_document_request_history").insert({
+      request_id: data.id,
+      agency_id: agencyId,
+      event: data.outcome,
+      document_id: req.current_document_id,
+      reason_code: data.reason_code ?? null,
+      notes: data.notes ?? null,
+      actor_id: userId,
+      actor_email: claims?.email ?? null,
+    });
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      `review_document_request_${data.outcome}`, "agency_document_request",
+      req.id, req.title, { reason_code: data.reason_code ?? null });
+
+    return updated;
+  });
