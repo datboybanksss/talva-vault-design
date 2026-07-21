@@ -1,6 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+
+function extractRequestMeta(): { ip_address: string | null; user_agent: string | null } {
+  try {
+    const req = getRequest();
+    const h = req?.headers;
+    if (!h) return { ip_address: null, user_agent: null };
+    const fwd = h.get("cf-connecting-ip")
+      || h.get("x-real-ip")
+      || (h.get("x-forwarded-for") ?? "").split(",")[0].trim()
+      || null;
+    return {
+      ip_address: fwd || null,
+      user_agent: h.get("user-agent") || null,
+    };
+  } catch {
+    return { ip_address: null, user_agent: null };
+  }
+}
 
 async function logAgencyAudit(
   supabase: any,
@@ -13,6 +32,7 @@ async function logAgencyAudit(
   targetLabel?: string,
   detail: Record<string, unknown> = {},
 ) {
+  const { ip_address, user_agent } = extractRequestMeta();
   await supabase.from("agency_audit_log").insert({
     agency_id: agencyId,
     actor_id: userId,
@@ -22,8 +42,11 @@ async function logAgencyAudit(
     target_id: targetId ?? null,
     target_label: targetLabel ?? null,
     detail,
+    ip_address,
+    user_agent,
   });
 }
+
 
 async function assertAgencyOwner(supabase: any, userId: string, agencyId: string) {
   const { data, error } = await supabase.rpc("has_agency_role", {
@@ -1257,3 +1280,83 @@ export const deleteAgencyBillingDoc = createServerFn({ method: "POST" })
       `${row.kind.toUpperCase()} ${row.number}`);
     return { ok: true };
   });
+
+// -----------------------------------------------------------------------------
+// Activity log (M7) — filterable audit trail for the caller's agency.
+// -----------------------------------------------------------------------------
+export const listAgencyAuditLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      action: z.string().optional(),
+      target_type: z.string().optional(),
+      actor_id: z.string().optional(),
+      limit: z.number().int().min(1).max(500).default(200),
+    }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    let q = supabase
+      .from("agency_audit_log")
+      .select("id, actor_id, actor_email, action, target_type, target_id, target_label, detail, ip_address, user_agent, created_at")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (data.action) q = q.eq("action", data.action);
+    if (data.target_type) q = q.eq("target_type", data.target_type);
+    if (data.actor_id) q = q.eq("actor_id", data.actor_id);
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+
+    const actorIds = Array.from(new Set((rows ?? []).map((r: any) => r.actor_id).filter(Boolean)));
+    let actorMap = new Map<string, string>();
+    if (actorIds.length) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, first_name, last_name, email")
+        .in("id", actorIds);
+      for (const p of profiles ?? []) {
+        actorMap.set(
+          p.id as string,
+          (p.display_name as string) ||
+            [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+            (p.email as string) ||
+            "Team member",
+        );
+      }
+    }
+
+    return (rows ?? []).map((r: any) => ({
+      id: r.id as string,
+      actorId: (r.actor_id as string) ?? null,
+      actorName: r.actor_id ? actorMap.get(r.actor_id) ?? (r.actor_email as string) ?? "Team member" : "System",
+      actorEmail: (r.actor_email as string) ?? null,
+      action: r.action as string,
+      targetType: (r.target_type as string) ?? null,
+      targetId: (r.target_id as string) ?? null,
+      targetLabel: (r.target_label as string) ?? null,
+      detail: r.detail ?? {},
+      ipAddress: (r.ip_address as string) ?? null,
+      userAgent: (r.user_agent as string) ?? null,
+      createdAt: r.created_at as string,
+    }));
+  });
+
+export const listAgencyAuditActions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agency_audit_log")
+      .select("action")
+      .eq("agency_id", agencyId)
+      .limit(1000);
+    if (error) throw new Error(error.message);
+    const actions = Array.from(new Set((data ?? []).map((r: any) => r.action as string))) as string[];
+    return actions.sort();
+  });
+

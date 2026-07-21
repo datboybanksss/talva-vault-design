@@ -30,6 +30,7 @@ import { Route as AgencyInvitationsRouteImport } from './routes/agency.invitatio
 import { Route as AgencyFolderTemplatesRouteImport } from './routes/agency.folder-templates'
 import { Route as AgencyDocumentVaultRouteImport } from './routes/agency.document-vault'
 import { Route as AgencyDocumentRulesRouteImport } from './routes/agency.document-rules'
+import { Route as AgencyActivityRouteImport } from './routes/agency.activity'
 import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
 import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
 import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
@@ -149,6 +150,11 @@ const AgencyDocumentRulesRoute = AgencyDocumentRulesRouteImport.update({
   path: '/document-rules',
   getParentRoute: () => AgencyRoute,
 } as any)
+const AgencyActivityRoute = AgencyActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AgencyRoute,
+} as any)
 const AdminQuotesInvoicesRoute = AdminQuotesInvoicesRouteImport.update({
   id: '/quotes-invoices',
   path: '/quotes-invoices',
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
+  '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByTo {
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
+  '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
+  '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/admin/invitations'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
+    | '/agency/activity'
     | '/agency/document-rules'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/admin/enroll-2fa'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
+    | '/agency/activity'
     | '/agency/document-rules'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '/admin/invitations'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
+    | '/agency/activity'
     | '/agency/document-rules'
     | '/agency/document-vault'
     | '/agency/folder-templates'
@@ -585,6 +597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyDocumentRulesRouteImport
       parentRoute: typeof AgencyRoute
     }
+    '/agency/activity': {
+      id: '/agency/activity'
+      path: '/activity'
+      fullPath: '/agency/activity'
+      preLoaderRoute: typeof AgencyActivityRouteImport
+      parentRoute: typeof AgencyRoute
+    }
     '/admin/quotes-invoices': {
       id: '/admin/quotes-invoices'
       path: '/quotes-invoices'
@@ -745,6 +764,7 @@ const AgencyTalentRouteWithChildren = AgencyTalentRoute._addFileChildren(
 )
 
 interface AgencyRouteChildren {
+  AgencyActivityRoute: typeof AgencyActivityRoute
   AgencyDocumentRulesRoute: typeof AgencyDocumentRulesRoute
   AgencyDocumentVaultRoute: typeof AgencyDocumentVaultRoute
   AgencyFolderTemplatesRoute: typeof AgencyFolderTemplatesRoute
@@ -756,6 +776,7 @@ interface AgencyRouteChildren {
 }
 
 const AgencyRouteChildren: AgencyRouteChildren = {
+  AgencyActivityRoute: AgencyActivityRoute,
   AgencyDocumentRulesRoute: AgencyDocumentRulesRoute,
   AgencyDocumentVaultRoute: AgencyDocumentVaultRoute,
   AgencyFolderTemplatesRoute: AgencyFolderTemplatesRoute,
