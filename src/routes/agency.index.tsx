@@ -170,10 +170,13 @@ function AgencyDashboard() {
     managerName: string;
     nextAction: string | null;
     docCount: number;
+    expiringDocsCount: number;
+    lastDocumentAt: string | null;
     createdAt: string;
     updatedAt: string;
   };
   const rows: TalentRow[] = (talent.data ?? []) as TalentRow[];
+
 
   const managerOptions = useMemo(
     () => Array.from(new Set(rows.map((r) => r.managerName).filter(Boolean))),
