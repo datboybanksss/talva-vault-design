@@ -1283,6 +1283,92 @@ export const deleteAgencyBillingDoc = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const setBillingDocShared = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), shared: z.boolean() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: row, error } = await supabase
+      .from("agency_billing_docs")
+      .update({ shared_with_talent: data.shared })
+      .eq("id", data.id).eq("agency_id", agencyId)
+      .select().single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      data.shared ? "share_billing_doc" : "unshare_billing_doc",
+      "agency_billing_doc", row.id, `${row.kind.toUpperCase()} ${row.number}`);
+    return row;
+  });
+
+export const convertQuoteToInvoice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      quote_id: z.string().uuid(),
+      invoice_number: z.string().min(1).max(64),
+      issued_at: z.string().min(10).optional(),
+      due_date: z.string().min(10).nullable().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: quote, error: qErr } = await supabase
+      .from("agency_billing_docs")
+      .select("*")
+      .eq("id", data.quote_id).eq("agency_id", agencyId).eq("kind", "quote")
+      .single();
+    if (qErr) throw new Error(qErr.message);
+    if (!quote) throw new Error("Quote not found");
+
+    // Guard: prevent re-conversion
+    const { data: existing } = await supabase
+      .from("agency_billing_docs")
+      .select("id")
+      .eq("agency_id", agencyId)
+      .eq("converted_from_quote_id", data.quote_id)
+      .maybeSingle();
+    if (existing) throw new Error("This quote has already been converted to an invoice");
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: invoice, error: iErr } = await supabase
+      .from("agency_billing_docs")
+      .insert({
+        agency_id: agencyId,
+        kind: "invoice",
+        number: data.invoice_number,
+        client_name: quote.client_name,
+        talent_name: quote.talent_name,
+        issued_at: data.issued_at ?? today,
+        due_date: data.due_date ?? null,
+        currency: quote.currency,
+        total_cents: quote.total_cents,
+        status: "draft",
+        notes: quote.notes,
+        shared_with_talent: quote.shared_with_talent,
+        converted_from_quote_id: quote.id,
+      })
+      .select().single();
+    if (iErr) throw new Error(iErr.message);
+
+    // Mark quote as accepted (conversion implies acceptance)
+    await supabase
+      .from("agency_billing_docs")
+      .update({ status: "accepted" })
+      .eq("id", quote.id).eq("agency_id", agencyId);
+
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "convert_quote_to_invoice", "agency_billing_doc", invoice.id,
+      `${quote.number} → ${invoice.number}`,
+      { quote_id: quote.id, invoice_id: invoice.id });
+
+    return invoice;
+  });
+
 // -----------------------------------------------------------------------------
 // Activity log (M7) — filterable audit trail for the caller's agency.
 // -----------------------------------------------------------------------------
