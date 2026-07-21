@@ -549,7 +549,7 @@ function UploadDialog({
     if (!talentLinkId) return toast.error("Select a talent");
     if (!folder) return toast.error("Select an allowed destination folder");
     // Guard: folder must be one of the talent's provisioned allowed folders.
-    if (!(allowedFolders ?? []).some((f) => f.folderName === folder)) {
+    if (!(allowedFolders ?? []).some((f: { folderName: string }) => f.folderName === folder)) {
       return toast.error("That folder isn't allowed for this talent");
     }
 
