@@ -143,8 +143,17 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
 
     const in30d = new Date(Date.now() + 30 * 86400000).toISOString();
     const nowIso = new Date().toISOString();
+    const startOfMonth = new Date();
+    startOfMonth.setUTCDate(1);
+    startOfMonth.setUTCHours(0, 0, 0, 0);
+    const startOfMonthIso = startOfMonth.toISOString();
+    const over48hIso = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
 
-    const [talentRes, docsRes, talentInvRes, staffInvRes, billingRes, needsReviewRes, expiringRes, overdueRes] = await Promise.all([
+    const [
+      talentRes, docsRes, talentInvRes, staffInvRes, billingRes,
+      needsReviewRes, expiringRes, overdueRes,
+      newThisMonthRes, activeRes, needsReviewOver48Res, expiringLinkIdsRes,
+    ] = await Promise.all([
       supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
       supabase.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
       supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending"),
@@ -159,7 +168,26 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
         .gte("validity_expires_at", nowIso)
         .lte("validity_expires_at", in30d),
       supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "overdue"),
+      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).gte("created_at", startOfMonthIso),
+      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "active"),
+      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "needs_review").lte("updated_at", over48hIso),
+      supabase
+        .from("talent_shared_documents")
+        .select("talent_link_id")
+        .eq("agency_id", agencyId)
+        .not("validity_expires_at", "is", null)
+        .gte("validity_expires_at", nowIso)
+        .lte("validity_expires_at", in30d),
     ]);
+
+    const linksWithExpiring = new Set<string>();
+    for (const d of (expiringLinkIdsRes as any).data ?? []) {
+      if (d.talent_link_id) linksWithExpiring.add(d.talent_link_id as string);
+    }
+    const activeCount = activeRes.count ?? 0;
+    const needsReviewCount = needsReviewRes.count ?? 0;
+    // Fully compliant = active links with no expiring docs and not needing review
+    const fullyCompliantCount = Math.max(0, activeCount - linksWithExpiring.size);
 
     return {
       talentCount: talentRes.count ?? 0,
@@ -167,10 +195,15 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
       invitationsCount: (talentInvRes.count ?? 0) + (staffInvRes.count ?? 0),
       invitationsNeedAction: (talentInvRes.count ?? 0) + (staffInvRes.count ?? 0),
       billingDocsCount: billingRes.count ?? 0,
-      needsReviewCount: needsReviewRes.count ?? 0,
+      needsReviewCount,
+      needsReviewOver48Count: needsReviewOver48Res.count ?? 0,
       expiringSoonCount: expiringRes.count ?? 0,
       overdueInvoicesCount: overdueRes.count ?? 0,
+      newTalentThisMonth: newThisMonthRes.count ?? 0,
+      fullyCompliantCount,
+      activeTalentCount: activeCount,
     };
+
   });
 
 
