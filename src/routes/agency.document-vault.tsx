@@ -695,8 +695,12 @@ function UploadDialog({
 
 
         <div style={{ fontSize: 12, color: "var(--tvp-muted)", marginTop: 8, textTransform: "uppercase", letterSpacing: 0.4 }}>
-          Private Vault · Blocked
+          Talent Private Vault · Read-only to you
         </div>
+        <div className="tvp-muted" style={{ fontSize: 11, marginTop: -2 }}>
+          Representative list — the Talent Portal isn't wired yet, so these aren't per-talent real folders.
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.65 }}>
           {BLOCKED_FOLDERS.map((f) => {
             const Icon = f.icon;
