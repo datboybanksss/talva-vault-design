@@ -206,6 +206,7 @@ function QIPage() {
           total_cents: Math.round(amt * 100),
           status: editor.status,
           notes: editor.notes.trim() || null,
+          shared_with_talent: editor.shared_with_talent,
         },
       });
     },
