@@ -462,6 +462,19 @@ function QIPage() {
               <label>Notes</label>
               <textarea value={editor.notes} onChange={(e) => setEditor({ ...editor, notes: e.target.value })} rows={3} />
             </div>
+            <div className="tvp-form-group" style={{ marginTop: 12 }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={editor.shared_with_talent}
+                  onChange={(e) => setEditor({ ...editor, shared_with_talent: e.target.checked })}
+                />
+                Share with linked talent
+              </label>
+              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 4 }}>
+                When shared, the talent named above can view this record from their portal.
+              </div>
+            </div>
 
             <div className="flex justify-end gap-2" style={{ marginTop: 16 }}>
               <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>Cancel</button>
