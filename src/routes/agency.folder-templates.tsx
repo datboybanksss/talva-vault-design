@@ -25,7 +25,7 @@ const meQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/folder-templates")({
-  head: () => ({ meta: [{ title: "Folder Templates · TalVault Agency" }] }),
+  head: () => ({ meta: [{ title: "Folder Templates · TalVault" }] }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(listQO),

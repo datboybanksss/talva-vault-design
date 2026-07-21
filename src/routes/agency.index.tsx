@@ -13,7 +13,7 @@ import {
 } from "@/lib/agency.functions";
 
 export const Route = createFileRoute("/agency/")({
-  head: () => ({ meta: [{ title: "Dashboard · TalVault Agency" }] }),
+  head: () => ({ meta: [{ title: "Manager dashboard · TalVault" }] }),
   component: AgencyDashboard,
 });
 
@@ -163,7 +163,7 @@ function AgencyDashboard() {
     <>
       <div className="tvp-topbar">
         <div>
-          <h1 className="tvp-h1">Agency Portal</h1>
+          <h1 className="tvp-h1">Manager dashboard</h1>
           <div className="tvp-subtitle">
             Welcome back, {firstName}. Here's what needs attention for {agencyName}.
           </div>
@@ -210,9 +210,9 @@ function AgencyDashboard() {
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">
-            Talent Workspace Overview <Info className="inline h-4 w-4 text-[var(--tvp-muted)]" />
+            Talent Roster overview <Info className="inline h-4 w-4 text-[var(--tvp-muted)]" />
           </h2>
-          <Link to="/agency/talent" className="tvp-link">View all talent →</Link>
+          <Link to="/agency/talent" className="tvp-link">View full roster →</Link>
         </div>
 
         <div className="flex flex-wrap gap-3 pb-4">
@@ -231,7 +231,7 @@ function AgencyDashboard() {
             value={manager}
             onChange={(e) => setManager(e.target.value)}
           >
-            <option value="all">Manager: All</option>
+            <option value="all">Lead: All</option>
             {managerOptions.map((m) => (
               <option key={m} value={m}>{m}</option>
             ))}
@@ -265,8 +265,8 @@ function AgencyDashboard() {
 
         <div className="tvp-muted" style={{ fontSize: 12, margin: "-4px 0 14px 2px" }}>
           {statusFilter === "all" && manager === "all" && type === "all"
-            ? `Showing all ${rows.length} talent workspaces`
-            : `Showing ${filtered.length} of ${rows.length} workspaces`}
+            ? `Showing all ${rows.length} roster entries`
+            : `Showing ${filtered.length} of ${rows.length} roster entries`}
         </div>
 
         <table className="tvp-table">
@@ -275,7 +275,7 @@ function AgencyDashboard() {
               <th>Talent</th>
               <th>Status</th>
               <th>Type</th>
-              <th>Manager</th>
+              <th>Lead</th>
               <th>Shared Docs</th>
               <th>Next Action</th>
               <th></th>
@@ -289,8 +289,8 @@ function AgencyDashboard() {
               <tr>
                 <td colSpan={7} className="tvp-muted">
                   {rows.length === 0
-                    ? "No talent connected yet. Invite talent to get started."
-                    : "No talent match the current filters."}
+                    ? "No talent on your roster yet. Invite talent to get started."
+                    : "No roster entries match the current filters."}
                 </td>
               </tr>
             )}

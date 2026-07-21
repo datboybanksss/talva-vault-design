@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, Save, Send, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/agency/talent/invite")({
-  head: () => ({ meta: [{ title: "Invite Talent · TalVault Agency" }] }),
+  head: () => ({ meta: [{ title: "Invite Talent · TalVault" }] }),
   component: InviteTalent,
 });
 

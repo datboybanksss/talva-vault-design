@@ -41,7 +41,7 @@ const meQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/document-rules")({
-  head: () => ({ meta: [{ title: "Document Rules · TalVault Agency" }] }),
+  head: () => ({ meta: [{ title: "Document Rules · TalVault" }] }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(rulesQO),
@@ -203,7 +203,7 @@ function DocumentRulesPage() {
         </div>
         {docRules.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13 }}>
-            None. You can add an override from the Document Vault row menu, or below.
+            None. You can add an override from the Roster Shared Folder row menu, or below.
           </p>
         ) : (
           <table className="tvp-table" style={{ marginTop: 12 }}>
