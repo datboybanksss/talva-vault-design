@@ -1197,6 +1197,7 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
       total_cents: z.number().int().min(0),
       status: billingStatus.default("draft"),
       notes: z.string().max(2000).nullable().optional(),
+      shared_with_talent: z.boolean().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -1215,6 +1216,7 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
       total_cents: data.total_cents,
       status: data.status,
       notes: data.notes ?? null,
+      shared_with_talent: data.shared_with_talent ?? false,
     };
 
     let row;
