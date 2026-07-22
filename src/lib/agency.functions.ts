@@ -1288,7 +1288,7 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_billing_docs")
-      .select("id, kind, number, client_name, talent_name, issued_at, due_date, currency, total_cents, status, notes, shared_with_talent, converted_from_quote_id, created_at, updated_at")
+      .select("id, kind, number, client_name, talent_name, issued_at, due_date, currency, total_cents, status, notes, shared_with_talent, converted_from_quote_id, description, allow_partial_payment, created_at, updated_at")
       .eq("agency_id", agencyId)
       .order("issued_at", { ascending: false });
     if (error) throw new Error(error.message);
