@@ -77,6 +77,14 @@ function AgenciesPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to resend"),
   });
+  const revokeM = useMutation({
+    mutationFn: (id: string) => revokeFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Invitation revoked and logged.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to revoke"),
+  });
   const updateEmailM = useMutation({
     mutationFn: (v: { id: string; email: string }) => updateEmailFn({ data: v }),
     onSuccess: () => {
