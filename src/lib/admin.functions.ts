@@ -260,7 +260,7 @@ export const listAgencies = createServerFn({ method: "GET" })
 
     const { data: invitations } = await supabase
       .from("agency_invitations")
-      .select("id, agency_id, agency_name, email, token, status, expires_at, last_sent_at, send_count")
+      .select("id, agency_id, agency_name, contact_person, email, token, status, expires_at, last_sent_at, send_count")
       .neq("status", "accepted")
       .neq("status", "revoked")
       .order("created_at", { ascending: false });
