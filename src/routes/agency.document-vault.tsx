@@ -39,6 +39,8 @@ type VaultDoc = {
 };
 type TalentLinkLite = { id: string; displayName: string; status: string };
 
+import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
+
 export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
   queryFn:  () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
@@ -53,17 +55,19 @@ export const meQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/document-vault")({
-  head: () => ({ meta: [{ title: "Roster Shared Folder · TalVault" }] }),
+  head: () => ({ meta: [{ title: "Document Vault · TalVault" }] }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(docsQO),
       context.queryClient.ensureQueryData(talentLinksQO),
       context.queryClient.ensureQueryData(meQO),
+      context.queryClient.ensureQueryData(requestsListQO),
+      context.queryClient.ensureQueryData(requestsTalentQO),
     ]);
   },
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
-      <h1 className="tvp-h1">Roster Shared Folder</h1>
+      <h1 className="tvp-h1">Document Vault</h1>
       <p className="tvp-muted">Failed to load: {error.message}</p>
     </div>
   ),
@@ -71,8 +75,9 @@ export const Route = createFileRoute("/agency/document-vault")({
   component: VaultPage,
 });
 
-const tabs = ["All Documents", "Needs Review", "Expiring", "Recently Updated"] as const;
+const tabs = ["All Documents", "Needs Review", "Expiring", "Recently Updated", "Requests"] as const;
 type Tab = typeof tabs[number];
+
 
 const FOLDER_OPTIONS = ["Contracts", "Endorsements", "Invoices", "ID Documents", "Travel", "Tax", "Other"];
 
