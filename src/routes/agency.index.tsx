@@ -545,12 +545,12 @@ function AgencyDashboard() {
                               style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "var(--tvp-red, #b91c1c)" }}
                               onClick={() => {
                                 setOpenMenuId(null);
-                                if (confirm(`End working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
+                                if (confirm(`Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
                                   endMut.mutate(r.id);
                                 }
                               }}
                             >
-                              End relationship…
+                              Pause relationship…
                             </button>
                           )}
                         </div>
