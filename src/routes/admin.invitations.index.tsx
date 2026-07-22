@@ -82,14 +82,37 @@ function InvitationsPage() {
   });
 
   const [tab, setTab] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
 
   const list = invites.data ?? [];
-  const visible = useMemo(
-    () => (tab === "all" ? list : list.filter((i: any) => i.status === tab)),
-    [list, tab],
-  );
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {
+      all: list.length,
+      pending: 0, accepted: 0, expired: 0, declined: 0, revoked: 0,
+    };
+    for (const i of list) c[i.status] = (c[i.status] ?? 0) + 1;
+    return c;
+  }, [list]);
+
+  const visible = useMemo(() => {
+    return list.filter((i: any) => {
+      if (tab !== "all" && i.status !== tab) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (
+          !(i.agency_name ?? "").toLowerCase().includes(q) &&
+          !(i.email ?? "").toLowerCase().includes(q) &&
+          !(i.contact_person ?? "").toLowerCase().includes(q)
+        ) return false;
+      }
+      return true;
+    });
+  }, [list, tab, search]);
+
+  const filtersActive = tab !== "all" || !!search;
+  const resetFilters = () => { setTab("all"); setSearch(""); };
 
   const copyLink = async (inv: any) => {
     const url = `${window.location.origin}/invite/${inv.token}`;
@@ -119,27 +142,76 @@ function InvitationsPage() {
         </div>
       </div>
 
-      <div className="tvp-tabs">
+      {/* KPI row */}
+      <div className="tvp-grid tvp-kpi-grid">
+        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("all")}>
+          <div className="tvp-kpi-icon tvp-bg-teal"><Mail className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{counts.all}</div>
+            <div className="tvp-kpi-label">Total Invitations</div>
+            <div className="tvp-kpi-sub" style={{ color: counts.all > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+              {counts.all > 0 ? "Across all statuses" : "None sent yet"}
+            </div>
+          </div>
+        </button>
+        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("pending")}>
+          <div className="tvp-kpi-icon tvp-bg-amber"><Clock className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{counts.pending ?? 0}</div>
+            <div className="tvp-kpi-label">Awaiting Acceptance</div>
+            <div className="tvp-kpi-sub tvp-warn" style={{ color: (counts.pending ?? 0) > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}>
+              {(counts.pending ?? 0) > 0 ? "Follow up if stale" : "No outstanding invites"}
+            </div>
+          </div>
+        </button>
+        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("accepted")}>
+          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{counts.accepted ?? 0}</div>
+            <div className="tvp-kpi-label">Accepted</div>
+            <div className="tvp-kpi-sub" style={{ color: (counts.accepted ?? 0) > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+              {(counts.accepted ?? 0) > 0 ? "Onboarded successfully" : "None yet"}
+            </div>
+          </div>
+        </button>
+        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("expired")}>
+          <div className="tvp-kpi-icon tvp-bg-red"><AlertCircle className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{counts.expired ?? 0}</div>
+            <div className="tvp-kpi-label">Expired / Lapsed</div>
+            <div className="tvp-kpi-sub" style={{ color: (counts.expired ?? 0) > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}>
+              {(counts.expired ?? 0) > 0 ? "Resend to reopen" : "All fresh"}
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Life chip row */}
+      <div className="tvp-life-chips">
         {["all", "pending", "accepted", "expired", "declined", "revoked"].map((k) => (
           <button
             key={k}
-            className={`tvp-tab${tab === k ? " tvp-active" : ""}`}
+            className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} tvp-bg-${k === "all" ? "teal" : statusTone[k] ?? "neutral"}`}
             onClick={() => setTab(k)}
           >
-            {k === "all" ? "All" : statusLabel[k]}
-            <span
-              className={`tvp-status tvp-${k === "all" ? "neutral" : statusTone[k]}`}
-            >
-              {k === "all"
-                ? list.length
-                : list.filter((i: any) => i.status === k).length}
-            </span>
+            <div className="tvp-label">{k === "all" ? "All" : statusLabel[k]}</div>
+            <div className="tvp-num">{counts[k] ?? 0}</div>
           </button>
         ))}
       </div>
 
       <div className="tvp-card">
-        <div className="tvp-table-wrap">
+        <div className="tvp-toolbar">
+          <input
+            className="tvp-search"
+            placeholder="Search agency, email, contact..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {filtersActive && (
+            <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
+          )}
+        </div>
           <table className="tvp-table">
             <thead>
               <tr>
