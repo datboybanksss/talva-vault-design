@@ -21,7 +21,7 @@ const ACTIVITY_ACTION_LABELS: Record<string, string> = {
   upload_vault_document: "Uploaded document",
   delete_vault_document: "Deleted document",
   update_vault_document: "Updated document",
-  end_talent_relationship: "Ended talent relationship",
+  end_talent_relationship: "Paused talent relationship",
   reactivate_talent_relationship: "Reactivated talent relationship",
   create_billing_doc: "Created quote/invoice",
   update_billing_doc: "Updated quote/invoice",
@@ -503,18 +503,19 @@ function AgencyDashboard() {
                       {formatRelative(last)}
                     </td>
                     <td style={{ position: "relative", whiteSpace: "nowrap" }}>
-                      <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13 }}>
-                        Open <ArrowRight className="inline h-3 w-3" />
-                      </Link>
-                      <button
-                        className="tvp-mini-btn"
-                        title="Actions"
-                        onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
-                        disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
-                        style={{ marginLeft: 6 }}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13, height: 32 }}>
+                          Open <ArrowRight className="inline h-3 w-3" />
+                        </Link>
+                        <button
+                          className="tvp-mini-btn"
+                          title="Actions"
+                          onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
+                          disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </div>
                       {openMenuId === r.id && isOwner && (
                         <div
                           style={{
@@ -544,12 +545,12 @@ function AgencyDashboard() {
                               style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "var(--tvp-red, #b91c1c)" }}
                               onClick={() => {
                                 setOpenMenuId(null);
-                                if (confirm(`End working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
+                                if (confirm(`Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
                                   endMut.mutate(r.id);
                                 }
                               }}
                             >
-                              End relationship…
+                              Pause relationship…
                             </button>
                           )}
                         </div>
@@ -708,18 +709,19 @@ function RecentTalentActivity({
                   {formatRelative(last)}
                 </td>
                 <td style={{ position: "relative", whiteSpace: "nowrap" }}>
-                  <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13 }}>
-                    Open <ArrowRight className="inline h-3 w-3" />
-                  </Link>
-                  <button
-                    className="tvp-mini-btn"
-                    title="Actions"
-                    onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
-                    disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
-                    style={{ marginLeft: 6 }}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13, height: 32 }}>
+                      Open <ArrowRight className="inline h-3 w-3" />
+                    </Link>
+                    <button
+                      className="tvp-mini-btn"
+                      title="Actions"
+                      onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
+                      disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </div>
                   {openMenuId === r.id && isOwner && (
                     <div
                       style={{
@@ -749,12 +751,12 @@ function RecentTalentActivity({
                           style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "var(--tvp-red, #b91c1c)" }}
                           onClick={() => {
                             setOpenMenuId(null);
-                            if (confirm(`End working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
+                            if (confirm(`Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
                               endMut.mutate(r.id);
                             }
                           }}
                         >
-                          End relationship…
+                          Pause relationship…
                         </button>
                       )}
                     </div>

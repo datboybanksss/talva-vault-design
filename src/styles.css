@@ -510,6 +510,23 @@
   & .tvp-account-grid .tv-auth-field { margin-top: 8px; }
   & .tvp-account-grid .tv-auth-hint { margin-top: 2px; font-size: 12px; }
   & .tvp-account-full { grid-column: 1 / -1; }
+
+  /* Tightened spacing for Settings subtab panels (Profile, Folders, Rules, Quotes) */
+  & .tvp-settings-tight .tvp-panel { padding: 16px 18px; }
+  & .tvp-settings-tight .tvp-panel-head { margin-bottom: 12px; }
+  & .tvp-settings-tight .tvp-form-grid { gap: 12px; }
+  & .tvp-settings-tight .tvp-form-group { margin-top: 10px; gap: 4px; }
+  & .tvp-settings-tight .tvp-form-group textarea { height: 72px; }
+  & .tvp-settings-tight .tvp-card + .tvp-card,
+  & .tvp-settings-tight .tvp-card[style*="marginTop"] { margin-top: 12px !important; }
+  & .tvp-settings-tight .tvp-kpi { padding: 14px 16px; min-height: 84px; gap: 12px; }
+  & .tvp-settings-tight .tvp-kpi-icon { width: 34px; height: 34px; }
+  & .tvp-settings-tight .tvp-kpi-value { font-size: 22px; }
+  & .tvp-settings-tight .tvp-kpi-label { margin-top: 2px; font-size: 12px; }
+  & .tvp-settings-tight .tvp-callout { margin: 10px 0 14px; padding: 12px 14px; }
+  & .tvp-settings-tight .tvp-rule-grid { gap: 12px; }
+  & .tvp-settings-tight .tvp-topbar { margin-bottom: 10px; }
+
   @media (min-width: 960px) {
     & .tvp-account-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
   }
