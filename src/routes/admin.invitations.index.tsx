@@ -231,7 +231,7 @@ function InvitationsPage() {
 
       {/* Life chip row */}
       <div className="tvp-life-chips">
-        {["all", "pending", "accepted", "expired", "declined", "revoked"].map((k) => (
+        {["all", "draft", "pending", "accepted", "expired", "declined", "revoked"].map((k) => (
           <button
             key={k}
             className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} tvp-bg-${k === "all" ? "teal" : statusTone[k] ?? "neutral"}`}
