@@ -347,6 +347,63 @@ export type Database = {
           },
         ]
       }
+      agency_compliance_documents: {
+        Row: {
+          agency_id: string | null
+          business_type: string
+          created_at: string
+          doc_slot: string
+          file_name: string
+          id: string
+          invitation_id: string
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          agency_id?: string | null
+          business_type: string
+          created_at?: string
+          doc_slot: string
+          file_name: string
+          id?: string
+          invitation_id: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          agency_id?: string | null
+          business_type?: string
+          created_at?: string
+          doc_slot?: string
+          file_name?: string
+          id?: string
+          invitation_id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_compliance_documents_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_compliance_documents_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "agency_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_document_request_history: {
         Row: {
           actor_email: string | null
@@ -609,6 +666,8 @@ export type Database = {
           invited_by: string | null
           kind: Database["public"]["Enums"]["agency_invitation_kind"]
           last_sent_at: string
+          registered_contact_number: string | null
+          registered_mobile_number: string | null
           role: string | null
           send_count: number
           status: Database["public"]["Enums"]["invitation_status"]
@@ -629,6 +688,8 @@ export type Database = {
           invited_by?: string | null
           kind?: Database["public"]["Enums"]["agency_invitation_kind"]
           last_sent_at?: string
+          registered_contact_number?: string | null
+          registered_mobile_number?: string | null
           role?: string | null
           send_count?: number
           status?: Database["public"]["Enums"]["invitation_status"]
@@ -649,6 +710,8 @@ export type Database = {
           invited_by?: string | null
           kind?: Database["public"]["Enums"]["agency_invitation_kind"]
           last_sent_at?: string
+          registered_contact_number?: string | null
+          registered_mobile_number?: string | null
           role?: string | null
           send_count?: number
           status?: Database["public"]["Enums"]["invitation_status"]
@@ -1326,6 +1389,7 @@ export type Database = {
         | "expired"
         | "declined"
         | "revoked"
+        | "draft"
       legal_status: "placeholder" | "in_review" | "approved"
       notif_kind:
         | "invite_expiring"
@@ -1504,6 +1568,7 @@ export const Constants = {
         "expired",
         "declined",
         "revoked",
+        "draft",
       ],
       legal_status: ["placeholder", "in_review", "approved"],
       notif_kind: [
