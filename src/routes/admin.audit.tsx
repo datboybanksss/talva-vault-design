@@ -241,7 +241,7 @@ function AuditPage() {
               </tbody>
             </table>
           </div>
-          <div className="tvp-card tvp-panel">
+          <div className="tvp-card tvp-panel tvp-settings-tight">
             <h2 className="tvp-h2">Event Details</h2>
             {selected ? (
               (() => {
