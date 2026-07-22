@@ -173,8 +173,16 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           : "";
 
   return (
-    <div className={`tv-app${collapsed ? " tv-collapsed" : ""}`}>
+    <div
+      className={`tv-app${collapsed ? " tv-collapsed" : ""}${mobileOpen ? " tv-mobile-open" : ""}`}
+    >
+      <div
+        className="tvp-mobile-backdrop"
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
       <aside className="tvp-sidebar">
+
         <button
           className="tvp-collapse-btn"
           onClick={() => setCollapsed((c) => !c)}
@@ -232,7 +240,17 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
+          <button
+            type="button"
+            className="tvp-mobile-menu-btn"
+            aria-label="Open navigation"
+            onClick={() => setMobileOpen(true)}
+            style={{ marginRight: "auto" }}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <input className="tvp-search-top" placeholder="Search..." />
+
           <div className="tvp-notification-wrap">
             <button
               className="tvp-icon-btn"
