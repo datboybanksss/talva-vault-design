@@ -85,7 +85,6 @@ const CHIP_ORDER: Array<{ key: string; tone: string }> = [
   { key: "read_only", tone: "teal" },
   { key: "revoked", tone: "red" },
   { key: "needs_review", tone: "purple" },
-  { key: "ended", tone: "neutral" },
 ];
 
 function formatDate(iso: string) {
