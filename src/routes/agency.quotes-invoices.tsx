@@ -443,7 +443,7 @@ function QIPage() {
           <div style={{ position: "relative", flex: "1 1 260px", minWidth: 200 }}>
             <Search className="h-4 w-4" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--tvp-muted)" }} />
             <input
-              className="tvp-search"
+              className="tvp-search-top"
               style={{ paddingLeft: 34, width: "100%" }}
               placeholder="Search by client, talent or reference..."
               value={search}
