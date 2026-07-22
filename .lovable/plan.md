@@ -1,94 +1,97 @@
+## Gap report — current Quotes & Invoices vs reference
 
-# Findings
+**Current state (verified from `src/routes/agency.quotes-invoices.tsx` + `public.agency_billing_docs` schema):**
 
-## 1. Avatar clickability + Agency account page
+- **KPI cards**: 4 flat text tiles (Outstanding / Paid 30d / Quotes pending / Conversion rate). No icon badges, no colored action-hint line. Metrics are money-focused, not workflow-focused like the reference.
+- **Topbar**: H1 + subtitle + "New Quote" / "New Invoice" buttons. No "Reset filters" affordance.
+- **Filters**: search + Type + Status + Client dropdowns. Missing: Talent filter, Sort dropdown.
+- **Status chips row**: does not exist. Reference wants 6 colored chip cards mirroring the Talent Workspace pattern.
+- **Table columns today**: Ref / Client / Talent / Type / Status / Amount / Issued / Due / Shared / Linked / actions. Reference wants: Reference (bold + subtitle) / Type / Talent / Client / Status / **Acceptance / Due Rule**. So: no subtitle line under the reference, and no "Acceptance / Due Rule" column.
+- **Subtabs**: current page has a "Clients" subtab. Reference has no such subtab — pure workspace layout.
 
-**Current state (verified in code):**
-- Agency shows the initials avatar in **two places**: sidebar footer (`.tvp-avatar` in `agency-shell.tsx:187`) and topbar right (`.tvp-user-dot` at `:258`). **Both are plain `<div>`s** — neither is clickable.
-- Admin makes only the **topbar `.tvp-user-dot`** a `<Link to="/admin/my-account">` (`admin-shell.tsx:284`). The footer `.tvp-avatar` in Admin is also a plain div. So "everywhere it appears" for Agency should mean topbar + footer (matching the Admin pattern and going one step further).
-- **No Agency account page exists.** `src/routes/agency.my-account.tsx` is absent.
-- Admin's `admin.my-account.tsx` (794 lines) is tightly coupled to `admin.functions.ts` (`whoami`, `updateOwnProfile`, `logOwnEmailChangeRequest`, `logOwnPasswordChange`, `logMfaEnrolled`, `logMfaDisabled`) and to Admin-specific fields (`isMainAdmin`, `permissionLevel`, `designation` gated to main admin). **Sharing wholesale would leak Admin semantics into Agency.**
-- However, three sub-cards are already portal-agnostic in behavior:
-  - `ChangePasswordCard` — only needs `email`, uses `supabase.auth.updateUser` + one audit log call.
-  - `TwoFactorCard` — only needs `email` + a `required` flag, uses `supabase.auth.mfa.*` + two audit log calls.
-  - `SectionHeader` — pure presentational.
+**Data model check (`agency_billing_docs` columns): `id, agency_id, kind, number, client_name, issued_at, currency, total_cents, status, due_date, notes, talent_name, shared_with_talent, converted_from_quote_id, contract_document_id`.**
 
-**Design decision (proposed):**
-Build a separate `/agency/my-account` route. **Extract the shared cards** into `src/components/account/` so both portals import them, parameterized by portal-specific audit-log server functions passed as props. This avoids duplicating ~400 lines of password/2FA logic while keeping the admin-only Profile/Email cards out of Agency. I'll refactor `admin.my-account.tsx` to import from the shared module in the same pass (no behavior change).
+- `doc_status` enum: `draft, sent, accepted, paid, overdue, cancelled`.
+- `doc_kind` enum: `quote, invoice`.
 
-**Agency-specific pieces to build:**
-- `agency.my-account.tsx` route with: Profile card (first/last name, plus role display — no designation, since Agency has no equivalent), Email card (same self-service `supabase.auth.updateUser` flow), plus the shared Password + 2FA cards.
-- Server fns in `agency.functions.ts`: `updateOwnAgencyProfile`, `logOwnAgencyEmailChangeRequest`, `logOwnAgencyPasswordChange`, `logOwnAgencyMfaEnrolled`, `logOwnAgencyMfaDisabled` — each writes to `agency_audit_log` with existing `logAgencyAction` helper (mirroring admin patterns).
+Mapping reference concepts to real fields:
 
-**Wire the avatars:** convert both `.tvp-avatar` (sidebar footer) and `.tvp-user-dot` (topbar) to `<Link to="/agency/my-account">` in `agency-shell.tsx`. Keep hover/focus styles.
+| Reference concept        | Maps to today?                                              |
+|--------------------------|-------------------------------------------------------------|
+| Quote Drafts KPI         | `kind='quote' AND status='draft'`                           |
+| Invoice Drafts KPI       | `kind='invoice' AND status='draft'`                         |
+| Quotes Accepted KPI      | `kind='quote' AND status='accepted'`                        |
+| Late Invoices KPI        | `kind='invoice' AND status='overdue'`                       |
+| Quote Sent chip          | `kind='quote' AND status='sent'`                            |
+| Accepted chip            | `status='accepted'`                                         |
+| Late chip                | `status='overdue'`                                          |
+| **Partial chip**         | **No field. Requires new boolean or enum extension.**       |
+| Reference subtitle line  | Could reuse `notes` (first line), no dedicated field today. |
+| "Accept within 7 days"   | derived from `issued_at` → `due_date` for quotes            |
+| "Payment due in 14 days" | derived from `issued_at` → `due_date` for invoices          |
+| "Payment due after N days" | derived same way (invoice, future due)                    |
+| "Partial payment allowed"| **No field.**                                               |
+| "Accepted manually"      | **No dedicated marker.** Could infer for accepted quotes with no `due_date`. |
 
----
+## Schema decisions to confirm before I build
 
-## 2. Responsiveness — audit findings
+1. **"Partial" chip + "Partial payment allowed" rule** — add `allow_partial_payment BOOLEAN NOT NULL DEFAULT false` to `agency_billing_docs`? (Preferred over extending `doc_status`, since a partially-paid invoice is still `sent`/`overdue`/`paid` semantically.) Or drop this chip/rule from scope if you don't want the schema change.
+2. **Reference subtitle** — reuse `notes` (show first line as subtitle in table)? Or add a dedicated `description TEXT` column? Reusing `notes` avoids a migration.
+3. **"Accepted manually"** — derive from `status='accepted' AND due_date IS NULL` (i.e. no auto acceptance window recorded)? Or add an explicit `accepted_manually` flag?
 
-**Existing breakpoints in `src/styles.css`:**
-- `≤1100px`: plan/finance/rule/doc/two-col grids collapse.
-- `≤768px`: sidebar auto-collapses to icon-only; KPI grid → 2 cols; form/meta grids → 1 col.
-- `≤720px`: **sidebar `display: none`** — main becomes a block layout.
+If you want the fastest path with no schema change: I'd derive rule text from `due_date` vs `issued_at`, reuse `notes` for the subtitle, drop the Partial chip, and mark manually-accepted quotes by absence of a due date.
 
-**Priority issues confirmed by reading the shell + styles:**
+If you want full parity with the reference: one migration adds `allow_partial_payment` + `description` (and I'll infer "Accepted manually" from `due_date IS NULL`, which is enough — no need for a separate flag).
 
-**P0 (blocks core use):**
-- **Mobile has no navigation.** At ≤720px the sidebar is hidden entirely with no hamburger/drawer replacement. Users on phones cannot navigate the Agency portal at all.
-- **Topbar row at narrow widths.** `flex items-center gap-3 justify-end mb-2` contains search input + bell + user-dot; the fixed-width `.tvp-search-top` doesn't shrink and can push the user-dot off-screen at ~375px.
+**Recommendation: full parity path.** It's one small migration and it makes the UI match the reference exactly without visible "missing" chips.
 
-**P1 (visible layout breaks):**
-- **Wide data tables** (`agency.invitations.tsx`, `agency.talent.tsx`, `agency.document-vault.tsx`, `agency.quotes-invoices.tsx`, `agency.activity.tsx`) — need audit for `overflow-x: auto` wrappers. If any lack one, columns clip or force horizontal page scroll at ≤1024px.
-- **KPI cards on Dashboard** — currently 4 across; at 768–1023px the 4-col rule may still apply, cramping content (recently patched flex issue was a separate bug). Confirm the 4→2 breakpoint kicks in cleanly.
-- **Modals** (`UploadDialog` in `agency.document-vault.tsx`, `NewInvitationModal`, folder-picker wizard) — verify they fit 375px viewport (no fixed widths beyond 100vw, form fields stack).
+## Build plan (assuming full-parity path is approved)
 
-**P2 (polish):**
-- Settings tabs bar (`agency.settings.tsx`) — check whether tabs wrap or overflow-scroll at narrow widths.
-- Quotes & Invoices filter/toolbar row.
-- Activity log filter chips row.
+### Step 1 — Schema (single migration)
+- Add `allow_partial_payment BOOLEAN NOT NULL DEFAULT false` to `agency_billing_docs`.
+- Add `description TEXT` to `agency_billing_docs` (short label like "Brand campaign").
+- No RLS/GRANT changes (table already has them).
 
-**Deferred / flagged for a bigger pass (not in this plan):**
-- Full drawer/off-canvas navigation with focus trap, aria-modal, swipe gesture. This plan ships a simpler "hamburger toggles collapsed→expanded overlay" pattern; a proper drawer is a follow-up.
-- Print styles.
-- Reduced-motion audit.
+### Step 2 — Server functions (`src/lib/agency.functions.ts`)
+- `listAgencyBillingDocs`: return the two new fields.
+- `upsertAgencyBillingDoc`: accept `description` and `allow_partial_payment` on input.
+- No new functions needed.
 
----
+### Step 3 — KPI cards (new component pattern)
+- Replace `.tvp-finance-grid` block with a 4-card row using the same icon-badge treatment as the Talent Workspace KPI cards:
+  - Quote Drafts — teal, `Pencil` icon, action-hint "Continue editing" (green when count > 0, muted when 0).
+  - Invoice Drafts — purple, `FileText` icon, action-hint "Ready to complete".
+  - Quotes Accepted — green, `CheckCircle2` icon, action-hint "Ready to convert" (only when unconverted accepted quotes exist).
+  - Late Invoices — red, `AlertCircle` icon, action-hint "Needs follow-up" when count > 0.
 
-# Plan — Phase A (do first, ship, verify, then Phase B)
+### Step 4 — Workspace section
+- Section heading "Quotes & Invoices Workspace" with "Reset filters" text-link on the right.
+- Filter row: search box (`"Search by client, talent or reference…"`), Status dropdown, Talent dropdown (derived from distinct `talent_name`), Type dropdown, Sort dropdown (Newest / Oldest / Amount high→low / Amount low→high / Due date).
+- Reset link clears search + all four filters.
 
-## Phase A — Account page + avatar wiring
+### Step 5 — Status chip row
+- 6 colored chip cards below the filter row, reusing the exact chip pattern from the Talent Workspace:
+  - Quote Drafts (teal), Invoice Drafts (purple), Quote Sent (blue), Accepted (green), Partial (amber), Late (red).
+  - Clicking a chip toggles the status filter (same UX as talent chips).
 
-1. **Extract shared cards** to `src/components/account/`:
-   - `password-card.tsx` — accepts `{ email, logPasswordChange: () => Promise<any> }`.
-   - `two-factor-card.tsx` — accepts `{ email, required, logEnrolled, logDisabled }`.
-   - `section-header.tsx` — presentational.
-2. **Refactor `admin.my-account.tsx`** to import from `src/components/account/` (no behavior change; verifies the extraction).
-3. **Add Agency server functions** in `agency.functions.ts` — `updateOwnAgencyProfile`, `logOwnAgencyEmailChangeRequest`, `logOwnAgencyPasswordChange`, `logOwnAgencyMfaEnrolled`, `logOwnAgencyMfaDisabled`. Each guarded by `requireSupabaseAuth` + `agency_members` membership check; writes via existing `logAgencyAction` helper.
-4. **Create `src/routes/agency.my-account.tsx`** — head/meta, Profile card (first/last name editable via `updateOwnAgencyProfile`; role shown read-only using `agencyWhoami.role`), Email card (self-service via `supabase.auth.updateUser`), Password card, 2FA card. `required` on 2FA is `me.role === "owner"` (Agency owners must have 2FA; leads/staff optional — flag if you want different).
-5. **Wire avatars in `agency-shell.tsx`**: convert `.tvp-avatar` (footer) and `.tvp-user-dot` (topbar) to `<Link to="/agency/my-account">`. Match the sign-out button's hover ring.
+### Step 6 — Table redesign
+- Columns: Reference (bold `number` + muted `description` subtitle) / Type / Talent / Client / Status / Acceptance / Due Rule.
+- Move existing Shared / Linked / actions into a compact right-side cell (icons only, tooltips).
+- Rule text derived per row:
+  - `quote & draft/sent`: "Accept within N days" (if `due_date`) or "No acceptance deadline" (if not).
+  - `quote & accepted`: "Accepted manually" (if `due_date IS NULL`) or "Accepted on time".
+  - `invoice`: `allow_partial_payment` → "Partial payment allowed", else `due_date > issued_at` → "Payment due in N days" (or "after N days" when N > 30), else "Payment due on receipt", `overdue` → "Overdue by N days".
+- Remove the current "Clients" subtab (out of scope for the reference; happy to leave a "View clients" link if you want, but reference doesn't show it).
 
-**Verify:** navigate to `/agency/my-account`, save profile, change password against seeded user, enroll then disable 2FA. Check `agency_audit_log` rows.
+### Step 7 — Editor form additions
+- Add "Description" text input (short label).
+- Add "Allow partial payment" checkbox (only shown when kind = invoice).
 
-## Phase B — Responsive fixes (prioritized, incremental)
+### Step 8 — Verify
+- Sandbox is `signed_out` (confirmed last turn) so I'll verify via a fresh seed record on the "NPI Talent Management" agency: insert one quote and one invoice with representative values, then screenshot instructions for hard-refresh — same pattern as recent turns.
 
-Only P0 + P1 in this pass. P2 flagged for follow-up.
+## Open questions before I build
 
-**P0 — mobile navigation + topbar**
-1. Add a hamburger button to `agency-shell.tsx` that shows at `≤720px` and toggles a new `.tv-mobile-open` class on `.tv-app`. Under `.tv-mobile-open`, unhide `.tvp-sidebar` as a fixed overlay (position: fixed, full-height, z-index above main, backdrop). Close on nav-item click and on backdrop click. Preserve `Escape` to close.
-2. Topbar: make `.tvp-search-top` `min-width: 0; flex: 1 1 200px` so it shrinks; hide the search input entirely at `≤480px` behind a search icon that expands on tap. Keep bell + avatar always visible.
-
-**P1 — tables, KPIs, modals**
-3. Wrap each Agency table (`invitations`, `talent`, `document-vault`, `quotes-invoices`, `activity`, `contracts.$id` related invoices) in a `div.tvp-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch }`. Set `min-width` on the `<table>` so columns keep their proportions and the container scrolls horizontally instead of the page.
-4. Dashboard KPI grid: audit the `≤1100px` chain — add explicit `.tvp-kpi-grid` rule at `768–1023px` → `repeat(2, minmax(0, 1fr))` (may already be inherited; verify and only add if missing). At `≤480px` → single column.
-5. Modals (`UploadDialog`, `NewInvitationModal`, upload wizard): set `max-width: min(720px, 100vw - 24px)` and `max-height: calc(100vh - 32px)` with internal scroll on the body; stack any 2-col form rows to 1 col at `≤560px`.
-
-**Verify:** manual Playwright screenshots at 375, 768, 1280, 1920 for Dashboard, Talent, Invitations, Document Vault, Quotes & Invoices, Activity Log, Settings, and one modal on Document Vault. Report per-viewport before/after and flag any remaining P2 issues for a dedicated pass.
-
----
-
-# Order of execution
-
-1. Phase A end-to-end, verify, brief report.
-2. Then Phase B (P0 → P1), verify per-viewport, report + flag P2.
-
-**Ask before I start:** confirm the 2FA-required rule for Agency (owner-only vs everyone), and whether you want the Admin refactor bundled with Phase A or done as a separate cleanup pass afterward.
+1. Confirm the full-parity path (schema + description + partial flag) vs the no-migration path.
+2. Keep the current "Clients" subtab, or drop it to match the reference?
+3. Any preference on which chip is "primary" on load (e.g. show all, or default-filter to "Late")?

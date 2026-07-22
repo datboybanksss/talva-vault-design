@@ -238,11 +238,13 @@ export type Database = {
       agency_billing_docs: {
         Row: {
           agency_id: string
+          allow_partial_payment: boolean
           client_name: string | null
           contract_document_id: string | null
           converted_from_quote_id: string | null
           created_at: string
           currency: string
+          description: string | null
           due_date: string | null
           id: string
           issued_at: string
@@ -257,11 +259,13 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          allow_partial_payment?: boolean
           client_name?: string | null
           contract_document_id?: string | null
           converted_from_quote_id?: string | null
           created_at?: string
           currency?: string
+          description?: string | null
           due_date?: string | null
           id?: string
           issued_at?: string
@@ -276,11 +280,13 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          allow_partial_payment?: boolean
           client_name?: string | null
           contract_document_id?: string | null
           converted_from_quote_id?: string | null
           created_at?: string
           currency?: string
+          description?: string | null
           due_date?: string | null
           id?: string
           issued_at?: string
