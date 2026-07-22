@@ -86,6 +86,17 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     refetchInterval: 60_000,
   });
 
+  const { data: metrics } = useQuery({
+    queryKey: ["agency", "dashboard", "metrics"],
+    queryFn: () => metricsFn(),
+    refetchInterval: 60_000,
+  });
+
+  const badgeCounts: Record<"talent" | "invitations", number> = {
+    talent: (metrics?.activeTalentCount ?? 0) + (metrics?.talentInvitationsPending ?? 0),
+    invitations: metrics?.invitationsNeedAction ?? 0,
+  };
+
   const items = [
     ...(notifs?.computed ?? []),
     ...(notifs?.persisted ?? []),
