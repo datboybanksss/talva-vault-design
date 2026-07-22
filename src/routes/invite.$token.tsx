@@ -469,13 +469,19 @@ function Step4({
 
 function StepButtons({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
   return (
-    <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-      <button type="button" className="tv-auth-google" onClick={onBack} style={{ flex: 0 }}>
+    <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
+      <button
+        type="button"
+        className="tv-auth-google"
+        onClick={onBack}
+        style={{ width: "auto", flex: "0 0 auto", padding: "0 18px", height: 46 }}
+      >
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
-      <button type="button" className="tv-auth-submit" onClick={onContinue} style={{ flex: 1, marginTop: 0 }}>
+      <button type="button" className="tv-auth-submit" onClick={onContinue} style={{ flex: 1, marginTop: 0, height: 46 }}>
         Continue
       </button>
+
     </div>
   );
 }
