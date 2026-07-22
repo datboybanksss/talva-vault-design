@@ -3,8 +3,6 @@ import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, Aler
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
-import { z } from "zod";
 import {
   listAgencyInvitations,
   resendInvitation,
@@ -14,12 +12,10 @@ import {
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 
-const invitationsSearchSchema = z.object({
-  email: fallback(z.string(), "").default(""),
-});
-
 export const Route = createFileRoute("/admin/invitations/")({
-  validateSearch: zodValidator(invitationsSearchSchema),
+  validateSearch: (raw: Record<string, unknown>) => ({
+    email: typeof raw.email === "string" ? raw.email : "",
+  }),
   head: () => ({ meta: [{ title: "Agency Invitations · TalVault Admin" }] }),
   component: InvitationsPage,
 });
