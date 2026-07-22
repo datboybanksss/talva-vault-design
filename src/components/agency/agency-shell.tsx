@@ -9,7 +9,7 @@ import {
   Send,
   Folder,
   Receipt,
-  
+  Menu,
   Settings as SettingsIcon,
   Bell,
   LogOut,
@@ -18,6 +18,7 @@ import {
   Info,
   Clock,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics } from "@/lib/agency.functions";
 
@@ -63,8 +64,10 @@ const toneIcon: Record<string, any> = {
 
 export function AgencyShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   const wrapRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -109,6 +112,19 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
   }, []);
+
+  // Close mobile drawer on route change + Escape key
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
 
   const isActive = (item: NavItem) => {
     if (item.match === "exact") return pathname === item.to;
@@ -157,8 +173,16 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           : "";
 
   return (
-    <div className={`tv-app${collapsed ? " tv-collapsed" : ""}`}>
+    <div
+      className={`tv-app${collapsed ? " tv-collapsed" : ""}${mobileOpen ? " tv-mobile-open" : ""}`}
+    >
+      <div
+        className="tvp-mobile-backdrop"
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
       <aside className="tvp-sidebar">
+
         <button
           className="tvp-collapse-btn"
           onClick={() => setCollapsed((c) => !c)}
@@ -184,13 +208,25 @@ export function AgencyShell({ children }: { children: ReactNode }) {
         <nav className="tvp-nav">{renderNav(settings)}</nav>
 
         <div className="tvp-sidebar-footer">
-          <div className="tvp-avatar">{initials || "?"}</div>
-          <div className="tvp-profile-copy">
+          <Link
+            to="/agency/my-account"
+            className="tvp-avatar"
+            aria-label="My account"
+            title="My account"
+          >
+            {initials || "?"}
+          </Link>
+          <Link
+            to="/agency/my-account"
+            className="tvp-profile-copy"
+            aria-label="My account"
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
             <div className="tvp-profile-name">
               {me?.displayName || me?.email?.split("@")[0] || "Loading..."}
             </div>
             <div className="tvp-profile-role">{roleLabel}</div>
-          </div>
+          </Link>
           <button
             className="tvp-logout"
             aria-label="Log out"
@@ -199,11 +235,22 @@ export function AgencyShell({ children }: { children: ReactNode }) {
             <LogOut className="h-4 w-4" />
           </button>
         </div>
+
       </aside>
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
+          <button
+            type="button"
+            className="tvp-mobile-menu-btn"
+            aria-label="Open navigation"
+            onClick={() => setMobileOpen(true)}
+            style={{ marginRight: "auto" }}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <input className="tvp-search-top" placeholder="Search..." />
+
           <div className="tvp-notification-wrap">
             <button
               className="tvp-icon-btn"
@@ -254,13 +301,15 @@ export function AgencyShell({ children }: { children: ReactNode }) {
               </div>
             )}
           </div>
-          <div
+          <Link
+            to="/agency/my-account"
             className="tvp-user-dot"
             aria-label="My account"
             title={me?.displayName || me?.email || "My account"}
           >
             {initials || "?"}
-          </div>
+          </Link>
+
         </div>
         {children}
       </main>

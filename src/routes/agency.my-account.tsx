@@ -5,31 +5,48 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { UserRound, ShieldCheck } from "lucide-react";
 import {
-  whoami,
-  updateOwnProfile,
-  logOwnEmailChangeRequest,
-  logOwnPasswordChange,
-  logMfaEnrolled,
-  logMfaDisabled,
-} from "@/lib/admin.functions";
+  agencyWhoami,
+  updateOwnAgencyProfile,
+  logOwnAgencyEmailChangeRequest,
+  logOwnAgencyPasswordChange,
+  logOwnAgencyMfaEnrolled,
+  logOwnAgencyMfaDisabled,
+} from "@/lib/agency.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/password";
 import { SectionHeader } from "@/components/account/section-header";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
 
-export const Route = createFileRoute("/admin/my-account")({
-  head: () => ({ meta: [{ title: "My Account · TalVault Admin" }] }),
+export const Route = createFileRoute("/agency/my-account")({
+  ssr: false,
+  head: () => ({
+    meta: [
+      { title: "My Account · TalVault Agency" },
+      { name: "description", content: "Your agency profile, sign-in email, password and two-factor settings." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: MyAccountPage,
 });
 
-function MyAccountPage() {
-  const whoamiFn = useServerFn(whoami);
-  const me = useQuery({ queryKey: ["whoami"], queryFn: () => whoamiFn() });
+function roleLabel(role: string | null | undefined) {
+  if (role === "owner") return "Manager (Owner)";
+  if (role === "lead") return "Manager (Lead)";
+  if (role) return "Manager (Staff)";
+  return "";
+}
 
-  const logPwFn = useServerFn(logOwnPasswordChange);
-  const logMfaEnrolledFn = useServerFn(logMfaEnrolled);
-  const logMfaDisabledFn = useServerFn(logMfaDisabled);
+function MyAccountPage() {
+  const whoamiFn = useServerFn(agencyWhoami);
+  const me = useQuery({
+    queryKey: ["agency", "whoami"],
+    queryFn: () => whoamiFn(),
+  });
+
+  const logPwFn = useServerFn(logOwnAgencyPasswordChange);
+  const logMfaEnrolledFn = useServerFn(logOwnAgencyMfaEnrolled);
+  const logMfaDisabledFn = useServerFn(logOwnAgencyMfaDisabled);
 
   return (
     <>
@@ -37,8 +54,8 @@ function MyAccountPage() {
         <div>
           <h1 className="tvp-h1">My Account</h1>
           <div className="tvp-subtitle">
-            Your personal admin profile, email and password. Changes only affect
-            your own account.
+            Your personal profile, sign-in email, password and two-factor
+            settings. Changes only affect your own account.
           </div>
         </div>
       </div>
@@ -58,10 +75,10 @@ function MyAccountPage() {
           <div className="tvp-account-full">
             <TwoFactorCard
               email={me.data.email}
-              required={!!me.data.isMainAdmin || me.data.permissionLevel === "edit"}
+              required={me.data.role === "owner"}
               logEnrolled={(payload) => logMfaEnrolledFn({ data: payload })}
               logDisabled={() => logMfaDisabledFn()}
-              contextLabel="administrator"
+              contextLabel="Manager (Owner)"
             />
           </div>
         </div>
@@ -74,17 +91,15 @@ function MyAccountPage() {
 
 function ProfileCard({ me }: { me: any }) {
   const qc = useQueryClient();
-  const updateFn = useServerFn(updateOwnProfile);
+  const updateFn = useServerFn(updateOwnAgencyProfile);
 
   const [firstName, setFirstName] = useState(me.firstName ?? "");
   const [lastName, setLastName] = useState(me.lastName ?? "");
-  const [designation, setDesignation] = useState(me.designation ?? "");
 
   useEffect(() => {
     setFirstName(me.firstName ?? "");
     setLastName(me.lastName ?? "");
-    setDesignation(me.designation ?? "");
-  }, [me.firstName, me.lastName, me.designation]);
+  }, [me.firstName, me.lastName]);
 
   const save = useMutation({
     mutationFn: () =>
@@ -92,21 +107,18 @@ function ProfileCard({ me }: { me: any }) {
         data: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          designation: designation.trim(),
         },
       }),
     onSuccess: () => {
       toast.success("Profile updated.");
-      qc.invalidateQueries({ queryKey: ["whoami"] });
-      qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
+      qc.invalidateQueries({ queryKey: ["agency", "whoami"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to update profile"),
   });
 
   const dirty =
     (firstName || "").trim() !== (me.firstName ?? "") ||
-    (lastName || "").trim() !== (me.lastName ?? "") ||
-    (designation || "").trim() !== (me.designation ?? "");
+    (lastName || "").trim() !== (me.lastName ?? "");
 
   return (
     <div className="tvp-card">
@@ -114,7 +126,7 @@ function ProfileCard({ me }: { me: any }) {
         icon={<UserRound className="h-4 w-4" />}
         tone="teal"
         title="Profile"
-        subtitle="Your name and role as it appears across the platform."
+        subtitle="Your name and role as shown across the Agency portal."
       />
 
       <form
@@ -131,7 +143,7 @@ function ProfileCard({ me }: { me: any }) {
               id="first_name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              placeholder="e.g. Israel"
+              placeholder="e.g. Alex"
               maxLength={80}
             />
           </div>
@@ -141,27 +153,23 @@ function ProfileCard({ me }: { me: any }) {
               id="last_name"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              placeholder="e.g. Noko"
+              placeholder="e.g. Rivera"
               maxLength={80}
             />
           </div>
         </div>
 
         <div className="tv-auth-field">
-          <label htmlFor="designation">Designation / title</label>
+          <label htmlFor="agency-role">Role</label>
           <input
-            id="designation"
-            value={designation}
-            onChange={(e) => setDesignation(e.target.value)}
-            placeholder="e.g. Platform Operations Lead"
-            maxLength={120}
-            disabled={!me.isMainAdmin}
-            readOnly={!me.isMainAdmin}
+            id="agency-role"
+            value={roleLabel(me.role)}
+            readOnly
+            disabled
           />
           <div className="tv-auth-hint">
-            {me.isMainAdmin
-              ? "Shown alongside your name in admin surfaces and audit records."
-              : "Only the Main Administrator can change your designation. Ask them to update it if needed."}
+            Your role in {me.agency?.name ?? "this agency"}. Only the Manager (Owner)
+            can change roles from the Manage Staff page.
           </div>
         </div>
 
@@ -182,7 +190,7 @@ function ProfileCard({ me }: { me: any }) {
 /* ------------------------------ Email ------------------------------ */
 
 function EmailCard({ me }: { me: any }) {
-  const logEmailFn = useServerFn(logOwnEmailChangeRequest);
+  const logEmailFn = useServerFn(logOwnAgencyEmailChangeRequest);
   const [email, setEmail] = useState(me.email ?? "");
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState<string | null>(null);

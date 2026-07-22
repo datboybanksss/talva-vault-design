@@ -1,94 +1,94 @@
-# Home Page (`/`) vs Prototype Design System — Gap Report
 
-Comparison only. No code changes proposed yet. Current values pulled from `src/styles.css` (`:root` + `.tv-app` scoped tokens) and `src/routes/index.tsx`.
+# Findings
 
-Note upfront: the project has **two token layers** — the global `:root` tokens the home page uses, and the `.tv-app` scoped `--tvp-*` tokens used inside the authenticated portal shells. They are close but not identical. The M0-M7 prototype spec you're quoting looks closer to a **third variant** (deeper teal-700, amber accent, tighter neutrals, smaller radii). The home page uses the global `:root` layer.
+## 1. Avatar clickability + Agency account page
 
----
+**Current state (verified in code):**
+- Agency shows the initials avatar in **two places**: sidebar footer (`.tvp-avatar` in `agency-shell.tsx:187`) and topbar right (`.tvp-user-dot` at `:258`). **Both are plain `<div>`s** — neither is clickable.
+- Admin makes only the **topbar `.tvp-user-dot`** a `<Link to="/admin/my-account">` (`admin-shell.tsx:284`). The footer `.tvp-avatar` in Admin is also a plain div. So "everywhere it appears" for Agency should mean topbar + footer (matching the Admin pattern and going one step further).
+- **No Agency account page exists.** `src/routes/agency.my-account.tsx` is absent.
+- Admin's `admin.my-account.tsx` (794 lines) is tightly coupled to `admin.functions.ts` (`whoami`, `updateOwnProfile`, `logOwnEmailChangeRequest`, `logOwnPasswordChange`, `logMfaEnrolled`, `logMfaDisabled`) and to Admin-specific fields (`isMainAdmin`, `permissionLevel`, `designation` gated to main admin). **Sharing wholesale would leak Admin semantics into Agency.**
+- However, three sub-cards are already portal-agnostic in behavior:
+  - `ChangePasswordCard` — only needs `email`, uses `supabase.auth.updateUser` + one audit log call.
+  - `TwoFactorCard` — only needs `email` + a `required` flag, uses `supabase.auth.mfa.*` + two audit log calls.
+  - `SectionHeader` — pure presentational.
 
-## 1. Color tokens
+**Design decision (proposed):**
+Build a separate `/agency/my-account` route. **Extract the shared cards** into `src/components/account/` so both portals import them, parameterized by portal-specific audit-log server functions passed as props. This avoids duplicating ~400 lines of password/2FA logic while keeping the admin-only Profile/Email cards out of Agency. I'll refactor `admin.my-account.tsx` to import from the shared module in the same pass (no behavior change).
 
-| Token | Prototype spec | `:root` (home page uses) | `.tv-app` (portal uses) | Match? |
-|---|---|---|---|---|
-| Primary teal | `#064E58` (teal-700) | `--teal: #086A70` | `--tvp-teal: #086A70` | ❌ Ours is lighter/greener than spec |
-| Teal hover | (not specified) | `--teal-2: #108B95` | `--tvp-teal-2: #0A7B8A` | Two different hover shades already |
-| Amber accent | `#E89348` (amber-500, secondary accent) | `--amber: #D97706` (semantic warning only) | `--tvp-amber: #D97706` | ❌ Different hue; and we treat amber as *status*, not *brand accent* |
-| Ink | `#1A1F2A` | `--ink: #142033` | `--tvp-ink: #142033` | ❌ Ours is bluer/darker |
-| Ink-soft | `#4B5563` | `--text-body: #384254` | `--tvp-text: #384254` | ❌ Ours is bluer/darker |
-| Background | `#FAFAF9` (near-white warm) | `--bg: #FDF9F5` (warmer cream) | `--tvp-bg: #FDF9F5` | ❌ Ours is noticeably warmer/cream |
-| Surface | `#FFFFFF` | `--surface: #FFFFFF` | `--tvp-surface: #FFFFFF` | ✅ |
-| Line | (not specified in your summary) | `--line: #EDE8E0` (warm) | `--tvp-line: #EDE8E0` | Warm neutral, likely drifts from spec's cooler grays |
+**Agency-specific pieces to build:**
+- `agency.my-account.tsx` route with: Profile card (first/last name, plus role display — no designation, since Agency has no equivalent), Email card (same self-service `supabase.auth.updateUser` flow), plus the shared Password + 2FA cards.
+- Server fns in `agency.functions.ts`: `updateOwnAgencyProfile`, `logOwnAgencyEmailChangeRequest`, `logOwnAgencyPasswordChange`, `logOwnAgencyMfaEnrolled`, `logOwnAgencyMfaDisabled` — each writes to `agency_audit_log` with existing `logAgencyAction` helper (mirroring admin patterns).
 
-**Also missing entirely from our tokens:** amber as a brand accent (only exists as a warning color), a "color-coded divider under headers" pattern.
-
-## 2. Radius scale
-
-| Token | Prototype spec | Ours (`:root`) | Ours (`.tv-app`) |
-|---|---|---|---|
-| sm | 6px | `calc(var(--radius) - 4px)` = **10px** | `--tvp-radius-sm: 10px` |
-| base | 10px | `--radius: 14px` | `--tvp-radius-md: 14px` |
-| lg | 14px | `--radius-lg: 18px` | `--tvp-radius-lg: 18px` |
-| xl | — | `--radius-xl: 22px` | `--tvp-radius-xl: 22px` |
-
-❌ **Every step is ~4-8px larger than the spec.** Our design is visibly rounder/softer than the prototype target. The home page portal cards specifically inherit `tv-card` → `border-radius: var(--radius-xl)` = **22px**, vs spec's 10px card radius.
-
-## 3. Typography
-
-| Aspect | Prototype spec | Home page actual |
-|---|---|---|
-| Font stack | `-apple-system, Segoe UI, Roboto, ...` | `Arial, Helvetica, "Liberation Sans", sans-serif` (from `@theme inline --font-sans` + `body`) |
-| Base body size | 13-14px | Tailwind default 16px; portal card body uses `text-[13.5px]` inline |
-| Large heading weight | 700 | Home H1 uses `font-black` = **900** |
-| Large heading tracking | -0.2 to -0.8px | `letter-spacing: -0.01em` on h1-h4 globally; home H1 adds `tracking-tight` |
-| Portal card title | — | `text-[17px] font-black` (900) |
-
-❌ Font family is completely different (Arial vs system stack). ❌ Heading weight is 900 across the board, spec is 700. Tracking is in the right direction but not calibrated to the spec's pixel values.
-
-## 4. Cards & buttons
-
-**Portal cards on the home page** (`tv-card` utility applied in `src/routes/index.tsx`):
-- Border: `1px solid var(--line)` ✅ matches spec's "1px solid border"
-- Radius: **22px** (`--radius-xl`) ❌ spec is 10px
-- Padding: `p-6` = **24px** ❌ spec is `22px 26px` (asymmetric)
-- Shadow: `--shadow-soft: 0 5px 18px rgba(20,32,51,0.05)` — spec didn't specify, but present
-
-**Buttons on the home page:** The landing page has **no buttons** — only `<Link>`-wrapped cards. So there's nothing to compare against `.btn-primary` / `.btn-secondary` on this specific page. The utilities `tv-btn-primary` (teal bg, height 48px, radius 12px, weight 800) and `tv-btn-secondary` (white + `--line-strong` border) exist elsewhere and roughly match the spec's shape but with heavier font-weight (800 vs implied 700) and different radius (12px vs 10px).
-
-## 5. Icons
-
-Prototype: custom inline SVG, stroke-based, `stroke-width: 1.7`, unfilled.
-
-Home page (`src/routes/index.tsx`): uses **lucide-react** (`Building2`, `Users`, `User`, `Heart`, `ShieldCheck`, `ArrowRight`). Lucide defaults to `stroke-width: 2`, stroke-based, unfilled.
-
-Partial match: ✅ stroke-based / unfilled style is right. ❌ Stroke width is 2 vs spec's 1.7, and they're not the prototype's hand-authored SVG set — different shapes for the same concepts.
-
-## 6. Other home-page-specific observations
-
-- The teal brand mark tile uses inline `background: var(--teal)` = `#086A70`, same drift as row 1 above.
-- The "Portal selector · Demo" eyebrow uses `text-teal` (again `#086A70`, not the spec's deeper `#064E58`).
-- No amber accent anywhere on the page — the spec's "color-coded divider under headers" pattern isn't present at all on this page.
-- Hero copy uses `text-[40px] md:text-[52px] font-black` — the spec doesn't cover a hero this large, so this is invented, not drifted.
+**Wire the avatars:** convert both `.tvp-avatar` (sidebar footer) and `.tvp-user-dot` (topbar) to `<Link to="/agency/my-account">` in `agency-shell.tsx`. Keep hover/focus styles.
 
 ---
 
-## Summary of drift
+## 2. Responsiveness — audit findings
 
-| Area | Verdict |
-|---|---|
-| Teal primary hue | Off — ours is `#086A70`, spec is `#064E58` (deeper) |
-| Amber as brand accent | **Missing** — we only have amber as a warning color |
-| Neutral grays (ink, ink-soft, bg) | Off — ours are bluer + warmer background |
-| Radius scale | Off — ours is 4-8px rounder at every step |
-| Font family | Off — Arial vs system stack |
-| Heading weight | Off — 900 vs 700 |
-| Icon style | Close — stroke-based, unfilled ✓; stroke-width and specific icon set differ |
-| Card border + surface color | ✅ matches |
-| Buttons on this specific page | N/A — page has no buttons |
+**Existing breakpoints in `src/styles.css`:**
+- `≤1100px`: plan/finance/rule/doc/two-col grids collapse.
+- `≤768px`: sidebar auto-collapses to icon-only; KPI grid → 2 cols; form/meta grids → 1 col.
+- `≤720px`: **sidebar `display: none`** — main becomes a block layout.
 
-## Open questions before any redesign
+**Priority issues confirmed by reading the shell + styles:**
 
-1. Is the M0-M7 prototype spec's token set intended to **replace** our current TalVault tokens across the whole app, or is it a **third look** applied only to the landing page? If it replaces globally, the change is much larger than the home page.
-2. Does "amber as secondary accent + color-coded divider under headers" apply to the landing page specifically, or is it a portal-page pattern that the home page shouldn't adopt?
-3. Do you want the deeper teal `#064E58` to become the canonical brand token (updating sidebar, buttons, badges everywhere), or only the landing page's brand mark and headings?
+**P0 (blocks core use):**
+- **Mobile has no navigation.** At ≤720px the sidebar is hidden entirely with no hamburger/drawer replacement. Users on phones cannot navigate the Agency portal at all.
+- **Topbar row at narrow widths.** `flex items-center gap-3 justify-end mb-2` contains search input + bell + user-dot; the fixed-width `.tvp-search-top` doesn't shrink and can push the user-dot off-screen at ~375px.
 
-I'll wait for direction on scope before proposing an implementation plan.
+**P1 (visible layout breaks):**
+- **Wide data tables** (`agency.invitations.tsx`, `agency.talent.tsx`, `agency.document-vault.tsx`, `agency.quotes-invoices.tsx`, `agency.activity.tsx`) — need audit for `overflow-x: auto` wrappers. If any lack one, columns clip or force horizontal page scroll at ≤1024px.
+- **KPI cards on Dashboard** — currently 4 across; at 768–1023px the 4-col rule may still apply, cramping content (recently patched flex issue was a separate bug). Confirm the 4→2 breakpoint kicks in cleanly.
+- **Modals** (`UploadDialog` in `agency.document-vault.tsx`, `NewInvitationModal`, folder-picker wizard) — verify they fit 375px viewport (no fixed widths beyond 100vw, form fields stack).
+
+**P2 (polish):**
+- Settings tabs bar (`agency.settings.tsx`) — check whether tabs wrap or overflow-scroll at narrow widths.
+- Quotes & Invoices filter/toolbar row.
+- Activity log filter chips row.
+
+**Deferred / flagged for a bigger pass (not in this plan):**
+- Full drawer/off-canvas navigation with focus trap, aria-modal, swipe gesture. This plan ships a simpler "hamburger toggles collapsed→expanded overlay" pattern; a proper drawer is a follow-up.
+- Print styles.
+- Reduced-motion audit.
+
+---
+
+# Plan — Phase A (do first, ship, verify, then Phase B)
+
+## Phase A — Account page + avatar wiring
+
+1. **Extract shared cards** to `src/components/account/`:
+   - `password-card.tsx` — accepts `{ email, logPasswordChange: () => Promise<any> }`.
+   - `two-factor-card.tsx` — accepts `{ email, required, logEnrolled, logDisabled }`.
+   - `section-header.tsx` — presentational.
+2. **Refactor `admin.my-account.tsx`** to import from `src/components/account/` (no behavior change; verifies the extraction).
+3. **Add Agency server functions** in `agency.functions.ts` — `updateOwnAgencyProfile`, `logOwnAgencyEmailChangeRequest`, `logOwnAgencyPasswordChange`, `logOwnAgencyMfaEnrolled`, `logOwnAgencyMfaDisabled`. Each guarded by `requireSupabaseAuth` + `agency_members` membership check; writes via existing `logAgencyAction` helper.
+4. **Create `src/routes/agency.my-account.tsx`** — head/meta, Profile card (first/last name editable via `updateOwnAgencyProfile`; role shown read-only using `agencyWhoami.role`), Email card (self-service via `supabase.auth.updateUser`), Password card, 2FA card. `required` on 2FA is `me.role === "owner"` (Agency owners must have 2FA; leads/staff optional — flag if you want different).
+5. **Wire avatars in `agency-shell.tsx`**: convert `.tvp-avatar` (footer) and `.tvp-user-dot` (topbar) to `<Link to="/agency/my-account">`. Match the sign-out button's hover ring.
+
+**Verify:** navigate to `/agency/my-account`, save profile, change password against seeded user, enroll then disable 2FA. Check `agency_audit_log` rows.
+
+## Phase B — Responsive fixes (prioritized, incremental)
+
+Only P0 + P1 in this pass. P2 flagged for follow-up.
+
+**P0 — mobile navigation + topbar**
+1. Add a hamburger button to `agency-shell.tsx` that shows at `≤720px` and toggles a new `.tv-mobile-open` class on `.tv-app`. Under `.tv-mobile-open`, unhide `.tvp-sidebar` as a fixed overlay (position: fixed, full-height, z-index above main, backdrop). Close on nav-item click and on backdrop click. Preserve `Escape` to close.
+2. Topbar: make `.tvp-search-top` `min-width: 0; flex: 1 1 200px` so it shrinks; hide the search input entirely at `≤480px` behind a search icon that expands on tap. Keep bell + avatar always visible.
+
+**P1 — tables, KPIs, modals**
+3. Wrap each Agency table (`invitations`, `talent`, `document-vault`, `quotes-invoices`, `activity`, `contracts.$id` related invoices) in a `div.tvp-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch }`. Set `min-width` on the `<table>` so columns keep their proportions and the container scrolls horizontally instead of the page.
+4. Dashboard KPI grid: audit the `≤1100px` chain — add explicit `.tvp-kpi-grid` rule at `768–1023px` → `repeat(2, minmax(0, 1fr))` (may already be inherited; verify and only add if missing). At `≤480px` → single column.
+5. Modals (`UploadDialog`, `NewInvitationModal`, upload wizard): set `max-width: min(720px, 100vw - 24px)` and `max-height: calc(100vh - 32px)` with internal scroll on the body; stack any 2-col form rows to 1 col at `≤560px`.
+
+**Verify:** manual Playwright screenshots at 375, 768, 1280, 1920 for Dashboard, Talent, Invitations, Document Vault, Quotes & Invoices, Activity Log, Settings, and one modal on Document Vault. Report per-viewport before/after and flag any remaining P2 issues for a dedicated pass.
+
+---
+
+# Order of execution
+
+1. Phase A end-to-end, verify, brief report.
+2. Then Phase B (P0 → P1), verify per-viewport, report + flag P2.
+
+**Ask before I start:** confirm the 2FA-required rule for Agency (owner-only vs everyone), and whether you want the Admin refactor bundled with Phase A or done as a separate cleanup pass afterward.
