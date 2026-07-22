@@ -709,18 +709,19 @@ function RecentTalentActivity({
                   {formatRelative(last)}
                 </td>
                 <td style={{ position: "relative", whiteSpace: "nowrap" }}>
-                  <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13 }}>
-                    Open <ArrowRight className="inline h-3 w-3" />
-                  </Link>
-                  <button
-                    className="tvp-mini-btn"
-                    title="Actions"
-                    onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
-                    disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
-                    style={{ marginLeft: 6 }}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13, height: 32 }}>
+                      Open <ArrowRight className="inline h-3 w-3" />
+                    </Link>
+                    <button
+                      className="tvp-mini-btn"
+                      title="Actions"
+                      onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
+                      disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </div>
                   {openMenuId === r.id && isOwner && (
                     <div
                       style={{
