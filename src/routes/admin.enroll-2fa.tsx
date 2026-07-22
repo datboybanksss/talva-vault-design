@@ -192,7 +192,23 @@ function EnrollTwoFactorPage() {
               />
             </div>
             {error && (
-              <div className="tv-form-alert tv-form-alert-error">{error}</div>
+              <div
+                className="tvp-callout"
+                role="alert"
+                style={{
+                  marginTop: 12,
+                  background: "var(--tvp-amber-bg)",
+                  borderColor: "color-mix(in oklab, var(--tvp-amber) 40%, transparent)",
+                }}
+              >
+                <div
+                  className="tvp-callout-icon"
+                  style={{ background: "color-mix(in oklab, var(--tvp-amber) 22%, white)", color: "var(--tvp-amber)" }}
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div style={{ fontSize: 13, color: "var(--tvp-ink)", fontWeight: 600 }}>{error}</div>
+              </div>
             )}
             <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
               <button
