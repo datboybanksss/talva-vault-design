@@ -482,7 +482,8 @@ export const listAgencyInvitations = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
-export const createAgencyInvitation = createServerFn({ method: "POST" })
+// Create as DRAFT — admin must upload compliance docs then call finalize.
+export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z
@@ -491,29 +492,25 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
         contact_person: z.string().optional(),
         email: z.string().email(),
         business_type: z.enum(["formal", "informal"]),
-        supporting_docs: z.array(z.string()).optional().default([]),
         expiry_days: z.number().int().min(1).max(60).default(14),
       })
       .parse(d),
-
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
 
-    // Duplicate check: only block if there is a truly-active record for this email
-    // (case-insensitive). Stale/expired/revoked/declined rows must NOT match.
     const nowIso = new Date().toISOString();
     const { data: activeInv } = await supabase
       .from("agency_invitations")
-      .select("id, agency_name, expires_at")
+      .select("id, agency_name, status, expires_at")
       .ilike("email", data.email)
-      .eq("status", "pending")
+      .in("status", ["pending", "draft"])
       .gt("expires_at", nowIso)
       .maybeSingle();
     if (activeInv?.id) {
       throw new Error(
-        `An active invitation for ${data.email} already exists (${activeInv.agency_name}). Resend or revoke it from the Invitations list before inviting again.`,
+        `An active ${activeInv.status} invitation for ${data.email} already exists (${activeInv.agency_name}). Delete or revoke it before inviting again.`,
       );
     }
     const { data: activeAgency } = await supabase
@@ -532,7 +529,6 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
       Date.now() + data.expiry_days * 24 * 3600 * 1000,
     ).toISOString();
 
-    // Also create the agency row in incomplete/invited state so it shows up
     const { data: agency, error: agencyErr } = await supabase
       .from("agencies")
       .insert({
@@ -556,26 +552,294 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
         email: data.email,
         expires_at: expiresAt,
         business_type: data.business_type,
-        supporting_docs: data.supporting_docs ?? [],
+        status: "draft",
         invited_by: userId,
       })
       .select()
       .single();
     if (error) throw new Error(error.message);
 
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "create_agency_invitation_draft",
+      "invitation",
+      inv.id,
+      data.agency_name,
+      { email: data.email },
+    );
+    return inv;
+  });
+
+// Finalize: move draft -> pending after compliance docs uploaded.
+const REQUIRED_FILE_SLOTS: Record<"formal" | "informal", string[]> = {
+  formal: ["cipc", "director_id", "proof_of_address"],
+  informal: ["sa_id", "proof_of_address"],
+};
+
+export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string(),
+        registered_contact_number: z.string().optional(),
+        registered_mobile_number: z.string().optional(),
+        expiry_days: z.number().int().min(1).max(60).default(14),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdminCanEdit(supabase, userId);
+
+    const { data: inv, error: iErr } = await supabase
+      .from("agency_invitations")
+      .select("id, agency_name, email, business_type, status")
+      .eq("id", data.id)
+      .single();
+    if (iErr) throw new Error(iErr.message);
+    if (inv.status !== "draft") {
+      throw new Error(`Invitation is already ${inv.status}, cannot finalize.`);
+    }
+    const bt = inv.business_type as "formal" | "informal";
+    if (!bt) throw new Error("Business type missing on invitation.");
+
+    // Verify required files are present
+    const { data: docs } = await supabase
+      .from("agency_compliance_documents")
+      .select("doc_slot")
+      .eq("invitation_id", data.id);
+    const uploadedSlots = new Set((docs ?? []).map((d: any) => d.doc_slot));
+    const missing = REQUIRED_FILE_SLOTS[bt].filter((s) => !uploadedSlots.has(s));
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required documents: ${missing.join(", ")}. Upload all before sending.`,
+      );
+    }
+    // Verify required text fields
+    if (bt === "formal" && !data.registered_contact_number?.trim()) {
+      throw new Error("Registered business contact number is required.");
+    }
+    if (bt === "informal" && !data.registered_mobile_number?.trim()) {
+      throw new Error("Registered mobile number is required.");
+    }
+
+    const expiresAt = new Date(
+      Date.now() + data.expiry_days * 24 * 3600 * 1000,
+    ).toISOString();
+    const { data: updated, error: uErr } = await supabase
+      .from("agency_invitations")
+      .update({
+        status: "pending",
+        expires_at: expiresAt,
+        last_sent_at: new Date().toISOString(),
+        registered_contact_number: data.registered_contact_number ?? null,
+        registered_mobile_number: data.registered_mobile_number ?? null,
+      })
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (uErr) throw new Error(uErr.message);
 
     await logAudit(
       supabase,
       userId,
       claims?.email,
-      "create_agency_invitation",
+      "finalize_agency_invitation",
       "invitation",
-      inv.id,
-      data.agency_name,
-      { email: data.email, expires_at: expiresAt },
+      data.id,
+      inv.agency_name,
+      { email: inv.email, expires_at: expiresAt },
     );
-    return inv;
+    return updated;
   });
+
+// ---- Compliance documents ----
+export const listComplianceDocuments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ invitation_id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { data: rows, error } = await supabase
+      .from("agency_compliance_documents")
+      .select("*")
+      .eq("invitation_id", data.invitation_id)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const recordComplianceDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        invitation_id: z.string(),
+        doc_slot: z.string().min(1),
+        file_name: z.string().min(1),
+        storage_path: z.string().min(1),
+        mime_type: z.string().optional(),
+        size_bytes: z.number().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdminCanEdit(supabase, userId);
+    const { data: inv, error: iErr } = await supabase
+      .from("agency_invitations")
+      .select("agency_id, business_type, agency_name")
+      .eq("id", data.invitation_id)
+      .single();
+    if (iErr) throw new Error(iErr.message);
+    if (!inv.business_type) throw new Error("Business type not set.");
+    if (!data.storage_path.startsWith(`${data.invitation_id}/`)) {
+      throw new Error("Invalid storage path.");
+    }
+    const { data: row, error } = await supabase
+      .from("agency_compliance_documents")
+      .insert({
+        invitation_id: data.invitation_id,
+        agency_id: inv.agency_id,
+        business_type: inv.business_type,
+        doc_slot: data.doc_slot,
+        file_name: data.file_name,
+        storage_path: data.storage_path,
+        mime_type: data.mime_type ?? null,
+        size_bytes: data.size_bytes ?? null,
+        uploaded_by: userId,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "upload_compliance_doc",
+      "compliance_document",
+      row.id,
+      inv.agency_name,
+      { slot: data.doc_slot, file: data.file_name },
+    );
+    return row;
+  });
+
+export const deleteComplianceDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdminCanEdit(supabase, userId);
+    const { data: doc, error: fErr } = await supabase
+      .from("agency_compliance_documents")
+      .select("id, storage_path, file_name, invitation_id")
+      .eq("id", data.id)
+      .single();
+    if (fErr) throw new Error(fErr.message);
+    await supabase.storage.from("agency-compliance-docs").remove([doc.storage_path]);
+    const { error } = await supabase
+      .from("agency_compliance_documents")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "delete_compliance_doc",
+      "compliance_document",
+      data.id,
+      doc.file_name,
+      { invitation_id: doc.invitation_id },
+    );
+    return { ok: true };
+  });
+
+// Hard-delete an invitation (and its shell agency if empty). Distinct from revoke.
+export const deleteAgencyInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdminCanEdit(supabase, userId);
+
+    const { data: inv, error: iErr } = await supabase
+      .from("agency_invitations")
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (iErr) throw new Error(iErr.message);
+    if (inv.status === "accepted") {
+      throw new Error(
+        "This invitation has been accepted — the agency is live. Use Suspend/Pause on the agency instead.",
+      );
+    }
+
+    // Delete compliance storage objects, then DB rows (cascade also handles rows)
+    const { data: docs } = await supabase
+      .from("agency_compliance_documents")
+      .select("storage_path")
+      .eq("invitation_id", data.id);
+    const paths = (docs ?? []).map((d: any) => d.storage_path);
+    if (paths.length > 0) {
+      await supabase.storage.from("agency-compliance-docs").remove(paths);
+    }
+
+    // Only delete the linked agency shell when it's still just an invited shell with no members
+    let agencyDeleted = false;
+    if (inv.agency_id) {
+      const { data: ag } = await supabase
+        .from("agencies")
+        .select("id, status")
+        .eq("id", inv.agency_id)
+        .maybeSingle();
+      if (ag && ag.status === "invited") {
+        const { count } = await supabase
+          .from("agency_members")
+          .select("id", { head: true, count: "exact" })
+          .eq("agency_id", inv.agency_id);
+        if (!count) {
+          const { error: delAgErr } = await supabase
+            .from("agencies")
+            .delete()
+            .eq("id", inv.agency_id);
+          if (!delAgErr) agencyDeleted = true;
+        }
+      }
+    }
+
+    const { error: delErr } = await supabase
+      .from("agency_invitations")
+      .delete()
+      .eq("id", data.id);
+    if (delErr) throw new Error(delErr.message);
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "delete_agency_invitation",
+      "invitation",
+      data.id,
+      inv.agency_name,
+      {
+        email: inv.email,
+        prior_status: inv.status,
+        agency_id: inv.agency_id,
+        agency_deleted: agencyDeleted,
+        compliance_docs_removed: paths.length,
+        snapshot: inv,
+      },
+    );
+    return { ok: true, agency_deleted: agencyDeleted };
+  });
+
+// Kept for back-compat — routes to draft creator. UI should call createAgencyInvitationDraft directly.
+export const createAgencyInvitation = createAgencyInvitationDraft;
 
 export const resendInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
