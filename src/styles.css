@@ -744,7 +744,36 @@
   .tv-app .tvp-stepper,
   .tv-app .tvp-form-grid,
   .tv-app .tvp-review-grid { grid-template-columns: 1fr !important; }
+  .tv-app .tvp-topbar { flex-wrap: wrap; gap: 12px; }
+  .tv-app .tvp-search-top { width: 100%; min-width: 0; }
+  .tv-app .tvp-mobile-menu-btn { display: inline-grid !important; }
+  /* Cards containing a raw <table> get horizontal scroll on narrow screens */
+  .tv-app .tvp-card:has(> .tvp-table) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tv-app .tvp-card > .tvp-table { min-width: 640px; }
 }
+
+/* Mobile menu button — hidden on desktop, shown at ≤720px via rule above */
+.tv-app .tvp-mobile-menu-btn {
+  display: none;
+  width: 40px; height: 40px; border: 1px solid var(--tvp-line-strong);
+  background: white; border-radius: 10px; place-items: center; color: var(--tvp-ink);
+  flex: 0 0 auto;
+}
+
+/* Mobile drawer: when .tv-mobile-open, sidebar becomes fixed overlay */
+.tv-app.tv-mobile-open .tvp-sidebar {
+  display: block !important;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: min(84vw, 300px); z-index: 60;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+.tv-app.tv-mobile-open .tvp-collapse-btn { display: none; }
+.tv-app .tvp-mobile-backdrop {
+  display: none;
+  position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 55;
+}
+.tv-app.tv-mobile-open .tvp-mobile-backdrop { display: block; }
+
 
 /* TalVault Auth screen — scoped styles matching admin design language ------- */
 .tv-auth {
