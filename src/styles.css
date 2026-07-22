@@ -1007,3 +1007,10 @@
   background: var(--teal-50); color: var(--teal);
   border: 1px solid var(--teal-200);
 }
+
+/* Row-flash highlight for cross-page deep-links (e.g. Agencies → Invitations). */
+@keyframes tvp-row-flash-kf {
+  0%   { background-color: color-mix(in oklab, var(--tvp-amber) 22%, transparent); }
+  100% { background-color: transparent; }
+}
+.tvp-row-flash > td { animation: tvp-row-flash-kf 2.2s ease-out; }
