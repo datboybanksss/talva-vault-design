@@ -490,10 +490,12 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
         agency_name: z.string().min(1),
         contact_person: z.string().optional(),
         email: z.string().email(),
+        business_type: z.enum(["formal", "informal"]),
         supporting_docs: z.array(z.string()).optional().default([]),
         expiry_days: z.number().int().min(1).max(60).default(14),
       })
       .parse(d),
+
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
