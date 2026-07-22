@@ -648,6 +648,29 @@ export const listAgencyTalentFolders = createServerFn({ method: "POST" })
     }));
   });
 
+// List every provisioned folder across all active talents in the agency.
+// Used by the Document Vault "Browse folders" modal.
+export const listAllAgencyProvisionedFolders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: rows, error } = await supabase
+      .from("agency_talent_folders")
+      .select("id, folder_name, sort_order, talent_link_id, agency_talent_links!inner(id, display_name, status)")
+      .eq("agency_id", agencyId)
+      .order("sort_order", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r: any) => ({
+      id: r.id as string,
+      folderName: r.folder_name as string,
+      sortOrder: r.sort_order as number,
+      talentLinkId: r.talent_link_id as string,
+      talentName: (r.agency_talent_links?.display_name as string) ?? "",
+      talentStatus: (r.agency_talent_links?.status as string) ?? "",
+    }));
+  });
+
 
 
 // End / reactivate a talent relationship. Owner-only.
