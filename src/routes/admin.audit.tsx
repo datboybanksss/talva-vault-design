@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download } from "lucide-react";
+import { Download, Activity, Users2, ShieldAlert, Mail } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -38,11 +38,40 @@ function AuditPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [areaFilter, setAreaFilter] = useState<string>("all");
 
   const events = q.data ?? [];
+
+  const areaOf = (a: string) => actionArea[a]?.area ?? "System";
+  const severityOf = (a: string) => actionArea[a]?.severity ?? "Low";
+
+  const areaCounts = useMemo(() => {
+    const c: Record<string, number> = { all: events.length };
+    for (const e of events) {
+      const area = areaOf(e.action);
+      c[area] = (c[area] ?? 0) + 1;
+    }
+    return c;
+  }, [events]);
+
+  const kpis = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const eventsToday = events.filter((e: any) => new Date(e.created_at) >= today).length;
+    const highSeverity = events.filter((e: any) => severityOf(e.action) === "High").length;
+    const distinctActors = new Set(events.map((e: any) => e.actor_email ?? "system")).size;
+    return {
+      total: events.length,
+      eventsToday,
+      highSeverity,
+      distinctActors,
+    };
+  }, [events]);
+
   const visible = useMemo(
     () =>
       events.filter((e: any) => {
+        if (areaFilter !== "all" && areaOf(e.action) !== areaFilter) return false;
         if (!search) return true;
         const q = search.toLowerCase();
         return (
@@ -51,8 +80,11 @@ function AuditPage() {
           (e.target_label ?? "").toLowerCase().includes(q)
         );
       }),
-    [events, search],
+    [events, search, areaFilter],
   );
+
+  const filtersActive = areaFilter !== "all" || !!search;
+  const resetFilters = () => { setAreaFilter("all"); setSearch(""); };
 
   const selected =
     events.find((e: any) => e.id === selectedId) ?? visible[0] ?? null;
@@ -93,6 +125,66 @@ function AuditPage() {
         </div>
       </div>
 
+      {/* KPI row */}
+      <div className="tvp-grid tvp-kpi-grid">
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-teal"><Activity className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{kpis.total}</div>
+            <div className="tvp-kpi-label">Total Events</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Immutable audit trail</div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-blue"><Mail className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{kpis.eventsToday}</div>
+            <div className="tvp-kpi-label">Events Today</div>
+            <div className="tvp-kpi-sub" style={{ color: kpis.eventsToday > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+              {kpis.eventsToday > 0 ? "Active session" : "Quiet so far"}
+            </div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-red"><ShieldAlert className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{kpis.highSeverity}</div>
+            <div className="tvp-kpi-label">High-Severity Actions</div>
+            <div className="tvp-kpi-sub" style={{ color: kpis.highSeverity > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}>
+              {kpis.highSeverity > 0 ? "Review recommended" : "No high-severity events"}
+            </div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-purple"><Users2 className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{kpis.distinctActors}</div>
+            <div className="tvp-kpi-label">Distinct Actors</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Admins + system</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Area chip row */}
+      <div className="tvp-life-chips">
+        {["all", "Agencies", "Invitations", "Reporting", "Legal & Copy", "System"].map((k) => {
+          const toneMap: Record<string, string> = {
+            all: "teal", Agencies: "teal", Invitations: "blue", Reporting: "purple",
+            "Legal & Copy": "amber", System: "neutral",
+          };
+          return (
+            <button
+              key={k}
+              className={`tvp-life-chip${areaFilter === k ? " tvp-active-filter" : ""} tvp-bg-${toneMap[k] ?? "neutral"}`}
+              onClick={() => setAreaFilter(k)}
+            >
+              <div className="tvp-label">{k === "all" ? "All" : k}</div>
+              <div className="tvp-num">{areaCounts[k] ?? 0}</div>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="tvp-card">
         <div className="tvp-toolbar">
           <input
@@ -101,6 +193,9 @@ function AuditPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {filtersActive && (
+            <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
+          )}
         </div>
         <div
           style={{
@@ -132,7 +227,7 @@ function AuditPage() {
                     <tr
                       key={e.id}
                       onClick={() => setSelectedId(e.id)}
-                      style={{ cursor: "pointer", background: selected?.id === e.id ? "rgba(99,102,241,0.05)" : undefined }}
+                      style={{ cursor: "pointer", background: selected?.id === e.id ? "color-mix(in oklab, var(--tvp-teal) 6%, transparent)" : undefined }}
                     >
                       <td>{new Date(e.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
                       <td><strong>{e.actor_email ?? "System"}</strong></td>
@@ -146,7 +241,7 @@ function AuditPage() {
               </tbody>
             </table>
           </div>
-          <div className="tvp-card tvp-panel">
+          <div className="tvp-card tvp-panel tvp-settings-tight">
             <h2 className="tvp-h2">Event Details</h2>
             {selected ? (
               (() => {

@@ -107,7 +107,10 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalAgencies ?? "—"}</div>
             <div className="tvp-kpi-label">Total Agencies</div>
-            <div className="tvp-kpi-sub">
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: (counts.accepted ?? 0) > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+            >
               {counts.accepted} accepted · {counts.incomplete + counts.invited} in progress
             </div>
           </div>
@@ -117,7 +120,12 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{counts.invited}</div>
             <div className="tvp-kpi-label">Open Agency Invites</div>
-            <div className="tvp-kpi-sub tvp-warn">Sent, awaiting acceptance</div>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: counts.invited > 0 ? "var(--tvp-amber)" : "var(--tvp-green)" }}
+            >
+              {counts.invited > 0 ? "Awaiting acceptance" : "All caught up"}
+            </div>
           </div>
         </Link>
         <div className="tvp-card tvp-kpi">
@@ -125,7 +133,7 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalTalent ?? "—"}</div>
             <div className="tvp-kpi-label">Total Talent Onboarded</div>
-            <div className="tvp-kpi-sub">Excludes deleted / test records</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Excludes deleted / test records</div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi" title="Aggregate count only. Admin never previews Talent Private Vault contents.">
@@ -133,7 +141,7 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalDocuments ?? "—"}</div>
             <div className="tvp-kpi-label">Total Documents Uploaded</div>
-            <div className="tvp-kpi-sub tvp-info" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-blue)", display: "inline-flex", alignItems: "center", gap: 4 }}>
               <Lock className="h-3 w-3" /> Aggregate only · vault contents never exposed
             </div>
           </div>
@@ -146,7 +154,12 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.activeShares ?? "—"}</div>
             <div className="tvp-kpi-label">Active Loved One Shares</div>
-            <div className="tvp-kpi-sub">Across all Talent</div>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: (metrics.data?.activeShares ?? 0) > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+            >
+              Across all Talent
+            </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
@@ -154,7 +167,12 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{counts.suspended}</div>
             <div className="tvp-kpi-label">Suspended Agencies</div>
-            <div className="tvp-kpi-sub tvp-warn">Read-only / export rules apply</div>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: counts.suspended > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}
+            >
+              {counts.suspended > 0 ? "Read-only / export rules apply" : "None suspended"}
+            </div>
           </div>
         </div>
       </div>

@@ -32,7 +32,7 @@ function MyAccountPage() {
   const logMfaDisabledFn = useServerFn(logMfaDisabled);
 
   return (
-    <>
+    <div className="tvp-settings-tight">
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">My Account</h1>
@@ -66,7 +66,7 @@ function MyAccountPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
