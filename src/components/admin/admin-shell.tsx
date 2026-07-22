@@ -270,18 +270,25 @@ export function AdminShell({ children }: { children: ReactNode }) {
                       ) : (
                         <div className="tvp-notification-body">{body}</div>
                       )}
-                      {n.persisted && (
-                        <button
-                          className="tvp-mini-btn"
-                          title="Dismiss"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                      <button
+                        className="tvp-mini-btn"
+                        title="Dismiss"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          if (n.persisted) {
                             dismissM.mutate(n.id);
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
+                          } else {
+                            dismissComputedM.mutate({
+                              kind: n.kind,
+                              snapshot: n.snapshot ?? 0,
+                            });
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+
                     </div>
                   );
                 })}
