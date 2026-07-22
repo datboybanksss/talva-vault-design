@@ -984,60 +984,85 @@ export const listNotifications = createServerFn({ method: "GET" })
     const computed: Array<{
       id: string;
       kind: string;
+      snapshot: number;
       tone: string;
       title: string;
       detail: string;
       to?: string;
     }> = [];
 
-    if ((expiring.count ?? 0) > 0)
-      computed.push({
-        id: "auto-invite-expiring",
-        kind: "invite_expiring",
-        tone: "amber",
-        title: `${expiring.count} agency invite${expiring.count === 1 ? "" : "s"} expiring soon`,
-        detail: "Within the reminder window.",
-        to: "/admin/invitations",
-      });
-    if ((expired.count ?? 0) > 0)
-      computed.push({
-        id: "auto-invite-expired",
-        kind: "invite_expired",
-        tone: "red",
-        title: `${expired.count} agency invite${expired.count === 1 ? "" : "s"} expired`,
-        detail: "Requires resend, correction or close-out.",
-        to: "/admin/invitations",
-      });
-    if ((incomplete.count ?? 0) > 0)
-      computed.push({
-        id: "auto-incomplete",
-        kind: "agency_incomplete",
-        tone: "purple",
-        title: `${incomplete.count} agenc${incomplete.count === 1 ? "y" : "ies"} incomplete`,
-        detail: "Onboarding or document review outstanding.",
-        to: "/admin/agencies",
-      });
-    if ((talentPending.count ?? 0) > 0)
-      computed.push({
-        id: "auto-talent-pending",
-        kind: "talent_invite_pending",
-        tone: "blue",
-        title: `${talentPending.count} Talent invite${talentPending.count === 1 ? "" : "s"} pending`,
-        detail: "From agency-level Talent invites.",
-        to: "/admin/agencies",
-      });
-    if ((suspended.count ?? 0) > 0)
-      computed.push({
-        id: "auto-suspended",
-        kind: "suspended_review",
-        tone: "red",
-        title: `${suspended.count} suspended agenc${suspended.count === 1 ? "y" : "ies"} need${suspended.count === 1 ? "s" : ""} review`,
-        detail: "Suspension follow-up outstanding.",
-        to: "/admin/agencies",
-      });
+    const push = (
+      kind: string,
+      count: number,
+      tone: string,
+      title: string,
+      detail: string,
+      to?: string,
+    ) => {
+      computed.push({ id: `auto-${kind}`, kind, snapshot: count, tone, title, detail, to });
+    };
 
-    return { persisted: persisted ?? [], computed };
+    if ((expiring.count ?? 0) > 0)
+      push(
+        "invite_expiring",
+        expiring.count ?? 0,
+        "amber",
+        `${expiring.count} agency invite${expiring.count === 1 ? "" : "s"} expiring soon`,
+        "Within the reminder window.",
+        "/admin/invitations",
+      );
+    if ((expired.count ?? 0) > 0)
+      push(
+        "invite_expired",
+        expired.count ?? 0,
+        "red",
+        `${expired.count} agency invite${expired.count === 1 ? "" : "s"} expired`,
+        "Requires resend, correction or close-out.",
+        "/admin/invitations",
+      );
+    if ((incomplete.count ?? 0) > 0)
+      push(
+        "agency_incomplete",
+        incomplete.count ?? 0,
+        "purple",
+        `${incomplete.count} agenc${incomplete.count === 1 ? "y" : "ies"} incomplete`,
+        "Onboarding or document review outstanding.",
+        "/admin/agencies",
+      );
+    if ((talentPending.count ?? 0) > 0)
+      push(
+        "talent_invite_pending",
+        talentPending.count ?? 0,
+        "blue",
+        `${talentPending.count} Talent invite${talentPending.count === 1 ? "" : "s"} pending`,
+        "From agency-level Talent invites.",
+        "/admin/agencies",
+      );
+    if ((suspended.count ?? 0) > 0)
+      push(
+        "suspended_review",
+        suspended.count ?? 0,
+        "red",
+        `${suspended.count} suspended agenc${suspended.count === 1 ? "y" : "ies"} need${suspended.count === 1 ? "s" : ""} review`,
+        "Suspension follow-up outstanding.",
+        "/admin/agencies",
+      );
+
+    // Filter out computed reminders this admin has dismissed at the current count snapshot.
+    const { data: dismissals } = await supabase
+      .from("admin_notification_dismissals")
+      .select("kind, snapshot")
+      .eq("user_id", userId);
+    const dismissedMap = new Map<string, number>(
+      (dismissals ?? []).map((d: any) => [d.kind, d.snapshot]),
+    );
+    const visibleComputed = computed.filter(
+      (c) => dismissedMap.get(c.kind) !== c.snapshot,
+    );
+
+    return { persisted: persisted ?? [], computed: visibleComputed };
   });
+
 
 
 // -----------------------------------------------------------------------------
