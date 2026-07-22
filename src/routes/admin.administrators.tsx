@@ -126,6 +126,9 @@ function AdminsPage() {
           <div>
             <div className="tvp-kpi-value">{stats.total}</div>
             <div className="tvp-kpi-label">Total Administrators</div>
+            <div className="tvp-kpi-sub" style={{ color: stats.total > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+              {stats.total > 0 ? "Active platform seats" : "None yet"}
+            </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
@@ -133,6 +136,19 @@ function AdminsPage() {
           <div>
             <div className="tvp-kpi-value">{stats.main}</div>
             <div className="tvp-kpi-label">Main Administrators</div>
+            <div className="tvp-kpi-sub" style={{ color: stats.main === 1 ? "var(--tvp-green)" : stats.main > 1 ? "var(--tvp-amber)" : "var(--tvp-red)" }}>
+              {stats.main === 1 ? "Single owner (recommended)" : stats.main > 1 ? "Multiple owners" : "Missing — assign one"}
+            </div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-amber"><UserPlus className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{pendingInvites.length}</div>
+            <div className="tvp-kpi-label">Pending Admin Invites</div>
+            <div className="tvp-kpi-sub tvp-warn" style={{ color: pendingInvites.length > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}>
+              {pendingInvites.length > 0 ? "Awaiting sign-up" : "None outstanding"}
+            </div>
           </div>
         </div>
       </div>
