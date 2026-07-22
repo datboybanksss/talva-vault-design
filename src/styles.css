@@ -814,8 +814,8 @@
   box-shadow: var(--shadow-card);
   padding: 32px;
 }
-.tv-auth .tv-auth-eyebrow { font-size: 11px; letter-spacing: .2em; color: var(--teal); font-weight: 900; text-transform: uppercase; }
-.tv-auth .tv-auth-title { font-size: 24px; font-weight: 900; color: var(--ink); letter-spacing: -.3px; margin-top: 8px; }
+.tv-auth .tv-auth-eyebrow { font-size: 11px; letter-spacing: .2em; color: var(--teal); font-weight: 700; text-transform: uppercase; }
+.tv-auth .tv-auth-title { font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: -.3px; margin-top: 8px; }
 .tv-auth .tv-auth-tag { color: var(--muted-fg); font-size: 13.5px; margin-top: 6px; }
 
 .tv-auth .tv-auth-google {
