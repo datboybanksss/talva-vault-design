@@ -134,10 +134,9 @@ function ProfileCard({ me }: { me: any }) {
           e.preventDefault();
           save.mutate();
         }}
-        style={{ marginTop: 8 }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <div className="tv-auth-field" style={{ marginTop: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="tv-auth-field">
             <label htmlFor="first_name">First name</label>
             <input
               id="first_name"
@@ -147,7 +146,7 @@ function ProfileCard({ me }: { me: any }) {
               maxLength={80}
             />
           </div>
-          <div className="tv-auth-field" style={{ marginTop: 0 }}>
+          <div className="tv-auth-field">
             <label htmlFor="last_name">Last name</label>
             <input
               id="last_name"
@@ -173,7 +172,7 @@ function ProfileCard({ me }: { me: any }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
           <button
             type="submit"
             className="tvp-primary"
@@ -233,8 +232,8 @@ function EmailCard({ me }: { me: any }) {
         subtitle="Requires confirmation via a link sent to the new address."
       />
 
-      <form onSubmit={request} style={{ marginTop: 8 }} noValidate>
-        <div className="tv-auth-field" style={{ marginTop: 0 }}>
+      <form onSubmit={request} noValidate>
+        <div className="tv-auth-field">
           <label htmlFor="email">Email</label>
           <input
             id="email"
@@ -252,7 +251,7 @@ function EmailCard({ me }: { me: any }) {
         {error && <div className="tv-form-alert tv-form-alert-error">{error}</div>}
         {info && <div className="tv-form-alert tv-form-alert-info">{info}</div>}
 
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 12 }}>
           <button
             type="submit"
             className="tvp-primary"
