@@ -464,6 +464,54 @@ function InvitationsPage() {
           </div>
         </div>
       )}
+
+      {pendingDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPendingDelete(null)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+          }}
+        >
+          <div
+            className="tvp-card tvp-panel"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(520px, 92vw)" }}
+          >
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">Delete invitation permanently?</h2>
+              <button className="tvp-mini-btn" onClick={() => setPendingDelete(null)}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p style={{ fontSize: 14, lineHeight: 1.5 }}>
+              This permanently removes the invitation to <strong>{pendingDelete.agency_name}</strong>{" "}
+              (<span className="tvp-muted">{pendingDelete.email}</span>), deletes any uploaded
+              compliance documents, and — if the agency shell has no members yet — removes the
+              agency record too. This cannot be undone.
+            </p>
+            <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+              Prefer <strong>Revoke</strong> if you need to keep an audit trail of a cancelled invite.
+            </p>
+            <div className="tvp-footer-actions">
+              <button className="tvp-secondary" onClick={() => setPendingDelete(null)}>
+                Cancel
+              </button>
+              <button
+                className="tvp-primary"
+                style={{ background: "var(--tvp-red)", borderColor: "var(--tvp-red)" }}
+                onClick={() => deleteM.mutate(pendingDelete.id)}
+                disabled={deleteM.isPending}
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleteM.isPending ? "Deleting…" : "Delete permanently"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
