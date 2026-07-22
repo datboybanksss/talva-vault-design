@@ -109,7 +109,7 @@ function TwoFactorBanner() {
         borderRadius: 10,
         background: "var(--tvp-amber-bg)",
         color: "var(--tvp-amber)",
-        border: "1px solid var(--tvp-amber-border)",
+        border: "1px solid color-mix(in oklab, var(--tvp-amber) 45%, transparent)",
         display: "flex",
         alignItems: "center",
         gap: 12,
