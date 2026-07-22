@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
-  Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Loader2,
-  Lock, History, ShieldPlus, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox,
+  Upload, FolderOpen, Sparkles, FileText, Files, Trash2, Download, Eye, X, Loader2,
+  Lock, History, ShieldPlus, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -259,13 +259,21 @@ export function VaultPage() {
       <div className="tvp-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
         {tabs.map((t) => {
           const isRequests = t === "Requests";
+          const iconMap: Record<Tab, { Icon: typeof Files; color: string }> = {
+            "All Documents": { Icon: Files, color: "var(--tvp-teal)" },
+            "Needs Review": { Icon: Eye, color: "var(--tvp-teal)" },
+            "Expiring": { Icon: CalendarClock, color: "var(--tvp-amber)" },
+            "Recently Updated": { Icon: RefreshCw, color: "var(--tvp-teal)" },
+            "Requests": { Icon: Inbox, color: "var(--tvp-purple, #7c3aed)" },
+          };
+          const { Icon, color } = iconMap[t];
           return (
             <button
               key={t}
               className={`tvp-tab${tab === t ? " tvp-active" : ""}`}
               onClick={() => setTab(t)}
             >
-              {isRequests && <Inbox className="h-3.5 w-3.5" style={{ color: "var(--tvp-amber)" }} />}
+              <Icon className="h-3.5 w-3.5" style={{ color }} />
               {t}
               {isRequests && needsActionCount > 0 && (
                 <span className="tvp-tab-dot" title={`${needsActionCount} needs action`} />
