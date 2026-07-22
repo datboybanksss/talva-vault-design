@@ -38,11 +38,40 @@ function AuditPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [areaFilter, setAreaFilter] = useState<string>("all");
 
   const events = q.data ?? [];
+
+  const areaOf = (a: string) => actionArea[a]?.area ?? "System";
+  const severityOf = (a: string) => actionArea[a]?.severity ?? "Low";
+
+  const areaCounts = useMemo(() => {
+    const c: Record<string, number> = { all: events.length };
+    for (const e of events) {
+      const area = areaOf(e.action);
+      c[area] = (c[area] ?? 0) + 1;
+    }
+    return c;
+  }, [events]);
+
+  const kpis = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const eventsToday = events.filter((e: any) => new Date(e.created_at) >= today).length;
+    const highSeverity = events.filter((e: any) => severityOf(e.action) === "High").length;
+    const distinctActors = new Set(events.map((e: any) => e.actor_email ?? "system")).size;
+    return {
+      total: events.length,
+      eventsToday,
+      highSeverity,
+      distinctActors,
+    };
+  }, [events]);
+
   const visible = useMemo(
     () =>
       events.filter((e: any) => {
+        if (areaFilter !== "all" && areaOf(e.action) !== areaFilter) return false;
         if (!search) return true;
         const q = search.toLowerCase();
         return (
@@ -51,8 +80,11 @@ function AuditPage() {
           (e.target_label ?? "").toLowerCase().includes(q)
         );
       }),
-    [events, search],
+    [events, search, areaFilter],
   );
+
+  const filtersActive = areaFilter !== "all" || !!search;
+  const resetFilters = () => { setAreaFilter("all"); setSearch(""); };
 
   const selected =
     events.find((e: any) => e.id === selectedId) ?? visible[0] ?? null;
