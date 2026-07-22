@@ -133,7 +133,7 @@ function InvitationsPage() {
   const counts = useMemo(() => {
     const c: Record<string, number> = {
       all: list.length,
-      pending: 0, accepted: 0, expired: 0, declined: 0, revoked: 0,
+      draft: 0, pending: 0, accepted: 0, expired: 0, declined: 0, revoked: 0,
     };
     for (const i of list) c[i.status] = (c[i.status] ?? 0) + 1;
     return c;
