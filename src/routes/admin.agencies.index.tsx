@@ -97,6 +97,20 @@ function AgenciesPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
   });
+  const [pendingDelete, setPendingDelete] = useState<{ inviteId: string; agencyName: string; email: string } | null>(null);
+  const deleteM = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      setPendingDelete(null);
+      toast.success(
+        res?.agency_deleted
+          ? "Invitation and agency shell deleted."
+          : "Invitation deleted.",
+      );
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
+  });
 
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState("");
