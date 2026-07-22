@@ -21,7 +21,7 @@ const ACTIVITY_ACTION_LABELS: Record<string, string> = {
   upload_vault_document: "Uploaded document",
   delete_vault_document: "Deleted document",
   update_vault_document: "Updated document",
-  end_talent_relationship: "Ended talent relationship",
+  end_talent_relationship: "Paused talent relationship",
   reactivate_talent_relationship: "Reactivated talent relationship",
   create_billing_doc: "Created quote/invoice",
   update_billing_doc: "Updated quote/invoice",
