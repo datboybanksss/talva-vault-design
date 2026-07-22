@@ -442,6 +442,30 @@ export const dismissNotification = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const dismissComputedNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ kind: z.string(), snapshot: z.number().int().nonnegative() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { error } = await supabase
+      .from("admin_notification_dismissals")
+      .upsert(
+        {
+          user_id: userId,
+          kind: data.kind,
+          snapshot: data.snapshot,
+          dismissed_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,kind" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 // -----------------------------------------------------------------------------
 // Invitations
 // -----------------------------------------------------------------------------
