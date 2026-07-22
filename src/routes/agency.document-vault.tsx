@@ -444,6 +444,19 @@ export function VaultPage() {
 
 
 
+      {showBrowseFolders && (
+        <BrowseFoldersDialog
+          docs={docs}
+          onClose={() => setShowBrowseFolders(false)}
+          onPick={(talentLinkId, folder) => {
+            setTalentFilter(talentLinkId);
+            setFolderFilter(folder);
+            setTab("All Documents");
+            setShowBrowseFolders(false);
+          }}
+        />
+      )}
+
       {showUpload && (
         <UploadDialog
           agencyId={me.agency?.id ?? ""}
