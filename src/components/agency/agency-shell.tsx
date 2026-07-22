@@ -116,16 +116,22 @@ export function AgencyShell({ children }: { children: ReactNode }) {
   };
 
   const renderNav = (list: NavItem[]) =>
-    list.map((item) => (
-      <Link
-        key={item.to}
-        to={item.to}
-        className={`tvp-nav-item${isActive(item) ? " tvp-active" : ""}`}
-      >
-        <span className="shrink-0">{item.icon}</span>
-        <span className="tvp-nav-label">{item.label}</span>
-      </Link>
-    ));
+    list.map((item) => {
+      const count = item.badgeKey ? badgeCounts[item.badgeKey] : 0;
+      return (
+        <Link
+          key={item.to}
+          to={item.to}
+          className={`tvp-nav-item${isActive(item) ? " tvp-active" : ""}`}
+        >
+          <span className="shrink-0">{item.icon}</span>
+          <span className="tvp-nav-label">{item.label}</span>
+          {item.badgeKey && count > 0 && (
+            <span className="tvp-nav-badge">{count}</span>
+          )}
+        </Link>
+      );
+    });
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
