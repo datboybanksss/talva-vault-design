@@ -504,15 +504,16 @@
   & .tvp-muted { color: var(--tvp-muted); }
   & .tvp-small { font-size: 12px; color: var(--tvp-muted); }
   & .tvp-grid { display: grid; gap: 18px; }
-  & .tvp-account-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); max-width: 1200px; align-items: start; }
-  & .tvp-account-grid > .tvp-card { padding: 20px 24px; }
-  & .tvp-account-grid form { margin-top: 10px; }
-  & .tvp-account-grid .tv-auth-field { margin-top: 10px; }
-  & .tvp-account-grid .tv-auth-hint { margin-top: 3px; }
+  & .tvp-account-grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); max-width: 1200px; align-items: start; }
+  & .tvp-account-grid > .tvp-card { padding: 16px 18px; }
+  & .tvp-account-grid form { margin-top: 6px; }
+  & .tvp-account-grid .tv-auth-field { margin-top: 8px; }
+  & .tvp-account-grid .tv-auth-hint { margin-top: 2px; font-size: 12px; }
   & .tvp-account-full { grid-column: 1 / -1; }
   @media (min-width: 960px) {
-    & .tvp-account-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+    & .tvp-account-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
   }
+
   & .tvp-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 22px; }
   & .tvp-kpi { padding: 20px; min-height: 116px; display: flex; flex-wrap: nowrap; align-items: center; gap: 16px; text-align: left; }
   & .tvp-kpi > *:not(.tvp-kpi-icon) { min-width: 0; flex: 1 1 auto; }
