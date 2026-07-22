@@ -435,7 +435,9 @@ function AgencyDashboard() {
             ))}
           </select>
           {(statusFilter !== "all" || manager !== "all" || type !== "all") && (
-            <button className="tvp-link" onClick={reset}>Reset filters</button>
+            <button className="tvp-select" onClick={reset} style={{ cursor: "pointer", fontWeight: 700 }}>
+              Reset filters
+            </button>
           )}
         </div>
 
