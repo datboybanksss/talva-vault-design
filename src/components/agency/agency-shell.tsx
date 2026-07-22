@@ -184,13 +184,25 @@ export function AgencyShell({ children }: { children: ReactNode }) {
         <nav className="tvp-nav">{renderNav(settings)}</nav>
 
         <div className="tvp-sidebar-footer">
-          <div className="tvp-avatar">{initials || "?"}</div>
-          <div className="tvp-profile-copy">
+          <Link
+            to="/agency/my-account"
+            className="tvp-avatar"
+            aria-label="My account"
+            title="My account"
+          >
+            {initials || "?"}
+          </Link>
+          <Link
+            to="/agency/my-account"
+            className="tvp-profile-copy"
+            aria-label="My account"
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
             <div className="tvp-profile-name">
               {me?.displayName || me?.email?.split("@")[0] || "Loading..."}
             </div>
             <div className="tvp-profile-role">{roleLabel}</div>
-          </div>
+          </Link>
           <button
             className="tvp-logout"
             aria-label="Log out"
@@ -199,6 +211,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
             <LogOut className="h-4 w-4" />
           </button>
         </div>
+
       </aside>
 
       <main className="tvp-main">
@@ -254,13 +267,15 @@ export function AgencyShell({ children }: { children: ReactNode }) {
               </div>
             )}
           </div>
-          <div
+          <Link
+            to="/agency/my-account"
             className="tvp-user-dot"
             aria-label="My account"
             title={me?.displayName || me?.email || "My account"}
           >
             {initials || "?"}
-          </div>
+          </Link>
+
         </div>
         {children}
       </main>
