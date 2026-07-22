@@ -257,9 +257,35 @@ export const listAgencies = createServerFn({ method: "GET" })
     for (const t of talent ?? []) {
       talentByAgency.set(t.agency_id, (talentByAgency.get(t.agency_id) ?? 0) + 1);
     }
+
+    const { data: invitations } = await supabase
+      .from("agency_invitations")
+      .select("id, agency_id, agency_name, email, token, status, expires_at, last_sent_at, send_count")
+      .neq("status", "accepted")
+      .neq("status", "revoked")
+      .order("created_at", { ascending: false });
+
+    const invitationByAgencyId = new Map<string, any>();
+    const invitationByEmail = new Map<string, any>();
+    const invitationByName = new Map<string, any>();
+    for (const inv of invitations ?? []) {
+      if (inv.agency_id && !invitationByAgencyId.has(inv.agency_id)) {
+        invitationByAgencyId.set(inv.agency_id, inv);
+      }
+      const emailKey = String(inv.email ?? "").toLowerCase();
+      if (emailKey && !invitationByEmail.has(emailKey)) invitationByEmail.set(emailKey, inv);
+      const nameKey = String(inv.agency_name ?? "").toLowerCase();
+      if (nameKey && !invitationByName.has(nameKey)) invitationByName.set(nameKey, inv);
+    }
+
     return (data ?? []).map((a: any) => ({
       ...a,
       talent_count: talentByAgency.get(a.id) ?? 0,
+      invitation:
+        invitationByAgencyId.get(a.id) ??
+        invitationByEmail.get(String(a.contact_email ?? "").toLowerCase()) ??
+        invitationByName.get(String(a.name ?? "").toLowerCase()) ??
+        null,
     }));
   });
 
