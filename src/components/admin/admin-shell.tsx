@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { whoami, listNotifications, dismissNotification } from "@/lib/admin.functions";
+import { whoami, listNotifications, dismissNotification, dismissComputedNotification } from "@/lib/admin.functions";
 
 type NavItem = {
   to: string;
@@ -79,6 +79,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const whoamiFn = useServerFn(whoami);
   const listNotificationsFn = useServerFn(listNotifications);
   const dismissFn = useServerFn(dismissNotification);
+  const dismissComputedFn = useServerFn(dismissComputedNotification);
 
   const { data: me } = useQuery({
     queryKey: ["whoami"],
@@ -94,6 +95,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const dismissM = useMutation({
     mutationFn: (id: string) => dismissFn({ data: { id } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] }),
+  });
+
+  const dismissComputedM = useMutation({
+    mutationFn: (v: { kind: string; snapshot: number }) => dismissComputedFn({ data: v }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] }),
   });
 
@@ -116,6 +122,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       to: p.target_type === "agency" ? "/admin/agencies" : undefined,
     })),
   ];
+
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -263,18 +270,25 @@ export function AdminShell({ children }: { children: ReactNode }) {
                       ) : (
                         <div className="tvp-notification-body">{body}</div>
                       )}
-                      {n.persisted && (
-                        <button
-                          className="tvp-mini-btn"
-                          title="Dismiss"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                      <button
+                        className="tvp-mini-btn"
+                        title="Dismiss"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          if (n.persisted) {
                             dismissM.mutate(n.id);
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
+                          } else {
+                            dismissComputedM.mutate({
+                              kind: n.kind,
+                              snapshot: n.snapshot ?? 0,
+                            });
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+
                     </div>
                   );
                 })}
