@@ -388,6 +388,9 @@ export function VaultPage() {
           </div>
         </div>
       </div>
+      )}
+
+
 
       {showUpload && (
         <UploadDialog
