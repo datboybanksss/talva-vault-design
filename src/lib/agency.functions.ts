@@ -194,6 +194,7 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
       vaultDocumentsCount: docsRes.count ?? 0,
       invitationsCount: (talentInvRes.count ?? 0) + (staffInvRes.count ?? 0),
       invitationsNeedAction: (talentInvRes.count ?? 0) + (staffInvRes.count ?? 0),
+      talentInvitationsPending: talentInvRes.count ?? 0,
       billingDocsCount: billingRes.count ?? 0,
       needsReviewCount,
       needsReviewOver48Count: needsReviewOver48Res.count ?? 0,
