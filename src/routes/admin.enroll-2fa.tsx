@@ -64,6 +64,10 @@ function EnrollTwoFactorPage() {
         }
         const { data, error } = await supabase.auth.mfa.enroll({
           factorType: "totp",
+          // `issuer` is what the authenticator app displays as the account
+          // name (written into the otpauth:// URI's issuer field).
+          // `friendlyName` is only Supabase's internal factor label.
+          issuer: "TalVault",
           friendlyName: `TalVault (${me?.email ?? "admin"})`,
         });
         if (error) throw error;
