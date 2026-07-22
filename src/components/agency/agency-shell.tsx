@@ -26,13 +26,14 @@ type NavItem = {
   label: ReactNode;
   icon: ReactNode;
   match?: string;
+  badgeKey?: "talent" | "invitations";
 };
 
 const manage: NavItem[] = [
   { to: "/agency", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
-  { to: "/agency/talent", label: "Talent Roster", icon: <Users /> },
-  { to: "/agency/invitations", label: "Invitations", icon: <Send /> },
-  { to: "/agency/document-vault", label: "Roster Shared Folder", icon: <Folder /> },
+  { to: "/agency/talent", label: "Talent", icon: <Users />, badgeKey: "talent" },
+  { to: "/agency/invitations", label: "Invitations", icon: <Send />, badgeKey: "invitations" },
+  { to: "/agency/document-vault", label: "Document Vault", icon: <Folder /> },
   { to: "/agency/document-requests", label: "Document Requests", icon: <ShieldCheck /> },
   {
     to: "/agency/quotes-invoices",
