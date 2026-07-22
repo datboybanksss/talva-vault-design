@@ -39,6 +39,8 @@ type VaultDoc = {
 };
 type TalentLinkLite = { id: string; displayName: string; status: string };
 
+import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
+
 export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
   queryFn:  () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
@@ -53,17 +55,22 @@ export const meQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/document-vault")({
-  head: () => ({ meta: [{ title: "Roster Shared Folder · TalVault" }] }),
+  head: () => ({ meta: [{ title: "Document Vault · TalVault" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? (search.tab as string) : undefined,
+  }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(docsQO),
       context.queryClient.ensureQueryData(talentLinksQO),
       context.queryClient.ensureQueryData(meQO),
+      context.queryClient.ensureQueryData(requestsListQO),
+      context.queryClient.ensureQueryData(requestsTalentQO),
     ]);
   },
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
-      <h1 className="tvp-h1">Roster Shared Folder</h1>
+      <h1 className="tvp-h1">Document Vault</h1>
       <p className="tvp-muted">Failed to load: {error.message}</p>
     </div>
   ),
@@ -71,8 +78,10 @@ export const Route = createFileRoute("/agency/document-vault")({
   component: VaultPage,
 });
 
-const tabs = ["All Documents", "Needs Review", "Expiring", "Recently Updated"] as const;
+
+const tabs = ["All Documents", "Needs Review", "Expiring", "Recently Updated", "Requests"] as const;
 type Tab = typeof tabs[number];
+
 
 const FOLDER_OPTIONS = ["Contracts", "Endorsements", "Invoices", "ID Documents", "Travel", "Tax", "Other"];
 
@@ -119,8 +128,13 @@ export function VaultPage() {
   const { data: docs } = useSuspenseQuery(docsQO);
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
   const { data: me } = useSuspenseQuery(meQO);
+  const searchParams = Route.useSearch();
+  const initialTab: Tab = (tabs as readonly string[]).includes(searchParams.tab ?? "")
+    ? (searchParams.tab as Tab)
+    : "All Documents";
 
-  const [tab, setTab] = useState<Tab>("All Documents");
+  const [tab, setTab] = useState<Tab>(initialTab);
+
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [talentFilter, setTalentFilter] = useState<string>("all");
@@ -189,8 +203,9 @@ export function VaultPage() {
     <>
       <div className="tvp-topbar" style={{ marginBottom: 12 }}>
         <div>
-          <h1 className="tvp-h1">Roster Shared Folder</h1>
-          <div className="tvp-subtitle">Documents shared between you and each talent on your roster. Talent Private Vault items are not shown here.</div>
+          <h1 className="tvp-h1">Document Vault</h1>
+          <div className="tvp-subtitle">Documents shared between you and each talent on your roster, plus document requests. Talent Private Vault items are not shown here.</div>
+
         </div>
         <div className="tvp-actions">
           <button className="tvp-secondary"><FolderOpen className="h-4 w-4" />Browse folders</button>
@@ -200,6 +215,7 @@ export function VaultPage() {
         </div>
       </div>
 
+      {tab !== "Requests" && (
       <div className="tvp-card" style={{ marginBottom: 10, padding: "10px 14px" }}>
         <h2 className="tvp-h2" style={{ marginBottom: 4 }}>Expiring soon</h2>
         {expiring.length === 0 ? (
@@ -223,12 +239,18 @@ export function VaultPage() {
           </div>
         )}
       </div>
+      )}
 
       <div className="tvp-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
         {tabs.map((t) => (
           <button key={t} className={`tvp-tab${tab === t ? " tvp-active" : ""}`} onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>
+
+      {tab === "Requests" ? (
+        <VaultRequestsPanel />
+      ) : (
+
 
       <div className="tvp-two-col">
         <div className="tvp-card">
@@ -375,6 +397,9 @@ export function VaultPage() {
           </div>
         </div>
       </div>
+      )}
+
+
 
       {showUpload && (
         <UploadDialog

@@ -35,7 +35,7 @@ const manage: NavItem[] = [
   { to: "/agency/talent", label: "Talent", icon: <Users />, badgeKey: "talent" },
   { to: "/agency/invitations", label: "Invitations", icon: <Send />, badgeKey: "invitations" },
   { to: "/agency/document-vault", label: "Document Vault", icon: <Folder /> },
-  { to: "/agency/document-requests", label: "Document Requests", icon: <ShieldCheck /> },
+
   {
     to: "/agency/quotes-invoices",
     label: (
