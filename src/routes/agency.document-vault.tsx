@@ -208,11 +208,9 @@ export function VaultPage() {
 
   return (
     <>
-      <div className="tvp-topbar" style={{ marginBottom: 12 }}>
+      <div className="tvp-topbar" style={{ marginBottom: 12, alignItems: "center" }}>
         <div>
           <h1 className="tvp-h1">Document Vault</h1>
-          <div className="tvp-subtitle">Documents shared between you and each talent on your roster, plus document requests. Talent Private Vault items are not shown here.</div>
-
         </div>
         <div className="tvp-actions">
           <button className="tvp-secondary"><FolderOpen className="h-4 w-4" />Browse folders</button>
