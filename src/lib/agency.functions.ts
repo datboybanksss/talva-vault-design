@@ -1848,3 +1848,97 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
 
     return updated;
   });
+
+// -----------------------------------------------------------------------------
+// My Account — Agency profile self-service + audit-log-only helpers
+// -----------------------------------------------------------------------------
+export const updateOwnAgencyProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      first_name: z.string().trim().max(80).optional().default(""),
+      last_name: z.string().trim().max(80).optional().default(""),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const display_name =
+      [data.first_name, data.last_name].filter(Boolean).join(" ").trim() ||
+      (claims?.email ? String(claims.email).split("@")[0] : null);
+
+    const { data: updated, error } = await supabase
+      .from("profiles")
+      .update({
+        first_name: data.first_name || null,
+        last_name: data.last_name || null,
+        display_name,
+      })
+      .eq("id", userId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "update_own_profile", "user", userId,
+      display_name ?? claims?.email ?? "self",
+      { first_name: data.first_name || null, last_name: data.last_name || null },
+    );
+    return updated;
+  });
+
+export const logOwnAgencyEmailChangeRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ new_email: z.string().email() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "request_own_email_change", "user", userId,
+      claims?.email ?? "self", { new_email: data.new_email },
+    );
+    return { ok: true };
+  });
+
+export const logOwnAgencyPasswordChange = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "change_own_password", "user", userId, claims?.email ?? "self", {},
+    );
+    return { ok: true };
+  });
+
+export const logOwnAgencyMfaEnrolled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ factor_type: z.string().default("totp") }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "enroll_mfa", "user", userId, claims?.email ?? "self",
+      { factor_type: data.factor_type },
+    );
+    return { ok: true };
+  });
+
+export const logOwnAgencyMfaDisabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "disable_mfa", "user", userId, claims?.email ?? "self", {},
+    );
+    return { ok: true };
+  });
