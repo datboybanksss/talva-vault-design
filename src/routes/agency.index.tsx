@@ -85,7 +85,6 @@ const CHIP_ORDER: Array<{ key: string; tone: string }> = [
   { key: "read_only", tone: "teal" },
   { key: "revoked", tone: "red" },
   { key: "needs_review", tone: "purple" },
-  { key: "ended", tone: "neutral" },
 ];
 
 function formatDate(iso: string) {
@@ -436,7 +435,9 @@ function AgencyDashboard() {
             ))}
           </select>
           {(statusFilter !== "all" || manager !== "all" || type !== "all") && (
-            <button className="tvp-link" onClick={reset}>Reset filters</button>
+            <button className="tvp-select" onClick={reset} style={{ cursor: "pointer", fontWeight: 700 }}>
+              Reset filters
+            </button>
           )}
         </div>
 
