@@ -19,20 +19,21 @@ import {
   Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { agencyWhoami, listAgencyNotifications } from "@/lib/agency.functions";
+import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics } from "@/lib/agency.functions";
 
 type NavItem = {
   to: string;
   label: ReactNode;
   icon: ReactNode;
   match?: string;
+  badgeKey?: "talent" | "invitations";
 };
 
 const manage: NavItem[] = [
   { to: "/agency", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
-  { to: "/agency/talent", label: "Talent Roster", icon: <Users /> },
-  { to: "/agency/invitations", label: "Invitations", icon: <Send /> },
-  { to: "/agency/document-vault", label: "Roster Shared Folder", icon: <Folder /> },
+  { to: "/agency/talent", label: "Talent", icon: <Users />, badgeKey: "talent" },
+  { to: "/agency/invitations", label: "Invitations", icon: <Send />, badgeKey: "invitations" },
+  { to: "/agency/document-vault", label: "Document Vault", icon: <Folder /> },
   { to: "/agency/document-requests", label: "Document Requests", icon: <ShieldCheck /> },
   {
     to: "/agency/quotes-invoices",
@@ -70,6 +71,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
   const whoamiFn = useServerFn(agencyWhoami);
   const listNotifsFn = useServerFn(listAgencyNotifications);
+  const metricsFn = useServerFn(getAgencyDashboardMetrics);
 
   const { data: me } = useQuery({
     queryKey: ["agency", "whoami"],
@@ -83,6 +85,17 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     queryFn: () => listNotifsFn(),
     refetchInterval: 60_000,
   });
+
+  const { data: metrics } = useQuery({
+    queryKey: ["agency", "dashboard", "metrics"],
+    queryFn: () => metricsFn(),
+    refetchInterval: 60_000,
+  });
+
+  const badgeCounts: Record<"talent" | "invitations", number> = {
+    talent: (metrics?.activeTalentCount ?? 0) + (metrics?.talentInvitationsPending ?? 0),
+    invitations: metrics?.invitationsNeedAction ?? 0,
+  };
 
   const items = [
     ...(notifs?.computed ?? []),
@@ -103,16 +116,22 @@ export function AgencyShell({ children }: { children: ReactNode }) {
   };
 
   const renderNav = (list: NavItem[]) =>
-    list.map((item) => (
-      <Link
-        key={item.to}
-        to={item.to}
-        className={`tvp-nav-item${isActive(item) ? " tvp-active" : ""}`}
-      >
-        <span className="shrink-0">{item.icon}</span>
-        <span className="tvp-nav-label">{item.label}</span>
-      </Link>
-    ));
+    list.map((item) => {
+      const count = item.badgeKey ? badgeCounts[item.badgeKey] : 0;
+      return (
+        <Link
+          key={item.to}
+          to={item.to}
+          className={`tvp-nav-item${isActive(item) ? " tvp-active" : ""}`}
+        >
+          <span className="shrink-0">{item.icon}</span>
+          <span className="tvp-nav-label">{item.label}</span>
+          {item.badgeKey && count > 0 && (
+            <span className="tvp-nav-badge">{count}</span>
+          )}
+        </Link>
+      );
+    });
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
