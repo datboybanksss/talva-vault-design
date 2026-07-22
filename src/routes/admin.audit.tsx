@@ -227,7 +227,7 @@ function AuditPage() {
                     <tr
                       key={e.id}
                       onClick={() => setSelectedId(e.id)}
-                      style={{ cursor: "pointer", background: selected?.id === e.id ? "rgba(99,102,241,0.05)" : undefined }}
+                      style={{ cursor: "pointer", background: selected?.id === e.id ? "color-mix(in oklab, var(--tvp-teal) 6%, transparent)" : undefined }}
                     >
                       <td>{new Date(e.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
                       <td><strong>{e.actor_email ?? "System"}</strong></td>
