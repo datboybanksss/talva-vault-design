@@ -84,10 +84,31 @@ function InvitationsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
   });
 
+  const { email: emailParam } = Route.useSearch();
   const [tab, setTab] = useState<string>("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(emailParam);
   const [editing, setEditing] = useState<any | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+
+  // When arriving with ?email=..., prefill the search box, find the matching
+  // pending invite, scroll to it, and flash the row so it's obvious.
+  useEffect(() => {
+    if (!emailParam || !invites.data) return;
+    setSearch(emailParam);
+    const match = invites.data.find(
+      (i: any) => (i.email ?? "").toLowerCase() === emailParam.toLowerCase(),
+    );
+    if (!match) return;
+    setHighlightId(match.id);
+    // Wait a tick so the filtered row is rendered.
+    const t = setTimeout(() => {
+      rowRefs.current[match.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    const clear = setTimeout(() => setHighlightId(null), 2400);
+    return () => { clearTimeout(t); clearTimeout(clear); };
+  }, [emailParam, invites.data]);
 
   const list = invites.data ?? [];
   const counts = useMemo(() => {
