@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon } from "lucide-react";
+import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -7,6 +7,9 @@ import {
   listAgencies,
   suspendAgency,
   unsuspendAgency,
+  resendInvitation,
+  updateInvitationEmail,
+  logCopyLink,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
@@ -37,6 +40,9 @@ function AgenciesPage() {
   const listFn = useServerFn(listAgencies);
   const suspendFn = useServerFn(suspendAgency);
   const unsuspendFn = useServerFn(unsuspendAgency);
+  const resendFn = useServerFn(resendInvitation);
+  const updateEmailFn = useServerFn(updateInvitationEmail);
+  const logCopyFn = useServerFn(logCopyLink);
   const qc = useQueryClient();
 
   const agencies = useQuery({
@@ -61,10 +67,29 @@ function AgenciesPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to reinstate"),
   });
+  const resendM = useMutation({
+    mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Invitation resent · expiry refreshed · logged.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to resend"),
+  });
+  const updateEmailM = useMutation({
+    mutationFn: (v: { id: string; email: string }) => updateEmailFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      setEditingInvite(null);
+      toast.success("Email updated and logged.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
+  });
 
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [suspendTarget, setSuspendTarget] = useState<{ id: string; name: string } | null>(null);
+  const [editingInvite, setEditingInvite] = useState<{ id: string; email: string; agencyName: string } | null>(null);
+  const [emailDraft, setEmailDraft] = useState("");
 
   const list = agencies.data ?? [];
   const visible = useMemo(() => {
@@ -108,6 +133,21 @@ function AgenciesPage() {
 
   const doSuspend = (id: string, name: string) => {
     setSuspendTarget({ id, name });
+  };
+
+  const copyInviteLink = async (invitation: any) => {
+    if (!invitation?.token) {
+      toast.error("No invitation link found for this agency.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/invite/${invitation.token}`);
+      await logCopyFn({ data: { id: invitation.id } });
+      qc.invalidateQueries({ queryKey: ["admin", "audit"] });
+      toast.success("Link copied. Copy does not extend expiry.");
+    } catch {
+      toast.error("Copy failed");
+    }
   };
 
   const filtersActive = tab !== "all" || !!search;
@@ -233,75 +273,106 @@ function AgenciesPage() {
                   No agencies to show. <Link to="/admin/invitations/new" className="tvp-link">Invite an agency →</Link>
                 </td></tr>
               )}
-              {visible.map((a: any) => (
-                <tr key={a.id}>
-                  <td>
-                    <Link to="/admin/agencies/$id" params={{ id: a.id }}>
-                      <strong>{a.name}</strong>
-                    </Link>
-                    {a.contact_email && (
-                      <>
-                        <br />
-                        <span className="tvp-muted">{a.contact_email}</span>
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`tvp-status tvp-${statusTone[a.status]}`}>
-                      {statusLabel[a.status]}
-                    </span>
-                    {a.status === "suspended" && (
-                      <span
-                        className="tvp-muted"
-                        title="Active actions blocked, read-only / export preserved"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, fontSize: 11 }}
-                      >
-                        <Lock className="h-3 w-3" /> read-only
-                      </span>
-                    )}
-                  </td>
-                  <td>{a.contact_person ?? "—"}</td>
-                  <td>{a.country ?? "—"}</td>
-                  <td>{a.talent_count}</td>
-                  <td>
-                    {new Date(a.created_at).toLocaleDateString("en-GB", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
-                  </td>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      {a.status === "invited" && a.contact_email && (
-                        <Link
-                          to="/admin/invitations"
-                          search={{ email: a.contact_email }}
-                          className="tvp-link"
-                          title="Jump to Invitations to resend, copy link or correct the email"
-                          style={{ fontSize: 12, whiteSpace: "nowrap" }}
-                        >
-                          Manage invite →
-                        </Link>
+              {visible.map((a: any) => {
+                const invitation = a.invitation;
+                const inviteEmail = invitation?.email ?? a.contact_email;
+                return (
+                  <tr key={a.id}>
+                    <td>
+                      <Link to="/admin/agencies/$id" params={{ id: a.id }}>
+                        <strong>{a.name}</strong>
+                      </Link>
+                      {inviteEmail && (
+                        <>
+                          <br />
+                          <span className="tvp-muted">{inviteEmail}</span>
+                        </>
                       )}
-                    {a.status === "suspended" ? (
-                      <button
-                        className="tvp-mini-btn"
-                        title="Reinstate agency"
-                        onClick={() => unsuspendM.mutate(a.id)}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </button>
-                    ) : (
-                      <button
-                        className="tvp-mini-btn"
-                        title="Suspend agency"
-                        onClick={() => doSuspend(a.id, a.name)}
-                      >
-                        <Ban className="h-4 w-4" />
-                      </button>
-                    )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>
+                      <span className={`tvp-status tvp-${statusTone[a.status]}`}>
+                        {statusLabel[a.status]}
+                      </span>
+                      {a.status === "suspended" && (
+                        <span
+                          className="tvp-muted"
+                          title="Active actions blocked, read-only / export preserved"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, fontSize: 11 }}
+                        >
+                          <Lock className="h-3 w-3" /> read-only
+                        </span>
+                      )}
+                    </td>
+                    <td>{a.contact_person ?? invitation?.contact_person ?? "—"}</td>
+                    <td>{a.country ?? "—"}</td>
+                    <td>{a.talent_count}</td>
+                    <td>
+                      {new Date(a.created_at).toLocaleDateString("en-GB", {
+                        day: "numeric", month: "short", year: "numeric",
+                      })}
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        {a.status === "invited" && invitation ? (
+                          <>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Copy invite link (does not extend expiry)"
+                              onClick={() => copyInviteLink(invitation)}
+                            >
+                              <Link2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Correct invite email"
+                              onClick={() => {
+                                setEditingInvite({ id: invitation.id, email: invitation.email, agencyName: a.name });
+                                setEmailDraft(invitation.email);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Resend invite (refreshes expiry)"
+                              onClick={() => resendM.mutate(invitation.id)}
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : a.status === "invited" && inviteEmail ? (
+                          <Link
+                            to="/admin/invitations"
+                            search={{ email: inviteEmail }}
+                            className="tvp-link"
+                            title="Find matching invitation"
+                            style={{ fontSize: 12, whiteSpace: "nowrap" }}
+                          >
+                            Manage invite →
+                          </Link>
+                        ) : null}
+                        {a.status === "suspended" ? (
+                          <button
+                            className="tvp-mini-btn"
+                            title="Reinstate agency"
+                            onClick={() => unsuspendM.mutate(a.id)}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            className="tvp-mini-btn"
+                            title="Suspend agency"
+                            onClick={() => doSuspend(a.id, a.name)}
+                          >
+                            <Ban className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -319,6 +390,54 @@ function AgenciesPage() {
             );
           }}
         />
+      )}
+
+      {editingInvite && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setEditingInvite(null)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+          }}
+        >
+          <div
+            className="tvp-card tvp-panel"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(520px, 92vw)" }}
+          >
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">Correct invitation email</h2>
+              <button className="tvp-mini-btn" onClick={() => setEditingInvite(null)}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="tvp-muted" style={{ fontSize: 12 }}>
+              {editingInvite.agencyName} has not accepted yet. Updating this email is audit logged.
+            </p>
+            <div className="tvp-form-group">
+              <label>Recipient email</label>
+              <input
+                type="email"
+                value={emailDraft}
+                onChange={(e) => setEmailDraft(e.target.value)}
+              />
+            </div>
+            <div className="tvp-footer-actions">
+              <button className="tvp-secondary" onClick={() => setEditingInvite(null)}>
+                Cancel
+              </button>
+              <button
+                className="tvp-primary"
+                onClick={() => updateEmailM.mutate({ id: editingInvite.id, email: emailDraft })}
+                disabled={!emailDraft || emailDraft === editingInvite.email || updateEmailM.isPending}
+              >
+                Save & log
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
