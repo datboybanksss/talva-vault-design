@@ -48,7 +48,7 @@ const manage: NavItem[] = [
 
 const settings: NavItem[] = [
   { to: "/agency/activity", label: "Activity Log", icon: <Clock /> },
-  { to: "/agency/settings", label: "Agency Profile", icon: <SettingsIcon /> },
+  { to: "/agency/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
 
 
