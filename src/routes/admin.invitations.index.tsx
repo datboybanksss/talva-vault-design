@@ -319,53 +319,88 @@ function InvitationsPage() {
                     </td>
                     <td>{i.send_count}</td>
                     <td>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <Link
-                          to="/admin/invitations/$id/email-preview"
-                          params={{ id: i.id }}
-                          className="tvp-mini-btn"
-                          title="Preview branded email"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Link>
-                        <button
-                          className="tvp-mini-btn"
-                          title="Copy invite link (does not extend expiry)"
-                          onClick={() => copyLink(i)}
-                        >
-                          <Link2 className="h-4 w-4" />
-                        </button>
-                        {!readOnly && (
-                          <button
-                            className="tvp-mini-btn"
-                            title="Edit email (only before acceptance)"
-                            onClick={() => {
-                              setEditing(i);
-                              setEmailDraft(i.email);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                        )}
-                        {i.status === "pending" && (
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {i.status === "draft" ? (
                           <>
                             <button
                               className="tvp-mini-btn"
-                              title="Resend (logs new send, refreshes expiry)"
-                              onClick={() => resendM.mutate(i.id)}
+                              title="Continue draft (add compliance documents and send)"
+                              onClick={() =>
+                                nav({
+                                  to: "/admin/invitations/new",
+                                  search: { draft: i.id } as any,
+                                })
+                              }
                             >
-                              <RefreshCw className="h-4 w-4" />
+                              <FileEdit className="h-4 w-4" />
                             </button>
                             <button
                               className="tvp-mini-btn"
-                              title="Revoke invitation"
-                              onClick={() => {
-                                if (confirm(`Revoke invitation to ${i.agency_name}?`))
-                                  revokeM.mutate(i.id);
-                              }}
+                              title="Delete draft (removes compliance docs and agency shell)"
+                              onClick={() => setPendingDelete(i)}
                             >
-                              <Ban className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
+                          </>
+                        ) : (
+                          <>
+                            <Link
+                              to="/admin/invitations/$id/email-preview"
+                              params={{ id: i.id }}
+                              className="tvp-mini-btn"
+                              title="Preview branded email"
+                            >
+                              <Mail className="h-4 w-4" />
+                            </Link>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Copy invite link (does not extend expiry)"
+                              onClick={() => copyLink(i)}
+                            >
+                              <Link2 className="h-4 w-4" />
+                            </button>
+                            {!readOnly && (
+                              <button
+                                className="tvp-mini-btn"
+                                title="Edit email (only before acceptance)"
+                                onClick={() => {
+                                  setEditing(i);
+                                  setEmailDraft(i.email);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            )}
+                            {i.status === "pending" && (
+                              <>
+                                <button
+                                  className="tvp-mini-btn"
+                                  title="Resend (logs new send, refreshes expiry)"
+                                  onClick={() => resendM.mutate(i.id)}
+                                >
+                                  <RefreshCw className="h-4 w-4" />
+                                </button>
+                                <button
+                                  className="tvp-mini-btn"
+                                  title="Revoke invitation"
+                                  onClick={() => {
+                                    if (confirm(`Revoke invitation to ${i.agency_name}?`))
+                                      revokeM.mutate(i.id);
+                                  }}
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                            {i.status !== "accepted" && (
+                              <button
+                                className="tvp-mini-btn"
+                                title="Delete invitation permanently (removes compliance docs; if no agency members, removes the shell agency too)"
+                                onClick={() => setPendingDelete(i)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
