@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  ClipboardList, Plus, CheckCircle2, AlertTriangle, XCircle, Clock, X, Save, History as HistoryIcon, Inbox,
+  ClipboardList, Plus, CheckCircle2, AlertTriangle, XCircle, Clock, X, Save, History as HistoryIcon, Inbox, ShieldCheck, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -11,6 +11,7 @@ import {
   createAgencyDocumentRequest,
   reviewAgencyDocumentRequest,
   listAgencyTalentLinksLite,
+  listAgencyRetentionRules,
 } from "@/lib/agency.functions";
 
 type Row = Awaited<ReturnType<typeof listAgencyDocumentRequests>>[number];
