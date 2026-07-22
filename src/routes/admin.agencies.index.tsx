@@ -340,7 +340,35 @@ function AgenciesPage() {
                     </td>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        {a.status === "invited" && invitation ? (
+                        {a.status === "invited" && invitation && invitation.status === "draft" ? (
+                          <>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Continue draft (upload compliance docs and send)"
+                              onClick={() =>
+                                nav({
+                                  to: "/admin/invitations/new",
+                                  search: { draft: invitation.id } as any,
+                                })
+                              }
+                            >
+                              <FileEdit className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Delete draft (removes compliance docs and shell)"
+                              onClick={() =>
+                                setPendingDelete({
+                                  inviteId: invitation.id,
+                                  agencyName: a.name,
+                                  email: invitation.email,
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : a.status === "invited" && invitation ? (
                           <>
                             <Link
                               to="/admin/invitations/$id/email-preview"
@@ -383,6 +411,19 @@ function AgenciesPage() {
                               }}
                             >
                               <Ban className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Delete invitation permanently (removes shell agency if empty)"
+                              onClick={() =>
+                                setPendingDelete({
+                                  inviteId: invitation.id,
+                                  agencyName: a.name,
+                                  email: invitation.email,
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </>
                         ) : a.status === "invited" && inviteEmail ? (
