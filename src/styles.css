@@ -766,7 +766,7 @@
 }
 .tv-auth .tv-auth-hero {
   position: relative;
-  background: linear-gradient(160deg, #086A70 0%, #0A7B8A 55%, #108B95 100%);
+  background: linear-gradient(160deg, var(--teal) 0%, var(--teal-2) 55%, #108B95 100%);
   color: white;
   padding: 56px 56px 48px;
   display: flex; flex-direction: column; justify-content: space-between;
