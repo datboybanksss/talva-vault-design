@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import {
   listAgencyInvitations,
   resendInvitation,
@@ -12,7 +14,12 @@ import {
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 
+const invitationsSearchSchema = z.object({
+  email: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/admin/invitations/")({
+  validateSearch: zodValidator(invitationsSearchSchema),
   head: () => ({ meta: [{ title: "Agency Invitations · TalVault Admin" }] }),
   component: InvitationsPage,
 });
