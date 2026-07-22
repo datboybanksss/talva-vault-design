@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X, Trash2, FileEdit } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -11,6 +11,7 @@ import {
   revokeInvitation,
   updateInvitationEmail,
   logCopyLink,
+  deleteAgencyInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
