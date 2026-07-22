@@ -9,7 +9,7 @@ import {
   Send,
   Folder,
   Receipt,
-  FolderCog,
+  
   Settings as SettingsIcon,
   Bell,
   LogOut,
