@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { whoami, listNotifications, dismissNotification } from "@/lib/admin.functions";
+import { whoami, listNotifications, dismissNotification, dismissComputedNotification } from "@/lib/admin.functions";
 
 type NavItem = {
   to: string;
