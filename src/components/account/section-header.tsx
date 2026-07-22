@@ -12,16 +12,16 @@ export function SectionHeader({
   subtitle: string;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+    <div className="tvp-section-header">
       <div
-        className={`tvp-kpi-icon tvp-bg-${tone}`}
-        style={{ width: 36, height: 36 }}
+        className={`tvp-kpi-icon tvp-bg-${tone} tvp-section-header-icon`}
+        aria-hidden
       >
         {icon}
       </div>
-      <div>
-        <h2 className="tvp-h2" style={{ margin: 0 }}>{title}</h2>
-        <div className="tvp-muted" style={{ fontSize: 12 }}>{subtitle}</div>
+      <div className="tvp-section-header-text">
+        <h2 className="tvp-h2 tvp-section-header-title">{title}</h2>
+        <div className="tvp-section-header-subtitle">{subtitle}</div>
       </div>
     </div>
   );
