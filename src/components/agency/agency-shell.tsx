@@ -19,7 +19,7 @@ import {
   Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { agencyWhoami, listAgencyNotifications } from "@/lib/agency.functions";
+import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics } from "@/lib/agency.functions";
 
 type NavItem = {
   to: string;
