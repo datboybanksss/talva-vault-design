@@ -128,8 +128,13 @@ export function VaultPage() {
   const { data: docs } = useSuspenseQuery(docsQO);
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
   const { data: me } = useSuspenseQuery(meQO);
+  const searchParams = Route.useSearch();
+  const initialTab: Tab = (tabs as readonly string[]).includes(searchParams.tab ?? "")
+    ? (searchParams.tab as Tab)
+    : "All Documents";
 
-  const [tab, setTab] = useState<Tab>("All Documents");
+  const [tab, setTab] = useState<Tab>(initialTab);
+
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [talentFilter, setTalentFilter] = useState<string>("all");
