@@ -412,15 +412,27 @@ export function VaultPage() {
         </div>
 
         <div className="tvp-stack">
-          <div className="tvp-card tvp-panel">
-            <h2 className="tvp-h2">AI Filing Suggestions</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              Confirm before filing. Suggestions are never applied automatically.
-            </p>
-            <div className="tvp-ai-box">
-              <strong><Sparkles className="inline h-4 w-4 mr-1" />AI filing coming soon</strong>
-              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 4 }}>
-                Suggestions will appear here once the AI filer is wired up.
+          <div className="tvp-card tvp-panel tvp-settings-tight">
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span className="tvp-kpi-icon tvp-bg-purple" style={{ width: 34, height: 34 }}>
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <h2 className="tvp-h2" style={{ margin: 0 }}>AI Filing Suggestions</h2>
+                <p className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                  Confirm before filing. Suggestions are never applied automatically.
+                </p>
+              </div>
+            </div>
+            <div className="tvp-callout" style={{ marginTop: 14 }}>
+              <div className="tvp-callout-icon tvp-bg-purple">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <strong>AI filing coming soon.</strong>{" "}
+                <span className="tvp-muted">
+                  Suggestions will appear here once the AI filer is wired up.
+                </span>
               </div>
             </div>
           </div>
