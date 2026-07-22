@@ -538,10 +538,13 @@ function UploadDialog({
   registerFn: ReturnType<typeof useServerFn<typeof registerAgencyVaultDocument>>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [talentLinkId, setTalentLinkId] = useState<string>(
     talentLinks.find((l) => l.status !== "ended")?.id ?? "",
   );
   const [folder, setFolder] = useState<string>("");
+  const [displayName, setDisplayName] = useState<string>("");
   const [status, setStatus] = useState<"filed" | "needs_review" | "ai_suggested">("needs_review");
   const [expiry, setExpiry] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -566,14 +569,23 @@ function UploadDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folderKeys]);
 
+  function pickFile(f: File | null) {
+    setFile(f);
+    if (f && !displayName) setDisplayName(f.name.replace(/\.[^.]+$/, ""));
+  }
+
+  function humanSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const file = fileRef.current?.files?.[0];
     if (!file) return toast.error("Pick a file first");
     if (!agencyId) return toast.error("No agency context");
     if (!talentLinkId) return toast.error("Select a talent");
     if (!folder) return toast.error("Select an allowed destination folder");
-    // Guard: folder must be one of the talent's provisioned allowed folders.
     if (!(allowedFolders ?? []).some((f: { folderName: string }) => f.folderName === folder)) {
       return toast.error("That folder isn't allowed for this talent");
     }
@@ -587,9 +599,14 @@ function UploadDialog({
         .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
       if (upErr) throw upErr;
 
+      const ext = file.name.match(/\.[^.]+$/)?.[0] ?? "";
+      const finalName = displayName.trim()
+        ? (displayName.trim().endsWith(ext) ? displayName.trim() : displayName.trim() + ext)
+        : file.name;
+
       await registerFn({
         data: {
-          name: file.name,
+          name: finalName,
           folder,
           storage_path: path,
           talent_link_id: talentLinkId || null,
@@ -606,6 +623,12 @@ function UploadDialog({
     }
   }
 
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12, fontWeight: 600, color: "var(--tvp-ink, #0f172a)",
+    textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4,
+  };
+  const groupStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 0, marginTop: 4 };
+
   return (
     <div
       onClick={onClose}
@@ -618,9 +641,14 @@ function UploadDialog({
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
         className="tvp-card"
-        style={{ width: "min(680px, 100%)", maxHeight: "90vh", overflow: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
+        style={{ width: "min(680px, 100%)", maxHeight: "90vh", overflow: "auto", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}
       >
-        <h2 className="tvp-h2">Upload document to Roster Shared Folder</h2>
+        <div>
+          <h2 className="tvp-h2" style={{ margin: 0 }}>Upload document</h2>
+          <div className="tvp-muted" style={{ fontSize: 13, marginTop: 2 }}>
+            Files land in the talent's Roster Shared Folder.
+          </div>
+        </div>
 
         <div
           style={{
@@ -639,134 +667,228 @@ function UploadDialog({
           </div>
         </div>
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>File</label>
-        <input ref={fileRef} type="file" required />
-
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Talent</label>
-        <select className="tvp-select" value={talentLinkId} onChange={(e) => setTalentLinkId(e.target.value)}>
-          <option value="">Unassigned</option>
-          {talentLinks.map((l) => (
-            <option key={l.id} value={l.id} disabled={l.status === "ended"}>
-              {l.displayName}{l.status === "ended" ? " (ended — new uploads blocked)" : ""}
-            </option>
-          ))}
-        </select>
-
-        <div className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-          Destination folder{" "}
-          {talentLinkId && (
-            <span style={{ fontWeight: 600 }}>
-              · {talentLinks.find((l) => l.id === talentLinkId)?.displayName ?? ""}
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 12, color: "var(--tvp-muted)", marginTop: -4, textTransform: "uppercase", letterSpacing: 0.4 }}>
-          Roster Shared Folder · Allowed
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {!talentLinkId ? (
-            <div className="tvp-muted" style={{ fontSize: 12, padding: "8px 4px" }}>
-              Select a talent to see their allowed destinations.
-            </div>
-          ) : foldersLoading ? (
-            <div className="tvp-muted" style={{ fontSize: 12, padding: "8px 4px" }}>
-              <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" /> Loading folders…
-            </div>
-          ) : (allowedFolders ?? []).length === 0 ? (
-            <div
-              style={{
-                fontSize: 12, padding: "10px 12px", borderRadius: 8,
-                background: "rgba(180, 83, 9, 0.08)",
-                border: "1px solid rgba(180, 83, 9, 0.25)",
-              }}
-            >
-              <strong>No folders provisioned for this talent.</strong>
-              <div className="tvp-muted" style={{ marginTop: 2 }}>
-                Set one up under <Link to="/agency/folder-templates" className="tvp-link">Folder Templates</Link>{" "}
-                or re-invite with a folder selection.
-              </div>
-            </div>
-          ) : (
-            (allowedFolders ?? []).map((f: { id: string; folderName: string }) => {
-              const meta = ALLOWED_FOLDERS.find((m) => m.key === f.folderName);
-              const Icon = meta?.icon ?? FileText;
-              const active = folder === f.folderName;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFolder(f.folderName)}
+        {/* Dropzone */}
+        <div style={groupStyle}>
+          <div style={labelStyle}>File</div>
+          <div
+            onClick={() => fileRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault(); setDragOver(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) pickFile(f);
+            }}
+            role="button"
+            tabIndex={0}
+            style={{
+              border: `1.5px dashed ${dragOver ? "#2563eb" : "var(--tvp-border, #cbd5e1)"}`,
+              background: dragOver ? "rgba(37, 99, 235, 0.06)" : "rgba(15, 23, 42, 0.02)",
+              borderRadius: 10, padding: file ? "12px 14px" : "22px 14px",
+              cursor: "pointer", transition: "all 120ms ease",
+              display: "flex", alignItems: "center", gap: 12,
+            }}
+          >
+            {file ? (
+              <>
+                <div
                   style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 12px", borderRadius: 8, textAlign: "left",
-                    background: active ? "rgba(37, 99, 235, 0.08)" : "white",
-                    border: `1px solid ${active ? "rgba(37, 99, 235, 0.5)" : "var(--tvp-border, #e5e7eb)"}`,
-                    cursor: "pointer",
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "rgba(37, 99, 235, 0.10)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#2563eb", flexShrink: 0,
                   }}
                 >
-                  <Icon className="h-4 w-4" style={{ color: active ? "#2563eb" : "var(--tvp-muted)" }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{f.folderName}</div>
-                    {meta?.description && (
-                      <div className="tvp-muted" style={{ fontSize: 12 }}>{meta.description}</div>
-                    )}
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {file.name}
                   </div>
-                  <span className="tvp-status tvp-green" style={{ fontSize: 11 }}>Allowed</span>
+                  <div className="tvp-muted" style={{ fontSize: 12 }}>
+                    {humanSize(file.size)} · click to replace
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); pickFile(null); if (fileRef.current) fileRef.current.value = ""; }}
+                  className="tvp-secondary"
+                  style={{ padding: "4px 10px", fontSize: 12 }}
+                >
+                  Remove
                 </button>
-              );
-            })
-          )}
+              </>
+            ) : (
+              <>
+                <div
+                  style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: "rgba(37, 99, 235, 0.10)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#2563eb", flexShrink: 0,
+                  }}
+                >
+                  <Upload className="h-5 w-5" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>
+                    Drop a file here, or <span style={{ color: "#2563eb" }}>browse</span>
+                  </div>
+                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                    PDF, image, or document · up to 20 MB
+                  </div>
+                </div>
+              </>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              style={{ display: "none" }}
+              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
         </div>
 
-
-        <div style={{ fontSize: 12, color: "var(--tvp-muted)", marginTop: 8, textTransform: "uppercase", letterSpacing: 0.4 }}>
-          Talent Private Vault · Read-only to you
+        {/* Talent */}
+        <div style={groupStyle}>
+          <div style={labelStyle}>Talent</div>
+          <select className="tvp-select" value={talentLinkId} onChange={(e) => setTalentLinkId(e.target.value)}>
+            <option value="">Select talent…</option>
+            {talentLinks.map((l) => (
+              <option key={l.id} value={l.id} disabled={l.status === "ended"}>
+                {l.displayName}{l.status === "ended" ? " (ended — new uploads blocked)" : ""}
+              </option>
+            ))}
+          </select>
         </div>
-        <div className="tvp-muted" style={{ fontSize: 11, marginTop: -2 }}>
-          Representative list — the Talent Portal isn't wired yet, so these aren't per-talent real folders.
-        </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.65 }}>
-          {BLOCKED_FOLDERS.map((f) => {
-            const Icon = f.icon;
-            return (
+        {/* Destination folder — no redundant talent-name suffix */}
+        <div style={groupStyle}>
+          <div style={labelStyle}>Destination folder</div>
+          <div className="tvp-muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>
+            Roster Shared Folder · Allowed
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {!talentLinkId ? (
+              <div className="tvp-muted" style={{ fontSize: 12, padding: "8px 4px" }}>
+                Select a talent to see their allowed destinations.
+              </div>
+            ) : foldersLoading ? (
+              <div className="tvp-muted" style={{ fontSize: 12, padding: "8px 4px" }}>
+                <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" /> Loading folders…
+              </div>
+            ) : (allowedFolders ?? []).length === 0 ? (
               <div
-                key={f.key}
-                title="This folder lives in the talent's Private Vault. Managers cannot upload here."
                 style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 12px", borderRadius: 8,
-                  background: "rgba(15, 23, 42, 0.04)",
-                  border: "1px dashed var(--tvp-border, #cbd5e1)",
-                  cursor: "not-allowed",
+                  fontSize: 12, padding: "10px 12px", borderRadius: 8,
+                  background: "rgba(180, 83, 9, 0.08)",
+                  border: "1px solid rgba(180, 83, 9, 0.25)",
                 }}
               >
-                <Icon className="h-4 w-4 text-[var(--tvp-muted)]" />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
-                    <Lock className="h-3.5 w-3.5" /> {f.label}
-                  </div>
-                  <div className="tvp-muted" style={{ fontSize: 12 }}>{f.description}</div>
+                <strong>No folders provisioned for this talent.</strong>
+                <div className="tvp-muted" style={{ marginTop: 2 }}>
+                  Set one up under <Link to="/agency/folder-templates" className="tvp-link">Folder Templates</Link>{" "}
+                  or re-invite with a folder selection.
                 </div>
-                <span className="tvp-status tvp-amber" style={{ fontSize: 11 }}>Blocked</span>
               </div>
-            );
-          })}
+            ) : (
+              (allowedFolders ?? []).map((f: { id: string; folderName: string }) => {
+                const meta = ALLOWED_FOLDERS.find((m) => m.key === f.folderName);
+                const Icon = meta?.icon ?? FileText;
+                const active = folder === f.folderName;
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFolder(f.folderName)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px", borderRadius: 8, textAlign: "left",
+                      background: active ? "rgba(37, 99, 235, 0.08)" : "white",
+                      border: `1px solid ${active ? "rgba(37, 99, 235, 0.5)" : "var(--tvp-border, #e5e7eb)"}`,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Icon className="h-4 w-4" style={{ color: active ? "#2563eb" : "var(--tvp-muted)" }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{f.folderName}</div>
+                      {meta?.description && (
+                        <div className="tvp-muted" style={{ fontSize: 12 }}>{meta.description}</div>
+                      )}
+                    </div>
+                    <span className="tvp-status tvp-green" style={{ fontSize: 11 }}>Allowed</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="tvp-muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, marginTop: 12, marginBottom: 2 }}>
+            Talent Private Vault · Read-only to you
+          </div>
+          <div className="tvp-muted" style={{ fontSize: 11, marginBottom: 6 }}>
+            Representative list — the Talent Portal isn't wired yet, so these aren't per-talent real folders.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.65 }}>
+            {BLOCKED_FOLDERS.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={f.key}
+                  title="This folder lives in the talent's Private Vault. Managers cannot upload here."
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px", borderRadius: 8,
+                    background: "rgba(15, 23, 42, 0.04)",
+                    border: "1px dashed var(--tvp-border, #cbd5e1)",
+                    cursor: "not-allowed",
+                  }}
+                >
+                  <Icon className="h-4 w-4 text-[var(--tvp-muted)]" />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Lock className="h-3.5 w-3.5" /> {f.label}
+                    </div>
+                    <div className="tvp-muted" style={{ fontSize: 12 }}>{f.description}</div>
+                  </div>
+                  <span className="tvp-status tvp-amber" style={{ fontSize: 11 }}>Blocked</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <label className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Status</label>
-        <select className="tvp-select" value={status} onChange={(e) => setStatus(e.target.value as any)}>
-          <option value="needs_review">Needs review</option>
-          <option value="filed">Filed</option>
-          <option value="ai_suggested">AI suggested</option>
-        </select>
+        {/* Optional name override */}
+        <div style={groupStyle}>
+          <div style={labelStyle}>Document name <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "var(--tvp-muted)" }}>(optional)</span></div>
+          <input
+            className="tvp-select"
+            type="text"
+            placeholder={file?.name ?? "Defaults to file name"}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+        </div>
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Expiry (optional)</label>
-        <input className="tvp-select" type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+        {/* Status + Expiry side by side */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={groupStyle}>
+            <div style={labelStyle}>Status</div>
+            <select className="tvp-select" value={status} onChange={(e) => setStatus(e.target.value as any)}>
+              <option value="needs_review">Needs review</option>
+              <option value="filed">Filed</option>
+              <option value="ai_suggested">AI suggested</option>
+            </select>
+          </div>
+          <div style={groupStyle}>
+            <div style={labelStyle}>Expiry <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "var(--tvp-muted)" }}>(optional)</span></div>
+            <input className="tvp-select" type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+          </div>
+        </div>
 
         <div className="flex gap-2 mt-2 justify-end">
           <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="submit" className="tvp-primary" disabled={busy}>
+          <button type="submit" className="tvp-primary" disabled={busy || !file || !talentLinkId || !folder}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             Upload
           </button>
