@@ -265,16 +265,17 @@ function Step1({ invite, onContinue }: { invite: Extract<ResolvedInvitation, { o
           value={invite.email}
           readOnly
           aria-readonly="true"
-          style={{ background: "rgba(0,0,0,0.04)", cursor: "not-allowed" }}
+          style={{ background: "var(--surface-soft)", cursor: "not-allowed" }}
         />
       </div>
       <div
         className="tv-auth-hint"
         style={{
-          background: "rgba(15, 143, 138, 0.08)",
-          border: "1px solid rgba(15, 143, 138, 0.25)",
+          background: "var(--teal-50)",
+          border: "1px solid var(--teal-200)",
+          color: "var(--teal)",
           padding: "10px 12px",
-          borderRadius: 8,
+          borderRadius: "var(--radius)",
           marginTop: 8,
         }}
       >
