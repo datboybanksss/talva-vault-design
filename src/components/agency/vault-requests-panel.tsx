@@ -201,6 +201,11 @@ function NewRequestDialog({
   onDone: () => void;
 }) {
   const createFn = useServerFn(createAgencyDocumentRequest);
+  const rulesFn = useServerFn(listAgencyRetentionRules);
+  const rulesQ = useQuery({
+    queryKey: ["agency", "retention-rules"],
+    queryFn: () => rulesFn(),
+  });
   const [f, setF] = useState({
     talent_link_id: talent[0]?.id ?? "",
     title: "",
@@ -208,6 +213,14 @@ function NewRequestDialog({
     instructions: "",
     due_date: "",
   });
+
+  const folderRule = useMemo(() => {
+    const rules = rulesQ.data ?? [];
+    return rules.find(
+      (r: any) => r.scope === "folder" && r.scopeValue === f.folder,
+    ) as { retentionYears: number; description: string | null } | undefined;
+  }, [rulesQ.data, f.folder]);
+
   const mut = useMutation({
     mutationFn: () => createFn({
       data: {
@@ -239,6 +252,47 @@ function NewRequestDialog({
               {FOLDERS.map(x => <option key={x} value={x}>{x}</option>)}
             </select>
           </div>
+
+          {/* Retention rule preview */}
+          <div style={{ gridColumn: "1 / -1" }}>
+            {rulesQ.isLoading ? (
+              <div className="tvp-small tvp-muted">Checking retention rule…</div>
+            ) : folderRule ? (
+              <div
+                style={{
+                  display: "flex", gap: 10, alignItems: "flex-start",
+                  padding: "10px 12px", borderRadius: "var(--tvp-radius-lg)",
+                  background: "color-mix(in oklab, var(--tvp-teal) 8%, transparent)",
+                  border: "1px solid color-mix(in oklab, var(--tvp-teal) 35%, transparent)",
+                }}
+              >
+                <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--tvp-teal)" }} />
+                <div className="tvp-small" style={{ color: "var(--tvp-ink)" }}>
+                  <strong>Retention: {folderRule.retentionYears} {folderRule.retentionYears === 1 ? "year" : "years"}.</strong>{" "}
+                  <span className="tvp-muted">
+                    Once submitted, this document will be locked and cannot be deleted for {folderRule.retentionYears} {folderRule.retentionYears === 1 ? "year" : "years"}, per your <strong>{f.folder}</strong> folder retention rule
+                    {folderRule.description ? ` (${folderRule.description})` : ""}.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex", gap: 10, alignItems: "flex-start",
+                  padding: "10px 12px", borderRadius: "var(--tvp-radius-lg)",
+                  background: "color-mix(in oklab, var(--tvp-muted) 8%, transparent)",
+                  border: "1px solid color-mix(in oklab, var(--tvp-muted) 25%, transparent)",
+                }}
+              >
+                <Info className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--tvp-muted)" }} />
+                <div className="tvp-small tvp-muted">
+                  <strong>No retention rule applies to the {f.folder} folder.</strong>{" "}
+                  The submitted document won't be auto-locked. Set a rule in Settings → Document Rules to enforce retention.
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
             <label>Title (e.g. "Updated passport scan")</label>
             <input value={f.title} onChange={e => setF(s => ({ ...s, title: e.target.value }))} />
