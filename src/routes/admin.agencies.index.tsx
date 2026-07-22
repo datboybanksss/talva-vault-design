@@ -42,6 +42,7 @@ function AgenciesPage() {
   const suspendFn = useServerFn(suspendAgency);
   const unsuspendFn = useServerFn(unsuspendAgency);
   const resendFn = useServerFn(resendInvitation);
+  const revokeFn = useServerFn(revokeInvitation);
   const updateEmailFn = useServerFn(updateInvitationEmail);
   const logCopyFn = useServerFn(logCopyLink);
   const qc = useQueryClient();
