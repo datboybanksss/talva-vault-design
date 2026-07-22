@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle, Trash2, FileEdit } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,6 +9,7 @@ import {
   revokeInvitation,
   updateInvitationEmail,
   logCopyLink,
+  deleteAgencyInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/admin/invitations/")({
 });
 
 const statusLabel: Record<string, string> = {
+  draft: "Draft",
   pending: "Invited",
   accepted: "Accepted",
   expired: "Expired",
@@ -28,6 +30,7 @@ const statusLabel: Record<string, string> = {
   revoked: "Revoked",
 };
 const statusTone: Record<string, string> = {
+  draft: "amber",
   pending: "blue",
   accepted: "green",
   expired: "red",
@@ -50,6 +53,8 @@ function InvitationsPage() {
   const revokeFn = useServerFn(revokeInvitation);
   const updateEmailFn = useServerFn(updateInvitationEmail);
   const logCopyFn = useServerFn(logCopyLink);
+  const deleteFn = useServerFn(deleteAgencyInvitation);
+  const nav = useNavigate();
   const qc = useQueryClient();
 
   const invites = useQuery({
@@ -83,6 +88,20 @@ function InvitationsPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
   });
+  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
+  const deleteM = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      setPendingDelete(null);
+      toast.success(
+        res?.agency_deleted
+          ? "Invitation and agency shell deleted."
+          : "Invitation deleted.",
+      );
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
+  });
 
   const { email: emailParam } = Route.useSearch();
   const [tab, setTab] = useState<string>("all");
@@ -114,7 +133,7 @@ function InvitationsPage() {
   const counts = useMemo(() => {
     const c: Record<string, number> = {
       all: list.length,
-      pending: 0, accepted: 0, expired: 0, declined: 0, revoked: 0,
+      draft: 0, pending: 0, accepted: 0, expired: 0, declined: 0, revoked: 0,
     };
     for (const i of list) c[i.status] = (c[i.status] ?? 0) + 1;
     return c;
@@ -212,7 +231,7 @@ function InvitationsPage() {
 
       {/* Life chip row */}
       <div className="tvp-life-chips">
-        {["all", "pending", "accepted", "expired", "declined", "revoked"].map((k) => (
+        {["all", "draft", "pending", "accepted", "expired", "declined", "revoked"].map((k) => (
           <button
             key={k}
             className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} tvp-bg-${k === "all" ? "teal" : statusTone[k] ?? "neutral"}`}
@@ -300,53 +319,88 @@ function InvitationsPage() {
                     </td>
                     <td>{i.send_count}</td>
                     <td>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <Link
-                          to="/admin/invitations/$id/email-preview"
-                          params={{ id: i.id }}
-                          className="tvp-mini-btn"
-                          title="Preview branded email"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Link>
-                        <button
-                          className="tvp-mini-btn"
-                          title="Copy invite link (does not extend expiry)"
-                          onClick={() => copyLink(i)}
-                        >
-                          <Link2 className="h-4 w-4" />
-                        </button>
-                        {!readOnly && (
-                          <button
-                            className="tvp-mini-btn"
-                            title="Edit email (only before acceptance)"
-                            onClick={() => {
-                              setEditing(i);
-                              setEmailDraft(i.email);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                        )}
-                        {i.status === "pending" && (
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {i.status === "draft" ? (
                           <>
                             <button
                               className="tvp-mini-btn"
-                              title="Resend (logs new send, refreshes expiry)"
-                              onClick={() => resendM.mutate(i.id)}
+                              title="Continue draft (add compliance documents and send)"
+                              onClick={() =>
+                                nav({
+                                  to: "/admin/invitations/new",
+                                  search: { draft: i.id } as any,
+                                })
+                              }
                             >
-                              <RefreshCw className="h-4 w-4" />
+                              <FileEdit className="h-4 w-4" />
                             </button>
                             <button
                               className="tvp-mini-btn"
-                              title="Revoke invitation"
-                              onClick={() => {
-                                if (confirm(`Revoke invitation to ${i.agency_name}?`))
-                                  revokeM.mutate(i.id);
-                              }}
+                              title="Delete draft (removes compliance docs and agency shell)"
+                              onClick={() => setPendingDelete(i)}
                             >
-                              <Ban className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
+                          </>
+                        ) : (
+                          <>
+                            <Link
+                              to="/admin/invitations/$id/email-preview"
+                              params={{ id: i.id }}
+                              className="tvp-mini-btn"
+                              title="Preview branded email"
+                            >
+                              <Mail className="h-4 w-4" />
+                            </Link>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Copy invite link (does not extend expiry)"
+                              onClick={() => copyLink(i)}
+                            >
+                              <Link2 className="h-4 w-4" />
+                            </button>
+                            {!readOnly && (
+                              <button
+                                className="tvp-mini-btn"
+                                title="Edit email (only before acceptance)"
+                                onClick={() => {
+                                  setEditing(i);
+                                  setEmailDraft(i.email);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            )}
+                            {i.status === "pending" && (
+                              <>
+                                <button
+                                  className="tvp-mini-btn"
+                                  title="Resend (logs new send, refreshes expiry)"
+                                  onClick={() => resendM.mutate(i.id)}
+                                >
+                                  <RefreshCw className="h-4 w-4" />
+                                </button>
+                                <button
+                                  className="tvp-mini-btn"
+                                  title="Revoke invitation"
+                                  onClick={() => {
+                                    if (confirm(`Revoke invitation to ${i.agency_name}?`))
+                                      revokeM.mutate(i.id);
+                                  }}
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                            {i.status !== "accepted" && (
+                              <button
+                                className="tvp-mini-btn"
+                                title="Delete invitation permanently (removes compliance docs; if no agency members, removes the shell agency too)"
+                                onClick={() => setPendingDelete(i)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -405,6 +459,54 @@ function InvitationsPage() {
                 }
               >
                 Save & log
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPendingDelete(null)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+          }}
+        >
+          <div
+            className="tvp-card tvp-panel"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(520px, 92vw)" }}
+          >
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">Delete invitation permanently?</h2>
+              <button className="tvp-mini-btn" onClick={() => setPendingDelete(null)}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p style={{ fontSize: 14, lineHeight: 1.5 }}>
+              This permanently removes the invitation to <strong>{pendingDelete.agency_name}</strong>{" "}
+              (<span className="tvp-muted">{pendingDelete.email}</span>), deletes any uploaded
+              compliance documents, and — if the agency shell has no members yet — removes the
+              agency record too. This cannot be undone.
+            </p>
+            <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+              Prefer <strong>Revoke</strong> if you need to keep an audit trail of a cancelled invite.
+            </p>
+            <div className="tvp-footer-actions">
+              <button className="tvp-secondary" onClick={() => setPendingDelete(null)}>
+                Cancel
+              </button>
+              <button
+                className="tvp-primary"
+                style={{ background: "var(--tvp-red)", borderColor: "var(--tvp-red)" }}
+                onClick={() => deleteM.mutate(pendingDelete.id)}
+                disabled={deleteM.isPending}
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleteM.isPending ? "Deleting…" : "Delete permanently"}
               </button>
             </div>
           </div>

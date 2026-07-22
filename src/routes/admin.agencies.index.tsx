@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X, Trash2, FileEdit } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -11,6 +11,7 @@ import {
   revokeInvitation,
   updateInvitationEmail,
   logCopyLink,
+  deleteAgencyInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
@@ -45,6 +46,8 @@ function AgenciesPage() {
   const revokeFn = useServerFn(revokeInvitation);
   const updateEmailFn = useServerFn(updateInvitationEmail);
   const logCopyFn = useServerFn(logCopyLink);
+  const deleteFn = useServerFn(deleteAgencyInvitation);
+  const nav = useNavigate();
   const qc = useQueryClient();
 
   const agencies = useQuery({
@@ -93,6 +96,20 @@ function AgenciesPage() {
       toast.success("Email updated and logged.");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
+  });
+  const [pendingDelete, setPendingDelete] = useState<{ inviteId: string; agencyName: string; email: string } | null>(null);
+  const deleteM = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      setPendingDelete(null);
+      toast.success(
+        res?.agency_deleted
+          ? "Invitation and agency shell deleted."
+          : "Invitation deleted.",
+      );
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
   });
 
   const [tab, setTab] = useState<string>("all");
@@ -323,7 +340,35 @@ function AgenciesPage() {
                     </td>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        {a.status === "invited" && invitation ? (
+                        {a.status === "invited" && invitation && invitation.status === "draft" ? (
+                          <>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Continue draft (upload compliance docs and send)"
+                              onClick={() =>
+                                nav({
+                                  to: "/admin/invitations/new",
+                                  search: { draft: invitation.id } as any,
+                                })
+                              }
+                            >
+                              <FileEdit className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Delete draft (removes compliance docs and shell)"
+                              onClick={() =>
+                                setPendingDelete({
+                                  inviteId: invitation.id,
+                                  agencyName: a.name,
+                                  email: invitation.email,
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : a.status === "invited" && invitation ? (
                           <>
                             <Link
                               to="/admin/invitations/$id/email-preview"
@@ -366,6 +411,19 @@ function AgenciesPage() {
                               }}
                             >
                               <Ban className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Delete invitation permanently (removes shell agency if empty)"
+                              onClick={() =>
+                                setPendingDelete({
+                                  inviteId: invitation.id,
+                                  agencyName: a.name,
+                                  email: invitation.email,
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </>
                         ) : a.status === "invited" && inviteEmail ? (
@@ -462,6 +520,54 @@ function AgenciesPage() {
                 disabled={!emailDraft || emailDraft === editingInvite.email || updateEmailM.isPending}
               >
                 Save & log
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPendingDelete(null)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+          }}
+        >
+          <div
+            className="tvp-card tvp-panel"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(520px, 92vw)" }}
+          >
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">Delete invitation permanently?</h2>
+              <button className="tvp-mini-btn" onClick={() => setPendingDelete(null)}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p style={{ fontSize: 14, lineHeight: 1.5 }}>
+              This permanently removes the invitation to <strong>{pendingDelete.agencyName}</strong>{" "}
+              (<span className="tvp-muted">{pendingDelete.email}</span>), deletes any uploaded
+              compliance documents, and — if the agency shell has no members yet — removes the
+              agency record too. This cannot be undone.
+            </p>
+            <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+              Prefer <strong>Revoke</strong> if you need to keep an audit trail of a cancelled invite.
+            </p>
+            <div className="tvp-footer-actions">
+              <button className="tvp-secondary" onClick={() => setPendingDelete(null)}>
+                Cancel
+              </button>
+              <button
+                className="tvp-primary"
+                style={{ background: "var(--tvp-red)", borderColor: "var(--tvp-red)" }}
+                onClick={() => deleteM.mutate(pendingDelete.inviteId)}
+                disabled={deleteM.isPending}
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleteM.isPending ? "Deleting…" : "Delete permanently"}
               </button>
             </div>
           </div>
