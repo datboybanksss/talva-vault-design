@@ -194,7 +194,7 @@ function InvitationsPage() {
                       : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
                 return (
                   <tr key={`${i.type}-${i.id}`}>
-                    <td><strong>{i.recipient_name ?? "—"}</strong></td>
+                    <td style={{ whiteSpace: "nowrap" }}><strong>{i.recipient_name ?? "—"}</strong></td>
                     <td>{i.email}</td>
                     <td>
                       <span className={`tvp-status tvp-${i.type === "talent" ? "blue" : "teal"}`}>
