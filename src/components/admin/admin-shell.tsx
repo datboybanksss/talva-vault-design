@@ -79,6 +79,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const whoamiFn = useServerFn(whoami);
   const listNotificationsFn = useServerFn(listNotifications);
   const dismissFn = useServerFn(dismissNotification);
+  const dismissComputedFn = useServerFn(dismissComputedNotification);
 
   const { data: me } = useQuery({
     queryKey: ["whoami"],
@@ -94,6 +95,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const dismissM = useMutation({
     mutationFn: (id: string) => dismissFn({ data: { id } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] }),
+  });
+
+  const dismissComputedM = useMutation({
+    mutationFn: (v: { kind: string; snapshot: number }) => dismissComputedFn({ data: v }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "notifications"] }),
   });
 
@@ -116,6 +122,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       to: p.target_type === "agency" ? "/admin/agencies" : undefined,
     })),
   ];
+
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
