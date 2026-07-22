@@ -66,7 +66,7 @@ function MyAccountPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
