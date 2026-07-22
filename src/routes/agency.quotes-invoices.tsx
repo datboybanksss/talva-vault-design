@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, FileSpreadsheet, Receipt, Clock, AlertTriangle, Trash2, Pencil, X, Save, ArrowRightLeft, Link2 } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Save, ArrowRightLeft, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listAgencyBillingDocs,
@@ -95,7 +95,7 @@ function QIPage() {
   const shareFn = useServerFn(setBillingDocShared);
   const convertFn = useServerFn(convertQuoteToInvoice);
 
-  const [tab, setTab] = useState<"records" | "clients" | "settings">("records");
+  const [tab, setTab] = useState<"records" | "clients">("records");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
@@ -274,7 +274,6 @@ function QIPage() {
       <div className="tvp-subtabs">
         <button className={`tvp-subtab${tab === "records" ? " tvp-active" : ""}`} onClick={() => setTab("records")}>Quotes & Invoices</button>
         <button className={`tvp-subtab${tab === "clients" ? " tvp-active" : ""}`} onClick={() => setTab("clients")}>Clients</button>
-        <button className={`tvp-subtab${tab === "settings" ? " tvp-active" : ""}`} onClick={() => setTab("settings")}>Settings</button>
       </div>
 
       {tab === "records" && (
@@ -399,14 +398,6 @@ function QIPage() {
         </div>
       )}
 
-      {tab === "settings" && (
-        <div className="tvp-rule-grid">
-          <div className="tvp-card tvp-panel"><h3 className="tvp-h3"><Clock className="inline h-4 w-4 mr-1" />Quote Acceptance</h3><p className="tvp-muted" style={{ fontSize: 12 }}>Settings persistence is not wired yet — this panel is a placeholder for a future release.</p></div>
-          <div className="tvp-card tvp-panel"><h3 className="tvp-h3"><Receipt className="inline h-4 w-4 mr-1" />Invoice Payment</h3><p className="tvp-muted" style={{ fontSize: 12 }}>Mark invoices overdue manually via the Status dropdown for now.</p></div>
-          <div className="tvp-card tvp-panel"><h3 className="tvp-h3"><AlertTriangle className="inline h-4 w-4 mr-1" />Payment capture</h3><p className="tvp-muted" style={{ fontSize: 12 }}>Full-only or partial payment tracking will be added when payment collection integrates.</p></div>
-          <div className="tvp-card tvp-panel"><h3 className="tvp-h3"><FileSpreadsheet className="inline h-4 w-4 mr-1" />VAT / Tax</h3><p className="tvp-muted" style={{ fontSize: 12 }}>Enter VAT-inclusive totals for now.</p></div>
-        </div>
-      )}
 
       {editorOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setEditorOpen(false)}>
