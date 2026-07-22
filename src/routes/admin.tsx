@@ -121,7 +121,7 @@ function TwoFactorBanner() {
         2FA is currently unenforced for testing but will be mandatory before launch.
         Please enrol now to avoid a forced setup later.
       </div>
-      <Link to="/admin/enroll-2fa" className="tvp-primary" style={{ padding: "6px 10px" }}>
+      <Link to="/admin/enroll-2fa" className="tvp-primary" style={{ padding: "6px 12px", whiteSpace: "nowrap", flex: "0 0 auto" }}>
         Enable 2FA
       </Link>
       <button
