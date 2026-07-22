@@ -468,7 +468,7 @@
   & .tvp-subtitle { color: var(--tvp-muted); font-size: 14px; margin-top: 6px; }
   & .tvp-actions { display: flex; align-items: center; gap: 12px; }
 
-  & .tvp-primary, & .tvp-secondary, & .tvp-ghost, & .tvp-danger, & .tvp-accent {
+  & .tvp-primary, & .tvp-secondary, & .tvp-ghost, & .tvp-danger, & .tvp-accent, & .tvp-purple-btn {
     height: 42px; border-radius: 11px; padding: 0 16px; font-weight: 900;
     display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; font-size: 13px;
   }
@@ -482,6 +482,10 @@
   & .tvp-accent { background: var(--tvp-amber-bg); color: var(--tvp-amber); border: 1px solid color-mix(in oklab, var(--tvp-amber) 45%, transparent); box-shadow: 0 4px 12px rgba(232,147,72,.14); }
   & .tvp-accent:hover { background: color-mix(in oklab, var(--tvp-amber-bg) 70%, white); border-color: var(--tvp-amber); }
   & .tvp-accent:disabled { opacity: .55; cursor: not-allowed; }
+  /* Purple — "request / inbound doc" action (Vault "Request Document") */
+  & .tvp-purple-btn { background: var(--tvp-purple-bg); color: var(--tvp-purple); border: 1px solid color-mix(in oklab, var(--tvp-purple) 40%, transparent); box-shadow: 0 4px 12px rgba(124,58,237,.14); }
+  & .tvp-purple-btn:hover { background: color-mix(in oklab, var(--tvp-purple-bg) 70%, white); border-color: var(--tvp-purple); }
+  & .tvp-purple-btn:disabled { opacity: .55; cursor: not-allowed; }
   /* Amber pip on tab labels — signals "needs action" on the Requests tab */
   & .tvp-tab-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tvp-amber); box-shadow: 0 0 0 2px var(--tvp-amber-bg); margin-left: 2px; }
 

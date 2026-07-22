@@ -448,6 +448,34 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
+
+    // Duplicate check: only block if there is a truly-active record for this email
+    // (case-insensitive). Stale/expired/revoked/declined rows must NOT match.
+    const nowIso = new Date().toISOString();
+    const { data: activeInv } = await supabase
+      .from("agency_invitations")
+      .select("id, agency_name, expires_at")
+      .ilike("email", data.email)
+      .eq("status", "pending")
+      .gt("expires_at", nowIso)
+      .maybeSingle();
+    if (activeInv?.id) {
+      throw new Error(
+        `An active invitation for ${data.email} already exists (${activeInv.agency_name}). Resend or revoke it from the Invitations list before inviting again.`,
+      );
+    }
+    const { data: activeAgency } = await supabase
+      .from("agencies")
+      .select("id, name, status")
+      .ilike("contact_email", data.email)
+      .eq("status", "accepted")
+      .maybeSingle();
+    if (activeAgency?.id) {
+      throw new Error(
+        `${activeAgency.name} is already onboarded with ${data.email}. Use a different contact email.`,
+      );
+    }
+
     const expiresAt = new Date(
       Date.now() + data.expiry_days * 24 * 3600 * 1000,
     ).toISOString();

@@ -215,7 +215,7 @@ export function VaultPage() {
         <div className="tvp-actions">
           <button className="tvp-secondary"><FolderOpen className="h-4 w-4" />Browse folders</button>
           <button
-            className="tvp-accent"
+            className="tvp-purple-btn"
             title="Ask a talent to submit a specific document"
             onClick={() => { setRequestsAutoOpen(true); setTab("Requests"); }}
           >

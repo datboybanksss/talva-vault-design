@@ -176,8 +176,8 @@ export function TwoFactorCard({
         title="Two-factor authentication"
         subtitle={
           required
-            ? `Required for your ${contextLabel} role. A 6-digit code from your authenticator app is needed on every sign-in.`
-            : "Require a 6-digit code from your authenticator app on every sign-in."
+            ? `Required for your ${contextLabel} role — a 6-digit code from your authenticator app is needed on every sign-in.`
+            : "A 6-digit code from your authenticator app is needed on every sign-in."
         }
       />
 
@@ -313,18 +313,18 @@ export function TwoFactorCard({
       ) : (
         <div style={{ marginTop: 8 }}>
           <div className="tvp-muted" style={{ fontSize: 13 }}>
-            Add an extra sign-in step using a time-based code from an authenticator
-            app on your phone.{" "}
-            {required
-              ? `Required for your ${contextLabel} role — you must enable 2FA to keep accessing this console.`
-              : "Strongly recommended."}
+            You'll need a free authenticator app on your phone — for example{" "}
+            <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>,
+            or <strong>Authy</strong> (available on the App Store and Google Play).
+            After installing, tap <em>Enable 2FA</em> below, scan the QR code with the
+            app, then enter the 6-digit code it shows to finish setup.
           </div>
           {error && (
             <div className="tv-form-alert tv-form-alert-error" style={{ marginTop: 10 }}>
               {error}
             </div>
           )}
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 12 }}>
             <button
               type="button"
               className="tvp-primary"
