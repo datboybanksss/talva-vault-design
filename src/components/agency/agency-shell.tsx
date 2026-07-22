@@ -71,6 +71,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
   const whoamiFn = useServerFn(agencyWhoami);
   const listNotifsFn = useServerFn(listAgencyNotifications);
+  const metricsFn = useServerFn(getAgencyDashboardMetrics);
 
   const { data: me } = useQuery({
     queryKey: ["agency", "whoami"],
