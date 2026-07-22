@@ -125,6 +125,66 @@ function AuditPage() {
         </div>
       </div>
 
+      {/* KPI row */}
+      <div className="tvp-grid tvp-kpi-grid">
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-teal"><Activity className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{kpis.total}</div>
+            <div className="tvp-kpi-label">Total Events</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Immutable audit trail</div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-blue"><Mail className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{kpis.eventsToday}</div>
+            <div className="tvp-kpi-label">Events Today</div>
+            <div className="tvp-kpi-sub" style={{ color: kpis.eventsToday > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+              {kpis.eventsToday > 0 ? "Active session" : "Quiet so far"}
+            </div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-red"><ShieldAlert className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{kpis.highSeverity}</div>
+            <div className="tvp-kpi-label">High-Severity Actions</div>
+            <div className="tvp-kpi-sub" style={{ color: kpis.highSeverity > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}>
+              {kpis.highSeverity > 0 ? "Review recommended" : "No high-severity events"}
+            </div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-purple"><Users2 className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{kpis.distinctActors}</div>
+            <div className="tvp-kpi-label">Distinct Actors</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Admins + system</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Area chip row */}
+      <div className="tvp-life-chips">
+        {["all", "Agencies", "Invitations", "Reporting", "Legal & Copy", "System"].map((k) => {
+          const toneMap: Record<string, string> = {
+            all: "teal", Agencies: "teal", Invitations: "blue", Reporting: "purple",
+            "Legal & Copy": "amber", System: "neutral",
+          };
+          return (
+            <button
+              key={k}
+              className={`tvp-life-chip${areaFilter === k ? " tvp-active-filter" : ""} tvp-bg-${toneMap[k] ?? "neutral"}`}
+              onClick={() => setAreaFilter(k)}
+            >
+              <div className="tvp-label">{k === "all" ? "All" : k}</div>
+              <div className="tvp-num">{areaCounts[k] ?? 0}</div>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="tvp-card">
         <div className="tvp-toolbar">
           <input
@@ -133,6 +193,9 @@ function AuditPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {filtersActive && (
+            <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
+          )}
         </div>
         <div
           style={{
