@@ -8,6 +8,7 @@ import {
   suspendAgency,
   unsuspendAgency,
   resendInvitation,
+  revokeInvitation,
   updateInvitationEmail,
   logCopyLink,
 } from "@/lib/admin.functions";
