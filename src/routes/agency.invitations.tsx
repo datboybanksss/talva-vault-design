@@ -165,7 +165,7 @@ function InvitationsPage() {
           <table className="tvp-table">
             <thead>
               <tr>
-                <th>Recipient</th>
+                <th style={{ minWidth: 180, whiteSpace: "nowrap" }}>Recipient</th>
                 <th>Email</th>
                 <th>Type</th>
                 <th>Status</th>
