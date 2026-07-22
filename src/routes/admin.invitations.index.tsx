@@ -212,6 +212,7 @@ function InvitationsPage() {
             <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
           )}
         </div>
+        <div className="tvp-table-wrap">
           <table className="tvp-table">
             <thead>
               <tr>
