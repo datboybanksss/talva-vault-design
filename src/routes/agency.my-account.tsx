@@ -134,10 +134,9 @@ function ProfileCard({ me }: { me: any }) {
           e.preventDefault();
           save.mutate();
         }}
-        style={{ marginTop: 8 }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <div className="tv-auth-field" style={{ marginTop: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="tv-auth-field">
             <label htmlFor="first_name">First name</label>
             <input
               id="first_name"
@@ -147,7 +146,7 @@ function ProfileCard({ me }: { me: any }) {
               maxLength={80}
             />
           </div>
-          <div className="tv-auth-field" style={{ marginTop: 0 }}>
+          <div className="tv-auth-field">
             <label htmlFor="last_name">Last name</label>
             <input
               id="last_name"
@@ -173,7 +172,7 @@ function ProfileCard({ me }: { me: any }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
           <button
             type="submit"
             className="tvp-primary"
