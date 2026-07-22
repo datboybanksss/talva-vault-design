@@ -434,7 +434,7 @@ function Step4({
         </span>
       </label>
       {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
-      <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 20, alignItems: "stretch" }}>
         <button type="button" className="tv-auth-google" onClick={onBack} disabled={busy} style={{ flex: 0 }}>
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
@@ -443,11 +443,19 @@ function Step4({
           className="tv-auth-submit"
           onClick={onSubmit}
           disabled={!terms || busy}
-          style={{ flex: 1, marginTop: 0 }}
+          style={{ flex: 1, marginTop: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
         >
-          {busy ? "Setting up your workspace…" : (<><Check className="h-4 w-4" style={{ marginRight: 6 }} />Complete setup</>)}
+          {busy ? (
+            "Setting up your workspace…"
+          ) : (
+            <>
+              <Check className="h-4 w-4" />
+              <span>Complete setup</span>
+            </>
+          )}
         </button>
       </div>
+
     </>
   );
 }
