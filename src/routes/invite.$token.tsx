@@ -434,8 +434,14 @@ function Step4({
         </span>
       </label>
       {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
-      <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-        <button type="button" className="tv-auth-google" onClick={onBack} disabled={busy} style={{ flex: 0 }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
+        <button
+          type="button"
+          className="tv-auth-google"
+          onClick={onBack}
+          disabled={busy}
+          style={{ width: "auto", flex: "0 0 auto", padding: "0 18px", height: 46 }}
+        >
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <button
@@ -443,24 +449,39 @@ function Step4({
           className="tv-auth-submit"
           onClick={onSubmit}
           disabled={!terms || busy}
-          style={{ flex: 1, marginTop: 0 }}
+          style={{ flex: 1, marginTop: 0, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
         >
-          {busy ? "Setting up your workspace…" : (<><Check className="h-4 w-4" style={{ marginRight: 6 }} />Complete setup</>)}
+          {busy ? (
+            "Setting up your workspace…"
+          ) : (
+            <>
+              <Check className="h-4 w-4" />
+              <span>Complete setup</span>
+            </>
+          )}
         </button>
       </div>
+
+
     </>
   );
 }
 
 function StepButtons({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
   return (
-    <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-      <button type="button" className="tv-auth-google" onClick={onBack} style={{ flex: 0 }}>
+    <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
+      <button
+        type="button"
+        className="tv-auth-google"
+        onClick={onBack}
+        style={{ width: "auto", flex: "0 0 auto", padding: "0 18px", height: 46 }}
+      >
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
-      <button type="button" className="tv-auth-submit" onClick={onContinue} style={{ flex: 1, marginTop: 0 }}>
+      <button type="button" className="tv-auth-submit" onClick={onContinue} style={{ flex: 1, marginTop: 0, height: 46 }}>
         Continue
       </button>
+
     </div>
   );
 }
