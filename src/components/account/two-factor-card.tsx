@@ -176,8 +176,8 @@ export function TwoFactorCard({
         title="Two-factor authentication"
         subtitle={
           required
-            ? `Required for your ${contextLabel} role. A 6-digit code from your authenticator app is needed on every sign-in.`
-            : "Require a 6-digit code from your authenticator app on every sign-in."
+            ? `Required for your ${contextLabel} role — a 6-digit code from your authenticator app is needed on every sign-in.`
+            : "A 6-digit code from your authenticator app is needed on every sign-in."
         }
       />
 
