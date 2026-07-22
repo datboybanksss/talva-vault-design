@@ -46,6 +46,8 @@ function AgenciesPage() {
   const revokeFn = useServerFn(revokeInvitation);
   const updateEmailFn = useServerFn(updateInvitationEmail);
   const logCopyFn = useServerFn(logCopyLink);
+  const deleteFn = useServerFn(deleteAgencyInvitation);
+  const nav = useNavigate();
   const qc = useQueryClient();
 
   const agencies = useQuery({
