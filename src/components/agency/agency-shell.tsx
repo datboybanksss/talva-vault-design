@@ -9,7 +9,7 @@ import {
   Send,
   Folder,
   Receipt,
-  FolderCog,
+  
   Settings as SettingsIcon,
   Bell,
   LogOut,
@@ -46,8 +46,6 @@ const manage: NavItem[] = [
 ];
 
 const settings: NavItem[] = [
-  { to: "/agency/folder-templates", label: "Folder Templates", icon: <FolderCog /> },
-  { to: "/agency/document-rules", label: "Document Rules", icon: <ShieldCheck /> },
   { to: "/agency/activity", label: "Activity Log", icon: <Clock /> },
   { to: "/agency/settings", label: "Agency Profile", icon: <SettingsIcon /> },
 ];
