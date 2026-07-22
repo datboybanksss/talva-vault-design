@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logMfaEnrolled, whoami } from "@/lib/admin.functions";
 import { friendlyAuthError } from "@/lib/password";
@@ -38,8 +38,9 @@ function EnrollTwoFactorPage() {
       try {
         // If a verified factor already exists, bounce to /admin.
         const { data: factors } = await supabase.auth.mfa.listFactors();
-        const verified = (factors?.totp ?? []).find(
-          (f) => f.status === "verified",
+        const allFactors = (factors as any)?.all ?? [];
+        const verified = allFactors.find(
+          (f: any) => f.factor_type === "totp" && f.status === "verified",
         );
         if (verified) {
           navigate({ to: "/admin" });
@@ -52,8 +53,11 @@ function EnrollTwoFactorPage() {
         setRequired(isReq);
         setEmail(me?.email ?? "");
 
-        // Clear any abandoned unverified factors, then start enrollment.
-        for (const f of factors?.totp ?? []) {
+        // Clear any abandoned unverified factors — use `all` because the
+        // `totp` convenience list from listFactors() is filtered to verified
+        // factors only, so unverified ones would otherwise linger and cause
+        // "factor with this friendly name already exists" on enroll.
+        for (const f of allFactors) {
           if (f.status !== "verified") {
             await supabase.auth.mfa.unenroll({ factorId: f.id });
           }
@@ -188,7 +192,23 @@ function EnrollTwoFactorPage() {
               />
             </div>
             {error && (
-              <div className="tv-form-alert tv-form-alert-error">{error}</div>
+              <div
+                className="tvp-callout"
+                role="alert"
+                style={{
+                  marginTop: 12,
+                  background: "var(--tvp-amber-bg)",
+                  borderColor: "color-mix(in oklab, var(--tvp-amber) 40%, transparent)",
+                }}
+              >
+                <div
+                  className="tvp-callout-icon"
+                  style={{ background: "color-mix(in oklab, var(--tvp-amber) 22%, white)", color: "var(--tvp-amber)" }}
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div style={{ fontSize: 13, color: "var(--tvp-ink)", fontWeight: 600 }}>{error}</div>
+              </div>
             )}
             <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
               <button
