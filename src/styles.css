@@ -514,7 +514,8 @@
     & .tvp-account-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
   }
   & .tvp-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 22px; }
-  & .tvp-kpi { padding: 20px; min-height: 116px; display: flex; align-items: center; gap: 16px; text-align: left; }
+  & .tvp-kpi { padding: 20px; min-height: 116px; display: flex; flex-wrap: nowrap; align-items: center; gap: 16px; text-align: left; }
+  & .tvp-kpi > *:not(.tvp-kpi-icon) { min-width: 0; flex: 1 1 auto; }
   & .tvp-kpi.tvp-clickable { width: 100%; cursor: pointer; transition: .15s ease; }
   & .tvp-kpi.tvp-clickable:hover { transform: translateY(-2px); box-shadow: var(--tvp-shadow); }
   & .tvp-kpi-icon { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; font-weight: 900; }
