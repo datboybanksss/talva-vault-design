@@ -88,6 +88,20 @@ function InvitationsPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
   });
+  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
+  const deleteM = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      setPendingDelete(null);
+      toast.success(
+        res?.agency_deleted
+          ? "Invitation and agency shell deleted."
+          : "Invitation deleted.",
+      );
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
+  });
 
   const { email: emailParam } = Route.useSearch();
   const [tab, setTab] = useState<string>("all");
