@@ -8,6 +8,7 @@ import {
   suspendAgency,
   unsuspendAgency,
   resendInvitation,
+  revokeInvitation,
   updateInvitationEmail,
   logCopyLink,
 } from "@/lib/admin.functions";
@@ -41,6 +42,7 @@ function AgenciesPage() {
   const suspendFn = useServerFn(suspendAgency);
   const unsuspendFn = useServerFn(unsuspendAgency);
   const resendFn = useServerFn(resendInvitation);
+  const revokeFn = useServerFn(revokeInvitation);
   const updateEmailFn = useServerFn(updateInvitationEmail);
   const logCopyFn = useServerFn(logCopyLink);
   const qc = useQueryClient();
@@ -74,6 +76,14 @@ function AgenciesPage() {
       toast.success("Invitation resent · expiry refreshed · logged.");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to resend"),
+  });
+  const revokeM = useMutation({
+    mutationFn: (id: string) => revokeFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Invitation revoked and logged.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to revoke"),
   });
   const updateEmailM = useMutation({
     mutationFn: (v: { id: string; email: string }) => updateEmailFn({ data: v }),
@@ -315,6 +325,14 @@ function AgenciesPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                         {a.status === "invited" && invitation ? (
                           <>
+                            <Link
+                              to="/admin/invitations/$id/email-preview"
+                              params={{ id: invitation.id }}
+                              className="tvp-mini-btn"
+                              title="Preview branded email"
+                            >
+                              <Mail className="h-4 w-4" />
+                            </Link>
                             <button
                               className="tvp-mini-btn"
                               title="Copy invite link (does not extend expiry)"
@@ -338,6 +356,16 @@ function AgenciesPage() {
                               onClick={() => resendM.mutate(invitation.id)}
                             >
                               <RefreshCw className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Revoke invitation"
+                              onClick={() => {
+                                if (confirm(`Revoke invitation to ${a.name}?`))
+                                  revokeM.mutate(invitation.id);
+                              }}
+                            >
+                              <Ban className="h-4 w-4" />
                             </button>
                           </>
                         ) : a.status === "invited" && inviteEmail ? (
