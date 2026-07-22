@@ -38,8 +38,9 @@ function EnrollTwoFactorPage() {
       try {
         // If a verified factor already exists, bounce to /admin.
         const { data: factors } = await supabase.auth.mfa.listFactors();
-        const verified = (factors?.totp ?? []).find(
-          (f) => f.status === "verified",
+        const allFactors = (factors as any)?.all ?? [];
+        const verified = allFactors.find(
+          (f: any) => f.factor_type === "totp" && f.status === "verified",
         );
         if (verified) {
           navigate({ to: "/admin" });
@@ -52,8 +53,11 @@ function EnrollTwoFactorPage() {
         setRequired(isReq);
         setEmail(me?.email ?? "");
 
-        // Clear any abandoned unverified factors, then start enrollment.
-        for (const f of factors?.totp ?? []) {
+        // Clear any abandoned unverified factors — use `all` because the
+        // `totp` convenience list from listFactors() is filtered to verified
+        // factors only, so unverified ones would otherwise linger and cause
+        // "factor with this friendly name already exists" on enroll.
+        for (const f of allFactors) {
           if (f.status !== "verified") {
             await supabase.auth.mfa.unenroll({ factorId: f.id });
           }
