@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  ClipboardList, Plus, CheckCircle2, AlertTriangle, XCircle, Clock, X, Save, History as HistoryIcon,
+  ClipboardList, Plus, CheckCircle2, AlertTriangle, XCircle, Clock, X, Save, History as HistoryIcon, Inbox,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -51,13 +51,26 @@ function statusPill(status: string) {
   );
 }
 
-export function VaultRequestsPanel() {
+export function VaultRequestsPanel({
+  autoOpenNew = false,
+  onAutoOpenConsumed,
+}: {
+  autoOpenNew?: boolean;
+  onAutoOpenConsumed?: () => void;
+} = {}) {
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(requestsListQO);
   const { data: talent } = useSuspenseQuery(requestsTalentQO);
   const [showNew, setShowNew] = useState(false);
   const [reviewing, setReviewing] = useState<Row | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (autoOpenNew) {
+      setShowNew(true);
+      onAutoOpenConsumed?.();
+    }
+  }, [autoOpenNew, onAutoOpenConsumed]);
 
   const filtered = useMemo(() => {
     if (statusFilter === "all") return rows;
@@ -75,30 +88,35 @@ export function VaultRequestsPanel() {
   return (
     <>
       <div
-        className="tvp-ai-box"
         style={{
           marginBottom: 12,
-          background: "rgba(59,130,246,.08)",
-          borderColor: "rgba(59,130,246,.35)",
+          background: "var(--tvp-amber-bg)",
+          border: "1px solid color-mix(in oklab, var(--tvp-amber) 35%, transparent)",
+          borderRadius: "var(--tvp-radius-lg)",
+          padding: "12px 14px",
           display: "flex",
-          gap: 10,
+          gap: 12,
           alignItems: "flex-start",
           justifyContent: "space-between",
         }}
       >
-        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-          <ClipboardList className="h-4 w-4 mt-0.5 shrink-0" />
-          <div className="tvp-small">
-            Ask a talent for a specific document, then review the submission.
-            The Talent Portal isn't live yet — requests are seed-data-ready
-            and will hook into talent submissions once it ships. Previous
-            submissions are always retained.
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0 }}>
+          <Inbox className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--tvp-amber)" }} />
+          <div className="tvp-small" style={{ color: "var(--tvp-ink)" }}>
+            <strong>Incoming from talent.</strong>{" "}
+            <span className="tvp-muted">
+              Ask a talent for a specific document, then review the submission.
+              The Talent Portal isn't live yet — requests are seed-data-ready
+              and will hook into talent submissions once it ships. Previous
+              submissions are always retained.
+            </span>
           </div>
         </div>
-        <button className="tvp-primary" onClick={() => setShowNew(true)} style={{ flexShrink: 0 }}>
+        <button className="tvp-accent" onClick={() => setShowNew(true)} style={{ flexShrink: 0 }}>
           <Plus className="h-4 w-4" />New request
         </button>
       </div>
+
 
       <div className="tvp-tabs" style={{ marginTop: 0, marginBottom: 12 }}>
         {[

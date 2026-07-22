@@ -468,7 +468,7 @@
   & .tvp-subtitle { color: var(--tvp-muted); font-size: 14px; margin-top: 6px; }
   & .tvp-actions { display: flex; align-items: center; gap: 12px; }
 
-  & .tvp-primary, & .tvp-secondary, & .tvp-ghost, & .tvp-danger {
+  & .tvp-primary, & .tvp-secondary, & .tvp-ghost, & .tvp-danger, & .tvp-accent {
     height: 42px; border-radius: 11px; padding: 0 16px; font-weight: 900;
     display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; font-size: 13px;
   }
@@ -478,6 +478,12 @@
   & .tvp-secondary:hover { background: var(--tvp-surface-soft); border-color: var(--tvp-teal-200); }
   & .tvp-ghost { background: transparent; color: var(--tvp-teal); padding: 0; }
   & .tvp-danger { background: var(--tvp-red); color: white; }
+  /* Accent (amber) — reserved for "incoming / request" flow (Talent → Agency) */
+  & .tvp-accent { background: var(--tvp-amber-bg); color: var(--tvp-amber); border: 1px solid color-mix(in oklab, var(--tvp-amber) 45%, transparent); box-shadow: 0 4px 12px rgba(232,147,72,.14); }
+  & .tvp-accent:hover { background: color-mix(in oklab, var(--tvp-amber-bg) 70%, white); border-color: var(--tvp-amber); }
+  & .tvp-accent:disabled { opacity: .55; cursor: not-allowed; }
+  /* Amber pip on tab labels — signals "needs action" on the Requests tab */
+  & .tvp-tab-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tvp-amber); box-shadow: 0 0 0 2px var(--tvp-amber-bg); margin-left: 2px; }
 
   & .tvp-icon-btn {
     width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--tvp-line);

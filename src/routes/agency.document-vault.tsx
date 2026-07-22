@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
   Upload, FolderOpen, Sparkles, FileText, Trash2, Download, Eye, X, Loader2,
-  Lock, History, ShieldPlus, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle,
+  Lock, History, ShieldPlus, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -128,12 +128,19 @@ export function VaultPage() {
   const { data: docs } = useSuspenseQuery(docsQO);
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
   const { data: me } = useSuspenseQuery(meQO);
+  const { data: requestRows } = useSuspenseQuery(requestsListQO);
   const searchParams = Route.useSearch();
   const initialTab: Tab = (tabs as readonly string[]).includes(searchParams.tab ?? "")
     ? (searchParams.tab as Tab)
     : "All Documents";
 
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [requestsAutoOpen, setRequestsAutoOpen] = useState(false);
+
+  const needsActionCount = useMemo(
+    () => requestRows.filter(r => r.status === "pending" || r.status === "submitted").length,
+    [requestRows],
+  );
 
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("all");
@@ -209,11 +216,19 @@ export function VaultPage() {
         </div>
         <div className="tvp-actions">
           <button className="tvp-secondary"><FolderOpen className="h-4 w-4" />Browse folders</button>
+          <button
+            className="tvp-accent"
+            title="Ask a talent to submit a specific document"
+            onClick={() => { setRequestsAutoOpen(true); setTab("Requests"); }}
+          >
+            <Inbox className="h-4 w-4" />Request Document
+          </button>
           <button className="tvp-primary" onClick={() => setShowUpload(true)}>
             <Upload className="h-4 w-4" />Upload to Talent
           </button>
         </div>
       </div>
+
 
       {tab !== "Requests" && (
       <div className="tvp-card" style={{ marginBottom: 10, padding: "10px 14px" }}>
@@ -242,13 +257,29 @@ export function VaultPage() {
       )}
 
       <div className="tvp-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
-        {tabs.map((t) => (
-          <button key={t} className={`tvp-tab${tab === t ? " tvp-active" : ""}`} onClick={() => setTab(t)}>{t}</button>
-        ))}
+        {tabs.map((t) => {
+          const isRequests = t === "Requests";
+          return (
+            <button
+              key={t}
+              className={`tvp-tab${tab === t ? " tvp-active" : ""}`}
+              onClick={() => setTab(t)}
+            >
+              {isRequests && <Inbox className="h-3.5 w-3.5" style={{ color: "var(--tvp-amber)" }} />}
+              {t}
+              {isRequests && needsActionCount > 0 && (
+                <span className="tvp-tab-dot" title={`${needsActionCount} needs action`} />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {tab === "Requests" ? (
-        <VaultRequestsPanel />
+        <VaultRequestsPanel
+          autoOpenNew={requestsAutoOpen}
+          onAutoOpenConsumed={() => setRequestsAutoOpen(false)}
+        />
       ) : (
 
 
