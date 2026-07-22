@@ -206,6 +206,7 @@ export function VaultPage() {
         </div>
       </div>
 
+      {tab !== "Requests" && (
       <div className="tvp-card" style={{ marginBottom: 10, padding: "10px 14px" }}>
         <h2 className="tvp-h2" style={{ marginBottom: 4 }}>Expiring soon</h2>
         {expiring.length === 0 ? (
@@ -229,12 +230,18 @@ export function VaultPage() {
           </div>
         )}
       </div>
+      )}
 
       <div className="tvp-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
         {tabs.map((t) => (
           <button key={t} className={`tvp-tab${tab === t ? " tvp-active" : ""}`} onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>
+
+      {tab === "Requests" ? (
+        <VaultRequestsPanel />
+      ) : (
+
 
       <div className="tvp-two-col">
         <div className="tvp-card">
