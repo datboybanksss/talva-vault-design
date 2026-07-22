@@ -237,8 +237,8 @@ function ProgressBar({ step }: { step: number }) {
           style={{
             flex: 1,
             height: 6,
-            borderRadius: 3,
-            background: n <= step ? "var(--teal-2, #0f8f8a)" : "rgba(0,0,0,0.08)",
+            borderRadius: "var(--radius-sm)",
+            background: n <= step ? "var(--teal)" : "var(--line)",
             transition: "background 200ms ease",
           }}
         />
@@ -265,16 +265,17 @@ function Step1({ invite, onContinue }: { invite: Extract<ResolvedInvitation, { o
           value={invite.email}
           readOnly
           aria-readonly="true"
-          style={{ background: "rgba(0,0,0,0.04)", cursor: "not-allowed" }}
+          style={{ background: "var(--surface-soft)", cursor: "not-allowed" }}
         />
       </div>
       <div
         className="tv-auth-hint"
         style={{
-          background: "rgba(15, 143, 138, 0.08)",
-          border: "1px solid rgba(15, 143, 138, 0.25)",
+          background: "var(--teal-50)",
+          border: "1px solid var(--teal-200)",
+          color: "var(--teal)",
           padding: "10px 12px",
-          borderRadius: 8,
+          borderRadius: "var(--radius)",
           marginTop: 8,
         }}
       >
@@ -398,14 +399,14 @@ function Step4({
         style={{
           marginTop: 12,
           padding: 14,
-          borderRadius: 10,
-          border: "1px solid rgba(0,0,0,0.1)",
+          borderRadius: "var(--radius)",
+          border: "1px solid var(--line)",
           maxHeight: 200,
           overflowY: "auto",
           fontSize: 13,
           lineHeight: 1.5,
-          color: "var(--muted-foreground, #555)",
-          background: "rgba(0,0,0,0.02)",
+          color: "var(--muted-fg)",
+          background: "var(--surface-soft)",
         }}
       >
         <p><strong>TalVault Manager Terms of Service (Summary)</strong></p>

@@ -766,7 +766,7 @@
 }
 .tv-auth .tv-auth-hero {
   position: relative;
-  background: linear-gradient(160deg, #086A70 0%, #0A7B8A 55%, #108B95 100%);
+  background: linear-gradient(160deg, var(--teal) 0%, var(--teal-2) 55%, #108B95 100%);
   color: white;
   padding: 56px 56px 48px;
   display: flex; flex-direction: column; justify-content: space-between;
@@ -788,9 +788,9 @@
   display: grid; place-items: center;
   border: 1px solid rgba(255,255,255,.18);
 }
-.tv-auth .tv-auth-brand-title { font-size: 22px; font-weight: 900; letter-spacing: -.4px; line-height: 1; }
-.tv-auth .tv-auth-brand-sub { font-size: 11px; letter-spacing: 2.5px; color: #D9F0F2; margin-top: 6px; font-weight: 800; }
-.tv-auth .tv-auth-headline { font-size: 34px; font-weight: 900; line-height: 1.12; letter-spacing: -.6px; max-width: 460px; }
+.tv-auth .tv-auth-brand-title { font-size: 22px; font-weight: 700; letter-spacing: -.4px; line-height: 1; }
+.tv-auth .tv-auth-brand-sub { font-size: 11px; letter-spacing: 2.5px; color: #D9F0F2; margin-top: 6px; font-weight: 700; }
+.tv-auth .tv-auth-headline { font-size: 34px; font-weight: 700; line-height: 1.12; letter-spacing: -.6px; max-width: 460px; }
 .tv-auth .tv-auth-sub { color: #D9F0F2; font-size: 14px; line-height: 1.55; max-width: 440px; margin-top: 14px; }
 .tv-auth .tv-auth-points { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; }
 .tv-auth .tv-auth-point { display: flex; align-items: center; gap: 12px; color: #EAF6F7; font-size: 13.5px; font-weight: 700; }
@@ -814,8 +814,8 @@
   box-shadow: var(--shadow-card);
   padding: 32px;
 }
-.tv-auth .tv-auth-eyebrow { font-size: 11px; letter-spacing: .2em; color: var(--teal); font-weight: 900; text-transform: uppercase; }
-.tv-auth .tv-auth-title { font-size: 24px; font-weight: 900; color: var(--ink); letter-spacing: -.3px; margin-top: 8px; }
+.tv-auth .tv-auth-eyebrow { font-size: 11px; letter-spacing: .2em; color: var(--teal); font-weight: 700; text-transform: uppercase; }
+.tv-auth .tv-auth-title { font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: -.3px; margin-top: 8px; }
 .tv-auth .tv-auth-tag { color: var(--muted-fg); font-size: 13.5px; margin-top: 6px; }
 
 .tv-auth .tv-auth-google {
