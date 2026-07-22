@@ -216,11 +216,19 @@ export function VaultPage() {
         </div>
         <div className="tvp-actions">
           <button className="tvp-secondary"><FolderOpen className="h-4 w-4" />Browse folders</button>
+          <button
+            className="tvp-accent"
+            title="Ask a talent to submit a specific document"
+            onClick={() => { setRequestsAutoOpen(true); setTab("Requests"); }}
+          >
+            <Inbox className="h-4 w-4" />Request Document
+          </button>
           <button className="tvp-primary" onClick={() => setShowUpload(true)}>
             <Upload className="h-4 w-4" />Upload to Talent
           </button>
         </div>
       </div>
+
 
       {tab !== "Requests" && (
       <div className="tvp-card" style={{ marginBottom: 10, padding: "10px 14px" }}>
