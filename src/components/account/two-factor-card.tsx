@@ -62,13 +62,20 @@ export function TwoFactorCard({
     setBusy(true);
     try {
       const { data: list } = await supabase.auth.mfa.listFactors();
-      for (const f of list?.totp ?? []) {
-        if (f.status !== "verified") {
+      // Use `all` — `list.totp` is filtered to verified factors only, so
+      // abandoned unverified enrolls would linger and cause "factor with
+      // this friendly name already exists" on the next attempt.
+      const allFactors = (list as any)?.all ?? [];
+      for (const f of allFactors) {
+        if (f.factor_type === "totp" && f.status !== "verified") {
           await supabase.auth.mfa.unenroll({ factorId: f.id });
         }
       }
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
+        // Displayed as the account name in Google Authenticator / Authy /
+        // 1Password. `friendlyName` is only Supabase's internal label.
+        issuer: "TalVault",
         friendlyName: `TalVault (${email})`,
       });
       if (error) throw error;

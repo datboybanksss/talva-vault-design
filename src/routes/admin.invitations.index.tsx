@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -13,6 +13,9 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/invitations/")({
+  validateSearch: (raw: Record<string, unknown>) => ({
+    email: typeof raw.email === "string" ? raw.email : "",
+  }),
   head: () => ({ meta: [{ title: "Agency Invitations · TalVault Admin" }] }),
   component: InvitationsPage,
 });
@@ -81,10 +84,31 @@ function InvitationsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
   });
 
+  const { email: emailParam } = Route.useSearch();
   const [tab, setTab] = useState<string>("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(emailParam);
   const [editing, setEditing] = useState<any | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+
+  // When arriving with ?email=..., prefill the search box, find the matching
+  // pending invite, scroll to it, and flash the row so it's obvious.
+  useEffect(() => {
+    if (!emailParam || !invites.data) return;
+    setSearch(emailParam);
+    const match = invites.data.find(
+      (i: any) => (i.email ?? "").toLowerCase() === emailParam.toLowerCase(),
+    );
+    if (!match) return;
+    setHighlightId(match.id);
+    // Wait a tick so the filtered row is rendered.
+    const t = setTimeout(() => {
+      rowRefs.current[match.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    const clear = setTimeout(() => setHighlightId(null), 2400);
+    return () => { clearTimeout(t); clearTimeout(clear); };
+  }, [emailParam, invites.data]);
 
   const list = invites.data ?? [];
   const counts = useMemo(() => {
@@ -250,7 +274,11 @@ function InvitationsPage() {
                       : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
                 const readOnly = i.status !== "pending";
                 return (
-                  <tr key={i.id}>
+                  <tr
+                    key={i.id}
+                    ref={(el) => { rowRefs.current[i.id] = el; }}
+                    className={highlightId === i.id ? "tvp-row-flash" : undefined}
+                  >
                     <td>
                       <strong>{i.agency_name}</strong>
                       {i.contact_person && (

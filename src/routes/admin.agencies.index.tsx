@@ -269,6 +269,18 @@ function AgenciesPage() {
                     })}
                   </td>
                   <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      {a.status === "invited" && a.contact_email && (
+                        <Link
+                          to="/admin/invitations"
+                          search={{ email: a.contact_email }}
+                          className="tvp-link"
+                          title="Jump to Invitations to resend, copy link or correct the email"
+                          style={{ fontSize: 12, whiteSpace: "nowrap" }}
+                        >
+                          Manage invite →
+                        </Link>
+                      )}
                     {a.status === "suspended" ? (
                       <button
                         className="tvp-mini-btn"
@@ -286,6 +298,7 @@ function AgenciesPage() {
                         <Ban className="h-4 w-4" />
                       </button>
                     )}
+                    </div>
                   </td>
                 </tr>
               ))}
