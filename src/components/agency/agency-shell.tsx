@@ -9,7 +9,7 @@ import {
   Send,
   Folder,
   Receipt,
-  
+  Menu,
   Settings as SettingsIcon,
   Bell,
   LogOut,
@@ -18,6 +18,7 @@ import {
   Info,
   Clock,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics } from "@/lib/agency.functions";
 
@@ -63,8 +64,10 @@ const toneIcon: Record<string, any> = {
 
 export function AgencyShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   const wrapRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -109,6 +112,19 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
   }, []);
+
+  // Close mobile drawer on route change + Escape key
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
 
   const isActive = (item: NavItem) => {
     if (item.match === "exact") return pathname === item.to;
