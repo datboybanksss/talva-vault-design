@@ -1311,6 +1311,8 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
       status: billingStatus.default("draft"),
       notes: z.string().max(2000).nullable().optional(),
       shared_with_talent: z.boolean().optional(),
+      description: z.string().max(200).nullable().optional(),
+      allow_partial_payment: z.boolean().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -1330,6 +1332,8 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
       status: data.status,
       notes: data.notes ?? null,
       shared_with_talent: data.shared_with_talent ?? false,
+      description: data.description ?? null,
+      allow_partial_payment: data.allow_partial_payment ?? false,
     };
 
     let row;
