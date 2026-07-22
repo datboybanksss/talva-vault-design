@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle, Trash2, FileEdit } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,6 +9,7 @@ import {
   revokeInvitation,
   updateInvitationEmail,
   logCopyLink,
+  deleteAgencyInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/admin/invitations/")({
 });
 
 const statusLabel: Record<string, string> = {
+  draft: "Draft",
   pending: "Invited",
   accepted: "Accepted",
   expired: "Expired",
@@ -28,6 +30,7 @@ const statusLabel: Record<string, string> = {
   revoked: "Revoked",
 };
 const statusTone: Record<string, string> = {
+  draft: "amber",
   pending: "blue",
   accepted: "green",
   expired: "red",
