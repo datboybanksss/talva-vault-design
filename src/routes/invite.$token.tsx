@@ -237,8 +237,8 @@ function ProgressBar({ step }: { step: number }) {
           style={{
             flex: 1,
             height: 6,
-            borderRadius: 3,
-            background: n <= step ? "var(--teal-2, #0f8f8a)" : "rgba(0,0,0,0.08)",
+            borderRadius: "var(--radius-sm)",
+            background: n <= step ? "var(--teal)" : "var(--line)",
             transition: "background 200ms ease",
           }}
         />
