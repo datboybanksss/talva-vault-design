@@ -154,6 +154,7 @@ export type Database = {
       }
       agencies: {
         Row: {
+          business_type: string | null
           contact_email: string | null
           contact_person: string | null
           country: string | null
@@ -170,6 +171,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_type?: string | null
           contact_email?: string | null
           contact_person?: string | null
           country?: string | null
@@ -186,6 +188,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_type?: string | null
           contact_email?: string | null
           contact_person?: string | null
           country?: string | null
@@ -597,6 +600,7 @@ export type Database = {
           accepted_at: string | null
           agency_id: string | null
           agency_name: string
+          business_type: string | null
           contact_person: string | null
           created_at: string
           email: string
@@ -616,6 +620,7 @@ export type Database = {
           accepted_at?: string | null
           agency_id?: string | null
           agency_name: string
+          business_type?: string | null
           contact_person?: string | null
           created_at?: string
           email: string
@@ -635,6 +640,7 @@ export type Database = {
           accepted_at?: string | null
           agency_id?: string | null
           agency_name?: string
+          business_type?: string | null
           contact_person?: string | null
           created_at?: string
           email?: string

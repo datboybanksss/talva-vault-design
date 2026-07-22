@@ -490,10 +490,12 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
         agency_name: z.string().min(1),
         contact_person: z.string().optional(),
         email: z.string().email(),
+        business_type: z.enum(["formal", "informal"]),
         supporting_docs: z.array(z.string()).optional().default([]),
         expiry_days: z.number().int().min(1).max(60).default(14),
       })
       .parse(d),
+
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -537,6 +539,7 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
         name: data.agency_name,
         contact_email: data.email,
         contact_person: data.contact_person ?? null,
+        business_type: data.business_type,
         status: "invited",
         created_by: userId,
       })
@@ -552,12 +555,14 @@ export const createAgencyInvitation = createServerFn({ method: "POST" })
         contact_person: data.contact_person ?? null,
         email: data.email,
         expires_at: expiresAt,
+        business_type: data.business_type,
         supporting_docs: data.supporting_docs ?? [],
         invited_by: userId,
       })
       .select()
       .single();
     if (error) throw new Error(error.message);
+
 
     await logAudit(
       supabase,
