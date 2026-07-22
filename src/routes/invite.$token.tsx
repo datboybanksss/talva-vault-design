@@ -399,14 +399,14 @@ function Step4({
         style={{
           marginTop: 12,
           padding: 14,
-          borderRadius: 10,
-          border: "1px solid rgba(0,0,0,0.1)",
+          borderRadius: "var(--radius)",
+          border: "1px solid var(--line)",
           maxHeight: 200,
           overflowY: "auto",
           fontSize: 13,
           lineHeight: 1.5,
-          color: "var(--muted-foreground, #555)",
-          background: "rgba(0,0,0,0.02)",
+          color: "var(--muted-fg)",
+          background: "var(--surface-soft)",
         }}
       >
         <p><strong>TalVault Manager Terms of Service (Summary)</strong></p>
