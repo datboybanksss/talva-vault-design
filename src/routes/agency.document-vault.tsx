@@ -10,6 +10,7 @@ import {
   listAgencyVaultDocuments,
   listAgencyTalentLinksLite,
   listAgencyTalentFolders,
+  listAllAgencyProvisionedFolders,
   registerAgencyVaultDocument,
   getAgencyVaultSignedUrl,
   deleteAgencyVaultDocument,
