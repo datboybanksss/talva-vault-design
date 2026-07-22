@@ -257,13 +257,29 @@ export function VaultPage() {
       )}
 
       <div className="tvp-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
-        {tabs.map((t) => (
-          <button key={t} className={`tvp-tab${tab === t ? " tvp-active" : ""}`} onClick={() => setTab(t)}>{t}</button>
-        ))}
+        {tabs.map((t) => {
+          const isRequests = t === "Requests";
+          return (
+            <button
+              key={t}
+              className={`tvp-tab${tab === t ? " tvp-active" : ""}`}
+              onClick={() => setTab(t)}
+            >
+              {isRequests && <Inbox className="h-3.5 w-3.5" style={{ color: "var(--tvp-amber)" }} />}
+              {t}
+              {isRequests && needsActionCount > 0 && (
+                <span className="tvp-tab-dot" title={`${needsActionCount} needs action`} />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {tab === "Requests" ? (
-        <VaultRequestsPanel />
+        <VaultRequestsPanel
+          autoOpenNew={requestsAutoOpen}
+          onAutoOpenConsumed={() => setRequestsAutoOpen(false)}
+        />
       ) : (
 
 
