@@ -274,7 +274,11 @@ function InvitationsPage() {
                       : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
                 const readOnly = i.status !== "pending";
                 return (
-                  <tr key={i.id}>
+                  <tr
+                    key={i.id}
+                    ref={(el) => { rowRefs.current[i.id] = el; }}
+                    className={highlightId === i.id ? "tvp-row-flash" : undefined}
+                  >
                     <td>
                       <strong>{i.agency_name}</strong>
                       {i.contact_person && (
