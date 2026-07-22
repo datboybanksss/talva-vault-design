@@ -23,7 +23,7 @@ const REQUIRED_DOCS: Record<BusinessType, string[]> = {
   informal: [
     "South African ID document",
     "Registered mobile number",
-    "Proof of South African residency",
+    "Proof of address",
   ],
 };
 
