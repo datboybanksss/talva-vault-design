@@ -147,6 +147,7 @@ export function VaultPage() {
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [talentFilter, setTalentFilter] = useState<string>("all");
   const [showUpload, setShowUpload] = useState(false);
+  const [showBrowseFolders, setShowBrowseFolders] = useState(false);
   const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
   const [versionsFor, setVersionsFor] = useState<VaultDoc | null>(null);
   const [newVersionFor, setNewVersionFor] = useState<VaultDoc | null>(null);
