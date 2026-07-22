@@ -110,6 +110,14 @@ function AgenciesPage() {
     setSuspendTarget({ id, name });
   };
 
+  const filtersActive = tab !== "all" || !!search;
+  const resetFilters = () => { setTab("all"); setSearch(""); };
+
+  const totalCount = counts.all ?? 0;
+  const acceptedCount = counts.accepted ?? 0;
+  const invitedCount = counts.invited ?? 0;
+  const suspendedCount = counts.suspended ?? 0;
+
   return (
     <>
       <div className="tvp-topbar">
@@ -127,17 +135,72 @@ function AgenciesPage() {
         </div>
       </div>
 
-      <div className="tvp-tabs">
-        {(["all", "accepted", "invited", "incomplete", "suspended", "expired", "declined"] as const).map((k) => (
+      {/* KPI row */}
+      <div className="tvp-grid tvp-kpi-grid">
+        <button
+          className="tvp-card tvp-kpi tvp-clickable"
+          onClick={() => setTab("all")}
+        >
+          <div className="tvp-kpi-icon tvp-bg-teal"><Building2 className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{totalCount}</div>
+            <div className="tvp-kpi-label">Total Agencies</div>
+            <div className="tvp-kpi-sub" style={{ color: totalCount > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+              {totalCount > 0 ? "Across all statuses" : "None yet"}
+            </div>
+          </div>
+        </button>
+        <button
+          className="tvp-card tvp-kpi tvp-clickable"
+          onClick={() => setTab("accepted")}
+        >
+          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{acceptedCount}</div>
+            <div className="tvp-kpi-label">Accepted</div>
+            <div className="tvp-kpi-sub" style={{ color: acceptedCount > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+              {acceptedCount > 0 ? "Active workspaces" : "No active accounts"}
+            </div>
+          </div>
+        </button>
+        <button
+          className="tvp-card tvp-kpi tvp-clickable"
+          onClick={() => setTab("invited")}
+        >
+          <div className="tvp-kpi-icon tvp-bg-amber"><Mail className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{invitedCount}</div>
+            <div className="tvp-kpi-label">Invited</div>
+            <div className="tvp-kpi-sub tvp-warn" style={{ color: invitedCount > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}>
+              {invitedCount > 0 ? "Awaiting acceptance" : "No outstanding invites"}
+            </div>
+          </div>
+        </button>
+        <button
+          className="tvp-card tvp-kpi tvp-clickable"
+          onClick={() => setTab("suspended")}
+        >
+          <div className="tvp-kpi-icon tvp-bg-red"><BanIcon className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{suspendedCount}</div>
+            <div className="tvp-kpi-label">Suspended</div>
+            <div className="tvp-kpi-sub" style={{ color: suspendedCount > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}>
+              {suspendedCount > 0 ? "Read-only / export only" : "None suspended"}
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Life chip row */}
+      <div className="tvp-life-chips">
+        {(["all", "accepted", "invited", "incomplete", "suspended", "expired"] as const).map((k) => (
           <button
             key={k}
-            className={`tvp-tab${tab === k ? " tvp-active" : ""}`}
+            className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} tvp-bg-${k === "all" ? "teal" : statusTone[k]}`}
             onClick={() => setTab(k)}
           >
-            {k === "all" ? "All" : statusLabel[k]}
-            <span className={`tvp-status tvp-${k === "all" ? "neutral" : statusTone[k]}`}>
-              {counts[k] ?? 0}
-            </span>
+            <div className="tvp-label">{k === "all" ? "All" : statusLabel[k]}</div>
+            <div className="tvp-num">{counts[k] ?? 0}</div>
           </button>
         ))}
       </div>
@@ -150,6 +213,9 @@ function AgenciesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {filtersActive && (
+            <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
+          )}
         </div>
         <div className="tvp-table-wrap">
           <table className="tvp-table">
