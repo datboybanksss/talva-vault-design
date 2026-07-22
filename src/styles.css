@@ -720,7 +720,7 @@
 }
 
 
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
   .tv-app { grid-template-columns: var(--tvp-sidebar-collapsed) 1fr !important; }
   .tv-app .tvp-brand-copy,
   .tv-app .tvp-nav-title,
