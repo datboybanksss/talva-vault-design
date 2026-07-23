@@ -12,32 +12,37 @@ export const Route = createFileRoute("/talent/vault")({
 
 type Mode = "private" | "agency" | "review";
 
-const privateFolders = [
+type FolderDef = {
+  Icon: React.ComponentType<{ className?: string }>;
+  tone: string;
+  name: string;
+  subs?: string[];
+  groups?: { label: string; subs: string[] }[];
+};
+
+const privateFolders: FolderDef[] = [
   { Icon: User, tone: "teal", name: "Personal", subs: ["ID", "Passport", "Visa", "Driver's License", "Birth Certificate"] },
   { Icon: Baby, tone: "blue", name: "Dependents", subs: ["Birth Certificate", "Vaccine Cards", "School Records", "Bursary Records"] },
   { Icon: HeartPulse, tone: "green", name: "Health", subs: ["Medical Aid Certificate", "Doctor's Referral", "Organ Donor Proof"] },
-  { Icon: Shield, tone: "purple", name: "Insurance", subs: ["Home Insurance", "Car Insurance", "Life Insurance", "Critical Illness & Disability", "Claim Documents"] },
+  {
+    Icon: Shield, tone: "purple", name: "Insurance",
+    groups: [
+      { label: "Property & Vehicle", subs: ["Home Insurance", "Car Insurance"] },
+      { label: "Life & Health", subs: ["Life Insurance", "Critical Illness & Disability", "Claim Documents"] },
+    ],
+  },
   {
     Icon: Landmark, tone: "amber", name: "Tax",
-    subs: [
-      "Provisional Tax (IRP6)",
-      "Income Tax Return (ITR12)",
-      "Tax Clearance Certificate",
-      "Sponsorship & Endorsement Income",
-      "Prize Money & Appearance Fees",
-      "Royalties & Image Rights",
-      "Agent / Manager Commission Invoices",
-      "Expense Receipts",
-      "Travel Logbook",
-      "Training & Equipment Expenses",
-      "Foreign Income & DTA Records",
-      "SARS Correspondence",
+    groups: [
+      { label: "Income & Earnings", subs: ["Sponsorship & Endorsement Income", "Prize Money & Appearance Fees", "Royalties & Image Rights"] },
+      { label: "Expenses & Deductions", subs: ["Expense Receipts", "Travel Logbook", "Training & Equipment Expenses", "Agent / Manager Commission Invoices"] },
+      { label: "Compliance & Filing", subs: ["Provisional Tax (IRP6)", "Income Tax Return (ITR12)", "Tax Clearance Certificate", "Foreign Income & DTA Records", "SARS Correspondence"] },
     ],
   },
   { Icon: PawPrint, tone: "red", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
 ];
 
-const agencyFolders = [
+const agencyFolders: FolderDef[] = [
   { Icon: Briefcase, tone: "blue", name: "Contracts", subs: ["Representation Agreements", "Brand Deals", "Renewals"] },
   { Icon: IdCard, tone: "teal", name: "ID Documents", subs: ["ID", "Passport", "Certified Copies"] },
   { Icon: Plane, tone: "amber", name: "Travel", subs: ["Passport", "Visa", "Travel Letters"] },
@@ -269,28 +274,43 @@ function VaultPage() {
   );
 }
 
-function FolderTree({
-  folders,
-}: {
-  folders: { Icon: React.ComponentType<{ className?: string }>; tone: string; name: string; subs: string[] }[];
-}) {
+function FolderTree({ folders }: { folders: FolderDef[] }) {
   return (
     <div className="tvp-folder-tree">
-      {folders.map((f) => (
-        <div key={f.name} className="tvp-folder-card">
-          <h3>
-            <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 34, height: 34 }}>
-              <f.Icon className="h-4 w-4" />
-            </span>
-            {f.name}
-            <span className="tvp-folder-count">{f.subs.length} SUBFOLDERS</span>
-          </h3>
-          <div className="tvp-folder-eyebrow">Recommended subfolders</div>
-          <div className="tvp-subfolder-list">
-            {f.subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
+      {folders.map((f) => {
+        const groups = f.groups ?? [{ label: "", subs: f.subs ?? [] }];
+        const total = groups.reduce((n, g) => n + g.subs.length, 0);
+        const isGrouped = !!f.groups;
+        return (
+          <div key={f.name} className="tvp-folder-card">
+            <h3>
+              <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 34, height: 34 }}>
+                <f.Icon className="h-4 w-4" />
+              </span>
+              {f.name}
+              <span className="tvp-folder-count">{total} SUBFOLDERS</span>
+            </h3>
+            <div className="tvp-folder-eyebrow">Recommended subfolders</div>
+            {isGrouped ? (
+              <div className="tvp-subfolder-groups">
+                {groups.map((g) => (
+                  <div key={g.label} className="tvp-subfolder-group">
+                    <div className="tvp-subfolder-group-label">{g.label}</div>
+                    <div className="tvp-subfolder-list">
+                      {g.subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="tvp-subfolder-list">
+                {groups[0].subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
+

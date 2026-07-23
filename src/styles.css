@@ -727,6 +727,9 @@
   & .tvp-folder-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--tvp-muted); font-weight: 900; }
   & .tvp-subfolder-list { display: flex; flex-wrap: wrap; gap: 6px; }
   & .tvp-subfolder-pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--tvp-line); border-radius: 8px; background: var(--tvp-surface-soft); padding: 5px 9px; font-size: 12px; font-weight: 700; color: var(--tvp-ink); line-height: 1.2; }
+  & .tvp-subfolder-groups { display: flex; flex-direction: column; gap: 10px; }
+  & .tvp-subfolder-group { display: flex; flex-direction: column; gap: 5px; }
+  & .tvp-subfolder-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--tvp-muted); font-weight: 800; }
   & .tvp-lock-note { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--tvp-teal-200); border-radius: 999px; background: var(--tvp-teal-50); padding: 6px 11px; font-size: 12px; font-weight: 900; color: var(--tvp-teal); }
   & .tvp-preview-box { height: 360px; border: 1.5px dashed var(--tvp-teal-200); background: var(--tvp-teal-50); border-radius: 14px; display: grid; place-items: center; color: var(--tvp-muted); margin-top: 14px; font-weight: 800; }
   & .tvp-income-rule { border: 1px solid #F6C99D; background: #FFF7ED; border-radius: 14px; padding: 14px 18px; display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
