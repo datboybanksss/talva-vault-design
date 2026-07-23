@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Lock, FileStack, Sparkles, Info, Clock, Share2, ArrowRight } from "lucide-react";
+import { Lock, FileStack, Sparkles, Clock, Share2, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/talent/")({
   head: () => ({ meta: [{ title: "Dashboard · TalVault Talent" }] }),
