@@ -719,11 +719,14 @@
   & .tvp-tc-box { border: 1px solid var(--tvp-line); border-radius: 14px; background: #FFFCF8; padding: 16px; max-height: 160px; overflow: auto; color: var(--tvp-text); line-height: 1.5; font-size: 13px; }
 
   /* Talent portal extensions */
-  & .tvp-folder-tree { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
-  & .tvp-folder-card { border: 1px solid var(--tvp-line); border-radius: 14px; background: white; padding: 16px; }
-  & .tvp-folder-card h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
-  & .tvp-subfolder-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  & .tvp-subfolder-pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--tvp-line); border-radius: 999px; background: var(--tvp-surface-soft); padding: 6px 10px; font-size: 12px; font-weight: 700; color: var(--tvp-text); }
+  & .tvp-folder-tree { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+  & .tvp-folder-card { border: 1px solid var(--tvp-line); border-radius: 14px; background: white; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: .15s ease; }
+  & .tvp-folder-card:hover { box-shadow: var(--tvp-shadow-soft); transform: translateY(-1px); }
+  & .tvp-folder-card h3 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 14px; font-weight: 900; letter-spacing: -.2px; color: var(--tvp-ink); }
+  & .tvp-folder-card h3 .tvp-folder-count { margin-left: auto; font-size: 11px; font-weight: 900; color: var(--tvp-muted); letter-spacing: .4px; }
+  & .tvp-folder-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--tvp-muted); font-weight: 900; }
+  & .tvp-subfolder-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  & .tvp-subfolder-pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--tvp-line); border-radius: 8px; background: var(--tvp-surface-soft); padding: 5px 9px; font-size: 12px; font-weight: 700; color: var(--tvp-ink); line-height: 1.2; }
   & .tvp-lock-note { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--tvp-teal-200); border-radius: 999px; background: var(--tvp-teal-50); padding: 6px 11px; font-size: 12px; font-weight: 900; color: var(--tvp-teal); }
   & .tvp-preview-box { height: 360px; border: 1.5px dashed var(--tvp-teal-200); background: var(--tvp-teal-50); border-radius: 14px; display: grid; place-items: center; color: var(--tvp-muted); margin-top: 14px; font-weight: 800; }
   & .tvp-income-rule { border: 1px solid #F6C99D; background: #FFF7ED; border-radius: 14px; padding: 14px 18px; display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
