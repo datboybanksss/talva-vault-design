@@ -534,4 +534,182 @@ function RosterSharedFolder() {
   );
 }
 
+function statusChipTone(s: string) {
+  if (s === "completed") return "green";
+  if (s === "pending" || s === "submitted") return "blue";
+  if (s === "resubmission_required") return "amber";
+  return "teal";
+}
+
+function ManagerRequests() {
+  const load = useServerFn(listTalentDocumentRequests);
+  const reserve = useServerFn(createTalentRequestUploadUrl);
+  const submit = useServerFn(submitTalentDocumentRequest);
+  const qc = useQueryClient();
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["talent", "doc-requests"],
+    queryFn: () => load(),
+  });
+
+  async function onPick(requestId: string, file: File) {
+    setUploadingId(requestId);
+    try {
+      const { signedUrl, path } = await reserve({
+        data: { request_id: requestId, filename: file.name, mime_type: file.type || undefined },
+      });
+      const put = await fetch(signedUrl, { method: "PUT", body: file, headers: file.type ? { "Content-Type": file.type } : undefined });
+      if (!put.ok) throw new Error("Upload failed");
+      await submit({
+        data: {
+          request_id: requestId,
+          storage_path: path,
+          filename: file.name,
+          size_bytes: file.size,
+          mime_type: file.type || undefined,
+        },
+      });
+      toast.success("Submitted to your Manager for review.");
+      qc.invalidateQueries({ queryKey: ["talent", "doc-requests"] });
+      qc.invalidateQueries({ queryKey: ["talent", "roster-shared"] });
+      qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Upload failed");
+    } finally {
+      setUploadingId(null);
+    }
+  }
+
+  if (isLoading) return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading requests…</p></div>;
+  if (isError) return <div className="tvp-card tvp-panel"><p className="tvp-warn">Failed to load: {(error as Error)?.message}</p></div>;
+  if (!data?.link) {
+    return (
+      <div className="tvp-card tvp-panel">
+        <h2 className="tvp-h2">No active roster link</h2>
+        <p className="tvp-muted" style={{ marginTop: 6 }}>
+          Once you're linked to a Talent Manager, requests they send you will appear here.
+        </p>
+      </div>
+    );
+  }
+
+  const open = (data.requests ?? []).filter((r: any) =>
+    r.status === "pending" || r.status === "resubmission_required" || r.status === "submitted",
+  );
+  const closed = (data.requests ?? []).filter((r: any) =>
+    r.status === "completed" || r.status === "cancelled",
+  );
+
+  return (
+    <>
+      <div className="tvp-callout">
+        <div className="tvp-callout-icon"><Inbox className="h-4 w-4" /></div>
+        <div>
+          <strong>Requests from your Manager.</strong>{" "}
+          <span className="tvp-muted">
+            Upload the requested document; it lands in your Roster Shared Folder and your Manager reviews it. Previous submissions are kept in history — nothing is deleted.
+          </span>
+        </div>
+      </div>
+
+      <div className="tvp-card tvp-panel">
+        <div className="tvp-panel-head">
+          <h2 className="tvp-h2">Open requests</h2>
+          <span className="tvp-muted" style={{ fontSize: 12 }}>{open.length} open</span>
+        </div>
+        {open.length === 0 ? (
+          <p className="tvp-muted" style={{ fontSize: 13 }}>Nothing waiting on you right now.</p>
+        ) : (
+          <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
+            {open.map((r: any) => (
+              <div key={r.id} className="tvp-doc-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 38, height: 38, flexShrink: 0 }}>
+                    {r.status === "resubmission_required" ? <AlertCircle className="h-4 w-4" /> : <ClockIcon className="h-4 w-4" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong>{r.title}</strong>
+                    <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                      Folder: {r.folder}
+                      {r.due_date && <> · Due {new Date(r.due_date).toLocaleDateString()}</>}
+                    </div>
+                    {r.instructions && (
+                      <div style={{ fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>{r.instructions}</div>
+                    )}
+                    {r.status === "resubmission_required" && (r.review_notes || r.reason_code) && (
+                      <div className="tvp-callout" style={{ marginTop: 8, background: "#FFF7ED", borderColor: "#F6C99D" }}>
+                        <div className="tvp-callout-icon" style={{ background: "var(--tvp-amber-bg)", color: "var(--tvp-amber)" }}>
+                          <AlertCircle className="h-4 w-4" />
+                        </div>
+                        <div style={{ fontSize: 12 }}>
+                          <strong>Manager requested a resubmission</strong>
+                          {r.reason_code && <> · reason: {r.reason_code.replace(/_/g, " ")}</>}
+                          {r.review_notes && <div className="tvp-muted" style={{ marginTop: 2 }}>{r.review_notes}</div>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <span className={`tvp-status tvp-${statusChipTone(r.status)}`}>{r.status.replace(/_/g, " ")}</span>
+                </div>
+                {r.status !== "submitted" && (
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                    <input
+                      ref={(el) => { fileRefs.current[r.id] = el; }}
+                      type="file"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) onPick(r.id, f);
+                        e.target.value = "";
+                      }}
+                    />
+                    <button
+                      className="tvp-primary"
+                      disabled={uploadingId === r.id}
+                      onClick={() => fileRefs.current[r.id]?.click()}
+                    >
+                      <Upload className="h-4 w-4" />
+                      {uploadingId === r.id ? "Uploading…" : r.status === "resubmission_required" ? "Resubmit" : "Upload response"}
+                    </button>
+                  </div>
+                )}
+                {r.status === "submitted" && (
+                  <div className="tvp-muted" style={{ fontSize: 12, textAlign: "right" }}>Awaiting Manager review.</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {closed.length > 0 && (
+        <div className="tvp-card tvp-panel" style={{ marginTop: 22 }}>
+          <h2 className="tvp-h2">Recent history</h2>
+          <div className="tvp-table-wrap" style={{ marginTop: 10 }}>
+            <table className="tvp-table">
+              <thead><tr><th>Request</th><th>Folder</th><th>Outcome</th><th>Reason</th><th>Reviewed</th></tr></thead>
+              <tbody>
+                {closed.slice(0, 20).map((r: any) => (
+                  <tr key={r.id}>
+                    <td><strong>{r.title}</strong></td>
+                    <td>{r.folder}</td>
+                    <td><span className={`tvp-status tvp-${r.status === "completed" ? "green" : "teal"}`}>
+                      {r.status === "completed" ? <><CheckCircle2 className="h-3 w-3" /> completed</> : "cancelled"}
+                    </span></td>
+                    <td>{r.reason_code ? r.reason_code.replace(/_/g, " ") : "—"}</td>
+                    <td>{r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString() : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
 
