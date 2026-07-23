@@ -34,7 +34,7 @@ const privateFolders = [
       "SARS Correspondence",
     ],
   },
-  { Icon: PawPrint, tone: "amber", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
+  { Icon: PawPrint, tone: "red", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
 ];
 
 const agencyFolders = [
