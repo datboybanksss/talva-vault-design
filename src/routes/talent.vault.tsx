@@ -279,11 +279,13 @@ function FolderTree({
       {folders.map((f) => (
         <div key={f.name} className="tvp-folder-card">
           <h3>
-            <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 36, height: 36 }}>
+            <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 34, height: 34 }}>
               <f.Icon className="h-4 w-4" />
             </span>
             {f.name}
+            <span className="tvp-folder-count">{f.subs.length} SUBFOLDERS</span>
           </h3>
+          <div className="tvp-folder-eyebrow">Recommended subfolders</div>
           <div className="tvp-subfolder-list">
             {f.subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
           </div>
