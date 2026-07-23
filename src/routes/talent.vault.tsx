@@ -66,63 +66,6 @@ function VaultPage() {
 
 
 
-
-
-
-
-      {mode === "review" && (
-        <div className="tvp-two-col">
-          <div className="tvp-card tvp-panel">
-            <h2 className="tvp-h2">Passport.pdf</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
-              AI detected a possible folder, subfolder, expiry date and reminder date. The Talent must validate these before filing.
-            </p>
-            <div className="tvp-preview-box">Secure document preview</div>
-          </div>
-          <div className="tvp-card tvp-panel">
-            <h2 className="tvp-h2">AI Suggestions</h2>
-
-            <div className="tvp-sub-card">
-              <h3 className="tvp-h3">Suggested Folder & Subfolder</h3>
-              <p style={{ fontSize: 13, marginTop: 8, lineHeight: 1.6 }}>
-                <strong>Private Vault:</strong> Personal → Passport<br />
-                <strong>Agency Shared, if shared:</strong> Travel → Passport
-              </p>
-              <div className="tvp-footer-actions">
-                <button className="tvp-secondary">Choose different folder</button>
-                <button className="tvp-primary">Confirm Folder</button>
-              </div>
-            </div>
-
-            <div className="tvp-sub-card">
-              <h3 className="tvp-h3">Suggested Expiry & Reminder</h3>
-              <p style={{ fontSize: 13, marginTop: 8, lineHeight: 1.6 }}>
-                Detected expiry date: <strong>14 May 2031</strong><br />
-                Suggested reminder: <strong>90 days before expiry</strong>
-              </p>
-              <div className="tvp-footer-actions">
-                <button className="tvp-secondary">No reminder</button>
-                <button className="tvp-primary">Confirm Expiry & Reminder</button>
-              </div>
-            </div>
-
-            <div className="tvp-callout" style={{ background: "#FFF7ED", borderColor: "#F6C99D" }}>
-              <div className="tvp-callout-icon" style={{ background: "var(--tvp-amber-bg)", color: "var(--tvp-amber)" }}>
-                <Info className="h-4 w-4" />
-              </div>
-              <div>
-                <strong>Human validation required.</strong>{" "}
-                <span className="tvp-muted">AI suggestions are never final until the Talent confirms or edits them.</span>
-              </div>
-            </div>
-
-            <div className="tvp-footer-actions">
-              <button className="tvp-secondary">Reject AI Suggestion</button>
-              <button className="tvp-primary">Save Confirmed Filing</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
