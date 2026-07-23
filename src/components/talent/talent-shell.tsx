@@ -177,7 +177,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
               </div>
             )}
           </div>
-          <div className="tvp-user-dot">CS</div>
+          <div className="tvp-user-dot">{initials}</div>
         </div>
         {children}
       </main>
