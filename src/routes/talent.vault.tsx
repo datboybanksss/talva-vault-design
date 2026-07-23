@@ -162,64 +162,8 @@ function VaultPage() {
         </>
       )}
 
-      {mode === "agency" && (
-        <>
-          <div className="tvp-callout">
-            <div className="tvp-callout-icon"><FileStack className="h-4 w-4" /></div>
-            <div>
-              <strong>Agency-controlled folder structure.</strong>{" "}
-              <span className="tvp-muted">
-                The Agency sets the folders and subfolders in the Agency–Talent Shared Folder. Talent can view and upload to the allowed folders, but cannot edit, rename, delete, reorder, or create Agency-defined folders/subfolders.
-              </span>
-            </div>
-          </div>
+      {mode === "agency" && <RosterSharedFolder />}
 
-          <div className="tvp-card tvp-panel">
-            <div className="tvp-panel-head">
-              <div>
-                <h2 className="tvp-h2">Agency–Talent Shared Folder Structure</h2>
-                <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Defined by Mbeki Sports Management. Read-only folder structure for Talent.</p>
-              </div>
-              <span className="tvp-lock-note"><Lock className="h-3 w-3" /> Folder structure locked by Agency</span>
-            </div>
-            <FolderTree folders={agencyFolders} />
-          </div>
-
-          <div className="tvp-card" style={{ marginTop: 22 }}>
-            <div className="tvp-toolbar">
-              <input className="tvp-search" placeholder="Search Agency Shared Folder..." />
-              <div className="tvp-row-actions">
-                <select className="tvp-select"><option>Folder: All</option><option>Contracts</option><option>ID Documents</option><option>Travel</option><option>Sponsorships</option></select>
-                <select className="tvp-select"><option>Shared By: All</option><option>Talent</option><option>Agency</option></select>
-              </div>
-            </div>
-            <div className="tvp-table-wrap">
-              <table className="tvp-table">
-                <thead><tr><th>Document</th><th>Folder</th><th>Subfolder</th><th>Shared By</th><th>AI Status</th><th>Reminder</th><th></th></tr></thead>
-                <tbody>
-                  {agencyDocs.map((d) => (
-                    <tr key={d.name}>
-                      <td><strong>{d.name}</strong></td>
-                      <td>{d.folder}</td>
-                      <td>{d.sub}</td>
-                      <td>{d.by}</td>
-                      <td><span className={`tvp-status tvp-${d.aiTone}`}>{d.ai}</span></td>
-                      <td>{d.reminder}</td>
-                      <td>
-                        {d.ai === "Needs confirmation" ? (
-                          <button className="tvp-mini-btn" onClick={() => setMode("review")}><Sparkles className="h-4 w-4" /></button>
-                        ) : (
-                          <button className="tvp-mini-btn"><MoreVertical className="h-4 w-4" /></button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
 
       {mode === "review" && (
         <div className="tvp-two-col">
