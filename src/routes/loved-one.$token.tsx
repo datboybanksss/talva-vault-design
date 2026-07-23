@@ -140,7 +140,7 @@ function FolderBlock({ name, docs, onDownload }: { name: string; docs: any[]; on
 
 function Invalid({ title, body }: { title: string; body: string }) {
   return (
-    <div style={{ background: "white", border: "1px solid #FDE68A", background: "#FFFBEB", padding: 20, borderRadius: 12, textAlign: "center" }}>
+    <div style={{ border: "1px solid #FDE68A", background: "#FFFBEB", padding: 20, borderRadius: 12, textAlign: "center" }}>
       <AlertTriangle className="h-8 w-8" style={{ color: "#E89348", margin: "0 auto 8px" }} />
       <h2 style={{ fontSize: 18, fontWeight: 600 }}>{title}</h2>
       <p style={{ color: "#65707A", fontSize: 14, marginTop: 6 }}>{body}</p>
