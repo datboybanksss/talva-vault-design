@@ -161,6 +161,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          main_contact_email: string | null
+          main_contact_first_name: string | null
+          main_contact_last_name: string | null
+          main_contact_phone: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -178,6 +182,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          main_contact_email?: string | null
+          main_contact_first_name?: string | null
+          main_contact_last_name?: string | null
+          main_contact_phone?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -195,6 +203,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          main_contact_email?: string | null
+          main_contact_first_name?: string | null
+          main_contact_last_name?: string | null
+          main_contact_phone?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
