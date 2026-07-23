@@ -26,43 +26,6 @@ export const Route = createFileRoute("/talent/vault")({
 
 type Mode = "private" | "agency" | "review";
 
-type FolderDef = {
-  Icon: React.ComponentType<{ className?: string }>;
-  tone: string;
-  name: string;
-  subs?: string[];
-  groups?: { label: string; subs: string[] }[];
-};
-
-const privateFolders: FolderDef[] = [
-  { Icon: User, tone: "teal", name: "Personal", subs: ["ID", "Passport", "Visa", "Driver's License", "Birth Certificate"] },
-  { Icon: Baby, tone: "blue", name: "Dependents", subs: ["Birth Certificate", "Vaccine Cards", "School Records", "Bursary Records"] },
-  { Icon: HeartPulse, tone: "green", name: "Health", subs: ["Medical Aid Certificate", "Doctor's Referral", "Organ Donor Proof"] },
-  {
-    Icon: Shield, tone: "purple", name: "Insurance",
-    groups: [
-      { label: "Property & Vehicle", subs: ["Home Insurance", "Car Insurance"] },
-      { label: "Life & Health", subs: ["Life Insurance", "Critical Illness & Disability", "Claim Documents"] },
-    ],
-  },
-  {
-    Icon: Landmark, tone: "amber", name: "Tax",
-    groups: [
-      { label: "Income & Earnings", subs: ["Sponsorship & Endorsement Income", "Prize Money & Appearance Fees", "Royalties & Image Rights"] },
-      { label: "Expenses & Deductions", subs: ["Expense Receipts", "Travel Logbook", "Training & Equipment Expenses", "Agent / Manager Commission Invoices"] },
-      { label: "Compliance & Filing", subs: ["Provisional Tax (IRP6)", "Income Tax Return (ITR12)", "Tax Clearance Certificate", "Foreign Income & DTA Records", "SARS Correspondence"] },
-    ],
-  },
-  { Icon: PawPrint, tone: "red", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
-];
-
-const privateDocs = [
-  { name: "Passport.pdf", uploaded: "Uploaded 2h ago", folder: "Personal", sub: "Passport", reminder: "AI suggested", status: "Review AI", statusTone: "purple" },
-  { name: "Medical Aid Certificate.pdf", folder: "Health", sub: "Medical Aid Certificate", reminder: "No reminder", status: "Filed", statusTone: "green" },
-  { name: "Life Insurance Policy.pdf", folder: "Insurance", sub: "Life Insurance", reminder: "Annual review", status: "Filed", statusTone: "green" },
-  { name: "Pet Vaccine Record.pdf", folder: "Pets", sub: "Vaccine Record", reminder: "12 months", status: "Filed", statusTone: "green" },
-];
-
 function VaultPage() {
   const [mode, setMode] = useState<Mode>("private");
 
@@ -72,12 +35,8 @@ function VaultPage() {
         <div>
           <h1 className="tvp-h1">Vault</h1>
           <div className="tvp-subtitle">
-            One vault area with clear separation between Private Vault, Agency Shared Folder and AI Review.
+            One vault area with clear separation between Private Vault, Roster Shared Folder and AI Review.
           </div>
-        </div>
-        <div className="tvp-actions">
-          <button className="tvp-secondary"><Plus className="h-4 w-4" /> Create Folder</button>
-          <button className="tvp-primary"><Upload className="h-4 w-4" /> Upload Document</button>
         </div>
       </div>
 
@@ -86,80 +45,18 @@ function VaultPage() {
           <Lock className="h-4 w-4" /> Private Vault
         </button>
         <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => setMode("agency")}>
-          <FileStack className="h-4 w-4" /> Agency Shared Folder
+          <FileStack className="h-4 w-4" /> Roster Shared Folder
         </button>
         <button className={`tvp-tab${mode === "review" ? " tvp-active" : ""}`} onClick={() => setMode("review")}>
           <Sparkles className="h-4 w-4" /> AI Review
         </button>
       </div>
 
-      {mode === "private" && (
-        <>
-          <div className="tvp-callout" style={{ background: "var(--tvp-teal-50)", borderColor: "var(--tvp-teal-200)" }}>
-            <div className="tvp-callout-icon" style={{ background: "var(--tvp-teal-100)", color: "var(--tvp-teal)" }}>
-              <Lock className="h-4 w-4" />
-            </div>
-            <div>
-              <strong>Private by default.</strong>{" "}
-              <span className="tvp-muted">
-                These preset folders belong to the Talent. The Talent can add private folders/subfolders later, and Agency users cannot see anything here unless the Talent deliberately shares or copies it.
-              </span>
-            </div>
-          </div>
-
-          <div className="tvp-card tvp-panel">
-            <div className="tvp-panel-head">
-              <div>
-                <h2 className="tvp-h2">Private Vault Folder Structure</h2>
-                <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Preset folders and subfolders for personal document organisation.</p>
-              </div>
-              <button className="tvp-secondary"><Plus className="h-4 w-4" /> Add Private Folder</button>
-            </div>
-            <FolderTree folders={privateFolders} />
-          </div>
-
-          <div className="tvp-card" style={{ marginTop: 22 }}>
-            <div className="tvp-toolbar">
-              <input className="tvp-search" placeholder="Search private documents..." />
-              <div className="tvp-row-actions">
-                <select className="tvp-select"><option>Folder: All</option><option>Personal</option><option>Dependents</option><option>Health</option><option>Insurance</option><option>Tax</option><option>Pets</option></select>
-                <select className="tvp-select"><option>Status: All</option><option>Filed</option><option>AI Review</option><option>Expiring Soon</option></select>
-              </div>
-            </div>
-            <div className="tvp-table-wrap">
-              <table className="tvp-table">
-                <thead><tr><th>Document</th><th>Folder</th><th>Subfolder</th><th>Visibility</th><th>Reminder</th><th>Status</th><th></th></tr></thead>
-                <tbody>
-                  {privateDocs.map((d) => (
-                    <tr key={d.name}>
-                      <td>
-                        <strong>{d.name}</strong>
-                        {d.uploaded && <div className="tvp-muted" style={{ fontSize: 11, marginTop: 2 }}>{d.uploaded}</div>}
-                      </td>
-                      <td>{d.folder}</td>
-                      <td>{d.sub}</td>
-                      <td><span className="tvp-status tvp-teal">Private</span></td>
-                      <td>{d.reminder}</td>
-                      <td><span className={`tvp-status tvp-${d.statusTone}`}>{d.status}</span></td>
-                      <td>
-                        <div className="tvp-row-actions">
-                          {d.status === "Review AI" && (
-                            <button className="tvp-mini-btn" onClick={() => setMode("review")}><Sparkles className="h-4 w-4" /></button>
-                          )}
-                          <button className="tvp-mini-btn"><Share2 className="h-4 w-4" /></button>
-                          <button className="tvp-mini-btn"><ArrowLeftRight className="h-4 w-4" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
+      {mode === "private" && <PrivateVault />}
 
       {mode === "agency" && <RosterSharedFolder />}
+
+
 
 
       {mode === "review" && (
