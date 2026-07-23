@@ -2054,3 +2054,305 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
     );
     return updated;
   });
+
+// =============================================================================
+// Billing settings, branding, itemized lines, preview and send.
+// =============================================================================
+
+export const getAgencyBillingSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agencies")
+      .select(
+        "id, name, contact_email, contact_person, phone, country, business_type, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, default_quote_acceptance_days, default_quote_reminder_days, default_invoice_payment_days, invoice_overdue_grace_days, is_vat_registered, vat_number, default_vat_rate_bp, billing_address, logo_path, accent_color",
+      )
+      .eq("id", agencyId)
+      .single();
+    if (error) throw new Error(error.message);
+    let logo_url: string | null = null;
+    if (data?.logo_path) {
+      const { data: signed } = await supabase.storage
+        .from("agency-branding")
+        .createSignedUrl(data.logo_path, 3600);
+      logo_url = signed?.signedUrl ?? null;
+    }
+    return { ...data, logo_url };
+  });
+
+export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        default_quote_acceptance_days: z.number().int().min(1).max(365),
+        default_quote_reminder_days: z.number().int().min(1).max(365),
+        default_invoice_payment_days: z.number().int().min(1).max(365),
+        invoice_overdue_grace_days: z.number().int().min(0).max(365),
+        is_vat_registered: z.boolean(),
+        vat_number: z.string().max(64).nullable(),
+        default_vat_rate_bp: z.number().int().min(0).max(10000),
+        billing_address: z.string().max(500).nullable(),
+        accent_color: z
+          .string()
+          .regex(/^#[0-9a-fA-F]{6}$/)
+          .nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: updated, error } = await supabase
+      .from("agencies")
+      .update(data)
+      .eq("id", agencyId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "update_billing_settings", "agency", agencyId, null,
+      { is_vat_registered: data.is_vat_registered, default_vat_rate_bp: data.default_vat_rate_bp },
+    );
+    return updated;
+  });
+
+export const updateAgencyLogoPath = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ storage_path: z.string().nullable() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: cur } = await supabase
+      .from("agencies")
+      .select("logo_path")
+      .eq("id", agencyId)
+      .single();
+    // Remove old file when replacing or clearing.
+    if (cur?.logo_path && cur.logo_path !== data.storage_path) {
+      await supabase.storage.from("agency-branding").remove([cur.logo_path]);
+    }
+    const { error } = await supabase
+      .from("agencies")
+      .update({ logo_path: data.storage_path })
+      .eq("id", agencyId);
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      data.storage_path ? "upload_agency_logo" : "remove_agency_logo",
+      "agency", agencyId,
+    );
+    return { ok: true };
+  });
+
+export const getBillingDocFull = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: doc, error } = await supabase
+      .from("agency_billing_docs")
+      .select("*")
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .single();
+    if (error) throw new Error(error.message);
+    const { data: lines } = await supabase
+      .from("agency_billing_doc_lines")
+      .select("*")
+      .eq("doc_id", data.id)
+      .order("sort_order", { ascending: true });
+    const { data: agency } = await supabase
+      .from("agencies")
+      .select(
+        "name, contact_email, phone, country, business_type, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, billing_address, is_vat_registered, vat_number, logo_path, accent_color, default_invoice_payment_days, default_quote_acceptance_days",
+      )
+      .eq("id", agencyId)
+      .single();
+    let logo_url: string | null = null;
+    if (agency?.logo_path) {
+      const { data: signed } = await supabase.storage
+        .from("agency-branding")
+        .createSignedUrl(agency.logo_path, 3600);
+      logo_url = signed?.signedUrl ?? null;
+    }
+    return { doc, lines: lines ?? [], agency: { ...agency, logo_url } };
+  });
+
+const billingLineInput = z.object({
+  id: z.string().uuid().optional(),
+  description: z.string().min(1).max(500),
+  quantity: z.number().min(0),
+  unit_price_cents: z.number().int(),
+  vat_rate_bp: z.number().int().min(0).max(10000),
+  sort_order: z.number().int().min(0),
+});
+
+export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        kind: z.enum(["quote", "invoice"]),
+        number: z.string().max(64).optional(),
+        client_name: z.string().max(200).nullable(),
+        talent_name: z.string().max(200).nullable(),
+        description: z.string().max(200).nullable(),
+        issued_at: z.string().min(10),
+        due_date: z.string().min(10).nullable(),
+        currency: z.string().min(3).max(3).default("ZAR"),
+        status: z
+          .enum(["draft", "sent", "accepted", "declined", "partial", "paid", "overdue", "cancelled"])
+          .default("draft"),
+        notes: z.string().max(2000).nullable(),
+        shared_with_talent: z.boolean(),
+        allow_partial_payment: z.boolean(),
+        recipient_address: z.string().max(500).nullable(),
+        recipient_vat_number: z.string().max(64).nullable(),
+        recipient_email: z.string().max(200).nullable(),
+        acceptance_window_days: z.number().int().min(1).max(365).nullable(),
+        payment_terms_days: z.number().int().min(1).max(365).nullable(),
+        lines: z.array(billingLineInput).min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    let subtotal = 0;
+    let vat = 0;
+    for (const l of data.lines) {
+      const line = Math.round(l.quantity * l.unit_price_cents);
+      subtotal += line;
+      vat += Math.round((line * l.vat_rate_bp) / 10000);
+    }
+    const total = subtotal + vat;
+    // Primary VAT rate = most common line rate (for legacy vat_rate_bp column).
+    const rateCount = new Map<number, number>();
+    for (const l of data.lines) {
+      rateCount.set(l.vat_rate_bp, (rateCount.get(l.vat_rate_bp) ?? 0) + 1);
+    }
+    const primaryRate =
+      [...rateCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
+
+    const number =
+      data.number?.trim() ||
+      `DRAFT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+    const payload: any = {
+      agency_id: agencyId,
+      kind: data.kind,
+      number,
+      client_name: data.client_name,
+      talent_name: data.talent_name,
+      description: data.description,
+      issued_at: data.issued_at,
+      due_date: data.due_date,
+      currency: data.currency,
+      status: data.status,
+      notes: data.notes,
+      shared_with_talent: data.shared_with_talent,
+      allow_partial_payment: data.allow_partial_payment,
+      recipient_address: data.recipient_address,
+      recipient_vat_number: data.recipient_vat_number,
+      recipient_email: data.recipient_email,
+      acceptance_window_days: data.acceptance_window_days,
+      payment_terms_days: data.payment_terms_days,
+      subtotal_cents: subtotal,
+      vat_cents: vat,
+      vat_rate_bp: primaryRate,
+      total_cents: total,
+    };
+
+    let docId: string;
+    if (data.id) {
+      const { data: r, error } = await supabase
+        .from("agency_billing_docs")
+        .update(payload)
+        .eq("id", data.id)
+        .eq("agency_id", agencyId)
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      docId = r.id;
+    } else {
+      const { data: r, error } = await supabase
+        .from("agency_billing_docs")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      docId = r.id;
+    }
+
+    await supabase.from("agency_billing_doc_lines").delete().eq("doc_id", docId);
+    const insertLines = data.lines.map((l, i) => ({
+      doc_id: docId,
+      description: l.description,
+      quantity: l.quantity,
+      unit_price_cents: l.unit_price_cents,
+      vat_rate_bp: l.vat_rate_bp,
+      sort_order: l.sort_order ?? i,
+    }));
+    const { error: lErr } = await supabase
+      .from("agency_billing_doc_lines")
+      .insert(insertLines);
+    if (lErr) throw new Error(lErr.message);
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      data.id ? "update_billing_doc" : "create_billing_doc",
+      "agency_billing_doc", docId, `${data.kind.toUpperCase()} ${number}`,
+      { status: data.status, total_cents: total },
+    );
+
+    return { id: docId };
+  });
+
+export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: doc, error: dErr } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, status")
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .single();
+    if (dErr) throw new Error(dErr.message);
+    if (!doc) throw new Error("Not found");
+
+    let number: string = doc.number;
+    if (!number || number.startsWith("DRAFT-")) {
+      const { data: minted, error: mErr } = await supabase.rpc(
+        "mint_billing_doc_number",
+        { _agency_id: agencyId, _kind: doc.kind },
+      );
+      if (mErr) throw new Error(mErr.message);
+      number = minted as string;
+    }
+    const { data: updated, error } = await supabase
+      .from("agency_billing_docs")
+      .update({ number, status: "sent", sent_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "send_billing_doc", "agency_billing_doc", data.id,
+      `${doc.kind.toUpperCase()} ${number}`,
+    );
+    return updated;
+  });

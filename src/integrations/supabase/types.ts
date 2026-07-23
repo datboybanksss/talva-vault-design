@@ -154,13 +154,22 @@ export type Database = {
       }
       agencies: {
         Row: {
+          accent_color: string
+          billing_address: string | null
           business_type: string | null
           contact_email: string | null
           contact_person: string | null
           country: string | null
           created_at: string
           created_by: string | null
+          default_invoice_payment_days: number
+          default_quote_acceptance_days: number
+          default_quote_reminder_days: number
+          default_vat_rate_bp: number
           id: string
+          invoice_overdue_grace_days: number
+          is_vat_registered: boolean
+          logo_path: string | null
           main_contact_email: string | null
           main_contact_first_name: string | null
           main_contact_last_name: string | null
@@ -173,15 +182,25 @@ export type Database = {
           suspended_by: string | null
           suspension_reason: string | null
           updated_at: string
+          vat_number: string | null
         }
         Insert: {
+          accent_color?: string
+          billing_address?: string | null
           business_type?: string | null
           contact_email?: string | null
           contact_person?: string | null
           country?: string | null
           created_at?: string
           created_by?: string | null
+          default_invoice_payment_days?: number
+          default_quote_acceptance_days?: number
+          default_quote_reminder_days?: number
+          default_vat_rate_bp?: number
           id?: string
+          invoice_overdue_grace_days?: number
+          is_vat_registered?: boolean
+          logo_path?: string | null
           main_contact_email?: string | null
           main_contact_first_name?: string | null
           main_contact_last_name?: string | null
@@ -194,15 +213,25 @@ export type Database = {
           suspended_by?: string | null
           suspension_reason?: string | null
           updated_at?: string
+          vat_number?: string | null
         }
         Update: {
+          accent_color?: string
+          billing_address?: string | null
           business_type?: string | null
           contact_email?: string | null
           contact_person?: string | null
           country?: string | null
           created_at?: string
           created_by?: string | null
+          default_invoice_payment_days?: number
+          default_quote_acceptance_days?: number
+          default_quote_reminder_days?: number
+          default_vat_rate_bp?: number
           id?: string
+          invoice_overdue_grace_days?: number
+          is_vat_registered?: boolean
+          logo_path?: string | null
           main_contact_email?: string | null
           main_contact_first_name?: string | null
           main_contact_last_name?: string | null
@@ -215,6 +244,7 @@ export type Database = {
           suspended_by?: string | null
           suspension_reason?: string | null
           updated_at?: string
+          vat_number?: string | null
         }
         Relationships: []
       }
@@ -271,8 +301,86 @@ export type Database = {
           },
         ]
       }
+      agency_billing_counters: {
+        Row: {
+          agency_id: string
+          kind: string
+          next_value: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          agency_id: string
+          kind: string
+          next_value?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          agency_id?: string
+          kind?: string
+          next_value?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_billing_counters_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_billing_doc_lines: {
+        Row: {
+          created_at: string
+          description: string
+          doc_id: string
+          id: string
+          quantity: number
+          sort_order: number
+          unit_price_cents: number
+          updated_at: string
+          vat_rate_bp: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          doc_id: string
+          id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price_cents?: number
+          updated_at?: string
+          vat_rate_bp?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          doc_id?: string
+          id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price_cents?: number
+          updated_at?: string
+          vat_rate_bp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_billing_doc_lines_doc_id_fkey"
+            columns: ["doc_id"]
+            isOneToOne: false
+            referencedRelation: "agency_billing_docs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_billing_docs: {
         Row: {
+          acceptance_window_days: number | null
+          accepted_at: string | null
           agency_id: string
           allow_partial_payment: boolean
           client_name: string | null
@@ -283,17 +391,29 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          is_vat_invoice: boolean
           issued_at: string
           kind: Database["public"]["Enums"]["doc_kind"]
           notes: string | null
           number: string
+          paid_at: string | null
+          payment_terms_days: number | null
+          recipient_address: string | null
+          recipient_email: string | null
+          recipient_vat_number: string | null
+          sent_at: string | null
           shared_with_talent: boolean
           status: Database["public"]["Enums"]["doc_status"]
+          subtotal_cents: number
           talent_name: string | null
           total_cents: number
           updated_at: string
+          vat_cents: number
+          vat_rate_bp: number
         }
         Insert: {
+          acceptance_window_days?: number | null
+          accepted_at?: string | null
           agency_id: string
           allow_partial_payment?: boolean
           client_name?: string | null
@@ -304,17 +424,29 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          is_vat_invoice?: boolean
           issued_at?: string
           kind: Database["public"]["Enums"]["doc_kind"]
           notes?: string | null
           number: string
+          paid_at?: string | null
+          payment_terms_days?: number | null
+          recipient_address?: string | null
+          recipient_email?: string | null
+          recipient_vat_number?: string | null
+          sent_at?: string | null
           shared_with_talent?: boolean
           status?: Database["public"]["Enums"]["doc_status"]
+          subtotal_cents?: number
           talent_name?: string | null
           total_cents?: number
           updated_at?: string
+          vat_cents?: number
+          vat_rate_bp?: number
         }
         Update: {
+          acceptance_window_days?: number | null
+          accepted_at?: string | null
           agency_id?: string
           allow_partial_payment?: boolean
           client_name?: string | null
@@ -325,15 +457,25 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          is_vat_invoice?: boolean
           issued_at?: string
           kind?: Database["public"]["Enums"]["doc_kind"]
           notes?: string | null
           number?: string
+          paid_at?: string | null
+          payment_terms_days?: number | null
+          recipient_address?: string | null
+          recipient_email?: string | null
+          recipient_vat_number?: string | null
+          sent_at?: string | null
           shared_with_talent?: boolean
           status?: Database["public"]["Enums"]["doc_status"]
+          subtotal_cents?: number
           talent_name?: string | null
           total_cents?: number
           updated_at?: string
+          vat_cents?: number
+          vat_rate_bp?: number
         }
         Relationships: [
           {
@@ -1356,6 +1498,10 @@ export type Database = {
         Returns: boolean
       }
       is_main_admin: { Args: { _user_id: string }; Returns: boolean }
+      mint_billing_doc_number: {
+        Args: { _agency_id: string; _kind: string }
+        Returns: string
+      }
     }
     Enums: {
       admin_permission_level: "view_only" | "edit"
