@@ -63,15 +63,6 @@ function TalentDashboard() {
               <span className="tvp-status tvp-blue">Shared</span>
             </Link>
           </div>
-          <div className="tvp-callout" style={{ marginTop: 16 }}>
-            <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
-            <div>
-              <strong>UX note:</strong>{" "}
-              <span className="tvp-muted">
-                Vault-related actions are grouped under one Vault tab, while the privacy boundary is kept clear with internal tabs and labels.
-              </span>
-            </div>
-          </div>
           <div className="tvp-callout" style={{ background: "#FBF5FF", borderColor: "#E0CFFB" }}>
             <div className="tvp-callout-icon" style={{ background: "var(--tvp-purple-bg)", color: "var(--tvp-purple)" }}>
               <Sparkles className="h-4 w-4" />
