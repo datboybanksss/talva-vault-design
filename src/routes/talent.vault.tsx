@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Plus, Upload, Lock, FileStack, Sparkles, User, Baby, HeartPulse, Shield, PawPrint,
+  Plus, Upload, Lock, FileStack, Sparkles, User, Baby, HeartPulse, Shield, PawPrint, Landmark,
   Briefcase, IdCard, Plane, Star, MoreVertical, Share2, ArrowLeftRight, Info,
 } from "lucide-react";
 
@@ -17,7 +17,24 @@ const privateFolders = [
   { Icon: Baby, tone: "blue", name: "Dependents", subs: ["Birth Certificate", "Vaccine Cards", "School Records", "Bursary Records"] },
   { Icon: HeartPulse, tone: "green", name: "Health", subs: ["Medical Aid Certificate", "Doctor's Referral", "Organ Donor Proof"] },
   { Icon: Shield, tone: "purple", name: "Insurance", subs: ["Home Insurance", "Car Insurance", "Life Insurance", "Critical Illness & Disability", "Claim Documents"] },
-  { Icon: PawPrint, tone: "amber", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
+  {
+    Icon: Landmark, tone: "amber", name: "Tax",
+    subs: [
+      "Provisional Tax (IRP6)",
+      "Income Tax Return (ITR12)",
+      "Tax Clearance Certificate",
+      "Sponsorship & Endorsement Income",
+      "Prize Money & Appearance Fees",
+      "Royalties & Image Rights",
+      "Agent / Manager Commission Invoices",
+      "Expense Receipts",
+      "Travel Logbook",
+      "Training & Equipment Expenses",
+      "Foreign Income & DTA Records",
+      "SARS Correspondence",
+    ],
+  },
+  { Icon: PawPrint, tone: "red", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
 ];
 
 const agencyFolders = [
@@ -99,7 +116,7 @@ function VaultPage() {
             <div className="tvp-toolbar">
               <input className="tvp-search" placeholder="Search private documents..." />
               <div className="tvp-row-actions">
-                <select className="tvp-select"><option>Folder: All</option><option>Personal</option><option>Dependents</option><option>Health</option><option>Insurance</option><option>Pets</option></select>
+                <select className="tvp-select"><option>Folder: All</option><option>Personal</option><option>Dependents</option><option>Health</option><option>Insurance</option><option>Tax</option><option>Pets</option></select>
                 <select className="tvp-select"><option>Status: All</option><option>Filed</option><option>AI Review</option><option>Expiring Soon</option></select>
               </div>
             </div>
@@ -262,11 +279,13 @@ function FolderTree({
       {folders.map((f) => (
         <div key={f.name} className="tvp-folder-card">
           <h3>
-            <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 36, height: 36 }}>
+            <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 34, height: 34 }}>
               <f.Icon className="h-4 w-4" />
             </span>
             {f.name}
+            <span className="tvp-folder-count">{f.subs.length} SUBFOLDERS</span>
           </h3>
+          <div className="tvp-folder-eyebrow">Recommended subfolders</div>
           <div className="tvp-subfolder-list">
             {f.subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
           </div>
