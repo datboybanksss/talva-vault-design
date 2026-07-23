@@ -1,5 +1,7 @@
 import { type ReactNode, useState, useEffect, useRef } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate, useRouter } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -45,6 +47,33 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const [bellOpen, setBellOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  // Loader data from /talent route: { profile, link, agency }
+  const rootMatch = useRouterState({
+    select: (s) => s.matches.find((m) => m.routeId === "/talent"),
+  });
+  const ctx = (rootMatch?.loaderData ?? null) as
+    | { profile: { full_name: string; email: string | null } | null; agency: { name: string } | null }
+    | null;
+  const displayName = ctx?.profile?.full_name ?? "Talent";
+  const initials = displayName
+    .split(/\s+/)
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "T";
+  const agencyName = ctx?.agency?.name ?? "Talent Vault";
+
+  async function handleSignOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    router.invalidate();
+    navigate({ to: "/auth", replace: true });
+  }
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -100,12 +129,12 @@ export function TalentShell({ children }: { children: ReactNode }) {
         <nav className="tvp-nav">{renderNav(settings)}</nav>
 
         <div className="tvp-sidebar-footer">
-          <div className="tvp-avatar">CS</div>
+          <div className="tvp-avatar">{initials}</div>
           <div className="tvp-profile-copy">
-            <div className="tvp-profile-name">Caster Semenya</div>
-            <div className="tvp-profile-role">Talent Vault</div>
+            <div className="tvp-profile-name">{displayName}</div>
+            <div className="tvp-profile-role">{agencyName}</div>
           </div>
-          <button className="tvp-logout" aria-label="Log out">
+          <button className="tvp-logout" aria-label="Log out" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />
           </button>
         </div>
