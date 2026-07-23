@@ -1969,3 +1969,88 @@ export const logOwnAgencyMfaDisabled = createServerFn({ method: "POST" })
     );
     return { ok: true };
   });
+
+// -----------------------------------------------------------------------------
+// Agency profile (Settings > Profile tab)
+// -----------------------------------------------------------------------------
+export const getMyAgencyProfile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agencies")
+      .select(
+        "id, name, business_type, country, contact_email, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone",
+      )
+      .eq("id", agencyId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  });
+
+export const updateMyAgencyProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      name: z.string().trim().min(1).max(200),
+      business_type: z.string().trim().max(80).optional().nullable(),
+      country: z.string().trim().max(120).optional().nullable(),
+      contact_email: z.string().trim().email().max(200),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: updated, error } = await supabase
+      .from("agencies")
+      .update({
+        name: data.name,
+        business_type: data.business_type || null,
+        country: data.country || null,
+        contact_email: data.contact_email,
+      })
+      .eq("id", agencyId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "update_agency_profile", "agency", agencyId, data.name, {},
+    );
+    return updated;
+  });
+
+export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      first_name: z.string().trim().max(80),
+      last_name: z.string().trim().max(80),
+      email: z.string().trim().email().max(200),
+      phone: z.string().trim().max(40),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: updated, error } = await supabase
+      .from("agencies")
+      .update({
+        main_contact_first_name: data.first_name || null,
+        main_contact_last_name: data.last_name || null,
+        main_contact_email: data.email || null,
+        main_contact_phone: data.phone || null,
+      })
+      .eq("id", agencyId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "update_agency_main_contact", "agency", agencyId,
+      [data.first_name, data.last_name].filter(Boolean).join(" ") || data.email,
+      { email: data.email, phone: data.phone },
+    );
+    return updated;
+  });
