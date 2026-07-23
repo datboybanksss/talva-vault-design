@@ -2114,7 +2114,7 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     await logAgencyAudit(
       supabase, agencyId, userId, claims?.email,
-      "update_billing_settings", "agency", agencyId, null,
+      "update_billing_settings", "agency", agencyId, undefined,
       { is_vat_registered: data.is_vat_registered, default_vat_rate_bp: data.default_vat_rate_bp },
     );
     return updated;
