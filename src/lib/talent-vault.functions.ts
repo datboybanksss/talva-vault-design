@@ -97,15 +97,8 @@ export const deletePrivateFolder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => DeleteFolderInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    // Gather storage paths of documents inside this folder (and any descendants)
-    // so we can clean up files after the cascade deletes the rows.
-    const { data: descendants } = await supabase.rpc("noop_never_defined", {}).then(
-      () => ({ data: [] as string[] }),
-      () => ({ data: [] as string[] }),
-    );
-    void descendants;
-
-    // Collect all descendant folder IDs client-side (simple recursion).
+    // Collect all descendant folder IDs client-side (simple recursion) so
+    // we can gather storage paths before the cascade removes the doc rows.
     const { data: allFolders } = await supabase
       .from("talent_private_folders")
       .select("id, parent_id")
