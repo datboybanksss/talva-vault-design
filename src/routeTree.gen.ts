@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TalentRouteImport } from './routes/talent'
-import { Route as LovedOneRouteImport } from './routes/loved-one'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgencyRouteImport } from './routes/agency'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -51,11 +50,6 @@ import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/adm
 const TalentRoute = TalentRouteImport.update({
   id: '/talent',
   path: '/talent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovedOneRoute = LovedOneRouteImport.update({
-  id: '/loved-one',
-  path: '/loved-one',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -245,7 +239,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRoute
-  '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
@@ -283,7 +276,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/loved-one': typeof LovedOneRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
@@ -321,7 +313,6 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRoute
-  '/loved-one': typeof LovedOneRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
@@ -363,7 +354,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agency'
     | '/auth'
-    | '/loved-one'
     | '/talent'
     | '/admin/administrators'
     | '/admin/agencies'
@@ -401,7 +391,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/loved-one'
     | '/admin/administrators'
     | '/admin/audit'
     | '/admin/enroll-2fa'
@@ -438,7 +427,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agency'
     | '/auth'
-    | '/loved-one'
     | '/talent'
     | '/admin/administrators'
     | '/admin/agencies'
@@ -479,7 +467,6 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AgencyRoute: typeof AgencyRouteWithChildren
   AuthRoute: typeof AuthRoute
-  LovedOneRoute: typeof LovedOneRoute
   TalentRoute: typeof TalentRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
 }
@@ -491,13 +478,6 @@ declare module '@tanstack/react-router' {
       path: '/talent'
       fullPath: '/talent'
       preLoaderRoute: typeof TalentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/loved-one': {
-      id: '/loved-one'
-      path: '/loved-one'
-      fullPath: '/loved-one'
-      preLoaderRoute: typeof LovedOneRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -877,7 +857,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AgencyRoute: AgencyRouteWithChildren,
   AuthRoute: AuthRoute,
-  LovedOneRoute: LovedOneRoute,
   TalentRoute: TalentRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
 }
