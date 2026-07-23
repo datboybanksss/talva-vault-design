@@ -17,6 +17,23 @@ const privateFolders = [
   { Icon: Baby, tone: "blue", name: "Dependents", subs: ["Birth Certificate", "Vaccine Cards", "School Records", "Bursary Records"] },
   { Icon: HeartPulse, tone: "green", name: "Health", subs: ["Medical Aid Certificate", "Doctor's Referral", "Organ Donor Proof"] },
   { Icon: Shield, tone: "purple", name: "Insurance", subs: ["Home Insurance", "Car Insurance", "Life Insurance", "Critical Illness & Disability", "Claim Documents"] },
+  {
+    Icon: Landmark, tone: "amber", name: "Tax",
+    subs: [
+      "Provisional Tax (IRP6)",
+      "Income Tax Return (ITR12)",
+      "Tax Clearance Certificate",
+      "Sponsorship & Endorsement Income",
+      "Prize Money & Appearance Fees",
+      "Royalties & Image Rights",
+      "Agent / Manager Commission Invoices",
+      "Expense Receipts",
+      "Travel Logbook",
+      "Training & Equipment Expenses",
+      "Foreign Income & DTA Records",
+      "SARS Correspondence",
+    ],
+  },
   { Icon: PawPrint, tone: "amber", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
 ];
 
