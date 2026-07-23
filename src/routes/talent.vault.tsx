@@ -1,12 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getRosterSharedContents, getSharedDocumentDownloadUrl } from "@/lib/talent.functions";
+import {
+  listPrivateVault,
+  createPrivateFolder,
+  renamePrivateFolder,
+  deletePrivateFolder,
+  createPrivateUploadUrl,
+  getPrivateDocumentDownloadUrl,
+  deletePrivateDocument,
+} from "@/lib/talent-vault.functions";
 import { toast } from "sonner";
 import {
-  Plus, Upload, Lock, FileStack, Sparkles, User, Baby, HeartPulse, Shield, PawPrint, Landmark,
-  Briefcase, IdCard, Plane, Star, MoreVertical, Share2, ArrowLeftRight, Info, Download, FolderOpen,
+  Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
+  Folder, Pencil, Trash2, MoreVertical,
 } from "lucide-react";
 
 export const Route = createFileRoute("/talent/vault")({
@@ -14,44 +23,8 @@ export const Route = createFileRoute("/talent/vault")({
   component: VaultPage,
 });
 
+
 type Mode = "private" | "agency" | "review";
-
-type FolderDef = {
-  Icon: React.ComponentType<{ className?: string }>;
-  tone: string;
-  name: string;
-  subs?: string[];
-  groups?: { label: string; subs: string[] }[];
-};
-
-const privateFolders: FolderDef[] = [
-  { Icon: User, tone: "teal", name: "Personal", subs: ["ID", "Passport", "Visa", "Driver's License", "Birth Certificate"] },
-  { Icon: Baby, tone: "blue", name: "Dependents", subs: ["Birth Certificate", "Vaccine Cards", "School Records", "Bursary Records"] },
-  { Icon: HeartPulse, tone: "green", name: "Health", subs: ["Medical Aid Certificate", "Doctor's Referral", "Organ Donor Proof"] },
-  {
-    Icon: Shield, tone: "purple", name: "Insurance",
-    groups: [
-      { label: "Property & Vehicle", subs: ["Home Insurance", "Car Insurance"] },
-      { label: "Life & Health", subs: ["Life Insurance", "Critical Illness & Disability", "Claim Documents"] },
-    ],
-  },
-  {
-    Icon: Landmark, tone: "amber", name: "Tax",
-    groups: [
-      { label: "Income & Earnings", subs: ["Sponsorship & Endorsement Income", "Prize Money & Appearance Fees", "Royalties & Image Rights"] },
-      { label: "Expenses & Deductions", subs: ["Expense Receipts", "Travel Logbook", "Training & Equipment Expenses", "Agent / Manager Commission Invoices"] },
-      { label: "Compliance & Filing", subs: ["Provisional Tax (IRP6)", "Income Tax Return (ITR12)", "Tax Clearance Certificate", "Foreign Income & DTA Records", "SARS Correspondence"] },
-    ],
-  },
-  { Icon: PawPrint, tone: "red", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
-];
-
-const privateDocs = [
-  { name: "Passport.pdf", uploaded: "Uploaded 2h ago", folder: "Personal", sub: "Passport", reminder: "AI suggested", status: "Review AI", statusTone: "purple" },
-  { name: "Medical Aid Certificate.pdf", folder: "Health", sub: "Medical Aid Certificate", reminder: "No reminder", status: "Filed", statusTone: "green" },
-  { name: "Life Insurance Policy.pdf", folder: "Insurance", sub: "Life Insurance", reminder: "Annual review", status: "Filed", statusTone: "green" },
-  { name: "Pet Vaccine Record.pdf", folder: "Pets", sub: "Vaccine Record", reminder: "12 months", status: "Filed", statusTone: "green" },
-];
 
 function VaultPage() {
   const [mode, setMode] = useState<Mode>("private");
@@ -62,12 +35,8 @@ function VaultPage() {
         <div>
           <h1 className="tvp-h1">Vault</h1>
           <div className="tvp-subtitle">
-            One vault area with clear separation between Private Vault, Agency Shared Folder and AI Review.
+            One vault area with clear separation between Private Vault, Roster Shared Folder and AI Review.
           </div>
-        </div>
-        <div className="tvp-actions">
-          <button className="tvp-secondary"><Plus className="h-4 w-4" /> Create Folder</button>
-          <button className="tvp-primary"><Upload className="h-4 w-4" /> Upload Document</button>
         </div>
       </div>
 
@@ -76,80 +45,18 @@ function VaultPage() {
           <Lock className="h-4 w-4" /> Private Vault
         </button>
         <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => setMode("agency")}>
-          <FileStack className="h-4 w-4" /> Agency Shared Folder
+          <FileStack className="h-4 w-4" /> Roster Shared Folder
         </button>
         <button className={`tvp-tab${mode === "review" ? " tvp-active" : ""}`} onClick={() => setMode("review")}>
           <Sparkles className="h-4 w-4" /> AI Review
         </button>
       </div>
 
-      {mode === "private" && (
-        <>
-          <div className="tvp-callout" style={{ background: "var(--tvp-teal-50)", borderColor: "var(--tvp-teal-200)" }}>
-            <div className="tvp-callout-icon" style={{ background: "var(--tvp-teal-100)", color: "var(--tvp-teal)" }}>
-              <Lock className="h-4 w-4" />
-            </div>
-            <div>
-              <strong>Private by default.</strong>{" "}
-              <span className="tvp-muted">
-                These preset folders belong to the Talent. The Talent can add private folders/subfolders later, and Agency users cannot see anything here unless the Talent deliberately shares or copies it.
-              </span>
-            </div>
-          </div>
-
-          <div className="tvp-card tvp-panel">
-            <div className="tvp-panel-head">
-              <div>
-                <h2 className="tvp-h2">Private Vault Folder Structure</h2>
-                <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Preset folders and subfolders for personal document organisation.</p>
-              </div>
-              <button className="tvp-secondary"><Plus className="h-4 w-4" /> Add Private Folder</button>
-            </div>
-            <FolderTree folders={privateFolders} />
-          </div>
-
-          <div className="tvp-card" style={{ marginTop: 22 }}>
-            <div className="tvp-toolbar">
-              <input className="tvp-search" placeholder="Search private documents..." />
-              <div className="tvp-row-actions">
-                <select className="tvp-select"><option>Folder: All</option><option>Personal</option><option>Dependents</option><option>Health</option><option>Insurance</option><option>Tax</option><option>Pets</option></select>
-                <select className="tvp-select"><option>Status: All</option><option>Filed</option><option>AI Review</option><option>Expiring Soon</option></select>
-              </div>
-            </div>
-            <div className="tvp-table-wrap">
-              <table className="tvp-table">
-                <thead><tr><th>Document</th><th>Folder</th><th>Subfolder</th><th>Visibility</th><th>Reminder</th><th>Status</th><th></th></tr></thead>
-                <tbody>
-                  {privateDocs.map((d) => (
-                    <tr key={d.name}>
-                      <td>
-                        <strong>{d.name}</strong>
-                        {d.uploaded && <div className="tvp-muted" style={{ fontSize: 11, marginTop: 2 }}>{d.uploaded}</div>}
-                      </td>
-                      <td>{d.folder}</td>
-                      <td>{d.sub}</td>
-                      <td><span className="tvp-status tvp-teal">Private</span></td>
-                      <td>{d.reminder}</td>
-                      <td><span className={`tvp-status tvp-${d.statusTone}`}>{d.status}</span></td>
-                      <td>
-                        <div className="tvp-row-actions">
-                          {d.status === "Review AI" && (
-                            <button className="tvp-mini-btn" onClick={() => setMode("review")}><Sparkles className="h-4 w-4" /></button>
-                          )}
-                          <button className="tvp-mini-btn"><Share2 className="h-4 w-4" /></button>
-                          <button className="tvp-mini-btn"><ArrowLeftRight className="h-4 w-4" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
+      {mode === "private" && <PrivateVault />}
 
       {mode === "agency" && <RosterSharedFolder />}
+
+
 
 
       {mode === "review" && (
@@ -209,45 +116,318 @@ function VaultPage() {
   );
 }
 
-function FolderTree({ folders }: { folders: FolderDef[] }) {
+type PrivateFolder = {
+  id: string;
+  parent_id: string | null;
+  name: string;
+  icon: string | null;
+  tone: string | null;
+  sort_order: number;
+  created_at: string;
+};
+type PrivateDoc = {
+  id: string;
+  folder_id: string | null;
+  name: string;
+  storage_path: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  reminder_at: string | null;
+  expires_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function PrivateVault() {
+  const qc = useQueryClient();
+  const load = useServerFn(listPrivateVault);
+  const createFolder = useServerFn(createPrivateFolder);
+  const renameFolder = useServerFn(renamePrivateFolder);
+  const deleteFolder = useServerFn(deletePrivateFolder);
+  const createUpload = useServerFn(createPrivateUploadUrl);
+  const download = useServerFn(getPrivateDocumentDownloadUrl);
+  const deleteDoc = useServerFn(deletePrivateDocument);
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [filterFolder, setFilterFolder] = useState<string>("__all");
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["talent", "private-vault"],
+    queryFn: () => load() as Promise<{ folders: PrivateFolder[]; documents: PrivateDoc[] }>,
+  });
+
+  const folders = data?.folders ?? [];
+  const documents = data?.documents ?? [];
+  const topFolders = useMemo(() => folders.filter((f) => !f.parent_id), [folders]);
+  const subsByParent = useMemo(() => {
+    const map = new Map<string, PrivateFolder[]>();
+    for (const f of folders) {
+      if (!f.parent_id) continue;
+      const arr = map.get(f.parent_id) ?? [];
+      arr.push(f);
+      map.set(f.parent_id, arr);
+    }
+    return map;
+  }, [folders]);
+  const folderName = (id: string | null) =>
+    id ? folders.find((f) => f.id === id)?.name ?? "—" : "Unfiled";
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
+
+  async function onAddTopFolder() {
+    const name = window.prompt("New folder name")?.trim();
+    if (!name) return;
+    try {
+      await createFolder({ data: { name } });
+      toast.success("Folder created.");
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not create folder.");
+    }
+  }
+
+  async function onAddSubFolder(parentId: string) {
+    const name = window.prompt("New subfolder name")?.trim();
+    if (!name) return;
+    try {
+      await createFolder({ data: { name, parent_id: parentId } });
+      toast.success("Subfolder created.");
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not create subfolder.");
+    }
+  }
+
+  async function onRenameFolder(id: string, current: string) {
+    const name = window.prompt("Rename folder", current)?.trim();
+    if (!name || name === current) return;
+    try {
+      await renameFolder({ data: { id, name } });
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not rename.");
+    }
+  }
+
+  async function onDeleteFolder(id: string, name: string) {
+    if (!window.confirm(`Delete "${name}" and any documents inside it? This can't be undone.`)) return;
+    try {
+      await deleteFolder({ data: { id } });
+      toast.success("Folder deleted.");
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not delete.");
+    }
+  }
+
+  function triggerUpload(folderId: string | null) {
+    setUploadFolderId(folderId);
+    fileInput.current?.click();
+  }
+
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Max upload size is 50 MB.");
+      return;
+    }
+    try {
+      const { upload } = await createUpload({
+        data: {
+          file_name: file.name,
+          folder_id: uploadFolderId,
+          mime_type: file.type || null,
+          size_bytes: file.size,
+        },
+      });
+      const put = await fetch(upload.signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+      toast.success("Document uploaded.");
+      invalidate();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Upload failed.");
+    }
+  }
+
+  async function onDownload(id: string) {
+    try {
+      const { url } = await download({ data: { id } });
+      window.open(url, "_blank");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not open file.");
+    }
+  }
+
+  async function onDeleteDoc(id: string, name: string) {
+    if (!window.confirm(`Delete "${name}"?`)) return;
+    try {
+      await deleteDoc({ data: { id } });
+      toast.success("Document deleted.");
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not delete.");
+    }
+  }
+
+  const filteredDocs = documents.filter((d) => {
+    if (filterFolder !== "__all") {
+      if (filterFolder === "__unfiled" && d.folder_id !== null) return false;
+      if (filterFolder !== "__unfiled" && d.folder_id !== filterFolder) return false;
+    }
+    if (search && !d.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  if (isLoading) {
+    return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Private Vault…</p></div>;
+  }
+  if (isError) {
+    return <div className="tvp-card tvp-panel"><p className="tvp-warn">Failed to load: {(error as Error)?.message}</p></div>;
+  }
+
   return (
-    <div className="tvp-folder-tree">
-      {folders.map((f) => {
-        const groups = f.groups ?? [{ label: "", subs: f.subs ?? [] }];
-        const total = groups.reduce((n, g) => n + g.subs.length, 0);
-        const isGrouped = !!f.groups;
-        return (
-          <div key={f.name} className="tvp-folder-card">
-            <h3>
-              <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 34, height: 34 }}>
-                <f.Icon className="h-4 w-4" />
-              </span>
-              {f.name}
-              <span className="tvp-folder-count">{total} SUBFOLDERS</span>
-            </h3>
-            <div className="tvp-folder-eyebrow">Recommended subfolders</div>
-            {isGrouped ? (
-              <div className="tvp-subfolder-groups">
-                {groups.map((g) => (
-                  <div key={g.label} className="tvp-subfolder-group">
-                    <div className="tvp-subfolder-group-label">{g.label}</div>
-                    <div className="tvp-subfolder-list">
-                      {g.subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="tvp-subfolder-list">
-                {groups[0].subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
-              </div>
-            )}
+    <>
+      <input ref={fileInput} type="file" hidden onChange={onFilePicked} />
+
+      <div className="tvp-callout" style={{ background: "var(--tvp-teal-50)", borderColor: "var(--tvp-teal-200)" }}>
+        <div className="tvp-callout-icon" style={{ background: "var(--tvp-teal-100)", color: "var(--tvp-teal)" }}>
+          <Lock className="h-4 w-4" />
+        </div>
+        <div>
+          <strong>Private by default.</strong>{" "}
+          <span className="tvp-muted">
+            Folders and files here belong to you. Rename, add, or remove any folder — your Manager cannot see the Private Vault unless you deliberately share an item.
+          </span>
+        </div>
+      </div>
+
+      <div className="tvp-card tvp-panel">
+        <div className="tvp-panel-head">
+          <div>
+            <h2 className="tvp-h2">Private Vault Folders</h2>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+              {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · fully editable.
+            </p>
           </div>
-        );
-      })}
-    </div>
+          <div className="tvp-row-actions">
+            <button className="tvp-secondary" onClick={onAddTopFolder}><Plus className="h-4 w-4" /> Add Folder</button>
+            <button className="tvp-primary" onClick={() => triggerUpload(null)}><Upload className="h-4 w-4" /> Upload</button>
+          </div>
+        </div>
+
+        {topFolders.length === 0 ? (
+          <p className="tvp-muted" style={{ fontSize: 13 }}>No folders yet — add one to get started.</p>
+        ) : (
+          <div className="tvp-folder-tree">
+            {topFolders.map((f) => {
+              const subs = subsByParent.get(f.id) ?? [];
+              const docCount = documents.filter((d) => d.folder_id === f.id).length;
+              return (
+                <div key={f.id} className="tvp-folder-card">
+                  <h3>
+                    <span className={`tvp-kpi-icon tvp-bg-${f.tone ?? "teal"}`} style={{ width: 34, height: 34 }}>
+                      <Folder className="h-4 w-4" />
+                    </span>
+                    {f.name}
+                    <span className="tvp-folder-count">{subs.length} SUB · {docCount} DOC{docCount === 1 ? "" : "S"}</span>
+                  </h3>
+                  <div className="tvp-subfolder-list" style={{ marginTop: 8 }}>
+                    {subs.map((s) => (
+                      <span key={s.id} className="tvp-subfolder-pill">
+                        {s.name}
+                        <button
+                          type="button"
+                          className="tvp-mini-btn"
+                          style={{ marginLeft: 6 }}
+                          onClick={() => onRenameFolder(s.id, s.name)}
+                          aria-label="Rename subfolder"
+                        ><Pencil className="h-3 w-3" /></button>
+                        <button
+                          type="button"
+                          className="tvp-mini-btn"
+                          onClick={() => onDeleteFolder(s.id, s.name)}
+                          aria-label="Delete subfolder"
+                        ><Trash2 className="h-3 w-3" /></button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="tvp-footer-actions" style={{ marginTop: 12 }}>
+                    <button className="tvp-secondary" onClick={() => onAddSubFolder(f.id)}><Plus className="h-4 w-4" /> Subfolder</button>
+                    <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
+                    <button className="tvp-mini-btn" onClick={() => onRenameFolder(f.id, f.name)} aria-label="Rename folder"><Pencil className="h-4 w-4" /></button>
+                    <button className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name)} aria-label="Delete folder"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="tvp-card" style={{ marginTop: 22 }}>
+        <div className="tvp-toolbar">
+          <input
+            className="tvp-search"
+            placeholder="Search private documents..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="tvp-row-actions">
+            <select className="tvp-select" value={filterFolder} onChange={(e) => setFilterFolder(e.target.value)}>
+              <option value="__all">Folder: All</option>
+              <option value="__unfiled">Unfiled</option>
+              {topFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          </div>
+        </div>
+        {filteredDocs.length === 0 ? (
+          <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
+            {documents.length === 0 ? "Nothing uploaded yet — pick a folder above and upload your first document." : "No documents match your filters."}
+          </p>
+        ) : (
+          <div className="tvp-table-wrap">
+            <table className="tvp-table">
+              <thead><tr><th>Document</th><th>Folder</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
+              <tbody>
+                {filteredDocs.map((d) => (
+                  <tr key={d.id}>
+                    <td><strong>{d.name}</strong></td>
+                    <td>{folderName(d.folder_id)}</td>
+                    <td>{d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : "—"}</td>
+                    <td>{new Date(d.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <div className="tvp-row-actions">
+                        {d.storage_path ? (
+                          <button className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
+                            <Download className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <span className="tvp-muted" style={{ fontSize: 11 }}>No file</span>
+                        )}
+                        <button className="tvp-mini-btn" onClick={() => onDeleteDoc(d.id, d.name)} aria-label="Delete">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
+
 
 function statusTone(status: string) {
   switch (status) {
