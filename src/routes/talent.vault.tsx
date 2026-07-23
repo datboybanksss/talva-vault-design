@@ -249,3 +249,155 @@ function FolderTree({ folders }: { folders: FolderDef[] }) {
   );
 }
 
+function statusTone(status: string) {
+  switch (status) {
+    case "approved": return "green";
+    case "needs_review": return "purple";
+    case "resubmission_required": return "amber";
+    case "cancelled": return "red";
+    default: return "blue";
+  }
+}
+
+function RosterSharedFolder() {
+  const load = useServerFn(getRosterSharedContents);
+  const download = useServerFn(getSharedDocumentDownloadUrl);
+  const [search, setSearch] = useState("");
+  const [folderFilter, setFolderFilter] = useState<string>("__all");
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["talent", "roster-shared"],
+    queryFn: () => load(),
+  });
+
+  async function onDownload(id: string) {
+    try {
+      const { url } = await download({ data: { document_id: id } });
+      window.open(url, "_blank");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not open file.");
+    }
+  }
+
+  if (isLoading) {
+    return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Roster Shared Folder…</p></div>;
+  }
+  if (isError) {
+    return <div className="tvp-card tvp-panel"><p className="tvp-warn">Failed to load: {(error as Error)?.message}</p></div>;
+  }
+  if (!data?.link) {
+    return (
+      <div className="tvp-card tvp-panel">
+        <h2 className="tvp-h2">No active roster link</h2>
+        <p className="tvp-muted" style={{ marginTop: 6 }}>
+          You aren't currently linked to a Talent Manager. Once you're invited and accepted, the Roster Shared Folder appears here.
+        </p>
+      </div>
+    );
+  }
+
+  const folders = data.folders ?? [];
+  const docs = (data.documents ?? []).filter((d) => {
+    if (folderFilter !== "__all" && d.folder !== folderFilter) return false;
+    if (search && !d.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <>
+      <div className="tvp-callout">
+        <div className="tvp-callout-icon"><FileStack className="h-4 w-4" /></div>
+        <div>
+          <strong>Manager-controlled folder structure.</strong>{" "}
+          <span className="tvp-muted">
+            Your Talent Manager defines the folders in the Roster Shared Folder. You can view and download documents here, but the folder structure itself is read-only for Talent.
+          </span>
+        </div>
+      </div>
+
+      <div className="tvp-card tvp-panel">
+        <div className="tvp-panel-head">
+          <div>
+            <h2 className="tvp-h2">Roster Shared Folder</h2>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+              {folders.length} folder{folders.length === 1 ? "" : "s"} · {data.documents.length} document{data.documents.length === 1 ? "" : "s"}
+            </p>
+          </div>
+          <span className="tvp-lock-note"><Lock className="h-3 w-3" /> Folder structure locked by Manager</span>
+        </div>
+        {folders.length === 0 ? (
+          <p className="tvp-muted" style={{ fontSize: 13 }}>Your Manager hasn't provisioned any shared folders yet.</p>
+        ) : (
+          <div className="tvp-folder-tree">
+            {folders.map((f) => {
+              const count = data.documents.filter((d) => d.folder === f.folder_name).length;
+              return (
+                <div key={f.id} className="tvp-folder-card">
+                  <h3>
+                    <span className="tvp-kpi-icon tvp-bg-blue" style={{ width: 34, height: 34 }}>
+                      <FolderOpen className="h-4 w-4" />
+                    </span>
+                    {f.folder_name}
+                    <span className="tvp-folder-count">{count} DOC{count === 1 ? "" : "S"}</span>
+                  </h3>
+                  {f.retention_years != null && (
+                    <div className="tvp-folder-eyebrow">Retention: {f.retention_years} year{f.retention_years === 1 ? "" : "s"}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="tvp-card" style={{ marginTop: 22 }}>
+        <div className="tvp-toolbar">
+          <input
+            className="tvp-search"
+            placeholder="Search Roster Shared Folder..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="tvp-row-actions">
+            <select className="tvp-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
+              <option value="__all">Folder: All</option>
+              {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
+            </select>
+          </div>
+        </div>
+        {docs.length === 0 ? (
+          <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>No documents match your filters.</p>
+        ) : (
+          <div className="tvp-table-wrap">
+            <table className="tvp-table">
+              <thead><tr><th>Document</th><th>Folder</th><th>Status</th><th>Expires</th><th></th></tr></thead>
+              <tbody>
+                {docs.map((d) => (
+                  <tr key={d.id}>
+                    <td><strong>{d.name}</strong></td>
+                    <td>{d.folder}</td>
+                    <td><span className={`tvp-status tvp-${statusTone(d.status)}`}>{d.status.replace(/_/g, " ")}</span></td>
+                    <td>{d.validity_expires_at ? new Date(d.validity_expires_at).toLocaleDateString() : "—"}</td>
+                    <td>
+                      <div className="tvp-row-actions">
+                        {d.storage_path ? (
+                          <button className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
+                            <Download className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <span className="tvp-muted" style={{ fontSize: 11 }}>No file</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+
