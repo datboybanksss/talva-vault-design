@@ -116,7 +116,7 @@ function VaultPage() {
             <div className="tvp-toolbar">
               <input className="tvp-search" placeholder="Search private documents..." />
               <div className="tvp-row-actions">
-                <select className="tvp-select"><option>Folder: All</option><option>Personal</option><option>Dependents</option><option>Health</option><option>Insurance</option><option>Pets</option></select>
+                <select className="tvp-select"><option>Folder: All</option><option>Personal</option><option>Dependents</option><option>Health</option><option>Insurance</option><option>Tax</option><option>Pets</option></select>
                 <select className="tvp-select"><option>Status: All</option><option>Filed</option><option>AI Review</option><option>Expiring Soon</option></select>
               </div>
             </div>
