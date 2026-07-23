@@ -104,8 +104,8 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const folderIds: string[] = share.scope?.private_folder_ids ?? [];
-    const docIds: string[] = share.scope?.private_document_ids ?? [];
+    const folderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
+    const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
 
     const [folders, docsInFolders, singleDocs, sharer] = await Promise.all([
       folderIds.length
@@ -114,7 +114,7 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
       folderIds.length
         ? supabaseAdmin.from("talent_private_documents")
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
-            .in("folder_id", folderIds)
+            .in("folder_id", folderIds as string[])
         : Promise.resolve({ data: [] as any[] }),
       docIds.length
         ? supabaseAdmin.from("talent_private_documents")
@@ -167,8 +167,8 @@ export const getLovedOneDownloadUrl = createServerFn({ method: "POST" })
 
     // Verify document belongs to sharer AND is within scope
     if (doc.user_id !== share.created_by) throw new Error("Not authorised.");
-    const folderIds: string[] = share.scope?.private_folder_ids ?? [];
-    const docIds: string[] = share.scope?.private_document_ids ?? [];
+    const folderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
+    const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
     const inScope =
       docIds.includes(doc.id) ||
       (doc.folder_id != null && folderIds.includes(doc.folder_id));
