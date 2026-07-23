@@ -2,7 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getRosterSharedContents, getSharedDocumentDownloadUrl } from "@/lib/talent.functions";
+import {
+  getRosterSharedContents,
+  getSharedDocumentDownloadUrl,
+  listTalentDocumentRequests,
+  createTalentRequestUploadUrl,
+  submitTalentDocumentRequest,
+} from "@/lib/talent.functions";
 import {
   listPrivateVault,
   createPrivateFolder,
@@ -15,7 +21,7 @@ import {
 import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
-  Folder, Pencil, Trash2, MoreVertical,
+  Folder, Pencil, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
 } from "lucide-react";
 
 export const Route = createFileRoute("/talent/vault")({
@@ -24,7 +30,7 @@ export const Route = createFileRoute("/talent/vault")({
 });
 
 
-type Mode = "private" | "agency" | "review";
+type Mode = "private" | "agency" | "requests";
 
 function VaultPage() {
   const [mode, setMode] = useState<Mode>("private");
@@ -35,7 +41,7 @@ function VaultPage() {
         <div>
           <h1 className="tvp-h1">Vault</h1>
           <div className="tvp-subtitle">
-            One vault area with clear separation between Private Vault, Roster Shared Folder and AI Review.
+            One vault area with clear separation between Private Vault, Roster Shared Folder and Manager Requests.
           </div>
         </div>
       </div>
@@ -47,14 +53,19 @@ function VaultPage() {
         <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => setMode("agency")}>
           <FileStack className="h-4 w-4" /> Roster Shared Folder
         </button>
-        <button className={`tvp-tab${mode === "review" ? " tvp-active" : ""}`} onClick={() => setMode("review")}>
-          <Sparkles className="h-4 w-4" /> AI Review
+        <button className={`tvp-tab${mode === "requests" ? " tvp-active" : ""}`} onClick={() => setMode("requests")}>
+          <Inbox className="h-4 w-4" /> Manager Requests
         </button>
       </div>
 
       {mode === "private" && <PrivateVault />}
 
       {mode === "agency" && <RosterSharedFolder />}
+
+      {mode === "requests" && <ManagerRequests />}
+
+
+
 
 
 
