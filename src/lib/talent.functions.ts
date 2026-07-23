@@ -64,3 +64,84 @@ export const updateTalentProfile = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+/**
+ * Roster Shared Folder — read-only view for the talent.
+ * Returns the folder list (as defined by the agency) plus all shared documents
+ * belonging to the caller's active link.
+ */
+export const getRosterSharedContents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const { data: link } = await supabase
+      .from("agency_talent_links")
+      .select("id, agency_id, status")
+      .eq("talent_user_id", userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (!link) return { link: null, folders: [], documents: [] };
+
+    // Docs — talent-side SELECT policy already scopes by link
+    const { data: docs, error: dErr } = await supabase
+      .from("talent_shared_documents")
+      .select(
+        "id, name, folder, status, validity_expires_at, storage_path, uploaded_by, created_at, updated_at, locked_until, current_version_id",
+      )
+      .eq("talent_link_id", link.id)
+      .order("created_at", { ascending: false });
+    if (dErr) throw new Error(dErr.message);
+
+    // Folders — no talent-side RLS on agency_talent_folders. Use admin after
+    // verifying the caller owns this link (already done above).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: folders } = await supabaseAdmin
+      .from("agency_talent_folders")
+      .select("id, folder_name, sort_order, retention_years")
+      .eq("talent_link_id", link.id)
+      .order("sort_order", { ascending: true });
+
+    return {
+      link: { id: link.id, agency_id: link.agency_id, status: link.status },
+      folders: folders ?? [],
+      documents: docs ?? [],
+    };
+  });
+
+const DownloadInput = z.object({ document_id: z.string().uuid() });
+
+export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => DownloadInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // RLS ensures the caller can only SELECT their own shared docs.
+    const { data: doc, error } = await supabase
+      .from("talent_shared_documents")
+      .select("id, name, storage_path, talent_link_id")
+      .eq("id", data.document_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!doc) throw new Error("Document not found.");
+    if (!doc.storage_path) throw new Error("No file attached to this document.");
+
+    // Double-check ownership defensively.
+    const { data: link } = await supabase
+      .from("agency_talent_links")
+      .select("id")
+      .eq("talent_user_id", userId)
+      .eq("id", doc.talent_link_id)
+      .maybeSingle();
+    if (!link) throw new Error("Not authorised for this document.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error: sErr } = await supabaseAdmin.storage
+      .from("talent-documents")
+      .createSignedUrl(doc.storage_path, 60 * 30, { download: doc.name });
+    if (sErr) throw new Error(sErr.message);
+    return { url: signed.signedUrl, name: doc.name };
+  });
