@@ -1,18 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getRosterSharedContents, getSharedDocumentDownloadUrl } from "@/lib/talent.functions";
+import {
+  listPrivateVault,
+  createPrivateFolder,
+  renamePrivateFolder,
+  deletePrivateFolder,
+  createPrivateUploadUrl,
+  getPrivateDocumentDownloadUrl,
+  deletePrivateDocument,
+} from "@/lib/talent-vault.functions";
 import { toast } from "sonner";
 import {
-  Plus, Upload, Lock, FileStack, Sparkles, User, Baby, HeartPulse, Shield, PawPrint, Landmark,
-  Briefcase, IdCard, Plane, Star, MoreVertical, Share2, ArrowLeftRight, Info, Download, FolderOpen,
+  Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
+  Folder, Pencil, Trash2, MoreVertical,
 } from "lucide-react";
 
 export const Route = createFileRoute("/talent/vault")({
   head: () => ({ meta: [{ title: "Vault · TalVault Talent" }] }),
   component: VaultPage,
 });
+
 
 type Mode = "private" | "agency" | "review";
 
