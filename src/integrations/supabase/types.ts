@@ -1132,24 +1132,54 @@ export type Database = {
       loved_one_shares: {
         Row: {
           created_at: string
+          created_by: string | null
+          expires_at: string
           id: string
           is_active: boolean
+          last_viewed_at: string | null
           loved_one_email: string
+          loved_one_name: string | null
+          note: string | null
+          relationship: string | null
+          revoked_at: string | null
+          scope: Json
           talent_id: string | null
+          token: string
+          view_count: number
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
+          expires_at?: string
           id?: string
           is_active?: boolean
+          last_viewed_at?: string | null
           loved_one_email: string
+          loved_one_name?: string | null
+          note?: string | null
+          relationship?: string | null
+          revoked_at?: string | null
+          scope?: Json
           talent_id?: string | null
+          token?: string
+          view_count?: number
         }
         Update: {
           created_at?: string
+          created_by?: string | null
+          expires_at?: string
           id?: string
           is_active?: boolean
+          last_viewed_at?: string | null
           loved_one_email?: string
+          loved_one_name?: string | null
+          note?: string | null
+          relationship?: string | null
+          revoked_at?: string | null
+          scope?: Json
           talent_id?: string | null
+          token?: string
+          view_count?: number
         }
         Relationships: [
           {
@@ -1364,33 +1394,69 @@ export type Database = {
       }
       talent_profiles: {
         Row: {
+          activation_completed_at: string | null
+          address_line1: string | null
+          address_line2: string | null
           agency_id: string | null
+          city: string | null
+          country: string | null
           created_at: string
+          date_of_birth: string | null
           deleted_at: string | null
           email: string | null
           full_name: string
           id: string
+          id_number: string | null
+          is_provisional_taxpayer: boolean | null
           is_test: boolean
+          phone_number: string | null
+          postal_code: string | null
+          province: string | null
+          tax_number: string | null
           user_id: string | null
         }
         Insert: {
+          activation_completed_at?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
           agency_id?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          date_of_birth?: string | null
           deleted_at?: string | null
           email?: string | null
           full_name: string
           id?: string
+          id_number?: string | null
+          is_provisional_taxpayer?: boolean | null
           is_test?: boolean
+          phone_number?: string | null
+          postal_code?: string | null
+          province?: string | null
+          tax_number?: string | null
           user_id?: string | null
         }
         Update: {
+          activation_completed_at?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
           agency_id?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          date_of_birth?: string | null
           deleted_at?: string | null
           email?: string | null
           full_name?: string
           id?: string
+          id_number?: string | null
+          is_provisional_taxpayer?: boolean | null
           is_test?: boolean
+          phone_number?: string | null
+          postal_code?: string | null
+          province?: string | null
+          tax_number?: string | null
           user_id?: string | null
         }
         Relationships: [
