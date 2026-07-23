@@ -121,7 +121,9 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
             .in("id", docIds)
         : Promise.resolve({ data: [] as any[] }),
-      supabaseAdmin.from("talent_profiles").select("full_name").eq("id", share.talent_id).maybeSingle(),
+      share.talent_id
+        ? supabaseAdmin.from("talent_profiles").select("full_name").eq("id", share.talent_id).maybeSingle()
+        : Promise.resolve({ data: null as any }),
     ]);
 
     const dedup = new Map<string, any>();
