@@ -46,24 +46,11 @@ const privateFolders: FolderDef[] = [
   { Icon: PawPrint, tone: "red", name: "Pets", subs: ["Pet Insurance", "Vaccine Record"] },
 ];
 
-const agencyFolders: FolderDef[] = [
-  { Icon: Briefcase, tone: "blue", name: "Contracts", subs: ["Representation Agreements", "Brand Deals", "Renewals"] },
-  { Icon: IdCard, tone: "teal", name: "ID Documents", subs: ["ID", "Passport", "Certified Copies"] },
-  { Icon: Plane, tone: "amber", name: "Travel", subs: ["Passport", "Visa", "Travel Letters"] },
-  { Icon: Star, tone: "purple", name: "Sponsorships", subs: ["Campaign Documents", "Usage Rights", "Approvals"] },
-];
-
 const privateDocs = [
   { name: "Passport.pdf", uploaded: "Uploaded 2h ago", folder: "Personal", sub: "Passport", reminder: "AI suggested", status: "Review AI", statusTone: "purple" },
   { name: "Medical Aid Certificate.pdf", folder: "Health", sub: "Medical Aid Certificate", reminder: "No reminder", status: "Filed", statusTone: "green" },
   { name: "Life Insurance Policy.pdf", folder: "Insurance", sub: "Life Insurance", reminder: "Annual review", status: "Filed", statusTone: "green" },
   { name: "Pet Vaccine Record.pdf", folder: "Pets", sub: "Vaccine Record", reminder: "12 months", status: "Filed", statusTone: "green" },
-];
-
-const agencyDocs = [
-  { name: "Passport.pdf", folder: "Travel", sub: "Passport", by: "Talent", ai: "Needs confirmation", aiTone: "purple", reminder: "AI suggested" },
-  { name: "Agency Contract.pdf", folder: "Contracts", sub: "Representation Agreements", by: "Agency", ai: "Confirmed", aiTone: "green", reminder: "30 days before review" },
-  { name: "Sponsorship Agreement.pdf", folder: "Sponsorships", sub: "Campaign Documents", by: "Talent", ai: "Confirmed", aiTone: "green", reminder: "1 year" },
 ];
 
 function VaultPage() {
