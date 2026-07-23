@@ -274,28 +274,43 @@ function VaultPage() {
   );
 }
 
-function FolderTree({
-  folders,
-}: {
-  folders: { Icon: React.ComponentType<{ className?: string }>; tone: string; name: string; subs: string[] }[];
-}) {
+function FolderTree({ folders }: { folders: FolderDef[] }) {
   return (
     <div className="tvp-folder-tree">
-      {folders.map((f) => (
-        <div key={f.name} className="tvp-folder-card">
-          <h3>
-            <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 34, height: 34 }}>
-              <f.Icon className="h-4 w-4" />
-            </span>
-            {f.name}
-            <span className="tvp-folder-count">{f.subs.length} SUBFOLDERS</span>
-          </h3>
-          <div className="tvp-folder-eyebrow">Recommended subfolders</div>
-          <div className="tvp-subfolder-list">
-            {f.subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
+      {folders.map((f) => {
+        const groups = f.groups ?? [{ label: "", subs: f.subs ?? [] }];
+        const total = groups.reduce((n, g) => n + g.subs.length, 0);
+        const isGrouped = !!f.groups;
+        return (
+          <div key={f.name} className="tvp-folder-card">
+            <h3>
+              <span className={`tvp-kpi-icon tvp-bg-${f.tone}`} style={{ width: 34, height: 34 }}>
+                <f.Icon className="h-4 w-4" />
+              </span>
+              {f.name}
+              <span className="tvp-folder-count">{total} SUBFOLDERS</span>
+            </h3>
+            <div className="tvp-folder-eyebrow">Recommended subfolders</div>
+            {isGrouped ? (
+              <div className="tvp-subfolder-groups">
+                {groups.map((g) => (
+                  <div key={g.label} className="tvp-subfolder-group">
+                    <div className="tvp-subfolder-group-label">{g.label}</div>
+                    <div className="tvp-subfolder-list">
+                      {g.subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="tvp-subfolder-list">
+                {groups[0].subs.map((s) => <span key={s} className="tvp-subfolder-pill">{s}</span>)}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
+
