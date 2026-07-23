@@ -130,6 +130,7 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
     if (!doc.storage_path) throw new Error("No file attached to this document.");
 
     // Double-check ownership defensively.
+    if (!doc.talent_link_id) throw new Error("Not authorised for this document.");
     const { data: link } = await supabase
       .from("agency_talent_links")
       .select("id")
