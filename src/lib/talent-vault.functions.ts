@@ -45,11 +45,13 @@ export const createPrivateFolder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CreateFolderInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: maxRow } = await supabase
+    const parentFilter = supabase
       .from("talent_private_folders")
       .select("sort_order")
-      .eq("user_id", userId)
-      .is("parent_id", data.parent_id ?? null)
+      .eq("user_id", userId);
+    const { data: maxRow } = await (data.parent_id
+      ? parentFilter.eq("parent_id", data.parent_id)
+      : parentFilter.is("parent_id", null))
       .order("sort_order", { ascending: false })
       .limit(1)
       .maybeSingle();
