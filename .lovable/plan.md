@@ -1,105 +1,79 @@
-# Quotes & Invoices — real settings, branding, VAT, SARS-compliant docs
+# Talent Portal — Full Build Plan
 
-## Current state (verified)
+## 1. Current state (builds on the button audit)
 
-- `agency_billing_docs` has one flat `total_cents` per doc — no line items, no VAT breakdown, no issue/reference to a supplier VAT number, no addresses. `allow_partial_payment` already exists per row (reuse it).
-- `agencies` has no fields for default acceptance window, payment terms, VAT registration, VAT rate, logo, or accent color.
-- `QuotesInvoicesSettingsPanel` is a placeholder with the "Not yet wired" banner — no persistence, no state.
-- No PDF/document generator anywhere in the project. Quotes/invoices exist only as table rows; nothing is rendered for the client or exportable for SARS today.
-- No storage bucket for agency branding assets.
+**Routes on disk** (`src/routes/talent.*.tsx`): `talent.tsx` (shell), `talent.index.tsx` (dashboard), `talent.vault.tsx` (Roster Shared + Private tabs), `talent.sharing.tsx`, `talent.budget.tsx`, `talent.settings.tsx`. None are gated by `_authenticated/`. All content is hardcoded mock arrays; forms are uncontrolled; buttons are inert (per the audit).
 
-That last point is the biggest surprise, so calling it out up front: today an agency literally cannot send or download a quote/invoice document — everything lives in the internal table. This build introduces the first real client-facing document artifact.
+**What already exists on the backend that Talent will plug into** (verified in DB):
+- `talent_invitations` — invite token + folder selection (standard/custom)
+- `talent_profiles` — linked to `auth.users` via `user_id`
+- `agency_talent_links` — the agency⇄talent relationship, `status` includes `invited/active/ended`
+- `agency_talent_folders` — folders provisioned per talent link (M2)
+- `talent_shared_documents` + `talent_shared_document_versions` — Roster Shared Folder documents, retention-locked. RLS already includes **"Agency or talent read shared docs"** (SELECT allows the linked talent).
+- `agency_document_requests` — requests from agency. RLS is agency-only today; no talent SELECT/UPDATE policies.
+- `loved_one_shares` — placeholder table (talent_id, email, is_active). Admin-only RLS today; no talent policies, no per-folder scoping.
+- `handle_new_user` trigger already calls `accept_talent_invitation()` on signup, which creates the profile, link, and provisions folders. **The plumbing to become a talent on signup is done.**
 
-## Recommendations to confirm
+**Storage**: `talent-documents` bucket exists (private) and is used by the agency side.
 
-1. **Overdue marking** — keep manual via the Status dropdown for now. Automating it needs a scheduled job (pg_cron) and touches money/audit; ship the setting + a visual "would be overdue" badge on the row now, wire automation in a follow-up. Flagging as recommended, not building yet unless you say otherwise.
-2. **Color scheme** — MVP as a preset palette of ~6 brand-safe accents (Teal, Navy, Emerald, Plum, Slate, Amber) plus optional custom hex. Keeps the preview readable and avoids a11y issues from arbitrary colors on white.
-3. **PDF vs HTML preview** — do the preview as an in-app HTML render (same component the client will see) and generate the downloadable/emailable PDF from that same component using `@react-pdf/renderer` (pure JS, Cloudflare Worker compatible; no Puppeteer/Chromium). Confirm this is acceptable — the alternative is a server-side headless-Chrome render which isn't available on the Worker runtime.
-4. **VAT model** — store amounts as **exclusive** (net) at the line level; compute VAT and gross at render time from the line's VAT rate. Migrate the existing single `total_cents` into a single line item on read so old rows don't break.
+## 2. Auth model
 
-## Build order
+Signup path already works via the trigger. What's missing is the **UI** wrapping it:
 
-1. **Schema + settings persistence** (backend only, no UI change yet)
-2. **Line items + VAT breakdown** on the editor and list totals
-3. **Agency branding**: logo upload + accent color, saved on agencies
-4. **SARS-compliant document component** (HTML render, used for preview)
-5. **PDF export** from the same component + "Preview before send" dialog
-6. **Real Settings tab UI** replacing the placeholder panel
-7. **Apply settings to new docs** (default acceptance window / payment terms auto-fill; overdue visual badge)
+- **Public**: `/invite/$token` currently handles the agency-onboarding invite. Extend (or split into `invite.agency.$token` / `invite.talent.$token`) so a talent token shows a talent-specific landing: invited-by agency, folders that will be provisioned, T&Cs, then "Accept & create account" → `/auth?mode=signup&next=/talent`.
+- **`/auth`** already routes by path (`/talent` → talent workspace). After sign-in the trigger has run, so first landing on `/talent` finds a `talent_profiles` + `agency_talent_links` row.
+- **Route gating**: move all `talent.*.tsx` under `src/routes/_authenticated/talent.*.tsx` so the integration-managed gate covers them. Add a `beforeLoad`/loader that fetches `talent_profiles` for `auth.uid()` and 404s / shows an "ask your agency for an invite" screen if none.
+- **Talent Activation Wizard**: recommend a lightweight one — not the heavy Agency wizard. Two short steps post-signup: (a) confirm display name / contact number → writes to `talent_profiles` and (optionally) sets password, (b) tour of Roster Shared vs Private Vault. Skippable. Flag: **should this wizard also collect ID number / date of birth for SARS-relevant Tax folder metadata? Assumption: no — Private Vault content is user-managed, not structured fields.**
 
-## Schema changes
+## 3. Real functionality scope
 
-**`agencies` — new columns**
-- `default_quote_acceptance_days int` (default 14)
-- `default_quote_reminder_days int` (default 3)
-- `default_invoice_payment_days int` (default 30)
-- `invoice_overdue_grace_days int` (default 0)
-- `is_vat_registered boolean` (default false)
-- `vat_number text` (used on invoice header when registered)
-- `default_vat_rate_bp int` (basis points, e.g. 1500 = 15%; SA standard)
-- `billing_address text`
-- `logo_path text` (storage path in `agency-branding` bucket)
-- `accent_color text` (hex, default `#064E58` — current teal token)
+- **Roster Shared Folder (read-only)**: list `talent_shared_documents` for the talent's `agency_talent_links.id`, grouped by `folder`, with retention/lock badges, version download via signed URL from `talent-documents` bucket. Read-only — no upload, no delete. Filters: folder, status, expiry.
+- **Private Vault (fully talent-owned)**: real upload/organize/delete of personal docs the agency **cannot** see. New schema (§4). Folder taxonomy = the six categories we already designed in the UI (Personal, Dependents, Health, Insurance, Tax, Pets) with the grouped subfolders. Uploads go to a private bucket keyed by `talent_user_id`.
+- **Document Requests (talent side)**: list pending `agency_document_requests` for the talent's link; "Fulfil" opens upload → writes a `talent_shared_documents` row into the requested folder + updates `agency_document_requests.current_document_id` and status to `submitted`. Requires new talent-side RLS policies (§4).
+- **Loved-One Sharing**: real invite/revoke of an email address, scoped **per Private Vault folder** (not all-or-nothing). Loved-one view is the existing `/loved-one` route reading via a share token or signed session. Flag: **need decision — magic-link email view vs full auth account for loved ones. Assumption: magic-link token per share (simplest, matches current `loved_one_shares` shape).**
+- **Budget & Income**: **recommend deferring**. It's a large standalone feature (transactions, categories, goals) that doesn't depend on the agency backend and won't block Talent going live. Keep the current mock page behind a "Coming soon" state or hide from nav until scoped separately.
+- **Settings**: wire display name / contact / password change / 2FA (mirror admin `/enroll-2fa`) / notification prefs. Sign-out.
 
-**`agency_billing_docs` — new columns**
-- `recipient_address text`, `recipient_vat_number text`, `recipient_email text` (SARS: required on invoices ≥ R5000)
-- `subtotal_cents bigint`, `vat_cents bigint` (persisted totals; `total_cents` becomes gross)
-- `vat_rate_bp int` (rate captured at issue time)
-- `is_vat_invoice boolean` (drives "Tax Invoice" vs "Invoice" header)
-- `acceptance_window_days int`, `payment_terms_days int` (snapshot of settings at issue time so future setting changes don't rewrite old docs)
-- `sent_at timestamptz`, `accepted_at timestamptz`, `paid_at timestamptz` (needed for reminder cadence and overdue math)
+## 4. Schema gaps
 
-**New table `agency_billing_doc_lines`**
-- `id, doc_id (fk), description text, quantity numeric(12,3), unit_price_cents bigint, vat_rate_bp int, sort_order int, timestamps`
-- RLS scoped through parent `doc_id` → `agency_id` membership; standard GRANTs.
+New / changed migrations needed:
 
-**New storage bucket `agency-branding`** (private)
-- RLS on `storage.objects`: read/write scoped to authenticated agency members of the folder-prefix agency. Signed URLs for rendering in preview/PDF.
+**Private Vault**
+- `talent_private_folders(id, talent_user_id, name, parent_id nullable, sort_order, created_at, updated_at)` — talent owns rows; unique (talent_user_id, parent_id, name).
+- `talent_private_documents(id, talent_user_id, folder_id, name, storage_path, mime, size_bytes, created_at, updated_at)` — RLS: `talent_user_id = auth.uid()`.
+- Storage bucket `talent-private` (private). RLS on `storage.objects` scoped to `auth.uid()::text = (storage.foldername(name))[1]`.
+- Seed the six-category taxonomy on first login via a server fn (idempotent), not a trigger, so we can evolve it.
 
-**Sequential numbering**
-- SARS requires unique sequential invoice numbers. Add a Postgres sequence per agency via a `agency_billing_counters(agency_id, kind, next_value)` table + `SELECT ... FOR UPDATE` in a server fn that mints the number at "send" (not draft), so drafts don't burn numbers. Prefix format `INV-{year}-{0000}` / `QT-{year}-{0000}` — configurable later.
+**Document Requests (talent side)**
+- Add SELECT policy: talent can read requests where `talent_link_id.talent_user_id = auth.uid()`.
+- Add UPDATE policy: talent can set `current_document_id` + status → `submitted` on their own requests (agency retains review authority).
 
-## Document component (SARS checklist mapped)
+**Loved-One Sharing**
+- Extend `loved_one_shares`: add `folder_scope text[]` (Private Vault folder names or ids), `token` (opaque), `expires_at`, `revoked_at`, `created_by`.
+- Add talent RLS: talent can CRUD their own rows (`talent_id.user_id = auth.uid()`).
+- Loved-one read path via server fn that validates token → returns folder-scoped file list + signed URLs.
 
-Single React component `BillingDocument` used for both HTML preview and `@react-pdf/renderer` PDF export. Fields, all required for SA tax invoices:
+**Nothing to change** on `talent_shared_documents` — read policy already covers linked talents.
 
-- Header: "Tax Invoice" if `is_vat_invoice`, else "Invoice" / "Quote"
-- Supplier block: agency logo, name, billing address, VAT number (if registered), primary contact
-- Recipient block: client name, address, VAT number (shown on invoices ≥ R5000; validated at send time)
-- Doc meta: sequential number, issue date, due date (invoices) / valid-until (quotes)
-- Line table: description, qty, unit price (excl.), line VAT rate, line VAT, line total (incl.)
-- Totals: Subtotal (excl. VAT), VAT @ rate, **Total incl. VAT**
-- Footer: payment terms, banking details from agency profile, notes
-- Accent color pulled from `agencies.accent_color`; logo from signed URL
+## 5. Build order
 
-Preview dialog: renders the component in a modal with a "Send" button that (a) mints the sequential number if still draft, (b) sets `sent_at`, (c) toggles status to `sent`. "Download PDF" button uses the same component.
+Phased like Agency:
 
-## Settings tab UI (real)
+1. **Foundation** — move `talent.*` under `_authenticated/`, add talent-link loader/gate, split invite landing for talent tokens, wire real logout + settings identity fields. (Unblocks everything.)
+2. **Roster Shared Folder (read-only)** — real list, grouping, signed-URL download, filters. Uses existing schema.
+3. **Private Vault schema + bucket** — migration for `talent_private_folders`, `talent_private_documents`, storage policies, seed helper.
+4. **Private Vault UI** — replace mock folder cards with real CRUD (create/rename/delete folders and subfolders, upload/delete files, keep the Tax subgroup UI we just built).
+5. **Document Requests (talent side)** — new RLS policies, requests inbox on dashboard + vault, fulfil-via-upload flow.
+6. **Dashboard KPIs + activity** — real counts (shared docs, pending requests, expiring soon), recent activity from `talent_shared_documents` + requests.
+7. **Loved-One Sharing** — schema extension, invite/revoke UI, per-folder scope, `/loved-one` token view.
+8. **Talent Activation Wizard** (lightweight) — post-first-login two-step nudge.
+9. **Polish** — notifications bell (dismissible, mirroring admin), search wiring, empty states.
+10. **Budget & Income** — deferred; explicit "coming soon" until separately scoped.
 
-Replace `QuotesInvoicesSettingsPanel` with 4 cards, each with its own Save button and mutation:
+## Ambiguities to confirm before build
 
-1. **Quote Acceptance** — acceptance window (days), reminder cadence (days). Applied as defaults when creating a new quote (snapshot into the row).
-2. **Invoice Payment** — payment terms (net days), overdue grace (days). Applied on invoice create. Overdue visualization: rows past `due_date + grace` get a red "Late" chip automatically in the list even if status is still "sent" — but the enum stays manual per your call, confirmed unless you disagree.
-3. **VAT / Tax** — VAT-registered toggle, VAT number, default VAT rate (%). Toggling registered on with no VAT number is blocked.
-4. **Branding** — logo upload (drag/drop, PNG/JPG/SVG, private bucket, signed URL preview), accent color (preset swatches + custom hex).
-
-## Server functions (new / changed)
-
-New: `getAgencyBillingSettings`, `updateAgencyBillingSettings` (one per card or one combined — leaning combined with partial payloads), `uploadAgencyLogo` (returns storage path), `getAgencyLogoSignedUrl`, `listBillingDocLines`, `upsertBillingDocLines`, `sendBillingDoc` (mints number, sets status).
-
-Changed: `upsertAgencyBillingDoc` accepts line items and computes subtotal/VAT/total server-side (never trust client totals); `listAgencyBillingDocs` returns new snapshot fields.
-
-## What's explicitly out of scope for this pass
-
-- Email delivery of the PDF (blocked on `talvault.com` domain verification — same reason invitations don't send yet). "Send" flips status and mints the number; actual outbound email queues once the domain is live.
-- Automated overdue cron.
-- Multi-currency VAT logic (we still store currency but SARS format assumes ZAR / 15%).
-- Client-side signature capture on quote acceptance.
-
-## Verification steps
-
-- Create a quote with 2 line items at 15% VAT → subtotal, VAT, and gross match hand calc; preview shows all SARS fields.
-- Toggle VAT-registered off → header changes to "Invoice", VAT column hidden, no VAT number rendered.
-- Upload logo + pick accent → preview reflects both; PDF download matches preview.
-- Change default payment terms to 45 → next new invoice pre-fills 45; existing invoices unchanged (snapshot preserved).
-- Send a draft invoice → gets `INV-2026-0001`; next one gets `0002`; drafts deleted before send don't consume numbers.
+- **Talent Activation Wizard depth**: lightweight 2-step as proposed, or richer (ID number, DOB, address, banking for SARS tax records)?
+- **Loved-One access**: magic-link token view (assumed) vs full account signup?
+- **Private Vault folder editability**: are the six top-level categories fixed (talent can only add subfolders) or fully user-editable? Assumption: **fixed top-level, subfolders editable** — matches the "recommended" pattern we designed.
+- **Budget & Income**: confirm deferral, or should it stay in scope as mock-with-persistence?
+- **Invite token route split**: OK to introduce `invite.talent.$token.tsx` alongside `invite.$token.tsx`, or extend the single route?
