@@ -303,6 +303,29 @@ function AuthPage() {
             </div>
           )}
 
+          {denied && !mfaFactorId && (
+            <div className="tv-auth-alert" style={{ marginTop: 18 }}>
+              {denied}
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="tv-auth-link"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      await supabase.auth.signOut();
+                    } finally {
+                      setBusy(false);
+                      nav({ to: "/auth", search: { next: search.next } as never, replace: true });
+                    }
+                  }}
+                >
+                  Sign out and use another account
+                </button>
+              </div>
+            </div>
+          )}
 
 
           {!mfaFactorId && (
