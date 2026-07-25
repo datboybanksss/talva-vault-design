@@ -155,6 +155,10 @@ function AuthPage() {
           setMfaFactorId(totp.id);
           setMfaCode("");
           setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
+        } else if (search.denied) {
+          // The auto-redirect effect is disabled while `denied` is present, so
+          // navigate explicitly (and drop the stale denial from the URL).
+          nav({ to: sanitizeNext(search.next) as any, replace: true });
         }
       } else {
         const { error } = await supabase.auth.signUp({
