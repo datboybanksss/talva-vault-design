@@ -274,6 +274,14 @@ function AuthPage() {
               : `Set up your credentials to access the ${portal.workspace}.`}
           </p>
 
+          {search.reset === "1" && !mfaFactorId && (
+            <div className="tv-auth-alert tv-info" style={{ marginTop: 18 }}>
+              Your password has been updated. Sign in with your new password.
+            </div>
+          )}
+
+
+
           {!mfaFactorId && (
             <>
               <div style={{ marginTop: 22 }}>
