@@ -84,9 +84,13 @@ function AuthPage() {
   const [mfaCode, setMfaCode] = useState("");
 
   const portal = useMemo(() => portalFromNext(search.next), [search.next]);
+  const denied = useMemo(() => deniedMessage(search.denied, portal), [search.denied, portal]);
 
   useEffect(() => {
     let mounted = true;
+    // A portal gate bounced us back here on purpose. Never auto-redirect in
+    // that case — it would loop silently and look like "sign-in does nothing".
+    if (search.denied) return;
     // Only auto-redirect to next when we already have an AAL2 session (or the
     // account has no verified MFA factor). Otherwise we'd bypass the challenge.
     (async () => {
