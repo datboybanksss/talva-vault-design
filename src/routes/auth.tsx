@@ -16,7 +16,7 @@ import {
 
 const searchSchema = z.object({
   next: z.string().optional(),
-  reset: z.coerce.string().optional(),
+  reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
 });
 
 type PortalContext = {
