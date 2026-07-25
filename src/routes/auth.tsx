@@ -16,8 +16,23 @@ import {
 
 const searchSchema = z.object({
   next: z.string().optional(),
+  denied: z.string().optional(),
   reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
 });
+
+function deniedMessage(code: string | undefined, portal: PortalContext): string | null {
+  if (!code) return null;
+  switch (code) {
+    case "not_talent":
+      return "You're signed in, but this account isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.";
+    case "not_agency":
+      return "You're signed in, but this account isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.";
+    case "not_admin":
+      return "You're signed in, but this account doesn't have admin access.";
+    default:
+      return `You don't have access to the ${portal.workspace} with this account.`;
+  }
+}
 
 type PortalContext = {
   key: "admin" | "agency" | "talent" | "loved-one";
