@@ -293,8 +293,31 @@ function PrivateVault() {
                     {f.name}
                     <span className="tvp-folder-count">{subs.length} SUB · {docCount} DOC{docCount === 1 ? "" : "S"}</span>
                   </h3>
+                  {subs.map((s) => {
+                    const kids = subsByParent.get(s.id) ?? [];
+                    if (kids.length === 0) return null;
+                    return (
+                      <div key={s.id} style={{ marginTop: 10 }}>
+                        <div className="tvp-folder-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {s.name}
+                          <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(s.id, s.name)} aria-label="Rename group"><Pencil className="h-3 w-3" /></button>
+                          <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
+                          <button type="button" className="tvp-mini-btn" onClick={() => onAddSubFolder(s.id)} aria-label="Add subfolder"><Plus className="h-3 w-3" /></button>
+                        </div>
+                        <div className="tvp-subfolder-list" style={{ marginTop: 6 }}>
+                          {kids.map((k) => (
+                            <span key={k.id} className="tvp-subfolder-pill">
+                              {k.name}
+                              <button type="button" className="tvp-mini-btn" style={{ marginLeft: 6 }} onClick={() => onRenameFolder(k.id, k.name)} aria-label="Rename subfolder"><Pencil className="h-3 w-3" /></button>
+                              <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(k.id, k.name)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                   <div className="tvp-subfolder-list" style={{ marginTop: 8 }}>
-                    {subs.map((s) => (
+                    {subs.filter((s) => (subsByParent.get(s.id) ?? []).length === 0).map((s) => (
                       <span key={s.id} className="tvp-subfolder-pill">
                         {s.name}
                         <button
@@ -313,6 +336,7 @@ function PrivateVault() {
                       </span>
                     ))}
                   </div>
+
                   <div className="tvp-footer-actions" style={{ marginTop: 12 }}>
                     <button className="tvp-secondary" onClick={() => onAddSubFolder(f.id)}><Plus className="h-4 w-4" /> Subfolder</button>
                     <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
