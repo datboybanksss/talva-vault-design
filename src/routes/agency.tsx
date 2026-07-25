@@ -29,7 +29,10 @@ export const Route = createFileRoute("/agency")({
       .limit(1)
       .maybeSingle();
     if (!member) {
-      throw redirect({ to: "/auth", search: { next: location.href } });
+      throw redirect({
+        to: "/auth",
+        search: { next: location.href, denied: "not_agency" },
+      });
     }
   },
   component: AgencyLayout,

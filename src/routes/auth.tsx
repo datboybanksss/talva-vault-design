@@ -16,8 +16,23 @@ import {
 
 const searchSchema = z.object({
   next: z.string().optional(),
+  denied: z.string().optional(),
   reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
 });
+
+function deniedMessage(code: string | undefined, portal: PortalContext): string | null {
+  if (!code) return null;
+  switch (code) {
+    case "not_talent":
+      return "You're signed in, but this account isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.";
+    case "not_agency":
+      return "You're signed in, but this account isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.";
+    case "not_admin":
+      return "You're signed in, but this account doesn't have admin access.";
+    default:
+      return `You don't have access to the ${portal.workspace} with this account.`;
+  }
+}
 
 type PortalContext = {
   key: "admin" | "agency" | "talent" | "loved-one";
@@ -69,9 +84,13 @@ function AuthPage() {
   const [mfaCode, setMfaCode] = useState("");
 
   const portal = useMemo(() => portalFromNext(search.next), [search.next]);
+  const denied = useMemo(() => deniedMessage(search.denied, portal), [search.denied, portal]);
 
   useEffect(() => {
     let mounted = true;
+    // A portal gate bounced us back here on purpose. Never auto-redirect in
+    // that case — it would loop silently and look like "sign-in does nothing".
+    if (search.denied) return;
     // Only auto-redirect to next when we already have an AAL2 session (or the
     // account has no verified MFA factor). Otherwise we'd bypass the challenge.
     (async () => {
@@ -93,7 +112,7 @@ function AuthPage() {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [nav, search.next]);
+  }, [nav, search.next, search.denied]);
 
   const isSignIn = mode === "sign-in";
 
@@ -136,6 +155,10 @@ function AuthPage() {
           setMfaFactorId(totp.id);
           setMfaCode("");
           setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
+        } else if (search.denied) {
+          // The auto-redirect effect is disabled while `denied` is present, so
+          // navigate explicitly (and drop the stale denial from the URL).
+          nav({ to: sanitizeNext(search.next) as any, replace: true });
         }
       } else {
         const { error } = await supabase.auth.signUp({
@@ -280,6 +303,29 @@ function AuthPage() {
             </div>
           )}
 
+          {denied && !mfaFactorId && (
+            <div className="tv-auth-alert" style={{ marginTop: 18 }}>
+              {denied}
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="tv-auth-link"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      await supabase.auth.signOut();
+                    } finally {
+                      setBusy(false);
+                      nav({ to: "/auth", search: { next: search.next } as never, replace: true });
+                    }
+                  }}
+                >
+                  Sign out and use another account
+                </button>
+              </div>
+            </div>
+          )}
 
 
           {!mfaFactorId && (
