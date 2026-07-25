@@ -36,7 +36,10 @@ export const Route = createFileRoute("/admin")({
       _role: "admin",
     });
     if (!isAdmin) {
-      throw redirect({ to: "/auth", search: { next: location.href } });
+      throw redirect({
+        to: "/auth",
+        search: { next: location.href, denied: "not_admin" },
+      });
     }
 
     if (!ENFORCE_ADMIN_2FA) return;
