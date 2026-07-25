@@ -1665,6 +1665,10 @@ export type Database = {
         Args: { _agency_id: string; _kind: string }
         Returns: string
       }
+      seed_talent_default_folders: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       admin_permission_level: "view_only" | "edit"
