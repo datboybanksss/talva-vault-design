@@ -14,7 +14,10 @@ import {
   friendlyAuthError,
 } from "@/lib/password";
 
-const searchSchema = z.object({ next: z.string().optional() });
+const searchSchema = z.object({
+  next: z.string().optional(),
+  reset: z.string().optional(),
+});
 
 type PortalContext = {
   key: "admin" | "agency" | "talent" | "loved-one";
