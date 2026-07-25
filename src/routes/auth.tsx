@@ -360,7 +360,18 @@ function AuthPage() {
               />
             </div>
             <div className="tv-auth-field">
-              <label htmlFor="password">Password</label>
+              <div className="tv-auth-label-row">
+                <label htmlFor="password">Password</label>
+                {isSignIn && (
+                  <Link
+                    to="/forgot-password"
+                    search={{ next: sanitizeNext(search.next) }}
+                    className="tv-auth-link"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
               <PasswordInput
                 id="password"
                 value={password}
