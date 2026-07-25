@@ -25,7 +25,10 @@ export const Route = createFileRoute("/talent")({
   loader: async () => {
     const ctx = await getTalentContext();
     if (!ctx.profile) {
-      throw redirect({ to: "/auth", search: { next: "/talent" } });
+      throw redirect({
+        to: "/auth",
+        search: { next: "/talent", denied: "not_talent" },
+      });
     }
     return ctx;
   },
