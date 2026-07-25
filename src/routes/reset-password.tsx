@@ -105,7 +105,7 @@ function ResetPasswordPage() {
   };
 
   return (
-    <div className="tv-auth-simple">
+    <div className="tv-auth tv-auth-simple">
       <div className="tv-auth-card">
         <div className="tv-auth-brand" style={{ marginBottom: 18 }}>
           <div className="tv-auth-mark">
