@@ -1020,3 +1020,15 @@
   100% { background-color: transparent; }
 }
 .tvp-row-flash > td { animation: tvp-row-flash-kf 2.2s ease-out; }
+
+/* --- Standalone auth cards (forgot / reset password) --- */
+.tv-auth.tv-auth-simple {
+  display: flex; align-items: center; justify-content: center;
+  padding: 48px 20px; grid-template-columns: none;
+}
+.tv-auth.tv-auth-simple .tv-auth-mark { background: var(--teal); border-color: var(--teal); }
+.tv-auth.tv-auth-simple .tv-auth-brand-sub { color: var(--muted-fg); }
+.tv-auth .tv-auth-label-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.tv-auth .tv-auth-label-row .tv-auth-link { font-size: 11.5px; text-decoration: none; }

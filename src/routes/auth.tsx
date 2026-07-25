@@ -14,7 +14,10 @@ import {
   friendlyAuthError,
 } from "@/lib/password";
 
-const searchSchema = z.object({ next: z.string().optional() });
+const searchSchema = z.object({
+  next: z.string().optional(),
+  reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
+});
 
 type PortalContext = {
   key: "admin" | "agency" | "talent" | "loved-one";
@@ -271,6 +274,14 @@ function AuthPage() {
               : `Set up your credentials to access the ${portal.workspace}.`}
           </p>
 
+          {search.reset === "1" && !mfaFactorId && (
+            <div className="tv-auth-alert tv-info" style={{ marginTop: 18 }}>
+              Your password has been updated. Sign in with your new password.
+            </div>
+          )}
+
+
+
           {!mfaFactorId && (
             <>
               <div style={{ marginTop: 22 }}>
@@ -357,7 +368,18 @@ function AuthPage() {
               />
             </div>
             <div className="tv-auth-field">
-              <label htmlFor="password">Password</label>
+              <div className="tv-auth-label-row">
+                <label htmlFor="password">Password</label>
+                {isSignIn && (
+                  <Link
+                    to="/forgot-password"
+                    search={{ next: sanitizeNext(search.next) }}
+                    className="tv-auth-link"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
               <PasswordInput
                 id="password"
                 value={password}

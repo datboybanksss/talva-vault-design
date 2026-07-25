@@ -93,7 +93,7 @@ function TalentSettings() {
     setSendingReset(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${window.location.origin}/reset-password?next=%2Ftalent`,
       });
       if (error) throw error;
       toast.success(`Reset link sent to ${email}`);
