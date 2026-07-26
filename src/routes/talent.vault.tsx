@@ -22,7 +22,9 @@ import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Pencil, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
+  ChevronDown,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/talent/vault")({
   head: () => ({ meta: [{ title: "Vault · TalVault Talent" }] }),
@@ -106,6 +108,15 @@ function PrivateVault() {
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterFolder, setFilterFolder] = useState<string>("__all");
+  const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
+  const toggleFolder = (id: string) =>
+    setOpenFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["talent", "private-vault"],
@@ -142,17 +153,7 @@ function PrivateVault() {
     }
   }
 
-  async function onAddSubFolder(parentId: string) {
-    const name = window.prompt("New subfolder name")?.trim();
-    if (!name) return;
-    try {
-      await createFolder({ data: { name, parent_id: parentId } });
-      toast.success("Subfolder created.");
-      invalidate();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not create subfolder.");
-    }
-  }
+
 
   async function onRenameFolder(id: string, current: string) {
     const name = window.prompt("Rename folder", current)?.trim();
@@ -284,15 +285,31 @@ function PrivateVault() {
             {topFolders.map((f) => {
               const subs = subsByParent.get(f.id) ?? [];
               const docCount = documents.filter((d) => d.folder_id === f.id).length;
+              const open = openFolders.has(f.id);
               return (
-                <div key={f.id} className="tvp-folder-card">
-                  <h3>
+                <div key={f.id} className={`tvp-folder-card${open ? "" : " tvp-collapsed"}`}>
+                  <h3
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={open}
+                    onClick={() => toggleFolder(f.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleFolder(f.id); }
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
                     <span className={`tvp-kpi-icon tvp-bg-${f.tone ?? "teal"}`} style={{ width: 34, height: 34 }}>
                       <Folder className="h-4 w-4" />
                     </span>
                     {f.name}
                     <span className="tvp-folder-count">{subs.length} SUB · {docCount} DOC{docCount === 1 ? "" : "S"}</span>
+                    <ChevronDown
+                      className="h-4 w-4 tvp-folder-chevron"
+                      style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s ease", flexShrink: 0 }}
+                    />
                   </h3>
+                  {open && (
+                    <>
                   {subs.map((s) => {
                     const kids = subsByParent.get(s.id) ?? [];
                     if (kids.length === 0) return null;
@@ -302,7 +319,6 @@ function PrivateVault() {
                           {s.name}
                           <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(s.id, s.name)} aria-label="Rename group"><Pencil className="h-3 w-3" /></button>
                           <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
-                          <button type="button" className="tvp-mini-btn" onClick={() => onAddSubFolder(s.id)} aria-label="Add subfolder"><Plus className="h-3 w-3" /></button>
                         </div>
                         <div className="tvp-subfolder-list" style={{ marginTop: 6 }}>
                           {kids.map((k) => (
@@ -338,15 +354,17 @@ function PrivateVault() {
                   </div>
 
                   <div className="tvp-footer-actions" style={{ marginTop: 12 }}>
-                    <button className="tvp-secondary" onClick={() => onAddSubFolder(f.id)}><Plus className="h-4 w-4" /> Subfolder</button>
                     <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
                     <button className="tvp-mini-btn" onClick={() => onRenameFolder(f.id, f.name)} aria-label="Rename folder"><Pencil className="h-4 w-4" /></button>
                     <button className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name)} aria-label="Delete folder"><Trash2 className="h-4 w-4" /></button>
                   </div>
+                    </>
+                  )}
                 </div>
               );
             })}
           </div>
+
         )}
       </div>
 
