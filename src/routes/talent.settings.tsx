@@ -10,7 +10,7 @@ export const Route = createFileRoute("/talent/settings")({
   component: TalentSettings,
 });
 
-type Mode = "profile" | "account" | "relationship" | "notifications";
+type Mode = "profile" | "account" | "folders" | "relationship" | "notifications";
 
 const notifications = [
   "Agency shares a document",
