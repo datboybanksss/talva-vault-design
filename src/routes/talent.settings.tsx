@@ -4,13 +4,14 @@ import { Info, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { updateTalentProfile } from "@/lib/talent.functions";
+import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 
 export const Route = createFileRoute("/talent/settings")({
   head: () => ({ meta: [{ title: "Settings · TalVault Talent" }] }),
   component: TalentSettings,
 });
 
-type Mode = "profile" | "account" | "relationship" | "notifications";
+type Mode = "profile" | "account" | "folders" | "relationship" | "notifications";
 
 const notifications = [
   "Agency shares a document",
@@ -116,6 +117,8 @@ function TalentSettings() {
       <div className="tvp-tabs">
         <button className={`tvp-tab${mode === "profile" ? " tvp-active" : ""}`} onClick={() => setMode("profile")}>Profile</button>
         <button className={`tvp-tab${mode === "account" ? " tvp-active" : ""}`} onClick={() => setMode("account")}>Account</button>
+        <button className={`tvp-tab${mode === "folders" ? " tvp-active" : ""}`} onClick={() => setMode("folders")}>Vault Folders</button>
+
         <button className={`tvp-tab${mode === "relationship" ? " tvp-active" : ""}`} onClick={() => setMode("relationship")}>Agency Relationship</button>
         <button className={`tvp-tab${mode === "notifications" ? " tvp-active" : ""}`} onClick={() => setMode("notifications")}>Notifications</button>
       </div>
@@ -195,6 +198,8 @@ function TalentSettings() {
           </div>
         </div>
       )}
+
+      {mode === "folders" && <VaultFoldersPanel />}
 
       {mode === "relationship" && (
         <div className="tvp-card tvp-panel">

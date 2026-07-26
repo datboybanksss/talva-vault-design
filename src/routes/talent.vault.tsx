@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Pencil, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
-  ChevronDown,
+  ChevronDown, Search,
 } from "lucide-react";
 
 
@@ -264,6 +264,22 @@ function PrivateVault() {
         </div>
       </div>
 
+      <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
+        <div className="tvp-vault-search">
+          <Search />
+          <input
+            placeholder="Search private documents..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <select className="tvp-vault-select" value={filterFolder} onChange={(e) => setFilterFolder(e.target.value)}>
+          <option value="__all">Folder: All</option>
+          <option value="__unfiled">Unfiled</option>
+          {topFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+      </div>
+
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <div>
@@ -284,82 +300,72 @@ function PrivateVault() {
           <div className="tvp-folder-tree">
             {topFolders.map((f) => {
               const subs = subsByParent.get(f.id) ?? [];
+              const groups = subs.filter((s) => (subsByParent.get(s.id) ?? []).length > 0);
+              const leaves = subs.filter((s) => (subsByParent.get(s.id) ?? []).length === 0);
               const docCount = documents.filter((d) => d.folder_id === f.id).length;
               const open = openFolders.has(f.id);
               return (
-                <div key={f.id} className={`tvp-folder-card${open ? "" : " tvp-collapsed"}`}>
-                  <h3
-                    role="button"
-                    tabIndex={0}
+                <div key={f.id} className={`tvp-folder-card${open ? " tvp-open" : ""}`}>
+                  <button
+                    type="button"
+                    className="tvp-folder-head"
                     aria-expanded={open}
                     onClick={() => toggleFolder(f.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleFolder(f.id); }
-                    }}
-                    style={{ cursor: "pointer" }}
                   >
-                    <span className={`tvp-kpi-icon tvp-bg-${f.tone ?? "teal"}`} style={{ width: 34, height: 34 }}>
+                    <span className={`tvp-kpi-icon tvp-bg-${f.tone ?? "teal"}`} style={{ width: 40, height: 40 }}>
                       <Folder className="h-4 w-4" />
                     </span>
-                    {f.name}
-                    <span className="tvp-folder-count">{subs.length} SUB · {docCount} DOC{docCount === 1 ? "" : "S"}</span>
-                    <ChevronDown
-                      className="h-4 w-4 tvp-folder-chevron"
-                      style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s ease", flexShrink: 0 }}
-                    />
-                  </h3>
-                  {open && (
-                    <>
-                  {subs.map((s) => {
-                    const kids = subsByParent.get(s.id) ?? [];
-                    if (kids.length === 0) return null;
-                    return (
-                      <div key={s.id} style={{ marginTop: 10 }}>
-                        <div className="tvp-folder-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          {s.name}
-                          <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(s.id, s.name)} aria-label="Rename group"><Pencil className="h-3 w-3" /></button>
-                          <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
-                        </div>
-                        <div className="tvp-subfolder-list" style={{ marginTop: 6 }}>
-                          {kids.map((k) => (
-                            <span key={k.id} className="tvp-subfolder-pill">
-                              {k.name}
-                              <button type="button" className="tvp-mini-btn" style={{ marginLeft: 6 }} onClick={() => onRenameFolder(k.id, k.name)} aria-label="Rename subfolder"><Pencil className="h-3 w-3" /></button>
-                              <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(k.id, k.name)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
-                            </span>
-                          ))}
+                    <span style={{ minWidth: 0 }}>
+                      <span className="tvp-folder-name" style={{ display: "block" }}>{f.name}</span>
+                      <span className="tvp-folder-meta" style={{ display: "block" }}>
+                        {subs.length} sub · {docCount} doc{docCount === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
+                  </button>
+
+                  <div className="tvp-folder-body">
+                    <div>
+                      <div className="tvp-folder-body-inner">
+                        {groups.map((s) => (
+                          <div key={s.id}>
+                            <div className="tvp-folder-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              {s.name}
+                              <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(s.id, s.name)} aria-label="Rename group"><Pencil className="h-3 w-3" /></button>
+                              <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
+                            </div>
+                            <div className="tvp-subfolder-list" style={{ marginTop: 6 }}>
+                              {(subsByParent.get(s.id) ?? []).map((k) => (
+                                <span key={k.id} className="tvp-subfolder-pill">
+                                  {k.name}
+                                  <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(k.id, k.name)} aria-label="Rename subfolder"><Pencil className="h-3 w-3" /></button>
+                                  <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(k.id, k.name)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+
+                        {leaves.length > 0 && (
+                          <div className="tvp-subfolder-list">
+                            {leaves.map((s) => (
+                              <span key={s.id} className="tvp-subfolder-pill">
+                                {s.name}
+                                <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(s.id, s.name)} aria-label="Rename subfolder"><Pencil className="h-3 w-3" /></button>
+                                <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="tvp-footer-actions" style={{ marginTop: 2 }}>
+                          <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
+                          <button className="tvp-mini-btn" onClick={() => onRenameFolder(f.id, f.name)} aria-label="Rename folder"><Pencil className="h-4 w-4" /></button>
+                          <button className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name)} aria-label="Delete folder"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
-                    );
-                  })}
-                  <div className="tvp-subfolder-list" style={{ marginTop: 8 }}>
-                    {subs.filter((s) => (subsByParent.get(s.id) ?? []).length === 0).map((s) => (
-                      <span key={s.id} className="tvp-subfolder-pill">
-                        {s.name}
-                        <button
-                          type="button"
-                          className="tvp-mini-btn"
-                          style={{ marginLeft: 6 }}
-                          onClick={() => onRenameFolder(s.id, s.name)}
-                          aria-label="Rename subfolder"
-                        ><Pencil className="h-3 w-3" /></button>
-                        <button
-                          type="button"
-                          className="tvp-mini-btn"
-                          onClick={() => onDeleteFolder(s.id, s.name)}
-                          aria-label="Delete subfolder"
-                        ><Trash2 className="h-3 w-3" /></button>
-                      </span>
-                    ))}
+                    </div>
                   </div>
-
-                  <div className="tvp-footer-actions" style={{ marginTop: 12 }}>
-                    <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
-                    <button className="tvp-mini-btn" onClick={() => onRenameFolder(f.id, f.name)} aria-label="Rename folder"><Pencil className="h-4 w-4" /></button>
-                    <button className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name)} aria-label="Delete folder"><Trash2 className="h-4 w-4" /></button>
-                  </div>
-                    </>
-                  )}
                 </div>
               );
             })}
@@ -369,21 +375,7 @@ function PrivateVault() {
       </div>
 
       <div className="tvp-card" style={{ marginTop: 22 }}>
-        <div className="tvp-toolbar">
-          <input
-            className="tvp-search"
-            placeholder="Search private documents..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <div className="tvp-row-actions">
-            <select className="tvp-select" value={filterFolder} onChange={(e) => setFilterFolder(e.target.value)}>
-              <option value="__all">Folder: All</option>
-              <option value="__unfiled">Unfiled</option>
-              {topFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
-          </div>
-        </div>
+
         {filteredDocs.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
             {documents.length === 0 ? "Nothing uploaded yet — pick a folder above and upload your first document." : "No documents match your filters."}
