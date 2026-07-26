@@ -241,3 +241,80 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+const RestoreDefaultInput = z.object({ name: z.string().trim().min(1).max(120) });
+
+/**
+ * Re-create a deleted default top-level category with its full recommended
+ * subfolder set (including the "Other" catch-all). No-op if it already exists.
+ */
+export const restoreDefaultFolder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RestoreDefaultInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { DEFAULT_CATEGORIES } = await import("./talent-vault-defaults");
+    const cat = DEFAULT_CATEGORIES.find((c) => c.name === data.name);
+    if (!cat) throw new Error("Unknown default category.");
+
+    const { data: existing } = await supabase
+      .from("talent_private_folders")
+      .select("id")
+      .eq("user_id", userId)
+      .is("parent_id", null)
+      .eq("name", cat.name)
+      .maybeSingle();
+    if (existing?.id) return { id: existing.id, restored: false };
+
+    const { data: top, error: topErr } = await supabase
+      .from("talent_private_folders")
+      .insert({
+        user_id: userId,
+        parent_id: null,
+        name: cat.name,
+        icon: cat.icon,
+        tone: cat.tone,
+        sort_order: cat.sort_order,
+      })
+      .select("id")
+      .single();
+    if (topErr) throw new Error(topErr.message);
+
+    const rows: Array<{ user_id: string; parent_id: string; name: string; sort_order: number }> = [];
+    let order = 0;
+    for (const child of cat.children ?? []) {
+      rows.push({ user_id: userId, parent_id: top.id, name: child, sort_order: order++ });
+    }
+    if (rows.length) {
+      const { error } = await supabase.from("talent_private_folders").insert(rows);
+      if (error) throw new Error(error.message);
+    }
+
+    let groupOrder = 0;
+    for (const group of cat.groups ?? []) {
+      const { data: g, error: gErr } = await supabase
+        .from("talent_private_folders")
+        .insert({ user_id: userId, parent_id: top.id, name: group.name, sort_order: groupOrder++ })
+        .select("id")
+        .single();
+      if (gErr) throw new Error(gErr.message);
+      const kids = group.children.map((name, i) => ({
+        user_id: userId,
+        parent_id: g.id,
+        name,
+        sort_order: i,
+      }));
+      if (kids.length) {
+        const { error } = await supabase.from("talent_private_folders").insert(kids);
+        if (error) throw new Error(error.message);
+      }
+    }
+
+    const otherOrder = cat.groups?.length ? 99 : order;
+    const { error: otherErr } = await supabase
+      .from("talent_private_folders")
+      .insert({ user_id: userId, parent_id: top.id, name: "Other", sort_order: otherOrder });
+    if (otherErr) throw new Error(otherErr.message);
+
+    return { id: top.id, restored: true };
+  });
