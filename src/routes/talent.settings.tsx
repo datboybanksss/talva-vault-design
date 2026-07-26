@@ -4,6 +4,7 @@ import { Info, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { updateTalentProfile } from "@/lib/talent.functions";
+import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 
 export const Route = createFileRoute("/talent/settings")({
   head: () => ({ meta: [{ title: "Settings · TalVault Talent" }] }),
@@ -197,6 +198,8 @@ function TalentSettings() {
           </div>
         </div>
       )}
+
+      {mode === "folders" && <VaultFoldersPanel />}
 
       {mode === "relationship" && (
         <div className="tvp-card tvp-panel">
