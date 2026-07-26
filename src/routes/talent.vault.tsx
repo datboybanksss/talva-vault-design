@@ -108,6 +108,15 @@ function PrivateVault() {
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterFolder, setFilterFolder] = useState<string>("__all");
+  const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
+  const toggleFolder = (id: string) =>
+    setOpenFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["talent", "private-vault"],
