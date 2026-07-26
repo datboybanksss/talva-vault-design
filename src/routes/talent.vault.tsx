@@ -153,17 +153,7 @@ function PrivateVault() {
     }
   }
 
-  async function onAddSubFolder(parentId: string) {
-    const name = window.prompt("New subfolder name")?.trim();
-    if (!name) return;
-    try {
-      await createFolder({ data: { name, parent_id: parentId } });
-      toast.success("Subfolder created.");
-      invalidate();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not create subfolder.");
-    }
-  }
+
 
   async function onRenameFolder(id: string, current: string) {
     const name = window.prompt("Rename folder", current)?.trim();
