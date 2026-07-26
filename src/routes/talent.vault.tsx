@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Pencil, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
-  ChevronDown,
+  ChevronDown, Search, RotateCcw,
 } from "lucide-react";
 
 
