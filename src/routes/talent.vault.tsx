@@ -22,7 +22,9 @@ import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Pencil, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
+  ChevronDown,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/talent/vault")({
   head: () => ({ meta: [{ title: "Vault · TalVault Talent" }] }),
