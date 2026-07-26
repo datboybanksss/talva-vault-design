@@ -743,7 +743,8 @@
   & .tvp-folder-card.tvp-open .tvp-folder-chevron { transform: rotate(180deg); }
   & .tvp-folder-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .26s cubic-bezier(.4,0,.2,1); }
   & .tvp-folder-card.tvp-open .tvp-folder-body { grid-template-rows: 1fr; }
-  & .tvp-folder-body > div { overflow: hidden; min-height: 0; }
+  & .tvp-folder-body > div { overflow: hidden; min-height: 0; visibility: hidden; transition: visibility .26s; }
+  & .tvp-folder-card.tvp-open .tvp-folder-body > div { visibility: visible; }
   & .tvp-folder-body-inner { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--tvp-line); margin: 0 4px; padding-top: 12px; }
   & .tvp-folder-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--tvp-muted); font-weight: 900; }
   & .tvp-subfolder-list { display: flex; flex-wrap: wrap; gap: 6px; }
