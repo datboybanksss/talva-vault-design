@@ -300,7 +300,7 @@ function PrivateVault() {
         <select className="tvp-vault-select" value={filterFolder} onChange={(e) => setFilterFolder(e.target.value)}>
           <option value="__all">Folder: All</option>
           <option value="__unfiled">Unfiled</option>
-          {topFolders.map((f) => <option key={f.id} value={f.name}>{f.name}</option>)}
+          {topFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
         <button
           type="button"
