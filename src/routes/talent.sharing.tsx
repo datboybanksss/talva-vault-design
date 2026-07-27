@@ -26,6 +26,8 @@ function SharingPage() {
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [fresh, setFresh] = useState<FreshShare | null>(null);
+  const [codeModal, setCodeModal] = useState<FreshShare | null>(null);
+
 
   const { data, isLoading } = useQuery({ queryKey: ["talent", "loved-shares"], queryFn: () => load() });
 
@@ -44,7 +46,7 @@ function SharingPage() {
     if (!confirm("Issue a new access code? The previous code stops working immediately.")) return;
     try {
       const { access_code } = await regen({ data: { id: s.id } });
-      setFresh({
+      setCodeModal({
         link: `${window.location.origin}/loved-one/${s.token}`,
         code: access_code,
         email: { sent: false, reason: "regenerated" },
@@ -55,6 +57,7 @@ function SharingPage() {
       toast.error(e?.message ?? "Failed to regenerate code");
     }
   }
+
 
   function copyLink(token: string) {
     navigator.clipboard.writeText(`${window.location.origin}/loved-one/${token}`);
@@ -186,56 +189,90 @@ function SharingPage() {
           }}
         />
       )}
+
+      {codeModal && <AccessCodeModal fresh={codeModal} onClose={() => setCodeModal(null)} />}
+
     </>
   );
 }
 
 function FreshSharePanel({ fresh, onDismiss }: { fresh: FreshShare; onDismiss: () => void }) {
+  const [showCode, setShowCode] = useState(false);
   return (
-    <div className="tvp-callout" style={{ background: "#EFF6FF", borderColor: "#BFDBFE", alignItems: "flex-start" }}>
-      <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
-      <div style={{ flex: 1 }}>
-        <strong>Share ready for {fresh.recipient}.</strong>
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <input readOnly value={fresh.link} style={{ flex: 1, padding: "8px 10px", fontSize: 12, border: "1px solid #d4d4d8", borderRadius: 6 }} />
-          <button className="tvp-primary" onClick={() => { navigator.clipboard.writeText(fresh.link); toast.success("Link copied"); }}>
-            <Copy className="h-4 w-4" /> Copy link
-          </button>
-        </div>
-
-        <div style={{ marginTop: 12, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 13 }}>
-            <Lock className="h-4 w-4" /> Access code — shown once, copy it now
-          </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
-            <code style={{ flex: 1, fontSize: 20, letterSpacing: 3, fontFamily: "monospace", background: "white", border: "1px solid #FDE68A", borderRadius: 6, padding: "8px 12px", textAlign: "center" }}>
-              {fresh.code}
-            </code>
-            <button className="tvp-secondary" onClick={() => { navigator.clipboard.writeText(fresh.code); toast.success("Access code copied"); }}>
-              <Copy className="h-4 w-4" /> Copy code
+    <>
+      <div className="tvp-callout" style={{ background: "#EFF6FF", borderColor: "#BFDBFE" }}>
+        <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <strong>Share ready for {fresh.recipient}.</strong>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="tvp-secondary" onClick={() => { navigator.clipboard.writeText(fresh.link); toast.success("Link copied"); }}>
+              <Copy className="h-4 w-4" /> Copy link
+            </button>
+            <button className="tvp-primary" onClick={() => setShowCode(true)}>
+              <Lock className="h-4 w-4" /> View access code
             </button>
           </div>
-          <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
-            Send this to {fresh.recipient} <strong>separately from the link</strong> — by phone or message.
-            We never include it in email. If it's lost, issue a new code from the table.
-          </p>
         </div>
+        <button className="tvp-mini-btn" onClick={onDismiss} aria-label="Dismiss"><X className="h-4 w-4" /></button>
+      </div>
+      {showCode && <AccessCodeModal fresh={fresh} onClose={() => setShowCode(false)} />}
+    </>
+  );
+}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12 }} className="tvp-muted">
-          <Mail className="h-3 w-3" />
-          {fresh.email.sent
-            ? "Notification email sent to your Loved One (link only, no code)."
-            : fresh.email.reason === "email_not_configured"
-              ? "Email sending isn't set up on this project yet — copy the link and send it yourself."
-              : fresh.email.reason === "regenerated"
-                ? "New code issued. The link is unchanged."
-                : "Notification email wasn't sent — copy the link and send it yourself."}
+function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () => void }) {
+  return (
+    <div className="tvp-modal-backdrop" onClick={onClose}>
+      <div className="tvp-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+        <div className="tvp-modal-head">
+          <h2 className="tvp-h2"><Lock className="h-5 w-5" /> Access code</h2>
+          <button className="tvp-mini-btn" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="tvp-modal-body">
+          <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 13 }}>
+              <Lock className="h-4 w-4" /> Shown once — copy it now
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+              <code style={{ flex: 1, fontSize: 20, letterSpacing: 3, fontFamily: "monospace", background: "white", border: "1px solid #FDE68A", borderRadius: 6, padding: "8px 12px", textAlign: "center" }}>
+                {fresh.code}
+              </code>
+              <button className="tvp-secondary" onClick={() => { navigator.clipboard.writeText(fresh.code); toast.success("Access code copied"); }}>
+                <Copy className="h-4 w-4" /> Copy code
+              </button>
+            </div>
+            <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+              Send this to {fresh.recipient} <strong>separately from the link</strong> — by phone or message.
+              We never include it in email. If it's lost, issue a new code from the table.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <input readOnly value={fresh.link} style={{ flex: 1, padding: "8px 10px", fontSize: 12, border: "1px solid #d4d4d8", borderRadius: 6 }} />
+            <button className="tvp-secondary" onClick={() => { navigator.clipboard.writeText(fresh.link); toast.success("Link copied"); }}>
+              <Copy className="h-4 w-4" /> Copy link
+            </button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12 }} className="tvp-muted">
+            <Mail className="h-3 w-3" />
+            {fresh.email.sent
+              ? "Notification email sent to your Loved One (link only, no code)."
+              : fresh.email.reason === "email_not_configured"
+                ? "Email sending isn't set up on this project yet — copy the link and send it yourself."
+                : fresh.email.reason === "regenerated"
+                  ? "New code issued. The link is unchanged."
+                  : "Notification email wasn't sent — copy the link and send it yourself."}
+          </div>
+        </div>
+        <div className="tvp-modal-foot">
+          <button className="tvp-primary" onClick={onClose}>Done</button>
         </div>
       </div>
-      <button className="tvp-mini-btn" onClick={onDismiss} aria-label="Dismiss"><X className="h-4 w-4" /></button>
     </div>
   );
 }
+
 
 function NewShareModal({ onClose, onCreated }: { onClose: () => void; onCreated: (f: FreshShare) => void }) {
   const loadVault = useServerFn(listPrivateVault);
