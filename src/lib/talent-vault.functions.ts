@@ -243,8 +243,9 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
 const RestoreDefaultInput = z.object({ name: z.string().trim().min(1).max(120) });
 
 /**
- * Re-create a deleted default top-level category with its full recommended
- * subfolder set (including the "Other" catch-all). No-op if it already exists.
+ * Restore a default top-level category. If a soft-removed instance exists it is
+ * simply un-hidden (documents and subfolders preserved); otherwise the full
+ * recommended subfolder set (including "Other") is re-created fresh.
  */
 export const restoreDefaultFolder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -257,12 +258,23 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
 
     const { data: existing } = await supabase
       .from("talent_private_folders")
-      .select("id")
+      .select("id, removed_at")
       .eq("user_id", userId)
       .is("parent_id", null)
       .eq("name", cat.name)
+      .order("removed_at", { ascending: true, nullsFirst: true })
+      .limit(1)
       .maybeSingle();
-    if (existing?.id) return { id: existing.id, restored: false };
+
+    if (existing?.id && !existing.removed_at) return { id: existing.id, restored: false };
+    if (existing?.id) {
+      const { error } = await supabase
+        .from("talent_private_folders")
+        .update({ removed_at: null })
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+      return { id: existing.id, restored: true, unhidden: true };
+    }
 
     const { data: top, error: topErr } = await supabase
       .from("talent_private_folders")
