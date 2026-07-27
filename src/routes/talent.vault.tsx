@@ -22,24 +22,33 @@ import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
-  ChevronDown, Search, ArrowRight,
+  ChevronDown, Search,
 } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/talent/vault")({
   head: () => ({ meta: [{ title: "Vault · TalVault Talent" }] }),
-  validateSearch: (search: Record<string, unknown>): { tab?: Mode } => {
+  validateSearch: (search: Record<string, unknown>): { tab?: Mode; view?: AgencyView } => {
     const t = search.tab;
-    return t === "private" || t === "agency" || t === "requests" ? { tab: t } : {};
+    const v = search.view;
+    // Legacy deep links used ?tab=requests before Requests was merged into
+    // the Agency Shared Folder tab.
+    if (t === "requests") return { tab: "agency", view: "requests" };
+    const out: { tab?: Mode; view?: AgencyView } = {};
+    if (t === "private" || t === "agency") out.tab = t;
+    if (v === "requests" || v === "folder") out.view = v;
+    return out;
   },
   component: VaultPage,
 });
 
 
-type Mode = "private" | "agency" | "requests";
+type Mode = "private" | "agency";
+type AgencyView = "folder" | "requests";
 
 function VaultPage() {
-  const { tab } = useSearch({ from: "/talent/vault" });
+  const { tab, view } = useSearch({ from: "/talent/vault" });
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>(tab ?? "private");
 
@@ -69,22 +78,18 @@ function VaultPage() {
         <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => goTo("agency")}>
           <FileStack className="h-4 w-4" /> Agency Shared Folder
         </button>
-        <button className={`tvp-tab${mode === "requests" ? " tvp-active" : ""}`} onClick={() => goTo("requests")}>
-          <Inbox className="h-4 w-4" /> Manager Requests
-        </button>
       </div>
 
       {mode === "private" && <PrivateVault />}
 
-      {mode === "agency" && <AgencySharedFolder onOpenRequests={() => goTo("requests")} />}
-
-      {mode === "requests" && <ManagerRequests />}
+      {mode === "agency" && <AgencySharedFolder initialView={view ?? "folder"} />}
 
 
 
     </>
   );
 }
+
 
 type PrivateFolder = {
   id: string;
@@ -485,12 +490,54 @@ function statusTone(status: string) {
   }
 }
 
-function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) {
-  const load = useServerFn(getRosterSharedContents);
+function AgencySharedFolder({ initialView }: { initialView: AgencyView }) {
+  const navigate = useNavigate();
+  const [view, setView] = useState<AgencyView>(initialView);
+  useEffect(() => { setView(initialView); }, [initialView]);
+
   const loadDash = useServerFn(getTalentDashboard);
   const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
   const actionRequests = (dash as any)?.actionRequests ?? 0;
+
+  const go = (next: AgencyView) => {
+    setView(next);
+    navigate({ to: "/talent/vault", search: { tab: "agency", view: next }, replace: true });
+  };
+
+  return (
+    <>
+      <div className="tvp-subtabs" role="tablist" aria-label="Agency Shared Folder sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "folder"}
+          className={`tvp-subtab${view === "folder" ? " tvp-active" : ""}`}
+          onClick={() => go("folder")}
+        >
+          <FolderOpen className="h-4 w-4" /> Shared documents
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "requests"}
+          className={`tvp-subtab${view === "requests" ? " tvp-active" : ""}`}
+          onClick={() => go("requests")}
+        >
+          <Inbox className="h-4 w-4" /> Requests from your Manager
+          {actionRequests > 0 && <span className="tvp-subtab-badge">{actionRequests}</span>}
+        </button>
+      </div>
+
+      {view === "folder" ? <SharedDocumentsView /> : <ManagerRequests />}
+    </>
+  );
+}
+
+function SharedDocumentsView() {
+
+  const load = useServerFn(getRosterSharedContents);
   const download = useServerFn(getSharedDocumentDownloadUrl);
+
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("__all");
   const [showAllDocs, setShowAllDocs] = useState(false);
@@ -537,18 +584,7 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
 
   return (
     <>
-      {actionRequests > 0 && (
-        <button type="button" className="tvp-callout tvp-callout-action" onClick={onOpenRequests}>
-          <div className="tvp-callout-icon tvp-bg-amber"><Inbox className="h-4 w-4" /></div>
-          <div style={{ textAlign: "left" }}>
-            <strong>
-              {actionRequests} pending request{actionRequests === 1 ? "" : "s"} from your Manager
-            </strong>{" "}
-            <span className="tvp-muted">Upload the requested documents to keep your shared folder compliant.</span>
-          </div>
-          <ArrowRight className="h-4 w-4" style={{ marginLeft: "auto", flexShrink: 0 }} />
-        </button>
-      )}
+
 
 
 
@@ -777,7 +813,7 @@ function ManagerRequests() {
         ) : (
           <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
             {open.map((r: any) => (
-              <div key={r.id} className="tvp-doc-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+              <div key={r.id} className="tvp-doc-card" style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10 }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                   <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 38, height: 38, flexShrink: 0 }}>
                     {r.status === "resubmission_required" ? <AlertCircle className="h-4 w-4" /> : <ClockIcon className="h-4 w-4" />}
