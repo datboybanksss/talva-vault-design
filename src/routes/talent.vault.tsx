@@ -813,7 +813,7 @@ function ManagerRequests() {
         ) : (
           <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
             {open.map((r: any) => (
-              <div key={r.id} className="tvp-doc-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+              <div key={r.id} className="tvp-doc-card" style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10 }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                   <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 38, height: 38, flexShrink: 0 }}>
                     {r.status === "resubmission_required" ? <AlertCircle className="h-4 w-4" /> : <ClockIcon className="h-4 w-4" />}
