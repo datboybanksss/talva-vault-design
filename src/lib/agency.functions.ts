@@ -212,6 +212,8 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
       newTalentThisMonth: newThisMonthRes.count ?? 0,
       fullyCompliantCount,
       activeTalentCount: activeCount,
+      expiryNoticeDays,
+
     };
 
   });
