@@ -37,6 +37,40 @@ export const getTalentContext = createServerFn({ method: "GET" })
     return { profile, link, agency };
   });
 
+/**
+ * Notification preferences — currently just the expiry-warning window used by
+ * the dashboard "Expiring {N}d" tile.
+ */
+export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("talent_profiles")
+      .select("expiry_notice_days")
+      .eq("user_id", userId)
+      .maybeSingle();
+    return { expiryNoticeDays: data?.expiry_notice_days ?? 30 };
+  });
+
+const NotificationPrefsInput = z.object({
+  expiry_notice_days: z.number().int().min(1).max(365),
+});
+
+export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => NotificationPrefsInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("talent_profiles")
+      .update({ expiry_notice_days: data.expiry_notice_days })
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, expiryNoticeDays: data.expiry_notice_days };
+  });
+
+
 const UpdateProfileInput = z.object({
   full_name: z.string().trim().min(1).max(160),
   talent_type: z.string().trim().max(80).nullable().optional(),
@@ -324,6 +358,13 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
+    const { data: prefRow } = await supabase
+      .from("talent_profiles")
+      .select("expiry_notice_days")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const expiryNoticeDays = prefRow?.expiry_notice_days ?? 30;
+
     const { data: link } = await supabase
       .from("agency_talent_links")
       .select("id, agency_id")
@@ -349,12 +390,12 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
 
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const in30 = new Date(Date.now() + 30 * 86400_000).toISOString();
+      const expiryCutoff = new Date(Date.now() + expiryNoticeDays * 86400_000).toISOString();
       const [sc, sf, ec, or, rr, pr, rec] = await Promise.all([
         supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
         supabaseAdmin.from("agency_talent_folders").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
         supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true })
-          .eq("talent_link_id", link.id).not("validity_expires_at", "is", null).lt("validity_expires_at", in30),
+          .eq("talent_link_id", link.id).not("validity_expires_at", "is", null).lt("validity_expires_at", expiryCutoff),
         supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
           .eq("talent_link_id", link.id).in("status", ["pending", "submitted"]),
         supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
@@ -383,6 +424,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       sharedFolders: sharedFolderCount,
 
       expiringSoon: expiringCount,
+      expiryNoticeDays,
       openRequests,
       resubRequests,
       pendingRequests,

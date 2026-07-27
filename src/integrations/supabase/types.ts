@@ -1407,6 +1407,7 @@ export type Database = {
           date_of_birth: string | null
           deleted_at: string | null
           email: string | null
+          expiry_notice_days: number
           full_name: string
           id: string
           id_number: string | null
@@ -1429,6 +1430,7 @@ export type Database = {
           date_of_birth?: string | null
           deleted_at?: string | null
           email?: string | null
+          expiry_notice_days?: number
           full_name: string
           id?: string
           id_number?: string | null
@@ -1451,6 +1453,7 @@ export type Database = {
           date_of_birth?: string | null
           deleted_at?: string | null
           email?: string | null
+          expiry_notice_days?: number
           full_name?: string
           id?: string
           id_number?: string | null

@@ -27,7 +27,7 @@ function TalentDashboard() {
   const kpis = [
     { to: "/talent/vault", tone: "teal", Icon: Lock, value: data?.privateDocs ?? 0, label: "Private Docs", sub: "Only visible to you" },
     { to: "/talent/vault", tone: "blue", Icon: FileStack, value: data?.sharedDocs ?? 0, label: "Agency Shared", sub: "Visible to your Manager" },
-    { to: "/talent/vault", tone: "amber", Icon: Clock, value: data?.expiringSoon ?? 0, label: "Expiring 30d", sub: "Shared items due for renewal" },
+    { to: "/talent/vault", tone: "amber", Icon: Clock, value: data?.expiringSoon ?? 0, label: `Expiring ${data?.expiryNoticeDays ?? 30}d`, sub: "Shared items due for renewal" },
     { to: "/talent/vault", search: { tab: "agency", view: "requests" }, tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
   ];
 
@@ -154,7 +154,7 @@ function TalentDashboard() {
                 <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><Clock className="h-4 w-4" /></div>
                 <div>
                   <strong>{data?.expiringSoon} shared document{data?.expiringSoon === 1 ? "" : "s"} expiring</strong>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Within the next 30 days.</div>
+                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Within the next {data?.expiryNoticeDays ?? 30} days.</div>
                 </div>
                 <ArrowRight className="h-4 w-4" />
               </Link>
