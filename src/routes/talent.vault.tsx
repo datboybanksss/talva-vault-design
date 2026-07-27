@@ -17,6 +17,7 @@ import {
   getPrivateDocumentDownloadUrl,
   deletePrivateDocument,
 } from "@/lib/talent-vault.functions";
+import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { toast } from "sonner";
 import {
   Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
@@ -122,6 +123,7 @@ function PrivateVault() {
   const deleteDoc = useServerFn(deletePrivateDocument);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
+  const [aiReviewFor, setAiReviewFor] = useState<{ id: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
   const [filterFolder, setFilterFolder] = useState<string>("__all");
   const [showAllDocs, setShowAllDocs] = useState(false);
@@ -191,7 +193,7 @@ function PrivateVault() {
       return;
     }
     try {
-      const { upload } = await createUpload({
+      const { upload, document_id } = await createUpload({
         data: {
           file_name: file.name,
           folder_id: uploadFolderId,
@@ -207,6 +209,7 @@ function PrivateVault() {
       if (!put.ok) throw new Error(`Upload failed (${put.status})`);
       toast.success("Document uploaded.");
       invalidate();
+      if (document_id) setAiReviewFor({ id: document_id as string, name: file.name });
     } catch (err: any) {
       toast.error(err?.message ?? "Upload failed.");
     }
@@ -461,7 +464,22 @@ function PrivateVault() {
         )}
       </div>
       )}
+
+      {aiReviewFor && (
+        <AiFilingReviewModal
+          scope="talent"
+          documentId={aiReviewFor.id}
+          documentName={aiReviewFor.name}
+          destinationPrefix="Private Vault"
+          onClose={() => setAiReviewFor(null)}
+          onDone={() => {
+            setAiReviewFor(null);
+            invalidate();
+          }}
+        />
+      )}
     </>
+
 
   );
 }

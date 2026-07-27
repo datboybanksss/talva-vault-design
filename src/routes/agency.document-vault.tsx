@@ -37,10 +37,13 @@ type VaultDoc = {
   updatedAt: string;
   lockedUntil: string | null;
   currentVersionId: string | null;
+  aiSuggestedFolder?: string | null;
+  aiSuggestedExpiry?: string | null;
 };
 type TalentLinkLite = { id: string; displayName: string; status: string };
 
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
+import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 
 export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
@@ -152,6 +155,8 @@ export function VaultPage() {
   const [versionsFor, setVersionsFor] = useState<VaultDoc | null>(null);
   const [newVersionFor, setNewVersionFor] = useState<VaultDoc | null>(null);
   const [overrideFor, setOverrideFor] = useState<VaultDoc | null>(null);
+  const [aiReviewFor, setAiReviewFor] = useState<{ id: string; name: string } | null>(null);
+
 
   const isOwner = me?.role === "owner";
   const upsertRuleFn = useServerFn(upsertAgencyRetentionRule);
@@ -434,17 +439,56 @@ export function VaultPage() {
                 </p>
               </div>
             </div>
-            <div className="tvp-callout" style={{ marginTop: 14 }}>
-              <div className="tvp-callout-icon tvp-bg-purple">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <strong>AI filing coming soon.</strong>{" "}
-                <span className="tvp-muted">
-                  Suggestions will appear here once the AI filer is wired up.
-                </span>
-              </div>
-            </div>
+            {(() => {
+              const awaiting = (docs ?? []).filter((d: VaultDoc) => d.status === "ai_suggested");
+              if (awaiting.length === 0) {
+                return (
+                  <div className="tvp-callout" style={{ marginTop: 14 }}>
+                    <div className="tvp-callout-icon tvp-bg-purple">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <strong>Nothing awaiting review.</strong>{" "}
+                      <span className="tvp-muted">
+                        Upload a document and the AI filing review opens automatically.
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {awaiting.map((d: VaultDoc) => (
+                    <div
+                      key={d.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: "1px solid var(--tvp-line-strong)",
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{d.name}</div>
+                        <div className="tvp-muted" style={{ fontSize: 12 }}>
+                          {d.aiSuggestedFolder
+                            ? `Suggested: ${d.aiSuggestedFolder}`
+                            : `Currently in ${d.folder}`}
+                        </div>
+                      </div>
+                      <button
+                        className="tvp-secondary"
+                        onClick={() => setAiReviewFor({ id: d.id, name: d.name })}
+                      >
+                        Review
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -470,11 +514,26 @@ export function VaultPage() {
           agencyId={me.agency?.id ?? ""}
           talentLinks={talentLinks}
           onClose={() => setShowUpload(false)}
-          onDone={() => {
+          onDone={(doc) => {
             setShowUpload(false);
             qc.invalidateQueries({ queryKey: ["agency", "vault"] });
+            if (doc) setAiReviewFor(doc);
           }}
           registerFn={registerFn}
+        />
+      )}
+
+      {aiReviewFor && (
+        <AiFilingReviewModal
+          scope="agency"
+          documentId={aiReviewFor.id}
+          documentName={aiReviewFor.name}
+          destinationPrefix="Agency Shared Folder"
+          onClose={() => setAiReviewFor(null)}
+          onDone={() => {
+            setAiReviewFor(null);
+            qc.invalidateQueries({ queryKey: ["agency", "vault"] });
+          }}
         />
       )}
 
@@ -598,7 +657,7 @@ function UploadDialog({
   agencyId: string;
   talentLinks: { id: string; displayName: string; status: string }[];
   onClose: () => void;
-  onDone: () => void;
+  onDone: (doc?: { id: string; name: string }) => void;
   registerFn: ReturnType<typeof useServerFn<typeof registerAgencyVaultDocument>>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -668,7 +727,7 @@ function UploadDialog({
         ? (displayName.trim().endsWith(ext) ? displayName.trim() : displayName.trim() + ext)
         : file.name;
 
-      await registerFn({
+      const inserted: any = await registerFn({
         data: {
           name: finalName,
           folder,
@@ -679,7 +738,7 @@ function UploadDialog({
         },
       });
       toast.success("Uploaded");
-      onDone();
+      onDone(inserted?.id ? { id: inserted.id as string, name: finalName } : undefined);
     } catch (err: any) {
       toast.error(err?.message ?? "Upload failed");
     } finally {
