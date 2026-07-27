@@ -565,7 +565,17 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
           <option value="__all">Folder: All</option>
           {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
         </select>
+        <button
+          type="button"
+          className="tvp-secondary"
+          aria-expanded={docsVisible}
+          onClick={() => setShowAllDocs((v) => !v)}
+        >
+          <FileStack className="h-4 w-4" />
+          {docsVisible ? "Hide all documents" : "View all documents"}
+        </button>
       </div>
+
 
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
