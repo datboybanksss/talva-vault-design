@@ -41,6 +41,7 @@ type VaultDoc = {
 type TalentLinkLite = { id: string; displayName: string; status: string };
 
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
+import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 
 export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
