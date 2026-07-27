@@ -87,7 +87,7 @@ export function PortalShell({
               </div>
             )}
           </Link>
-          <button
+          <button title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             onClick={() => setCollapsed((c) => !c)}
             className="tv-focus-ring grid place-items-center h-8 w-8 rounded-lg hover:bg-white/10"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

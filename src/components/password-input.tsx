@@ -76,7 +76,7 @@ export function PasswordInput({
           {countdown}s
         </span>
       )}
-      <button
+      <button title={revealed ? "Hide password" : "Show password"}
         type="button"
         className="tv-auth-eye"
         onClick={revealed ? mask : reveal}

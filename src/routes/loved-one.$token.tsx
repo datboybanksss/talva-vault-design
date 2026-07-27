@@ -243,7 +243,7 @@ function WatermarkedViewer({ url, name, watermark, onClose }: { url: string; nam
               View only · watermarked
             </span>
           </div>
-          <button onClick={onClose} aria-label="Close viewer" style={{ border: 0, background: "transparent", cursor: "pointer", color: "#65707A" }}>
+          <button title="Close viewer" onClick={onClose} aria-label="Close viewer" style={{ border: 0, background: "transparent", cursor: "pointer", color: "#65707A" }}>
             <X className="h-5 w-5" />
           </button>
         </div>

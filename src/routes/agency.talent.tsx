@@ -66,7 +66,7 @@ function TalentPage() {
                 <td><span className={`tvp-status tvp-${r.folderTone}`}>{r.folder}</span></td>
                 <td>{r.docs}</td>
                 <td>{r.next}</td>
-                <td><button className="tvp-mini-btn"><MoreVertical className="h-4 w-4" /></button></td>
+                <td><button title="More actions" className="tvp-mini-btn"><MoreVertical className="h-4 w-4" /></button></td>
               </tr>
             ))}
           </tbody>

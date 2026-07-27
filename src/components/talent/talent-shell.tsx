@@ -141,7 +141,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
   return (
     <div className={`tv-app${collapsed ? " tv-collapsed" : ""}`}>
       <aside className="tvp-sidebar">
-        <button
+        <button title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="tvp-collapse-btn"
           onClick={() => setCollapsed((c) => !c)}
           aria-label="Toggle sidebar"
@@ -171,7 +171,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
             <div className="tvp-profile-name">{displayName}</div>
             <div className="tvp-profile-role">{agencyName}</div>
           </div>
-          <button className="tvp-logout" aria-label="Log out" onClick={handleSignOut}>
+          <button title="Log out" className="tvp-logout" aria-label="Log out" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />
           </button>
         </div>

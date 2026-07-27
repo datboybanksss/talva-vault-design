@@ -657,7 +657,7 @@ function QIPage() {
           <div className="tvp-card" style={{ maxWidth: 820, width: "100%", maxHeight: "92vh", overflow: "auto", padding: 24, marginTop: 16 }} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center" style={{ marginBottom: 16 }}>
               <h2 className="tvp-h2">{editor.id ? `Edit ${editor.kind}` : `New ${editor.kind}`}</h2>
-              <button className="tvp-mini-btn" onClick={() => setEditorOpen(false)}><X className="h-4 w-4" /></button>
+              <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}><X className="h-4 w-4" /></button>
             </div>
 
             {loadingEditor ? (

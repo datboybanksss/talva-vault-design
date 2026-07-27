@@ -179,7 +179,7 @@ function BudgetPage() {
                       <td>{e.desc}</td>
                       <td><strong>{e.amount}</strong></td>
                       <td className="tvp-muted">{e.impact}</td>
-                      <td><button className="tvp-mini-btn"><Pencil className="h-4 w-4" /></button></td>
+                      <td><button title="Edit entry" className="tvp-mini-btn"><Pencil className="h-4 w-4" /></button></td>
                     </tr>
                   ))}
                 </tbody>

@@ -232,7 +232,7 @@ function FreshSharePanel({ fresh, onDismiss }: { fresh: FreshShare; onDismiss: (
             </button>
           </div>
         </div>
-        <button className="tvp-mini-btn" onClick={onDismiss} aria-label="Dismiss"><X className="h-4 w-4" /></button>
+        <button title="Dismiss" className="tvp-mini-btn" onClick={onDismiss} aria-label="Dismiss"><X className="h-4 w-4" /></button>
       </div>
       {showCode && <AccessCodeModal fresh={fresh} onClose={() => setShowCode(false)} />}
     </>
@@ -245,7 +245,7 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
       <div className="tvp-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
         <div className="tvp-modal-head">
           <h2 className="tvp-h2"><Lock className="h-5 w-5" /> Access code</h2>
-          <button className="tvp-mini-btn" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
+          <button title="Close" className="tvp-mini-btn" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
         <div className="tvp-modal-body">
           <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: 12 }}>
@@ -363,7 +363,7 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
       <div className="tvp-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 680 }}>
         <div className="tvp-modal-head">
           <h2 className="tvp-h2"><Plus className="h-5 w-5" /> New share</h2>
-          <button className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+          <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
         <div className="tvp-modal-body">
           <div className="tvp-form-grid">

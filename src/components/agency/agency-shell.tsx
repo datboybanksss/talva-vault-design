@@ -183,7 +183,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
       />
       <aside className="tvp-sidebar">
 
-        <button
+        <button title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="tvp-collapse-btn"
           onClick={() => setCollapsed((c) => !c)}
           aria-label="Toggle sidebar"
@@ -227,7 +227,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
             </div>
             <div className="tvp-profile-role">{roleLabel}</div>
           </Link>
-          <button
+          <button title="Log out"
             className="tvp-logout"
             aria-label="Log out"
             onClick={handleSignOut}
@@ -240,7 +240,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
-          <button
+          <button title="Open navigation"
             type="button"
             className="tvp-mobile-menu-btn"
             aria-label="Open navigation"
