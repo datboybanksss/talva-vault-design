@@ -121,6 +121,8 @@ function PrivateVault() {
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterFolder, setFilterFolder] = useState<string>("__all");
+  const [showAllDocs, setShowAllDocs] = useState(false);
+
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const toggleFolder = (id: string) =>
     setOpenFolders((prev) => {
@@ -264,6 +266,12 @@ function PrivateVault() {
     return true;
   });
 
+  // Searching or filtering implicitly reveals the flat list, so users never
+  // have to click "View all documents" first to see their results.
+  const isFiltering = search.trim() !== "" || filterFolder !== "__all";
+  const docsVisible = showAllDocs || isFiltering;
+
+
 
   if (isLoading) {
     return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Private Vault…</p></div>;
@@ -302,7 +310,17 @@ function PrivateVault() {
           <option value="__unfiled">Unfiled</option>
           {topFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
+        <button
+          type="button"
+          className="tvp-secondary"
+          aria-expanded={docsVisible}
+          onClick={() => setShowAllDocs((v) => !v)}
+        >
+          <FileStack className="h-4 w-4" />
+          {docsVisible ? "Hide all documents" : "View all documents"}
+        </button>
       </div>
+
 
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
@@ -394,7 +412,9 @@ function PrivateVault() {
         )}
       </div>
 
+      {docsVisible && (
       <div className="tvp-card" style={{ marginTop: 22 }}>
+
         <div className="tvp-panel-head">
           <div>
             <h2 className="tvp-h2">All private documents</h2>
@@ -445,7 +465,9 @@ function PrivateVault() {
           </div>
         )}
       </div>
+      )}
     </>
+
   );
 }
 
@@ -470,6 +492,9 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
   const download = useServerFn(getSharedDocumentDownloadUrl);
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("__all");
+  const [showAllDocs, setShowAllDocs] = useState(false);
+  const docsVisible = showAllDocs || search.trim() !== "" || folderFilter !== "__all";
+
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["talent", "roster-shared"],
@@ -540,7 +565,17 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
           <option value="__all">Folder: All</option>
           {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
         </select>
+        <button
+          type="button"
+          className="tvp-secondary"
+          aria-expanded={docsVisible}
+          onClick={() => setShowAllDocs((v) => !v)}
+        >
+          <FileStack className="h-4 w-4" />
+          {docsVisible ? "Hide all documents" : "View all documents"}
+        </button>
       </div>
+
 
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
@@ -584,7 +619,9 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
       </div>
 
 
+      {docsVisible && (
       <div className="tvp-card" style={{ marginTop: 22 }}>
+
         <div className="tvp-panel-head">
           <div>
             <h2 className="tvp-h2">All shared documents</h2>
@@ -632,7 +669,9 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
           </div>
         )}
       </div>
+      )}
     </>
+
   );
 }
 
