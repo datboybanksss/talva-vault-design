@@ -166,6 +166,7 @@ export type Database = {
           default_quote_acceptance_days: number
           default_quote_reminder_days: number
           default_vat_rate_bp: number
+          expiry_notice_days: number
           id: string
           invoice_overdue_grace_days: number
           is_vat_registered: boolean
@@ -197,6 +198,7 @@ export type Database = {
           default_quote_acceptance_days?: number
           default_quote_reminder_days?: number
           default_vat_rate_bp?: number
+          expiry_notice_days?: number
           id?: string
           invoice_overdue_grace_days?: number
           is_vat_registered?: boolean
@@ -228,6 +230,7 @@ export type Database = {
           default_quote_acceptance_days?: number
           default_quote_reminder_days?: number
           default_vat_rate_bp?: number
+          expiry_notice_days?: number
           id?: string
           invoice_overdue_grace_days?: number
           is_vat_registered?: boolean
