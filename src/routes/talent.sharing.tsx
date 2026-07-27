@@ -293,14 +293,14 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
 }
 
 
-function NewShareModal({ onClose, onCreated }: { onClose: () => void; onCreated: (f: FreshShare) => void }) {
+function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; onCreated: (f: FreshShare) => void; prefill?: { name: string; email: string; relationship: string } | null }) {
   const loadVault = useServerFn(listPrivateVault);
   const create = useServerFn(createLovedOneShare);
   const { data: vault, isLoading } = useQuery({ queryKey: ["talent", "private-vault"], queryFn: () => loadVault() });
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [rel, setRel] = useState("");
+  const [name, setName] = useState(prefill?.name ?? "");
+  const [email, setEmail] = useState(prefill?.email ?? "");
+  const [rel, setRel] = useState(prefill?.relationship ?? "");
   const [days, setDays] = useState(30);
   const [note, setNote] = useState("");
   const [kind, setKind] = useState<"folders" | "document">("folders");
