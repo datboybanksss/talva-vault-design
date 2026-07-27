@@ -154,7 +154,7 @@ function TalentDashboard() {
                 <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><Clock className="h-4 w-4" /></div>
                 <div>
                   <strong>{data?.expiringSoon} shared document{data?.expiringSoon === 1 ? "" : "s"} expiring</strong>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Within the next 30 days.</div>
+                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Within the next {data?.expiryNoticeDays ?? 30} days.</div>
                 </div>
                 <ArrowRight className="h-4 w-4" />
               </Link>
