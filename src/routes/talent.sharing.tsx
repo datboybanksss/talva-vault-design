@@ -199,6 +199,7 @@ function SharingPage() {
 
       {showModal && (
         <NewShareModal
+          prefill={prefill}
           onClose={() => setShowModal(false)}
           onCreated={(f) => {
             setShowModal(false);
