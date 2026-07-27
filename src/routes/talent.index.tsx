@@ -8,7 +8,7 @@ export const Route = createFileRoute("/talent/")({
   head: () => ({
     meta: [
       { title: "Dashboard · TalVault Talent" },
-      { name: "description", content: "Your Private Vault, Roster Shared Folder and Manager requests at a glance." },
+      { name: "description", content: "Your Private Vault, Agency Shared Folder and Manager requests at a glance." },
     ],
   }),
   component: TalentDashboard,
@@ -26,7 +26,7 @@ function TalentDashboard() {
 
   const kpis = [
     { to: "/talent/vault", tone: "teal", Icon: Lock, value: data?.privateDocs ?? 0, label: "Private Docs", sub: "Only visible to you" },
-    { to: "/talent/vault", tone: "blue", Icon: FileStack, value: data?.sharedDocs ?? 0, label: "Roster Shared", sub: "Visible to your Manager" },
+    { to: "/talent/vault", tone: "blue", Icon: FileStack, value: data?.sharedDocs ?? 0, label: "Agency Shared", sub: "Visible to your Manager" },
     { to: "/talent/vault", tone: "amber", Icon: Clock, value: data?.expiringSoon ?? 0, label: "Expiring 30d", sub: "Shared items due for renewal" },
     { to: "/talent/vault", tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
   ];
@@ -39,7 +39,7 @@ function TalentDashboard() {
           <div className="tvp-subtitle">
             {data?.hasLink
               ? `Linked to ${ctx?.agency?.name ?? "your Manager"}. Your vault is calm, secure and separated into private and shared areas.`
-              : "Your Private Vault is ready. Once a Manager links you to their roster, your Shared Folder appears here."}
+              : "Your Private Vault is ready. Once a Manager links you, your Agency Shared Folder appears here."}
           </div>
         </div>
       </div>
