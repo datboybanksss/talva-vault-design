@@ -379,11 +379,24 @@ function PrivateVault() {
       </div>
 
       <div className="tvp-card" style={{ marginTop: 22 }}>
+        <div className="tvp-panel-head">
+          <div>
+            <h2 className="tvp-h2">All private documents</h2>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+              {filteredDocs.length === documents.length
+                ? `${filteredDocs.length} document${filteredDocs.length === 1 ? "" : "s"} across all folders`
+                : `${filteredDocs.length} of ${documents.length} document${documents.length === 1 ? "" : "s"} match`}
+            </p>
+          </div>
+        </div>
 
         {filteredDocs.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
-            {documents.length === 0 ? "Nothing uploaded yet — pick a folder above and upload your first document." : "No documents match your filters."}
+            {documents.length === 0
+              ? "Nothing uploaded yet — pick a folder above and upload your first document."
+              : "No documents match your search or folder filter."}
           </p>
+
         ) : (
           <div className="tvp-table-wrap">
             <table className="tvp-table">
