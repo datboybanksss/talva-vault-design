@@ -224,7 +224,7 @@ export function AiFilingReviewModal({
                 <FolderTree className="h-4 w-4" style={{ color: "var(--tvp-teal, #0f766e)" }} />
                 <strong style={{ fontSize: 14 }}>Suggested folder &amp; subfolder</strong>
                 {suggestion?.confidence && (
-                  <span className="tvp-chip" style={{ marginLeft: "auto", fontSize: 11 }}>
+                  <span className="tvp-muted" style={{ marginLeft: "auto", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>
                     {suggestion.confidence} confidence
                   </span>
                 )}
@@ -252,7 +252,7 @@ export function AiFilingReviewModal({
                     Choose a destination
                   </span>
                   <select
-                    className="tvp-input"
+                    className="tvp-select"
                     value={destination ?? ""}
                     onChange={(e) => setDestination(e.target.value || null)}
                   >
@@ -308,7 +308,7 @@ export function AiFilingReviewModal({
                   </span>
                   <input
                     type="date"
-                    className="tvp-input"
+                    className="tvp-select"
                     value={expiry}
                     onChange={(e) => {
                       setExpiry(e.target.value);
@@ -324,7 +324,7 @@ export function AiFilingReviewModal({
                     type="number"
                     min={1}
                     max={365}
-                    className="tvp-input"
+                    className="tvp-select"
                     value={leadDays}
                     disabled={noReminder || !expiry}
                     onChange={(e) => {
