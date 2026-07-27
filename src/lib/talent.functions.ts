@@ -380,6 +380,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       privateDocs: privDocs.count ?? 0,
       privateFolders: privFolders.count ?? 0,
       sharedDocs: sharedCount,
+      sharedFolders: sharedFolderCount,
+
       expiringSoon: expiringCount,
       openRequests,
       resubRequests,
