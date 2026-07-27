@@ -37,6 +37,8 @@ type VaultDoc = {
   updatedAt: string;
   lockedUntil: string | null;
   currentVersionId: string | null;
+  aiSuggestedFolder?: string | null;
+  aiSuggestedExpiry?: string | null;
 };
 type TalentLinkLite = { id: string; displayName: string; status: string };
 
