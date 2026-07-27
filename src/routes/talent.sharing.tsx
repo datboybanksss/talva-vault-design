@@ -44,7 +44,7 @@ function SharingPage() {
     if (!confirm("Issue a new access code? The previous code stops working immediately.")) return;
     try {
       const { access_code } = await regen({ data: { id: s.id } });
-      setFresh({
+      setCodeModal({
         link: `${window.location.origin}/loved-one/${s.token}`,
         code: access_code,
         email: { sent: false, reason: "regenerated" },
@@ -55,6 +55,7 @@ function SharingPage() {
       toast.error(e?.message ?? "Failed to regenerate code");
     }
   }
+
 
   function copyLink(token: string) {
     navigator.clipboard.writeText(`${window.location.origin}/loved-one/${token}`);
