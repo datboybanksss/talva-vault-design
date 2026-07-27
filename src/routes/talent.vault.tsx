@@ -669,7 +669,9 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
           </div>
         )}
       </div>
+      )}
     </>
+
   );
 }
 
