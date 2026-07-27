@@ -75,7 +75,7 @@ function SharingPage() {
         </div>
         <div className="tvp-actions">
           <button className="tvp-primary" onClick={() => setShowModal(true)}>
-            <Share2 className="h-4 w-4" /> New Loved-One share
+            <Share2 className="h-4 w-4" /> New share
           </button>
         </div>
       </div>
@@ -104,7 +104,7 @@ function SharingPage() {
               <Share2 className="h-5 w-5" />
             </div>
             <strong>No shares yet</strong>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Create your first Loved-One share to get started.</p>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Create your first share to get started.</p>
           </div>
         ) : (
           <div className="tvp-table-wrap">
@@ -343,12 +343,12 @@ function NewShareModal({ onClose, onCreated }: { onClose: () => void; onCreated:
     <div className="tvp-modal-backdrop" onClick={onClose}>
       <div className="tvp-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 680 }}>
         <div className="tvp-modal-head">
-          <h2 className="tvp-h2"><Plus className="h-5 w-5" /> New Loved-One share</h2>
+          <h2 className="tvp-h2"><Plus className="h-5 w-5" /> New share</h2>
           <button className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
         <div className="tvp-modal-body">
           <div className="tvp-form-grid">
-            <div className="tvp-form-group"><label>Loved-One name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah Mokoena" /></div>
+            <div className="tvp-form-group"><label>Loved One name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah Mokoena" /></div>
             <div className="tvp-form-group"><label>Email (link is sent here)</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="sarah@example.com" /></div>
             <div className="tvp-form-group"><label>Relationship</label><input value={rel} onChange={(e) => setRel(e.target.value)} placeholder="Spouse, Sibling, Advisor…" /></div>
             <div className="tvp-form-group"><label>Access duration (days)</label><input type="number" min={1} max={365} value={days} onChange={(e) => setDays(Number(e.target.value))} /></div>

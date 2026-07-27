@@ -153,7 +153,7 @@ function AdminDashboard() {
           <div className="tvp-kpi-icon tvp-bg-green"><Heart className="h-5 w-5" /></div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.activeShares ?? "—"}</div>
-            <div className="tvp-kpi-label">Active Loved One Shares</div>
+            <div className="tvp-kpi-label">Active Shares</div>
             <div
               className="tvp-kpi-sub"
               style={{ color: (metrics.data?.activeShares ?? 0) > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
