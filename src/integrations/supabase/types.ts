@@ -1131,52 +1131,70 @@ export type Database = {
       }
       loved_one_shares: {
         Row: {
+          access_code_hash: string | null
           created_at: string
           created_by: string | null
+          email_sent_at: string | null
           expires_at: string
+          failed_attempts: number
           id: string
           is_active: boolean
           last_viewed_at: string | null
+          locked_at: string | null
           loved_one_email: string
           loved_one_name: string | null
           note: string | null
+          permission: string
           relationship: string | null
           revoked_at: string | null
           scope: Json
+          share_kind: string
           talent_id: string | null
           token: string
           view_count: number
         }
         Insert: {
+          access_code_hash?: string | null
           created_at?: string
           created_by?: string | null
+          email_sent_at?: string | null
           expires_at?: string
+          failed_attempts?: number
           id?: string
           is_active?: boolean
           last_viewed_at?: string | null
+          locked_at?: string | null
           loved_one_email: string
           loved_one_name?: string | null
           note?: string | null
+          permission?: string
           relationship?: string | null
           revoked_at?: string | null
           scope?: Json
+          share_kind?: string
           talent_id?: string | null
           token?: string
           view_count?: number
         }
         Update: {
+          access_code_hash?: string | null
           created_at?: string
           created_by?: string | null
+          email_sent_at?: string | null
           expires_at?: string
+          failed_attempts?: number
           id?: string
           is_active?: boolean
           last_viewed_at?: string | null
+          locked_at?: string | null
           loved_one_email?: string
           loved_one_name?: string | null
           note?: string | null
+          permission?: string
           relationship?: string | null
           revoked_at?: string | null
           scope?: Json
+          share_kind?: string
           talent_id?: string | null
           token?: string
           view_count?: number
