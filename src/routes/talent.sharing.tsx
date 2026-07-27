@@ -189,6 +189,9 @@ function SharingPage() {
           }}
         />
       )}
+
+      {codeModal && <AccessCodeModal fresh={codeModal} onClose={() => setCodeModal(null)} />}
+
     </>
   );
 }
