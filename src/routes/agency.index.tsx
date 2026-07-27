@@ -367,7 +367,7 @@ function AgencyDashboard() {
             <div className="tvp-kpi-label">Vault Documents</div>
             <div className="tvp-kpi-sub">
               {(metrics.data?.expiringSoonCount ?? 0) > 0
-                ? `${metrics.data?.expiringSoonCount} expiring in 30d`
+                ? `${metrics.data?.expiringSoonCount} expiring in ${expiryNoticeDays}d`
                 : "All up to date"}
             </div>
           </div>
