@@ -108,8 +108,10 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster position="top-right" richColors closeButton />
         <Scripts />
       </body>
+
     </html>
   );
 }
