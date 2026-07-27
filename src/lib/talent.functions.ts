@@ -334,15 +334,19 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
 
     const [privDocs, privFolders] = await Promise.all([
       supabase.from("talent_private_documents").select("id", { count: "exact", head: true }).eq("user_id", userId),
-      supabase.from("talent_private_folders").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      // Top-level categories only — sub-folders would inflate the dashboard count.
+      supabase.from("talent_private_folders").select("id", { count: "exact", head: true })
+        .eq("user_id", userId).is("parent_id", null).is("removed_at", null),
     ]);
 
     let sharedCount = 0;
+    let sharedFolderCount = 0;
     let expiringCount = 0;
     let openRequests = 0;
     let resubRequests = 0;
     let pendingRequests = 0;
     let recent: any[] = [];
+
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const in30 = new Date(Date.now() + 30 * 86400_000).toISOString();
