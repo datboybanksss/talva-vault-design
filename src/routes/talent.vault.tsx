@@ -561,20 +561,7 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
 
 
       <div className="tvp-card" style={{ marginTop: 22 }}>
-        <div className="tvp-vault-toolbar" style={{ marginBottom: 16 }}>
-          <div className="tvp-vault-search">
-            <Search />
-            <input
-              placeholder="Search Agency Shared Folder..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <select className="tvp-vault-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
-            <option value="__all">Folder: All</option>
-            {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
-          </select>
-        </div>
+
         {docs.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>No documents match your filters.</p>
         ) : (
