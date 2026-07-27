@@ -334,20 +334,25 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
 
     const [privDocs, privFolders] = await Promise.all([
       supabase.from("talent_private_documents").select("id", { count: "exact", head: true }).eq("user_id", userId),
-      supabase.from("talent_private_folders").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      // Top-level categories only — sub-folders would inflate the dashboard count.
+      supabase.from("talent_private_folders").select("id", { count: "exact", head: true })
+        .eq("user_id", userId).is("parent_id", null).is("removed_at", null),
     ]);
 
     let sharedCount = 0;
+    let sharedFolderCount = 0;
     let expiringCount = 0;
     let openRequests = 0;
     let resubRequests = 0;
     let pendingRequests = 0;
     let recent: any[] = [];
+
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const in30 = new Date(Date.now() + 30 * 86400_000).toISOString();
-      const [sc, ec, or, rr, pr, rec] = await Promise.all([
+      const [sc, sf, ec, or, rr, pr, rec] = await Promise.all([
         supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
+        supabaseAdmin.from("agency_talent_folders").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
         supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true })
           .eq("talent_link_id", link.id).not("validity_expires_at", "is", null).lt("validity_expires_at", in30),
         supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
@@ -361,11 +366,13 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .eq("talent_link_id", link.id).order("updated_at", { ascending: false }).limit(5),
       ]);
       sharedCount = sc.count ?? 0;
+      sharedFolderCount = sf.count ?? 0;
       expiringCount = ec.count ?? 0;
       openRequests = or.count ?? 0;
       resubRequests = rr.count ?? 0;
       pendingRequests = pr.count ?? 0;
       recent = rec.data ?? [];
+
     }
 
     return {
@@ -373,6 +380,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       privateDocs: privDocs.count ?? 0,
       privateFolders: privFolders.count ?? 0,
       sharedDocs: sharedCount,
+      sharedFolders: sharedFolderCount,
+
       expiringSoon: expiringCount,
       openRequests,
       resubRequests,
