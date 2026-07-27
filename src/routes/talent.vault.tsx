@@ -875,27 +875,52 @@ function ManagerRequests() {
 
       {closed.length > 0 && (
         <div className="tvp-card tvp-panel" style={{ marginTop: 22 }}>
-          <h2 className="tvp-h2">Recent history</h2>
-          <div className="tvp-table-wrap" style={{ marginTop: 10 }}>
-            <table className="tvp-table">
-              <thead><tr><th>Request</th><th>Folder</th><th>Outcome</th><th>Reason</th><th>Reviewed</th></tr></thead>
-              <tbody>
-                {closed.slice(0, 20).map((r: any) => (
-                  <tr key={r.id}>
-                    <td><strong>{r.title}</strong></td>
-                    <td>{r.folder}</td>
-                    <td><span className={`tvp-status tvp-${r.status === "completed" ? "green" : "teal"}`}>
-                      {r.status === "completed" ? <><CheckCircle2 className="h-3 w-3" /> completed</> : "cancelled"}
-                    </span></td>
-                    <td>{r.reason_code ? r.reason_code.replace(/_/g, " ") : "—"}</td>
-                    <td>{r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString() : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="tvp-panel-head">
+            <div>
+              <h2 className="tvp-h2">Recent history</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                Closed requests. Nothing here is deleted — submissions stay on record.
+              </p>
+            </div>
+            <span className="tvp-muted" style={{ fontSize: 12, fontWeight: 800 }}>
+              {closed.length} closed
+            </span>
           </div>
+
+          <ul className="tvp-history-list">
+            {closed.slice(0, 20).map((r: any) => {
+              const done = r.status === "completed";
+              return (
+                <li key={r.id} className="tvp-history-row">
+                  <span className={`tvp-history-dot${done ? " tvp-green" : " tvp-grey"}`}>
+                    {done ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                  </span>
+                  <div className="tvp-history-main">
+                    <div className="tvp-history-title">
+                      <strong>{r.title}</strong>
+                      <span className={`tvp-status tvp-${done ? "green" : "grey"}`}>
+                        {done ? "completed" : "cancelled"}
+                      </span>
+                    </div>
+                    <div className="tvp-history-meta">
+                      <span><FolderOpen className="h-3 w-3" /> {r.folder}</span>
+                      {r.reviewed_at && (
+                        <span><ClockIcon className="h-3 w-3" /> Reviewed {new Date(r.reviewed_at).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                    {r.reason_code && (
+                      <div className="tvp-history-reason">
+                        Reason: {String(r.reason_code).replace(/_/g, " ")}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
+
     </>
   );
 }
