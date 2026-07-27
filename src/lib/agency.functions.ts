@@ -141,7 +141,16 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
-    const in30d = new Date(Date.now() + 30 * 86400000).toISOString();
+    // Manager-configurable "expiring soon" window (Agency Profile → Document Rules).
+    const { data: agencyPrefs } = await supabase
+      .from("agencies")
+      .select("expiry_notice_days")
+      .eq("id", agencyId)
+      .maybeSingle();
+    const expiryNoticeDays = agencyPrefs?.expiry_notice_days ?? 30;
+
+    const in30d = new Date(Date.now() + expiryNoticeDays * 86400000).toISOString();
+
     const nowIso = new Date().toISOString();
     const startOfMonth = new Date();
     startOfMonth.setUTCDate(1);
