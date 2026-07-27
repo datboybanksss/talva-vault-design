@@ -514,11 +514,26 @@ export function VaultPage() {
           agencyId={me.agency?.id ?? ""}
           talentLinks={talentLinks}
           onClose={() => setShowUpload(false)}
-          onDone={() => {
+          onDone={(doc) => {
             setShowUpload(false);
             qc.invalidateQueries({ queryKey: ["agency", "vault"] });
+            if (doc) setAiReviewFor(doc);
           }}
           registerFn={registerFn}
+        />
+      )}
+
+      {aiReviewFor && (
+        <AiFilingReviewModal
+          scope="agency"
+          documentId={aiReviewFor.id}
+          documentName={aiReviewFor.name}
+          destinationPrefix="Agency Shared Folder"
+          onClose={() => setAiReviewFor(null)}
+          onDone={() => {
+            setAiReviewFor(null);
+            qc.invalidateQueries({ queryKey: ["agency", "vault"] });
+          }}
         />
       )}
 
