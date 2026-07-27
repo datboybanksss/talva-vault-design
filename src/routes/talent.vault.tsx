@@ -122,6 +122,7 @@ function PrivateVault() {
   const deleteDoc = useServerFn(deletePrivateDocument);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
+  const [aiReviewFor, setAiReviewFor] = useState<{ id: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
   const [filterFolder, setFilterFolder] = useState<string>("__all");
   const [showAllDocs, setShowAllDocs] = useState(false);
