@@ -1,26 +1,33 @@
 /**
- * AI Filing Review — shared popup used by BOTH the Agency Document Vault and the
- * Talent Private Vault. Shown after upload, before the document is considered filed.
+ * Filing review popup — shared by BOTH the Agency Document Vault and the Talent
+ * Private Vault. Opens after an upload completes, before the document counts as filed.
  *
- * Nothing is written to the document until the user confirms both sections.
+ * There is no AI service wired up yet. The `suggestion` prop is the single seam:
+ * it currently receives a locally-derived default (the folder chosen at upload,
+ * no detected expiry), and can later be handed a real API response with the exact
+ * same shape — no other change to this component or its callers.
  */
 
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  Sparkles,
-  FolderTree,
-  CalendarClock,
-  ShieldAlert,
-  Check,
-  X,
-  Loader2,
-} from "lucide-react";
-import { suggestDocumentFiling, confirmDocumentFiling } from "@/lib/ai-filing.functions";
+import { Sparkles, FolderTree, CalendarClock, ShieldAlert, Check, X, Loader2 } from "lucide-react";
+import { getFilingCatalog, confirmDocumentFiling } from "@/lib/ai-filing.functions";
 
 export type AiFilingScope = "talent" | "agency";
+
+/** The shape a real suggestion service must return. */
+export type FilingSuggestion = {
+  /** talent: folder uuid | agency: folder name. null = no destination suggested. */
+  folder_id: string | null;
+  /** Detected expiry as YYYY-MM-DD, or null when none was found. */
+  expiry_date: string | null;
+  /** Suggested reminder lead time in days, or null to fall back to portal default. */
+  reminder_lead_days: number | null;
+  confidence?: "high" | "medium" | "low" | null;
+  rationale?: string | null;
+};
 
 type Props = {
   scope: AiFilingScope;
@@ -28,48 +35,69 @@ type Props = {
   documentName: string;
   /** Prefix shown before the destination, e.g. "Private Vault" or "Agency Shared Folder". */
   destinationPrefix: string;
+  /**
+   * Suggested filing. Omit (or pass null) to fall back to the placeholder default:
+   * the folder the document was uploaded into, with no expiry.
+   */
+  suggestion?: FilingSuggestion | null;
   onClose: () => void;
   onDone: () => void;
 };
 
-function addDays(iso: string, days: number) {
+function minusDays(iso: string, days: number) {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().slice(0, 10);
 }
 
-const STATUS_COPY: Record<string, string> = {
-  no_file: "No file is attached to this document, so there is nothing to analyse.",
-  unsupported:
-    "This file type can't be read automatically (only images and PDFs up to 15 MB). File it manually below.",
-  no_suggestion: "The document couldn't be matched to one of your folders. Pick a destination below.",
-  rate_limited: "AI filing is busy right now. File this manually — you can retry later.",
-  credits: "AI credits are exhausted for this workspace. File this manually.",
-  error: "AI filing is unavailable right now. File this manually.",
-};
+const AMBER_PANEL = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 10,
+  padding: "10px 12px",
+  borderRadius: 8,
+  background: "rgba(180, 83, 9, 0.08)",
+  border: "1px solid rgba(180, 83, 9, 0.25)",
+  fontSize: 13,
+} as const;
 
 export function AiFilingReviewModal({
   scope,
   documentId,
   documentName,
   destinationPrefix,
+  suggestion: suggestionProp,
   onClose,
   onDone,
 }: Props) {
-  const suggestFn = useServerFn(suggestDocumentFiling);
+  const catalogFn = useServerFn(getFilingCatalog);
   const confirmFn = useServerFn(confirmDocumentFiling);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["ai-filing", scope, documentId],
-    queryFn: () => suggestFn({ data: { scope, document_id: documentId } }),
+    queryKey: ["filing-review", scope, documentId],
+    queryFn: () => catalogFn({ data: { scope, document_id: documentId } }),
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: Infinity,
   });
 
   const catalog = data?.catalog ?? [];
-  const suggestion = data?.suggestion ?? null;
-  const defaultReminderDays = data?.defaultReminderDays ?? 30;
+
+  /**
+   * Placeholder suggestion until a real service is wired in: default to the folder
+   * the document was uploaded into, no detected expiry, portal-default lead time.
+   */
+  const suggestion: FilingSuggestion | null = useMemo(() => {
+    if (suggestionProp) return suggestionProp;
+    if (!data) return null;
+    return {
+      folder_id: data.currentDestination ?? null,
+      expiry_date: null,
+      reminder_lead_days: data.defaultReminderDays ?? 30,
+      confidence: null,
+      rationale: null,
+    };
+  }, [suggestionProp, data]);
 
   // --- section state -----------------------------------------------------
   const [folderConfirmed, setFolderConfirmed] = useState(false);
@@ -77,15 +105,15 @@ export function AiFilingReviewModal({
   const [picking, setPicking] = useState(false);
   const [destination, setDestination] = useState<string | null>(null);
   const [expiry, setExpiry] = useState<string>("");
-  const [leadDays, setLeadDays] = useState<number>(defaultReminderDays);
+  const [leadDays, setLeadDays] = useState<number>(30);
   const [noReminder, setNoReminder] = useState(false);
 
   useEffect(() => {
-    if (!data) return;
-    setDestination(suggestion?.folder_id ?? null);
-    setExpiry(suggestion?.expiry_date ?? "");
-    setLeadDays(suggestion?.reminder_lead_days ?? data.defaultReminderDays ?? 30);
-    if (!suggestion?.folder_id) setPicking(true);
+    if (!data || !suggestion) return;
+    setDestination(suggestion.folder_id);
+    setExpiry(suggestion.expiry_date ?? "");
+    setLeadDays(suggestion.reminder_lead_days ?? data.defaultReminderDays ?? 30);
+    if (!suggestion.folder_id) setPicking(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
@@ -94,7 +122,7 @@ export function AiFilingReviewModal({
     [catalog, destination],
   );
 
-  const reminderDate = expiry && !noReminder ? addDays(expiry, leadDays) : null;
+  const reminderDate = expiry && !noReminder ? minusDays(expiry, leadDays) : null;
 
   const save = useMutation({
     mutationFn: () =>
@@ -105,7 +133,7 @@ export function AiFilingReviewModal({
           destination,
           expires_at: expiry ? new Date(`${expiry}T00:00:00Z`).toISOString() : null,
           reminder_at: reminderDate ? new Date(`${reminderDate}T09:00:00Z`).toISOString() : null,
-          ai_assisted: Boolean(suggestion?.folder_id) && destination === suggestion?.folder_id,
+          ai_assisted: Boolean(suggestionProp) && destination === suggestionProp?.folder_id,
         },
       }),
     onSuccess: () => {
@@ -128,7 +156,7 @@ export function AiFilingReviewModal({
         },
       }),
     onSuccess: () => {
-      toast.success("AI suggestion rejected — the document stays where you put it.");
+      toast.success("Suggestion rejected — the document stays where you uploaded it.");
       onDone();
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not reject suggestion."),
@@ -136,9 +164,6 @@ export function AiFilingReviewModal({
 
   const busy = save.isPending || reject.isPending;
   const canSave = folderConfirmed && expiryConfirmed && !busy;
-
-  const statusNote =
-    data && data.status !== "ok" ? STATUS_COPY[data.status] ?? STATUS_COPY.error : null;
 
   return (
     <div
@@ -156,6 +181,9 @@ export function AiFilingReviewModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filing review"
         className="tvp-card"
         style={{
           width: "min(720px, 100%)",
@@ -186,37 +214,23 @@ export function AiFilingReviewModal({
         </div>
 
         {isLoading && (
-          <div
-            className="tvp-callout"
-            style={{ display: "flex", alignItems: "center", gap: 10 }}
-          >
+          <div className="tvp-callout" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Reading the document and checking your folders…</span>
+            <span>Loading your folders…</span>
           </div>
         )}
 
-        {(isError || statusNote) && !isLoading && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 10,
-              padding: "10px 12px",
-              borderRadius: 8,
-              background: "rgba(180, 83, 9, 0.08)",
-              border: "1px solid rgba(180, 83, 9, 0.25)",
-              fontSize: 13,
-            }}
-          >
+        {isError && !isLoading && (
+          <div style={AMBER_PANEL}>
             <ShieldAlert
               className="h-4 w-4 shrink-0"
               style={{ color: "var(--tvp-amber, #b45309)", marginTop: 2 }}
             />
-            <span>{isError ? STATUS_COPY.error : statusNote}</span>
+            <span>Couldn't load your folder list. Close this and file the document manually.</span>
           </div>
         )}
 
-        {!isLoading && (
+        {!isLoading && !isError && (
           <>
             {/* ---------------- Section 1: folder ---------------- */}
             <section className="tvp-card tvp-panel tvp-settings-tight" style={{ gap: 10 }}>
@@ -224,7 +238,15 @@ export function AiFilingReviewModal({
                 <FolderTree className="h-4 w-4" style={{ color: "var(--tvp-teal, #0f766e)" }} />
                 <strong style={{ fontSize: 14 }}>Suggested folder &amp; subfolder</strong>
                 {suggestion?.confidence && (
-                  <span className="tvp-muted" style={{ marginLeft: "auto", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  <span
+                    className="tvp-muted"
+                    style={{
+                      marginLeft: "auto",
+                      fontSize: 11,
+                      textTransform: "uppercase",
+                      letterSpacing: 0.4,
+                    }}
+                  >
                     {suggestion.confidence} confidence
                   </span>
                 )}
@@ -232,7 +254,7 @@ export function AiFilingReviewModal({
 
               {!picking ? (
                 <>
-                  <div style={{ fontSize: 15, fontWeight: 600 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600 }} data-testid="filing-destination">
                     {destinationPrefix}: {destinationLabel ?? "Unfiled"}
                   </div>
                   {data?.secondaryHint && (
@@ -253,10 +275,14 @@ export function AiFilingReviewModal({
                   </span>
                   <select
                     className="tvp-select"
+                    aria-label="Destination folder"
                     value={destination ?? ""}
-                    onChange={(e) => setDestination(e.target.value || null)}
+                    onChange={(e) => {
+                      setDestination(e.target.value || null);
+                      setFolderConfirmed(false);
+                    }}
                   >
-                    <option value="">Leave unfiled</option>
+                    <option value="">Leave where it was uploaded</option>
                     {catalog.map((c: { id: string; label: string }) => (
                       <option key={c.id} value={c.id}>
                         {c.label}
@@ -302,21 +328,27 @@ export function AiFilingReviewModal({
               </div>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}>
+                <label
+                  style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}
+                >
                   <span className="tvp-muted" style={{ fontSize: 12 }}>
                     Expiry date
                   </span>
                   <input
                     type="date"
                     className="tvp-select"
+                    aria-label="Expiry date"
                     value={expiry}
                     onChange={(e) => {
                       setExpiry(e.target.value);
                       setExpiryConfirmed(false);
+                      setNoReminder(false);
                     }}
                   />
                 </label>
-                <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}>
+                <label
+                  style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}
+                >
                   <span className="tvp-muted" style={{ fontSize: 12 }}>
                     Remind me this many days before
                   </span>
@@ -325,6 +357,7 @@ export function AiFilingReviewModal({
                     min={1}
                     max={365}
                     className="tvp-select"
+                    aria-label="Reminder lead days"
                     value={leadDays}
                     disabled={noReminder || !expiry}
                     onChange={(e) => {
@@ -335,7 +368,7 @@ export function AiFilingReviewModal({
                 </label>
               </div>
 
-              <div className="tvp-muted" style={{ fontSize: 12 }}>
+              <div className="tvp-muted" style={{ fontSize: 12 }} data-testid="reminder-summary">
                 {noReminder
                   ? "No reminder will be set."
                   : reminderDate
@@ -377,18 +410,7 @@ export function AiFilingReviewModal({
             </section>
 
             {/* ---------------- Human validation notice ---------------- */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 10,
-                padding: "10px 12px",
-                borderRadius: 8,
-                background: "rgba(180, 83, 9, 0.08)",
-                border: "1px solid rgba(180, 83, 9, 0.25)",
-                fontSize: 13,
-              }}
-            >
+            <div style={AMBER_PANEL}>
               <ShieldAlert
                 className="h-4 w-4 shrink-0"
                 style={{ color: "var(--tvp-amber, #b45309)", marginTop: 2 }}

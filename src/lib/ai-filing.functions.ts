@@ -1,9 +1,11 @@
 /**
- * AI-assisted document filing — server functions.
+ * Document filing review — server functions.
  *
- * suggestDocumentFiling: run after a document row already exists. Reads the
- * stored file, asks the model for a destination + expiry, returns the suggestion
- * plus the closed catalog the UI offers as manual alternatives. Nothing is filed.
+ * getFilingCatalog: returns the closed catalog of destinations the reviewer may
+ * file a freshly uploaded document into, plus the portal's default reminder lead
+ * time. No AI is involved yet — the UI seeds its "suggestion" from the folder the
+ * user picked at upload time. When a real suggestion service lands it can return
+ * a `suggestion` object from here (or from its own function) without any UI rework.
  *
  * confirmDocumentFiling: applies the human-confirmed destination/expiry/reminder.
  */
@@ -12,12 +14,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const TALENT_BUCKET = "talent-private-documents";
-const AGENCY_BUCKET = "talent-documents";
-
 const ScopeEnum = z.enum(["talent", "agency"]);
 
-const SuggestInput = z.object({
+const CatalogInput = z.object({
   scope: ScopeEnum,
   document_id: z.string().uuid(),
 });
@@ -47,40 +46,30 @@ async function callerAgencyId(supabase: any, userId: string) {
 }
 
 // -----------------------------------------------------------------------------
-// suggestDocumentFiling
+// getFilingCatalog
 // -----------------------------------------------------------------------------
-export const suggestDocumentFiling = createServerFn({ method: "POST" })
+export const getFilingCatalog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => SuggestInput.parse(input))
+  .inputValidator((input: unknown) => CatalogInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const { isAiReadableFile, requestFilingSuggestion } = await import("@/lib/ai-filing.server");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    let bucket: string;
-    let storagePath: string | null;
-    let fileName: string;
-    let mimeType: string | null;
-    let sizeBytes: number | null;
     let catalog: { id: string; label: string }[] = [];
     let defaultReminderDays = 30;
     let secondaryHint: string | null = null;
+    let currentDestination: string | null = null;
+    let fileName = "";
 
     if (data.scope === "talent") {
       const { data: doc, error } = await supabase
         .from("talent_private_documents")
-        .select("id, user_id, name, storage_path, mime_type, size_bytes")
+        .select("id, user_id, name, folder_id, expires_at")
         .eq("id", data.document_id)
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!doc || doc.user_id !== userId) throw new Error("Not found.");
-
-      bucket = TALENT_BUCKET;
-      storagePath = doc.storage_path;
       fileName = doc.name;
-      mimeType = doc.mime_type;
-      sizeBytes = doc.size_bytes;
+      currentDestination = doc.folder_id ?? null;
 
       const { data: folders } = await supabase
         .from("talent_private_folders")
@@ -104,7 +93,7 @@ export const suggestDocumentFiling = createServerFn({ method: "POST" })
           parts.unshift(cur.name);
           cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
         }
-        return parts.join(" -> ");
+        return parts.join(" → ");
       };
       catalog = rows.map((r) => ({ id: r.id, label: labelFor(r) }));
 
@@ -122,17 +111,13 @@ export const suggestDocumentFiling = createServerFn({ method: "POST" })
       const agencyId = await callerAgencyId(supabase, userId);
       const { data: doc, error } = await supabase
         .from("talent_shared_documents")
-        .select("id, agency_id, talent_link_id, name, storage_path")
+        .select("id, agency_id, talent_link_id, name, folder")
         .eq("id", data.document_id)
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!doc || doc.agency_id !== agencyId) throw new Error("Not found.");
-
-      bucket = AGENCY_BUCKET;
-      storagePath = doc.storage_path;
       fileName = doc.name;
-      mimeType = null;
-      sizeBytes = null;
+      currentDestination = doc.folder ?? null;
 
       const { data: folders } = await supabase
         .from("agency_talent_folders")
@@ -144,6 +129,9 @@ export const suggestDocumentFiling = createServerFn({ method: "POST" })
         id: f.folder_name,
         label: f.folder_name,
       }));
+      if (catalog.length === 0 && currentDestination) {
+        catalog = [{ id: currentDestination, label: currentDestination }];
+      }
 
       const { data: agency } = await supabase
         .from("agencies")
@@ -155,72 +143,7 @@ export const suggestDocumentFiling = createServerFn({ method: "POST" })
         "Filed into the talent's Agency Shared Folder. The talent's Private Vault stays out of reach.";
     }
 
-    const base = {
-      catalog,
-      defaultReminderDays,
-      secondaryHint,
-      fileName,
-    };
-
-    if (!storagePath) {
-      return { ...base, suggestion: null, status: "no_file" as const };
-    }
-
-    // Download the stored object (service role — the caller was already authorised above).
-    const { data: blob, error: dlErr } = await supabaseAdmin.storage
-      .from(bucket)
-      .download(storagePath);
-    if (dlErr || !blob) {
-      console.error("[ai-filing] download failed", dlErr?.message);
-      return { ...base, suggestion: null, status: "error" as const };
-    }
-
-    const resolvedMime = mimeType || blob.type || null;
-    const resolvedSize = sizeBytes ?? blob.size ?? null;
-    if (!isAiReadableFile(resolvedMime, resolvedSize)) {
-      return { ...base, suggestion: null, status: "unsupported" as const };
-    }
-
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) {
-      console.error("[ai-filing] LOVABLE_API_KEY missing");
-      return { ...base, suggestion: null, status: "error" as const };
-    }
-
-    try {
-      const suggestion = await requestFilingSuggestion({
-        apiKey,
-        bytes: await blob.arrayBuffer(),
-        mimeType: resolvedMime as string,
-        fileName,
-        catalog,
-      });
-
-      if (!suggestion) return { ...base, suggestion: null, status: "no_suggestion" as const };
-
-      // Agency docs persist the suggestion so a half-finished review can resume.
-      if (data.scope === "agency") {
-        await supabase
-          .from("talent_shared_documents")
-          .update({
-            ai_suggested_folder: suggestion.folder_label,
-            ai_suggested_expiry: suggestion.expiry_date
-              ? new Date(suggestion.expiry_date).toISOString()
-              : null,
-          })
-          .eq("id", data.document_id);
-      }
-
-      return { ...base, suggestion, status: "ok" as const };
-    } catch (err: any) {
-      const msg = String(err?.message ?? "");
-      if (msg === "AI_RATE_LIMITED")
-        return { ...base, suggestion: null, status: "rate_limited" as const };
-      if (msg === "AI_CREDITS_EXHAUSTED")
-        return { ...base, suggestion: null, status: "credits" as const };
-      console.error("[ai-filing] suggestion failed", err);
-      return { ...base, suggestion: null, status: "error" as const };
-    }
+    return { catalog, defaultReminderDays, secondaryHint, currentDestination, fileName };
   });
 
 // -----------------------------------------------------------------------------
@@ -257,7 +180,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
     const agencyId = await callerAgencyId(supabase, userId);
     const { data: doc } = await supabase
       .from("talent_shared_documents")
-      .select("id, agency_id, name, talent_link_id")
+      .select("id, agency_id, name, talent_link_id, folder")
       .eq("id", data.document_id)
       .maybeSingle();
     if (!doc || doc.agency_id !== agencyId) throw new Error("Not found.");
@@ -270,11 +193,12 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
         .eq("talent_link_id", doc.talent_link_id)
         .eq("folder_name", data.destination)
         .maybeSingle();
-      if (!allowed) throw new Error("That folder isn't allowed for this talent.");
+      if (!allowed && data.destination !== doc.folder) {
+        throw new Error("That folder isn't allowed for this talent.");
+      }
     }
 
     const patch: Record<string, unknown> = {
-      status: "filed",
       validity_expires_at: data.expires_at,
     };
     if (data.destination) patch.folder = data.destination;
@@ -289,7 +213,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
       agency_id: agencyId,
       actor_id: userId,
       actor_email: claims?.email ?? null,
-      action: data.ai_assisted ? "document_filed_ai_assisted" : "document_filed_manual",
+      action: "document_filing_confirmed",
       target_type: "document",
       target_id: data.document_id,
       target_label: doc.name,
