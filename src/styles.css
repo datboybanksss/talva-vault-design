@@ -728,7 +728,9 @@
 
   /* Talent portal extensions */
   /* --- Vault toolbar (search + filter) --- */
-  & .tvp-vault-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid var(--tvp-line); background: white; border-radius: 16px; padding: 10px; box-shadow: var(--tvp-shadow-soft); }
+  & .tvp-vault-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; border: 1px solid var(--tvp-line); background: white; border-radius: 16px; padding: 10px; box-shadow: var(--tvp-shadow-soft); }
+  & .tvp-vault-toolbar > button { height: 44px; white-space: nowrap; }
+
   & .tvp-vault-search { position: relative; display: flex; align-items: center; min-width: 0; }
   & .tvp-vault-search svg { position: absolute; left: 14px; width: 16px; height: 16px; color: var(--tvp-muted); pointer-events: none; }
   & .tvp-vault-search input { width: 100%; height: 44px; border: 1px solid transparent; background: var(--tvp-surface-soft); border-radius: 12px; padding: 0 14px 0 40px; font-size: 13px; font-weight: 600; color: var(--tvp-ink); transition: .16s ease; }
