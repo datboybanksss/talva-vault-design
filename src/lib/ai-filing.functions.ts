@@ -54,13 +54,8 @@ export const suggestDocumentFiling = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SuggestInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const {
-      isAiReadableFile,
-      requestFilingSuggestion,
-      type: _t,
-    } = (await import("@/lib/ai-filing.server")) as typeof import("@/lib/ai-filing.server") & {
-      type?: never;
-    };
+    const { isAiReadableFile, requestFilingSuggestion } = await import("@/lib/ai-filing.server");
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     let bucket: string;
