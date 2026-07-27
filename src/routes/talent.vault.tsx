@@ -585,18 +585,7 @@ function SharedDocumentsView() {
 
   return (
     <>
-      {actionRequests > 0 && (
-        <button type="button" className="tvp-callout tvp-callout-action" onClick={onOpenRequests}>
-          <div className="tvp-callout-icon tvp-bg-amber"><Inbox className="h-4 w-4" /></div>
-          <div style={{ textAlign: "left" }}>
-            <strong>
-              {actionRequests} pending request{actionRequests === 1 ? "" : "s"} from your Manager
-            </strong>{" "}
-            <span className="tvp-muted">Upload the requested documents to keep your shared folder compliant.</span>
-          </div>
-          <ArrowRight className="h-4 w-4" style={{ marginLeft: "auto", flexShrink: 0 }} />
-        </button>
-      )}
+
 
 
 
