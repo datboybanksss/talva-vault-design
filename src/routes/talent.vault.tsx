@@ -266,6 +266,12 @@ function PrivateVault() {
     return true;
   });
 
+  // Searching or filtering implicitly reveals the flat list, so users never
+  // have to click "View all documents" first to see their results.
+  const isFiltering = search.trim() !== "" || filterFolder !== "__all";
+  const docsVisible = showAllDocs || isFiltering;
+
+
 
   if (isLoading) {
     return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Private Vault…</p></div>;
