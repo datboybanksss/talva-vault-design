@@ -14,7 +14,6 @@ import {
   Bell,
   LogOut,
   ShieldCheck,
-  Sparkles,
   Clock,
   Inbox,
   AlertCircle,
