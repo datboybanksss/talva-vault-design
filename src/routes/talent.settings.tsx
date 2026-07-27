@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Info, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { updateTalentProfile } from "@/lib/talent.functions";
+import { updateTalentProfile, getTalentNotificationPrefs, updateTalentNotificationPrefs } from "@/lib/talent.functions";
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 
 export const Route = createFileRoute("/talent/settings")({
@@ -40,6 +40,29 @@ function TalentSettings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
+  const [expiryDays, setExpiryDays] = useState("30");
+  const [savingPrefs, setSavingPrefs] = useState(false);
+
+  useEffect(() => {
+    getTalentNotificationPrefs().then((r: any) => setExpiryDays(String(r?.expiryNoticeDays ?? 30))).catch(() => {});
+  }, []);
+
+  async function saveNotificationPrefs() {
+    const n = Number(expiryDays);
+    if (!Number.isInteger(n) || n < 1 || n > 365) {
+      toast.error("Enter a whole number of days between 1 and 365");
+      return;
+    }
+    setSavingPrefs(true);
+    try {
+      await updateTalentNotificationPrefs({ data: { expiry_notice_days: n } });
+      toast.success(`You'll be warned ${n} days before a document expires`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not save notification settings");
+    } finally {
+      setSavingPrefs(false);
+    }
+  }
 
   useEffect(() => {
     if (ctx?.profile?.full_name) setFullName(ctx.profile.full_name);
@@ -220,9 +243,41 @@ function TalentSettings() {
 
       {mode === "notifications" && (
         <div className="tvp-card tvp-panel">
-          <h2 className="tvp-h2">Notifications</h2>
-          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-            Notification preferences will be wired when the reminder engine ships.
+          <div className="tvp-panel-head">
+            <div>
+              <h2 className="tvp-h2">Notifications</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                Choose how early you want to be warned about expiring documents.
+              </p>
+            </div>
+            <button className="tvp-primary" onClick={saveNotificationPrefs} disabled={savingPrefs}>
+              <Save className="h-4 w-4" /> {savingPrefs ? "Saving…" : "Save"}
+            </button>
+          </div>
+          <div className="tvp-form-grid" style={{ marginTop: 12 }}>
+            <div className="tvp-form-group">
+              <label>Warn me before a document expires</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={expiryDays}
+                  onChange={(e) => setExpiryDays(e.target.value)}
+                  style={{ maxWidth: 120 }}
+                />
+                <span className="tvp-muted" style={{ fontSize: 13, fontWeight: 700 }}>days ahead</span>
+              </div>
+              <p className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Drives the “Expiring {Number(expiryDays) || 30}d” tile on your dashboard.
+              </p>
+            </div>
+          </div>
+          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 18, fontWeight: 800 }}>
+            Email reminders
+          </p>
+          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 2 }}>
+            These channels will be wired when the reminder engine ships.
           </p>
           <div className="tvp-doc-grid" style={{ marginTop: 14 }}>
             {notifications.map((n) => (
