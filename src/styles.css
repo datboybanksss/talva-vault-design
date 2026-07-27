@@ -728,21 +728,25 @@
 
   /* Talent portal extensions */
   /* --- Vault toolbar (search + filter) --- */
-  & .tvp-vault-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; border: 1px solid var(--tvp-line); background: white; border-radius: 16px; padding: 10px; box-shadow: var(--tvp-shadow-soft); }
-  & .tvp-vault-toolbar > button { height: 44px; white-space: nowrap; }
-  & .tvp-view-switch { display: inline-flex; align-items: center; gap: 4px; height: 44px; box-sizing: border-box; background: var(--tvp-surface-soft); border: 1px solid var(--tvp-line); border-radius: 12px; padding: 4px; }
+  & .tvp-vault-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border: 1px solid var(--tvp-line); background: white; border-radius: 16px; padding: 10px; box-shadow: var(--tvp-shadow-soft); }
+  & .tvp-vault-toolbar > * { min-width: 0; }
+  & .tvp-vault-toolbar > button { height: 44px; white-space: nowrap; flex: 0 0 auto; }
+  & .tvp-view-switch { display: inline-flex; align-items: center; gap: 4px; height: 44px; box-sizing: border-box; flex: 0 1 auto; background: var(--tvp-surface-soft); border: 1px solid var(--tvp-line); border-radius: 12px; padding: 4px; }
+
   & .tvp-view-switch > button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 14px; border: 1px solid transparent; background: transparent; border-radius: 9px; font-size: 13px; font-weight: 800; color: var(--tvp-muted); cursor: pointer; white-space: nowrap; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
   & .tvp-view-switch > button:hover { color: var(--tvp-ink); }
   & .tvp-view-switch > button.tvp-active { background: white; border-color: var(--tvp-teal-2); box-shadow: inset 0 -3px 0 var(--tvp-teal); color: var(--tvp-ink); font-weight: 900; }
   & .tvp-view-switch > button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(16,139,149,.16); }
 
-  & .tvp-vault-search { position: relative; display: flex; align-items: center; min-width: 0; }
+  & .tvp-vault-search { position: relative; display: flex; align-items: center; flex: 1 1 220px; min-width: 160px; }
   & .tvp-vault-search svg { position: absolute; left: 14px; width: 16px; height: 16px; color: var(--tvp-muted); pointer-events: none; }
-  & .tvp-vault-search input { width: 100%; height: 44px; border: 1px solid transparent; background: var(--tvp-surface-soft); border-radius: 12px; padding: 0 14px 0 40px; font-size: 13px; font-weight: 600; color: var(--tvp-ink); transition: .16s ease; }
+  & .tvp-vault-search input { width: 100%; min-width: 0; height: 44px; border: 1px solid transparent; background: var(--tvp-surface-soft); border-radius: 12px; padding: 0 14px 0 40px; font-size: 13px; font-weight: 600; color: var(--tvp-ink); transition: .16s ease; }
   & .tvp-vault-search input::placeholder { color: var(--tvp-muted); font-weight: 600; }
   & .tvp-vault-search input:focus { outline: none; background: white; border-color: var(--tvp-teal-2); box-shadow: 0 0 0 3px rgba(16,139,149,.16); }
-  & .tvp-vault-select { height: 44px; border: 1px solid var(--tvp-line); background: white; border-radius: 12px; padding: 0 12px; font-size: 13px; font-weight: 800; color: var(--tvp-ink); cursor: pointer; }
+  & .tvp-vault-select { height: 44px; flex: 0 1 auto; max-width: 200px; border: 1px solid var(--tvp-line); background: white; border-radius: 12px; padding: 0 12px; font-size: 13px; font-weight: 800; color: var(--tvp-ink); cursor: pointer; }
   & .tvp-vault-select:focus { outline: none; border-color: var(--tvp-teal-2); box-shadow: 0 0 0 3px rgba(16,139,149,.16); }
+
+
 
   /* --- Folder grid (uniform cards, animated collapse) --- */
   & .tvp-folder-tree { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 16px; align-items: start; margin-top: 16px; }
@@ -798,9 +802,9 @@
   .tv-app .tvp-plan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .tv-app .tvp-budget-builder { grid-template-columns: 1fr !important; }
   .tv-app .tvp-folder-tree { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important; }
-  .tv-app .tvp-vault-toolbar { grid-template-columns: 1fr !important; }
-  .tv-app .tvp-view-switch { display: flex !important; width: 100%; }
+  .tv-app .tvp-view-switch { display: flex !important; flex: 1 1 100% !important; width: 100%; }
   .tv-app .tvp-view-switch > button { flex: 1 1 0; min-width: 0; }
+
 }
 
 @media (max-width: 1100px) {
