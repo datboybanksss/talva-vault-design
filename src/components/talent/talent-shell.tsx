@@ -207,7 +207,6 @@ export function TalentShell({ children }: { children: ReactNode }) {
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
-          <input className="tvp-search-top" placeholder="Search..." />
           <div className="tvp-notification-wrap">
             <button
               className="tvp-icon-btn"
