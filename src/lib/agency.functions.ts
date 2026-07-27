@@ -623,6 +623,8 @@ export const listAgencyVaultDocuments = createServerFn({ method: "GET" })
       updatedAt: r.updated_at as string,
       lockedUntil: (r.locked_until as string) ?? null,
       currentVersionId: (r.current_version_id as string) ?? null,
+      aiSuggestedFolder: (r.ai_suggested_folder as string) ?? null,
+      aiSuggestedExpiry: (r.ai_suggested_expiry as string) ?? null,
     }));
   });
 
