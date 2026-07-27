@@ -492,6 +492,9 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
   const download = useServerFn(getSharedDocumentDownloadUrl);
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("__all");
+  const [showAllDocs, setShowAllDocs] = useState(false);
+  const docsVisible = showAllDocs || search.trim() !== "" || folderFilter !== "__all";
+
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["talent", "roster-shared"],
