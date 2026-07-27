@@ -1355,6 +1355,7 @@ export type Database = {
           id: string
           name: string
           parent_id: string | null
+          removed_at: string | null
           sort_order: number
           tone: string | null
           updated_at: string
@@ -1366,6 +1367,7 @@ export type Database = {
           id?: string
           name: string
           parent_id?: string | null
+          removed_at?: string | null
           sort_order?: number
           tone?: string | null
           updated_at?: string
@@ -1377,6 +1379,7 @@ export type Database = {
           id?: string
           name?: string
           parent_id?: string | null
+          removed_at?: string | null
           sort_order?: number
           tone?: string | null
           updated_at?: string
