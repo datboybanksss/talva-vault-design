@@ -3,7 +3,7 @@ import { Link, useRouterState, useNavigate, useRouter } from "@tanstack/react-ro
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getTalentDashboard } from "@/lib/talent.functions";
+import { getTalentDashboard, listTalentDismissals, dismissTalentReminder } from "@/lib/talent.functions";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -13,6 +13,7 @@ import {
   Settings as SettingsIcon,
   Bell,
   LogOut,
+  X,
   ShieldCheck,
   Clock,
   Inbox,
@@ -27,10 +28,10 @@ type NavItem = {
   match?: string;
 };
 
-const manage: NavItem[] = [
+const buildManageNav = (vaultBadge: number, sharesBadge: number): NavItem[] => [
   { to: "/talent", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
-  { to: "/talent/vault", label: "Vault", icon: <Lock />, badge: 31 },
-  { to: "/talent/sharing", label: <>Shared<br />Access</>, icon: <Share2 />, badge: 3 },
+  { to: "/talent/vault", label: "Vault", icon: <Lock />, badge: vaultBadge },
+  { to: "/talent/sharing", label: <>Shared<br />Access</>, icon: <Share2 />, badge: sharesBadge },
   { to: "/talent/budget", label: <>Budget &<br />Income</>, icon: <Wallet /> },
 ];
 
@@ -53,9 +54,30 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const resubRequests = (dash as any)?.resubRequests ?? 0;
   const expiringSoon = (dash as any)?.expiringSoon ?? 0;
   const expiryNoticeDays = (dash as any)?.expiryNoticeDays ?? 30;
+  const vaultBadge = ((dash as any)?.privateDocs ?? 0) + ((dash as any)?.sharedDocs ?? 0);
+  const sharesBadge = (dash as any)?.activeShares ?? 0;
+  const manage = buildManageNav(vaultBadge, sharesBadge);
+
+  const loadDismissals = useServerFn(listTalentDismissals);
+  const dismissFn = useServerFn(dismissTalentReminder);
+  const { data: dismissals } = useQuery({
+    queryKey: ["talent", "reminder-dismissals"],
+    queryFn: () => loadDismissals() as Promise<{ kind: string; snapshot: number }[]>,
+  });
+  const dismissedMap = new Map((dismissals ?? []).map((d) => [d.kind, d.snapshot]));
+  async function dismissReminder(kind: string, snapshot: number) {
+    try {
+      await dismissFn({ data: { kind, snapshot } });
+      queryClient.invalidateQueries({ queryKey: ["talent", "reminder-dismissals"] });
+    } catch {
+      /* non-blocking */
+    }
+  }
 
   const notifications = [
     pendingRequests > 0 && {
+      kind: "pending_requests",
+      snapshot: pendingRequests,
       tone: "purple",
       Icon: Inbox,
       title: `${pendingRequests} document request${pendingRequests === 1 ? "" : "s"} from your Manager`,
@@ -64,6 +86,8 @@ export function TalentShell({ children }: { children: ReactNode }) {
       search: { tab: "agency" as const, view: "requests" as const },
     },
     resubRequests > 0 && {
+      kind: "resubmissions",
+      snapshot: resubRequests,
       tone: "amber",
       Icon: AlertCircle,
       title: `${resubRequests} resubmission${resubRequests === 1 ? "" : "s"} requested`,
@@ -72,6 +96,8 @@ export function TalentShell({ children }: { children: ReactNode }) {
       search: { tab: "agency" as const, view: "requests" as const },
     },
     expiringSoon > 0 && {
+      kind: "expiring_soon",
+      snapshot: expiringSoon,
       tone: "amber",
       Icon: Clock,
       title: `${expiringSoon} document${expiringSoon === 1 ? "" : "s"} expiring soon`,
@@ -79,7 +105,9 @@ export function TalentShell({ children }: { children: ReactNode }) {
       to: "/talent/vault",
       search: { tab: "agency" as const, view: "folder" as const },
     },
-  ].filter(Boolean) as {
+  ].filter(Boolean).filter((n: any) => dismissedMap.get(n.kind) !== n.snapshot) as {
+    kind: string;
+    snapshot: number;
     tone: string;
     Icon: typeof Inbox;
     title: string;
@@ -203,23 +231,37 @@ export function TalentShell({ children }: { children: ReactNode }) {
                   </p>
                 ) : (
                   notifications.map((n, i) => (
-                    <Link
-                      to={n.to}
-                      search={n.search}
-                      className="tvp-notification-item"
-                      key={i}
-                      onClick={() => setBellOpen(false)}
-                    >
-                      <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
-                        <n.Icon className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <strong>{n.title}</strong>
-                        <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                          {n.detail}
+                    <div key={i} style={{ position: "relative" }}>
+                      <Link
+                        to={n.to}
+                        search={n.search}
+                        className="tvp-notification-item"
+                        onClick={() => setBellOpen(false)}
+                      >
+                        <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
+                          <n.Icon className="h-4 w-4" />
                         </div>
-                      </div>
-                    </Link>
+                        <div style={{ paddingRight: 20 }}>
+                          <strong>{n.title}</strong>
+                          <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                            {n.detail}
+                          </div>
+                        </div>
+                      </Link>
+                      <button
+                        title="Dismiss reminder"
+                        aria-label="Dismiss reminder"
+                        className="tvp-mini-btn"
+                        style={{ position: "absolute", top: 8, right: 6 }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          dismissReminder(n.kind, n.snapshot);
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   ))
                 )}
               </div>
