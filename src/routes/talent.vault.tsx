@@ -463,7 +463,22 @@ function PrivateVault() {
         )}
       </div>
       )}
+
+      {aiReviewFor && (
+        <AiFilingReviewModal
+          scope="talent"
+          documentId={aiReviewFor.id}
+          documentName={aiReviewFor.name}
+          destinationPrefix="Private Vault"
+          onClose={() => setAiReviewFor(null)}
+          onDone={() => {
+            setAiReviewFor(null);
+            invalidate();
+          }}
+        />
+      )}
     </>
+
 
   );
 }
