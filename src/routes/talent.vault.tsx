@@ -495,15 +495,8 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
         </button>
       )}
 
-      <div className="tvp-callout">
-        <div className="tvp-callout-icon"><FileStack className="h-4 w-4" /></div>
-        <div>
-          <strong>Manager-controlled folder structure.</strong>{" "}
-          <span className="tvp-muted">
-            Your Talent Manager defines the folders in the Agency Shared Folder. You can view and download documents here, but the folder structure itself is read-only for Talent.
-          </span>
-        </div>
-      </div>
+
+
 
       <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
         <div className="tvp-vault-search">
