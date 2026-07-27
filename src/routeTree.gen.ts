@@ -45,6 +45,7 @@ import { Route as AdminAdministratorsRouteImport } from './routes/admin.administ
 import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invitations.index'
 import { Route as AdminAgenciesIndexRouteImport } from './routes/admin.agencies.index'
 import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
+import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/loved-one-file'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
@@ -231,6 +232,11 @@ const InviteTalentTokenRoute = InviteTalentTokenRouteImport.update({
   path: '/invite/talent/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicLovedOneFileRoute = ApiPublicLovedOneFileRouteImport.update({
+  id: '/api/public/loved-one-file',
+  path: '/api/public/loved-one-file',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
   id: '/invite',
   path: '/invite',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
@@ -334,6 +341,7 @@ export interface FileRoutesByTo {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
@@ -378,6 +386,7 @@ export interface FileRoutesById {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
@@ -423,6 +432,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
@@ -461,6 +471,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies'
     | '/admin/invitations'
@@ -504,6 +515,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
@@ -520,6 +532,7 @@ export interface RootRouteChildren {
   TalentRoute: typeof TalentRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
+  ApiPublicLovedOneFileRoute: typeof ApiPublicLovedOneFileRoute
   InviteTalentTokenRoute: typeof InviteTalentTokenRoute
 }
 
@@ -777,6 +790,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTalentTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/loved-one-file': {
+      id: '/api/public/loved-one-file'
+      path: '/api/public/loved-one-file'
+      fullPath: '/api/public/loved-one-file'
+      preLoaderRoute: typeof ApiPublicLovedOneFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agency/talent/invite': {
       id: '/agency/talent/invite'
       path: '/invite'
@@ -942,6 +962,7 @@ const rootRouteChildren: RootRouteChildren = {
   TalentRoute: TalentRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
+  ApiPublicLovedOneFileRoute: ApiPublicLovedOneFileRoute,
   InviteTalentTokenRoute: InviteTalentTokenRoute,
 }
 export const routeTree = rootRouteImport
