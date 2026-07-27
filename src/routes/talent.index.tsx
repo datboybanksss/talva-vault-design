@@ -106,7 +106,7 @@ function TalentDashboard() {
               <Link to="/talent/vault" search={{ tab: "requests" }} className="tvp-doc-card" style={{ marginTop: 10 }}>
                 <div className="tvp-kpi-icon tvp-bg-purple" style={{ width: 40, height: 40 }}><Inbox className="h-4 w-4" /></div>
                 <div>
-                  <strong>{data?.pendingRequests} document request{data?.pendingRequests === 1 ? "" : "s"} from your Manager need a response</strong>
+                  <strong>{data?.pendingRequests} document request{data?.pendingRequests === 1 ? "" : "s"} from your Manager {data?.pendingRequests === 1 ? "needs" : "need"} a response</strong>
                   <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Open Vault → Manager Requests.</div>
                 </div>
                 <ArrowRight className="h-4 w-4" />
