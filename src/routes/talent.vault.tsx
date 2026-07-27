@@ -42,7 +42,7 @@ function VaultPage() {
         <div>
           <h1 className="tvp-h1">Vault</h1>
           <div className="tvp-subtitle">
-            One vault area with clear separation between Private Vault, Roster Shared Folder and Manager Requests.
+            One vault area with clear separation between Private Vault, Agency Shared Folder and Manager Requests.
           </div>
         </div>
       </div>
@@ -52,7 +52,7 @@ function VaultPage() {
           <Lock className="h-4 w-4" /> Private Vault
         </button>
         <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => setMode("agency")}>
-          <FileStack className="h-4 w-4" /> Roster Shared Folder
+          <FileStack className="h-4 w-4" /> Agency Shared Folder
         </button>
         <button className={`tvp-tab${mode === "requests" ? " tvp-active" : ""}`} onClick={() => setMode("requests")}>
           <Inbox className="h-4 w-4" /> Manager Requests
@@ -61,7 +61,7 @@ function VaultPage() {
 
       {mode === "private" && <PrivateVault />}
 
-      {mode === "agency" && <RosterSharedFolder />}
+      {mode === "agency" && <AgencySharedFolder />}
 
       {mode === "requests" && <ManagerRequests />}
 
@@ -414,7 +414,7 @@ function statusTone(status: string) {
   }
 }
 
-function RosterSharedFolder() {
+function AgencySharedFolder() {
   const load = useServerFn(getRosterSharedContents);
   const download = useServerFn(getSharedDocumentDownloadUrl);
   const [search, setSearch] = useState("");
@@ -435,7 +435,7 @@ function RosterSharedFolder() {
   }
 
   if (isLoading) {
-    return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Roster Shared Folder…</p></div>;
+    return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Agency Shared Folder…</p></div>;
   }
   if (isError) {
     return <div className="tvp-card tvp-panel"><p className="tvp-warn">Failed to load: {(error as Error)?.message}</p></div>;
@@ -443,9 +443,9 @@ function RosterSharedFolder() {
   if (!data?.link) {
     return (
       <div className="tvp-card tvp-panel">
-        <h2 className="tvp-h2">No active roster link</h2>
+        <h2 className="tvp-h2">No active manager link</h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
-          You aren't currently linked to a Talent Manager. Once you're invited and accepted, the Roster Shared Folder appears here.
+          You aren't currently linked to a Talent Manager. Once you're invited and accepted, the Agency Shared Folder appears here.
         </p>
       </div>
     );
@@ -465,7 +465,7 @@ function RosterSharedFolder() {
         <div>
           <strong>Manager-controlled folder structure.</strong>{" "}
           <span className="tvp-muted">
-            Your Talent Manager defines the folders in the Roster Shared Folder. You can view and download documents here, but the folder structure itself is read-only for Talent.
+            Your Talent Manager defines the folders in the Agency Shared Folder. You can view and download documents here, but the folder structure itself is read-only for Talent.
           </span>
         </div>
       </div>
@@ -473,7 +473,7 @@ function RosterSharedFolder() {
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <div>
-            <h2 className="tvp-h2">Roster Shared Folder</h2>
+            <h2 className="tvp-h2">Agency Shared Folder</h2>
             <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
               {folders.length} folder{folders.length === 1 ? "" : "s"} · {data.documents.length} document{data.documents.length === 1 ? "" : "s"}
             </p>
@@ -488,16 +488,21 @@ function RosterSharedFolder() {
               const count = data.documents.filter((d) => d.folder === f.folder_name).length;
               return (
                 <div key={f.id} className="tvp-folder-card">
-                  <h3>
-                    <span className="tvp-kpi-icon tvp-bg-blue" style={{ width: 34, height: 34 }}>
+                  <div className="tvp-folder-head" style={{ cursor: "default" }}>
+                    <span className="tvp-kpi-icon tvp-bg-blue" style={{ width: 40, height: 40 }}>
                       <FolderOpen className="h-4 w-4" />
                     </span>
-                    {f.folder_name}
-                    <span className="tvp-folder-count">{count} DOC{count === 1 ? "" : "S"}</span>
-                  </h3>
-                  {f.retention_years != null && (
-                    <div className="tvp-folder-eyebrow">Retention: {f.retention_years} year{f.retention_years === 1 ? "" : "s"}</div>
-                  )}
+                    <span style={{ minWidth: 0 }}>
+                      <span className="tvp-folder-name" style={{ display: "block" }}>{f.folder_name}</span>
+                      <span className="tvp-folder-meta" style={{ display: "block" }}>
+                        {count} doc{count === 1 ? "" : "s"}
+                        {f.retention_years != null
+                          ? ` · retention ${f.retention_years} yr${f.retention_years === 1 ? "" : "s"}`
+                          : ""}
+                      </span>
+                    </span>
+                    <Lock className="h-3 w-3" style={{ color: "var(--tvp-muted)" }} />
+                  </div>
                 </div>
               );
             })}
@@ -506,19 +511,19 @@ function RosterSharedFolder() {
       </div>
 
       <div className="tvp-card" style={{ marginTop: 22 }}>
-        <div className="tvp-toolbar">
-          <input
-            className="tvp-search"
-            placeholder="Search Roster Shared Folder..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <div className="tvp-row-actions">
-            <select className="tvp-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
-              <option value="__all">Folder: All</option>
-              {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
-            </select>
+        <div className="tvp-vault-toolbar" style={{ marginBottom: 16 }}>
+          <div className="tvp-vault-search">
+            <Search />
+            <input
+              placeholder="Search Agency Shared Folder..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
+          <select className="tvp-vault-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
+            <option value="__all">Folder: All</option>
+            {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
+          </select>
         </div>
         {docs.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>No documents match your filters.</p>
@@ -608,7 +613,7 @@ function ManagerRequests() {
   if (!data?.link) {
     return (
       <div className="tvp-card tvp-panel">
-        <h2 className="tvp-h2">No active roster link</h2>
+        <h2 className="tvp-h2">No active manager link</h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
           Once you're linked to a Talent Manager, requests they send you will appear here.
         </p>
@@ -630,7 +635,7 @@ function ManagerRequests() {
         <div>
           <strong>Requests from your Manager.</strong>{" "}
           <span className="tvp-muted">
-            Upload the requested document; it lands in your Roster Shared Folder and your Manager reviews it. Previous submissions are kept in history — nothing is deleted.
+            Upload the requested document; it lands in your Agency Shared Folder and your Manager reviews it. Previous submissions are kept in history — nothing is deleted.
           </span>
         </div>
       </div>
