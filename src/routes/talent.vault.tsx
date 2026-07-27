@@ -58,11 +58,9 @@ function VaultPage() {
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Vault</h1>
-          <div className="tvp-subtitle">
-            One vault area with clear separation between Private Vault, Agency Shared Folder and Manager Requests.
-          </div>
         </div>
       </div>
+
 
       <div className="tvp-tabs">
         <button className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`} onClick={() => goTo("private")}>
