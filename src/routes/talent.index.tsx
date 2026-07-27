@@ -28,7 +28,7 @@ function TalentDashboard() {
     { to: "/talent/vault", tone: "teal", Icon: Lock, value: data?.privateDocs ?? 0, label: "Private Docs", sub: "Only visible to you" },
     { to: "/talent/vault", tone: "blue", Icon: FileStack, value: data?.sharedDocs ?? 0, label: "Agency Shared", sub: "Visible to your Manager" },
     { to: "/talent/vault", tone: "amber", Icon: Clock, value: data?.expiringSoon ?? 0, label: "Expiring 30d", sub: "Shared items due for renewal" },
-    { to: "/talent/vault", tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
+    { to: "/talent/vault", search: { tab: "requests" }, tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
   ];
 
   return (
@@ -46,7 +46,7 @@ function TalentDashboard() {
 
       <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))", marginBottom: 22 }}>
         {kpis.map((k) => (
-          <Link key={k.label} to={k.to} className="tvp-card tvp-kpi tvp-clickable">
+          <Link key={k.label} to={k.to} search={(k as any).search} className="tvp-card tvp-kpi tvp-clickable">
             <div className={`tvp-kpi-icon tvp-bg-${k.tone}`}>
               <k.Icon className="h-5 w-5" />
             </div>
@@ -93,7 +93,7 @@ function TalentDashboard() {
           <div className="tvp-card tvp-panel">
             <h2 className="tvp-h2">What needs attention</h2>
             {(data?.resubRequests ?? 0) > 0 && (
-              <Link to="/talent/vault" className="tvp-doc-card" style={{ marginTop: 14 }}>
+              <Link to="/talent/vault" search={{ tab: "requests" }} className="tvp-doc-card" style={{ marginTop: 14 }}>
                 <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><AlertCircle className="h-4 w-4" /></div>
                 <div>
                   <strong>{data?.resubRequests} resubmission{data?.resubRequests === 1 ? "" : "s"} requested</strong>
@@ -102,11 +102,11 @@ function TalentDashboard() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             )}
-            {(data?.openRequests ?? 0) > 0 && (
-              <Link to="/talent/vault" className="tvp-doc-card" style={{ marginTop: 10 }}>
+            {(data?.pendingRequests ?? 0) > 0 && (
+              <Link to="/talent/vault" search={{ tab: "requests" }} className="tvp-doc-card" style={{ marginTop: 10 }}>
                 <div className="tvp-kpi-icon tvp-bg-purple" style={{ width: 40, height: 40 }}><Inbox className="h-4 w-4" /></div>
                 <div>
-                  <strong>{data?.openRequests} pending request{data?.openRequests === 1 ? "" : "s"}</strong>
+                  <strong>{data?.pendingRequests} document request{data?.pendingRequests === 1 ? "" : "s"} from your Manager need a response</strong>
                   <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Open Vault → Manager Requests.</div>
                 </div>
                 <ArrowRight className="h-4 w-4" />
@@ -122,7 +122,7 @@ function TalentDashboard() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             )}
-            {(data?.resubRequests ?? 0) === 0 && (data?.openRequests ?? 0) === 0 && (data?.expiringSoon ?? 0) === 0 && (
+            {(data?.resubRequests ?? 0) === 0 && (data?.pendingRequests ?? 0) === 0 && (data?.expiringSoon ?? 0) === 0 && (
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 10 }}>You're all caught up.</p>
             )}
           </div>
