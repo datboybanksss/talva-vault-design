@@ -28,7 +28,7 @@ function TalentDashboard() {
     { to: "/talent/vault", tone: "teal", Icon: Lock, value: data?.privateDocs ?? 0, label: "Private Docs", sub: "Only visible to you" },
     { to: "/talent/vault", tone: "blue", Icon: FileStack, value: data?.sharedDocs ?? 0, label: "Agency Shared", sub: "Visible to your Manager" },
     { to: "/talent/vault", tone: "amber", Icon: Clock, value: data?.expiringSoon ?? 0, label: "Expiring 30d", sub: "Shared items due for renewal" },
-    { to: "/talent/vault", search: { tab: "requests" }, tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
+    { to: "/talent/vault", search: { tab: "agency", view: "requests" }, tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
   ];
 
   return (
@@ -130,7 +130,7 @@ function TalentDashboard() {
           <div className="tvp-card tvp-panel">
             <h2 className="tvp-h2">What needs attention</h2>
             {(data?.resubRequests ?? 0) > 0 && (
-              <Link to="/talent/vault" search={{ tab: "requests" }} className="tvp-doc-card" style={{ marginTop: 14 }}>
+              <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-doc-card" style={{ marginTop: 14 }}>
                 <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><AlertCircle className="h-4 w-4" /></div>
                 <div>
                   <strong>{data?.resubRequests} resubmission{data?.resubRequests === 1 ? "" : "s"} requested</strong>
@@ -140,7 +140,7 @@ function TalentDashboard() {
               </Link>
             )}
             {(data?.pendingRequests ?? 0) > 0 && (
-              <Link to="/talent/vault" search={{ tab: "requests" }} className="tvp-doc-card" style={{ marginTop: 10 }}>
+              <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-doc-card" style={{ marginTop: 10 }}>
                 <div className="tvp-kpi-icon tvp-bg-purple" style={{ width: 40, height: 40 }}><Inbox className="h-4 w-4" /></div>
                 <div>
                   <strong>{data?.pendingRequests} document request{data?.pendingRequests === 1 ? "" : "s"} from your Manager {data?.pendingRequests === 1 ? "needs" : "need"} a response</strong>

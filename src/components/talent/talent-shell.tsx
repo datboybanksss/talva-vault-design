@@ -58,9 +58,9 @@ export function TalentShell({ children }: { children: ReactNode }) {
       tone: "purple",
       Icon: Inbox,
       title: `${pendingRequests} document request${pendingRequests === 1 ? "" : "s"} from your Manager`,
-      detail: "Upload the requested files from Vault → Manager Requests.",
+      detail: "Upload the requested files from Vault → Agency Shared Folder → Requests.",
       to: "/talent/vault",
-      search: { tab: "requests" as const },
+      search: { tab: "agency" as const, view: "requests" as const },
     },
     resubRequests > 0 && {
       tone: "amber",
@@ -68,7 +68,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
       title: `${resubRequests} resubmission${resubRequests === 1 ? "" : "s"} requested`,
       detail: "Your Manager needs an updated file.",
       to: "/talent/vault",
-      search: { tab: "requests" as const },
+      search: { tab: "agency" as const, view: "requests" as const },
     },
     expiringSoon > 0 && {
       tone: "amber",
@@ -76,7 +76,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
       title: `${expiringSoon} document${expiringSoon === 1 ? "" : "s"} expiring soon`,
       detail: "Shared documents due for renewal within 30 days.",
       to: "/talent/vault",
-      search: { tab: "agency" as const },
+      search: { tab: "agency" as const, view: "folder" as const },
     },
   ].filter(Boolean) as {
     tone: string;
@@ -84,7 +84,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
     title: string;
     detail: string;
     to: string;
-    search: { tab: "requests" | "agency" };
+    search: { tab: "agency"; view: "requests" | "folder" };
   }[];
   // Loader data from /talent route: { profile, link, agency }
   const rootMatch = useRouterState({
