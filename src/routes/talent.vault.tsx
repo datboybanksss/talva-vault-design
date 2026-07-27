@@ -22,8 +22,9 @@ import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
-  ChevronDown, Search, ArrowRight,
+  ChevronDown, Search,
 } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/talent/vault")({
