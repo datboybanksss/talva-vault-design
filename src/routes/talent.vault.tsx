@@ -165,7 +165,7 @@ function PrivateVault() {
 
   async function onDeleteFolder(id: string, name: string, isTop: boolean) {
     const message = isTop
-      ? `Remove "${name}" from your vault? It will be hidden, and you can restore it later from Settings → Vault Folders with its documents intact.`
+      ? `Remove "${name}" from your vault? It will be hidden, and you can restore it later from Settings → Manage folders with its documents intact.`
       : `Delete "${name}"? Only empty subfolders can be deleted.`;
     if (!window.confirm(message)) return;
     try {
@@ -320,7 +320,7 @@ function PrivateVault() {
             <h2 className="tvp-h2">Private Vault Folders</h2>
             <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
               {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · choose which
-              categories appear in Settings → Vault Folders.
+              categories appear in Settings → Manage folders.
             </p>
           </div>
           <div className="tvp-row-actions">
@@ -330,7 +330,7 @@ function PrivateVault() {
 
         {topFolders.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13 }}>
-            No folders yet — turn categories on from Settings → Vault Folders.
+            No folders yet — turn categories on from Settings → Manage folders.
           </p>
         ) : (
           <div className="tvp-folder-tree">
