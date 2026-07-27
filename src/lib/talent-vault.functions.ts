@@ -74,66 +74,63 @@ export const createPrivateFolder = createServerFn({ method: "POST" })
     return { id: row.id };
   });
 
-const RenameFolderInput = z.object({
-  id: z.string().uuid(),
-  name: z.string().trim().min(1).max(120),
-});
-
-export const renamePrivateFolder = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => RenameFolderInput.parse(input))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("talent_private_folders")
-      .update({ name: data.name })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
 const DeleteFolderInput = z.object({ id: z.string().uuid() });
 
+/**
+ * Top-level categories are SOFT-removed (hidden) so they can be restored later
+ * from Settings → Vault Folders with their documents intact.
+ * Subfolders are hard-deleted, but only when they hold no documents and no children.
+ */
 export const deletePrivateFolder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => DeleteFolderInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    // Collect all descendant folder IDs client-side (simple recursion) so
-    // we can gather storage paths before the cascade removes the doc rows.
-    const { data: allFolders } = await supabase
+
+    const { data: folder } = await supabase
       .from("talent_private_folders")
-      .select("id, parent_id")
-      .eq("user_id", userId);
-    const ids = new Set<string>([data.id]);
-    let grew = true;
-    while (grew) {
-      grew = false;
-      for (const f of allFolders ?? []) {
-        if (f.parent_id && ids.has(f.parent_id) && !ids.has(f.id)) {
-          ids.add(f.id);
-          grew = true;
-        }
-      }
+      .select("id, parent_id, user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!folder || folder.user_id !== userId) throw new Error("Folder not found.");
+
+    // Top-level category → soft remove (recoverable)
+    if (!folder.parent_id) {
+      const { error } = await supabase
+        .from("talent_private_folders")
+        .update({ removed_at: new Date().toISOString() })
+        .eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { ok: true, soft: true };
     }
+
+    // Subfolder → hard delete only when empty
+    const { data: children } = await supabase
+      .from("talent_private_folders")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("parent_id", data.id)
+      .limit(1);
+    if ((children ?? []).length > 0) {
+      throw new Error("This folder still contains subfolders. Remove those first.");
+    }
+
     const { data: docs } = await supabase
       .from("talent_private_documents")
-      .select("storage_path")
-      .in("folder_id", Array.from(ids));
-    const paths = (docs ?? [])
-      .map((d) => d.storage_path)
-      .filter((p): p is string => !!p);
+      .select("id")
+      .eq("user_id", userId)
+      .eq("folder_id", data.id)
+      .limit(1);
+    if ((docs ?? []).length > 0) {
+      throw new Error("This folder still contains documents. Delete or move them first.");
+    }
 
     const { error } = await supabase
       .from("talent_private_folders")
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);
-
-    if (paths.length > 0) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin.storage.from(BUCKET).remove(paths);
-    }
-    return { ok: true };
+    return { ok: true, soft: false };
   });
 
 const CreateUploadUrlInput = z.object({
