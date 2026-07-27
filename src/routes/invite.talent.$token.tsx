@@ -45,24 +45,37 @@ function TalentInvitePage() {
   const inviteQ = useQuery({
     queryKey: ["talent-invite-token", token],
     queryFn: () => resolveTalentInvitationToken({ data: { token } }),
-    staleTime: 30_000,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     retry: false,
   });
+
+  // Snapshot the first successful resolve. Completing the wizard signs the
+  // user in, which invalidates queries — a refetch would then report the token
+  // as "accepted" and blow the user out of step 4.
+  const [snapshot, setSnapshot] = useState<Extract<ResolvedTalentInvitation, { ok: true }> | null>(null);
+  useEffect(() => {
+    if (inviteQ.data?.ok === true) setSnapshot((prev) => prev ?? inviteQ.data);
+  }, [inviteQ.data]);
+
+  const invite = snapshot ?? (inviteQ.data?.ok === true ? inviteQ.data : null);
 
   return (
     <div className="tv-auth">
       <BrandingPanel />
       <section className="tv-auth-panel">
         <div className="tv-auth-card" style={{ maxWidth: 520 }}>
-          {inviteQ.isLoading ? (
+          {invite ? (
+            <Wizard invite={invite} token={token} onDone={() => nav({ to: "/talent" })} />
+          ) : inviteQ.isLoading ? (
             <div className="tv-auth-tag">Loading your invitation…</div>
           ) : !inviteQ.data ? (
             <TerminalError title="Something went wrong" body="We couldn't load this invitation. Please try again or contact your Manager." />
-          ) : inviteQ.data.ok === false ? (
-            <TerminalError title={terminalTitle(inviteQ.data.reason)} body={terminalBody(inviteQ.data.reason)} />
           ) : (
-            <Wizard invite={inviteQ.data} token={token} onDone={() => nav({ to: "/talent" })} />
+            <TerminalError title={terminalTitle(inviteQ.data.reason)} body={terminalBody(inviteQ.data.reason)} />
           )}
+
         </div>
       </section>
     </div>
