@@ -39,7 +39,7 @@ export const getTalentContext = createServerFn({ method: "GET" })
 
 /**
  * Notification preferences — currently just the expiry-warning window used by
- * the dashboard "Expiring {N}d" tile.
+ * the dashboard "Expiring soon" tile.
  */
 export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -373,12 +373,15 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       .limit(1)
       .maybeSingle();
 
-    const [privDocs, privFolders] = await Promise.all([
+    const [privDocs, privFolders, sharesRes] = await Promise.all([
       supabase.from("talent_private_documents").select("id", { count: "exact", head: true }).eq("user_id", userId),
       // Top-level categories only — sub-folders would inflate the dashboard count.
       supabase.from("talent_private_folders").select("id", { count: "exact", head: true })
         .eq("user_id", userId).is("parent_id", null).is("removed_at", null),
+      supabase.from("loved_one_shares").select("id", { count: "exact", head: true })
+        .eq("is_active", true).is("revoked_at", null).gt("expires_at", new Date().toISOString()),
     ]);
+    const activeShares = sharesRes.count ?? 0;
 
     let sharedCount = 0;
     let sharedFolderCount = 0;
@@ -419,6 +422,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     return {
       hasLink: !!link,
       privateDocs: privDocs.count ?? 0,
+      activeShares,
       privateFolders: privFolders.count ?? 0,
       sharedDocs: sharedCount,
       sharedFolders: sharedFolderCount,
@@ -431,4 +435,40 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       actionRequests: pendingRequests + resubRequests,
       recent,
     };
+  });
+
+// -----------------------------------------------------------------------------
+// Bell reminder dismissals (per-user, re-surface when the underlying count changes)
+// -----------------------------------------------------------------------------
+export const listTalentDismissals = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("talent_notification_dismissals")
+      .select("kind, snapshot")
+      .eq("user_id", userId);
+    return (data ?? []) as { kind: string; snapshot: number }[];
+  });
+
+export const dismissTalentReminder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ kind: z.string().min(1).max(60), snapshot: z.number().int().nonnegative() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("talent_notification_dismissals")
+      .upsert(
+        {
+          user_id: userId,
+          kind: data.kind,
+          snapshot: data.snapshot,
+          dismissed_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,kind" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
