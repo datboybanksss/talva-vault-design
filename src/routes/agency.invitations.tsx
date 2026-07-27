@@ -376,7 +376,7 @@ function NewInvitationModal({
           <h2 className="tvp-h2">
             {type === "talent" ? "New Talent Invitation" : "New Staff Invitation"}
           </h2>
-          <button className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+          <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
 
         {type === "talent" && (

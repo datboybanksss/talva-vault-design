@@ -49,7 +49,7 @@ export function BillingPreviewDialog({
                 <Send className="h-4 w-4" />{sending ? "Sending…" : "Mark as sent"}
               </button>
             )}
-            <button className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+            <button title="Close preview" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
           </div>
         </div>
         <div style={{ padding: 20, background: "#f2f1ed" }}>

@@ -270,7 +270,7 @@ function InvoiceDialog({
       <div className="tvp-modal" onClick={e => e.stopPropagation()}>
         <div className="tvp-modal-header">
           <h3 className="tvp-h2 inline-flex items-center gap-2"><Receipt className="h-5 w-5" />New invoice for contract</h3>
-          <button className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+          <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
         <div className="tvp-form-grid" style={{ padding: 16 }}>
           <div className="tvp-form-group"><label>Invoice number</label><input value={v.number} onChange={e => setV(s => ({ ...s, number: e.target.value }))} /></div>

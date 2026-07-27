@@ -1234,7 +1234,7 @@ function BrowseFoldersDialog({
               Provisioned folders per talent. Click one to filter the vault.
             </p>
           </div>
-          <button className="tvp-mini-btn" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
+          <button title="Close" className="tvp-mini-btn" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
 
         {isLoading && <div className="tvp-muted" style={{ padding: 16 }}>Loading folders…</div>}

@@ -495,7 +495,7 @@ function AgenciesPage() {
           >
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Correct invitation email</h2>
-              <button className="tvp-mini-btn" onClick={() => setEditingInvite(null)}>
+              <button title="Close" className="tvp-mini-btn" onClick={() => setEditingInvite(null)}>
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -543,7 +543,7 @@ function AgenciesPage() {
           >
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Delete invitation permanently?</h2>
-              <button className="tvp-mini-btn" onClick={() => setPendingDelete(null)}>
+              <button title="Close" className="tvp-mini-btn" onClick={() => setPendingDelete(null)}>
                 <X className="h-4 w-4" />
               </button>
             </div>

@@ -378,13 +378,13 @@ function PrivateVault() {
                           <div key={s.id}>
                             <div className="tvp-folder-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               {s.name}
-                              <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name, false)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
+                              <button title="Delete group" type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name, false)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
                             </div>
                             <div className="tvp-subfolder-list" style={{ marginTop: 6 }}>
                               {(subsByParent.get(s.id) ?? []).map((k) => (
                                 <span key={k.id} className="tvp-subfolder-pill">
                                   {k.name}
-                                  <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(k.id, k.name, false)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
+                                  <button title="Delete subfolder" type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(k.id, k.name, false)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
                                 </span>
                               ))}
                             </div>
@@ -396,7 +396,7 @@ function PrivateVault() {
                             {leaves.map((s) => (
                               <span key={s.id} className="tvp-subfolder-pill">
                                 {s.name}
-                                <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name, false)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
+                                <button title="Delete subfolder" type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name, false)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
                               </span>
                             ))}
                           </div>
@@ -404,7 +404,7 @@ function PrivateVault() {
 
                         <div className="tvp-footer-actions" style={{ marginTop: 2 }}>
                           <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
-                          <button className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name, true)} aria-label="Remove folder"><Trash2 className="h-4 w-4" /></button>
+                          <button title="Remove folder" className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name, true)} aria-label="Remove folder"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     </div>
@@ -453,13 +453,13 @@ function PrivateVault() {
                     <td>
                       <div className="tvp-row-actions">
                         {d.storage_path ? (
-                          <button className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
+                          <button title="Download document" className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
                             <Download className="h-4 w-4" />
                           </button>
                         ) : (
                           <span className="tvp-muted" style={{ fontSize: 11 }}>No file</span>
                         )}
-                        <button className="tvp-mini-btn" onClick={() => onDeleteDoc(d.id, d.name)} aria-label="Delete">
+                        <button title="Delete document" className="tvp-mini-btn" onClick={() => onDeleteDoc(d.id, d.name)} aria-label="Delete">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -702,7 +702,7 @@ function SharedDocumentsView() {
                     <td>
                       <div className="tvp-row-actions">
                         {d.storage_path ? (
-                          <button className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
+                          <button title="Download document" className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
                             <Download className="h-4 w-4" />
                           </button>
                         ) : (

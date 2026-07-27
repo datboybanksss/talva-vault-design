@@ -42,7 +42,7 @@ export function SuspendAgencyDialog({
       >
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Suspend agency</h2>
-          <button className="tvp-mini-btn" onClick={onCancel} aria-label="Close">
+          <button title="Close" className="tvp-mini-btn" onClick={onCancel} aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>

@@ -203,7 +203,7 @@ export function FolderTemplatesPanel() {
           <div className="tvp-card" style={{ maxWidth: 720, width: "100%", maxHeight: "90vh", overflow: "auto", padding: 24 }} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center" style={{ marginBottom: 16 }}>
               <h2 className="tvp-h2">{editingId ? "Edit template" : "New template"}</h2>
-              <button className="tvp-mini-btn" onClick={() => setEditorOpen(false)}><X className="h-4 w-4" /></button>
+              <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}><X className="h-4 w-4" /></button>
             </div>
             <div className="tvp-form-group">
               <label>Name</label>
@@ -244,7 +244,7 @@ export function FolderTemplatesPanel() {
                         }} />
                       </td>
                       <td>
-                        <button className="tvp-mini-btn" onClick={() => setItems(items.filter((_, i) => i !== idx))}><Trash2 className="h-4 w-4" /></button>
+                        <button title="Remove row" className="tvp-mini-btn" onClick={() => setItems(items.filter((_, i) => i !== idx))}><Trash2 className="h-4 w-4" /></button>
                       </td>
                     </tr>
                   ))}

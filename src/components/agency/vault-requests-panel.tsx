@@ -239,7 +239,7 @@ function NewRequestDialog({
       <div className="tvp-modal" onClick={e => e.stopPropagation()}>
         <div className="tvp-modal-header">
           <h3 className="tvp-h2">New document request</h3>
-          <button className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+          <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
         <div className="tvp-form-grid" style={{ padding: 16 }}>
           <div className="tvp-form-group"><label>Talent</label>
@@ -361,7 +361,7 @@ function ReviewDialog({
             <h3 className="tvp-h2">Review: {request.title}</h3>
             <div className="tvp-muted tvp-small">{request.talentName} · {request.folder}</div>
           </div>
-          <button className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+          <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
 
         <div style={{ padding: 16 }}>

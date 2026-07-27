@@ -242,7 +242,7 @@ function AdminsPage() {
               >
                 <div className="tvp-panel-head">
                   <h3 className="tvp-h3">New invitation</h3>
-                  <button
+                  <button title="Close"
                     className="tvp-mini-btn"
                     onClick={() => setInviteOpen(false)}
                     aria-label="Close"
@@ -390,7 +390,7 @@ function AdminsPage() {
               <h2 className="tvp-h2">
                 Edit administrator — {editAdmin.display_name || editAdmin.email}
               </h2>
-              <button
+              <button title="Close"
                 className="tvp-mini-btn"
                 onClick={() => setEditAdmin(null)}
                 aria-label="Close"
