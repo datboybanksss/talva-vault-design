@@ -164,7 +164,13 @@ export function normalizeSuggestion(parsed: any, catalog: CatalogOption[]): Fili
   else if (typeof leadRaw === "string" && /^\d+$/.test(leadRaw.trim())) lead = parseInt(leadRaw, 10);
   if (lead != null) lead = Math.min(Math.max(lead, 1), 365);
 
-  const conf = typeof parsed?.confidence === "string" ? parsed.confidence.toLowerCase() : null;
+  // Models return confidence either as a word or as a 0-1 number.
+  let conf: string | null = null;
+  if (typeof parsed?.confidence === "string") conf = parsed.confidence.toLowerCase().trim();
+  else if (typeof parsed?.confidence === "number" && Number.isFinite(parsed.confidence)) {
+    const n = parsed.confidence > 1 ? parsed.confidence / 100 : parsed.confidence;
+    conf = n >= 0.8 ? "high" : n >= 0.5 ? "medium" : "low";
+  }
 
   return {
     folder_id: match?.id ?? null,
