@@ -421,6 +421,8 @@ function PrivateVault() {
 }
 
 
+const SHARED_TONES = ["teal", "blue", "purple", "green", "amber", "red"];
+
 function statusTone(status: string) {
   switch (status) {
     case "approved": return "green";
@@ -503,6 +505,21 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
         </div>
       </div>
 
+      <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
+        <div className="tvp-vault-search">
+          <Search />
+          <input
+            placeholder="Search Agency Shared Folder..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <select className="tvp-vault-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
+          <option value="__all">Folder: All</option>
+          {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
+        </select>
+      </div>
+
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <div>
@@ -517,12 +534,13 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
           <p className="tvp-muted" style={{ fontSize: 13 }}>Your Manager hasn't provisioned any shared folders yet.</p>
         ) : (
           <div className="tvp-folder-tree">
-            {folders.map((f) => {
+            {folders.map((f, i) => {
               const count = data.documents.filter((d) => d.folder === f.folder_name).length;
+              const tone = SHARED_TONES[i % SHARED_TONES.length];
               return (
                 <div key={f.id} className="tvp-folder-card">
-                  <div className="tvp-folder-head" style={{ cursor: "default" }}>
-                    <span className="tvp-kpi-icon tvp-bg-blue" style={{ width: 40, height: 40 }}>
+                  <div className="tvp-folder-head tvp-static">
+                    <span className={`tvp-kpi-icon tvp-bg-${tone}`} style={{ width: 40, height: 40 }}>
                       <FolderOpen className="h-4 w-4" />
                     </span>
                     <span style={{ minWidth: 0 }}>
@@ -534,7 +552,7 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
                           : ""}
                       </span>
                     </span>
-                    <Lock className="h-3 w-3" style={{ color: "var(--tvp-muted)" }} />
+                    <Lock className="h-4 w-4 tvp-folder-chevron" />
                   </div>
                 </div>
               );
@@ -543,21 +561,9 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
         )}
       </div>
 
+
       <div className="tvp-card" style={{ marginTop: 22 }}>
-        <div className="tvp-vault-toolbar" style={{ marginBottom: 16 }}>
-          <div className="tvp-vault-search">
-            <Search />
-            <input
-              placeholder="Search Agency Shared Folder..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <select className="tvp-vault-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
-            <option value="__all">Folder: All</option>
-            {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
-          </select>
-        </div>
+
         {docs.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>No documents match your filters.</p>
         ) : (

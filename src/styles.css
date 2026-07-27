@@ -744,6 +744,8 @@
   & .tvp-folder-card.tvp-open { border-color: var(--tvp-teal-200); box-shadow: var(--tvp-shadow-soft); }
   & .tvp-folder-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) 22px; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 0; background: transparent; border-radius: 12px; cursor: pointer; text-align: left; font: inherit; transition: background .16s ease; }
   & .tvp-folder-head:hover { background: var(--tvp-surface-soft); }
+  & .tvp-folder-head.tvp-static { cursor: default; }
+  & .tvp-folder-head.tvp-static:hover { background: transparent; }
   & .tvp-folder-head:focus-visible { outline: 2px solid var(--tvp-teal-2); outline-offset: 2px; }
   & .tvp-folder-name { margin: 0; font-size: 14px; font-weight: 900; letter-spacing: -.2px; color: var(--tvp-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   & .tvp-folder-meta { margin-top: 3px; font-size: 11px; font-weight: 800; letter-spacing: .3px; color: var(--tvp-muted); }
