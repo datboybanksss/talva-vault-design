@@ -240,14 +240,32 @@ function PrivateVault() {
     }
   }
 
+  // Filtering by a top-level folder includes everything filed in its
+  // sub-folders, otherwise picking a category looks empty.
+  function folderAndDescendants(id: string): Set<string> {
+    const out = new Set<string>([id]);
+    const walk = (parent: string) => {
+      for (const child of subsByParent.get(parent) ?? []) {
+        if (out.has(child.id)) continue;
+        out.add(child.id);
+        walk(child.id);
+      }
+    };
+    walk(id);
+    return out;
+  }
+
+  const filterScope = filterFolder !== "__all" && filterFolder !== "__unfiled"
+    ? folderAndDescendants(filterFolder)
+    : null;
+
   const filteredDocs = documents.filter((d) => {
-    if (filterFolder !== "__all") {
-      if (filterFolder === "__unfiled" && d.folder_id !== null) return false;
-      if (filterFolder !== "__unfiled" && d.folder_id !== filterFolder) return false;
-    }
+    if (filterFolder === "__unfiled" && d.folder_id !== null) return false;
+    if (filterScope && (!d.folder_id || !filterScope.has(d.folder_id))) return false;
     if (search && !d.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
 
   if (isLoading) {
     return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Private Vault…</p></div>;
