@@ -52,6 +52,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const pendingRequests = (dash as any)?.pendingRequests ?? 0;
   const resubRequests = (dash as any)?.resubRequests ?? 0;
   const expiringSoon = (dash as any)?.expiringSoon ?? 0;
+  const expiryNoticeDays = (dash as any)?.expiryNoticeDays ?? 30;
 
   const notifications = [
     pendingRequests > 0 && {
