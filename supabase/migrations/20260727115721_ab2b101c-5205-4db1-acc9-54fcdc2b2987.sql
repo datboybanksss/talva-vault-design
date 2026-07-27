@@ -1,0 +1,2 @@
+INSERT INTO public.agency_document_requests (agency_id, talent_link_id, title, folder, instructions, status, due_date)
+VALUES ('5deb59a4-3c84-44ab-b234-b18e71b1039c', 'd0633a35-a377-4251-9643-65462f563522', 'Certified ID copy', 'Compliance', 'Please upload a certified copy of your ID document.', 'pending', (now() + interval '14 days')::date);
