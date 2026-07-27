@@ -473,8 +473,8 @@ export function VaultPage() {
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{d.name}</div>
                         <div className="tvp-muted" style={{ fontSize: 12 }}>
-                          {d.ai_suggested_folder
-                            ? `Suggested: ${d.ai_suggested_folder}`
+                          {d.aiSuggestedFolder
+                            ? `Suggested: ${d.aiSuggestedFolder}`
                             : `Currently in ${d.folder}`}
                         </div>
                       </div>
