@@ -12,7 +12,6 @@ import {
 import {
   listPrivateVault,
   createPrivateFolder,
-  renamePrivateFolder,
   deletePrivateFolder,
   createPrivateUploadUrl,
   getPrivateDocumentDownloadUrl,
@@ -21,7 +20,7 @@ import {
 import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
-  Folder, Pencil, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
+  Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
   ChevronDown, Search,
 } from "lucide-react";
 
@@ -99,7 +98,6 @@ function PrivateVault() {
   const qc = useQueryClient();
   const load = useServerFn(listPrivateVault);
   const createFolder = useServerFn(createPrivateFolder);
-  const renameFolder = useServerFn(renamePrivateFolder);
   const deleteFolder = useServerFn(deletePrivateFolder);
   const createUpload = useServerFn(createPrivateUploadUrl);
   const download = useServerFn(getPrivateDocumentDownloadUrl);
@@ -155,22 +153,15 @@ function PrivateVault() {
 
 
 
-  async function onRenameFolder(id: string, current: string) {
-    const name = window.prompt("Rename folder", current)?.trim();
-    if (!name || name === current) return;
-    try {
-      await renameFolder({ data: { id, name } });
-      invalidate();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not rename.");
-    }
-  }
 
-  async function onDeleteFolder(id: string, name: string) {
-    if (!window.confirm(`Delete "${name}" and any documents inside it? This can't be undone.`)) return;
+  async function onDeleteFolder(id: string, name: string, isTop: boolean) {
+    const message = isTop
+      ? `Remove "${name}" from your vault? It will be hidden, and you can restore it later from Settings → Vault Folders with its documents intact.`
+      : `Delete "${name}"? Only empty subfolders can be deleted.`;
+    if (!window.confirm(message)) return;
     try {
       await deleteFolder({ data: { id } });
-      toast.success("Folder deleted.");
+      toast.success(isTop ? "Folder removed — restore it any time from Settings." : "Folder deleted.");
       invalidate();
     } catch (e: any) {
       toast.error(e?.message ?? "Could not delete.");
@@ -259,7 +250,7 @@ function PrivateVault() {
         <div>
           <strong>Private by default.</strong>{" "}
           <span className="tvp-muted">
-            Folders and files here belong to you. Rename, add, or remove any folder — your Manager cannot see the Private Vault unless you deliberately share an item.
+            Folders and files here belong to you. Add or remove folders — your Manager cannot see the Private Vault unless you deliberately share an item.
           </span>
         </div>
       </div>
@@ -331,15 +322,13 @@ function PrivateVault() {
                           <div key={s.id}>
                             <div className="tvp-folder-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               {s.name}
-                              <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(s.id, s.name)} aria-label="Rename group"><Pencil className="h-3 w-3" /></button>
-                              <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
+                              <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name, false)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
                             </div>
                             <div className="tvp-subfolder-list" style={{ marginTop: 6 }}>
                               {(subsByParent.get(s.id) ?? []).map((k) => (
                                 <span key={k.id} className="tvp-subfolder-pill">
                                   {k.name}
-                                  <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(k.id, k.name)} aria-label="Rename subfolder"><Pencil className="h-3 w-3" /></button>
-                                  <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(k.id, k.name)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
+                                  <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(k.id, k.name, false)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
                                 </span>
                               ))}
                             </div>
@@ -351,8 +340,7 @@ function PrivateVault() {
                             {leaves.map((s) => (
                               <span key={s.id} className="tvp-subfolder-pill">
                                 {s.name}
-                                <button type="button" className="tvp-mini-btn" onClick={() => onRenameFolder(s.id, s.name)} aria-label="Rename subfolder"><Pencil className="h-3 w-3" /></button>
-                                <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
+                                <button type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name, false)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
                               </span>
                             ))}
                           </div>
@@ -360,8 +348,7 @@ function PrivateVault() {
 
                         <div className="tvp-footer-actions" style={{ marginTop: 2 }}>
                           <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
-                          <button className="tvp-mini-btn" onClick={() => onRenameFolder(f.id, f.name)} aria-label="Rename folder"><Pencil className="h-4 w-4" /></button>
-                          <button className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name)} aria-label="Delete folder"><Trash2 className="h-4 w-4" /></button>
+                          <button className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name, true)} aria-label="Remove folder"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     </div>
