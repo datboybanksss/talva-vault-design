@@ -465,7 +465,9 @@ function PrivateVault() {
           </div>
         )}
       </div>
+      )}
     </>
+
   );
 }
 
