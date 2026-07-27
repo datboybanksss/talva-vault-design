@@ -161,17 +161,6 @@ function PrivateVault() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
 
-  async function onAddTopFolder() {
-    const name = window.prompt("New folder name")?.trim();
-    if (!name) return;
-    try {
-      await createFolder({ data: { name } });
-      toast.success("Folder created.");
-      invalidate();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not create folder.");
-    }
-  }
 
 
 
