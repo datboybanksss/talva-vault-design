@@ -620,6 +620,8 @@
   & .tvp-row-actions { display: flex; align-items: center; gap: 6px; }
   & .tvp-mini-btn { width: 32px; height: 32px; border: 1px solid var(--tvp-line-strong); background: white; border-radius: 8px; display: grid; place-items: center; color: var(--tvp-text); }
   & .tvp-mini-btn:hover { background: var(--tvp-teal-50); border-color: var(--tvp-teal-200); color: var(--tvp-teal); }
+  & .tvp-row-btn { height: 32px; border: 1px solid var(--tvp-line-strong); background: white; border-radius: 8px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: var(--tvp-text); white-space: nowrap; }
+  & .tvp-row-btn:hover { background: var(--tvp-teal-50); border-color: var(--tvp-teal-200); color: var(--tvp-teal); }
 
   & .tvp-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 16px; }
   & .tvp-tab { height: 42px; border: 1px solid var(--tvp-line); border-radius: 11px; background: white; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-weight: 900; color: var(--tvp-text); font-size: 13px; }
