@@ -158,8 +158,8 @@ function SharingPage() {
                               <button className="tvp-mini-btn" aria-label="Copy link" title="Copy link" onClick={() => copyLink(s.token)}>
                                 <Copy className="h-4 w-4" />
                               </button>
-                              <button className="tvp-mini-btn" aria-label="New access code" title="Issue a new access code" onClick={() => onRegen(s)}>
-                                <RefreshCw className="h-4 w-4" />
+                              <button className="tvp-row-btn" aria-label="New access code" title="Issue a new access code" onClick={() => onRegen(s)}>
+                                <RefreshCw className="h-4 w-4" /> New code
                               </button>
                             </>
                           )}
