@@ -437,17 +437,56 @@ export function VaultPage() {
                 </p>
               </div>
             </div>
-            <div className="tvp-callout" style={{ marginTop: 14 }}>
-              <div className="tvp-callout-icon tvp-bg-purple">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <strong>AI filing coming soon.</strong>{" "}
-                <span className="tvp-muted">
-                  Suggestions will appear here once the AI filer is wired up.
-                </span>
-              </div>
-            </div>
+            {(() => {
+              const awaiting = (docs ?? []).filter((d: VaultDoc) => d.status === "ai_suggested");
+              if (awaiting.length === 0) {
+                return (
+                  <div className="tvp-callout" style={{ marginTop: 14 }}>
+                    <div className="tvp-callout-icon tvp-bg-purple">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <strong>Nothing awaiting review.</strong>{" "}
+                      <span className="tvp-muted">
+                        Upload a document and the AI filing review opens automatically.
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {awaiting.map((d: VaultDoc) => (
+                    <div
+                      key={d.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: "1px solid var(--tvp-line-strong)",
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{d.name}</div>
+                        <div className="tvp-muted" style={{ fontSize: 12 }}>
+                          {d.ai_suggested_folder
+                            ? `Suggested: ${d.ai_suggested_folder}`
+                            : `Currently in ${d.folder}`}
+                        </div>
+                      </div>
+                      <button
+                        className="tvp-secondary"
+                        onClick={() => setAiReviewFor({ id: d.id, name: d.name })}
+                      >
+                        Review
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
