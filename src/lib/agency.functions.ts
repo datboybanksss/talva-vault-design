@@ -241,7 +241,13 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     );
     const linkIds = rows.map((r: any) => r.id);
 
-    const in30dIso = new Date(Date.now() + 30 * 86400000).toISOString();
+    const { data: agencyPrefs } = await supabase
+      .from("agencies")
+      .select("expiry_notice_days")
+      .eq("id", agencyId)
+      .maybeSingle();
+    const expiryNoticeDays = agencyPrefs?.expiry_notice_days ?? 30;
+    const in30dIso = new Date(Date.now() + expiryNoticeDays * 86400000).toISOString();
     const nowIso = new Date().toISOString();
     const [managersRes, docsRes, expiringRes, lastDocRes] = await Promise.all([
       managerIds.length
