@@ -422,9 +422,10 @@ function PrivateVault() {
 
         )}
       </div>
+      )}
 
       {docsVisible && (
-      <div className="tvp-card" style={{ marginTop: 22 }}>
+      <div className="tvp-card">
 
         <div className="tvp-panel-head">
           <div>
