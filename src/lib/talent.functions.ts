@@ -37,6 +37,40 @@ export const getTalentContext = createServerFn({ method: "GET" })
     return { profile, link, agency };
   });
 
+/**
+ * Notification preferences — currently just the expiry-warning window used by
+ * the dashboard "Expiring {N}d" tile.
+ */
+export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("talent_profiles")
+      .select("expiry_notice_days")
+      .eq("user_id", userId)
+      .maybeSingle();
+    return { expiryNoticeDays: data?.expiry_notice_days ?? 30 };
+  });
+
+const NotificationPrefsInput = z.object({
+  expiry_notice_days: z.number().int().min(1).max(365),
+});
+
+export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => NotificationPrefsInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("talent_profiles")
+      .update({ expiry_notice_days: data.expiry_notice_days })
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, expiryNoticeDays: data.expiry_notice_days };
+  });
+
+
 const UpdateProfileInput = z.object({
   full_name: z.string().trim().min(1).max(160),
   talent_type: z.string().trim().max(80).nullable().optional(),
