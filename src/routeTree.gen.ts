@@ -44,6 +44,7 @@ import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
 import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
 import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invitations.index'
 import { Route as AdminAgenciesIndexRouteImport } from './routes/admin.agencies.index'
+import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
@@ -225,6 +226,11 @@ const AdminAgenciesIndexRoute = AdminAgenciesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminAgenciesRoute,
 } as any)
+const InviteTalentTokenRoute = InviteTalentTokenRouteImport.update({
+  id: '/invite/talent/$token',
+  path: '/invite/talent/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
   id: '/invite',
   path: '/invite',
@@ -290,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
@@ -327,6 +334,7 @@ export interface FileRoutesByTo {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
@@ -370,6 +378,7 @@ export interface FileRoutesById {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
@@ -414,6 +423,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
     | '/admin/invitations/$id/email-preview'
@@ -451,6 +461,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/invite/talent/$token'
     | '/admin/agencies'
     | '/admin/invitations'
     | '/admin/invitations/$id/email-preview'
@@ -493,6 +504,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
     | '/admin/invitations/$id/email-preview'
@@ -508,6 +520,7 @@ export interface RootRouteChildren {
   TalentRoute: typeof TalentRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
+  InviteTalentTokenRoute: typeof InviteTalentTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -757,6 +770,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAgenciesIndexRouteImport
       parentRoute: typeof AdminAgenciesRoute
     }
+    '/invite/talent/$token': {
+      id: '/invite/talent/$token'
+      path: '/invite/talent/$token'
+      fullPath: '/invite/talent/$token'
+      preLoaderRoute: typeof InviteTalentTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agency/talent/invite': {
       id: '/agency/talent/invite'
       path: '/invite'
@@ -922,6 +942,7 @@ const rootRouteChildren: RootRouteChildren = {
   TalentRoute: TalentRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
+  InviteTalentTokenRoute: InviteTalentTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
