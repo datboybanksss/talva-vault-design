@@ -671,7 +671,7 @@ function UploadDialog({
         ? (displayName.trim().endsWith(ext) ? displayName.trim() : displayName.trim() + ext)
         : file.name;
 
-      await registerFn({
+      const inserted: any = await registerFn({
         data: {
           name: finalName,
           folder,
@@ -682,7 +682,7 @@ function UploadDialog({
         },
       });
       toast.success("Uploaded");
-      onDone();
+      onDone(inserted?.id ? { id: inserted.id as string, name: finalName } : undefined);
     } catch (err: any) {
       toast.error(err?.message ?? "Upload failed");
     } finally {
