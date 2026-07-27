@@ -535,10 +535,8 @@ function AgencySharedFolder({ initialView }: { initialView: AgencyView }) {
 function SharedDocumentsView() {
 
   const load = useServerFn(getRosterSharedContents);
-  const loadDash = useServerFn(getTalentDashboard);
-  const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
-  const actionRequests = (dash as any)?.actionRequests ?? 0;
   const download = useServerFn(getSharedDocumentDownloadUrl);
+
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("__all");
   const [showAllDocs, setShowAllDocs] = useState(false);
