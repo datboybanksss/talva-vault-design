@@ -563,9 +563,24 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
 
 
       <div className="tvp-card" style={{ marginTop: 22 }}>
+        <div className="tvp-panel-head">
+          <div>
+            <h2 className="tvp-h2">All shared documents</h2>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+              {docs.length === data.documents.length
+                ? `${docs.length} document${docs.length === 1 ? "" : "s"} across all folders`
+                : `${docs.length} of ${data.documents.length} document${data.documents.length === 1 ? "" : "s"} match`}
+            </p>
+          </div>
+        </div>
 
         {docs.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>No documents match your filters.</p>
+          <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
+            {data.documents.length === 0
+              ? "Your Manager hasn't shared any documents with you yet."
+              : "No documents match your search or folder filter."}
+          </p>
+
         ) : (
           <div className="tvp-table-wrap">
             <table className="tvp-table">
