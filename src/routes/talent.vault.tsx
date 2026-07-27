@@ -321,17 +321,19 @@ function PrivateVault() {
           <div>
             <h2 className="tvp-h2">Private Vault Folders</h2>
             <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · fully editable.
+              {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · choose which
+              categories appear in Settings → Vault Folders.
             </p>
           </div>
           <div className="tvp-row-actions">
-            <button className="tvp-secondary" onClick={onAddTopFolder}><Plus className="h-4 w-4" /> Add Folder</button>
             <button className="tvp-primary" onClick={() => triggerUpload(null)}><Upload className="h-4 w-4" /> Upload</button>
           </div>
         </div>
 
         {topFolders.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13 }}>No folders yet — add one to get started.</p>
+          <p className="tvp-muted" style={{ fontSize: 13 }}>
+            No folders yet — turn categories on from Settings → Vault Folders.
+          </p>
         ) : (
           <div className="tvp-folder-tree">
             {topFolders.map((f) => {
