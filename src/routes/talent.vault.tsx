@@ -192,7 +192,7 @@ function PrivateVault() {
       return;
     }
     try {
-      const { upload } = await createUpload({
+      const { upload, document_id } = await createUpload({
         data: {
           file_name: file.name,
           folder_id: uploadFolderId,
@@ -208,6 +208,7 @@ function PrivateVault() {
       if (!put.ok) throw new Error(`Upload failed (${put.status})`);
       toast.success("Document uploaded.");
       invalidate();
+      if (document_id) setAiReviewFor({ id: document_id as string, name: file.name });
     } catch (err: any) {
       toast.error(err?.message ?? "Upload failed.");
     }
