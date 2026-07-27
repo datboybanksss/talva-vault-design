@@ -52,6 +52,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const pendingRequests = (dash as any)?.pendingRequests ?? 0;
   const resubRequests = (dash as any)?.resubRequests ?? 0;
   const expiringSoon = (dash as any)?.expiringSoon ?? 0;
+  const expiryNoticeDays = (dash as any)?.expiryNoticeDays ?? 30;
 
   const notifications = [
     pendingRequests > 0 && {
@@ -74,7 +75,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
       tone: "amber",
       Icon: Clock,
       title: `${expiringSoon} document${expiringSoon === 1 ? "" : "s"} expiring soon`,
-      detail: "Shared documents due for renewal within 30 days.",
+      detail: `Shared documents due for renewal within ${expiryNoticeDays} days.`,
       to: "/talent/vault",
       search: { tab: "agency" as const, view: "folder" as const },
     },
