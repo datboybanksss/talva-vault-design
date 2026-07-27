@@ -489,7 +489,51 @@ function statusTone(status: string) {
   }
 }
 
-function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) {
+function AgencySharedFolder({ initialView }: { initialView: AgencyView }) {
+  const navigate = useNavigate();
+  const [view, setView] = useState<AgencyView>(initialView);
+  useEffect(() => { setView(initialView); }, [initialView]);
+
+  const loadDash = useServerFn(getTalentDashboard);
+  const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
+  const actionRequests = (dash as any)?.actionRequests ?? 0;
+
+  const go = (next: AgencyView) => {
+    setView(next);
+    navigate({ to: "/talent/vault", search: { tab: "agency", view: next }, replace: true });
+  };
+
+  return (
+    <>
+      <div className="tvp-subtabs" role="tablist" aria-label="Agency Shared Folder sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "folder"}
+          className={`tvp-subtab${view === "folder" ? " tvp-active" : ""}`}
+          onClick={() => go("folder")}
+        >
+          <FolderOpen className="h-4 w-4" /> Shared documents
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "requests"}
+          className={`tvp-subtab${view === "requests" ? " tvp-active" : ""}`}
+          onClick={() => go("requests")}
+        >
+          <Inbox className="h-4 w-4" /> Requests from your Manager
+          {actionRequests > 0 && <span className="tvp-subtab-badge">{actionRequests}</span>}
+        </button>
+      </div>
+
+      {view === "folder" ? <SharedDocumentsView /> : <ManagerRequests />}
+    </>
+  );
+}
+
+function SharedDocumentsView() {
+
   const load = useServerFn(getRosterSharedContents);
   const loadDash = useServerFn(getTalentDashboard);
   const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
