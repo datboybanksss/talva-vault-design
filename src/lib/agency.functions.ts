@@ -2072,6 +2072,47 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
     return updated;
   });
 
+// -----------------------------------------------------------------------------
+// Notification preferences — how far ahead documents count as "expiring soon".
+// -----------------------------------------------------------------------------
+export const getAgencyNotificationSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agencies")
+      .select("expiry_notice_days")
+      .eq("id", agencyId)
+      .single();
+    if (error) throw new Error(error.message);
+    return { expiry_notice_days: data?.expiry_notice_days ?? 30 };
+  });
+
+export const updateAgencyNotificationSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ expiry_notice_days: z.number().int().min(1).max(365) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: updated, error } = await supabase
+      .from("agencies")
+      .update({ expiry_notice_days: data.expiry_notice_days })
+      .eq("id", agencyId)
+      .select("expiry_notice_days")
+      .single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "update_notification_settings", "agency", agencyId, undefined,
+      { expiry_notice_days: data.expiry_notice_days },
+    );
+    return updated;
+  });
+
+
 // =============================================================================
 // Billing settings, branding, itemized lines, preview and send.
 // =============================================================================
