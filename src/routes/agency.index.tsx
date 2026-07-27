@@ -324,7 +324,7 @@ function AgencyDashboard() {
               )}
               {expiringSoon > 0 && (
                 <Link to="/agency/document-vault" className="tvp-link">
-                  {expiringSoon} document{expiringSoon === 1 ? "" : "s"} expiring in 30 days
+                  {expiringSoon} document{expiringSoon === 1 ? "" : "s"} expiring in {expiryNoticeDays} day{expiryNoticeDays === 1 ? "" : "s"}
                 </Link>
               )}
               {overdueInvoices > 0 && (
