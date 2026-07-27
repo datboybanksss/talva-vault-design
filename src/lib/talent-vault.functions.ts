@@ -17,6 +17,7 @@ export const listPrivateVault = createServerFn({ method: "GET" })
         .from("talent_private_folders")
         .select("id, parent_id, name, icon, tone, sort_order, created_at")
         .eq("user_id", userId)
+        .is("removed_at", null)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
       supabase
