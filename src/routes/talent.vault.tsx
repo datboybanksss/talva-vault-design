@@ -12,7 +12,6 @@ import {
 } from "@/lib/talent.functions";
 import {
   listPrivateVault,
-  createPrivateFolder,
   deletePrivateFolder,
   createPrivateUploadUrl,
   getPrivateDocumentDownloadUrl,
@@ -20,7 +19,7 @@ import {
 } from "@/lib/talent-vault.functions";
 import { toast } from "sonner";
 import {
-  Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
+  Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
   ChevronDown, Search,
 } from "lucide-react";
@@ -117,7 +116,6 @@ type PrivateDoc = {
 function PrivateVault() {
   const qc = useQueryClient();
   const load = useServerFn(listPrivateVault);
-  const createFolder = useServerFn(createPrivateFolder);
   const deleteFolder = useServerFn(deletePrivateFolder);
   const createUpload = useServerFn(createPrivateUploadUrl);
   const download = useServerFn(getPrivateDocumentDownloadUrl);
