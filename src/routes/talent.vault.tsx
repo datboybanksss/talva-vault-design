@@ -28,18 +28,26 @@ import {
 
 export const Route = createFileRoute("/talent/vault")({
   head: () => ({ meta: [{ title: "Vault · TalVault Talent" }] }),
-  validateSearch: (search: Record<string, unknown>): { tab?: Mode } => {
+  validateSearch: (search: Record<string, unknown>): { tab?: Mode; view?: AgencyView } => {
     const t = search.tab;
-    return t === "private" || t === "agency" || t === "requests" ? { tab: t } : {};
+    const v = search.view;
+    // Legacy deep links used ?tab=requests before Requests was merged into
+    // the Agency Shared Folder tab.
+    if (t === "requests") return { tab: "agency", view: "requests" };
+    const out: { tab?: Mode; view?: AgencyView } = {};
+    if (t === "private" || t === "agency") out.tab = t;
+    if (v === "requests" || v === "folder") out.view = v;
+    return out;
   },
   component: VaultPage,
 });
 
 
-type Mode = "private" | "agency" | "requests";
+type Mode = "private" | "agency";
+type AgencyView = "folder" | "requests";
 
 function VaultPage() {
-  const { tab } = useSearch({ from: "/talent/vault" });
+  const { tab, view } = useSearch({ from: "/talent/vault" });
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>(tab ?? "private");
 
@@ -69,22 +77,18 @@ function VaultPage() {
         <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => goTo("agency")}>
           <FileStack className="h-4 w-4" /> Agency Shared Folder
         </button>
-        <button className={`tvp-tab${mode === "requests" ? " tvp-active" : ""}`} onClick={() => goTo("requests")}>
-          <Inbox className="h-4 w-4" /> Manager Requests
-        </button>
       </div>
 
       {mode === "private" && <PrivateVault />}
 
-      {mode === "agency" && <AgencySharedFolder onOpenRequests={() => goTo("requests")} />}
-
-      {mode === "requests" && <ManagerRequests />}
+      {mode === "agency" && <AgencySharedFolder initialView={view ?? "folder"} />}
 
 
 
     </>
   );
 }
+
 
 type PrivateFolder = {
   id: string;
