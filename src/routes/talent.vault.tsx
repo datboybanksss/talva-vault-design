@@ -619,7 +619,9 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
       </div>
 
 
+      {docsVisible && (
       <div className="tvp-card" style={{ marginTop: 22 }}>
+
         <div className="tvp-panel-head">
           <div>
             <h2 className="tvp-h2">All shared documents</h2>
