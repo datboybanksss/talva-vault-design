@@ -121,6 +121,8 @@ function PrivateVault() {
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterFolder, setFilterFolder] = useState<string>("__all");
+  const [showAllDocs, setShowAllDocs] = useState(false);
+
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const toggleFolder = (id: string) =>
     setOpenFolders((prev) => {
