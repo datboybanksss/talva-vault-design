@@ -350,8 +350,9 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const in30 = new Date(Date.now() + 30 * 86400_000).toISOString();
-      const [sc, ec, or, rr, pr, rec] = await Promise.all([
+      const [sc, sf, ec, or, rr, pr, rec] = await Promise.all([
         supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
+        supabaseAdmin.from("agency_talent_folders").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
         supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true })
           .eq("talent_link_id", link.id).not("validity_expires_at", "is", null).lt("validity_expires_at", in30),
         supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
@@ -365,11 +366,13 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .eq("talent_link_id", link.id).order("updated_at", { ascending: false }).limit(5),
       ]);
       sharedCount = sc.count ?? 0;
+      sharedFolderCount = sf.count ?? 0;
       expiringCount = ec.count ?? 0;
       openRequests = or.count ?? 0;
       resubRequests = rr.count ?? 0;
       pendingRequests = pr.count ?? 0;
       recent = rec.data ?? [];
+
     }
 
     return {
