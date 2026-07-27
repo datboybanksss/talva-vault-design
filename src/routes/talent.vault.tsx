@@ -17,6 +17,7 @@ import {
   getPrivateDocumentDownloadUrl,
   deletePrivateDocument,
 } from "@/lib/talent-vault.functions";
+import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { toast } from "sonner";
 import {
   Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
