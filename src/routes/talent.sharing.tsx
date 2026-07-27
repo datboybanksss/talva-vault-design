@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Share2, Key, Ban, Copy, Clock, Eye, Plus, Info, X, Lock, Download, RefreshCw, Mail, FileText } from "lucide-react";
+import { Share2, Key, Ban, Copy, Clock, Eye, Plus, Info, X, Lock, Download, RefreshCw, Mail, FileText, Send } from "lucide-react";
 import {
   listMyLovedOneShares,
   createLovedOneShare,
@@ -25,6 +25,7 @@ function SharingPage() {
   const regen = useServerFn(regenerateAccessCode);
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const [prefill, setPrefill] = useState<{ name: string; email: string; relationship: string } | null>(null);
   const [fresh, setFresh] = useState<FreshShare | null>(null);
   const [codeModal, setCodeModal] = useState<FreshShare | null>(null);
 
@@ -74,7 +75,7 @@ function SharingPage() {
           </div>
         </div>
         <div className="tvp-actions">
-          <button className="tvp-primary" onClick={() => setShowModal(true)}>
+          <button className="tvp-primary" onClick={() => { setPrefill(null); setShowModal(true); }}>
             <Share2 className="h-4 w-4" /> New share
           </button>
         </div>
@@ -158,14 +159,31 @@ function SharingPage() {
                               <button className="tvp-mini-btn" aria-label="Copy link" title="Copy link" onClick={() => copyLink(s.token)}>
                                 <Copy className="h-4 w-4" />
                               </button>
-                              <button className="tvp-row-btn" aria-label="New access code" title="Issue a new access code" onClick={() => onRegen(s)}>
-                                <RefreshCw className="h-4 w-4" /> New code
+                              <button className="tvp-mini-btn" aria-label="Regenerate access code" title="Regenerate access code" onClick={() => onRegen(s)}>
+                                <RefreshCw className="h-4 w-4" />
                               </button>
                             </>
                           )}
                           {!revoked && (
-                            <button className="tvp-mini-btn" aria-label="Revoke" title="Revoke" onClick={() => onRevoke(s.id)}>
+                            <button className="tvp-mini-btn" aria-label="Revoke share" title="Revoke share" onClick={() => onRevoke(s.id)}>
                               <Ban className="h-4 w-4" />
+                            </button>
+                          )}
+                          {(revoked || expired) && (
+                            <button
+                              className="tvp-mini-btn"
+                              aria-label="Reshare with this person"
+                              title="Reshare with this person"
+                              onClick={() => {
+                                setPrefill({
+                                  name: s.loved_one_name ?? "",
+                                  email: s.loved_one_email ?? "",
+                                  relationship: s.relationship ?? "",
+                                });
+                                setShowModal(true);
+                              }}
+                            >
+                              <Send className="h-4 w-4" />
                             </button>
                           )}
                         </div>
@@ -181,6 +199,7 @@ function SharingPage() {
 
       {showModal && (
         <NewShareModal
+          prefill={prefill}
           onClose={() => setShowModal(false)}
           onCreated={(f) => {
             setShowModal(false);
@@ -274,14 +293,14 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
 }
 
 
-function NewShareModal({ onClose, onCreated }: { onClose: () => void; onCreated: (f: FreshShare) => void }) {
+function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; onCreated: (f: FreshShare) => void; prefill?: { name: string; email: string; relationship: string } | null }) {
   const loadVault = useServerFn(listPrivateVault);
   const create = useServerFn(createLovedOneShare);
   const { data: vault, isLoading } = useQuery({ queryKey: ["talent", "private-vault"], queryFn: () => loadVault() });
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [rel, setRel] = useState("");
+  const [name, setName] = useState(prefill?.name ?? "");
+  const [email, setEmail] = useState(prefill?.email ?? "");
+  const [rel, setRel] = useState(prefill?.relationship ?? "");
   const [days, setDays] = useState(30);
   const [note, setNote] = useState("");
   const [kind, setKind] = useState<"folders" | "document">("folders");
