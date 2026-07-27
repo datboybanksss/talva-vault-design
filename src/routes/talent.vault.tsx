@@ -310,18 +310,29 @@ function PrivateVault() {
           <option value="__unfiled">Unfiled</option>
           {topFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
-        <button
-          type="button"
-          className="tvp-secondary"
-          aria-expanded={docsVisible}
-          onClick={() => setShowAllDocs((v) => !v)}
-        >
-          <FileStack className="h-4 w-4" />
-          {docsVisible ? "Hide all documents" : "View all documents"}
-        </button>
+        <div className="tvp-view-switch" role="tablist" aria-label="Private vault view">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!docsVisible}
+            className={!docsVisible ? "tvp-active" : ""}
+            onClick={() => setShowAllDocs(false)}
+          >
+            <Folder className="h-4 w-4" /> By folder
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={docsVisible}
+            className={docsVisible ? "tvp-active" : ""}
+            onClick={() => setShowAllDocs(true)}
+          >
+            <FileStack className="h-4 w-4" /> All documents
+          </button>
+        </div>
       </div>
 
-
+      {!docsVisible && (
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <div>
@@ -411,9 +422,10 @@ function PrivateVault() {
 
         )}
       </div>
+      )}
 
       {docsVisible && (
-      <div className="tvp-card" style={{ marginTop: 22 }}>
+      <div className="tvp-card">
 
         <div className="tvp-panel-head">
           <div>
@@ -565,18 +577,29 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
           <option value="__all">Folder: All</option>
           {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
         </select>
-        <button
-          type="button"
-          className="tvp-secondary"
-          aria-expanded={docsVisible}
-          onClick={() => setShowAllDocs((v) => !v)}
-        >
-          <FileStack className="h-4 w-4" />
-          {docsVisible ? "Hide all documents" : "View all documents"}
-        </button>
+        <div className="tvp-view-switch" role="tablist" aria-label="Shared folder view">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!docsVisible}
+            className={!docsVisible ? "tvp-active" : ""}
+            onClick={() => setShowAllDocs(false)}
+          >
+            <FolderOpen className="h-4 w-4" /> By folder
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={docsVisible}
+            className={docsVisible ? "tvp-active" : ""}
+            onClick={() => setShowAllDocs(true)}
+          >
+            <FileStack className="h-4 w-4" /> All documents
+          </button>
+        </div>
       </div>
 
-
+      {!docsVisible && (
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <div>
@@ -617,10 +640,10 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
           </div>
         )}
       </div>
-
+      )}
 
       {docsVisible && (
-      <div className="tvp-card" style={{ marginTop: 22 }}>
+      <div className="tvp-card">
 
         <div className="tvp-panel-head">
           <div>
