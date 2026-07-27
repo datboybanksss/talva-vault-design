@@ -1,7 +1,9 @@
 import { type ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useRouterState, useNavigate, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getTalentDashboard } from "@/lib/talent.functions";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -12,9 +14,9 @@ import {
   Bell,
   LogOut,
   ShieldCheck,
-  Sparkles,
   Clock,
-  Upload,
+  Inbox,
+  AlertCircle,
 } from "lucide-react";
 
 type NavItem = {
@@ -36,12 +38,6 @@ const settings: NavItem[] = [
   { to: "/talent/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
 
-const notifications = [
-  { tone: "purple", Icon: Sparkles, title: "4 AI suggestions need review", detail: "Confirm folder and reminder suggestions." },
-  { tone: "amber", Icon: Clock, title: "2 documents expiring soon", detail: "Passport and contract reminders need attention." },
-  { tone: "blue", Icon: Upload, title: "Agency requested a document", detail: "Updated passport requested by Mbeki Sports Management." },
-];
-
 export function TalentShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -50,6 +46,46 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const loadDash = useServerFn(getTalentDashboard);
+  const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
+
+  const pendingRequests = (dash as any)?.pendingRequests ?? 0;
+  const resubRequests = (dash as any)?.resubRequests ?? 0;
+  const expiringSoon = (dash as any)?.expiringSoon ?? 0;
+
+  const notifications = [
+    pendingRequests > 0 && {
+      tone: "purple",
+      Icon: Inbox,
+      title: `${pendingRequests} document request${pendingRequests === 1 ? "" : "s"} from your Manager`,
+      detail: "Upload the requested files from Vault → Manager Requests.",
+      to: "/talent/vault",
+      search: { tab: "requests" as const },
+    },
+    resubRequests > 0 && {
+      tone: "amber",
+      Icon: AlertCircle,
+      title: `${resubRequests} resubmission${resubRequests === 1 ? "" : "s"} requested`,
+      detail: "Your Manager needs an updated file.",
+      to: "/talent/vault",
+      search: { tab: "requests" as const },
+    },
+    expiringSoon > 0 && {
+      tone: "amber",
+      Icon: Clock,
+      title: `${expiringSoon} document${expiringSoon === 1 ? "" : "s"} expiring soon`,
+      detail: "Shared documents due for renewal within 30 days.",
+      to: "/talent/vault",
+      search: { tab: "agency" as const },
+    },
+  ].filter(Boolean) as {
+    tone: string;
+    Icon: typeof Inbox;
+    title: string;
+    detail: string;
+    to: string;
+    search: { tab: "requests" | "agency" };
+  }[];
   // Loader data from /talent route: { profile, link, agency }
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
@@ -153,27 +189,38 @@ export function TalentShell({ children }: { children: ReactNode }) {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
-              <span className="tvp-dot">5</span>
+              {notifications.length > 0 && <span className="tvp-dot">{notifications.length}</span>}
             </button>
             {bellOpen && (
               <div className="tvp-notification-panel">
                 <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
                   <div className="tvp-h2">Reminders</div>
-                  <button className="tvp-link">View all</button>
                 </div>
-                {notifications.map((n, i) => (
-                  <div className="tvp-notification-item" key={i}>
-                    <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
-                      <n.Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <strong>{n.title}</strong>
-                      <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                        {n.detail}
+                {notifications.length === 0 ? (
+                  <p className="tvp-muted" style={{ fontSize: 13, padding: "8px 2px" }}>
+                    You're all caught up.
+                  </p>
+                ) : (
+                  notifications.map((n, i) => (
+                    <Link
+                      to={n.to}
+                      search={n.search}
+                      className="tvp-notification-item"
+                      key={i}
+                      onClick={() => setBellOpen(false)}
+                    >
+                      <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
+                        <n.Icon className="h-4 w-4" />
                       </div>
-                    </div>
-                  </div>
-                ))}
+                      <div>
+                        <strong>{n.title}</strong>
+                        <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                          {n.detail}
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
               </div>
             )}
           </div>

@@ -616,6 +616,14 @@
     padding: 14px 18px; display: flex; align-items: center; gap: 14px; margin: 16px 0;
   }
   & .tvp-callout-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--tvp-blue-bg); color: var(--tvp-blue); font-weight: 900; flex: 0 0 auto; }
+  & button.tvp-callout-action {
+    width: 100%; text-align: left; cursor: pointer;
+    border-color: var(--tvp-amber-200, #F3D3AE); background: var(--tvp-amber-50, #FEF7EF);
+    transition: box-shadow .15s ease, transform .15s ease;
+  }
+  & button.tvp-callout-action:hover { box-shadow: 0 6px 18px rgba(232,147,72,.18); transform: translateY(-1px); }
+  & button.tvp-callout-action .tvp-callout-icon { background: var(--tvp-amber-bg, #FBE7D2); color: var(--tvp-amber, #C46A16); }
+
   & .tvp-reporting-note { border: 1px solid var(--tvp-teal-200); background: var(--tvp-teal-50); border-radius: 14px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 14px; align-items: flex-start; }
   & .tvp-reporting-note .tvp-note-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--tvp-teal-100); color: var(--tvp-teal); font-weight: 900; flex: 0 0 auto; }
 

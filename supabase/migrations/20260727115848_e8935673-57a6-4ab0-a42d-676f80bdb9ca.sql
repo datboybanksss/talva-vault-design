@@ -1,0 +1,2 @@
+UPDATE public.agency_document_requests SET status = 'completed', updated_at = now()
+WHERE talent_link_id = 'd0633a35-a377-4251-9643-65462f563522' AND title = 'Certified ID copy' AND status = 'pending';

@@ -341,11 +341,12 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     let expiringCount = 0;
     let openRequests = 0;
     let resubRequests = 0;
+    let pendingRequests = 0;
     let recent: any[] = [];
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const in30 = new Date(Date.now() + 30 * 86400_000).toISOString();
-      const [sc, ec, or, rr, rec] = await Promise.all([
+      const [sc, ec, or, rr, pr, rec] = await Promise.all([
         supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
         supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true })
           .eq("talent_link_id", link.id).not("validity_expires_at", "is", null).lt("validity_expires_at", in30),
@@ -353,6 +354,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .eq("talent_link_id", link.id).in("status", ["pending", "submitted"]),
         supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
           .eq("talent_link_id", link.id).eq("status", "resubmission_required"),
+        supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
+          .eq("talent_link_id", link.id).eq("status", "pending"),
         supabaseAdmin.from("talent_shared_documents")
           .select("id, name, folder, status, updated_at")
           .eq("talent_link_id", link.id).order("updated_at", { ascending: false }).limit(5),
@@ -361,6 +364,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       expiringCount = ec.count ?? 0;
       openRequests = or.count ?? 0;
       resubRequests = rr.count ?? 0;
+      pendingRequests = pr.count ?? 0;
       recent = rec.data ?? [];
     }
 
@@ -372,6 +376,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       expiringSoon: expiringCount,
       openRequests,
       resubRequests,
+      pendingRequests,
+      actionRequests: pendingRequests + resubRequests,
       recent,
     };
   });

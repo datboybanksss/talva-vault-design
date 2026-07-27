@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { getTalentDashboard } from "@/lib/talent.functions";
 import {
   getRosterSharedContents,
   getSharedDocumentDownloadUrl,
@@ -21,12 +22,16 @@ import { toast } from "sonner";
 import {
   Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
-  ChevronDown, Search,
+  ChevronDown, Search, ArrowRight,
 } from "lucide-react";
 
 
 export const Route = createFileRoute("/talent/vault")({
   head: () => ({ meta: [{ title: "Vault · TalVault Talent" }] }),
+  validateSearch: (search: Record<string, unknown>): { tab?: Mode } => {
+    const t = search.tab;
+    return t === "private" || t === "agency" || t === "requests" ? { tab: t } : {};
+  },
   component: VaultPage,
 });
 
@@ -34,7 +39,19 @@ export const Route = createFileRoute("/talent/vault")({
 type Mode = "private" | "agency" | "requests";
 
 function VaultPage() {
-  const [mode, setMode] = useState<Mode>("private");
+  const { tab } = useSearch({ from: "/talent/vault" });
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<Mode>(tab ?? "private");
+
+  useEffect(() => {
+    if (tab && tab !== mode) setMode(tab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const goTo = (next: Mode) => {
+    setMode(next);
+    navigate({ to: "/talent/vault", search: { tab: next }, replace: true });
+  };
 
   return (
     <>
@@ -48,20 +65,20 @@ function VaultPage() {
       </div>
 
       <div className="tvp-tabs">
-        <button className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`} onClick={() => setMode("private")}>
+        <button className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`} onClick={() => goTo("private")}>
           <Lock className="h-4 w-4" /> Private Vault
         </button>
-        <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => setMode("agency")}>
+        <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => goTo("agency")}>
           <FileStack className="h-4 w-4" /> Agency Shared Folder
         </button>
-        <button className={`tvp-tab${mode === "requests" ? " tvp-active" : ""}`} onClick={() => setMode("requests")}>
+        <button className={`tvp-tab${mode === "requests" ? " tvp-active" : ""}`} onClick={() => goTo("requests")}>
           <Inbox className="h-4 w-4" /> Manager Requests
         </button>
       </div>
 
       {mode === "private" && <PrivateVault />}
 
-      {mode === "agency" && <AgencySharedFolder />}
+      {mode === "agency" && <AgencySharedFolder onOpenRequests={() => goTo("requests")} />}
 
       {mode === "requests" && <ManagerRequests />}
 
@@ -414,8 +431,11 @@ function statusTone(status: string) {
   }
 }
 
-function AgencySharedFolder() {
+function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) {
   const load = useServerFn(getRosterSharedContents);
+  const loadDash = useServerFn(getTalentDashboard);
+  const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
+  const actionRequests = (dash as any)?.actionRequests ?? 0;
   const download = useServerFn(getSharedDocumentDownloadUrl);
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("__all");
@@ -460,6 +480,19 @@ function AgencySharedFolder() {
 
   return (
     <>
+      {actionRequests > 0 && (
+        <button type="button" className="tvp-callout tvp-callout-action" onClick={onOpenRequests}>
+          <div className="tvp-callout-icon tvp-bg-amber"><Inbox className="h-4 w-4" /></div>
+          <div style={{ textAlign: "left" }}>
+            <strong>
+              {actionRequests} pending request{actionRequests === 1 ? "" : "s"} from your Manager
+            </strong>{" "}
+            <span className="tvp-muted">Upload the requested documents to keep your shared folder compliant.</span>
+          </div>
+          <ArrowRight className="h-4 w-4" style={{ marginLeft: "auto", flexShrink: 0 }} />
+        </button>
+      )}
+
       <div className="tvp-callout">
         <div className="tvp-callout-icon"><FileStack className="h-4 w-4" /></div>
         <div>
