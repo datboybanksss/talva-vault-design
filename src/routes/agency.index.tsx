@@ -221,6 +221,7 @@ function AgencyDashboard() {
   const talentCount = metrics.data?.talentCount ?? rows.length;
   const needsReview = metrics.data?.needsReviewCount ?? 0;
   const expiringSoon = metrics.data?.expiringSoonCount ?? 0;
+  const expiryNoticeDays = metrics.data?.expiryNoticeDays ?? 30;
   const invitesPending = metrics.data?.invitationsNeedAction ?? 0;
   const overdueInvoices = metrics.data?.overdueInvoicesCount ?? 0;
   const attentionTotal = needsReview + expiringSoon + invitesPending + overdueInvoices;
@@ -323,7 +324,7 @@ function AgencyDashboard() {
               )}
               {expiringSoon > 0 && (
                 <Link to="/agency/document-vault" className="tvp-link">
-                  {expiringSoon} document{expiringSoon === 1 ? "" : "s"} expiring in 30 days
+                  {expiringSoon} document{expiringSoon === 1 ? "" : "s"} expiring in {expiryNoticeDays} day{expiryNoticeDays === 1 ? "" : "s"}
                 </Link>
               )}
               {overdueInvoices > 0 && (
@@ -366,7 +367,7 @@ function AgencyDashboard() {
             <div className="tvp-kpi-label">Vault Documents</div>
             <div className="tvp-kpi-sub">
               {(metrics.data?.expiringSoonCount ?? 0) > 0
-                ? `${metrics.data?.expiringSoonCount} expiring in 30d`
+                ? `${metrics.data?.expiringSoonCount} expiring in ${expiryNoticeDays}d`
                 : "All up to date"}
             </div>
           </div>

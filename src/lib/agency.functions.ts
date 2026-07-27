@@ -141,7 +141,16 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
-    const in30d = new Date(Date.now() + 30 * 86400000).toISOString();
+    // Manager-configurable "expiring soon" window (Agency Profile → Document Rules).
+    const { data: agencyPrefs } = await supabase
+      .from("agencies")
+      .select("expiry_notice_days")
+      .eq("id", agencyId)
+      .maybeSingle();
+    const expiryNoticeDays = agencyPrefs?.expiry_notice_days ?? 30;
+
+    const in30d = new Date(Date.now() + expiryNoticeDays * 86400000).toISOString();
+
     const nowIso = new Date().toISOString();
     const startOfMonth = new Date();
     startOfMonth.setUTCDate(1);
@@ -203,6 +212,8 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
       newTalentThisMonth: newThisMonthRes.count ?? 0,
       fullyCompliantCount,
       activeTalentCount: activeCount,
+      expiryNoticeDays,
+
     };
 
   });
@@ -230,7 +241,13 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     );
     const linkIds = rows.map((r: any) => r.id);
 
-    const in30dIso = new Date(Date.now() + 30 * 86400000).toISOString();
+    const { data: agencyPrefs } = await supabase
+      .from("agencies")
+      .select("expiry_notice_days")
+      .eq("id", agencyId)
+      .maybeSingle();
+    const expiryNoticeDays = agencyPrefs?.expiry_notice_days ?? 30;
+    const in30dIso = new Date(Date.now() + expiryNoticeDays * 86400000).toISOString();
     const nowIso = new Date().toISOString();
     const [managersRes, docsRes, expiringRes, lastDocRes] = await Promise.all([
       managerIds.length
@@ -2054,6 +2071,47 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
     );
     return updated;
   });
+
+// -----------------------------------------------------------------------------
+// Notification preferences — how far ahead documents count as "expiring soon".
+// -----------------------------------------------------------------------------
+export const getAgencyNotificationSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agencies")
+      .select("expiry_notice_days")
+      .eq("id", agencyId)
+      .single();
+    if (error) throw new Error(error.message);
+    return { expiry_notice_days: data?.expiry_notice_days ?? 30 };
+  });
+
+export const updateAgencyNotificationSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ expiry_notice_days: z.number().int().min(1).max(365) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: updated, error } = await supabase
+      .from("agencies")
+      .update({ expiry_notice_days: data.expiry_notice_days })
+      .eq("id", agencyId)
+      .select("expiry_notice_days")
+      .single();
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "update_notification_settings", "agency", agencyId, undefined,
+      { expiry_notice_days: data.expiry_notice_days },
+    );
+    return updated;
+  });
+
 
 // =============================================================================
 // Billing settings, branding, itemized lines, preview and send.

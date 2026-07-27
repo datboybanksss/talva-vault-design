@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Plus, Trash2, Pencil, Info, FileText, Folder } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,8 @@ import {
   deleteAgencyRetentionRule,
   listAgencyVaultDocuments,
   agencyWhoami,
+  getAgencyNotificationSettings,
+  updateAgencyNotificationSettings,
 } from "@/lib/agency.functions";
 
 type Rule = {
@@ -130,6 +132,10 @@ export function DocumentRulesPanel() {
           </div>
         </div>
       </div>
+
+      <ExpiryNoticePanel />
+
+
 
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
@@ -355,3 +361,79 @@ function RuleDialog({
     </div>
   );
 }
+
+/**
+ * Agency-wide notification threshold: how many days ahead a document counts as
+ * "expiring soon" on the Manager dashboard. Mirrors the Talent portal setting.
+ */
+function ExpiryNoticePanel() {
+  const qc = useQueryClient();
+  const getFn = useServerFn(getAgencyNotificationSettings);
+  const saveFn = useServerFn(updateAgencyNotificationSettings);
+
+  const { data } = useQuery({
+    queryKey: ["agency", "notification-settings"],
+    queryFn: () => getFn(),
+  });
+
+  const [value, setValue] = useState<string>("");
+  const current = data?.expiry_notice_days ?? 30;
+  const shown = value === "" ? String(current) : value;
+  const parsed = Number(shown);
+  const valid = Number.isInteger(parsed) && parsed >= 1 && parsed <= 365;
+  const dirty = valid && parsed !== current;
+
+  const save = useMutation({
+    mutationFn: () => saveFn({ data: { expiry_notice_days: parsed } }),
+    onSuccess: () => {
+      toast.success("Notice period updated");
+      setValue("");
+      qc.invalidateQueries({ queryKey: ["agency", "notification-settings"] });
+      qc.invalidateQueries({ queryKey: ["agency", "dashboard"] });
+      qc.invalidateQueries({ queryKey: ["agency", "metrics"] });
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+  });
+
+  return (
+    <div className="tvp-card tvp-panel" style={{ marginTop: 18 }}>
+      <div className="tvp-panel-head">
+        <h2 className="tvp-h2">Expiring-document notifications</h2>
+      </div>
+      <div style={{ padding: 16 }}>
+        <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 12 }}>
+          How far ahead should a shared document be flagged as expiring? This drives the
+          dashboard warning banner and the Vault Documents tile.
+        </p>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+          <div className="tvp-form-group" style={{ maxWidth: 200 }}>
+            <label htmlFor="expiry-notice-days">Notice period (days)</label>
+            <input
+              id="expiry-notice-days"
+              type="number"
+              min={1}
+              max={365}
+              value={shown}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </div>
+          <button
+            className="tvp-primary"
+            disabled={!dirty || save.isPending}
+            onClick={() => save.mutate()}
+            style={{ marginBottom: 2 }}
+          >
+            {save.isPending ? "Saving…" : "Save"}
+          </button>
+        </div>
+        {!valid && (
+          <p style={{ color: "var(--tvp-red, #b91c1c)", fontSize: 12, marginTop: 6 }}>
+            Enter a whole number between 1 and 365.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
