@@ -131,6 +131,10 @@ export function DocumentRulesPanel() {
         </div>
       </div>
 
+      <ExpiryNoticePanel />
+
+
+
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Folder retention rules</h2>
