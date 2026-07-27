@@ -12,7 +12,6 @@ import {
 } from "@/lib/talent.functions";
 import {
   listPrivateVault,
-  createPrivateFolder,
   deletePrivateFolder,
   createPrivateUploadUrl,
   getPrivateDocumentDownloadUrl,
@@ -20,7 +19,7 @@ import {
 } from "@/lib/talent-vault.functions";
 import { toast } from "sonner";
 import {
-  Plus, Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
+  Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
   Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
   ChevronDown, Search,
 } from "lucide-react";
@@ -117,7 +116,6 @@ type PrivateDoc = {
 function PrivateVault() {
   const qc = useQueryClient();
   const load = useServerFn(listPrivateVault);
-  const createFolder = useServerFn(createPrivateFolder);
   const deleteFolder = useServerFn(deletePrivateFolder);
   const createUpload = useServerFn(createPrivateUploadUrl);
   const download = useServerFn(getPrivateDocumentDownloadUrl);
@@ -161,24 +159,13 @@ function PrivateVault() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
 
-  async function onAddTopFolder() {
-    const name = window.prompt("New folder name")?.trim();
-    if (!name) return;
-    try {
-      await createFolder({ data: { name } });
-      toast.success("Folder created.");
-      invalidate();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not create folder.");
-    }
-  }
 
 
 
 
   async function onDeleteFolder(id: string, name: string, isTop: boolean) {
     const message = isTop
-      ? `Remove "${name}" from your vault? It will be hidden, and you can restore it later from Settings → Vault Folders with its documents intact.`
+      ? `Remove "${name}" from your vault? It will be hidden, and you can restore it later from Settings → Manage folders with its documents intact.`
       : `Delete "${name}"? Only empty subfolders can be deleted.`;
     if (!window.confirm(message)) return;
     try {
@@ -332,17 +319,19 @@ function PrivateVault() {
           <div>
             <h2 className="tvp-h2">Private Vault Folders</h2>
             <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · fully editable.
+              {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · choose which
+              categories appear in Settings → Manage folders.
             </p>
           </div>
           <div className="tvp-row-actions">
-            <button className="tvp-secondary" onClick={onAddTopFolder}><Plus className="h-4 w-4" /> Add Folder</button>
             <button className="tvp-primary" onClick={() => triggerUpload(null)}><Upload className="h-4 w-4" /> Upload</button>
           </div>
         </div>
 
         {topFolders.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13 }}>No folders yet — add one to get started.</p>
+          <p className="tvp-muted" style={{ fontSize: 13 }}>
+            No folders yet — turn categories on from Settings → Manage folders.
+          </p>
         ) : (
           <div className="tvp-folder-tree">
             {topFolders.map((f) => {

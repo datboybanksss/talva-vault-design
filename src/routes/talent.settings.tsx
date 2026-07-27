@@ -140,7 +140,7 @@ function TalentSettings() {
       <div className="tvp-tabs">
         <button className={`tvp-tab${mode === "profile" ? " tvp-active" : ""}`} onClick={() => setMode("profile")}>Profile</button>
         <button className={`tvp-tab${mode === "account" ? " tvp-active" : ""}`} onClick={() => setMode("account")}>Account</button>
-        <button className={`tvp-tab${mode === "folders" ? " tvp-active" : ""}`} onClick={() => setMode("folders")}>Vault Folders</button>
+        <button className={`tvp-tab${mode === "folders" ? " tvp-active" : ""}`} onClick={() => setMode("folders")}>Manage folders</button>
 
         <button className={`tvp-tab${mode === "relationship" ? " tvp-active" : ""}`} onClick={() => setMode("relationship")}>Agency Relationship</button>
         <button className={`tvp-tab${mode === "notifications" ? " tvp-active" : ""}`} onClick={() => setMode("notifications")}>Notifications</button>
@@ -269,7 +269,7 @@ function TalentSettings() {
                 <span className="tvp-muted" style={{ fontSize: 13, fontWeight: 700 }}>days ahead</span>
               </div>
               <p className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Drives the “Expiring {Number(expiryDays) || 30}d” tile on your dashboard.
+                Drives the “Expiring soon” tile on your dashboard.
               </p>
             </div>
           </div>

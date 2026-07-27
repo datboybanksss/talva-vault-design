@@ -78,7 +78,7 @@ const DeleteFolderInput = z.object({ id: z.string().uuid() });
 
 /**
  * Top-level categories are SOFT-removed (hidden) so they can be restored later
- * from Settings → Vault Folders with their documents intact.
+ * from Settings → Manage folders with their documents intact.
  * Subfolders are hard-deleted, but only when they hold no documents and no children.
  */
 export const deletePrivateFolder = createServerFn({ method: "POST" })
