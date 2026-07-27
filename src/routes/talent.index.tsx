@@ -59,7 +59,44 @@ function TalentDashboard() {
         ))}
       </div>
 
+      <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
+        <div className="tvp-panel-head">
+          <h2 className="tvp-h2">Vault overview</h2>
+          <Link to="/talent/vault" className="tvp-link">Open Vault →</Link>
+        </div>
+        <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(2, minmax(0,1fr))", marginTop: 14 }}>
+          <Link to="/talent/vault" search={{ tab: "private" }} className="tvp-doc-card tvp-clickable" style={{ alignItems: "flex-start" }}>
+            <div className="tvp-kpi-icon tvp-bg-teal" style={{ width: 40, height: 40 }}><Lock className="h-4 w-4" /></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <strong>Private Vault</strong>
+              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                Personal documents. Not visible to the Agency.
+              </div>
+              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                {data?.privateFolders ?? 0} folder{(data?.privateFolders ?? 0) === 1 ? "" : "s"} · {data?.privateDocs ?? 0} document{(data?.privateDocs ?? 0) === 1 ? "" : "s"}
+              </div>
+            </div>
+            <span className="tvp-status tvp-green">Private</span>
+          </Link>
+
+          <Link to="/talent/vault" search={{ tab: "agency" }} className="tvp-doc-card tvp-clickable" style={{ alignItems: "flex-start" }}>
+            <div className="tvp-kpi-icon tvp-bg-blue" style={{ width: 40, height: 40 }}><FileStack className="h-4 w-4" /></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <strong>Agency Shared Folder</strong>
+              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                Documents deliberately shared with your Agency.
+              </div>
+              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+                {data?.sharedFolders ?? 0} folder{(data?.sharedFolders ?? 0) === 1 ? "" : "s"} · {data?.sharedDocs ?? 0} document{(data?.sharedDocs ?? 0) === 1 ? "" : "s"}
+              </div>
+            </div>
+            <span className="tvp-status tvp-blue">Shared</span>
+          </Link>
+        </div>
+      </div>
+
       <div className="tvp-two-col">
+
         <div className="tvp-card tvp-panel">
           <div className="tvp-panel-head">
             <h2 className="tvp-h2">Recent shared activity</h2>
