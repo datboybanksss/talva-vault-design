@@ -1,0 +1,1 @@
+ALTER TABLE public.talent_profiles ADD COLUMN IF NOT EXISTS expiry_notice_days integer NOT NULL DEFAULT 30;
