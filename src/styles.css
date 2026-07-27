@@ -585,6 +585,24 @@
   & .tvp-status.tvp-purple  { background: var(--tvp-purple-bg); color: var(--tvp-purple);}
   & .tvp-status.tvp-neutral { background: var(--tvp-neutral-bg);color: var(--tvp-muted); }
   & .tvp-status.tvp-teal    { background: var(--tvp-teal-100);  color: var(--tvp-teal);  }
+  & .tvp-status.tvp-grey    { background: var(--tvp-neutral-bg);color: var(--tvp-muted); }
+
+  /* Closed-request history — replaces the bare 5-column table */
+  & .tvp-history-list { list-style: none; margin: 12px 0 0; padding: 0; border: 1px solid var(--tvp-line); border-radius: 14px; overflow: hidden; background: white; }
+  & .tvp-history-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--tvp-line); transition: background .15s ease; }
+  & .tvp-history-row:last-child { border-bottom: 0; }
+  & .tvp-history-row:hover { background: var(--tvp-teal-50, #F1F6F6); }
+  & .tvp-history-dot { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 10px; flex: 0 0 auto; }
+  & .tvp-history-dot.tvp-green { background: var(--tvp-green-bg); color: var(--tvp-green); }
+  & .tvp-history-dot.tvp-grey { background: var(--tvp-neutral-bg); color: var(--tvp-muted); }
+  & .tvp-history-main { min-width: 0; flex: 1 1 auto; }
+  & .tvp-history-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  & .tvp-history-title strong { font-size: 14px; }
+  & .tvp-history-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--tvp-muted); }
+  & .tvp-history-meta span { display: inline-flex; align-items: center; gap: 5px; }
+  & .tvp-history-reason { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--tvp-amber); background: var(--tvp-amber-bg); border-radius: 8px; padding: 6px 10px; display: inline-block; text-transform: capitalize; }
+
+
 
   & .tvp-life-chips { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
   & .tvp-life-chip { border: 1px solid var(--tvp-line); border-radius: 12px; padding: 10px 8px; text-align: center; min-height: 64px; background: white; cursor: pointer; transition: .15s ease; }
