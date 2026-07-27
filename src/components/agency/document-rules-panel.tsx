@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Plus, Trash2, Pencil, Info, FileText, Folder } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,8 @@ import {
   deleteAgencyRetentionRule,
   listAgencyVaultDocuments,
   agencyWhoami,
+  getAgencyNotificationSettings,
+  updateAgencyNotificationSettings,
 } from "@/lib/agency.functions";
 
 type Rule = {
