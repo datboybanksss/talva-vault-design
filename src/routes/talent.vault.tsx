@@ -58,11 +58,9 @@ function VaultPage() {
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Vault</h1>
-          <div className="tvp-subtitle">
-            One vault area with clear separation between Private Vault, Agency Shared Folder and Manager Requests.
-          </div>
         </div>
       </div>
+
 
       <div className="tvp-tabs">
         <button className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`} onClick={() => goTo("private")}>
@@ -240,14 +238,32 @@ function PrivateVault() {
     }
   }
 
+  // Filtering by a top-level folder includes everything filed in its
+  // sub-folders, otherwise picking a category looks empty.
+  function folderAndDescendants(id: string): Set<string> {
+    const out = new Set<string>([id]);
+    const walk = (parent: string) => {
+      for (const child of subsByParent.get(parent) ?? []) {
+        if (out.has(child.id)) continue;
+        out.add(child.id);
+        walk(child.id);
+      }
+    };
+    walk(id);
+    return out;
+  }
+
+  const filterScope = filterFolder !== "__all" && filterFolder !== "__unfiled"
+    ? folderAndDescendants(filterFolder)
+    : null;
+
   const filteredDocs = documents.filter((d) => {
-    if (filterFolder !== "__all") {
-      if (filterFolder === "__unfiled" && d.folder_id !== null) return false;
-      if (filterFolder !== "__unfiled" && d.folder_id !== filterFolder) return false;
-    }
+    if (filterFolder === "__unfiled" && d.folder_id !== null) return false;
+    if (filterScope && (!d.folder_id || !filterScope.has(d.folder_id))) return false;
     if (search && !d.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
 
   if (isLoading) {
     return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Private Vault…</p></div>;
@@ -379,11 +395,24 @@ function PrivateVault() {
       </div>
 
       <div className="tvp-card" style={{ marginTop: 22 }}>
+        <div className="tvp-panel-head">
+          <div>
+            <h2 className="tvp-h2">All private documents</h2>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+              {filteredDocs.length === documents.length
+                ? `${filteredDocs.length} document${filteredDocs.length === 1 ? "" : "s"} across all folders`
+                : `${filteredDocs.length} of ${documents.length} document${documents.length === 1 ? "" : "s"} match`}
+            </p>
+          </div>
+        </div>
 
         {filteredDocs.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
-            {documents.length === 0 ? "Nothing uploaded yet — pick a folder above and upload your first document." : "No documents match your filters."}
+            {documents.length === 0
+              ? "Nothing uploaded yet — pick a folder above and upload your first document."
+              : "No documents match your search or folder filter."}
           </p>
+
         ) : (
           <div className="tvp-table-wrap">
             <table className="tvp-table">
@@ -495,15 +524,8 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
         </button>
       )}
 
-      <div className="tvp-callout">
-        <div className="tvp-callout-icon"><FileStack className="h-4 w-4" /></div>
-        <div>
-          <strong>Manager-controlled folder structure.</strong>{" "}
-          <span className="tvp-muted">
-            Your Talent Manager defines the folders in the Agency Shared Folder. You can view and download documents here, but the folder structure itself is read-only for Talent.
-          </span>
-        </div>
-      </div>
+
+
 
       <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
         <div className="tvp-vault-search">
@@ -563,9 +585,24 @@ function AgencySharedFolder({ onOpenRequests }: { onOpenRequests: () => void }) 
 
 
       <div className="tvp-card" style={{ marginTop: 22 }}>
+        <div className="tvp-panel-head">
+          <div>
+            <h2 className="tvp-h2">All shared documents</h2>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+              {docs.length === data.documents.length
+                ? `${docs.length} document${docs.length === 1 ? "" : "s"} across all folders`
+                : `${docs.length} of ${data.documents.length} document${data.documents.length === 1 ? "" : "s"} match`}
+            </p>
+          </div>
+        </div>
 
         {docs.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>No documents match your filters.</p>
+          <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
+            {data.documents.length === 0
+              ? "Your Manager hasn't shared any documents with you yet."
+              : "No documents match your search or folder filter."}
+          </p>
+
         ) : (
           <div className="tvp-table-wrap">
             <table className="tvp-table">
