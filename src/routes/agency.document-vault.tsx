@@ -601,7 +601,7 @@ function UploadDialog({
   agencyId: string;
   talentLinks: { id: string; displayName: string; status: string }[];
   onClose: () => void;
-  onDone: () => void;
+  onDone: (doc?: { id: string; name: string }) => void;
   registerFn: ReturnType<typeof useServerFn<typeof registerAgencyVaultDocument>>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
