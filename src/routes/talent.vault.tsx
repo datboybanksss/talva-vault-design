@@ -284,17 +284,6 @@ function PrivateVault() {
     <>
       <input ref={fileInput} type="file" hidden onChange={onFilePicked} />
 
-      <div className="tvp-callout" style={{ background: "var(--tvp-teal-50)", borderColor: "var(--tvp-teal-200)" }}>
-        <div className="tvp-callout-icon" style={{ background: "var(--tvp-teal-100)", color: "var(--tvp-teal)" }}>
-          <Lock className="h-4 w-4" />
-        </div>
-        <div>
-          <strong>Private by default.</strong>{" "}
-          <span className="tvp-muted">
-            Folders and files here belong to you. Add or remove folders — your Manager cannot see the Private Vault unless you deliberately share an item.
-          </span>
-        </div>
-      </div>
 
       <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
         <div className="tvp-vault-search">
