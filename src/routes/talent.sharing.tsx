@@ -26,6 +26,8 @@ function SharingPage() {
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [fresh, setFresh] = useState<FreshShare | null>(null);
+  const [codeModal, setCodeModal] = useState<FreshShare | null>(null);
+
 
   const { data, isLoading } = useQuery({ queryKey: ["talent", "loved-shares"], queryFn: () => load() });
 
