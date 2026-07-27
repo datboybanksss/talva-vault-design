@@ -438,9 +438,10 @@ function Step4({ email, onDone }: { email: string; onDone: () => void }) {
         Two-factor authentication adds a second check when you sign in, so your documents stay safe even if
         someone learns your password. You can set this up now or later from Settings.
       </p>
-      <div style={{ marginTop: 8 }}>
+      <div className="tv-app tv-app-embed" style={{ marginTop: 8 }}>
         <TwoFactorCard email={email} logEnrolled={noop} logDisabled={noop} contextLabel="talent" />
       </div>
+
       <button
         type="button"
         className="tv-auth-submit"
