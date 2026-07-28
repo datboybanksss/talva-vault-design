@@ -407,7 +407,9 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .eq("talent_link_id", link.id).eq("status", "pending"),
         supabaseAdmin.from("talent_shared_documents")
           .select("id, name, folder, status, updated_at")
-          .eq("talent_link_id", link.id).order("updated_at", { ascending: false }).limit(5),
+          .eq("talent_link_id", link.id)
+          .neq("status", "filed")
+          .order("updated_at", { ascending: false }).limit(30),
       ]);
       sharedCount = sc.count ?? 0;
       sharedFolderCount = sf.count ?? 0;
@@ -415,7 +417,22 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       openRequests = or.count ?? 0;
       resubRequests = rr.count ?? 0;
       pendingRequests = pr.count ?? 0;
-      recent = rec.data ?? [];
+
+      // Per-user dismissals reuse the bell-reminder table: kind = "shared_doc:<id>",
+      // snapshot = updated_at epoch seconds so the row re-surfaces if the doc changes.
+      const rows = rec.data ?? [];
+      const { data: dis } = await supabase
+        .from("talent_notification_dismissals")
+        .select("kind, snapshot")
+        .eq("user_id", userId)
+        .like("kind", "shared_doc:%");
+      const dismissed = new Map((dis ?? []).map((d: any) => [d.kind, d.snapshot as number]));
+      recent = rows.filter((r: any) => {
+        const snap = Math.floor(new Date(r.updated_at).getTime() / 1000);
+        const d = dismissed.get(`shared_doc:${r.id}`);
+        return d === undefined || d < snap;
+      });
+
 
     }
 
