@@ -234,5 +234,58 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
       },
     });
 
+// -----------------------------------------------------------------------------
+// skipDocumentFiling — defer the decision, leave the document exactly as uploaded
+// -----------------------------------------------------------------------------
+export const skipDocumentFiling = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SkipInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+
+    if (data.scope === "talent") {
+      const { data: doc } = await supabase
+        .from("talent_private_documents")
+        .select("id, user_id")
+        .eq("id", data.document_id)
+        .maybeSingle();
+      if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+
+      const { error } = await supabase
+        .from("talent_private_documents")
+        .update({ pending_review: true })
+        .eq("id", data.document_id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    const agencyId = await callerAgencyId(supabase, userId);
+    const { data: doc } = await supabase
+      .from("talent_shared_documents")
+      .select("id, agency_id, name")
+      .eq("id", data.document_id)
+      .maybeSingle();
+    if (!doc || doc.agency_id !== agencyId) throw new Error("Not found.");
+
+    const { error } = await supabase
+      .from("talent_shared_documents")
+      .update({ pending_review: true })
+      .eq("id", data.document_id);
+    if (error) throw new Error(error.message);
+
+    await supabase.from("agency_audit_log").insert({
+      agency_id: agencyId,
+      actor_id: userId,
+      actor_email: claims?.email ?? null,
+      action: "document_filing_skipped",
+      target_type: "document",
+      target_id: data.document_id,
+      target_label: doc.name,
+      detail: {},
+    });
+
+    return { ok: true };
+  });
+
     return { ok: true };
   });
