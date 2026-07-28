@@ -522,6 +522,35 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       });
     }
 
+    // Reminder-engine notifications (Private Vault expiries, share expiries).
+    // Shared-folder rows are skipped — they are already listed above.
+    try {
+      const { runTalentReminderScan } = await import("@/lib/talent-reminders.server");
+      await runTalentReminderScan({ userId });
+    } catch (e: any) {
+      console.error("[talent reminder scan]", e?.message);
+    }
+    const { data: notifs } = await supabase
+      .from("talent_notifications")
+      .select("id, kind, title, detail, tone, target_type, due_at, created_at")
+      .eq("user_id", userId)
+      .is("dismissed_at", null)
+      .neq("target_type", "shared_document")
+      .order("due_at", { ascending: true })
+      .limit(50);
+    for (const n of notifs ?? []) {
+      attention.push({
+        key: `notification:${n.id}`,
+        snapshot: Math.floor(new Date(n.created_at as string).getTime() / 1000),
+        type: "reminder",
+        title: n.title as string,
+        detail: (n.detail as string) ?? "",
+        tone: (n.tone === "purple" ? "purple" : "amber") as "amber" | "purple",
+        notificationId: n.id as string,
+      });
+    }
+
+
     return {
       hasLink: !!link,
       privateDocs: privDocs.count ?? 0,
