@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TalentRouteImport } from './routes/talent'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ModalPreviewRouteImport } from './routes/modal-preview'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgencyRouteImport } from './routes/agency'
@@ -60,6 +61,11 @@ const TalentRoute = TalentRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModalPreviewRoute = ModalPreviewRouteImport.update({
+  id: '/modal-preview',
+  path: '/modal-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/modal-preview': typeof ModalPreviewRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -312,6 +319,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/modal-preview': typeof ModalPreviewRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/audit': typeof AdminAuditRoute
@@ -354,6 +362,7 @@ export interface FileRoutesById {
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/modal-preview': typeof ModalPreviewRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
   '/admin/administrators': typeof AdminAdministratorsRoute
@@ -400,6 +409,7 @@ export interface FileRouteTypes {
     | '/agency'
     | '/auth'
     | '/forgot-password'
+    | '/modal-preview'
     | '/reset-password'
     | '/talent'
     | '/admin/administrators'
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/forgot-password'
+    | '/modal-preview'
     | '/reset-password'
     | '/admin/administrators'
     | '/admin/audit'
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '/agency'
     | '/auth'
     | '/forgot-password'
+    | '/modal-preview'
     | '/reset-password'
     | '/talent'
     | '/admin/administrators'
@@ -528,6 +540,7 @@ export interface RootRouteChildren {
   AgencyRoute: typeof AgencyRouteWithChildren
   AuthRoute: typeof AuthRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  ModalPreviewRoute: typeof ModalPreviewRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TalentRoute: typeof TalentRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
@@ -550,6 +563,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/modal-preview': {
+      id: '/modal-preview'
+      path: '/modal-preview'
+      fullPath: '/modal-preview'
+      preLoaderRoute: typeof ModalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -958,6 +978,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgencyRoute: AgencyRouteWithChildren,
   AuthRoute: AuthRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  ModalPreviewRoute: ModalPreviewRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TalentRoute: TalentRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
