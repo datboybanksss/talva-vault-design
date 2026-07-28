@@ -177,21 +177,42 @@ function TalentDashboard() {
         </div>
       </div>
 
-      <div className="tvp-two-col">
-        <div className="tvp-stack">
-          <div className="tvp-card tvp-panel">
-            <h2 className="tvp-h2">Sharing</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
-              Share documents securely with a Loved One via a magic link.
-            </p>
+      <div className="tvp-card tvp-panel">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 18,
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: "1 1 320px" }}>
+            <div className="tvp-kpi-icon tvp-bg-purple" style={{ width: 40, height: 40, flexShrink: 0 }}>
+              <Share2 className="h-4 w-4" />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <h2 className="tvp-h2">Sharing</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                Share documents securely with a Loved One via a magic link.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 26, flexShrink: 0 }}>
+            <div>
+              <div className="tvp-kpi-value">{data?.activeShares ?? 0}</div>
+              <div className="tvp-kpi-label">Active shares</div>
+            </div>
             <Link to="/talent/sharing">
-              <button className="tvp-secondary" style={{ marginTop: 12 }}>
-                <Share2 className="h-4 w-4" /> Manage Loved-One access
+              <button className="tvp-secondary">
+                <Share2 className="h-4 w-4" /> Manage sharing
               </button>
             </Link>
           </div>
         </div>
       </div>
+
     </>
   );
 }
