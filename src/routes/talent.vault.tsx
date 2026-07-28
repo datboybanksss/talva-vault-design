@@ -110,6 +110,7 @@ type PrivateDoc = {
   reminder_at: string | null;
   expires_at: string | null;
   notes: string | null;
+  pending_review?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -250,11 +251,14 @@ function PrivateVault() {
     return out;
   }
 
-  const filterScope = filterFolder !== "__all" && filterFolder !== "__unfiled"
+  const filterScope = filterFolder !== "__all" && filterFolder !== "__unfiled" && filterFolder !== "__pending"
     ? folderAndDescendants(filterFolder)
     : null;
 
+  const pendingCount = documents.filter((d) => d.pending_review).length;
+
   const filteredDocs = documents.filter((d) => {
+    if (filterFolder === "__pending" && !d.pending_review) return false;
     if (filterFolder === "__unfiled" && d.folder_id !== null) return false;
     if (filterScope && (!d.folder_id || !filterScope.has(d.folder_id))) return false;
     if (search && !d.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -292,6 +296,7 @@ function PrivateVault() {
         <select className="tvp-vault-select" value={filterFolder} onChange={(e) => setFilterFolder(e.target.value)}>
           <option value="__all">Folder: All</option>
           <option value="__unfiled">Unfiled</option>
+          <option value="__pending">Pending review{pendingCount ? ` (${pendingCount})` : ""}</option>
           {topFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
         <div className="tvp-view-switch" role="tablist" aria-label="Private vault view">
@@ -438,12 +443,29 @@ function PrivateVault() {
               <tbody>
                 {filteredDocs.map((d) => (
                   <tr key={d.id}>
-                    <td><strong>{d.name}</strong></td>
+                    <td>
+                      <strong>{d.name}</strong>
+                      {d.pending_review && (
+                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6, fontSize: 11 }}>
+                          Pending review
+                        </span>
+                      )}
+                    </td>
                     <td>{folderName(d.folder_id)}</td>
                     <td>{d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : "—"}</td>
                     <td>{new Date(d.created_at).toLocaleDateString()}</td>
                     <td>
                       <div className="tvp-row-actions">
+                        {d.pending_review && (
+                          <button
+                            title="Finish AI filing review"
+                            className="tvp-mini-btn"
+                            onClick={() => setAiReviewFor({ id: d.id, name: d.name })}
+                            aria-label="Finish filing review"
+                          >
+                            <Sparkles className="h-4 w-4" />
+                          </button>
+                        )}
                         {d.storage_path ? (
                           <button title="Download document" className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
                             <Download className="h-4 w-4" />
@@ -702,12 +724,29 @@ function SharedDocumentsView() {
               <tbody>
                 {docs.map((d) => (
                   <tr key={d.id}>
-                    <td><strong>{d.name}</strong></td>
+                    <td>
+                      <strong>{d.name}</strong>
+                      {d.pending_review && (
+                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6, fontSize: 11 }}>
+                          Pending review
+                        </span>
+                      )}
+                    </td>
                     <td>{d.folder}</td>
                     <td><span className={`tvp-status tvp-${statusTone(d.status)}`}>{d.status.replace(/_/g, " ")}</span></td>
                     <td>{d.validity_expires_at ? new Date(d.validity_expires_at).toLocaleDateString() : "—"}</td>
                     <td>
                       <div className="tvp-row-actions">
+                        {d.pending_review && (
+                          <button
+                            title="Finish AI filing review"
+                            className="tvp-mini-btn"
+                            onClick={() => setAiReviewFor({ id: d.id, name: d.name })}
+                            aria-label="Finish filing review"
+                          >
+                            <Sparkles className="h-4 w-4" />
+                          </button>
+                        )}
                         {d.storage_path ? (
                           <button title="Download document" className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
                             <Download className="h-4 w-4" />
