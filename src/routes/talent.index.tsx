@@ -25,10 +25,17 @@ function TalentDashboard() {
   const attention = data?.attention ?? [];
   const visibleAttention = showAllAttention ? attention : attention.slice(0, 3);
 
-  const dismissItem = async (item: { key: string; snapshot: number }) => {
-    await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
+  const dismissNotifFn = useServerFn(dismissTalentNotification);
+
+  const dismissItem = async (item: { key: string; snapshot: number; notificationId?: string }) => {
+    if (item.notificationId) {
+      await dismissNotifFn({ data: { id: item.notificationId } });
+    } else {
+      await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
+    }
     await queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
   };
+
 
   const rootMatch = useRouterState({ select: (s) => s.matches.find((m) => m.routeId === "/talent") });
   const ctx = (rootMatch?.loaderData ?? null) as
