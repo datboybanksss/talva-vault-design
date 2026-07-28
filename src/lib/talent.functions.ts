@@ -434,11 +434,13 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     let attention: {
       key: string;
       snapshot: number;
-      type: "expiring" | "request";
+      type: "expiring" | "request" | "reminder";
       title: string;
       detail: string;
       tone: "amber" | "purple";
+      notificationId?: string;
     }[] = [];
+
 
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
