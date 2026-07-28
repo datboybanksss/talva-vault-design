@@ -31,6 +31,12 @@ const ConfirmInput = z.object({
   ai_assisted: z.boolean().default(false),
 });
 
+const SkipInput = z.object({
+  scope: ScopeEnum,
+  document_id: z.string().uuid(),
+});
+
+
 async function callerAgencyId(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("agency_members")
