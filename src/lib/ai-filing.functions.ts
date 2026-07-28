@@ -234,6 +234,11 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
       },
     });
 
+    return { ok: true };
+  });
+
+
+
 // -----------------------------------------------------------------------------
 // skipDocumentFiling — defer the decision, leave the document exactly as uploaded
 // -----------------------------------------------------------------------------
