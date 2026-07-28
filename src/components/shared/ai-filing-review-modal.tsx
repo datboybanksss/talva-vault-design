@@ -12,8 +12,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles, FolderTree, CalendarClock, ShieldAlert, Check, X, Loader2 } from "lucide-react";
-import { getFilingCatalog, confirmDocumentFiling } from "@/lib/ai-filing.functions";
+import { Sparkles, FolderTree, CalendarClock, ShieldAlert, X, Loader2, Clock } from "lucide-react";
+import {
+  getFilingCatalog,
+  confirmDocumentFiling,
+  skipDocumentFiling,
+} from "@/lib/ai-filing.functions";
 
 export type AiFilingScope = "talent" | "agency";
 
@@ -72,6 +76,7 @@ export function AiFilingReviewModal({
 }: Props) {
   const catalogFn = useServerFn(getFilingCatalog);
   const confirmFn = useServerFn(confirmDocumentFiling);
+  const skipFn = useServerFn(skipDocumentFiling);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["filing-review", scope, documentId],
@@ -100,8 +105,6 @@ export function AiFilingReviewModal({
   }, [suggestionProp, data]);
 
   // --- section state -----------------------------------------------------
-  const [folderConfirmed, setFolderConfirmed] = useState(false);
-  const [expiryConfirmed, setExpiryConfirmed] = useState(false);
   const [picking, setPicking] = useState(false);
   const [destination, setDestination] = useState<string | null>(null);
   const [expiry, setExpiry] = useState<string>("");
@@ -162,8 +165,17 @@ export function AiFilingReviewModal({
     onError: (e: any) => toast.error(e?.message ?? "Could not reject suggestion."),
   });
 
-  const busy = save.isPending || reject.isPending;
-  const canSave = folderConfirmed && expiryConfirmed && !busy;
+  const skip = useMutation({
+    mutationFn: () => skipFn({ data: { scope, document_id: documentId } }),
+    onSuccess: () => {
+      toast.success("Skipped — find it later under Pending review.");
+      onDone();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Could not skip this document."),
+  });
+
+  const busy = save.isPending || reject.isPending || skip.isPending;
+  const canSave = !busy;
 
   return (
     <div
@@ -279,7 +291,6 @@ export function AiFilingReviewModal({
                     value={destination ?? ""}
                     onChange={(e) => {
                       setDestination(e.target.value || null);
-                      setFolderConfirmed(false);
                     }}
                   >
                     <option value="">Leave where it was uploaded</option>
@@ -296,26 +307,9 @@ export function AiFilingReviewModal({
                 <button
                   type="button"
                   className="tvp-secondary"
-                  onClick={() => {
-                    setPicking((p) => !p);
-                    setFolderConfirmed(false);
-                  }}
+                  onClick={() => setPicking((p) => !p)}
                 >
                   {picking ? "Use suggestion" : "Choose different folder"}
-                </button>
-                <button
-                  type="button"
-                  className={folderConfirmed ? "tvp-secondary" : "tvp-primary"}
-                  onClick={() => setFolderConfirmed(true)}
-                  disabled={folderConfirmed}
-                >
-                  {folderConfirmed ? (
-                    <>
-                      <Check className="h-4 w-4" /> Folder confirmed
-                    </>
-                  ) : (
-                    "Confirm folder/subfolder"
-                  )}
                 </button>
               </div>
             </section>
@@ -341,7 +335,6 @@ export function AiFilingReviewModal({
                     value={expiry}
                     onChange={(e) => {
                       setExpiry(e.target.value);
-                      setExpiryConfirmed(false);
                       setNoReminder(false);
                     }}
                   />
@@ -362,7 +355,6 @@ export function AiFilingReviewModal({
                     disabled={noReminder || !expiry}
                     onChange={(e) => {
                       setLeadDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)));
-                      setExpiryConfirmed(false);
                     }}
                   />
                 </label>
@@ -381,30 +373,10 @@ export function AiFilingReviewModal({
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button
                   type="button"
-                  className="tvp-secondary"
-                  onClick={() => {
-                    setNoReminder(true);
-                    setExpiryConfirmed(true);
-                  }}
+                  className={noReminder ? "tvp-primary" : "tvp-secondary"}
+                  onClick={() => setNoReminder((v) => !v)}
                 >
-                  No reminder needed
-                </button>
-                <button
-                  type="button"
-                  className={expiryConfirmed && !noReminder ? "tvp-secondary" : "tvp-primary"}
-                  onClick={() => {
-                    setNoReminder(false);
-                    setExpiryConfirmed(true);
-                  }}
-                  disabled={expiryConfirmed && !noReminder}
-                >
-                  {expiryConfirmed && !noReminder ? (
-                    <>
-                      <Check className="h-4 w-4" /> Expiry confirmed
-                    </>
-                  ) : (
-                    "Confirm expiry & reminder"
-                  )}
+                  {noReminder ? "Reminder off" : "No reminder needed"}
                 </button>
               </div>
             </section>
@@ -418,8 +390,8 @@ export function AiFilingReviewModal({
               <div>
                 <strong>Human validation required.</strong>
                 <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                  Suggestions are never applied automatically. Confirm both sections above before
-                  this document is filed.
+                  Suggestions are never applied automatically. Review the fields above, then save
+                  — or skip for now and come back to it from the Pending review filter.
                 </div>
               </div>
             </div>
@@ -436,11 +408,20 @@ export function AiFilingReviewModal({
               </button>
               <button
                 type="button"
+                className="tvp-secondary"
+                title="Leave it where it was uploaded and review later"
+                onClick={() => skip.mutate()}
+                disabled={busy}
+              >
+                <Clock className="h-4 w-4" /> {skip.isPending ? "Skipping…" : "Skip for now"}
+              </button>
+              <button
+                type="button"
                 className="tvp-primary"
                 onClick={() => save.mutate()}
                 disabled={!canSave}
               >
-                {save.isPending ? "Saving…" : "Save confirmed filing"}
+                {save.isPending ? "Saving…" : "Save filing"}
               </button>
             </div>
           </>
