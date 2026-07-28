@@ -727,6 +727,12 @@
   & .tvp-rule-card input[type="checkbox"] { margin-right: 8px; }
   & .tvp-doc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   & .tvp-doc-card { border: 1px solid var(--tvp-line); border-radius: 14px; background: white; padding: 14px; display: grid; grid-template-columns: 42px 1fr auto; gap: 12px; align-items: center; }
+  & .tvp-review-list { display: flex; flex-direction: column; margin-top: 6px; }
+  & .tvp-review-row { display: grid; grid-template-columns: 26px minmax(0,1fr) auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--tvp-line); font-size: 13px; }
+  & .tvp-review-row:last-child { border-bottom: 0; }
+  & .tvp-review-row .tvp-review-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+  & .tvp-review-row .tvp-review-name { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  & .tvp-review-row .tvp-review-meta { font-size: 12px; color: var(--tvp-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   & .tvp-two-col { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .85fr); gap: 22px; }
   & .tvp-split { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; }
   & .tvp-stack { display: grid; gap: 18px; }
