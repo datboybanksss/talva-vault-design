@@ -148,14 +148,12 @@ function TalentSettings() {
             email={ctx?.profile?.email ?? ""}
             logPasswordChange={async () => {}}
           />
-          <div className="tvp-account-full">
-            <TwoFactorCard
-              email={ctx?.profile?.email ?? ""}
-              logEnrolled={async () => {}}
-              logDisabled={async () => {}}
-              contextLabel="talent"
-            />
-          </div>
+          <TwoFactorCard
+            email={ctx?.profile?.email ?? ""}
+            logEnrolled={async () => {}}
+            logDisabled={async () => {}}
+            contextLabel="talent"
+          />
         </div>
       )}
 
