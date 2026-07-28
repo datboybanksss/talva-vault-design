@@ -5,8 +5,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { updateTalentProfile, getTalentNotificationPrefs, updateTalentNotificationPrefs } from "@/lib/talent.functions";
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
+import { PasswordCard } from "@/components/account/password-card";
+import { TwoFactorCard } from "@/components/account/two-factor-card";
 
 export const Route = createFileRoute("/talent/settings")({
+  ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   head: () => ({ meta: [{ title: "Settings · TalVault Talent" }] }),
   component: TalentSettings,
 });
@@ -21,7 +27,12 @@ const notifications = [
 ];
 
 function TalentSettings() {
-  const [mode, setMode] = useState<Mode>("profile");
+  const { tab } = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(
+    (["profile", "account", "folders", "relationship", "notifications"] as const).includes(tab as Mode)
+      ? (tab as Mode)
+      : "profile",
+  );
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
   });
@@ -36,10 +47,6 @@ function TalentSettings() {
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
   const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "Athlete");
   const [savingProfile, setSavingProfile] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [sendingReset, setSendingReset] = useState(false);
   const [expiryDays, setExpiryDays] = useState("30");
   const [savingPrefs, setSavingPrefs] = useState(false);
 
@@ -82,49 +89,6 @@ function TalentSettings() {
       toast.error(e?.message ?? "Failed to update profile");
     } finally {
       setSavingProfile(false);
-    }
-  }
-
-  async function updatePassword() {
-    if (newPassword.length < 12) {
-      toast.error("Password must be at least 12 characters");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    setSavingPassword(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      toast.success("Password updated");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to update password");
-    } finally {
-      setSavingPassword(false);
-    }
-  }
-
-  async function sendResetEmail() {
-    const email = ctx?.profile?.email;
-    if (!email) {
-      toast.error("No email on file");
-      return;
-    }
-    setSendingReset(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password?next=%2Ftalent`,
-      });
-      if (error) throw error;
-      toast.success(`Reset link sent to ${email}`);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to send reset email");
-    } finally {
-      setSendingReset(false);
     }
   }
 
@@ -180,44 +144,18 @@ function TalentSettings() {
       )}
 
       {mode === "account" && (
-        <div className="tvp-card tvp-panel">
-          <div className="tvp-panel-head">
-            <div>
-              <h2 className="tvp-h2">Account</h2>
-              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Change your password or request a reset email.</p>
-            </div>
-          </div>
-
-          <div className="tvp-sub-card">
-            <h3 className="tvp-h3">Change Password</h3>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              Use a strong password to protect your Private Vault and shared access.
-            </p>
-            <div className="tvp-form-grid">
-              <div className="tvp-form-group">
-                <label>New Password</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" />
-              </div>
-              <div className="tvp-form-group">
-                <label>Confirm New Password</label>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" />
-              </div>
-            </div>
-            <div className="tvp-callout">
-              <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
-              <div>
-                <strong>Password rule</strong><br />
-                <span className="tvp-muted">Minimum 12 characters. Use a mix of uppercase, lowercase, numbers and symbols.</span>
-              </div>
-            </div>
-            <div className="tvp-footer-actions">
-              <button className="tvp-secondary" onClick={sendResetEmail} disabled={sendingReset}>
-                {sendingReset ? "Sending…" : "Send Password Reset Email"}
-              </button>
-              <button className="tvp-primary" onClick={updatePassword} disabled={savingPassword}>
-                {savingPassword ? "Updating…" : "Update Password"}
-              </button>
-            </div>
+        <div className="tvp-account-grid">
+          <PasswordCard
+            email={ctx?.profile?.email ?? ""}
+            logPasswordChange={async () => {}}
+          />
+          <div className="tvp-account-full">
+            <TwoFactorCard
+              email={ctx?.profile?.email ?? ""}
+              logEnrolled={async () => {}}
+              logDisabled={async () => {}}
+              contextLabel="talent"
+            />
           </div>
         </div>
       )}
