@@ -244,44 +244,45 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
     <div className="tvp-modal-backdrop" onClick={onClose}>
       <div className="tvp-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
         <div className="tvp-modal-head">
-          <h2 className="tvp-h2"><Lock className="h-5 w-5" /> Access code</h2>
+          <h2 className="tvp-h2"><Lock className="h-4 w-4" /> Access code</h2>
           <button title="Close" className="tvp-mini-btn" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
         <div className="tvp-modal-body">
-          <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 13 }}>
-              <Lock className="h-4 w-4" /> Shown once — copy it now
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
-              <code style={{ flex: 1, fontSize: 20, letterSpacing: 3, fontFamily: "monospace", background: "white", border: "1px solid #FDE68A", borderRadius: 6, padding: "8px 12px", textAlign: "center" }}>
-                {fresh.code}
-              </code>
-              <button className="tvp-secondary" onClick={() => { navigator.clipboard.writeText(fresh.code); toast.success("Access code copied"); }}>
-                <Copy className="h-4 w-4" /> Copy code
+          <div className="tvp-secret">
+            <div className="tvp-secret-head">Shown once — copy it now</div>
+            <div className="tvp-secret-body">
+              <code className="tvp-secret-code">{fresh.code}</code>
+              <button className="tvp-primary" onClick={() => { navigator.clipboard.writeText(fresh.code); toast.success("Access code copied"); }}>
+                <Copy className="h-4 w-4" /> Copy
               </button>
             </div>
-            <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+            <p className="tvp-secret-note">
               Send this to {fresh.recipient} <strong>separately from the link</strong> — by phone or message.
               We never include it in email. If it's lost, issue a new code from the table.
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <input readOnly value={fresh.link} style={{ flex: 1, padding: "8px 10px", fontSize: 12, border: "1px solid #d4d4d8", borderRadius: 6 }} />
-            <button className="tvp-secondary" onClick={() => { navigator.clipboard.writeText(fresh.link); toast.success("Link copied"); }}>
-              <Copy className="h-4 w-4" /> Copy link
-            </button>
+          <div style={{ marginTop: 18 }}>
+            <span className="tvp-field-label">Magic link</span>
+            <div className="tvp-link-row">
+              <input readOnly value={fresh.link} aria-label="Share link" />
+              <button className="tvp-secondary" onClick={() => { navigator.clipboard.writeText(fresh.link); toast.success("Link copied"); }}>
+                <Copy className="h-4 w-4" /> Copy link
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12 }} className="tvp-muted">
-            <Mail className="h-3 w-3" />
-            {fresh.email.sent
-              ? "Notification email sent to your Loved One (link only, no code)."
-              : fresh.email.reason === "email_not_configured"
-                ? "Email sending isn't set up on this project yet — copy the link and send it yourself."
-                : fresh.email.reason === "regenerated"
-                  ? "New code issued. The link is unchanged."
-                  : "Notification email wasn't sent — copy the link and send it yourself."}
+          <div className="tvp-status-line">
+            <Mail className="h-3.5 w-3.5" style={{ flex: "0 0 auto", marginTop: 2 }} />
+            <span>
+              {fresh.email.sent
+                ? "Notification email sent to your Loved One (link only, no code)."
+                : fresh.email.reason === "email_not_configured"
+                  ? "Email sending isn't set up on this project yet — copy the link and send it yourself."
+                  : fresh.email.reason === "regenerated"
+                    ? "New code issued. The link is unchanged."
+                    : "Notification email wasn't sent — copy the link and send it yourself."}
+            </span>
           </div>
         </div>
         <div className="tvp-modal-foot">
@@ -291,6 +292,7 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
     </div>
   );
 }
+
 
 
 function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; onCreated: (f: FreshShare) => void; prefill?: { name: string; email: string; relationship: string } | null }) {
