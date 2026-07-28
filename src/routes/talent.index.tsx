@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getTalentDashboard, dismissTalentReminder } from "@/lib/talent.functions";
+import { getTalentDashboard, dismissTalentReminder, dismissTalentNotification } from "@/lib/talent.functions";
 import { Lock, FileStack, Inbox, Clock, Share2, ArrowRight, AlertCircle, Maximize2, Minimize2, X } from "lucide-react";
 
 export const Route = createFileRoute("/talent/")({
