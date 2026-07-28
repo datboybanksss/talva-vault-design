@@ -164,36 +164,8 @@ function TalentDashboard() {
 
       <div className="tvp-two-col">
 
-        <div className="tvp-card tvp-panel">
-          <div className="tvp-panel-head">
-            <h2 className="tvp-h2">Recent shared activity</h2>
-            <Link to="/talent/vault" className="tvp-link">Open Vault →</Link>
-          </div>
-          {(!data?.recent || data.recent.length === 0) ? (
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 8 }}>Nothing shared yet.</p>
-          ) : (
-            <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
-              {data.recent.map((d: any) => (
-                <div key={d.id} className="tvp-doc-card">
-                  <div className="tvp-kpi-icon tvp-bg-blue" style={{ width: 38, height: 38 }}>
-                    {d.status === "filed" ? <CheckCircle2 className="h-4 w-4" /> : <FileStack className="h-4 w-4" />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <strong>{d.name}</strong>
-                    <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                      {d.folder} · updated {new Date(d.updated_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <span className={`tvp-status tvp-${d.status === "filed" ? "green" : "amber"}`}>
-                    {d.status.replace(/_/g, " ")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         <div className="tvp-stack">
+
           <div className="tvp-card tvp-panel">
             <h2 className="tvp-h2">What needs attention</h2>
             {(data?.resubRequests ?? 0) > 0 && (
