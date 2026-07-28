@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getTalentDashboard } from "@/lib/talent.functions";
-import { Lock, FileStack, Inbox, Clock, Share2, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { getTalentDashboard, dismissTalentReminder } from "@/lib/talent.functions";
+import { Lock, FileStack, Inbox, Clock, Share2, ArrowRight, AlertCircle, Maximize2, Minimize2, X } from "lucide-react";
 
 export const Route = createFileRoute("/talent/")({
   head: () => ({
@@ -16,7 +17,23 @@ export const Route = createFileRoute("/talent/")({
 
 function TalentDashboard() {
   const load = useServerFn(getTalentDashboard);
+  const dismissFn = useServerFn(dismissTalentReminder);
+  const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => load() });
+  const [showAllActivity, setShowAllActivity] = useState(false);
+
+  const attention: any[] = data?.recent ?? [];
+  const visibleAttention = showAllActivity ? attention : attention.slice(0, 3);
+
+  const dismissDoc = async (doc: any) => {
+    await dismissFn({
+      data: {
+        kind: `shared_doc:${doc.id}`,
+        snapshot: Math.floor(new Date(doc.updated_at).getTime() / 1000),
+      },
+    });
+    await queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
+  };
 
   const rootMatch = useRouterState({ select: (s) => s.matches.find((m) => m.routeId === "/talent") });
   const ctx = (rootMatch?.loaderData ?? null) as
@@ -44,7 +61,58 @@ function TalentDashboard() {
         </div>
       </div>
 
+      {attention.length > 0 && (
+        <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
+          <div className="tvp-panel-head">
+            <h2 className="tvp-h2">Shared documents needing review</h2>
+            <div className="flex items-center gap-3">
+              {attention.length > 3 && (
+                <button
+                  type="button"
+                  className="tvp-link"
+                  onClick={() => setShowAllActivity((v) => !v)}
+                  title={showAllActivity ? "Show fewer" : "Show all"}
+                >
+                  {showAllActivity ? (
+                    <><Minimize2 className="h-3.5 w-3.5" /> Show less</>
+                  ) : (
+                    <><Maximize2 className="h-3.5 w-3.5" /> Show all ({attention.length})</>
+                  )}
+                </button>
+              )}
+              <Link to="/talent/vault" className="tvp-link">Open Vault →</Link>
+            </div>
+          </div>
+          <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
+            {visibleAttention.map((d: any) => (
+              <div key={d.id} className="tvp-doc-card">
+                <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 38, height: 38 }}>
+                  <FileStack className="h-4 w-4" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <strong>{d.name}</strong>
+                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                    {d.folder} · updated {new Date(d.updated_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <span className="tvp-status tvp-amber">{d.status.replace(/_/g, " ")}</span>
+                <button
+                  type="button"
+                  className="tvp-icon-btn"
+                  title="Dismiss from this feed"
+                  aria-label="Dismiss from this feed"
+                  onClick={() => dismissDoc(d)}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))", marginBottom: 22 }}>
+
         {kpis.map((k) => (
           <Link key={k.label} to={k.to} search={(k as any).search} className="tvp-card tvp-kpi tvp-clickable">
             <div className={`tvp-kpi-icon tvp-bg-${k.tone}`}>
@@ -97,36 +165,8 @@ function TalentDashboard() {
 
       <div className="tvp-two-col">
 
-        <div className="tvp-card tvp-panel">
-          <div className="tvp-panel-head">
-            <h2 className="tvp-h2">Recent shared activity</h2>
-            <Link to="/talent/vault" className="tvp-link">Open Vault →</Link>
-          </div>
-          {(!data?.recent || data.recent.length === 0) ? (
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 8 }}>Nothing shared yet.</p>
-          ) : (
-            <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
-              {data.recent.map((d: any) => (
-                <div key={d.id} className="tvp-doc-card">
-                  <div className="tvp-kpi-icon tvp-bg-blue" style={{ width: 38, height: 38 }}>
-                    {d.status === "filed" ? <CheckCircle2 className="h-4 w-4" /> : <FileStack className="h-4 w-4" />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <strong>{d.name}</strong>
-                    <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                      {d.folder} · updated {new Date(d.updated_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <span className={`tvp-status tvp-${d.status === "filed" ? "green" : "amber"}`}>
-                    {d.status.replace(/_/g, " ")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         <div className="tvp-stack">
+
           <div className="tvp-card tvp-panel">
             <h2 className="tvp-h2">What needs attention</h2>
             {(data?.resubRequests ?? 0) > 0 && (
