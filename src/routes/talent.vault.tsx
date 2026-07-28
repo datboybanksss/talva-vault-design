@@ -726,28 +726,14 @@ function SharedDocumentsView() {
                   <tr key={d.id}>
                     <td>
                       <strong>{d.name}</strong>
-                      {d.pending_review && (
-                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6, fontSize: 11 }}>
-                          Pending review
-                        </span>
-                      )}
                     </td>
                     <td>{d.folder}</td>
                     <td><span className={`tvp-status tvp-${statusTone(d.status)}`}>{d.status.replace(/_/g, " ")}</span></td>
                     <td>{d.validity_expires_at ? new Date(d.validity_expires_at).toLocaleDateString() : "—"}</td>
                     <td>
                       <div className="tvp-row-actions">
-                        {d.pending_review && (
-                          <button
-                            title="Finish AI filing review"
-                            className="tvp-mini-btn"
-                            onClick={() => setAiReviewFor({ id: d.id, name: d.name })}
-                            aria-label="Finish filing review"
-                          >
-                            <Sparkles className="h-4 w-4" />
-                          </button>
-                        )}
                         {d.storage_path ? (
+
                           <button title="Download document" className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
                             <Download className="h-4 w-4" />
                           </button>
