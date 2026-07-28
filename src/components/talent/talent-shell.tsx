@@ -194,11 +194,25 @@ export function TalentShell({ children }: { children: ReactNode }) {
         <nav className="tvp-nav">{renderNav(settings)}</nav>
 
         <div className="tvp-sidebar-footer">
-          <div className="tvp-avatar">{initials}</div>
-          <div className="tvp-profile-copy">
+          <Link
+            to="/talent/settings"
+            search={{ tab: "account" }}
+            className="tvp-avatar"
+            aria-label="My account"
+            title="My account"
+          >
+            {initials}
+          </Link>
+          <Link
+            to="/talent/settings"
+            search={{ tab: "account" }}
+            className="tvp-profile-copy"
+            aria-label="My account"
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
             <div className="tvp-profile-name">{displayName}</div>
             <div className="tvp-profile-role">{agencyName}</div>
-          </div>
+          </Link>
           <button title="Log out" className="tvp-logout" aria-label="Log out" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />
           </button>
@@ -266,7 +280,15 @@ export function TalentShell({ children }: { children: ReactNode }) {
               </div>
             )}
           </div>
-          <div className="tvp-user-dot">{initials}</div>
+          <Link
+            to="/talent/settings"
+            search={{ tab: "account" }}
+            className="tvp-user-dot"
+            aria-label="My account"
+            title={displayName || "My account"}
+          >
+            {initials}
+          </Link>
         </div>
         {children}
       </main>
