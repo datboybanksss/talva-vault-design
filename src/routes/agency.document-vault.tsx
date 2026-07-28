@@ -266,7 +266,9 @@ export function VaultPage() {
           const isRequests = t === "Requests";
           const iconMap: Record<Tab, { Icon: typeof Files; color: string }> = {
             "All Documents": { Icon: Files, color: "var(--tvp-teal)" },
+            "Pending Review": { Icon: Sparkles, color: "var(--tvp-purple, #7c3aed)" },
             "Needs Review": { Icon: Eye, color: "var(--tvp-teal)" },
+
             "Expiring": { Icon: CalendarClock, color: "var(--tvp-amber)" },
             "Recently Updated": { Icon: RefreshCw, color: "var(--tvp-teal)" },
             "Requests": { Icon: Inbox, color: "var(--tvp-purple, #7c3aed)" },
