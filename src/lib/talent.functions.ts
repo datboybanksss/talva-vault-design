@@ -37,9 +37,16 @@ export const getTalentContext = createServerFn({ method: "GET" })
     return { profile, link, agency };
   });
 
+const DEFAULT_IN_APP = {
+  agency_share: true,
+  doc_expiring: true,
+  share_expiring: true,
+  ai_review: true,
+};
+
 /**
- * Notification preferences — currently just the expiry-warning window used by
- * the dashboard "Expiring soon" tile.
+ * Notification preferences — the expiry-warning window plus the per-channel
+ * in-app reminder toggles consumed by the reminder engine.
  */
 export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -47,14 +54,21 @@ export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data } = await supabase
       .from("talent_profiles")
-      .select("expiry_notice_days")
+      .select("expiry_notice_days, notification_prefs")
       .eq("user_id", userId)
       .maybeSingle();
-    return { expiryNoticeDays: data?.expiry_notice_days ?? 30 };
+    const prefs = (data?.notification_prefs ?? {}) as any;
+    return {
+      expiryNoticeDays: data?.expiry_notice_days ?? 30,
+      inApp: { ...DEFAULT_IN_APP, ...(prefs.in_app ?? {}) } as Record<string, boolean>,
+      // Email delivery stays off until the sending domain is verified.
+      emailEnabled: false,
+    };
   });
 
 const NotificationPrefsInput = z.object({
   expiry_notice_days: z.number().int().min(1).max(365),
+  in_app: z.record(z.string(), z.boolean()).optional(),
 });
 
 export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
@@ -62,13 +76,41 @@ export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => NotificationPrefsInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase
-      .from("talent_profiles")
-      .update({ expiry_notice_days: data.expiry_notice_days })
-      .eq("user_id", userId);
+    const patch: Record<string, unknown> = { expiry_notice_days: data.expiry_notice_days };
+    if (data.in_app) {
+      patch.notification_prefs = { in_app: { ...DEFAULT_IN_APP, ...data.in_app }, email: false };
+    }
+    const { error } = await supabase.from("talent_profiles").update(patch).eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true, expiryNoticeDays: data.expiry_notice_days };
   });
+
+/**
+ * Runs the reminder engine for the signed-in talent only (the pg_cron hook runs
+ * it for everyone). Used by the dashboard so reminders appear without waiting
+ * for the next scheduled pass.
+ */
+export const runMyReminderScan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { runTalentReminderScan } = await import("@/lib/talent-reminders.server");
+    return runTalentReminderScan({ userId: context.userId });
+  });
+
+export const dismissTalentNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("talent_notifications")
+      .update({ dismissed_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 
 const UpdateProfileInput = z.object({
