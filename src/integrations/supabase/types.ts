@@ -1439,6 +1439,7 @@ export type Database = {
           mime_type: string | null
           name: string
           notes: string | null
+          pending_review: boolean
           reminder_at: string | null
           size_bytes: number | null
           storage_path: string | null
@@ -1453,6 +1454,7 @@ export type Database = {
           mime_type?: string | null
           name: string
           notes?: string | null
+          pending_review?: boolean
           reminder_at?: string | null
           size_bytes?: number | null
           storage_path?: string | null
@@ -1467,6 +1469,7 @@ export type Database = {
           mime_type?: string | null
           name?: string
           notes?: string | null
+          pending_review?: boolean
           reminder_at?: string | null
           size_bytes?: number | null
           storage_path?: string | null
@@ -1674,6 +1677,7 @@ export type Database = {
           id: string
           locked_until: string | null
           name: string
+          pending_review: boolean
           revoked_at: string | null
           status: Database["public"]["Enums"]["shared_document_status"]
           storage_path: string | null
@@ -1698,6 +1702,7 @@ export type Database = {
           id?: string
           locked_until?: string | null
           name: string
+          pending_review?: boolean
           revoked_at?: string | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
@@ -1722,6 +1727,7 @@ export type Database = {
           id?: string
           locked_until?: string | null
           name?: string
+          pending_review?: boolean
           revoked_at?: string | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null

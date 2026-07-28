@@ -1,0 +1,2 @@
+ALTER TABLE public.talent_private_documents ADD COLUMN IF NOT EXISTS pending_review boolean NOT NULL DEFAULT false;
+ALTER TABLE public.talent_shared_documents ADD COLUMN IF NOT EXISTS pending_review boolean NOT NULL DEFAULT false;

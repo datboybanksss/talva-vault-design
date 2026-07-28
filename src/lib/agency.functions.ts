@@ -593,7 +593,7 @@ export const listAgencyVaultDocuments = createServerFn({ method: "GET" })
 
     const { data: docs, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id")
+      .select("id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -623,6 +623,7 @@ export const listAgencyVaultDocuments = createServerFn({ method: "GET" })
       updatedAt: r.updated_at as string,
       lockedUntil: (r.locked_until as string) ?? null,
       currentVersionId: (r.current_version_id as string) ?? null,
+      pendingReview: Boolean(r.pending_review),
     }));
   });
 

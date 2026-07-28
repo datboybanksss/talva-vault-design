@@ -37,6 +37,7 @@ type VaultDoc = {
   updatedAt: string;
   lockedUntil: string | null;
   currentVersionId: string | null;
+  pendingReview?: boolean;
 };
 type TalentLinkLite = { id: string; displayName: string; status: string };
 
@@ -81,7 +82,7 @@ export const Route = createFileRoute("/agency/document-vault")({
 });
 
 
-const tabs = ["All Documents", "Needs Review", "Expiring", "Recently Updated", "Requests"] as const;
+const tabs = ["All Documents", "Pending Review", "Needs Review", "Expiring", "Recently Updated", "Requests"] as const;
 type Tab = typeof tabs[number];
 
 
@@ -190,6 +191,7 @@ export function VaultPage() {
       if (folderFilter !== "all" && d.folder !== folderFilter) return false;
       if (talentFilter !== "all" && d.talentLinkId !== talentFilter) return false;
       if (q && !(d.name.toLowerCase().includes(q) || d.talentName.toLowerCase().includes(q))) return false;
+      if (tab === "Pending Review" && !d.pendingReview) return false;
       if (tab === "Needs Review" && d.status !== "needs_review") return false;
       if (tab === "Expiring") {
         const dd = daysUntil(d.validityExpiresAt);
@@ -264,7 +266,9 @@ export function VaultPage() {
           const isRequests = t === "Requests";
           const iconMap: Record<Tab, { Icon: typeof Files; color: string }> = {
             "All Documents": { Icon: Files, color: "var(--tvp-teal)" },
+            "Pending Review": { Icon: Sparkles, color: "var(--tvp-purple, #7c3aed)" },
             "Needs Review": { Icon: Eye, color: "var(--tvp-teal)" },
+
             "Expiring": { Icon: CalendarClock, color: "var(--tvp-amber)" },
             "Recently Updated": { Icon: RefreshCw, color: "var(--tvp-teal)" },
             "Requests": { Icon: Inbox, color: "var(--tvp-purple, #7c3aed)" },
@@ -359,6 +363,9 @@ export function VaultPage() {
                     <td>{d.folder}</td>
                     <td>
                       <span className={`tvp-status tvp-${statusTone(d.status)}`}>{statusLabel(d.status)}</span>
+                      {d.pendingReview && (
+                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6 }}>Pending review</span>
+                      )}
                     </td>
                     <td className="tvp-muted">{formatValidity(d.validityExpiresAt)}</td>
                     <td>
@@ -379,6 +386,15 @@ export function VaultPage() {
                         >
                           <Download className="h-4 w-4" />
                         </button>
+                        {d.pendingReview && (
+                          <button
+                            className="tvp-mini-btn"
+                            title="Finish AI filing review"
+                            onClick={() => setAiReviewFor({ id: d.id, name: d.name })}
+                          >
+                            <Sparkles className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           className="tvp-mini-btn"
                           title="Version history"

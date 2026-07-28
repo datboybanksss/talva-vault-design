@@ -23,7 +23,7 @@ export const listPrivateVault = createServerFn({ method: "GET" })
       supabase
         .from("talent_private_documents")
         .select(
-          "id, folder_id, name, storage_path, mime_type, size_bytes, reminder_at, expires_at, notes, created_at, updated_at",
+          "id, folder_id, name, storage_path, mime_type, size_bytes, reminder_at, expires_at, notes, pending_review, created_at, updated_at",
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false }),
