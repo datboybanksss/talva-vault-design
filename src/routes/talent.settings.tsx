@@ -2,7 +2,6 @@ import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Info, Save } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { updateTalentProfile, getTalentNotificationPrefs, updateTalentNotificationPrefs } from "@/lib/talent.functions";
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 import { PasswordCard } from "@/components/account/password-card";
