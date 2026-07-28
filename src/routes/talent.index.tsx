@@ -48,6 +48,9 @@ function TalentDashboard() {
     { to: "/talent/vault", search: { tab: "agency", view: "requests" }, tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
   ];
 
+  const needsAttention =
+    (data?.resubRequests ?? 0) > 0 || (data?.pendingRequests ?? 0) > 0 || (data?.expiringSoon ?? 0) > 0;
+
   return (
     <>
       <div className="tvp-topbar">
@@ -59,6 +62,58 @@ function TalentDashboard() {
               : "Your Private Vault is ready. Once a Manager links you, your Agency Shared Folder appears here."}
           </div>
         </div>
+      </div>
+
+      {needsAttention && (
+        <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
+          <h2 className="tvp-h2">What needs attention</h2>
+          {(data?.resubRequests ?? 0) > 0 && (
+            <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-doc-card" style={{ marginTop: 14 }}>
+              <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><AlertCircle className="h-4 w-4" /></div>
+              <div>
+                <strong>{data?.resubRequests} resubmission{data?.resubRequests === 1 ? "" : "s"} requested</strong>
+                <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Your Manager needs an updated file.</div>
+              </div>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
+          {(data?.pendingRequests ?? 0) > 0 && (
+            <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-doc-card" style={{ marginTop: 10 }}>
+              <div className="tvp-kpi-icon tvp-bg-purple" style={{ width: 40, height: 40 }}><Inbox className="h-4 w-4" /></div>
+              <div>
+                <strong>{data?.pendingRequests} document request{data?.pendingRequests === 1 ? "" : "s"} from your Manager {data?.pendingRequests === 1 ? "needs" : "need"} a response</strong>
+                <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Open Vault → Manager Requests.</div>
+              </div>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
+          {(data?.expiringSoon ?? 0) > 0 && (
+            <Link to="/talent/vault" className="tvp-doc-card" style={{ marginTop: 10 }}>
+              <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><Clock className="h-4 w-4" /></div>
+              <div>
+                <strong>{data?.expiringSoon} shared document{data?.expiringSoon === 1 ? "" : "s"} expiring</strong>
+                <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Within the next {data?.expiryNoticeDays ?? 30} days.</div>
+              </div>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
+      )}
+
+      <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))", marginBottom: 22 }}>
+
+        {kpis.map((k) => (
+          <Link key={k.label} to={k.to} search={(k as any).search} className="tvp-card tvp-kpi tvp-clickable">
+            <div className={`tvp-kpi-icon tvp-bg-${k.tone}`}>
+              <k.Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="tvp-kpi-value">{k.value}</div>
+              <div className="tvp-kpi-label">{k.label}</div>
+              <div className="tvp-kpi-sub">{k.sub}</div>
+            </div>
+          </Link>
+        ))}
       </div>
 
       {attention.length > 0 && (
@@ -83,15 +138,15 @@ function TalentDashboard() {
               <Link to="/talent/vault" className="tvp-link">Open Vault →</Link>
             </div>
           </div>
-          <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
+          <div className="tvp-review-list">
             {visibleAttention.map((d: any) => (
-              <div key={d.id} className="tvp-doc-card">
-                <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 38, height: 38 }}>
-                  <FileStack className="h-4 w-4" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <strong>{d.name}</strong>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+              <div key={d.id} className="tvp-review-row">
+                <span className="tvp-review-icon tvp-bg-amber">
+                  <FileStack className="h-3.5 w-3.5" />
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="tvp-review-name">{d.name}</div>
+                  <div className="tvp-review-meta">
                     {d.folder} · updated {new Date(d.updated_at).toLocaleDateString()}
                   </div>
                 </div>
@@ -110,22 +165,6 @@ function TalentDashboard() {
           </div>
         </div>
       )}
-
-      <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))", marginBottom: 22 }}>
-
-        {kpis.map((k) => (
-          <Link key={k.label} to={k.to} search={(k as any).search} className="tvp-card tvp-kpi tvp-clickable">
-            <div className={`tvp-kpi-icon tvp-bg-${k.tone}`}>
-              <k.Icon className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="tvp-kpi-value">{k.value}</div>
-              <div className="tvp-kpi-label">{k.label}</div>
-              <div className="tvp-kpi-sub">{k.sub}</div>
-            </div>
-          </Link>
-        ))}
-      </div>
 
       <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
         <div className="tvp-panel-head">
@@ -164,46 +203,7 @@ function TalentDashboard() {
       </div>
 
       <div className="tvp-two-col">
-
         <div className="tvp-stack">
-
-          <div className="tvp-card tvp-panel">
-            <h2 className="tvp-h2">What needs attention</h2>
-            {(data?.resubRequests ?? 0) > 0 && (
-              <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-doc-card" style={{ marginTop: 14 }}>
-                <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><AlertCircle className="h-4 w-4" /></div>
-                <div>
-                  <strong>{data?.resubRequests} resubmission{data?.resubRequests === 1 ? "" : "s"} requested</strong>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Your Manager needs an updated file.</div>
-                </div>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            )}
-            {(data?.pendingRequests ?? 0) > 0 && (
-              <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-doc-card" style={{ marginTop: 10 }}>
-                <div className="tvp-kpi-icon tvp-bg-purple" style={{ width: 40, height: 40 }}><Inbox className="h-4 w-4" /></div>
-                <div>
-                  <strong>{data?.pendingRequests} document request{data?.pendingRequests === 1 ? "" : "s"} from your Manager {data?.pendingRequests === 1 ? "needs" : "need"} a response</strong>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Open Vault → Manager Requests.</div>
-                </div>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            )}
-            {(data?.expiringSoon ?? 0) > 0 && (
-              <Link to="/talent/vault" className="tvp-doc-card" style={{ marginTop: 10 }}>
-                <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><Clock className="h-4 w-4" /></div>
-                <div>
-                  <strong>{data?.expiringSoon} shared document{data?.expiringSoon === 1 ? "" : "s"} expiring</strong>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Within the next {data?.expiryNoticeDays ?? 30} days.</div>
-                </div>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            )}
-            {(data?.resubRequests ?? 0) === 0 && (data?.pendingRequests ?? 0) === 0 && (data?.expiringSoon ?? 0) === 0 && (
-              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 10 }}>You're all caught up.</p>
-            )}
-          </div>
-
           <div className="tvp-card tvp-panel">
             <h2 className="tvp-h2">Sharing</h2>
             <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
