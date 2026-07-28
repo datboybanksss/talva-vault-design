@@ -138,55 +138,8 @@ function TalentDashboard() {
         ))}
       </div>
 
-      {attention.length > 0 && (
-        <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
-          <div className="tvp-panel-head">
-            <h2 className="tvp-h2">Shared documents needing review</h2>
-            <div className="flex items-center gap-3">
-              {attention.length > 3 && (
-                <button
-                  type="button"
-                  className="tvp-link"
-                  onClick={() => setShowAllActivity((v) => !v)}
-                  title={showAllActivity ? "Show fewer" : "Show all"}
-                >
-                  {showAllActivity ? (
-                    <><Minimize2 className="h-3.5 w-3.5" /> Show less</>
-                  ) : (
-                    <><Maximize2 className="h-3.5 w-3.5" /> Show all ({attention.length})</>
-                  )}
-                </button>
-              )}
-              <Link to="/talent/vault" className="tvp-link">Open Vault →</Link>
-            </div>
-          </div>
-          <div className="tvp-review-list">
-            {visibleAttention.map((d: any) => (
-              <div key={d.id} className="tvp-review-row">
-                <span className="tvp-review-icon tvp-bg-amber">
-                  <FileStack className="h-3.5 w-3.5" />
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="tvp-review-name">{d.name}</div>
-                  <div className="tvp-review-meta">
-                    {d.folder} · updated {new Date(d.updated_at).toLocaleDateString()}
-                  </div>
-                </div>
-                <span className="tvp-status tvp-amber">{d.status.replace(/_/g, " ")}</span>
-                <button
-                  type="button"
-                  className="tvp-icon-btn"
-                  title="Dismiss from this feed"
-                  aria-label="Dismiss from this feed"
-                  onClick={() => dismissDoc(d)}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+
 
       <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
         <div className="tvp-panel-head">
