@@ -20,18 +20,13 @@ function TalentDashboard() {
   const dismissFn = useServerFn(dismissTalentReminder);
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => load() });
-  const [showAllActivity, setShowAllActivity] = useState(false);
+  const [showAllAttention, setShowAllAttention] = useState(false);
 
-  const attention: any[] = data?.recent ?? [];
-  const visibleAttention = showAllActivity ? attention : attention.slice(0, 3);
+  const attention = data?.attention ?? [];
+  const visibleAttention = showAllAttention ? attention : attention.slice(0, 3);
 
-  const dismissDoc = async (doc: any) => {
-    await dismissFn({
-      data: {
-        kind: `shared_doc:${doc.id}`,
-        snapshot: Math.floor(new Date(doc.updated_at).getTime() / 1000),
-      },
-    });
+  const dismissItem = async (item: { key: string; snapshot: number }) => {
+    await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
     await queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
   };
 
@@ -48,9 +43,6 @@ function TalentDashboard() {
     { to: "/talent/vault", search: { tab: "agency", view: "requests" }, tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
   ];
 
-  const needsAttention =
-    (data?.resubRequests ?? 0) > 0 || (data?.pendingRequests ?? 0) > 0 || (data?.expiringSoon ?? 0) > 0;
-
   return (
     <>
       <div className="tvp-topbar">
@@ -64,41 +56,71 @@ function TalentDashboard() {
         </div>
       </div>
 
-      {needsAttention && (
-        <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
-          <h2 className="tvp-h2">What needs attention</h2>
-          {(data?.resubRequests ?? 0) > 0 && (
-            <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-doc-card" style={{ marginTop: 14 }}>
-              <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><AlertCircle className="h-4 w-4" /></div>
-              <div>
-                <strong>{data?.resubRequests} resubmission{data?.resubRequests === 1 ? "" : "s"} requested</strong>
-                <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Your Manager needs an updated file.</div>
-              </div>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-          {(data?.pendingRequests ?? 0) > 0 && (
-            <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-doc-card" style={{ marginTop: 10 }}>
-              <div className="tvp-kpi-icon tvp-bg-purple" style={{ width: 40, height: 40 }}><Inbox className="h-4 w-4" /></div>
-              <div>
-                <strong>{data?.pendingRequests} document request{data?.pendingRequests === 1 ? "" : "s"} from your Manager {data?.pendingRequests === 1 ? "needs" : "need"} a response</strong>
-                <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Open Vault → Manager Requests.</div>
-              </div>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-          {(data?.expiringSoon ?? 0) > 0 && (
-            <Link to="/talent/vault" className="tvp-doc-card" style={{ marginTop: 10 }}>
-              <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 40, height: 40 }}><Clock className="h-4 w-4" /></div>
-              <div>
-                <strong>{data?.expiringSoon} shared document{data?.expiringSoon === 1 ? "" : "s"} expiring</strong>
-                <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>Within the next {data?.expiryNoticeDays ?? 30} days.</div>
-              </div>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+      <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
+        <div className="tvp-panel-head">
+          <h2 className="tvp-h2">Needs attention</h2>
+          {attention.length > 3 && (
+            <button
+              type="button"
+              className="tvp-link"
+              onClick={() => setShowAllAttention((v) => !v)}
+              title={showAllAttention ? "Show fewer" : "Show all"}
+            >
+              {showAllAttention ? (
+                <><Minimize2 className="h-3.5 w-3.5" /> Show less</>
+              ) : (
+                <><Maximize2 className="h-3.5 w-3.5" /> Show all ({attention.length})</>
+              )}
+            </button>
           )}
         </div>
-      )}
+
+        {attention.length === 0 ? (
+          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 10 }}>
+            Nothing needs your attention right now — you're fully up to date.
+          </p>
+        ) : (
+          <div className="tvp-review-list">
+            {visibleAttention.map((item) => (
+              <div key={item.key} className="tvp-review-row">
+                <Link
+                  to="/talent/vault"
+                  search={
+                    item.type === "request"
+                      ? { tab: "agency", view: "requests" }
+                      : { tab: "agency", view: "folder" }
+                  }
+                  className="tvp-review-link"
+                  style={{ display: "contents", color: "inherit", textDecoration: "none" }}
+                >
+                  <span className={`tvp-review-icon tvp-bg-${item.tone}`}>
+                    {item.type === "request" ? (
+                      item.tone === "amber" ? <AlertCircle className="h-3.5 w-3.5" /> : <Inbox className="h-3.5 w-3.5" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5" />
+                    )}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="tvp-review-name">{item.title}</div>
+                    <div className="tvp-review-meta">{item.detail}</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <button
+                  type="button"
+                  className="tvp-icon-btn"
+                  title="Dismiss from this feed"
+                  aria-label="Dismiss from this feed"
+                  onClick={() => dismissItem(item)}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
 
       <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))", marginBottom: 22 }}>
 
@@ -116,55 +138,8 @@ function TalentDashboard() {
         ))}
       </div>
 
-      {attention.length > 0 && (
-        <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
-          <div className="tvp-panel-head">
-            <h2 className="tvp-h2">Shared documents needing review</h2>
-            <div className="flex items-center gap-3">
-              {attention.length > 3 && (
-                <button
-                  type="button"
-                  className="tvp-link"
-                  onClick={() => setShowAllActivity((v) => !v)}
-                  title={showAllActivity ? "Show fewer" : "Show all"}
-                >
-                  {showAllActivity ? (
-                    <><Minimize2 className="h-3.5 w-3.5" /> Show less</>
-                  ) : (
-                    <><Maximize2 className="h-3.5 w-3.5" /> Show all ({attention.length})</>
-                  )}
-                </button>
-              )}
-              <Link to="/talent/vault" className="tvp-link">Open Vault →</Link>
-            </div>
-          </div>
-          <div className="tvp-review-list">
-            {visibleAttention.map((d: any) => (
-              <div key={d.id} className="tvp-review-row">
-                <span className="tvp-review-icon tvp-bg-amber">
-                  <FileStack className="h-3.5 w-3.5" />
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="tvp-review-name">{d.name}</div>
-                  <div className="tvp-review-meta">
-                    {d.folder} · updated {new Date(d.updated_at).toLocaleDateString()}
-                  </div>
-                </div>
-                <span className="tvp-status tvp-amber">{d.status.replace(/_/g, " ")}</span>
-                <button
-                  type="button"
-                  className="tvp-icon-btn"
-                  title="Dismiss from this feed"
-                  aria-label="Dismiss from this feed"
-                  onClick={() => dismissDoc(d)}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+
 
       <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
         <div className="tvp-panel-head">
