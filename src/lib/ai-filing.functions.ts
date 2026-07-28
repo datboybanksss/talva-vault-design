@@ -208,7 +208,9 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
 
     const patch: Record<string, unknown> = {
       validity_expires_at: data.expires_at,
+      pending_review: false,
     };
+
     if (data.destination) patch.folder = data.destination;
 
     const { error } = await supabase
