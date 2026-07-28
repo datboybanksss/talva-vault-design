@@ -6,6 +6,12 @@ import { updateTalentProfile, getTalentNotificationPrefs, updateTalentNotificati
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
+import { SecurityLogPanel } from "@/components/talent/security-log-panel";
+import {
+  logTalentPasswordChange,
+  logTalentMfaEnrolled,
+  logTalentMfaDisabled,
+} from "@/lib/talent-audit.functions";
 
 export const Route = createFileRoute("/talent/settings")({
   ssr: false,
@@ -16,19 +22,19 @@ export const Route = createFileRoute("/talent/settings")({
   component: TalentSettings,
 });
 
-type Mode = "profile" | "account" | "folders" | "relationship" | "notifications";
+type Mode = "profile" | "account" | "security" | "folders" | "relationship" | "notifications";
 
-const notifications = [
-  "Agency shares a document",
-  "Shared document expiring",
-  "Loved One access expiring",
-  "AI suggestions need review",
+const IN_APP_CHANNELS: { key: string; label: string; hint: string; live: boolean }[] = [
+  { key: "doc_expiring", label: "Document expiring", hint: "Private Vault and Agency Shared Folder documents approaching their expiry date.", live: true },
+  { key: "share_expiring", label: "Loved One access expiring", hint: "A magic-link share you created is about to lapse.", live: true },
+  { key: "agency_share", label: "Agency shares a document", hint: "Arrives with the shared-folder event stream.", live: false },
+  { key: "ai_review", label: "AI suggestions need review", hint: "Arrives when AI filing runs server-side.", live: false },
 ];
 
 function TalentSettings() {
   const { tab } = Route.useSearch();
   const [mode, setMode] = useState<Mode>(
-    (["profile", "account", "folders", "relationship", "notifications"] as const).includes(tab as Mode)
+    (["profile", "account", "security", "folders", "relationship", "notifications"] as const).includes(tab as Mode)
       ? (tab as Mode)
       : "profile",
   );
@@ -48,9 +54,17 @@ function TalentSettings() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [expiryDays, setExpiryDays] = useState("30");
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const [inApp, setInApp] = useState<Record<string, boolean>>({
+    doc_expiring: true, share_expiring: true, agency_share: true, ai_review: true,
+  });
 
   useEffect(() => {
-    getTalentNotificationPrefs().then((r: any) => setExpiryDays(String(r?.expiryNoticeDays ?? 30))).catch(() => {});
+    getTalentNotificationPrefs()
+      .then((r: any) => {
+        setExpiryDays(String(r?.expiryNoticeDays ?? 30));
+        if (r?.inApp) setInApp((p) => ({ ...p, ...r.inApp }));
+      })
+      .catch(() => {});
   }, []);
 
   async function saveNotificationPrefs() {
@@ -61,7 +75,7 @@ function TalentSettings() {
     }
     setSavingPrefs(true);
     try {
-      await updateTalentNotificationPrefs({ data: { expiry_notice_days: n } });
+      await updateTalentNotificationPrefs({ data: { expiry_notice_days: n, in_app: inApp } });
       toast.success(`You'll be warned ${n} days before a document expires`);
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save notification settings");
@@ -103,6 +117,7 @@ function TalentSettings() {
       <div className="tvp-tabs">
         <button className={`tvp-tab${mode === "profile" ? " tvp-active" : ""}`} onClick={() => setMode("profile")}>Profile</button>
         <button className={`tvp-tab${mode === "account" ? " tvp-active" : ""}`} onClick={() => setMode("account")}>Account</button>
+        <button className={`tvp-tab${mode === "security" ? " tvp-active" : ""}`} onClick={() => setMode("security")}>Security log</button>
         <button className={`tvp-tab${mode === "folders" ? " tvp-active" : ""}`} onClick={() => setMode("folders")}>Manage folders</button>
 
         <button className={`tvp-tab${mode === "relationship" ? " tvp-active" : ""}`} onClick={() => setMode("relationship")}>Agency Relationship</button>
@@ -146,16 +161,18 @@ function TalentSettings() {
         <div className="tvp-account-grid">
           <PasswordCard
             email={ctx?.profile?.email ?? ""}
-            logPasswordChange={async () => {}}
+            logPasswordChange={() => logTalentPasswordChange()}
           />
           <TwoFactorCard
             email={ctx?.profile?.email ?? ""}
-            logEnrolled={async () => {}}
-            logDisabled={async () => {}}
+            logEnrolled={(payload) => logTalentMfaEnrolled({ data: payload })}
+            logDisabled={() => logTalentMfaDisabled()}
             contextLabel="talent"
           />
         </div>
       )}
+
+      {mode === "security" && <SecurityLogPanel />}
 
       {mode === "folders" && <VaultFoldersPanel />}
 
@@ -209,17 +226,33 @@ function TalentSettings() {
             </div>
           </div>
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 18, fontWeight: 800 }}>
-            Email reminders
+            In-app reminders
           </p>
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 2 }}>
-            These channels will be wired when the reminder engine ships.
+            These drive the “Needs attention” panel on your dashboard. Email delivery is switched off
+            until the TalVault sending domain is verified.
           </p>
-          <div className="tvp-doc-grid" style={{ marginTop: 14 }}>
-            {notifications.map((n) => (
-              <label key={n} className="tvp-doc-card" style={{ cursor: "pointer", opacity: 0.7 }}>
-                <input type="checkbox" defaultChecked disabled style={{ width: 18, height: 18 }} />
-                <div><strong>{n}</strong></div>
-                <span />
+          <div className="tvp-doc-grid" style={{ marginTop: 12 }}>
+            {IN_APP_CHANNELS.map((c) => (
+              <label
+                key={c.key}
+                className="tvp-doc-card"
+                style={{ cursor: c.live ? "pointer" : "not-allowed", opacity: c.live ? 1 : 0.6 }}
+              >
+                <input
+                  type="checkbox"
+                  checked={c.live ? inApp[c.key] !== false : false}
+                  disabled={!c.live}
+                  onChange={(e) => setInApp((p) => ({ ...p, [c.key]: e.target.checked }))}
+                  style={{ width: 18, height: 18 }}
+                />
+                <div>
+                  <strong>{c.label}</strong>
+                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>{c.hint}</div>
+                </div>
+                <span className={`tvp-status tvp-${c.live ? "green" : "neutral"}`}>
+                  {c.live ? "Active" : "Soon"}
+                </span>
               </label>
             ))}
           </div>

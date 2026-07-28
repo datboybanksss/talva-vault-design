@@ -50,6 +50,7 @@ import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.i
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
 import { Route as AdminAgenciesIdRouteImport } from './routes/admin.agencies.$id'
+import { Route as ApiPublicHooksTalentRemindersRouteImport } from './routes/api/public/hooks/talent-reminders'
 import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
 
 const TalentRoute = TalentRouteImport.update({
@@ -257,6 +258,12 @@ const AdminAgenciesIdRoute = AdminAgenciesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminAgenciesRoute,
 } as any)
+const ApiPublicHooksTalentRemindersRoute =
+  ApiPublicHooksTalentRemindersRouteImport.update({
+    id: '/api/public/hooks/talent-reminders',
+    path: '/api/public/hooks/talent-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminInvitationsIdEmailPreviewRoute =
   AdminInvitationsIdEmailPreviewRouteImport.update({
     id: '/$id/email-preview',
@@ -307,6 +314,7 @@ export interface FileRoutesByFullPath {
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -346,6 +354,7 @@ export interface FileRoutesByTo {
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -391,6 +400,7 @@ export interface FileRoutesById {
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -437,6 +447,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/'
     | '/admin/invitations/'
     | '/admin/invitations/$id/email-preview'
+    | '/api/public/hooks/talent-reminders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -476,6 +487,7 @@ export interface FileRouteTypes {
     | '/admin/agencies'
     | '/admin/invitations'
     | '/admin/invitations/$id/email-preview'
+    | '/api/public/hooks/talent-reminders'
   id:
     | '__root__'
     | '/'
@@ -520,6 +532,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/'
     | '/admin/invitations/'
     | '/admin/invitations/$id/email-preview'
+    | '/api/public/hooks/talent-reminders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -534,6 +547,7 @@ export interface RootRouteChildren {
   LovedOneTokenRoute: typeof LovedOneTokenRoute
   ApiPublicLovedOneFileRoute: typeof ApiPublicLovedOneFileRoute
   InviteTalentTokenRoute: typeof InviteTalentTokenRoute
+  ApiPublicHooksTalentRemindersRoute: typeof ApiPublicHooksTalentRemindersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -825,6 +839,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAgenciesIdRouteImport
       parentRoute: typeof AdminAgenciesRoute
     }
+    '/api/public/hooks/talent-reminders': {
+      id: '/api/public/hooks/talent-reminders'
+      path: '/api/public/hooks/talent-reminders'
+      fullPath: '/api/public/hooks/talent-reminders'
+      preLoaderRoute: typeof ApiPublicHooksTalentRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/invitations/$id/email-preview': {
       id: '/admin/invitations/$id/email-preview'
       path: '/$id/email-preview'
@@ -964,6 +985,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovedOneTokenRoute: LovedOneTokenRoute,
   ApiPublicLovedOneFileRoute: ApiPublicLovedOneFileRoute,
   InviteTalentTokenRoute: InviteTalentTokenRoute,
+  ApiPublicHooksTalentRemindersRoute: ApiPublicHooksTalentRemindersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

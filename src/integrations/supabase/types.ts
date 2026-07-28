@@ -1254,6 +1254,48 @@ export type Database = {
         }
         Relationships: []
       }
+      talent_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string
+          created_at: string
+          detail: Json
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_label: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       talent_invitations: {
         Row: {
           accepted_at: string | null
@@ -1333,6 +1375,57 @@ export type Database = {
           dismissed_at?: string
           kind?: string
           snapshot?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      talent_notifications: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          detail: string | null
+          dismissed_at: string | null
+          due_at: string | null
+          email_sent_at: string | null
+          id: string
+          kind: string
+          target_id: string | null
+          target_type: string | null
+          title: string
+          tone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          detail?: string | null
+          dismissed_at?: string | null
+          due_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          kind: string
+          target_id?: string | null
+          target_type?: string | null
+          title: string
+          tone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          detail?: string | null
+          dismissed_at?: string | null
+          due_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          kind?: string
+          target_id?: string | null
+          target_type?: string | null
+          title?: string
+          tone?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1455,6 +1548,7 @@ export type Database = {
           id_number: string | null
           is_provisional_taxpayer: boolean | null
           is_test: boolean
+          notification_prefs: Json
           phone_number: string | null
           postal_code: string | null
           province: string | null
@@ -1478,6 +1572,7 @@ export type Database = {
           id_number?: string | null
           is_provisional_taxpayer?: boolean | null
           is_test?: boolean
+          notification_prefs?: Json
           phone_number?: string | null
           postal_code?: string | null
           province?: string | null
@@ -1501,6 +1596,7 @@ export type Database = {
           id_number?: string | null
           is_provisional_taxpayer?: boolean | null
           is_test?: boolean
+          notification_prefs?: Json
           phone_number?: string | null
           postal_code?: string | null
           province?: string | null
