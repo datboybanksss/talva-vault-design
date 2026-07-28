@@ -76,7 +76,7 @@ export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => NotificationPrefsInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const patch: Record<string, unknown> = { expiry_notice_days: data.expiry_notice_days };
+    const patch: any = { expiry_notice_days: data.expiry_notice_days };
     if (data.in_app) {
       patch.notification_prefs = { in_app: { ...DEFAULT_IN_APP, ...data.in_app }, email: false };
     }
