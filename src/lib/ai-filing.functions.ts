@@ -291,6 +291,3 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
-
-    return { ok: true };
-  });
