@@ -1,3 +1,4 @@
+import { TalVaultIcon } from "@/components/brand/talvault-logo";
 import { type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Bell, ChevronLeft, Search, ShieldCheck } from "lucide-react";
@@ -71,7 +72,7 @@ export function PortalShell({
                 background: "var(--sidebar-active)",
               }}
             >
-              <ShieldCheck className="h-5 w-5" />
+              <TalVaultIcon variant="white" style={{ height: 20, width: 20 }} />
             </div>
             {!collapsed && (
               <div className="min-w-0">
