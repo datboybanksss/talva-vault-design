@@ -1,3 +1,4 @@
+import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { z } from "zod";
@@ -74,10 +75,10 @@ function ForgotPasswordPage() {
       <div className="tv-auth-card">
         <div className="tv-auth-brand" style={{ marginBottom: 18 }}>
           <div className="tv-auth-mark">
-            <ShieldCheck className="h-6 w-6 text-white" />
+            <TalVaultIcon variant="white" style={{ height: 24, width: 24 }} />
           </div>
           <div>
-            <div className="tv-auth-brand-title">TalVault</div>
+            <TalVaultWordmark variant="white" style={{ height: 20 }} />
             <div className="tv-auth-brand-sub">{portal.toUpperCase()} PORTAL</div>
           </div>
         </div>

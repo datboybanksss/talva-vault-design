@@ -1,3 +1,4 @@
+import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { type ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -193,10 +194,10 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
         <Link to="/agency" className="tvp-brand">
           <div className="tvp-brand-mark">
-            <ShieldCheck className="h-5 w-5 text-white" />
+            <TalVaultIcon variant="white" style={{ height: 20, width: 20 }} />
           </div>
           <div className="tvp-brand-copy">
-            <div className="tvp-brand-title">TalVault</div>
+            <TalVaultWordmark variant="white" style={{ height: 19 }} />
             <div className="tvp-brand-sub">AGENCY</div>
           </div>
         </Link>

@@ -1,3 +1,4 @@
+import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -349,10 +350,10 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div style={{ maxWidth: 780, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
           <div style={{ width: 36, height: 36, background: "#064E58", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ShieldCheck className="h-5 w-5" style={{ color: "white" }} />
+            <TalVaultIcon variant="white" style={{ height: 20, width: 20 }} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: "#064E58" }}>TalVault</div>
+            <TalVaultWordmark variant="teal" style={{ height: 16 }} />
             <div style={{ fontSize: 11, color: "#65707A" }}>Loved-One Access</div>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { emailHeaderHtml } from "@/lib/brand-email";
+
 /**
  * Composes the Loved-One share notification email.
  *
@@ -36,7 +38,7 @@ export function buildShareEmail(input: {
   const html = `<!doctype html>
 <html><body style="margin:0;padding:24px;background:#F5F5F1;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1F2933;">
   <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">
-    <div style="background:#064E58;padding:18px 24px;color:#fff;font-weight:700;">TalVault</div>
+    ${emailHeaderHtml("Secure sharing")}
     <div style="padding:24px;">
       <p style="margin:0 0 12px;">Hi ${escapeHtml(input.lovedOneName)},</p>
       <p style="margin:0 0 18px;line-height:1.55;">

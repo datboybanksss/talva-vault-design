@@ -1,3 +1,4 @@
+import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Building2,
@@ -71,12 +72,10 @@ function Landing() {
             className="grid place-items-center rounded-2xl h-12 w-12"
             style={{ background: "var(--teal)", color: "#fff" }}
           >
-            <ShieldCheck className="h-6 w-6" />
+            <TalVaultIcon variant="white" style={{ height: 26, width: 26 }} />
           </div>
           <div>
-            <div className="text-[20px] font-black text-ink tracking-tight">
-              TalVault
-            </div>
+            <TalVaultWordmark variant="teal" style={{ height: 22 }} />
             <div className="text-[12px] font-bold uppercase tracking-wider text-muted-fg">
               Secure talent operations
             </div>

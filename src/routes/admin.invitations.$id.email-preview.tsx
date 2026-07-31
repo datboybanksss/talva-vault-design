@@ -1,3 +1,4 @@
+import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -49,13 +50,13 @@ function EmailPreviewPage() {
           {/* Email frame — mimics inbox render. Uses inline styles because real emails cannot rely on external CSS. */}
           <div style={{ maxWidth: 600, margin: "24px auto", background: "#ffffff", borderRadius: 12, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", color: "#1a1f2e" }}>
             {/* Header */}
-            <div style={{ background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", padding: "28px 32px", color: "#ffffff" }}>
+            <div style={{ background: "#064E58", padding: "28px 32px", color: "#ffffff" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ShieldCheck className="h-5 w-5" style={{ color: "#fff" }} />
+                  <TalVaultIcon variant="white" style={{ height: 22, width: 22 }} />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.2 }}>TalVault</div>
+                  <TalVaultWordmark variant="white" style={{ height: 18 }} />
                 </div>
               </div>
               <h1 style={{ fontSize: 22, fontWeight: 700, margin: "22px 0 6px" }}>
@@ -124,7 +125,7 @@ function EmailPreviewPage() {
 
             {/* Footer */}
             <div style={{ padding: "18px 32px", background: "#0f172a", color: "#cbd5e1", fontSize: 12, lineHeight: 1.6 }}>
-              <div style={{ fontWeight: 700, color: "#fff", marginBottom: 4 }}>TalVault</div>
+              <TalVaultWordmark variant="white" style={{ height: 14, marginBottom: 6 }} />
               <div>Sent to {inv.email} · <a href="#" style={{ color: "#a5b4fc", textDecoration: "none" }}>Privacy</a> · <a href="#" style={{ color: "#a5b4fc", textDecoration: "none" }}>Terms</a></div>
             </div>
           </div>
