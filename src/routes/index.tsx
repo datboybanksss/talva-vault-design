@@ -52,7 +52,7 @@ const portals = [
       "Private Vault, Agency Shared Folder, AI Review and personal budget.",
   },
   {
-    to: "/loved-one",
+    to: "/auth",
     icon: Heart,
     label: "Loved One Portal",
     blurb:

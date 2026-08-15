@@ -15,9 +15,8 @@ import {
 
 export const Route = createFileRoute("/talent/settings")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: typeof search.tab === "string" ? search.tab : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { tab?: string } =>
+    typeof search.tab === "string" ? { tab: search.tab } : {},
   head: () => ({ meta: [{ title: "Settings · TalVault Talent" }] }),
   component: TalentSettings,
 });
