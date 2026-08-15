@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 // TEMPORARY diagnostic route — verifies the invitation email send path.
-export const Route = createFileRoute("/api/public/_email-selftest")({
+export const Route = createFileRoute("/api/public/email-selftest")({
   server: {
     handlers: {
       GET: async () => {
