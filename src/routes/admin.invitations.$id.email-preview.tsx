@@ -12,7 +12,7 @@ import {
   DEFAULT_INVITATION_BODY,
   applyTokens,
   bodyParagraphs,
-} from "@/lib/invitation-email.server";
+} from "@/lib/invitation-email";
 
 export const Route = createFileRoute("/admin/invitations/$id/email-preview")({
   head: () => ({ meta: [{ title: "Invitation email · TalVault Admin" }] }),

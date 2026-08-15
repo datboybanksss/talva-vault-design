@@ -37,9 +37,8 @@ export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!inv) throw new Error("Invitation not found");
 
-    const { buildInvitationEmail, sendInvitationEmail } = await import(
-      "@/lib/invitation-email.server"
-    );
+    const { buildInvitationEmail } = await import("@/lib/invitation-email");
+    const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
 
     const mail = buildInvitationEmail({
       subject: data.subject,
