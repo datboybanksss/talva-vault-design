@@ -46,6 +46,7 @@ import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invita
 import { Route as AdminAgenciesIndexRouteImport } from './routes/admin.agencies.index'
 import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
 import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/loved-one-file'
+import { Route as ApiPublicEmailSelftestRouteImport } from './routes/api/public/_email-selftest'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
@@ -239,6 +240,11 @@ const ApiPublicLovedOneFileRoute = ApiPublicLovedOneFileRouteImport.update({
   path: '/api/public/loved-one-file',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEmailSelftestRoute = ApiPublicEmailSelftestRouteImport.update({
+  id: '/api/public/_email-selftest',
+  path: '/api/public',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
   id: '/invite',
   path: '/invite',
@@ -316,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public': typeof ApiPublicEmailSelftestRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public': typeof ApiPublicEmailSelftestRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
@@ -404,6 +412,7 @@ export interface FileRoutesById {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public/_email-selftest': typeof ApiPublicEmailSelftestRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
@@ -452,6 +461,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public'
     | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies/'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public'
     | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies'
@@ -539,6 +550,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public/_email-selftest'
     | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies/'
@@ -558,6 +570,7 @@ export interface RootRouteChildren {
   TalentRoute: typeof TalentRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
+  ApiPublicEmailSelftestRoute: typeof ApiPublicEmailSelftestRoute
   ApiPublicLovedOneFileRoute: typeof ApiPublicLovedOneFileRoute
   InviteTalentTokenRoute: typeof InviteTalentTokenRoute
   ApiPublicHooksTalentRemindersRoute: typeof ApiPublicHooksTalentRemindersRoute
@@ -825,6 +838,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLovedOneFileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/_email-selftest': {
+      id: '/api/public/_email-selftest'
+      path: '/api/public'
+      fullPath: '/api/public'
+      preLoaderRoute: typeof ApiPublicEmailSelftestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agency/talent/invite': {
       id: '/agency/talent/invite'
       path: '/invite'
@@ -1004,6 +1024,7 @@ const rootRouteChildren: RootRouteChildren = {
   TalentRoute: TalentRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
+  ApiPublicEmailSelftestRoute: ApiPublicEmailSelftestRoute,
   ApiPublicLovedOneFileRoute: ApiPublicLovedOneFileRoute,
   InviteTalentTokenRoute: InviteTalentTokenRoute,
   ApiPublicHooksTalentRemindersRoute: ApiPublicHooksTalentRemindersRoute,
