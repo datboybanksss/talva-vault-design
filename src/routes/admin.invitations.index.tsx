@@ -14,9 +14,8 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/invitations/")({
-  validateSearch: (raw: Record<string, unknown>) => ({
-    email: typeof raw.email === "string" ? raw.email : "",
-  }),
+  validateSearch: (raw: Record<string, unknown>): { email?: string } =>
+    typeof raw.email === "string" && raw.email ? { email: raw.email } : {},
   head: () => ({ meta: [{ title: "Agency Invitations · TalVault Admin" }] }),
   component: InvitationsPage,
 });
@@ -105,7 +104,7 @@ function InvitationsPage() {
 
   const { email: emailParam } = Route.useSearch();
   const [tab, setTab] = useState<string>("all");
-  const [search, setSearch] = useState(emailParam);
+  const [search, setSearch] = useState(emailParam ?? "");
   const [editing, setEditing] = useState<any | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
   const [highlightId, setHighlightId] = useState<string | null>(null);

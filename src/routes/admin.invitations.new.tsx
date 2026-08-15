@@ -22,9 +22,8 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/invitations/new")({
-  validateSearch: (raw: Record<string, unknown>) => ({
-    draft: typeof raw.draft === "string" ? raw.draft : "",
-  }),
+  validateSearch: (raw: Record<string, unknown>): { draft?: string } =>
+    typeof raw.draft === "string" && raw.draft ? { draft: raw.draft } : {},
   head: () => ({ meta: [{ title: "New Invitation · TalVault Admin" }] }),
   component: NewInvitationPage,
 });

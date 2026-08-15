@@ -59,9 +59,8 @@ export const meQO = queryOptions({
 
 export const Route = createFileRoute("/agency/document-vault")({
   head: () => ({ meta: [{ title: "Document Vault · TalVault" }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: typeof search.tab === "string" ? (search.tab as string) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { tab?: string } =>
+    typeof search.tab === "string" ? { tab: search.tab } : {},
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(docsQO),
