@@ -46,7 +46,7 @@ import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invita
 import { Route as AdminAgenciesIndexRouteImport } from './routes/admin.agencies.index'
 import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
 import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/loved-one-file'
-import { Route as ApiPublicEmailSelftestRouteImport } from './routes/api/public/_email-selftest'
+import { Route as ApiPublicEmailSelftestRouteImport } from './routes/api/public/email-selftest'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
@@ -241,8 +241,8 @@ const ApiPublicLovedOneFileRoute = ApiPublicLovedOneFileRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicEmailSelftestRoute = ApiPublicEmailSelftestRouteImport.update({
-  id: '/api/public/_email-selftest',
-  path: '/api/public',
+  id: '/api/public/email-selftest',
+  path: '/api/public/email-selftest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
@@ -322,7 +322,7 @@ export interface FileRoutesByFullPath {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
-  '/api/public': typeof ApiPublicEmailSelftestRoute
+  '/api/public/email-selftest': typeof ApiPublicEmailSelftestRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
@@ -364,7 +364,7 @@ export interface FileRoutesByTo {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
-  '/api/public': typeof ApiPublicEmailSelftestRoute
+  '/api/public/email-selftest': typeof ApiPublicEmailSelftestRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
@@ -412,7 +412,7 @@ export interface FileRoutesById {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
-  '/api/public/_email-selftest': typeof ApiPublicEmailSelftestRoute
+  '/api/public/email-selftest': typeof ApiPublicEmailSelftestRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
@@ -461,7 +461,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
-    | '/api/public'
+    | '/api/public/email-selftest'
     | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies/'
@@ -503,7 +503,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
-    | '/api/public'
+    | '/api/public/email-selftest'
     | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies'
@@ -550,7 +550,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
-    | '/api/public/_email-selftest'
+    | '/api/public/email-selftest'
     | '/api/public/loved-one-file'
     | '/invite/talent/$token'
     | '/admin/agencies/'
@@ -838,10 +838,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLovedOneFileRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/_email-selftest': {
-      id: '/api/public/_email-selftest'
-      path: '/api/public'
-      fullPath: '/api/public'
+    '/api/public/email-selftest': {
+      id: '/api/public/email-selftest'
+      path: '/api/public/email-selftest'
+      fullPath: '/api/public/email-selftest'
       preLoaderRoute: typeof ApiPublicEmailSelftestRouteImport
       parentRoute: typeof rootRouteImport
     }
