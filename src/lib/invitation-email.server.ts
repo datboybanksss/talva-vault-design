@@ -12,12 +12,15 @@ type SendResult =
 export async function sendInvitationEmail(
   to: string,
   mail: { subject: string; html: string; text: string },
+  idempotencyKey?: string,
 ): Promise<SendResult> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) return { sent: false, reason: "email_not_configured" };
 
   const from = process.env["EMAIL_FROM"] ?? "TalVault <invitations@notify.talvault.com>";
   const senderDomain = (from.match(/@([^>\s]+)/)?.[1] ?? "notify.talvault.com").trim();
+
+  const key = idempotencyKey ?? `agency-invite-${to}-${Date.now()}`;
 
   try {
     const res = await sendLovableEmail(
@@ -30,8 +33,9 @@ export async function sendInvitationEmail(
         text: mail.text,
         label: "agency_invitation",
         purpose: "transactional",
+        idempotency_key: key,
       },
-      { apiKey },
+      { apiKey, idempotencyKey: key },
     );
     if (!res.success) return { sent: false, reason: "send_failed", detail: res.status };
     return { sent: true, message_id: res.message_id };

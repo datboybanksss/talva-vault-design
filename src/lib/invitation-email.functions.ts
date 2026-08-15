@@ -54,7 +54,11 @@ export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
       }),
     });
 
-    const result = await sendInvitationEmail(inv.email, mail);
+    const result = await sendInvitationEmail(
+      inv.email,
+      mail,
+      `agency-invite-${inv.id}-${Date.now()}`,
+    );
 
     await supabase.from("admin_audit_log").insert({
       actor_id: userId,
