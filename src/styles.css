@@ -897,6 +897,18 @@
   box-shadow: 0 20px 60px rgba(0,0,0,.35);
 }
 .tv-app.tv-mobile-open .tvp-collapse-btn { display: none; }
+/* Inside the drawer the sidebar is full width again — restore the labels the
+   narrow-screen rules above collapse. */
+.tv-app.tv-mobile-open .tvp-brand-copy,
+.tv-app.tv-mobile-open .tvp-nav-title,
+.tv-app.tv-mobile-open .tvp-nav-label,
+.tv-app.tv-mobile-open .tvp-profile-copy,
+.tv-app.tv-mobile-open .tvp-nav-badge,
+.tv-app.tv-mobile-open .tvp-logout { display: revert !important; }
+.tv-app.tv-mobile-open .tvp-nav-item { justify-content: flex-start; padding: 0 12px; gap: 10px; }
+.tv-app.tv-mobile-open .tvp-nav-badge { display: inline-flex !important; }
+.tv-app.tv-mobile-open .tvp-sidebar-footer { display: flex !important; }
+.tv-app.tv-mobile-open .tvp-sidebar { overflow-y: auto; }
 .tv-app .tvp-mobile-backdrop {
   display: none;
   position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 55;
