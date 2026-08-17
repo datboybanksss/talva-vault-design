@@ -8,7 +8,7 @@ import {
   restoreDefaultFolder,
   deletePrivateFolder,
 } from "@/lib/talent-vault.functions";
-import { DEFAULT_CATEGORIES, subfolderCount } from "@/lib/talent-vault-defaults";
+import { DEFAULT_CATEGORIES, STARTER_CATEGORIES, subfolderCount } from "@/lib/talent-vault-defaults";
 
 type Folder = { id: string; parent_id: string | null; name: string };
 
