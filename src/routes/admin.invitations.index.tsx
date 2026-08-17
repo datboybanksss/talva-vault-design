@@ -12,6 +12,8 @@ import {
   deleteAgencyInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/invitations/")({
   validateSearch: (raw: Record<string, unknown>): { email?: string } =>
@@ -138,7 +140,7 @@ function InvitationsPage() {
     return c;
   }, [list]);
 
-  const visible = useMemo(() => {
+  const filteredRows = useMemo(() => {
     return list.filter((i: any) => {
       if (tab !== "all" && i.status !== tab) return false;
       if (search) {
@@ -407,6 +409,14 @@ function InvitationsPage() {
                   </tr>
                 );
               })}
+              <LoadMoreRow
+                colSpan={7}
+                noun="invitations"
+                shown={page.shown}
+                total={page.total}
+                hasMore={page.hasMore}
+                onLoadMore={page.loadMore}
+              />
             </tbody>
           </table>
         </div>

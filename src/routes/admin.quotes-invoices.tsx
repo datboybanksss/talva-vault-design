@@ -5,6 +5,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listBillingDocs, logBillingExport } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/quotes-invoices")({
   head: () => ({ meta: [{ title: "Quotes & Invoices · TalVault Admin" }] }),
@@ -93,7 +95,7 @@ function QuotesInvoicesPage() {
     };
   }, [rows]);
 
-  const visible = useMemo(() => {
+  const filteredRows = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rows.filter((r: any) => {
       if (agencyFilter !== "all" && r.agency_name !== agencyFilter) return false;
@@ -110,6 +112,11 @@ function QuotesInvoicesPage() {
     });
   }, [rows, agencyFilter, typeFilter, chipFilter, search]);
 
+  const page = usePagedList(filteredRows, {
+    resetKey: `${agencyFilter}|${typeFilter}|${chipFilter}|${search}`,
+  });
+  const visible = page.visible;
+
   const filtersActive =
     agencyFilter !== "all" || typeFilter !== "all" || chipFilter !== "all" || !!search;
   const resetFilters = () => {
@@ -121,12 +128,12 @@ function QuotesInvoicesPage() {
 
   const logExport = useMutation({
     mutationFn: (scope: string) =>
-      logExportFn({ data: { scope, row_count: visible.length } }),
+      logExportFn({ data: { scope, row_count: filteredRows.length } }),
   });
 
   const exportCsv = () => {
     const headers = ["Agency", "Type", "Number", "Client", "Issued", "Currency", "Total", "Status"];
-    const csvRows = visible.map((r: any) => [
+    const csvRows = filteredRows.map((r: any) => [
       r.agency_name, r.kind, r.number, r.client_name ?? "",
       r.issued_at, r.currency, String(r.total_cents / 100), r.status,
     ]);
@@ -291,6 +298,14 @@ function QuotesInvoicesPage() {
                   </td>
                 </tr>
               ))}
+              <LoadMoreRow
+                colSpan={8}
+                noun="documents"
+                shown={page.shown}
+                total={page.total}
+                hasMore={page.hasMore}
+                onLoadMore={page.loadMore}
+              />
             </tbody>
           </table>
         </div>

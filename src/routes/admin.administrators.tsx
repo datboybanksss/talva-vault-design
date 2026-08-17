@@ -12,6 +12,8 @@ import {
   updateAdministrator,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/administrators")({
   head: () => ({ meta: [{ title: "Administrators · TalVault Admin" }] }),
@@ -105,6 +107,9 @@ function AdminsPage() {
     };
   }, [list]);
 
+  const adminPage = usePagedList(list);
+  const invitePage = usePagedList(invitations.data ?? []);
+
   const pendingInvites = (invitations.data ?? []).filter(
     (i: any) => i.status === "pending",
   );
@@ -170,7 +175,7 @@ function AdminsPage() {
                   {admins.isLoading && (
                     <tr><td colSpan={7} className="tvp-muted">Loading…</td></tr>
                   )}
-                  {list.map((a: any) => (
+                  {adminPage.visible.map((a: any) => (
                     <tr key={a.user_id}>
                       <td>
                         <strong>{a.display_name || a.email.split("@")[0]}</strong>
@@ -215,7 +220,23 @@ function AdminsPage() {
                       </td>
                     </tr>
                   ))}
-                </tbody>
+                  <LoadMoreRow
+                    colSpan={7}
+                    noun="administrators"
+                    shown={adminPage.shown}
+                    total={adminPage.total}
+                    hasMore={adminPage.hasMore}
+                    onLoadMore={adminPage.loadMore}
+                  />
+                  <LoadMoreRow
+                  colSpan={5}
+                  noun="invitations"
+                  shown={invitePage.shown}
+                  total={invitePage.total}
+                  hasMore={invitePage.hasMore}
+                  onLoadMore={invitePage.loadMore}
+                />
+              </tbody>
               </table>
             </div>
           </div>
@@ -316,7 +337,7 @@ function AdminsPage() {
                 {(invitations.data ?? []).length === 0 && !invitations.isLoading && (
                   <tr><td colSpan={6} className="tvp-muted">No invitations sent yet.</td></tr>
                 )}
-                {(invitations.data ?? []).map((i: any) => (
+                {invitePage.visible.map((i: any) => (
                   <tr key={i.id}>
                     <td><strong>{i.email}</strong></td>
                     <td>

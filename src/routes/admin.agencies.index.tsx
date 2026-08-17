@@ -15,6 +15,8 @@ import {
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/agencies/")({
   head: () => ({ meta: [{ title: "Agencies · TalVault Admin" }] }),
@@ -119,13 +121,16 @@ function AgenciesPage() {
   const [emailDraft, setEmailDraft] = useState("");
 
   const list = agencies.data ?? [];
-  const visible = useMemo(() => {
+  const filteredRows = useMemo(() => {
     return list.filter((a: any) => {
       if (tab !== "all" && a.status !== tab) return false;
       if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
   }, [list, tab, search]);
+
+  const page = usePagedList(filteredRows, { resetKey: `${tab}|${search}` });
+  const visible = page.visible;
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {
@@ -138,7 +143,7 @@ function AgenciesPage() {
 
   const exportCsv = () => {
     const headers = ["Agency", "Status", "Contact person", "Contact email", "Country", "Talent", "Created"];
-    const rows = visible.map((a: any) => [
+    const rows = filteredRows.map((a: any) => [
       a.name,
       statusLabel[a.status],
       a.contact_person ?? "",
@@ -459,6 +464,14 @@ function AgenciesPage() {
                   </tr>
                 );
               })}
+              <LoadMoreRow
+                colSpan={7}
+                noun="agencies"
+                shown={page.shown}
+                total={page.total}
+                hasMore={page.hasMore}
+                onLoadMore={page.loadMore}
+              />
             </tbody>
           </table>
         </div>
