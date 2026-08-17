@@ -63,7 +63,7 @@ function TalentDashboard() {
         </div>
       </div>
 
-      <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
+      <div className="tvp-card tvp-panel" data-tour="needs-attention" style={{ marginBottom: 22 }}>
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Needs attention</h2>
           {attention.length > 3 && (

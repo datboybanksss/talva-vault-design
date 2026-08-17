@@ -107,6 +107,24 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
   },
 ];
 
+/**
+ * Smart starter set provisioned for brand-new talent accounts. The remaining
+ * categories stay one toggle away in Settings → Manage folders.
+ * Mirrors the `seed_talent_private_folders()` trigger in the database.
+ */
+export const STARTER_CATEGORIES = [
+  "Personal",
+  "Health",
+  "Financial",
+  "Insurance",
+  "Tax",
+  "Work",
+] as const;
+
+export function isStarterCategory(name: string) {
+  return (STARTER_CATEGORIES as readonly string[]).includes(name);
+}
+
 export function subfolderCount(cat: DefaultCategory) {
   const grouped = (cat.groups ?? []).reduce((n, g) => n + g.children.length, 0);
   return (cat.children?.length ?? 0) + grouped + (cat.groups?.length ?? 0) + 1; // +1 = "Other"
