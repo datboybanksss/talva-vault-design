@@ -5,6 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog } from "lucide-react";
 import { toast } from "sonner";
 import {
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
   agencyWhoami,
   listAgencyInvitationsMine,
   createTalentInvitationMine,
@@ -68,7 +70,7 @@ function InvitationsPage() {
 
   const isOwner = who.data?.role === "owner";
   const list = invites.data ?? [];
-  const visible = useMemo(() => {
+  const filteredRows = useMemo(() => {
     switch (tab) {
       case "all": return list;
       case "talent": return list.filter((i: any) => i.type === "talent");
@@ -77,6 +79,9 @@ function InvitationsPage() {
       case "revoked": return list.filter((i: any) => i.status === "revoked");
     }
   }, [list, tab]);
+
+  const page = usePagedList(filteredRows, { resetKey: tab });
+  const visible = page.visible;
 
   const counts = useMemo(
     () => ({
@@ -246,6 +251,14 @@ function InvitationsPage() {
                   </tr>
                 );
               })}
+              <LoadMoreRow
+                colSpan={7}
+                noun="invitations"
+                shown={page.shown}
+                total={page.total}
+                hasMore={page.hasMore}
+                onLoadMore={page.loadMore}
+              />
             </tbody>
           </table>
         </div>

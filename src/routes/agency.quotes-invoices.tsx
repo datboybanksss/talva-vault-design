@@ -21,6 +21,8 @@ import {
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, emptyLine, fmtMoney } from "@/lib/billing";
 import { BillingPreviewDialog } from "@/components/agency/billing-preview-dialog";
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 type Row = {
   id: string;
@@ -237,7 +239,7 @@ function QIPage() {
     };
   }, [rows, chipCounts]);
 
-  const visible = useMemo(() => {
+  const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = rows.filter((r) =>
       (typeFilter === "all" || r.kind === typeFilter) &&
@@ -262,6 +264,11 @@ function QIPage() {
     });
     return list;
   }, [rows, typeFilter, statusFilter, chipFilter, talentFilter, search, sort]);
+
+  const page = usePagedList(filteredRows, {
+    resetKey: `${typeFilter}|${statusFilter}|${chipFilter}|${talentFilter}|${search}|${sort}`,
+  });
+  const visible = page.visible;
 
   const filtersActive =
     !!search || typeFilter !== "all" || statusFilter !== "all" ||
@@ -648,6 +655,14 @@ function QIPage() {
                 </tr>
               );
             })}
+            <LoadMoreRow
+              colSpan={8}
+              noun="documents"
+              shown={page.shown}
+              total={page.total}
+              hasMore={page.hasMore}
+              onLoadMore={page.loadMore}
+            />
           </tbody>
         </table>
       </div>

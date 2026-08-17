@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
   listAgencyDocumentRequests,
   getAgencyDocumentRequest,
   createAgencyDocumentRequest,
@@ -78,6 +80,8 @@ export function VaultRequestsPanel({
     if (statusFilter === "action") return rows.filter(r => r.status === "submitted" || r.status === "pending");
     return rows.filter(r => r.status === statusFilter);
   }, [rows, statusFilter]);
+
+  const page = usePagedList(filtered, { resetKey: statusFilter });
 
   const counts = useMemo(() => ({
     total: rows.length,
@@ -152,7 +156,7 @@ export function VaultRequestsPanel({
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r => (
+              {page.visible.map(r => (
                 <tr key={r.id}>
                   <td><strong>{r.title}</strong></td>
                   <td>{r.talentName}</td>
@@ -164,6 +168,14 @@ export function VaultRequestsPanel({
                   </td>
                 </tr>
               ))}
+              <LoadMoreRow
+                colSpan={6}
+                noun="requests"
+                shown={page.shown}
+                total={page.total}
+                hasMore={page.hasMore}
+                onLoadMore={page.loadMore}
+              />
             </tbody>
           </table>
         )}

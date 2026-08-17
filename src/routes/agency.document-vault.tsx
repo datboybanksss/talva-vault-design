@@ -43,6 +43,8 @@ type TalentLinkLite = { id: string; displayName: string; status: string };
 
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const docsQO = queryOptions({
   queryKey: ["agency", "vault", "docs"],
@@ -204,6 +206,10 @@ export function VaultPage() {
     });
   }, [docs, folderFilter, talentFilter, search, tab]);
 
+  const page = usePagedList(filtered, {
+    resetKey: `${folderFilter}|${talentFilter}|${search}|${tab}`,
+  });
+
   const expiring = useMemo(() => {
     return docs
       .map((d) => ({ ...d, days: daysUntil(d.validityExpiresAt) }))
@@ -334,7 +340,7 @@ export function VaultPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((d) => {
+                {page.visible.map((d) => {
                   const isLocked = !!d.lockedUntil && new Date(d.lockedUntil).getTime() > Date.now();
                   const lockDate = d.lockedUntil ? new Date(d.lockedUntil).toLocaleDateString() : "";
                   return (
@@ -434,6 +440,14 @@ export function VaultPage() {
                   </tr>
                   );
                 })}
+                <LoadMoreRow
+                  colSpan={7}
+                  noun="documents"
+                  shown={page.shown}
+                  total={page.total}
+                  hasMore={page.hasMore}
+                  onLoadMore={page.loadMore}
+                />
               </tbody>
             </table>
           )}
