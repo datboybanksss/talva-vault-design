@@ -8,7 +8,7 @@ import {
   restoreDefaultFolder,
   deletePrivateFolder,
 } from "@/lib/talent-vault.functions";
-import { DEFAULT_CATEGORIES, subfolderCount } from "@/lib/talent-vault-defaults";
+import { DEFAULT_CATEGORIES, STARTER_CATEGORIES, subfolderCount } from "@/lib/talent-vault-defaults";
 
 type Folder = { id: string; parent_id: string | null; name: string };
 
@@ -77,8 +77,9 @@ export function VaultFoldersPanel() {
         <div>
           <h2 className="tvp-h2">Manage folders</h2>
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-            Choose which of the {DEFAULT_CATEGORIES.length} recommended categories appear in your
-            Private Vault. Turning one on provisions its full subfolder set; turning it off hides it
+            New vaults start with {STARTER_CATEGORIES.length} everyday categories. Switch on any of
+            the other {DEFAULT_CATEGORIES.length - STARTER_CATEGORIES.length} whenever you need
+            them — turning one on provisions its full subfolder set; turning it off hides it
             (documents are kept and return if you switch it back on).
           </p>
         </div>

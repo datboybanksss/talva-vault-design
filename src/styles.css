@@ -897,6 +897,18 @@
   box-shadow: 0 20px 60px rgba(0,0,0,.35);
 }
 .tv-app.tv-mobile-open .tvp-collapse-btn { display: none; }
+/* Inside the drawer the sidebar is full width again — restore the labels the
+   narrow-screen rules above collapse. */
+.tv-app.tv-mobile-open .tvp-brand-copy,
+.tv-app.tv-mobile-open .tvp-nav-title,
+.tv-app.tv-mobile-open .tvp-nav-label,
+.tv-app.tv-mobile-open .tvp-profile-copy,
+.tv-app.tv-mobile-open .tvp-nav-badge,
+.tv-app.tv-mobile-open .tvp-logout { display: revert !important; }
+.tv-app.tv-mobile-open .tvp-nav-item { justify-content: flex-start; padding: 0 12px; gap: 10px; }
+.tv-app.tv-mobile-open .tvp-nav-badge { display: inline-flex !important; }
+.tv-app.tv-mobile-open .tvp-sidebar-footer { display: flex !important; }
+.tv-app.tv-mobile-open .tvp-sidebar { overflow-y: auto; }
 .tv-app .tvp-mobile-backdrop {
   display: none;
   position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 55;
@@ -1151,6 +1163,19 @@
   padding: 16px 22px; border-top: 1px solid var(--line); background: var(--surface-soft);
 }
 
+@media (max-width: 720px) {
+  .tvp-modal-backdrop { padding: 12px; align-items: flex-start; }
+  .tvp-modal { max-height: calc(100dvh - 24px); display: flex; flex-direction: column; }
+  .tvp-modal-head { padding: 14px 16px; }
+  .tvp-modal-body { padding: 16px; overflow-y: auto; }
+  .tvp-modal-foot { padding: 12px 16px; flex-wrap: wrap; }
+  .tvp-modal-foot > * { flex: 1 1 auto; justify-content: center; }
+  /* Any table on a narrow screen scrolls sideways instead of squashing */
+  .tv-app .tvp-table-wrap,
+  .tvp-modal .tvp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tv-app .tvp-table-wrap > .tvp-table { min-width: 640px; }
+}
+
 /* --- One-time secret code block --- */
 .tvp-secret {
   border: 1px solid var(--amber-accent); border-radius: 14px; overflow: hidden;
@@ -1183,4 +1208,51 @@
   display: flex; align-items: flex-start; gap: 8px; margin-top: 16px;
   padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--surface-soft); font-size: 12px; color: var(--muted-fg); line-height: 1.5;
+}
+
+/* --- First-run onboarding tour (shared across portals) --- */
+.tvp-tour { position: fixed; inset: 0; z-index: 90; }
+.tvp-tour-dim { position: absolute; inset: 0; background: rgba(12, 22, 28, .6); }
+.tvp-tour-spot {
+  position: absolute; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(12, 22, 28, .6);
+  outline: 2px solid var(--tvp-amber, #C98A2B);
+  transition: top .18s ease, left .18s ease, width .18s ease, height .18s ease;
+}
+.tvp-tour-tip {
+  position: absolute; width: min(340px, calc(100vw - 32px));
+  background: white; border: 1px solid var(--tvp-line, #E5E7EB); border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(12, 22, 28, .28); padding: 16px 18px;
+}
+.tvp-tour-tip-center {
+  left: 50%; transform: translateX(-50%);
+  bottom: max(16px, env(safe-area-inset-bottom)); top: auto;
+  width: min(420px, calc(100vw - 24px));
+}
+.tvp-tour-step {
+  font-size: 11px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--tvp-muted, #65707A);
+}
+.tvp-tour-title { font-size: 16px; font-weight: 900; margin-top: 4px; color: var(--tvp-ink, #1F2933); }
+.tvp-tour-body { font-size: 13.5px; line-height: 1.55; margin: 8px 0 14px; color: var(--tvp-muted, #4B5563); }
+.tvp-tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tvp-tour-next { display: flex; gap: 8px; align-items: center; }
+.tvp-tour-skip {
+  background: transparent; border: 0; padding: 6px 2px; cursor: pointer;
+  font-size: 13px; font-weight: 700; color: var(--tvp-muted, #65707A);
+}
+.tvp-tour-skip:hover { color: var(--tvp-ink, #1F2933); text-decoration: underline; }
+.tvp-tour .tvp-primary, .tvp-tour .tvp-secondary {
+  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
+  border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer;
+}
+.tvp-tour .tvp-primary { background: var(--tvp-teal, #064E58); color: white; border: 0; }
+.tvp-tour .tvp-secondary { background: white; color: var(--tvp-ink, #1F2933); border: 1px solid var(--tvp-line-strong, #D6DAE0); }
+
+@media (max-width: 720px) {
+  .tvp-tour-tip {
+    left: 12px !important; right: 12px; top: auto !important;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: auto; transform: none;
+  }
 }
