@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Download, Activity, Users2, ShieldAlert, Mail } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listAuditLog } from "@/lib/admin.functions";
+import { listAuditLog, getAuditLogSummary } from "@/lib/admin.functions";
+import { PAGE_SIZE } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/audit")({
   head: () => ({ meta: [{ title: "Audit & Support Log · TalVault Admin" }] }),
@@ -30,64 +32,74 @@ function humanAction(a: string) {
 
 function AuditPage() {
   const listFn = useServerFn(listAuditLog);
-  const q = useQuery({
-    queryKey: ["admin", "audit"],
-    queryFn: () => listFn(),
-    refetchInterval: 30_000,
-  });
+  const summaryFn = useServerFn(getAuditLogSummary);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [areaFilter, setAreaFilter] = useState<string>("all");
 
-  const events = q.data ?? [];
-
   const areaOf = (a: string) => actionArea[a]?.area ?? "System";
   const severityOf = (a: string) => actionArea[a]?.severity ?? "Low";
 
+  const knownActions = useMemo(() => Object.keys(actionArea), []);
+
+  // Server-side filter payload for the current area chip.
+  const areaPayload = useMemo(() => {
+    if (areaFilter === "all") return {};
+    if (areaFilter === "System") return { excludeActions: knownActions };
+    return { actions: knownActions.filter((a) => actionArea[a].area === areaFilter) };
+  }, [areaFilter, knownActions]);
+
+  // Real incremental pagination: each "Load more" fetches the next batch.
+  const q = useInfiniteQuery({
+    queryKey: ["admin", "audit", search, areaFilter],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      listFn({
+        data: { limit: PAGE_SIZE, offset: pageParam as number, search, ...areaPayload },
+      }) as Promise<any[]>,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < PAGE_SIZE ? undefined : allPages.reduce((n, p) => n + p.length, 0),
+    refetchInterval: 30_000,
+  });
+
+  const visible: any[] = useMemo(() => (q.data?.pages ?? []).flat(), [q.data]);
+
+  const summary = useQuery({
+    queryKey: ["admin", "audit-summary"],
+    queryFn: () => summaryFn() as Promise<{ total: number; today: number; actorCount: number; byAction: Record<string, number> }>,
+    refetchInterval: 30_000,
+  });
+
+  const byAction = summary.data?.byAction ?? {};
+
   const areaCounts = useMemo(() => {
-    const c: Record<string, number> = { all: events.length };
-    for (const e of events) {
-      const area = areaOf(e.action);
-      c[area] = (c[area] ?? 0) + 1;
+    const c: Record<string, number> = { all: summary.data?.total ?? 0 };
+    for (const [action, n] of Object.entries(byAction)) {
+      const area = areaOf(action);
+      c[area] = (c[area] ?? 0) + n;
     }
     return c;
-  }, [events]);
+  }, [byAction, summary.data?.total]);
 
   const kpis = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const eventsToday = events.filter((e: any) => new Date(e.created_at) >= today).length;
-    const highSeverity = events.filter((e: any) => severityOf(e.action) === "High").length;
-    const distinctActors = new Set(events.map((e: any) => e.actor_email ?? "system")).size;
+    let highSeverity = 0;
+    for (const [action, n] of Object.entries(byAction)) {
+      if (severityOf(action) === "High") highSeverity += n;
+    }
     return {
-      total: events.length,
-      eventsToday,
+      total: summary.data?.total ?? 0,
+      eventsToday: summary.data?.today ?? 0,
       highSeverity,
-      distinctActors,
+      distinctActors: summary.data?.actorCount ?? 0,
     };
-  }, [events]);
-
-  const visible = useMemo(
-    () =>
-      events.filter((e: any) => {
-        if (areaFilter !== "all" && areaOf(e.action) !== areaFilter) return false;
-        if (!search) return true;
-        const q = search.toLowerCase();
-        return (
-          (e.actor_email ?? "").toLowerCase().includes(q) ||
-          e.action.toLowerCase().includes(q) ||
-          (e.target_label ?? "").toLowerCase().includes(q)
-        );
-      }),
-    [events, search, areaFilter],
-  );
+  }, [byAction, summary.data]);
 
   const filtersActive = areaFilter !== "all" || !!search;
   const resetFilters = () => { setAreaFilter("all"); setSearch(""); };
 
   const selected =
-    events.find((e: any) => e.id === selectedId) ?? visible[0] ?? null;
+    visible.find((e: any) => e.id === selectedId) ?? visible[0] ?? null;
 
   const exportCsv = () => {
     const headers = ["Time", "Actor", "Action", "Target", "Detail"];
@@ -213,10 +225,10 @@ function AuditPage() {
                 </tr>
               </thead>
               <tbody>
-                {q.isLoading && (
+                {q.isPending && (
                   <tr><td colSpan={6} className="tvp-muted">Loading events…</td></tr>
                 )}
-                {!q.isLoading && visible.length === 0 && (
+                {!q.isPending && visible.length === 0 && (
                   <tr><td colSpan={6} className="tvp-muted">No events yet.</td></tr>
                 )}
                 {visible.map((e: any) => {
@@ -238,6 +250,14 @@ function AuditPage() {
                     </tr>
                   );
                 })}
+                <LoadMoreRow
+                  colSpan={6}
+                  noun="events"
+                  shown={visible.length}
+                  hasMore={!!q.hasNextPage}
+                  loading={q.isFetchingNextPage}
+                  onLoadMore={() => q.fetchNextPage()}
+                />
               </tbody>
             </table>
           </div>
