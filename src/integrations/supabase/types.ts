@@ -1307,6 +1307,7 @@ export type Database = {
           display_name: string | null
           email: string
           first_name: string | null
+          has_seen_onboarding: boolean
           id: string
           last_name: string | null
           phone: string | null
@@ -1320,6 +1321,7 @@ export type Database = {
           display_name?: string | null
           email: string
           first_name?: string | null
+          has_seen_onboarding?: boolean
           id: string
           last_name?: string | null
           phone?: string | null
@@ -1333,6 +1335,7 @@ export type Database = {
           display_name?: string | null
           email?: string
           first_name?: string | null
+          has_seen_onboarding?: boolean
           id?: string
           last_name?: string | null
           phone?: string | null
