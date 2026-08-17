@@ -18,8 +18,10 @@ import {
   Clock,
   Users,
   X,
+  Menu,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { whoami, listNotifications, dismissNotification, dismissComputedNotification } from "@/lib/admin.functions";
 
 type NavItem = {
@@ -71,6 +73,7 @@ const toneIcon: Record<string, any> = {
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -143,6 +146,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <Link
         key={item.to}
         to={item.to}
+        data-tour={item.to}
+        onClick={() => setMobileOpen(false)}
         className={`tvp-nav-item${isActive(item) ? " tvp-active" : ""}`}
       >
         <span className="shrink-0">{item.icon}</span>
@@ -165,7 +170,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
     .join("");
 
   return (
-    <div className={`tv-app${collapsed ? " tv-collapsed" : ""}`}>
+    <div
+      className={`tv-app${collapsed ? " tv-collapsed" : ""}${mobileOpen ? " tv-mobile-open" : ""}`}
+    >
+      <div
+        className="tvp-mobile-backdrop"
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
       <aside className="tvp-sidebar">
         <button title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="tvp-collapse-btn"

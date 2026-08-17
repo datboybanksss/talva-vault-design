@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics } from "@/lib/agency.functions";
 
 type NavItem = {
@@ -139,6 +140,8 @@ export function AgencyShell({ children }: { children: ReactNode }) {
         <Link
           key={item.to}
           to={item.to}
+          data-tour={item.to}
+          onClick={() => setMobileOpen(false)}
           className={`tvp-nav-item${isActive(item) ? " tvp-active" : ""}`}
         >
           <span className="shrink-0">{item.icon}</span>
@@ -314,6 +317,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
         </div>
         {children}
       </main>
+      <OnboardingTour portal="agency" />
     </div>
   );
 }
