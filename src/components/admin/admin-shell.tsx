@@ -221,6 +221,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
+          <button title="Open navigation"
+            type="button"
+            className="tvp-mobile-menu-btn"
+            aria-label="Open navigation"
+            onClick={() => setMobileOpen(true)}
+            style={{ marginRight: "auto" }}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           {me?.isAdmin && !me?.canEdit && (
             <span
               className="tvp-status tvp-amber"
@@ -319,6 +328,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </div>
         {children}
       </main>
+      <OnboardingTour portal="admin" />
     </div>
   );
 }
