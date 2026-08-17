@@ -155,6 +155,9 @@ function InvitationsPage() {
     });
   }, [list, tab, search]);
 
+  const page = usePagedList(filteredRows, { resetKey: `${tab}|${search}` });
+  const visible = page.visible;
+
   const filtersActive = tab !== "all" || !!search;
   const resetFilters = () => { setTab("all"); setSearch(""); };
 
