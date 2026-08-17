@@ -1538,7 +1538,10 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
       target_type: z.string().optional(),
       actor_id: z.string().optional(),
       since: z.string().optional(),
+      actions: z.array(z.string()).optional(),
+      excludeActions: z.array(z.string()).optional(),
       limit: z.number().int().min(1).max(1000).default(500),
+      offset: z.number().int().min(0).default(0),
     }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
@@ -1550,8 +1553,11 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
       .select("id, actor_id, actor_email, action, target_type, target_id, target_label, detail, ip_address, user_agent, created_at")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false })
-      .limit(data.limit);
+      .range(data.offset, data.offset + data.limit - 1);
     if (data.action) q = q.eq("action", data.action);
+    if (data.actions?.length) q = q.in("action", data.actions);
+    if (data.excludeActions?.length)
+      q = q.not("action", "in", `(${data.excludeActions.join(",")})`);
     if (data.target_type) q = q.eq("target_type", data.target_type);
     if (data.actor_id) q = q.eq("actor_id", data.actor_id);
     if (data.since) q = q.gte("created_at", data.since);
@@ -1592,6 +1598,26 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
       userAgent: (r.user_agent as string) ?? null,
       createdAt: r.created_at as string,
     }));
+  });
+
+/** Per-action counts for the activity-log chips (independent of paging). */
+export const countAgencyAuditByAction = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ since: z.string().optional() }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    let q = supabase
+      .from("agency_audit_log")
+      .select("action")
+      .eq("agency_id", agencyId)
+      .limit(5000);
+    if (data.since) q = q.gte("created_at", data.since);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    const byAction: Record<string, number> = {};
+    for (const r of rows ?? []) byAction[r.action as string] = (byAction[r.action as string] ?? 0) + 1;
+    return { total: (rows ?? []).length, byAction };
   });
 
 export const listAgencyAuditActions = createServerFn({ method: "GET" })

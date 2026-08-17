@@ -68,14 +68,22 @@ export const logTalentMfaDisabled = createServerFn({ method: "POST" })
 
 export const listTalentAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        limit: z.number().int().min(1).max(100).default(25),
+        offset: z.number().int().min(0).default(0),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data, error } = await supabase
+    const { data: rows, error } = await supabase
       .from("talent_audit_log")
       .select("id, action, actor_email, target_label, detail, ip_address, user_agent, created_at")
       .eq("actor_id", userId)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .range(data.offset, data.offset + data.limit - 1);
     if (error) throw new Error(error.message);
-    return (data ?? []) as any[];
+    return (rows ?? []) as any[];
   });

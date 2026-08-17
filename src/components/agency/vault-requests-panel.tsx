@@ -1,3 +1,5 @@
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -79,6 +81,8 @@ export function VaultRequestsPanel({
     return rows.filter(r => r.status === statusFilter);
   }, [rows, statusFilter]);
 
+  const page = usePagedList(filtered, { resetKey: statusFilter });
+
   const counts = useMemo(() => ({
     total: rows.length,
     pending: rows.filter(r => r.status === "pending").length,
@@ -152,7 +156,7 @@ export function VaultRequestsPanel({
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r => (
+              {page.visible.map(r => (
                 <tr key={r.id}>
                   <td><strong>{r.title}</strong></td>
                   <td>{r.talentName}</td>
@@ -164,6 +168,14 @@ export function VaultRequestsPanel({
                   </td>
                 </tr>
               ))}
+              <LoadMoreRow
+                colSpan={6}
+                noun="requests"
+                shown={page.shown}
+                total={page.total}
+                hasMore={page.hasMore}
+                onLoadMore={page.loadMore}
+              />
             </tbody>
           </table>
         )}

@@ -1,3 +1,5 @@
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -68,7 +70,7 @@ function InvitationsPage() {
 
   const isOwner = who.data?.role === "owner";
   const list = invites.data ?? [];
-  const visible = useMemo(() => {
+  const filteredRows = useMemo(() => {
     switch (tab) {
       case "all": return list;
       case "talent": return list.filter((i: any) => i.type === "talent");
@@ -77,6 +79,9 @@ function InvitationsPage() {
       case "revoked": return list.filter((i: any) => i.status === "revoked");
     }
   }, [list, tab]);
+
+  const page = usePagedList(filteredRows, { resetKey: tab });
+  const visible = page.visible;
 
   const counts = useMemo(
     () => ({
@@ -246,6 +251,14 @@ function InvitationsPage() {
                   </tr>
                 );
               })}
+              <LoadMoreRow
+                colSpan={7}
+                noun="invitations"
+                shown={page.shown}
+                total={page.total}
+                hasMore={page.hasMore}
+                onLoadMore={page.loadMore}
+              />
             </tbody>
           </table>
         </div>

@@ -11,6 +11,8 @@ import {
   regenerateAccessCode,
 } from "@/lib/loved-one.functions";
 import { listPrivateVault } from "@/lib/talent-vault.functions";
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/talent/sharing")({
   head: () => ({ meta: [{ title: "Shared Access · TalVault Talent" }] }),
@@ -59,6 +61,8 @@ function SharingPage() {
     }
   }
 
+
+  const sharePage = usePagedList<any>(data ?? []);
 
   function copyLink(token: string) {
     navigator.clipboard.writeText(`${window.location.origin}/loved-one/${token}`);
@@ -114,7 +118,7 @@ function SharingPage() {
                 <tr><th>Recipient</th><th>Scope</th><th>Access</th><th>Expires</th><th>Views</th><th>Status</th><th></th></tr>
               </thead>
               <tbody>
-                {(data ?? []).map((s: any) => {
+                {sharePage.visible.map((s: any) => {
                   const now = Date.now();
                   const exp = new Date(s.expires_at).getTime();
                   const revoked = !!s.revoked_at || s.is_active === false;
@@ -191,6 +195,14 @@ function SharingPage() {
                     </tr>
                   );
                 })}
+                <LoadMoreRow
+                  colSpan={7}
+                  noun="shares"
+                  shown={sharePage.shown}
+                  total={sharePage.total}
+                  hasMore={sharePage.hasMore}
+                  onLoadMore={sharePage.loadMore}
+                />
               </tbody>
             </table>
           </div>

@@ -974,16 +974,62 @@ export const logCopyLink = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 export const listAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        limit: z.number().int().min(1).max(100).default(25),
+        offset: z.number().int().min(0).default(0),
+        search: z.string().default(""),
+        actions: z.array(z.string()).optional(),
+        excludeActions: z.array(z.string()).optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    let q = supabase
+      .from("admin_audit_log")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(data.offset, data.offset + data.limit - 1);
+    if (data.actions?.length) q = q.in("action", data.actions);
+    if (data.excludeActions?.length) q = q.not("action", "in", `(${data.excludeActions.join(",")})`);
+    if (data.search.trim()) {
+      const s = data.search.trim().replace(/[%,()]/g, " ");
+      q = q.or(
+        `actor_email.ilike.%${s}%,action.ilike.%${s}%,target_label.ilike.%${s}%`,
+      );
+    }
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+/** Aggregates for the audit KPI tiles and area chips (unaffected by paging). */
+export const getAuditLogSummary = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("admin_audit_log")
-      .select("*")
+      .select("action, actor_email, created_at")
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(5000);
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const rows = (data ?? []) as any[];
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const byAction: Record<string, number> = {};
+    const actors = new Set<string>();
+    let today = 0;
+    for (const r of rows) {
+      byAction[r.action] = (byAction[r.action] ?? 0) + 1;
+      actors.add(r.actor_email ?? "system");
+      if (new Date(r.created_at) >= start) today += 1;
+    }
+    return { total: rows.length, today, actorCount: actors.size, byAction };
   });
 
 // -----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactElement } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Activity,
@@ -23,7 +23,13 @@ import {
   Download,
   Receipt,
 } from "lucide-react";
-import { listAgencyAuditLog, listAgencyAuditActions } from "@/lib/agency.functions";
+import {
+  listAgencyAuditLog,
+  listAgencyAuditActions,
+  countAgencyAuditByAction,
+} from "@/lib/agency.functions";
+import { PAGE_SIZE } from "@/lib/pagination";
+import { LoadMoreBar } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/agency/activity")({
   head: () => ({ meta: [{ title: "Activity log · TalVault" }] }),
@@ -176,10 +182,41 @@ function AgencyActivityLog() {
     return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   }, [range]);
 
-  const rows = useQuery({
-    queryKey: ["agency", "audit", range],
+  const countsFn = useServerFn(countAgencyAuditByAction);
+
+  const summary = useQuery({
+    queryKey: ["agency", "audit-counts", range],
     queryFn: () =>
-      listFn({ data: since ? { since } : {} }) as Promise<AuditRow[]>,
+      countsFn({ data: since ? { since } : {} }) as Promise<{
+        total: number;
+        byAction: Record<string, number>;
+      }>,
+  });
+
+  // Actions belonging to the selected category, resolved server-side so
+  // pagination and filtering stay consistent.
+  const categoryActions = useMemo(() => {
+    if (category === "all") return undefined;
+    return Object.keys(summary.data?.byAction ?? {}).filter(
+      (a) => metaFor(a).category === category,
+    );
+  }, [category, summary.data]);
+
+  const rows = useInfiniteQuery({
+    queryKey: ["agency", "audit", range, category, (categoryActions ?? []).join(",")],
+    initialPageParam: 0,
+    enabled: category === "all" || !!summary.data,
+    queryFn: ({ pageParam }) =>
+      listFn({
+        data: {
+          ...(since ? { since } : {}),
+          ...(categoryActions ? { actions: categoryActions } : {}),
+          limit: PAGE_SIZE,
+          offset: pageParam as number,
+        },
+      }) as Promise<AuditRow[]>,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < PAGE_SIZE ? undefined : allPages.reduce((n, p) => n + p.length, 0),
     refetchOnMount: "always",
   });
 
@@ -188,21 +225,19 @@ function AgencyActivityLog() {
     queryFn: () => actionsFn() as Promise<string[]>,
   });
 
-  const list: AuditRow[] = rows.data ?? [];
+  const filtered: AuditRow[] = useMemo(
+    () => (rows.data?.pages ?? []).flat(),
+    [rows.data],
+  );
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: list.length };
-    for (const r of list) {
-      const cat = metaFor(r.action).category;
-      c[cat] = (c[cat] ?? 0) + 1;
+    const c: Record<string, number> = { all: summary.data?.total ?? 0 };
+    for (const [action, n] of Object.entries(summary.data?.byAction ?? {})) {
+      const cat = metaFor(action).category;
+      c[cat] = (c[cat] ?? 0) + n;
     }
     return c;
-  }, [list]);
-
-  const filtered = useMemo(
-    () => (category === "all" ? list : list.filter((r) => metaFor(r.action).category === category)),
-    [list, category],
-  );
+  }, [summary.data]);
 
   const handleExport = () => {
     const header = ["Timestamp", "Timezone", "Actor", "Actor email", "Action", "Category", "Target type", "Target", "Device", "IP address"];
@@ -281,14 +316,14 @@ function AgencyActivityLog() {
             );
           })}
           <div className="tvp-muted" style={{ alignSelf: "center", fontSize: 12, marginLeft: "auto" }}>
-            Showing {filtered.length} event{filtered.length === 1 ? "" : "s"}
+            Showing {filtered.length} of {counts[category] ?? 0} event{(counts[category] ?? 0) === 1 ? "" : "s"}
             {actions.data ? ` · ${actions.data.length} action types tracked` : ""}
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {rows.isLoading && <div className="tvp-muted">Loading activity…</div>}
-          {!rows.isLoading && filtered.length === 0 && (
+          {rows.isPending && <div className="tvp-muted">Loading activity…</div>}
+          {!rows.isPending && filtered.length === 0 && (
             <div className="tvp-muted" style={{ padding: 20, textAlign: "center" }}>
               No activity recorded in this range.
             </div>
@@ -342,6 +377,14 @@ function AgencyActivityLog() {
               </div>
             );
           })}
+          <LoadMoreBar
+            noun="events"
+            shown={filtered.length}
+            total={counts[category] ?? undefined}
+            hasMore={!!rows.hasNextPage}
+            loading={rows.isFetchingNextPage}
+            onLoadMore={() => rows.fetchNextPage()}
+          />
         </div>
       </div>
     </>

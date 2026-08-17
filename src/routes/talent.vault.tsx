@@ -1,3 +1,5 @@
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -265,6 +267,10 @@ function PrivateVault() {
     return true;
   });
 
+  const docPage = usePagedList(filteredDocs, {
+    resetKey: `${filterFolder}|${search}`,
+  });
+
   // Searching or filtering implicitly reveals the flat list, so users never
   // have to click "View all documents" first to see their results.
   const isFiltering = search.trim() !== "" || filterFolder !== "__all";
@@ -441,7 +447,7 @@ function PrivateVault() {
             <table className="tvp-table">
               <thead><tr><th>Document</th><th>Folder</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
               <tbody>
-                {filteredDocs.map((d) => (
+                {docPage.visible.map((d) => (
                   <tr key={d.id}>
                     <td>
                       <strong>{d.name}</strong>
@@ -480,7 +486,15 @@ function PrivateVault() {
                     </td>
                   </tr>
                 ))}
-              </tbody>
+                <LoadMoreRow
+                colSpan={6}
+                noun="documents"
+                shown={docPage.shown}
+                total={docPage.total}
+                hasMore={docPage.hasMore}
+                onLoadMore={docPage.loadMore}
+              />
+            </tbody>
             </table>
           </div>
         )}

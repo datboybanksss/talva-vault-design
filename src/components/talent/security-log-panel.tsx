@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck } from "lucide-react";
 import { listTalentAuditLog } from "@/lib/talent-audit.functions";
+import { PAGE_SIZE } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 
 const ACTION_META: Record<string, { label: string; tone: string }> = {
   password_changed: { label: "Password changed", tone: "teal" },
@@ -33,8 +35,15 @@ function device(ua: string | null) {
 
 export function SecurityLogPanel() {
   const listFn = useServerFn(listTalentAuditLog);
-  const q = useQuery({ queryKey: ["talent", "audit-log"], queryFn: () => listFn() });
-  const rows = q.data ?? [];
+  const q = useInfiniteQuery({
+    queryKey: ["talent", "audit-log"],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      listFn({ data: { limit: PAGE_SIZE, offset: pageParam as number } }) as Promise<any[]>,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < PAGE_SIZE ? undefined : allPages.reduce((n, p) => n + p.length, 0),
+  });
+  const rows: any[] = (q.data?.pages ?? []).flat();
 
   return (
     <div className="tvp-card tvp-panel">
@@ -47,7 +56,7 @@ export function SecurityLogPanel() {
           </p>
         </div>
         <span className="tvp-status tvp-teal">
-          <ShieldCheck className="h-3.5 w-3.5" /> {rows.length} event{rows.length === 1 ? "" : "s"}
+          <ShieldCheck className="h-3.5 w-3.5" /> {rows.length}{q.hasNextPage ? "+" : ""} event{rows.length === 1 ? "" : "s"}
         </span>
       </div>
 
@@ -59,8 +68,8 @@ export function SecurityLogPanel() {
             </tr>
           </thead>
           <tbody>
-            {q.isLoading && <tr><td colSpan={5} className="tvp-muted">Loading events…</td></tr>}
-            {!q.isLoading && rows.length === 0 && (
+            {q.isPending && <tr><td colSpan={5} className="tvp-muted">Loading events…</td></tr>}
+            {!q.isPending && rows.length === 0 && (
               <tr><td colSpan={5} className="tvp-muted">No security events yet.</td></tr>
             )}
             {rows.map((e: any) => (
@@ -80,6 +89,14 @@ export function SecurityLogPanel() {
                 <td className="tvp-muted">{device(e.user_agent)}</td>
               </tr>
             ))}
+            <LoadMoreRow
+              colSpan={5}
+              noun="events"
+              shown={rows.length}
+              hasMore={!!q.hasNextPage}
+              loading={q.isFetchingNextPage}
+              onLoadMore={() => q.fetchNextPage()}
+            />
           </tbody>
         </table>
       </div>
