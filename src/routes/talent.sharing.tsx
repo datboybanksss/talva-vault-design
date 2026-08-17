@@ -62,6 +62,8 @@ function SharingPage() {
   }
 
 
+  const sharePage = usePagedList<any>(data ?? []);
+
   function copyLink(token: string) {
     navigator.clipboard.writeText(`${window.location.origin}/loved-one/${token}`);
     toast.success("Link copied");
