@@ -1256,3 +1256,11 @@
     width: auto; transform: none;
   }
 }
+
+/* Shared "Load more" control for paginated lists ---------------------------- */
+.tvp-load-more {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; padding: 12px 2px;
+}
+.tvp-load-more-row > td { background: var(--surface-soft); padding: 4px 14px !important; }
+.tvp-load-more .tvp-secondary { height: 34px; font-size: 13px; }
