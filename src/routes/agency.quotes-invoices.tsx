@@ -532,6 +532,51 @@ function QIPage() {
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-blue"><Coins className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{fmtMoney(money.quotedCents, money.currency)}</div>
+            <div className="tvp-kpi-label">Total Quoted ({money.monthLabel})</div>
+            <div className="tvp-kpi-sub">
+              {money.quotedCount > 0 ? `${money.quotedCount} quote${money.quotedCount === 1 ? "" : "s"} this month` : "No quotes yet"}
+            </div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-purple"><ReceiptText className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{fmtMoney(money.invoicedCents, money.currency)}</div>
+            <div className="tvp-kpi-label">Total Invoiced ({money.monthLabel})</div>
+            <div className="tvp-kpi-sub">
+              {money.invoicedCount > 0 ? `${money.invoicedCount} invoice${money.invoicedCount === 1 ? "" : "s"} this month` : "No invoices yet"}
+            </div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-green"><Wallet className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{fmtMoney(money.receivedCents, money.currency)}</div>
+            <div className="tvp-kpi-label">Total Received</div>
+            <div className="tvp-kpi-sub">{money.receivedCents > 0 ? "As of today" : "Nothing received yet"}</div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-amber"><Flag className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{fmtMoney(money.outstandingCents, money.currency)}</div>
+            <div className="tvp-kpi-label">Total Outstanding</div>
+            <div className="tvp-kpi-sub">
+              {money.outstandingCount > 0 ? `${money.outstandingCount} invoice${money.outstandingCount === 1 ? "" : "s"} unpaid` : "Nothing outstanding"}
+              {money.overdueCount > 0 && (
+                <span style={{ color: "var(--tvp-red)", fontWeight: 600 }}> · {money.overdueCount} overdue</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="tvp-grid tvp-kpi-grid">
+
         <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => { resetFilters(); setChipFilter("quote_draft"); }}>
           <div className="tvp-kpi-icon tvp-bg-teal"><Pencil className="h-5 w-5" /></div>
           <div>
