@@ -18,6 +18,10 @@ import {
   activateAgencyInvitation,
   type ResolvedInvitation,
 } from "@/lib/agency-activation.functions";
+import {
+  AGENCY_ACTIVATION_STEPS,
+  AGENCY_ACTIVATION_STEP_COUNT,
+} from "@/lib/activation-steps";
 
 export const Route = createFileRoute("/invite/$token")({
   ssr: false,
@@ -104,7 +108,7 @@ function TerminalError({ title, body }: { title: string; body: string }) {
 
 /* --------------------------------- Wizard --------------------------------- */
 
-type StepKey = 1 | 2 | 3 | 4;
+type StepKey = number;
 
 function Wizard({
   invite,
@@ -169,9 +173,9 @@ function Wizard({
       if (v) { setError(v); return; }
       if (password !== confirmPw) { setError("Passwords do not match."); return; }
     }
-    setStep((s) => (s < 4 ? ((s + 1) as StepKey) : s));
+    setStep((s) => (s < AGENCY_ACTIVATION_STEP_COUNT ? s + 1 : s));
   };
-  const goBack = () => { setError(null); setStep((s) => (s > 1 ? ((s - 1) as StepKey) : s)); };
+  const goBack = () => { setError(null); setStep((s) => (s > 1 ? s - 1 : s)); };
 
   const submit = () => {
     setError(null);
@@ -182,7 +186,9 @@ function Wizard({
   return (
     <>
       <ProgressBar step={step} />
-      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>Agency Activation · Step {step} of 4</div>
+      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>
+        Agency Activation · Step {step} of {AGENCY_ACTIVATION_STEP_COUNT}
+      </div>
 
       {step === 1 && (
         <Step1
@@ -231,15 +237,22 @@ function Wizard({
 
 function ProgressBar({ step }: { step: number }) {
   return (
-    <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-      {[1, 2, 3, 4].map((n) => (
+    <div
+      style={{ display: "flex", gap: 6, marginBottom: 20 }}
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={AGENCY_ACTIVATION_STEP_COUNT}
+      aria-valuenow={step}
+    >
+      {AGENCY_ACTIVATION_STEPS.map((s) => (
         <div
-          key={n}
+          key={s.key}
+          aria-label={s.title}
           style={{
             flex: 1,
             height: 6,
-            borderRadius: "var(--radius-sm)",
-            background: n <= step ? "var(--teal)" : "var(--line)",
+            borderRadius: "var(--r-sm)",
+            background: s.num <= step ? "var(--teal-700)" : "var(--line-200)",
             transition: "background 200ms ease",
           }}
         />
