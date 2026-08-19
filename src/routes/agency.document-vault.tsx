@@ -1,4 +1,3 @@
-import { ModalShell } from "@/components/shared/modal-shell";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
