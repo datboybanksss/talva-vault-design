@@ -118,7 +118,7 @@ function ForgotPasswordPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="name@email.com"
                 autoFocus
               />
             </div>

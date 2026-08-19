@@ -84,7 +84,7 @@ function Landing() {
 
         <div className="max-w-2xl mb-14">
           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-teal mb-3">
-            Portal selector · Demo
+            Choose your portal
           </div>
           <h1 className="display-lg">
             One vault.
@@ -136,7 +136,7 @@ function Landing() {
 
         <div className="mt-14 text-[12px] text-muted-fg flex items-center gap-2">
           <Users className="h-3.5 w-3.5" />
-          UI demo · mock data · no live accounts
+          Sign in to the portal that matches your role
         </div>
       </div>
     </div>

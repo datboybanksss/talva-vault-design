@@ -282,7 +282,7 @@ function AdminsPage() {
                       type="email"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="new.admin@example.com"
+                      placeholder="name@email.com"
                       autoFocus
                     />
                   </div>

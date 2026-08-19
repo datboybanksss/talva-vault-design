@@ -111,9 +111,8 @@ export function VaultRequestsPanel({
             <strong>Incoming from talent.</strong>{" "}
             <span className="tvp-muted">
               Ask a talent for a specific document, then review the submission.
-              The Talent Portal isn't live yet — requests are seed-data-ready
-              and will hook into talent submissions once it ships. Previous
-              submissions are always retained.
+              Talent see your request in their portal and upload directly to it.
+              Previous submissions are always retained.
             </span>
           </div>
         </div>

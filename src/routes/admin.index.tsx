@@ -133,7 +133,7 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalTalent ?? "—"}</div>
             <div className="tvp-kpi-label">Total Talent Onboarded</div>
-            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Excludes deleted / test records</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Talent currently active across all agencies</div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi" title="Aggregate count only. Admin never previews Talent Private Vault contents.">

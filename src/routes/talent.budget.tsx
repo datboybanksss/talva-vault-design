@@ -8,13 +8,13 @@ export const Route = createFileRoute("/talent/budget")({
       {
         name: "description",
         content:
-          "Budget & Income is coming soon — plan monthly income, track expenses and view Manager quotes and invoices in one private place.",
+          "Budget & Income is on its way — plan monthly income, track expenses and view Manager quotes and invoices in one private place.",
       },
       { property: "og:title", content: "Budget & Income · TalVault Talent" },
       {
         property: "og:description",
         content:
-          "Budget & Income is coming soon to the TalVault Talent portal.",
+          "Budget & Income is on its way in the TalVault Talent portal.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -63,17 +63,17 @@ function BudgetPage() {
         >
           <Sparkles className="h-6 w-6" />
         </div>
-        <span className="tvp-status tvp-blue">Coming soon</span>
+        <span className="tvp-status tvp-blue">On its way</span>
         <h2 className="tvp-h2" style={{ marginTop: 14 }}>
-          Budget &amp; Income is not available yet
+          Budget &amp; Income is on its way
         </h2>
         <p
           className="tvp-muted"
           style={{ fontSize: 14, marginTop: 8, maxWidth: 560, marginInline: "auto" }}
         >
-          We are still building this area. Nothing is tracked here yet, and no figures
-          from your Manager are shown. Everything else in your portal — your Vault,
-          document requests and sharing — works as normal.
+          A clear view of what you are earning and spending, kept right alongside your
+          vault and private to you. Everything else here — your Vault, document requests
+          and sharing — works as normal in the meantime.
         </p>
       </div>
 
