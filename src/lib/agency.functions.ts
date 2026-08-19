@@ -502,6 +502,8 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
         invited_by: userId,
         folder_mode: data.folder_mode,
         folder_selection: selection,
+        manager_user_id: data.manager_user_id ?? null,
+        talent_type: data.talent_type ?? null,
       })
       .select()
       .single();
