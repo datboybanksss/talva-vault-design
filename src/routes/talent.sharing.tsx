@@ -149,8 +149,6 @@ function SharingPage() {
                             No email sent — share the link yourself
                           </div>
                         )}
-
-                        </div>
                       </td>
                       <td>{scope}</td>
                       <td>
