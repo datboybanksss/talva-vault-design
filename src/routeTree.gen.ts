@@ -45,6 +45,7 @@ import { Route as AdminAdministratorsRouteImport } from './routes/admin.administ
 import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invitations.index'
 import { Route as AdminAgenciesIndexRouteImport } from './routes/admin.agencies.index'
 import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
+import { Route as InviteAdminTokenRouteImport } from './routes/invite.admin.$token'
 import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/loved-one-file'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
@@ -236,6 +237,11 @@ const InviteTalentTokenRoute = InviteTalentTokenRouteImport.update({
   path: '/invite/talent/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InviteAdminTokenRoute = InviteAdminTokenRouteImport.update({
+  id: '/invite/admin/$token',
+  path: '/invite/admin/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicLovedOneFileRoute = ApiPublicLovedOneFileRouteImport.update({
   id: '/api/public/loved-one-file',
   path: '/api/public/loved-one-file',
@@ -331,6 +337,7 @@ export interface FileRoutesByFullPath {
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
+  '/invite/admin/$token': typeof InviteAdminTokenRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
@@ -374,6 +381,7 @@ export interface FileRoutesByTo {
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
+  '/invite/admin/$token': typeof InviteAdminTokenRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
@@ -423,6 +431,7 @@ export interface FileRoutesById {
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
+  '/invite/admin/$token': typeof InviteAdminTokenRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
@@ -473,6 +482,7 @@ export interface FileRouteTypes {
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/api/public/loved-one-file'
+    | '/invite/admin/$token'
     | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/api/public/loved-one-file'
+    | '/invite/admin/$token'
     | '/invite/talent/$token'
     | '/admin/agencies'
     | '/admin/invitations'
@@ -564,6 +575,7 @@ export interface FileRouteTypes {
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/api/public/loved-one-file'
+    | '/invite/admin/$token'
     | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
@@ -585,6 +597,7 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
   ApiPublicLovedOneFileRoute: typeof ApiPublicLovedOneFileRoute
+  InviteAdminTokenRoute: typeof InviteAdminTokenRoute
   InviteTalentTokenRoute: typeof InviteTalentTokenRoute
   ApiPublicHooksTalentRemindersRoute: typeof ApiPublicHooksTalentRemindersRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -844,6 +857,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTalentTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invite/admin/$token': {
+      id: '/invite/admin/$token'
+      path: '/invite/admin/$token'
+      fullPath: '/invite/admin/$token'
+      preLoaderRoute: typeof InviteAdminTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/loved-one-file': {
       id: '/api/public/loved-one-file'
       path: '/api/public/loved-one-file'
@@ -1068,6 +1088,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
   ApiPublicLovedOneFileRoute: ApiPublicLovedOneFileRoute,
+  InviteAdminTokenRoute: InviteAdminTokenRoute,
   InviteTalentTokenRoute: InviteTalentTokenRoute,
   ApiPublicHooksTalentRemindersRoute: ApiPublicHooksTalentRemindersRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
