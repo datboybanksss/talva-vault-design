@@ -12,6 +12,7 @@ import {
   getAgencyNotificationSettings,
   updateAgencyNotificationSettings,
 } from "@/lib/agency.functions";
+import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
 
 type Rule = {
   id: string;
@@ -26,7 +27,7 @@ type Rule = {
   documentFolder: string | null;
 };
 
-const FOLDER_OPTIONS = ["Contracts", "ID Documents", "Travel", "Tax", "Certified Documents", "Proof of Accounts", "Property", "Sponsorships", "Other"];
+const FOLDER_OPTIONS = FOLDER_NAMES;
 
 export const documentRulesQO = queryOptions({
   queryKey: ["agency", "retention", "rules"],

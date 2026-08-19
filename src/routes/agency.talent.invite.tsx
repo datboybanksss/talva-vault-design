@@ -1,3 +1,4 @@
+import { FOLDER_CATEGORIES } from "@/lib/folder-taxonomy";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,10 +31,8 @@ const steps = [
   { num: 4, title: "Review & send", sub: "Send invite" },
 ];
 
-const defaultFolders = [
-  "ID Documents", "Contracts", "Travel", "Certified Documents", "Tax", "Proof of Accounts",
-];
-const optionalFolders = ["Property", "Sponsorships"];
+const defaultFolders = FOLDER_CATEGORIES.filter((f) => f.recommended).map((f) => f.name);
+const optionalFolders = FOLDER_CATEGORIES.filter((f) => !f.recommended).map((f) => f.name);
 const allFolders = [...defaultFolders, ...optionalFolders];
 
 function InviteTalent() {

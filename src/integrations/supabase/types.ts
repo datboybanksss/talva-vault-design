@@ -1251,6 +1251,42 @@ export type Database = {
         }
         Relationships: []
       }
+      folder_taxonomy_rename_log: {
+        Row: {
+          column_name: string
+          created_at: string
+          id: string
+          migration_key: string
+          new_value: string | null
+          old_value: string | null
+          record_id: string | null
+          row_snapshot: Json | null
+          table_name: string
+        }
+        Insert: {
+          column_name: string
+          created_at?: string
+          id?: string
+          migration_key: string
+          new_value?: string | null
+          old_value?: string | null
+          record_id?: string | null
+          row_snapshot?: Json | null
+          table_name: string
+        }
+        Update: {
+          column_name?: string
+          created_at?: string
+          id?: string
+          migration_key?: string
+          new_value?: string | null
+          old_value?: string | null
+          record_id?: string | null
+          row_snapshot?: Json | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       legal_copy_items: {
         Row: {
           approved_at: string | null
@@ -2026,10 +2062,15 @@ export type Database = {
           read_ct: number
         }[]
       }
+      rollback_folder_taxonomy_rename: {
+        Args: { _migration_key?: string }
+        Returns: number
+      }
       seed_talent_default_folders: {
         Args: { _user_id: string }
         Returns: undefined
       }
+      tv_map_legacy_folder: { Args: { _name: string }; Returns: string }
     }
     Enums: {
       admin_permission_level: "view_only" | "edit"

@@ -233,7 +233,7 @@ export function FolderTemplatesPanel() {
                   {items.map((it, idx) => (
                     <tr key={it.key}>
                       <td>
-                        <input value={it.folder_name} placeholder="e.g. Contracts" onChange={(e) => {
+                        <input value={it.folder_name} placeholder="e.g. Contracts &amp; Agreements" onChange={(e) => {
                           const copy = [...items]; copy[idx] = { ...it, folder_name: e.target.value }; setItems(copy);
                         }} />
                       </td>

@@ -1,3 +1,4 @@
+import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { useEffect, useMemo, useState } from "react";
@@ -27,7 +28,7 @@ export const requestsTalentQO = queryOptions({
   queryFn: () => listAgencyTalentLinksLite(),
 });
 
-const FOLDERS = ["Contracts", "Endorsements", "Invoices", "ID Documents", "Travel", "Tax", "Other"];
+const FOLDERS = FOLDER_NAMES;
 const REASONS = [
   { code: "illegible", label: "Illegible / unreadable" },
   { code: "wrong_document", label: "Wrong document" },
@@ -220,7 +221,7 @@ function NewRequestDialog({
   const [f, setF] = useState({
     talent_link_id: talent[0]?.id ?? "",
     title: "",
-    folder: "ID Documents",
+    folder: FOLDER_NAMES[0],
     instructions: "",
     due_date: "",
   });

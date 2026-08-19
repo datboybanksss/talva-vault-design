@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
   Upload, FolderOpen, Sparkles, FileText, Files, Trash2, Download, Eye, X, Loader2,
-  Lock, History, ShieldPlus, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw,
+  Lock, History, ShieldPlus, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw, Plane, Briefcase,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,6 +20,7 @@ import {
   getAgencyVersionSignedUrl,
   upsertAgencyRetentionRule,
 } from "@/lib/agency.functions";
+import { FOLDER_CATEGORIES, FOLDER_NAMES } from "@/lib/folder-taxonomy";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -88,7 +89,7 @@ const tabs = ["All Documents", "Pending Review", "Needs Review", "Expiring", "Re
 type Tab = typeof tabs[number];
 
 
-const FOLDER_OPTIONS = ["Contracts", "Endorsements", "Invoices", "ID Documents", "Travel", "Tax", "Other"];
+const FOLDER_OPTIONS = FOLDER_NAMES;
 
 type FolderMeta = {
   key: string;
@@ -96,12 +97,24 @@ type FolderMeta = {
   description: string;
   icon: any;
 };
-const ALLOWED_FOLDERS: FolderMeta[] = [
-  { key: "Contracts", label: "Contracts", description: "Agreements, riders, addenda", icon: FileSignature },
-  { key: "Endorsements", label: "Endorsements", description: "Brand deals, partnerships", icon: Award },
-  { key: "Invoices", label: "Invoices", description: "Billing documents shared with talent", icon: Receipt },
-  { key: "ID Documents", label: "ID Documents", description: "Passport, visa, work authorisation", icon: IdCard },
-];
+const FOLDER_META: Record<string, { description: string; icon: any }> = {
+  "Identity & Personal": { description: "Passport, ID, visa, work authorisation", icon: IdCard },
+  "Contracts & Agreements": { description: "Agreements, riders, addenda", icon: FileSignature },
+  "Banking, Tax & Financial": { description: "Invoices, tax and banking records", icon: Receipt },
+  "Travel & Visas": { description: "Itineraries, visas, travel approvals", icon: Plane },
+  "Medical, Fitness & Insurance": { description: "Clearances, cover, fitness records", icon: HeartPulse },
+  "Career & Professional Records": { description: "CVs, accreditations, career history", icon: Briefcase },
+  "Brand, Sponsorship & Media": { description: "Brand deals, partnerships, media", icon: Award },
+  "Bookings, Events & Appearances": { description: "Bookings, call sheets, appearances", icon: CalendarClock },
+  "Rights, Licences & Compliance": { description: "Licences, certifications, compliance", icon: ShieldPlus },
+  "Other Documents": { description: "Anything that does not fit elsewhere", icon: Files },
+};
+const ALLOWED_FOLDERS: FolderMeta[] = FOLDER_CATEGORIES.map((f) => ({
+  key: f.name,
+  label: f.name,
+  description: FOLDER_META[f.name]?.description ?? "",
+  icon: FOLDER_META[f.name]?.icon ?? FolderOpen,
+}));
 const BLOCKED_FOLDERS: FolderMeta[] = [
   { key: "family", label: "Family / Loved Ones", description: "Talent's personal contacts", icon: UsersIcon },
   { key: "medical", label: "Medical / Insurance", description: "Health records, insurance", icon: HeartPulse },
@@ -356,7 +369,7 @@ export function VaultPage() {
                   <tr key={d.id}>
                     <td>
                       <FileText className="inline h-4 w-4 mr-2 text-[var(--tvp-muted)]" />
-                      {d.folder === "Contracts" ? (
+                      {d.folder === "Contracts & Agreements" ? (
                         <Link to="/agency/contracts/$id" params={{ id: d.id }} className="tvp-link">
                           <strong>{d.name}</strong>
                         </Link>

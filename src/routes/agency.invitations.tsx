@@ -1,3 +1,4 @@
+import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -337,7 +338,7 @@ function NewInvitationModal({
       }
     }
     // Fallback so customise still shows something before templates are configured
-    const fallback = ["ID Documents", "Contracts", "Endorsements", "Invoices", "Travel", "Tax"];
+    const fallback = FOLDER_NAMES;
     for (const n of fallback) if (!seen.has(n)) seen.set(n, { name: n, retention_years: null });
     return { standardFolders: std, allFolders: Array.from(seen.values()) };
   }, [templates.data]);
