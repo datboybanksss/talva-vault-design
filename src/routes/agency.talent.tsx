@@ -55,6 +55,25 @@ function nextActionLabel(r: TalentRow) {
 }
 
 function TalentPage() {
+  const qc = useQueryClient();
+  const catalogue = useFolderCatalogue();
+  const [typeEditor, setTypeEditor] = useState<TalentRow | null>(null);
+  const [typeDraft, setTypeDraft] = useState("");
+  const updateTypeFn = useServerFn(updateTalentLinkTalentType);
+  const updateType = useMutation({
+    mutationFn: (input: { talent_link_id: string; talent_type: string }) =>
+      updateTypeFn({ data: input }),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+      toast.success(
+        res?.flaggedForReview
+          ? `Talent type updated — ${res.flaggedForReview} folder${res.flaggedForReview === 1 ? "" : "s"} flagged for review`
+          : "Talent type updated",
+      );
+      setTypeEditor(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Could not update talent type"),
+  });
   const listFn = useServerFn(listAgencyTalent);
   const talent = useQuery({ queryKey: ["agency", "talent"], queryFn: () => listFn() });
 
@@ -190,7 +209,7 @@ function TalentPage() {
             <thead>
               <tr>
                 <th>Talent</th><th>Status</th><th>Lead</th><th>Talent type</th>
-                <th>Documents</th><th>Next action</th>
+                <th>Documents</th><th>Next action</th><th style={{ width: 48 }} />
               </tr>
             </thead>
             <tbody>
@@ -253,6 +272,41 @@ function TalentPage() {
           </table>
         </div>
       </div>
+
+      {typeEditor && (
+        <ModalShell onClose={() => setTypeEditor(null)} maxWidth={420}>
+          <h2 className="tvp-h2" style={{ margin: 0 }}>Change talent type</h2>
+          <p className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+            New folders for the chosen type are added to {typeEditor.displayName}'s shared folder.
+            Folders from the previous type are kept and flagged for review — nothing is deleted.
+          </p>
+          <div className="tvp-form-group">
+            <label htmlFor="talent-type">Talent type</label>
+            <select
+              id="talent-type"
+              value={typeDraft}
+              onChange={(e) => setTypeDraft(e.target.value)}
+            >
+              <option value="">Select a type…</option>
+              {talentTypesFrom(catalogue).map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2 mt-2 justify-end">
+            <button className="tvp-secondary" onClick={() => setTypeEditor(null)}>Cancel</button>
+            <button
+              className="tvp-primary"
+              disabled={!typeDraft || updateType.isPending}
+              onClick={() =>
+                updateType.mutate({ talent_link_id: typeEditor.id, talent_type: typeDraft })
+              }
+            >
+              Save
+            </button>
+          </div>
+        </ModalShell>
+      )}
     </>
   );
 }
