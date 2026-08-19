@@ -1121,6 +1121,9 @@
   position: relative;
   overflow: hidden;
 }
+/* Invite activation uses a narrower teal panel (~35%) so the wizard has room. */
+.tv-auth.tv-auth--invite { grid-template-columns: 35fr 65fr; }
+
 .tv-auth::before {
   content: "";
   position: absolute; inset: 0;
