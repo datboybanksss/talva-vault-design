@@ -197,7 +197,7 @@ function ContractDetail() {
         <div className="tvp-card">
           {c.invoices.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
-              No invoices linked to this contract yet.
+              No invoices linked to this contract yet — create one to bill against it.
               <div style={{ marginTop: 10 }}>
                 <button className="tvp-primary" onClick={() => setShowInvoice(true)}>
                   <Plus className="h-4 w-4" />Create first invoice

@@ -245,7 +245,7 @@ export function VaultPage() {
         <h2 className="tvp-h2" style={{ marginBottom: 4 }}>Expiring soon</h2>
         {expiring.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13, margin: 0 }}>
-            Nothing expiring in the next 180 days.
+            Nothing expires in the next 180 days — your roster is fully up to date.
           </p>
         ) : (
           <div className="tvp-list" style={{ marginTop: 6 }}>
@@ -325,7 +325,7 @@ export function VaultPage() {
           </div>
           {filtered.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
-              No documents match. Upload one with "Upload to Talent".
+              No documents match your filters — clear them, or use “Upload to Talent” to add the first one.
             </div>
           ) : (
             <table className="tvp-table">
@@ -870,7 +870,7 @@ function UploadDialog({
                   border: "1px solid rgba(180, 83, 9, 0.25)",
                 }}
               >
-                <strong>No folders provisioned for this talent.</strong>
+                <strong>This talent has no folders yet.</strong>
                 <div className="tvp-muted" style={{ marginTop: 2 }}>
                   Set one up under <Link to="/agency/folder-templates" className="tvp-link">Folder Templates</Link>{" "}
                   or re-invite with a folder selection.
@@ -1267,7 +1267,7 @@ function BrowseFoldersDialog({
           <div className="tvp-callout">
             <div className="tvp-callout-icon tvp-bg-purple"><FolderOpen className="h-4 w-4" /></div>
             <div>
-              <strong>No provisioned folders yet.</strong>{" "}
+              <strong>No folders provisioned yet.</strong>{" "}
               <span className="tvp-muted">Invite a talent and pick a folder set to get started.</span>
             </div>
           </div>

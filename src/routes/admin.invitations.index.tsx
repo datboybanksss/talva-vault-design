@@ -278,7 +278,7 @@ function InvitationsPage() {
               )}
               {!invites.isLoading && visible.length === 0 && (
                 <tr><td colSpan={7} className="tvp-muted">
-                  No invitations to show. <Link to="/admin/invitations/new" className="tvp-link">Send one →</Link>
+                  No agency invitations yet — the first one takes about a minute. <Link to="/admin/invitations/new" className="tvp-link">Send one →</Link>
                 </td></tr>
               )}
               {visible.map((i: any) => {

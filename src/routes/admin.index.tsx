@@ -212,7 +212,7 @@ function AdminDashboard() {
               )}
               {!agencies.isLoading && visible.length === 0 && (
                 <tr><td colSpan={5} className="tvp-muted">
-                  No agencies yet. Use <Link to="/admin/invitations/new" className="tvp-link">Invite an agency</Link> to add the first one.
+                  No agencies on the platform yet. Use <Link to="/admin/invitations/new" className="tvp-link">Invite an agency</Link> to bring the first one on board.
                 </td></tr>
               )}
               {visible.map((r: any) => (

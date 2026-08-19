@@ -275,7 +275,7 @@ function QuotesInvoicesPage() {
               )}
               {!q.isLoading && visible.length === 0 && (
                 <tr><td colSpan={8} className="tvp-muted">
-                  No quotes or invoices to show yet. Records surface here once agencies create them.
+                  No quotes or invoices yet — records appear here as soon as agencies start creating them.
                 </td></tr>
               )}
               {visible.map((r: any) => (

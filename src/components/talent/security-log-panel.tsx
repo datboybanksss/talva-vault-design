@@ -70,7 +70,7 @@ export function SecurityLogPanel() {
           <tbody>
             {q.isPending && <tr><td colSpan={5} className="tvp-muted">Loading events…</td></tr>}
             {!q.isPending && rows.length === 0 && (
-              <tr><td colSpan={5} className="tvp-muted">No security events yet.</td></tr>
+              <tr><td colSpan={5} className="tvp-muted">No security events yet — sign-ins, password changes and 2FA activity appear here.</td></tr>
             )}
             {rows.map((e: any) => (
               <tr key={e.id}>

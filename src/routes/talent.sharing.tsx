@@ -415,7 +415,7 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
               />
               <div style={{ maxHeight: 220, overflowY: "auto", marginTop: 8, border: "1px solid #E5E7EB", borderRadius: 8 }}>
                 {filteredDocs.length === 0 ? (
-                  <p className="tvp-muted" style={{ padding: 12, fontSize: 13 }}>No documents found.</p>
+                  <p className="tvp-muted" style={{ padding: 12, fontSize: 13 }}>No documents match your search — try a different term.</p>
                 ) : filteredDocs.map((d: any) => (
                   <label
                     key={d.id}

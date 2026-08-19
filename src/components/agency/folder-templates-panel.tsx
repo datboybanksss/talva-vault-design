@@ -163,7 +163,7 @@ export function FolderTemplatesPanel() {
         </div>
         {data.templates.length === 0 ? (
           <p className="tvp-muted" style={{ padding: 16 }}>
-            No templates yet.{isOwner ? " Click New Template to create one." : " Only owners can create templates."}
+            No folder templates yet.{isOwner ? " Click New Template to create one." : " Only owners can create templates."}
           </p>
         ) : (
           <table className="tvp-table" style={{ marginTop: 12 }}>
