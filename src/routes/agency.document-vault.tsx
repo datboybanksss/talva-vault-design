@@ -279,6 +279,14 @@ export function VaultPage() {
             "Requests": { Icon: Inbox, color: "var(--tvp-purple, #7c3aed)" },
           };
           const { Icon, color } = iconMap[t];
+          const label: Record<Tab, string> = {
+            "All Documents": "All documents",
+            "Pending Review": "Pending review",
+            "Needs Review": "Needs review",
+            "Expiring": "Expiring",
+            "Recently Updated": "Recently updated",
+            "Requests": "Requests",
+          };
           return (
             <button
               key={t}
@@ -286,7 +294,7 @@ export function VaultPage() {
               onClick={() => setTab(t)}
             >
               <Icon className="h-3.5 w-3.5" style={{ color }} />
-              {t}
+              {label[t]}
               {isRequests && needsActionCount > 0 && (
                 <span className="tvp-tab-dot" title={`${needsActionCount} needs action`} />
               )}

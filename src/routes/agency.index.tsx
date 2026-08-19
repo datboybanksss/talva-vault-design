@@ -64,7 +64,7 @@ const STATUS_LABEL: Record<string, string> = {
   expired: "Expired",
   read_only: "Read-only",
   revoked: "Revoked",
-  needs_review: "Needs Review",
+  needs_review: "Needs review",
   ended: "Ended",
 };
 
