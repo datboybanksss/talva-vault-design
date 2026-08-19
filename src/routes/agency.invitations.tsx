@@ -1,4 +1,5 @@
 import { usePagedList } from "@/lib/pagination";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -218,35 +219,29 @@ function InvitationsPage() {
                       <span className={`tvp-status tvp-${expiryTone}`}>{expiryLabel}</span>
                     </td>
                     <td>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button
-                          className="tvp-mini-btn"
-                          title="Copy invite link (does not extend expiry)"
-                          onClick={() => copyLink(i)}
-                        >
-                          <Link2 className="h-4 w-4" />
-                        </button>
-                        {(i.stored_status ?? i.status) === "pending" && isOwner && (
-                          <>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Resend (refreshes expiry, logs new send)"
-                              onClick={() => resendM.mutate({ id: i.id, type: i.type })}
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Revoke invitation"
-                              onClick={() => {
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <RowActionsMenu
+                          actions={[
+                            {
+                              key: "copy", label: "Copy invite link", icon: Link2,
+                              title: "Copying does not extend expiry",
+                              onSelect: () => copyLink(i),
+                            },
+                            (i.stored_status ?? i.status) === "pending" && isOwner && {
+                              key: "resend", label: "Resend invitation", icon: RefreshCw,
+                              title: "Refreshes expiry and logs a new send",
+                              onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
+                            },
+                            (i.stored_status ?? i.status) === "pending" && isOwner && {
+                              key: "revoke", label: "Revoke invitation", icon: Ban,
+                              destructive: true, separatorBefore: true,
+                              onSelect: () => {
                                 if (confirm(`Revoke invitation to ${i.email}?`))
                                   revokeM.mutate({ id: i.id, type: i.type });
-                              }}
-                            >
-                              <Ban className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
+                              },
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
