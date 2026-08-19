@@ -214,7 +214,7 @@
     --teal-100: #14424a;
     --teal-050: #10353c;
     --on-teal:  #052a30;
-    --on-teal-dim: #0c3b43;
+    --on-teal-dim: #a9c9cd;
     --sidebar-bg:     #04262c;
     --sidebar-active: #0c4a52;
     --blue-link:       #7ab6f5;
@@ -265,7 +265,7 @@
   --teal-100: #14424a;
   --teal-050: #10353c;
   --on-teal:  #052a30;
-  --on-teal-dim: #0c3b43;
+  --on-teal-dim: #a9c9cd;
   --sidebar-bg:     #04262c;
   --sidebar-active: #0c4a52;
   --blue-link:       #7ab6f5;
@@ -1131,7 +1131,7 @@
 }
 .tv-auth .tv-auth-hero {
   position: relative;
-  background: linear-gradient(160deg, var(--sidebar-bg) 0%, var(--sidebar-active) 55%, var(--teal-500) 100%);
+  background: linear-gradient(160deg, var(--sidebar-bg) 0%, var(--sidebar-active) 55%, color-mix(in oklab, var(--sidebar-active) 70%, var(--teal-500)) 100%);
   color: white;
   padding: 56px 56px 48px;
   display: flex; flex-direction: column; justify-content: space-between;
