@@ -1784,7 +1784,7 @@ export const listAgencyAuditActions = createServerFn({ method: "GET" })
 
 
 // -----------------------------------------------------------------------------
-// M6 — Contract detail (contracts live in talent_shared_documents, folder='Contracts')
+// M6 — Contract detail (contracts live in talent_shared_documents, folder='Contracts & Agreements')
 // -----------------------------------------------------------------------------
 
 export const getAgencyContract = createServerFn({ method: "GET" })
