@@ -1,4 +1,4 @@
-import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
+import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
@@ -328,6 +328,7 @@ function NewInvitationModal({
   const [folderMode, setFolderMode] = useState<"standard" | "custom">("standard");
   const [customFolders, setCustomFolders] = useState<Set<string>>(new Set());
 
+  const folderNames = useFolderNames();
   const templatesFn = useServerFn(listAgencyFolderTemplates);
   const templates = useQuery({
     queryKey: ["agency", "folder-templates"],
@@ -362,10 +363,10 @@ function NewInvitationModal({
       }
     }
     // Fallback so customise still shows something before templates are configured
-    const fallback = FOLDER_NAMES;
+    const fallback = folderNames;
     for (const n of fallback) if (!seen.has(n)) seen.set(n, { name: n, retention_years: null });
     return { standardFolders: std, allFolders: Array.from(seen.values()) };
-  }, [templates.data]);
+  }, [templates.data, folderNames]);
 
   const activeSelection: FolderItem[] = useMemo(() => {
     if (type !== "talent") return [];

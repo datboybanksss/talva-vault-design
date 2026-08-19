@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Plus, Trash2, Pencil, Info, FileText, Folder } from "lucide-react";
@@ -12,7 +12,7 @@ import {
   getAgencyNotificationSettings,
   updateAgencyNotificationSettings,
 } from "@/lib/agency.functions";
-import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
+import { useFolderNames } from "@/lib/folder-catalogue";
 
 type Rule = {
   id: string;
@@ -27,7 +27,6 @@ type Rule = {
   documentFolder: string | null;
 };
 
-const FOLDER_OPTIONS = FOLDER_NAMES;
 
 export const documentRulesQO = queryOptions({
   queryKey: ["agency", "retention", "rules"],
@@ -260,18 +259,23 @@ function RuleDialog({
   onClose: () => void;
   onSave: (p: any) => Promise<void>;
 }) {
+  const folderOptions = useFolderNames();
   const [scope, setScope] = useState<"folder" | "document">(initial.scope ?? "folder");
-  const [scopeValue, setScopeValue] = useState<string>(initial.scopeValue ?? FOLDER_OPTIONS[0]);
+  const [scopeValue, setScopeValue] = useState<string>(initial.scopeValue ?? "");
   const [documentId, setDocumentId] = useState<string>(initial.documentId ?? (docs[0]?.id ?? ""));
   const [years, setYears] = useState<number>(initial.retentionYears ?? 5);
   const [description, setDescription] = useState<string>(initial.description ?? "");
   const [busy, setBusy] = useState(false);
 
   const allFolders = useMemo(() => {
-    const set = new Set(FOLDER_OPTIONS);
+    const set = new Set<string>(folderOptions);
     for (const d of docs) if (d.folder) set.add(d.folder);
     return Array.from(set).sort();
-  }, [docs]);
+  }, [docs, folderOptions]);
+
+  useEffect(() => {
+    if (!scopeValue && folderOptions.length > 0) setScopeValue(folderOptions[0]);
+  }, [folderOptions, scopeValue]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

@@ -807,6 +807,60 @@ export type Database = {
           },
         ]
       }
+      agency_folder_subfolder_settings: {
+        Row: {
+          agency_id: string
+          category_slug: string
+          created_at: string
+          enabled: boolean
+          id: string
+          kind: string
+          name: string
+          retention_years: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          category_slug: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name: string
+          retention_years?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          category_slug?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name?: string
+          retention_years?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_folder_subfolder_settings_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_folder_subfolder_settings_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "folder_catalogue_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       agency_folder_template_items: {
         Row: {
           created_at: string
@@ -1079,31 +1133,46 @@ export type Database = {
       agency_talent_folders: {
         Row: {
           agency_id: string
+          category_slug: string | null
           created_at: string
           folder_name: string
           id: string
+          needs_review: boolean
+          parent_folder_id: string | null
+          restricted: boolean
           retention_years: number | null
           sort_order: number
+          source: string
           talent_link_id: string
           updated_at: string
         }
         Insert: {
           agency_id: string
+          category_slug?: string | null
           created_at?: string
           folder_name: string
           id?: string
+          needs_review?: boolean
+          parent_folder_id?: string | null
+          restricted?: boolean
           retention_years?: number | null
           sort_order?: number
+          source?: string
           talent_link_id: string
           updated_at?: string
         }
         Update: {
           agency_id?: string
+          category_slug?: string | null
           created_at?: string
           folder_name?: string
           id?: string
+          needs_review?: boolean
+          parent_folder_id?: string | null
+          restricted?: boolean
           retention_years?: number | null
           sort_order?: number
+          source?: string
           talent_link_id?: string
           updated_at?: string
         }
@@ -1113,6 +1182,20 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_talent_folders_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "folder_catalogue_categories"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "agency_talent_folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "agency_talent_folders"
             referencedColumns: ["id"]
           },
           {
@@ -1284,6 +1367,80 @@ export type Database = {
         }
         Relationships: []
       }
+      folder_catalogue_categories: {
+        Row: {
+          ai_filing_allowed: boolean
+          can_untick: boolean
+          created_at: string
+          default_validity_rule: string
+          name: string
+          recommended: boolean
+          restricted: boolean
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          ai_filing_allowed?: boolean
+          can_untick?: boolean
+          created_at?: string
+          default_validity_rule?: string
+          name: string
+          recommended?: boolean
+          restricted?: boolean
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          ai_filing_allowed?: boolean
+          can_untick?: boolean
+          created_at?: string
+          default_validity_rule?: string
+          name?: string
+          recommended?: boolean
+          restricted?: boolean
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      folder_catalogue_subfolders: {
+        Row: {
+          category_slug: string
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          category_slug: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          category_slug?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_catalogue_subfolders_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "folder_catalogue_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       folder_taxonomy_rename_log: {
         Row: {
           column_name: string
@@ -1319,6 +1476,41 @@ export type Database = {
           table_name?: string
         }
         Relationships: []
+      }
+      folder_type_template_items: {
+        Row: {
+          category_slug: string
+          created_at: string
+          id: string
+          sort_order: number
+          subfolder_name: string
+          talent_type: string
+        }
+        Insert: {
+          category_slug: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          subfolder_name: string
+          talent_type: string
+        }
+        Update: {
+          category_slug?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          subfolder_name?: string
+          talent_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_type_template_items_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "folder_catalogue_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       legal_copy_items: {
         Row: {
@@ -2046,6 +2238,14 @@ export type Database = {
         Args: { _email: string; _invitation_id: string; _user_id: string }
         Returns: string
       }
+      can_access_talent_folder: {
+        Args: {
+          _restricted: boolean
+          _talent_link_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       can_admin_edit: { Args: { _user_id: string }; Returns: boolean }
       compute_document_locked_until: {
         Args: { _doc_id: string }
@@ -2077,6 +2277,10 @@ export type Database = {
         Returns: boolean
       }
       is_main_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_restricted_folder_name: {
+        Args: { _agency_id: string; _folder_name: string }
+        Returns: boolean
+      }
       mint_billing_doc_number: {
         Args: { _agency_id: string; _kind: string }
         Returns: string
@@ -2090,6 +2294,15 @@ export type Database = {
         }
         Returns: number
       }
+      provision_talent_folders: {
+        Args: {
+          _agency_id: string
+          _category_names: string[]
+          _talent_link_id: string
+          _talent_type: string
+        }
+        Returns: number
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -2097,6 +2310,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      reconcile_talent_type_folders: {
+        Args: { _new_talent_type: string; _talent_link_id: string }
+        Returns: number
       }
       rollback_folder_taxonomy_rename: {
         Args: { _migration_key?: string }
