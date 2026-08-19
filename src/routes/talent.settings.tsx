@@ -51,7 +51,9 @@ function TalentSettings() {
     | null;
 
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
-  const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "Athlete");
+  const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "");
+  const catalogue = useFolderCatalogue();
+  const talentTypeOptions = talentTypesFrom(catalogue);
   const [savingProfile, setSavingProfile] = useState(false);
   const [expiryDays, setExpiryDays] = useState("30");
   const [savingPrefs, setSavingPrefs] = useState(false);
