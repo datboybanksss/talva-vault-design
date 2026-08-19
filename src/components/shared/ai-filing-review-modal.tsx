@@ -12,7 +12,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles, FolderTree, CalendarClock, ShieldAlert, X, Loader2, Clock } from "lucide-react";
+import {
+  Sparkles,
+  FolderTree,
+  CalendarClock,
+  ShieldAlert,
+  X,
+  Loader2,
+  Clock,
+  Check,
+  Pencil,
+  HelpCircle,
+} from "lucide-react";
 import {
   getFilingCatalog,
   confirmDocumentFiling,
@@ -31,6 +42,10 @@ export type FilingSuggestion = {
   reminder_lead_days: number | null;
   confidence?: "high" | "medium" | "low" | null;
   rationale?: string | null;
+  /** Verbatim sentence(s) from the document the folder suggestion was drawn from. */
+  folder_source_text?: string | null;
+  /** Verbatim sentence(s) the expiry date was read from. */
+  expiry_source_text?: string | null;
 };
 
 type Props = {
@@ -64,6 +79,88 @@ const AMBER_PANEL = {
   border: "1px solid rgba(180, 83, 9, 0.25)",
   fontSize: 13,
 } as const;
+
+
+/**
+ * Provenance row for a single suggested field: where the value came from, how
+ * confident the suggestion was, the verbatim source sentence on demand, and the
+ * Confirm / Edit actions. Flips to "Edited by you" as soon as the human changes
+ * or confirms ownership of the value.
+ */
+function FieldProvenance({
+  field,
+  value,
+  source,
+  confidence,
+  sourceText,
+  onConfirm,
+  onEdit,
+}: {
+  field: string;
+  value: string;
+  source: "ai" | "user";
+  confidence?: "high" | "medium" | "low" | null;
+  sourceText?: string | null;
+  onConfirm: () => void;
+  onEdit: () => void;
+}) {
+  const [showSource, setShowSource] = useState(false);
+  const confirmed = source === "user";
+
+  return (
+    <div className="tv-prov" data-source={source}>
+      <div className="tv-prov__head">
+        <span className="tv-prov__field">{field}</span>
+        <span className="tv-prov__value">{value}</span>
+        <span className="tv-prov__badge" style={{ marginLeft: "auto" }}>
+          {confirmed ? (
+            <>
+              <Check className="h-3 w-3" /> Edited by you
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-3 w-3" /> Suggested by AI
+              {confidence ? ` · ${confidence} confidence` : ""}
+            </>
+          )}
+        </span>
+      </div>
+
+      {showSource && (
+        <p className="tv-prov__source">
+          {sourceText
+            ? `"${sourceText}"`
+            : confirmed
+              ? "You set this value yourself, so there is no document extract behind it."
+              : "No source sentence was captured for this field — the suggestion came from the folder you uploaded into, not from the document's contents."}
+        </p>
+      )}
+
+      <div className="tv-prov__acts">
+        <button
+          type="button"
+          className="tv-btn tv-btn--primary"
+          onClick={onConfirm}
+          disabled={confirmed}
+        >
+          <Check className="h-3.5 w-3.5" /> {confirmed ? "Confirmed" : "Confirm"}
+        </button>
+        <button type="button" className="tv-btn tv-btn--secondary" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5" /> Edit
+        </button>
+        <button
+          type="button"
+          className="tv-btn tv-btn--ghost"
+          onClick={() => setShowSource((v) => !v)}
+          aria-expanded={showSource}
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+          {showSource ? "Hide source" : "Where did this come from?"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function AiFilingReviewModal({
   scope,
@@ -110,12 +207,16 @@ export function AiFilingReviewModal({
   const [expiry, setExpiry] = useState<string>("");
   const [leadDays, setLeadDays] = useState<number>(30);
   const [noReminder, setNoReminder] = useState(false);
+  const [folderSource, setFolderSource] = useState<"ai" | "user">("ai");
+  const [expirySource, setExpirySource] = useState<"ai" | "user">("ai");
 
   useEffect(() => {
     if (!data || !suggestion) return;
     setDestination(suggestion.folder_id);
     setExpiry(suggestion.expiry_date ?? "");
     setLeadDays(suggestion.reminder_lead_days ?? data.defaultReminderDays ?? 30);
+    setFolderSource("ai");
+    setExpirySource("ai");
     if (!suggestion.folder_id) setPicking(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
@@ -136,7 +237,8 @@ export function AiFilingReviewModal({
           destination,
           expires_at: expiry ? new Date(`${expiry}T00:00:00Z`).toISOString() : null,
           reminder_at: reminderDate ? new Date(`${reminderDate}T09:00:00Z`).toISOString() : null,
-          ai_assisted: Boolean(suggestionProp) && destination === suggestionProp?.folder_id,
+          ai_assisted:
+            Boolean(suggestionProp) && (folderSource === "ai" || expirySource === "ai"),
         },
       }),
     onSuccess: () => {
@@ -213,7 +315,7 @@ export function AiFilingReviewModal({
             <Sparkles className="h-4 w-4" />
           </span>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 className="tvp-h2" style={{ margin: 0 }}>
+            <h2 className="display-lg" style={{ fontSize: "var(--t-title)" }}>
               AI filing review
             </h2>
             <p className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
@@ -291,6 +393,7 @@ export function AiFilingReviewModal({
                     value={destination ?? ""}
                     onChange={(e) => {
                       setDestination(e.target.value || null);
+                      setFolderSource("user");
                     }}
                   >
                     <option value="">Leave where it was uploaded</option>
@@ -303,15 +406,18 @@ export function AiFilingReviewModal({
                 </label>
               )}
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  className="tvp-secondary"
-                  onClick={() => setPicking((p) => !p)}
-                >
-                  {picking ? "Use suggestion" : "Choose different folder"}
-                </button>
-              </div>
+              <FieldProvenance
+                field="Folder"
+                value={destinationLabel ?? "Unfiled"}
+                source={folderSource}
+                confidence={suggestion?.confidence ?? null}
+                sourceText={suggestion?.folder_source_text ?? null}
+                onConfirm={() => {
+                  setFolderSource("user");
+                  setPicking(false);
+                }}
+                onEdit={() => setPicking(true)}
+              />
             </section>
 
             {/* ---------------- Section 2: expiry ---------------- */}
@@ -336,6 +442,7 @@ export function AiFilingReviewModal({
                     onChange={(e) => {
                       setExpiry(e.target.value);
                       setNoReminder(false);
+                      setExpirySource("user");
                     }}
                   />
                 </label>
@@ -355,6 +462,7 @@ export function AiFilingReviewModal({
                     disabled={noReminder || !expiry}
                     onChange={(e) => {
                       setLeadDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)));
+                      setExpirySource("user");
                     }}
                   />
                 </label>
@@ -374,11 +482,28 @@ export function AiFilingReviewModal({
                 <button
                   type="button"
                   className={noReminder ? "tvp-primary" : "tvp-secondary"}
-                  onClick={() => setNoReminder((v) => !v)}
+                  onClick={() => {
+                    setNoReminder((v) => !v);
+                    setExpirySource("user");
+                  }}
                 >
                   {noReminder ? "Reminder off" : "No reminder needed"}
                 </button>
               </div>
+
+              <FieldProvenance
+                field="Expiry"
+                value={expiry ? expiry : "No expiry"}
+                source={expirySource}
+                confidence={suggestion?.confidence ?? null}
+                sourceText={suggestion?.expiry_source_text ?? null}
+                onConfirm={() => setExpirySource("user")}
+                onEdit={() =>
+                  (
+                    document.querySelector<HTMLInputElement>('input[aria-label="Expiry date"]')
+                  )?.focus()
+                }
+              />
             </section>
 
             {/* ---------------- Human validation notice ---------------- */}
