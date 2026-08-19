@@ -674,11 +674,11 @@
   & .tvp-danger { background: var(--tvp-red); color: var(--on-teal); }
   /* Accent (amber) — reserved for "incoming / request" flow (Talent → Agency) */
   & .tvp-accent { background: var(--tvp-amber-bg); color: var(--tvp-amber); border: 1px solid color-mix(in oklab, var(--tvp-amber) 45%, transparent); box-shadow: 0 4px 12px rgba(232,147,72,.14); }
-  & .tvp-accent:hover { background: color-mix(in oklab, var(--tvp-amber-bg) 70%, white); border-color: var(--tvp-amber); }
+  & .tvp-accent:hover { background: color-mix(in oklab, var(--tvp-amber-bg) 70%, var(--surface)); border-color: var(--tvp-amber); }
   & .tvp-accent:disabled { opacity: .55; cursor: not-allowed; }
   /* Purple — "request / inbound doc" action (Vault "Request Document") */
   & .tvp-purple-btn { background: var(--tvp-purple-bg); color: var(--tvp-purple); border: 1px solid color-mix(in oklab, var(--tvp-purple) 40%, transparent); box-shadow: 0 4px 12px rgba(124,58,237,.14); }
-  & .tvp-purple-btn:hover { background: color-mix(in oklab, var(--tvp-purple-bg) 70%, white); border-color: var(--tvp-purple); }
+  & .tvp-purple-btn:hover { background: color-mix(in oklab, var(--tvp-purple-bg) 70%, var(--surface)); border-color: var(--tvp-purple); }
   & .tvp-purple-btn:disabled { opacity: .55; cursor: not-allowed; }
   /* Amber pip on tab labels — signals "needs action" on the Requests tab */
   & .tvp-tab-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tvp-amber); box-shadow: 0 0 0 2px var(--tvp-amber-bg); margin-left: 2px; }
@@ -821,7 +821,7 @@
   & .tvp-tab { height: 42px; border: 1px solid var(--tvp-line); border-radius: 11px; background: var(--surface); padding: 0 14px; display: flex; align-items: center; gap: 8px; font-weight: 900; color: var(--tvp-text); font-size: 13px; }
  & .tvp-tab.tvp-active { border-color: var(--tvp-teal-2); box-shadow: inset 0 -3px 0 var(--tvp-teal); color: var(--tvp-ink); }
  & .tvp-subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 16px; padding: 5px; background: var(--tvp-teal-50); border: 1px solid var(--tvp-line); border-radius: 12px; }
- & .tvp-subtab { height: 38px; border: 1px solid transparent; border-radius: 9px; background: transparent; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--tvp-muted, #64748B); font-size: 13px; }
+ & .tvp-subtab { height: 38px; border: 1px solid transparent; border-radius: 9px; background: transparent; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--tvp-muted); font-size: 13px; }
  & .tvp-subtab.tvp-active { background: var(--surface); border-color: var(--tvp-teal-2); color: var(--tvp-teal); font-weight: 900; box-shadow: inset 0 -3px 0 var(--tvp-teal); }
  & .tvp-subtab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--tvp-amber); color: var(--on-teal); font-size: 11px; font-weight: 900; }
 
@@ -837,11 +837,11 @@
   & .tvp-callout-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--tvp-blue-bg); color: var(--tvp-blue); font-weight: 900; flex: 0 0 auto; }
   & button.tvp-callout-action {
     width: 100%; text-align: left; cursor: pointer;
-    border-color: var(--tvp-amber-200, #F3D3AE); background: var(--tvp-amber-50, #FEF7EF);
+    border-color: color-mix(in oklab, var(--tvp-amber) 35%, transparent); background: var(--amber-050);
     transition: box-shadow .15s ease, transform .15s ease;
   }
   & button.tvp-callout-action:hover { box-shadow: 0 6px 18px rgba(232,147,72,.18); transform: translateY(-1px); }
-  & button.tvp-callout-action .tvp-callout-icon { background: var(--tvp-amber-bg, #FBE7D2); color: var(--tvp-amber, #C46A16); }
+  & button.tvp-callout-action .tvp-callout-icon { background: var(--tvp-amber-bg); color: var(--tvp-amber); }
 
   & .tvp-reporting-note { border: 1px solid var(--tvp-teal-200); background: var(--tvp-teal-50); border-radius: 14px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 14px; align-items: flex-start; }
   & .tvp-reporting-note .tvp-note-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--tvp-teal-100); color: var(--tvp-teal); font-weight: 900; flex: 0 0 auto; }
@@ -1004,7 +1004,7 @@
   & .tvp-subfolder-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--tvp-muted); font-weight: 800; }
   & .tvp-lock-note { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--tvp-teal-200); border-radius: 999px; background: var(--tvp-teal-50); padding: 6px 11px; font-size: 12px; font-weight: 900; color: var(--tvp-teal); }
   & .tvp-preview-box { height: 360px; border: 1.5px dashed var(--tvp-teal-200); background: var(--tvp-teal-50); border-radius: 14px; display: grid; place-items: center; color: var(--tvp-muted); margin-top: 14px; font-weight: 800; }
-  & .tvp-income-rule { border: 1px solid #F6C99D; background: #FFF7ED; border-radius: 14px; padding: 14px 18px; display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
+  & .tvp-income-rule { border: 1px solid color-mix(in oklab, var(--amber-600) 35%, transparent); background: var(--amber-050); border-radius: 14px; padding: 14px 18px; display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
   & .tvp-budget-hero { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
   & .tvp-month-picker { height: 42px; border: 1px solid var(--tvp-line-strong); border-radius: 12px; background: var(--surface); padding: 0 14px; display: inline-flex; align-items: center; gap: 10px; font-weight: 900; font-size: 13px; }
   & .tvp-plan-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
@@ -1410,12 +1410,12 @@
 .tvp-tour-spot {
   position: absolute; border-radius: 12px; pointer-events: none;
   box-shadow: 0 0 0 9999px rgba(12, 22, 28, .6);
-  outline: 2px solid var(--tvp-amber, #C98A2B);
+  outline: 2px solid var(--tvp-amber);
   transition: top .18s ease, left .18s ease, width .18s ease, height .18s ease;
 }
 .tvp-tour-tip {
   position: absolute; width: min(340px, calc(100vw - 32px));
-  background: var(--surface); border: 1px solid var(--tvp-line, #E5E7EB); border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--tvp-line); border-radius: 14px;
   box-shadow: 0 24px 60px rgba(12, 22, 28, .28); padding: 16px 18px;
 }
 .tvp-tour-tip-center {
@@ -1425,23 +1425,23 @@
 }
 .tvp-tour-step {
   font-size: 11px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
-  color: var(--tvp-muted, #65707A);
+  color: var(--tvp-muted);
 }
-.tvp-tour-title { font-size: 16px; font-weight: 900; margin-top: 4px; color: var(--tvp-ink, #1F2933); }
-.tvp-tour-body { font-size: 13.5px; line-height: 1.55; margin: 8px 0 14px; color: var(--tvp-muted, #4B5563); }
+.tvp-tour-title { font-size: 16px; font-weight: 900; margin-top: 4px; color: var(--tvp-ink); }
+.tvp-tour-body { font-size: 13.5px; line-height: 1.55; margin: 8px 0 14px; color: var(--tvp-muted); }
 .tvp-tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .tvp-tour-next { display: flex; gap: 8px; align-items: center; }
 .tvp-tour-skip {
   background: transparent; border: 0; padding: 6px 2px; cursor: pointer;
-  font-size: 13px; font-weight: 700; color: var(--tvp-muted, #65707A);
+  font-size: 13px; font-weight: 700; color: var(--tvp-muted);
 }
-.tvp-tour-skip:hover { color: var(--tvp-ink, #1F2933); text-decoration: underline; }
+.tvp-tour-skip:hover { color: var(--tvp-ink); text-decoration: underline; }
 .tvp-tour .tvp-primary, .tvp-tour .tvp-secondary {
   display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
   border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer;
 }
-.tvp-tour .tvp-primary { background: var(--tvp-teal, #064E58); color: var(--on-teal); border: 0; }
-.tvp-tour .tvp-secondary { background: var(--surface); color: var(--tvp-ink, #1F2933); border: 1px solid var(--tvp-line-strong, #D6DAE0); }
+.tvp-tour .tvp-primary { background: var(--tvp-teal); color: var(--on-teal); border: 0; }
+.tvp-tour .tvp-secondary { background: var(--surface); color: var(--tvp-ink); border: 1px solid var(--tvp-line-strong); }
 
 @media (max-width: 720px) {
   .tvp-tour-tip {
@@ -1458,3 +1458,82 @@
 }
 .tvp-load-more-row > td { background: var(--surface-soft); padding: 4px 14px !important; }
 .tvp-load-more .tvp-secondary { height: 34px; font-size: 13px; }
+
+
+/* ============================================================================
+   2026 trends update — typography tier, AI provenance, reduced motion
+   ========================================================================= */
+
+.display-lg {
+  font-size: var(--t-display-lg);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--ink-900);
+  text-wrap: pretty;
+  margin: 0;
+}
+.subtext { font-size: var(--t-sub); color: var(--ink-500); line-height: var(--lh-body); }
+.meta    { font-size: var(--t-meta); color: var(--ink-400); }
+
+/* --- Shared button language used by the provenance block ------------------ */
+.tv-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 34px; padding: 0 14px; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 800; cursor: pointer; border: 1px solid transparent;
+  transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+}
+.tv-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.tv-btn:disabled { opacity: .55; cursor: not-allowed; }
+.tv-btn--primary { background: var(--teal-700); color: var(--on-teal); }
+.tv-btn--primary:hover:not(:disabled) { background: var(--teal-600); }
+.tv-btn--primary:active:not(:disabled) { transform: translateY(1px); }
+.tv-btn--secondary { background: var(--surface); color: var(--ink-900); border-color: var(--line-300); }
+.tv-btn--secondary:hover:not(:disabled) { background: var(--surface-soft); border-color: var(--teal-600); }
+.tv-btn--ghost { background: transparent; color: var(--teal-700); padding: 0 6px; }
+.tv-btn--ghost:hover:not(:disabled) { color: var(--teal-600); text-decoration: underline; }
+
+/* --- AI provenance block -------------------------------------------------- */
+.tv-prov {
+  border: 1px solid var(--line-200);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--sh-sm);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.tv-prov[data-source="ai"] { border-color: var(--teal-200); background: var(--teal-050); }
+.tv-prov[data-source="user"] { border-color: var(--line-200); background: var(--surface-soft); }
+.tv-prov__why { font-size: var(--t-sub); line-height: var(--lh-body); color: var(--ink-700); margin: 0; }
+.tv-prov__acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tv-prov__badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: var(--r-pill); padding: 3px 9px;
+  font-size: 11px; font-weight: 800; letter-spacing: .02em;
+  background: var(--st-info-bg); color: var(--st-info-fg);
+}
+.tv-prov[data-source="user"] .tv-prov__badge { background: var(--st-success-bg); color: var(--st-success-fg); }
+.tv-prov__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tv-prov__field { font-size: var(--t-card); font-weight: 700; color: var(--ink-900); }
+.tv-prov__value { font-size: var(--t-sub); font-weight: 700; color: var(--ink-700); }
+.tv-prov__source {
+  margin: 0; font-size: var(--t-meta); color: var(--ink-500);
+  border-left: 2px solid var(--teal-200); padding-left: 10px; line-height: var(--lh-body);
+}
+
+/* --- Reduced motion: collapse every transition/animation ------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .tv-btn:active,
+  .tv-app .tvp-kpi.tvp-clickable:hover,
+  .tv-app button.tvp-callout-action:hover,
+  .tv-app .tvp-folder-card:hover,
+  .tv-app .tvp-life-chip:hover,
+  .tv-app a.tvp-user-dot:hover { transform: none !important; }
+}
