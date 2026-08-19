@@ -64,6 +64,9 @@ function MyAccountPage() {
               contextLabel="administrator"
             />
           </div>
+          <div className="tvp-account-full">
+            <ReplayTourCard />
+          </div>
         </div>
       )}
     </div>
