@@ -208,12 +208,7 @@ export function ManageFoldersPanel() {
       </table>
 
       {ruleEditor && (
-        <div className="tvp-modal-backdrop" onClick={() => setRuleEditor(null)}>
-          <div
-            className="tvp-modal tvp-settings-tight"
-            style={{ maxWidth: 480 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <ModalShell onClose={() => setRuleEditor(null)} maxWidth={480} className="tvp-settings-tight">
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div>
                 <h2 className="tvp-h2" style={{ margin: 0 }}>Default validity rule</h2>

@@ -1,3 +1,4 @@
+import { ModalShell } from "@/components/shared/modal-shell";
 import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -247,8 +248,7 @@ function NewRequestDialog({
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
   return (
-    <div className="tvp-modal-backdrop" onClick={onClose}>
-      <div className="tvp-modal" onClick={e => e.stopPropagation()}>
+    <ModalShell onClose={onClose}>
         <div className="tvp-modal-header">
           <h3 className="tvp-h2">New document request</h3>
           <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
@@ -323,8 +323,7 @@ function NewRequestDialog({
             <Save className="h-4 w-4" />Create request
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 
@@ -366,8 +365,7 @@ function ReviewDialog({
   });
 
   return (
-    <div className="tvp-modal-backdrop" onClick={onClose}>
-      <div className="tvp-modal" style={{ maxWidth: 720 }} onClick={e => e.stopPropagation()}>
+    <ModalShell onClose={onClose} maxWidth={720}>
         <div className="tvp-modal-header">
           <div>
             <h3 className="tvp-h2">Review: {request.title}</h3>
@@ -455,7 +453,6 @@ function ReviewDialog({
             <Save className="h-4 w-4" />Submit outcome
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
