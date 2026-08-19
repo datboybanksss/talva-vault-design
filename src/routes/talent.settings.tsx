@@ -157,6 +157,8 @@ function TalentSettings() {
         </div>
       )}
 
+      {mode === "profile" && <ReplayTourCard />}
+
       {mode === "account" && (
         <div className="tvp-account-grid">
           <PasswordCard
