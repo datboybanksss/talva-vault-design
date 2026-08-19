@@ -12,6 +12,7 @@ import {
 } from "@/lib/loved-one.functions";
 import { listPrivateVault } from "@/lib/talent-vault.functions";
 import { usePagedList } from "@/lib/pagination";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/talent/sharing")({
@@ -158,38 +159,34 @@ function SharingPage() {
                       <td><span className={`tvp-status tvp-${tone}`}>{status}</span></td>
                       <td>
                         <div className="tvp-row-actions">
-                          {!revoked && !expired && (
-                            <>
-                              <button className="tvp-mini-btn" aria-label="Copy link" title="Copy link" onClick={() => copyLink(s.token)}>
-                                <Copy className="h-4 w-4" />
-                              </button>
-                              <button className="tvp-mini-btn" aria-label="Regenerate access code" title="Regenerate access code" onClick={() => onRegen(s)}>
-                                <RefreshCw className="h-4 w-4" />
-                              </button>
-                            </>
-                          )}
-                          {!revoked && (
-                            <button className="tvp-mini-btn" aria-label="Revoke share" title="Revoke share" onClick={() => onRevoke(s.id)}>
-                              <Ban className="h-4 w-4" />
-                            </button>
-                          )}
-                          {(revoked || expired) && (
-                            <button
-                              className="tvp-mini-btn"
-                              aria-label="Reshare with this person"
-                              title="Reshare with this person"
-                              onClick={() => {
-                                setPrefill({
-                                  name: s.loved_one_name ?? "",
-                                  email: s.loved_one_email ?? "",
-                                  relationship: s.relationship ?? "",
-                                });
-                                setShowModal(true);
-                              }}
-                            >
-                              <Send className="h-4 w-4" />
-                            </button>
-                          )}
+                          <RowActionsMenu
+                            actions={[
+                              !revoked && !expired && {
+                                key: "copy", label: "Copy link", icon: Copy,
+                                onSelect: () => copyLink(s.token),
+                              },
+                              !revoked && !expired && {
+                                key: "regen", label: "New access code", icon: RefreshCw,
+                                onSelect: () => onRegen(s),
+                              },
+                              (revoked || expired) && {
+                                key: "reshare", label: "Reshare with this person", icon: Send,
+                                onSelect: () => {
+                                  setPrefill({
+                                    name: s.loved_one_name ?? "",
+                                    email: s.loved_one_email ?? "",
+                                    relationship: s.relationship ?? "",
+                                  });
+                                  setShowModal(true);
+                                },
+                              },
+                              !revoked && {
+                                key: "revoke", label: "Revoke access", icon: Ban,
+                                destructive: true, separatorBefore: true,
+                                onSelect: () => onRevoke(s.id),
+                              },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
