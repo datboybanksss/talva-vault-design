@@ -155,7 +155,6 @@ function AgencyDashboard() {
     return list.slice(0, 8);
   }, [activityRows, activityFilter]);
 
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [manager, setManager] = useState("all");
   const [type, setType] = useState("all");
@@ -566,7 +565,7 @@ function pendingLabel(r: { status: string; nextAction: string | null; expiringDo
 }
 
 function RecentTalentActivity({
-  rows, isLoading, isOwner, openMenuId, setOpenMenuId, endMut, reactivateMut,
+  rows, isLoading, isOwner, endMut, reactivateMut,
 }: {
   rows: Array<{
     id: string; displayName: string; status: string; talentType: string | null;
@@ -576,8 +575,6 @@ function RecentTalentActivity({
   }>;
   isLoading: boolean;
   isOwner: boolean;
-  openMenuId: string | null;
-  setOpenMenuId: (v: string | null) => void;
   endMut: any;
   reactivateMut: any;
 }) {
