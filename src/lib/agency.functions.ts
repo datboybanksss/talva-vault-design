@@ -792,6 +792,9 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
     }));
   });
 
+const FOLDER_COLUMNS =
+  "id, folder_name, sort_order, parent_folder_id, category_slug, restricted, needs_review, source";
+
 // List folders provisioned for a specific talent link (from M2 invite selection).
 export const listAgencyTalentFolders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -801,7 +804,7 @@ export const listAgencyTalentFolders = createServerFn({ method: "POST" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_talent_folders")
-      .select("id, folder_name, sort_order")
+      .select(FOLDER_COLUMNS)
       .eq("agency_id", agencyId)
       .eq("talent_link_id", data.talent_link_id)
       .order("sort_order", { ascending: true });
@@ -810,11 +813,17 @@ export const listAgencyTalentFolders = createServerFn({ method: "POST" })
       id: r.id as string,
       folderName: r.folder_name as string,
       sortOrder: r.sort_order as number,
+      parentFolderId: (r.parent_folder_id as string) ?? null,
+      categorySlug: (r.category_slug as string) ?? null,
+      restricted: Boolean(r.restricted),
+      needsReview: Boolean(r.needs_review),
+      source: (r.source as string) ?? "default",
     }));
   });
 
-// List every provisioned folder across all active talents in the agency.
-// Used by the Document Vault "Browse folders" modal.
+// List every provisioned folder across all talents in the agency.
+// Row-level security already hides restricted folders from staff who may not
+// see them, so whatever comes back here is safe to render.
 export const listAllAgencyProvisionedFolders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -822,7 +831,9 @@ export const listAllAgencyProvisionedFolders = createServerFn({ method: "POST" }
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_talent_folders")
-      .select("id, folder_name, sort_order, talent_link_id, agency_talent_links!inner(id, display_name, status)")
+      .select(
+        `${FOLDER_COLUMNS}, talent_link_id, agency_talent_links!inner(id, display_name, status, talent_type)`,
+      )
       .eq("agency_id", agencyId)
       .order("sort_order", { ascending: true });
     if (error) throw new Error(error.message);
@@ -830,9 +841,15 @@ export const listAllAgencyProvisionedFolders = createServerFn({ method: "POST" }
       id: r.id as string,
       folderName: r.folder_name as string,
       sortOrder: r.sort_order as number,
+      parentFolderId: (r.parent_folder_id as string) ?? null,
+      categorySlug: (r.category_slug as string) ?? null,
+      restricted: Boolean(r.restricted),
+      needsReview: Boolean(r.needs_review),
+      source: (r.source as string) ?? "default",
       talentLinkId: r.talent_link_id as string,
       talentName: (r.agency_talent_links?.display_name as string) ?? "",
       talentStatus: (r.agency_talent_links?.status as string) ?? "",
+      talentType: (r.agency_talent_links?.talent_type as string) ?? null,
     }));
   });
 
