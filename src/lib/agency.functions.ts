@@ -3008,3 +3008,50 @@ export const deleteAgencySubfolderSetting = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Change a talent's type and re-provision folders: additive subfolders for the
+ * new type are created, and subfolders the old type brought in are flagged for
+ * manual review rather than deleted.
+ */
+export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      talent_link_id: z.string().uuid(),
+      talent_type: z.string().min(1).max(60),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: link, error: linkErr } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name, talent_type")
+      .eq("id", data.talent_link_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (linkErr) throw new Error(linkErr.message);
+    if (!link) throw new Error("Talent not found on your roster");
+
+    const { error } = await supabase
+      .from("agency_talent_links")
+      .update({ talent_type: data.talent_type })
+      .eq("id", link.id);
+    if (error) throw new Error(error.message);
+
+    const { data: flagged, error: rpcErr } = await supabase.rpc(
+      "reconcile_talent_type_folders",
+      { _talent_link_id: link.id, _new_talent_type: data.talent_type },
+    );
+    if (rpcErr) throw new Error(rpcErr.message);
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, (context as any).claims?.email,
+      "update_talent_type", "talent", link.id, link.display_name,
+      { from: link.talent_type, to: data.talent_type, flagged_for_review: flagged ?? 0 },
+    );
+
+    return { ok: true, flaggedForReview: (flagged as number) ?? 0 };
+  });
