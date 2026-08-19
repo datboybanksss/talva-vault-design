@@ -1422,9 +1422,11 @@ export type Database = {
           id: string
           invited_by: string | null
           last_sent_at: string
+          manager_user_id: string | null
           send_count: number
           status: Database["public"]["Enums"]["invitation_status"]
           talent_name: string | null
+          talent_type: string | null
           token: string
           updated_at: string
         }
@@ -1439,9 +1441,11 @@ export type Database = {
           id?: string
           invited_by?: string | null
           last_sent_at?: string
+          manager_user_id?: string | null
           send_count?: number
           status?: Database["public"]["Enums"]["invitation_status"]
           talent_name?: string | null
+          talent_type?: string | null
           token?: string
           updated_at?: string
         }
@@ -1456,9 +1460,11 @@ export type Database = {
           id?: string
           invited_by?: string | null
           last_sent_at?: string
+          manager_user_id?: string | null
           send_count?: number
           status?: Database["public"]["Enums"]["invitation_status"]
           talent_name?: string | null
+          talent_type?: string | null
           token?: string
           updated_at?: string
         }
