@@ -1,17 +1,33 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, Save, Send, Sparkles, Check, Settings2, ShieldCheck, Lock } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Send,
+  Sparkles,
+  Check,
+  Settings2,
+  ShieldCheck,
+  Lock,
+} from "lucide-react";
+import {
+  agencyWhoami,
+  listAgencyStaff,
+  createTalentInvitationMine,
+} from "@/lib/agency.functions";
 
 export const Route = createFileRoute("/agency/talent/invite")({
-  head: () => ({ meta: [{ title: "Invite Talent · TalVault" }] }),
+  head: () => ({ meta: [{ title: "Invite talent · TalVault" }] }),
   component: InviteTalent,
 });
 
 const steps = [
-  { num: 1, title: "Talent Details", sub: "Create basic profile" },
+  { num: 1, title: "Talent details", sub: "Create basic profile" },
   { num: 2, title: "Manager", sub: "Assign internal owner" },
-  { num: 3, title: "Shared Folder", sub: "Choose professional folders" },
-  { num: 4, title: "Review & Send", sub: "Send invite" },
+  { num: 3, title: "Shared folder", sub: "Choose professional folders" },
+  { num: 4, title: "Review & send", sub: "Send invite" },
 ];
 
 const defaultFolders = [
@@ -21,26 +37,70 @@ const optionalFolders = ["Property", "Sponsorships"];
 const allFolders = [...defaultFolders, ...optionalFolders];
 
 function InviteTalent() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const whoamiFn = useServerFn(agencyWhoami);
+  const staffFn = useServerFn(listAgencyStaff);
+  const createFn = useServerFn(createTalentInvitationMine);
+
+  const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
+  const staff = useQuery({ queryKey: ["agency", "staff"], queryFn: () => staffFn() });
+  const isOwner = who.data?.role === "owner";
+
   const [step, setStep] = useState(1);
   const [folderMode, setFolderMode] = useState<"standard" | "custom">("standard");
   const [selected, setSelected] = useState<string[]>(defaultFolders);
+
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [talentType, setTalentType] = useState("Athlete");
+  const [expiryDays, setExpiryDays] = useState(14);
+  const [managerId, setManagerId] = useState("");
+
+  const staffList = (staff.data ?? []) as Array<{ userId: string; name: string; role: string }>;
+  const managerName = useMemo(
+    () => staffList.find((s) => s.userId === managerId)?.name ?? "Not assigned yet",
+    [staffList, managerId],
+  );
 
   const toggle = (f: string) =>
     setSelected((s) => (s.includes(f) ? s.filter((x) => x !== f) : [...s, f]));
 
   const activeFolders = folderMode === "standard" ? defaultFolders : selected;
 
+  const detailsValid = fullName.trim().length > 1 && /\S+@\S+\.\S+/.test(email.trim());
+
+  const sendMut = useMutation({
+    mutationFn: () =>
+      createFn({
+        data: {
+          talent_name: fullName.trim(),
+          email: email.trim(),
+          expiry_days: expiryDays,
+          folder_mode: folderMode,
+          folder_selection: activeFolders.map((name, i) => ({ name, sort_order: i })),
+          manager_user_id: managerId || null,
+          talent_type: talentType || null,
+        },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+      toast.success("Invitation sent. The link expires on the date you set.");
+      navigate({ to: "/agency/invitations" });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "The invitation could not be sent."),
+  });
+
+  const canContinue = step !== 1 || detailsValid;
 
   return (
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/agency/talent" className="tvp-link inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" />Back to Talent</Link>
-          <h1 className="tvp-h1 mt-2">Invite Talent</h1>
-          <div className="tvp-subtitle">Create a Talent profile and send a secure invitation.</div>
-        </div>
-        <div className="tvp-actions">
-          <button className="tvp-secondary"><Save className="h-4 w-4" />Save as Draft</button>
+          <Link to="/agency/talent" className="tvp-link inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" />Back to talent</Link>
+          <h1 className="tvp-h1 mt-2">Invite talent</h1>
+          <div className="tvp-subtitle">Create a talent profile and send a secure invitation.</div>
         </div>
       </div>
 
@@ -63,26 +123,75 @@ function InviteTalent() {
               <div className="tvp-sub-card" style={{ marginTop: 0 }}>
                 <h3 className="tvp-h3">Talent details</h3>
                 <div className="tvp-form-grid">
-                  <div className="tvp-form-group"><label>Full legal name</label><input placeholder="e.g. Caster Semenya" /></div>
-                  <div className="tvp-form-group"><label>Display name</label><input placeholder="How Talent appears in TalVault" /></div>
-                  <div className="tvp-form-group"><label>Talent type</label><select><option>Athlete</option><option>Artist</option><option>Model</option></select></div>
-                  <div className="tvp-form-group"><label>Country</label><input defaultValue="South Africa" /></div>
-                  <div className="tvp-form-group"><label>Email address</label><input placeholder="Used for invitation" /></div>
-                  <div className="tvp-form-group"><label>Mobile</label><input placeholder="+27..." /></div>
+                  <div className="tvp-form-group">
+                    <label>Full legal name *</label>
+                    <input
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="e.g. full name as it appears on ID"
+                    />
+                  </div>
+                  <div className="tvp-form-group">
+                    <label>Email address *</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@email.com"
+                    />
+                  </div>
+                  <div className="tvp-form-group">
+                    <label>Talent type</label>
+                    <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
+                      <option>Athlete</option>
+                      <option>Artist</option>
+                      <option>Model</option>
+                    </select>
+                  </div>
+                  <div className="tvp-form-group">
+                    <label>Invitation expiry (days)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={expiryDays}
+                      onChange={(e) => setExpiryDays(Math.max(1, Math.min(60, Number(e.target.value) || 14)))}
+                    />
+                  </div>
                 </div>
+                {!detailsValid && (
+                  <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
+                    A full name and a valid email address are needed before you can continue.
+                  </div>
+                )}
               </div>
             )}
             {step === 2 && (
               <div className="tvp-sub-card" style={{ marginTop: 0 }}>
-                <h3 className="tvp-h3">Assign Agency manager</h3>
-                <p className="tvp-muted">The manager is the internal owner of this Talent relationship.</p>
-                <div className="tvp-form-group"><label>Manager</label><select><option>Thandi Ndlovu (Owner)</option><option>Sipho Dlamini</option><option>Aaliyah Mokoena</option></select></div>
-                <div className="tvp-form-group"><label>Secondary manager (optional)</label><select><option>None</option><option>Sipho Dlamini</option></select></div>
+                <h3 className="tvp-h3">Assign agency manager</h3>
+                <p className="tvp-muted">The manager is the internal owner of this talent relationship.</p>
+                <div className="tvp-form-group">
+                  <label>Manager</label>
+                  <select value={managerId} onChange={(e) => setManagerId(e.target.value)}>
+                    <option value="">Not assigned yet</option>
+                    {staffList.map((s) => (
+                      <option key={s.userId} value={s.userId}>
+                        {s.name}{s.role === "owner" ? " (owner)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {staff.isLoading && <div className="tvp-small tvp-muted">Loading your team…</div>}
+                {!staff.isLoading && staffList.length === 0 && (
+                  <div className="tvp-small tvp-muted">
+                    No team members yet — invite a colleague from Invitations, or leave this unassigned for now.
+                  </div>
+                )}
               </div>
             )}
             {step === 3 && (
               <div className="tvp-sub-card" style={{ marginTop: 0 }}>
-                <h3 className="tvp-h3">Roster Shared Folder setup</h3>
+                <h3 className="tvp-h3">Roster shared folder setup</h3>
                 <div
                   className="tvp-ai-box"
                   style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "flex-start" }}
@@ -154,9 +263,11 @@ function InviteTalent() {
               <div className="tvp-sub-card" style={{ marginTop: 0 }}>
                 <h3 className="tvp-h3">Review & send</h3>
                 <div className="tvp-review-grid" style={{ marginTop: 14 }}>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent</span><strong>Caster Semenya</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Email</span><strong>caster@example.com</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Manager</span><strong>Thandi Ndlovu</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent</span><strong>{fullName.trim() || "—"}</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Email</span><strong>{email.trim() || "—"}</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent type</span><strong>{talentType}</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Manager</span><strong>{managerName}</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Invitation expiry</span><strong>{expiryDays} days</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Folders</span><strong>{activeFolders.length} enabled{folderMode === "standard" ? " (standard set)" : " (custom)"}</strong></div>
                 </div>
                 <div className="tvp-ai-box" style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -166,30 +277,53 @@ function InviteTalent() {
                   </div>
                 </div>
                 <div className="tvp-ai-box" style={{ marginTop: 16 }}>
-                  <strong><Sparkles className="inline h-4 w-4 mr-1" />Invite preview</strong>
-                  <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>The Talent will receive a secure invitation email with onboarding steps and folder setup.</p>
+                  <strong><Sparkles className="inline h-4 w-4 mr-1" />What happens next</strong>
+                  <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
+                    The talent receives a secure invitation link. Their shared folders are created
+                    when they accept. Sending is recorded in your activity log.
+                  </p>
                 </div>
+                {!isOwner && (
+                  <div className="tvp-small tvp-muted" style={{ marginTop: 10 }}>
+                    Only the agency owner can send talent invitations.
+                  </div>
+                )}
               </div>
             )}
 
             <div className="tvp-footer-actions">
               {step > 1 && <button className="tvp-secondary" onClick={() => setStep(step - 1)}>Back</button>}
-              {step < 4
-                ? <button className="tvp-primary" onClick={() => setStep(step + 1)}>Continue</button>
-                : <button className="tvp-primary"><Send className="h-4 w-4" />Send Invitation</button>}
+              {step < 4 ? (
+                <button
+                  className="tvp-primary"
+                  disabled={!canContinue}
+                  onClick={() => canContinue && setStep(step + 1)}
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  className="tvp-primary"
+                  disabled={!detailsValid || !isOwner || sendMut.isPending}
+                  onClick={() => sendMut.mutate()}
+                >
+                  <Send className="h-4 w-4" />
+                  {sendMut.isPending ? "Sending…" : "Send invitation"}
+                </button>
+              )}
             </div>
           </div>
 
           <div>
             <div className="tvp-card tvp-panel">
               <h3 className="tvp-h3">Invitation checklist</h3>
-              <div className="tvp-checklist-row">{step >= 1 ? "✓" : "○"} Talent details</div>
-              <div className="tvp-checklist-row">{step >= 2 ? "✓" : "○"} Manager assigned</div>
-              <div className="tvp-checklist-row">{step >= 3 ? "✓" : "○"} Folders chosen</div>
-              <div className="tvp-checklist-row">{step >= 4 ? "✓" : "○"} Sent</div>
+              <div className="tvp-checklist-row">{detailsValid ? "✓" : "○"} Talent details</div>
+              <div className="tvp-checklist-row">{managerId ? "✓" : "○"} Manager assigned</div>
+              <div className="tvp-checklist-row">{activeFolders.length > 0 ? "✓" : "○"} Folders chosen</div>
+              <div className="tvp-checklist-row">{sendMut.isSuccess ? "✓" : "○"} Sent</div>
             </div>
             <div className="tvp-help-note">
-              The Talent must register with the same email used in the invitation.
+              The talent must register with the same email used in the invitation.
             </div>
           </div>
         </div>
