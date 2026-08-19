@@ -110,6 +110,13 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     ...(notifs?.persisted ?? []),
   ];
 
+  const dismissReminderFn = useServerFn(dismissAgencyReminder);
+  const dismissItem = async (n: { key: string; snapshot: number }) => {
+    await dismissReminderFn({ data: { kind: n.key, snapshot: n.snapshot } });
+    await queryClient.invalidateQueries({ queryKey: ["agency", "notifications"] });
+  };
+
+
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setBellOpen(false);
