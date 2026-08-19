@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { RotateCcw, Sparkles, CalendarClock, ToggleLeft } from "lucide-react";
+import { RotateCcw, Sparkles, CalendarClock, ToggleLeft, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   listAgencyFolderSettings,
@@ -10,14 +10,6 @@ import {
 } from "@/lib/agency.functions";
 import { FOLDER_CATEGORIES, VALIDITY_RULE_PRESETS } from "@/lib/folder-taxonomy";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 type Setting = {
   id: string;
@@ -48,9 +40,7 @@ type Resolved = {
 
 function YesNo({ value }: { value: boolean }) {
   return (
-    <span className={`tvp-pill ${value ? "tvp-pill-green" : "tvp-pill-muted"}`}>
-      {value ? "Yes" : "No"}
-    </span>
+    <span className={`tvp-status ${value ? "tvp-green" : "tvp-grey"}`}>{value ? "Yes" : "No"}</span>
   );
 }
 
@@ -83,14 +73,19 @@ export function ManageFoldersPanel() {
   }, [data.settings]);
 
   const save = useMutation({
-    mutationFn: (input: Parameters<typeof upsertAgencyFolderSetting>[0] extends never ? never : any) =>
-      upsertFn({ data: input }),
+    mutationFn: (input: {
+      folder_name: string;
+      applied_by_default?: boolean;
+      ai_filing_allowed?: boolean;
+      default_validity_rule?: string;
+      can_untick_during_onboarding?: boolean;
+    }) => upsertFn({ data: input }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["agency", "folder-settings"] }),
     onError: (e: any) => toast.error(e?.message ?? "Could not save that change"),
   });
 
   const reset = useMutation({
-    mutationFn: () => resetFn({ data: undefined as any }),
+    mutationFn: () => resetFn(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agency", "folder-settings"] });
       toast.success("Folder selection reset to recommended");
@@ -98,47 +93,45 @@ export function ManageFoldersPanel() {
     onError: (e: any) => toast.error(e?.message ?? "Reset failed"),
   });
 
-  function toggleDefault(row: Resolved) {
-    if (!isOwner) return;
-    save.mutate({ folder_name: row.name, applied_by_default: !row.appliedByDefault });
-  }
-
   return (
-    <div className="tvp-card" style={{ padding: 24 }}>
-      <div className="tvp-row-between" style={{ alignItems: "flex-start", gap: 16 }}>
+    <div className="tvp-card tvp-panel tvp-settings-tight">
+      <div className="tvp-panel-head">
         <div>
-          <h2 className="tvp-h2">Default Folder Selection</h2>
-          <p className="tvp-muted" style={{ maxWidth: 640, marginTop: 4 }}>
+          <h2 className="tvp-h2" style={{ margin: 0 }}>Default Folder Selection</h2>
+          <p className="tvp-muted" style={{ fontSize: 12, marginTop: 4, maxWidth: 620 }}>
             Tick the folders that should be pre-selected for every new Talent profile. These can
             still be unticked during individual Talent onboarding.
           </p>
         </div>
         <button
           type="button"
-          className="tvp-linkbtn"
+          className="tvp-link"
           disabled={!isOwner || reset.isPending}
           onClick={() => reset.mutate()}
           title={isOwner ? undefined : "Only the agency owner can change folder defaults"}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
         >
-          <RotateCcw size={14} /> Reset to recommended folders
+          <RotateCcw className="h-4 w-4" /> Reset to recommended folders
         </button>
       </div>
 
-      <div className="tvp-folder-grid" style={{ marginTop: 20 }}>
+      <div className="tvp-folder-grid">
         {rows.map((row) => (
           <label
             key={row.name}
-            className={`tvp-folder-card${row.customised ? " tvp-folder-card--custom" : ""}`}
+            className={`tvp-folder-card${row.customised ? " tvp-folder-card-custom" : ""}`}
           >
             <input
               type="checkbox"
               checked={row.appliedByDefault}
               disabled={!isOwner || save.isPending}
-              onChange={() => toggleDefault(row)}
+              onChange={() =>
+                save.mutate({ folder_name: row.name, applied_by_default: !row.appliedByDefault })
+              }
             />
             <span>
-              <span className="tvp-folder-card__name">{row.name}</span>
-              <span className="tvp-folder-card__meta">
+              <span className="tvp-folder-card-name">{row.name}</span>
+              <span className="tvp-folder-card-meta">
                 {row.customised
                   ? "Custom default folder"
                   : row.recommended
@@ -150,121 +143,136 @@ export function ManageFoldersPanel() {
         ))}
       </div>
 
-      <hr className="tvp-divider" style={{ margin: "28px 0 20px" }} />
+      <div className="tvp-folder-divider" />
 
-      <h2 className="tvp-h2">Folder Rules</h2>
-      <div className="tvp-table-wrap" style={{ marginTop: 12 }}>
-        <table className="tvp-table">
-          <thead>
-            <tr>
-              <th>Folder</th>
-              <th>Applied By Default?</th>
-              <th>AI Filing Allowed?</th>
-              <th>Default Validity Rule</th>
-              <th>Can Untick During Onboarding?</th>
-              <th style={{ width: 48 }} />
+      <h2 className="tvp-h2" style={{ margin: "0 0 12px" }}>Folder Rules</h2>
+      <table className="tvp-table">
+        <thead>
+          <tr>
+            <th>Folder</th>
+            <th>Applied By Default?</th>
+            <th>AI Filing Allowed?</th>
+            <th>Default Validity Rule</th>
+            <th>Can Untick During Onboarding?</th>
+            <th style={{ width: 48 }} />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.name}>
+              <td style={{ fontWeight: 800 }}>{row.name}</td>
+              <td><YesNo value={row.appliedByDefault} /></td>
+              <td><YesNo value={row.aiFilingAllowed} /></td>
+              <td className="tvp-muted">{row.validityRule}</td>
+              <td><YesNo value={row.canUntick} /></td>
+              <td>
+                <RowActionsMenu
+                  actions={[
+                    isOwner && {
+                      key: "ai",
+                      label: row.aiFilingAllowed ? "Disallow AI filing" : "Allow AI filing",
+                      icon: Sparkles,
+                      onSelect: () =>
+                        save.mutate({
+                          folder_name: row.name,
+                          ai_filing_allowed: !row.aiFilingAllowed,
+                        }),
+                    },
+                    isOwner && {
+                      key: "rule",
+                      label: "Edit rule",
+                      icon: CalendarClock,
+                      onSelect: () => {
+                        setRuleEditor(row);
+                        setRuleDraft(row.validityRule);
+                      },
+                    },
+                    isOwner && {
+                      key: "untick",
+                      label: row.canUntick
+                        ? "Lock during onboarding"
+                        : "Allow unticking during onboarding",
+                      icon: ToggleLeft,
+                      onSelect: () =>
+                        save.mutate({
+                          folder_name: row.name,
+                          can_untick_during_onboarding: !row.canUntick,
+                        }),
+                    },
+                  ]}
+                />
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.name}>
-                <td style={{ fontWeight: 600 }}>{row.name}</td>
-                <td><YesNo value={row.appliedByDefault} /></td>
-                <td><YesNo value={row.aiFilingAllowed} /></td>
-                <td className="tvp-muted">{row.validityRule}</td>
-                <td><YesNo value={row.canUntick} /></td>
-                <td>
-                  <RowActionsMenu
-                    actions={[
-                      isOwner && {
-                        key: "ai",
-                        label: row.aiFilingAllowed ? "Disallow AI filing" : "Allow AI filing",
-                        icon: Sparkles,
-                        onSelect: () =>
-                          save.mutate({
-                            folder_name: row.name,
-                            ai_filing_allowed: !row.aiFilingAllowed,
-                          }),
-                      },
-                      isOwner && {
-                        key: "rule",
-                        label: "Edit rule",
-                        icon: CalendarClock,
-                        onSelect: () => {
-                          setRuleEditor(row);
-                          setRuleDraft(row.validityRule);
-                        },
-                      },
-                      isOwner && {
-                        key: "untick",
-                        label: row.canUntick
-                          ? "Lock during onboarding"
-                          : "Allow unticking during onboarding",
-                        icon: ToggleLeft,
-                        onSelect: () =>
-                          save.mutate({
-                            folder_name: row.name,
-                            can_untick_during_onboarding: !row.canUntick,
-                          }),
-                      },
-                    ]}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
 
-      <Dialog open={!!ruleEditor} onOpenChange={(o) => !o && setRuleEditor(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Default validity rule</DialogTitle>
-            <DialogDescription>
-              Applies to new documents filed into {ruleEditor?.name}.
-            </DialogDescription>
-          </DialogHeader>
-          <div style={{ display: "grid", gap: 8 }}>
-            <select
-              className="tvp-input"
-              value={VALIDITY_RULE_PRESETS.includes(ruleDraft) ? ruleDraft : "__custom"}
-              onChange={(e) => {
-                if (e.target.value !== "__custom") setRuleDraft(e.target.value);
-                else setRuleDraft("");
-              }}
-            >
-              {VALIDITY_RULE_PRESETS.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-              <option value="__custom">Custom…</option>
-            </select>
-            <input
-              className="tvp-input"
-              value={ruleDraft}
-              placeholder="e.g. 3 years"
-              onChange={(e) => setRuleDraft(e.target.value)}
-            />
+      {ruleEditor && (
+        <div className="tvp-modal-backdrop" onClick={() => setRuleEditor(null)}>
+          <div
+            className="tvp-modal tvp-settings-tight"
+            style={{ maxWidth: 480 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+              <div>
+                <h2 className="tvp-h2" style={{ margin: 0 }}>Default validity rule</h2>
+                <p className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                  Applies to new documents filed into {ruleEditor.name}.
+                </p>
+              </div>
+              <button className="tvp-mini-btn" aria-label="Close" onClick={() => setRuleEditor(null)}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="tvp-form-group">
+              <label htmlFor="rule-preset">Preset</label>
+              <select
+                id="rule-preset"
+                value={VALIDITY_RULE_PRESETS.includes(ruleDraft) ? ruleDraft : "__custom"}
+                onChange={(e) => setRuleDraft(e.target.value === "__custom" ? "" : e.target.value)}
+              >
+                {VALIDITY_RULE_PRESETS.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+                <option value="__custom">Custom…</option>
+              </select>
+            </div>
+
+            <div className="tvp-form-group">
+              <label htmlFor="rule-text">Rule</label>
+              <input
+                id="rule-text"
+                value={ruleDraft}
+                placeholder="e.g. 3 years"
+                onChange={(e) => setRuleDraft(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-2 mt-2 justify-end">
+              <button className="tvp-secondary" onClick={() => setRuleEditor(null)}>Cancel</button>
+              <button
+                className="tvp-primary"
+                disabled={!ruleDraft.trim() || save.isPending}
+                onClick={() =>
+                  save.mutate(
+                    { folder_name: ruleEditor.name, default_validity_rule: ruleDraft.trim() },
+                    {
+                      onSuccess: () => {
+                        toast.success("Validity rule updated");
+                        setRuleEditor(null);
+                      },
+                    },
+                  )
+                }
+              >
+                Save rule
+              </button>
+            </div>
           </div>
-          <DialogFooter>
-            <button type="button" className="tvp-btn-ghost" onClick={() => setRuleEditor(null)}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="tvp-btn"
-              disabled={!ruleDraft.trim()}
-              onClick={() => {
-                save.mutate(
-                  { folder_name: ruleEditor!.name, default_validity_rule: ruleDraft.trim() },
-                  { onSuccess: () => { toast.success("Validity rule updated"); setRuleEditor(null); } },
-                );
-              }}
-            >
-              Save rule
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
