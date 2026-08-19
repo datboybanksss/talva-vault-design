@@ -19,9 +19,9 @@ const catalog = [
   { id: "f-visa", label: "Travel & Visas → Visas" },
 ];
 
-const confirmSpy = vi.fn(async () => ({ ok: true }));
-const skipSpy = vi.fn(async () => ({ ok: true }));
-const catalogSpy = vi.fn(async () => ({
+const confirmSpy = vi.fn(async (_data: any) => ({ ok: true }));
+const skipSpy = vi.fn(async (_data: any) => ({ ok: true }));
+const catalogSpy = vi.fn(async (_data?: any) => ({
   catalog,
   defaultReminderDays: 30,
   secondaryHint: "This stays in your Private Vault.",
@@ -119,7 +119,7 @@ describe("AiFilingReviewModal", () => {
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
 
-    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
+    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
       destination: "f-passport",
       expires_at: "2030-01-31T00:00:00.000Z",
       reminder_at: "2030-01-01T09:00:00.000Z",
@@ -147,7 +147,7 @@ describe("AiFilingReviewModal", () => {
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
 
-    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
+    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
       destination: "f-visa",
       expires_at: "2027-06-15T00:00:00.000Z",
       reminder_at: "2027-06-01T09:00:00.000Z",
@@ -166,7 +166,7 @@ describe("AiFilingReviewModal", () => {
 
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
-    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
+    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
       expires_at: null,
       reminder_at: null,
     });
