@@ -343,7 +343,7 @@ function InviteTalent() {
                 <div className="tvp-review-grid" style={{ marginTop: 14 }}>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent</span><strong>{fullName.trim() || "—"}</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Email</span><strong>{email.trim() || "—"}</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent type</span><strong>{talentType}</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent type</span><strong>{talentType || "Not specified"}</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Manager</span><strong>{managerName}</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Invitation expiry</span><strong>{expiryDays} days</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Folders</span><strong>{activeFolders.length} enabled{folderMode === "standard" ? " (standard set)" : " (custom)"}</strong></div>
