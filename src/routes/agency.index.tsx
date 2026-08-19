@@ -294,8 +294,6 @@ function AgencyDashboard() {
               </div>
             </div>
           </div>
-        </div>
-      )}
 
       {!isEmpty && attentionTotal > 0 && (
         <div
@@ -530,8 +528,6 @@ function AgencyDashboard() {
                           ]}
                         />
                       </div>
-                        </div>
-                      )}
                     </td>
                   </tr>
                 );
@@ -711,8 +707,6 @@ function RecentTalentActivity({
                       ]}
                     />
                   </div>
-                    </div>
-                  )}
                 </td>
               </tr>
             );
