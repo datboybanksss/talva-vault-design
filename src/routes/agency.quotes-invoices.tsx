@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions }
 import { useServerFn } from "@tanstack/react-start";
 import {
   Plus, Trash2, Pencil, X, Save, ArrowRightLeft, Link2, Eye, Send,
-  FileText, CheckCircle2, AlertCircle, Search, Coins, ReceiptText, Wallet, Flag,
+  FileText, CheckCircle2, AlertCircle, Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BILLING_DOC_STATUS_LABEL, BILLING_DOC_STATUS_TONE } from "@/lib/status-labels";
