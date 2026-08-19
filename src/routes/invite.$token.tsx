@@ -51,7 +51,7 @@ function InvitePage() {
   });
 
   return (
-    <div className="tv-auth">
+    <div className="tv-auth tv-auth--invite">
       <BrandingPanel />
       <section className="tv-auth-panel">
         <div className="tv-auth-card" style={{ maxWidth: 520 }}>
