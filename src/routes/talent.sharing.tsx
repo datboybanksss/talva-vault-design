@@ -140,6 +140,17 @@ function SharingPage() {
                           {s.loved_one_email}{s.relationship ? ` · ${s.relationship}` : ""}
                           {s.email_sent_at ? " · emailed" : ""}
                         </div>
+                        {!s.email_sent_at && (
+                          <div
+                            className="tvp-muted"
+                            style={{ fontSize: 11, marginTop: 2, color: "var(--st-warn-fg, var(--tvp-amber))" }}
+                            title={EMAIL_FALLBACK_NOTICE}
+                          >
+                            No email sent — share the link yourself
+                          </div>
+                        )}
+
+                        </div>
                       </td>
                       <td>{scope}</td>
                       <td>
