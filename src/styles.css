@@ -8,6 +8,20 @@
  * TalVault design system.
  * Single shared visual language across Admin, Talent Agency, Talent, Loved One.
  * Tokens defined in :root, mapped to Tailwind utilities via @theme inline.
+ *
+ * DARK MODE — INTENTIONALLY DEFERRED (decision, not an open question).
+ * TalVault ships light-only for now. Dark mode is a known, accepted future item
+ * and is deliberately out of scope; do not add a theme toggle or `.dark`
+ * overrides without an explicit decision to reverse this.
+ *
+ * Why this is safe to defer: every colour, surface, border and shadow is already
+ * expressed as a semantic token in :root (never hardcoded in components), and the
+ * `dark` custom variant above is already registered. Adding dark mode later means
+ * adding a `.dark { ... }` block that re-points the same token names plus a theme
+ * toggle — no component rework and no token renaming required.
+ *
+ * The one prerequisite if/when it is picked up: a handful of legacy inline hex
+ * colours on the public Loved One share pages would need moving onto tokens first.
  */
 
 :root {
