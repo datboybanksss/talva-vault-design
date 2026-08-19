@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, Tags } from "lucide-react";
 import { toast } from "sonner";
-import { listAgencyTalent } from "@/lib/agency.functions";
+import { listAgencyTalent, updateTalentLinkTalentType } from "@/lib/agency.functions";
+import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { ModalShell } from "@/components/shared/modal-shell";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import {
@@ -192,11 +195,11 @@ function TalentPage() {
             </thead>
             <tbody>
               {talent.isLoading && (
-                <tr><td colSpan={6} className="tvp-muted">Loading your roster…</td></tr>
+                <tr><td colSpan={7} className="tvp-muted">Loading your roster…</td></tr>
               )}
               {!talent.isLoading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="tvp-muted">
+                  <td colSpan={7} className="tvp-muted">
                     {rows.length === 0 ? (
                       <>
                         No talent on your roster yet — <Link to="/agency/talent/invite" className="tvp-link">invite your first talent</Link> to get started.
@@ -221,10 +224,25 @@ function TalentPage() {
                   <td>{r.talentType ?? "—"}</td>
                   <td>{r.docCount}</td>
                   <td>{nextActionLabel(r)}</td>
+                  <td>
+                    <RowActionsMenu
+                      actions={[
+                        {
+                          key: "type",
+                          label: "Change talent type",
+                          icon: Tags,
+                          onSelect: () => {
+                            setTypeEditor(r);
+                            setTypeDraft(r.talentType ?? "");
+                          },
+                        },
+                      ]}
+                    />
+                  </td>
                 </tr>
               ))}
               <LoadMoreRow
-                colSpan={6}
+                colSpan={7}
                 noun="talent"
                 shown={page.shown}
                 total={page.total}
