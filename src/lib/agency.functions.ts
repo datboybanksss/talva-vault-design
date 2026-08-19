@@ -2654,7 +2654,7 @@ export const upsertAgencyFolderSetting = createServerFn({ method: "POST" })
     }
 
     await logAgencyAudit(
-      supabase, agencyId, userId, (context as any).claims?.email ?? null,
+      supabase, agencyId, userId, (context as any).claims?.email,
       "update_folder_setting", "folder", data.folder_name, data.folder_name,
     );
     return { ok: true };
@@ -2674,7 +2674,7 @@ export const resetAgencyFolderSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     await logAgencyAudit(
-      supabase, agencyId, userId, (context as any).claims?.email ?? null,
+      supabase, agencyId, userId, (context as any).claims?.email,
       "reset_folder_settings", "agency", agencyId, "Folder defaults reset",
     );
     return { ok: true };
