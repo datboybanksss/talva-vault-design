@@ -21,7 +21,7 @@ export type DefaultCategory = {
 export const DEFAULT_CATEGORIES: DefaultCategory[] = [
   {
     name: "Personal", icon: "User", tone: "teal", sort_order: 0,
-    children: ["ID", "Passport", "Visa", "Driver's License", "Birth Certificate"],
+    children: ["ID", "Passport", "Visa", "Driver's Licence", "Birth Certificate"],
   },
   {
     name: "Dependents", icon: "Baby", tone: "blue", sort_order: 1,
@@ -55,7 +55,7 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
   },
   {
     name: "Assets", icon: "Car", tone: "blue", sort_order: 6,
-    children: ["Vehicle Registration", "Vehicle License Disk", "Asset Inventory", "Valuables Certificates"],
+    children: ["Vehicle Registration", "Vehicle Licence Disc", "Asset Inventory", "Valuables Certificates"],
   },
   {
     name: "Education", icon: "GraduationCap", tone: "green", sort_order: 7,
