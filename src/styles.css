@@ -554,33 +554,34 @@
 /* TalVault Admin prototype — scoped UI primitives ---------------------------- */
 
 .tv-app {
-  --tvp-sidebar: #064E58;
-  --tvp-sidebar-active: #086A70;
-  --tvp-sidebar-muted: #93C4C7;
-  --tvp-bg: #FAFAF9;
-  --tvp-surface: #FFFFFF;
-  --tvp-surface-soft: #F7F7F6;
-  --tvp-line: #E5E7EB;
-  --tvp-line-strong: #D1D5DB;
-  --tvp-ink: #1A1F2A;
-  --tvp-text: #4B5563;
-  --tvp-muted: #6B7280;
-  --tvp-teal: #064E58;
-  --tvp-teal-2: #086A70;
-  --tvp-teal-50: #EEF6F7;
-  --tvp-teal-100: #DEECEE;
-  --tvp-teal-200: #BEDADD;
-  --tvp-amber-accent: #E89348;
-  --tvp-amber-accent-bg: #FDF1E4;
-  --tvp-green: #059669;  --tvp-green-bg: #D1FAE5;
-  --tvp-amber: #E89348;  --tvp-amber-bg: #FDF1E4;
-  --tvp-red:   #DC2626;  --tvp-red-bg:   #FEE2E2;
-  --tvp-blue:  #2563EB;  --tvp-blue-bg:  #DBEAFE;
-  --tvp-purple:#7C3AED;  --tvp-purple-bg:#EDE9FE;
-  --tvp-neutral-bg:#F3F4F6;
+  --tvp-sidebar: var(--sidebar-bg);
+  --tvp-sidebar-active: var(--sidebar-active);
+  --tvp-sidebar-muted: var(--teal-300);
+  --tvp-bg: var(--surface-app);
+  --tvp-surface: var(--surface);
+  --tvp-surface-soft: var(--surface-soft);
+  --tvp-line: var(--line-200);
+  --tvp-line-strong: var(--line-300);
+  --tvp-ink: var(--ink-900);
+  --tvp-text: var(--ink-700);
+  --tvp-muted: var(--ink-500);
+  --tvp-teal: var(--teal-700);
+  --tvp-teal-2: var(--teal-600);
+  --tvp-teal-50: var(--teal-050);
+  --tvp-teal-100: var(--teal-100);
+  --tvp-teal-200: var(--teal-200);
+  --tvp-amber-accent: var(--amber-600);
+  --tvp-amber-accent-bg: var(--amber-050);
+  --tvp-green: var(--success-500);  --tvp-green-bg: var(--success-050);
+  --tvp-amber: var(--amber-600);    --tvp-amber-bg: var(--amber-050);
+  --tvp-red:   var(--danger-600);   --tvp-red-bg:   var(--danger-050);
+  --tvp-blue:  var(--cat-agency);   --tvp-blue-bg:  var(--cat-agency-bg);
+  --tvp-purple:var(--cat-private);  --tvp-purple-bg:var(--cat-private-bg);
+  --tvp-neutral-bg: var(--st-neutral-bg);
   --tvp-radius-xl:14px; --tvp-radius-lg:14px; --tvp-radius-md:10px; --tvp-radius-sm:6px;
-  --tvp-shadow:0 16px 42px rgba(20,32,51,.07);
-  --tvp-shadow-soft:0 5px 18px rgba(20,32,51,.05);
+  --tvp-shadow: var(--sh-lg);
+  --tvp-shadow-soft: var(--sh-md);
+
   --tvp-sidebar-w: 300px;
   --tvp-sidebar-collapsed: 92px;
 
