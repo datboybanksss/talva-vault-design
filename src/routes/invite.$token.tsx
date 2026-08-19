@@ -2,7 +2,7 @@ import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ShieldCheck, Lock, FolderLock, FileText, Users, Check, ArrowLeft } from "lucide-react";
+import { ShieldCheck, Lock, FolderLock, FileText, Users, Check, ArrowLeft, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/password-input";
 import {
@@ -51,7 +51,7 @@ function InvitePage() {
   });
 
   return (
-    <div className="tv-auth">
+    <div className="tv-auth tv-auth--invite">
       <BrandingPanel />
       <section className="tv-auth-panel">
         <div className="tv-auth-card" style={{ maxWidth: 520 }}>
@@ -255,39 +255,59 @@ function Step1({ invite, onContinue }: { invite: Extract<ResolvedInvitation, { o
     <>
       <h2 className="tv-auth-title">Accept Agency Invite</h2>
       <p className="tv-auth-tag">
-        You've been invited to activate the workspace for <strong>{invite.agency_name}</strong>.
-        {invite.kind === "staff" && invite.role ? <> Role: <strong>{invite.role}</strong>.</> : null}
+        You've been invited to activate the workspace for <strong style={{ color: "var(--ink-900)" }}>{invite.agency_name}</strong>.
+        {invite.kind === "staff" && invite.role ? <> Role: <strong style={{ color: "var(--ink-900)" }}>{invite.role}</strong>.</> : null}
       </p>
       <div className="tv-auth-field" style={{ marginTop: 20 }}>
-        <label htmlFor="invited-email">Email address used for invite</label>
+        <label htmlFor="invited-email" style={{ fontWeight: 700, color: "var(--ink-900)" }}>
+          Email address used for invite
+        </label>
         <input
           id="invited-email"
           type="email"
           value={invite.email}
           readOnly
+          disabled
           aria-readonly="true"
-          style={{ background: "var(--surface-soft)", cursor: "not-allowed" }}
+          style={{ background: "var(--surface-soft)", color: "var(--ink-900)", cursor: "not-allowed" }}
         />
       </div>
       <div
-        className="tv-auth-hint"
         style={{
-          background: "var(--teal-50)",
-          border: "1px solid var(--teal-200)",
-          color: "var(--teal)",
-          padding: "10px 12px",
-          borderRadius: "var(--radius)",
-          marginTop: 8,
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          background: "var(--st-info-bg)",
+          color: "var(--st-info-fg)",
+          padding: "12px 14px",
+          borderRadius: "var(--r-sm)",
+          marginTop: 12,
+          fontSize: 13,
+          lineHeight: 1.5,
         }}
       >
-        Email must match the invite. The Agency user must register with the same email address used in the invitation.
+        <Info className="h-4 w-4" style={{ flex: "0 0 auto", marginTop: 2 }} aria-hidden="true" />
+        <p style={{ margin: 0 }}>
+          <strong>Email must match the invite.</strong>{" "}
+          <span style={{ color: "var(--ink-500)" }}>
+            The Agency user must register with the same email address used in the invitation.
+          </span>
+        </p>
       </div>
-      <button type="button" className="tv-auth-submit" onClick={onContinue}>
-        Continue
-      </button>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
+        <button
+          type="button"
+          className="tv-auth-submit"
+          onClick={onContinue}
+          style={{ width: "auto", marginTop: 0, padding: "0 28px", height: 46, borderRadius: "var(--r-sm)" }}
+        >
+          Continue
+        </button>
+      </div>
     </>
   );
 }
+
 
 function Step2({
   displayName, setDisplayName, phone, setPhone, onBack, onContinue, error,

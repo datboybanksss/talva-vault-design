@@ -1121,6 +1121,9 @@
   position: relative;
   overflow: hidden;
 }
+/* Invite activation uses a narrower teal panel (~35%) so the wizard has room. */
+.tv-auth.tv-auth--invite { grid-template-columns: 35fr 65fr; }
+
 .tv-auth::before {
   content: "";
   position: absolute; inset: 0;
@@ -1282,7 +1285,7 @@
 .tv-auth .tv-auth-back { margin-top: 22px; text-align: center; font-size: 11.5px; color: var(--muted-fg); letter-spacing: .04em; }
 
 @media (max-width: 900px) {
-  .tv-auth { grid-template-columns: 1fr; }
+  .tv-auth, .tv-auth.tv-auth--invite { grid-template-columns: 1fr; }
   .tv-auth .tv-auth-hero { display: none; }
   .tv-auth .tv-auth-panel { padding: 32px 20px; }
 }
