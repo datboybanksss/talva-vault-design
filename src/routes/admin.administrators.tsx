@@ -335,7 +335,7 @@ function AdminsPage() {
               </thead>
               <tbody>
                 {(invitations.data ?? []).length === 0 && !invitations.isLoading && (
-                  <tr><td colSpan={6} className="tvp-muted">No invitations sent yet.</td></tr>
+                  <tr><td colSpan={6} className="tvp-muted">No administrator invitations yet — invite a colleague to give them platform access.</td></tr>
                 )}
                 {invitePage.visible.map((i: any) => (
                   <tr key={i.id}>

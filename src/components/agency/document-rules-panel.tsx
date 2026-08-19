@@ -143,7 +143,7 @@ export function DocumentRulesPanel() {
         </div>
         {folderRules.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13 }}>
-            No folder rules yet. Add one to lock every document in a folder for a fixed period.
+            No retention rules yet — add one to lock every document in a folder for a fixed period.
           </p>
         ) : (
           <table className="tvp-table" style={{ marginTop: 12 }}>

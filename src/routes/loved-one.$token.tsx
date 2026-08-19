@@ -139,7 +139,7 @@ function LovedOnePage() {
         />
       )}
 
-      {documents.length === 0 && <p style={{ color: "#65707A", fontSize: 14 }}>Nothing has been shared yet.</p>}
+      {documents.length === 0 && <p style={{ color: "#65707A", fontSize: 14 }}>Nothing has been shared with you yet — check back once documents are added.</p>}
 
       {viewer && (
         <WatermarkedViewer
@@ -295,7 +295,7 @@ function FolderBlock({
         <span style={{ color: "#65707A", fontSize: 12 }}>({docs.length})</span>
       </div>
       {docs.length === 0 ? (
-        <p style={{ color: "#9CA3AF", fontSize: 13 }}>No documents.</p>
+        <p style={{ color: "#9CA3AF", fontSize: 13 }}>No documents in this folder.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {docs.map((d) => (

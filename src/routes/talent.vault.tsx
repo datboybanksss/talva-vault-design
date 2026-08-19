@@ -344,7 +344,7 @@ function PrivateVault() {
 
         {topFolders.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13 }}>
-            No folders yet — turn categories on from Settings → Manage folders.
+            No folders switched on yet — turn categories on under Settings → Manage folders.
           </p>
         ) : (
           <div className="tvp-folder-tree">
@@ -439,7 +439,7 @@ function PrivateVault() {
           <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
             {documents.length === 0
               ? "Nothing uploaded yet — pick a folder above and upload your first document."
-              : "No documents match your search or folder filter."}
+              : "No documents match your search or folder filter — clear them to see everything."}
           </p>
 
         ) : (
@@ -728,7 +728,7 @@ function SharedDocumentsView() {
           <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
             {data.documents.length === 0
               ? "Your Manager hasn't shared any documents with you yet."
-              : "No documents match your search or folder filter."}
+              : "No documents match your search or folder filter — clear them to see everything."}
           </p>
 
         ) : (
@@ -855,7 +855,7 @@ function ManagerRequests() {
           <span className="tvp-muted" style={{ fontSize: 12 }}>{open.length} open</span>
         </div>
         {open.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13 }}>Nothing waiting on you right now.</p>
+          <p className="tvp-muted" style={{ fontSize: 13 }}>Nothing waiting on you right now — you're all caught up.</p>
         ) : (
           <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
             {open.map((r: any) => (

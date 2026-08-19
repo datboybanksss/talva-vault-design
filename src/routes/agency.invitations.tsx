@@ -185,7 +185,7 @@ function InvitationsPage() {
                 <tr><td colSpan={8} className="tvp-muted">Loading…</td></tr>
               )}
               {!invites.isLoading && visible.length === 0 && (
-                <tr><td colSpan={8} className="tvp-muted">No invitations to show.</td></tr>
+                <tr><td colSpan={8} className="tvp-muted">No talent invitations yet — invite your first talent to get started.</td></tr>
               )}
               {visible.map((i: any) => {
                 const dLeft = daysBetween(i.expires_at);

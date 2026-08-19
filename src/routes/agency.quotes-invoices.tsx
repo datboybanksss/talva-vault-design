@@ -588,7 +588,7 @@ function QIPage() {
           <tbody>
             {visible.length === 0 && (
               <tr><td colSpan={8} className="tvp-muted" style={{ padding: 24 }}>
-                {rows.length === 0 ? "No records yet. Click New Quote or New Invoice to create one." : "No records match these filters."}
+                {rows.length === 0 ? "Nothing billed yet — start with New Quote or New Invoice." : "No quotes or invoices match these filters — try clearing them."}
               </td></tr>
             )}
             {visible.map((r) => {

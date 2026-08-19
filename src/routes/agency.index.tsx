@@ -475,8 +475,8 @@ function AgencyDashboard() {
                 <tr>
                   <td colSpan={6} className="tvp-muted">
                     {rows.length === 0
-                      ? "No talent on your roster yet."
-                      : "No talent matches these filters."}
+                      ? "Your roster is empty — invite your first talent to get started."
+                      : "No talent matches these filters — try clearing them."}
                   </td>
                 </tr>
               )}
@@ -681,8 +681,8 @@ function RecentTalentActivity({
             <tr>
               <td colSpan={5} className="tvp-muted">
                 {rows.length === 0
-                  ? "No talent on your roster yet. Invite talent to get started."
-                  : "No talent matches this filter."}
+                  ? "Your roster is empty — invite your first talent to get started."
+                  : "No talent matches this filter — try clearing it."}
               </td>
             </tr>
           )}

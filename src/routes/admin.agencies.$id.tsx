@@ -173,7 +173,7 @@ function AgencyDetail() {
                   <tr><td colSpan={6} className="tvp-muted">Loading…</td></tr>
                 )}
                 {!agencyInv.isLoading && (agencyInv.data ?? []).length === 0 && (
-                  <tr><td colSpan={6} className="tvp-muted">No agency-user invitations on record.</td></tr>
+                  <tr><td colSpan={6} className="tvp-muted">No team invitations from this agency yet — colleagues they invite will appear here.</td></tr>
                 )}
                 {(agencyInv.data ?? []).map((i: any) => (
                   <tr key={i.id}>
@@ -213,7 +213,7 @@ function AgencyDetail() {
                   <tr><td colSpan={6} className="tvp-muted">Loading…</td></tr>
                 )}
                 {!talentInv.isLoading && (talentInv.data ?? []).length === 0 && (
-                  <tr><td colSpan={6} className="tvp-muted">No Talent invitations from this agency yet.</td></tr>
+                  <tr><td colSpan={6} className="tvp-muted">This agency hasn't invited any talent yet — invitations they send will show up here.</td></tr>
                 )}
                 {(talentInv.data ?? []).map((i: any) => (
                   <tr key={i.id}>

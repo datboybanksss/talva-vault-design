@@ -12,6 +12,7 @@ import {
   logTalentMfaEnrolled,
   logTalentMfaDisabled,
 } from "@/lib/talent-audit.functions";
+import { ReplayTourCard } from "@/components/shared/replay-tour-card";
 
 export const Route = createFileRoute("/talent/settings")({
   ssr: false,
@@ -155,6 +156,8 @@ function TalentSettings() {
           </div>
         </div>
       )}
+
+      {mode === "profile" && <ReplayTourCard />}
 
       {mode === "account" && (
         <div className="tvp-account-grid">

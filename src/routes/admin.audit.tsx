@@ -229,7 +229,7 @@ function AuditPage() {
                   <tr><td colSpan={6} className="tvp-muted">Loading events…</td></tr>
                 )}
                 {!q.isPending && visible.length === 0 && (
-                  <tr><td colSpan={6} className="tvp-muted">No events yet.</td></tr>
+                  <tr><td colSpan={6} className="tvp-muted">No audit events to show yet — every privileged action is recorded here as it happens.</td></tr>
                 )}
                 {visible.map((e: any) => {
                   const meta = actionArea[e.action] ?? {

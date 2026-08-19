@@ -302,7 +302,7 @@ function AgenciesPage() {
               )}
               {!agencies.isLoading && visible.length === 0 && (
                 <tr><td colSpan={7} className="tvp-muted">
-                  No agencies to show. <Link to="/admin/invitations/new" className="tvp-link">Invite an agency →</Link>
+                  No agencies here yet — the first one starts with an invitation. <Link to="/admin/invitations/new" className="tvp-link">Invite an agency →</Link>
                 </td></tr>
               )}
               {visible.map((a: any) => {

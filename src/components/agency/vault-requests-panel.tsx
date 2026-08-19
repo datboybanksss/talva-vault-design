@@ -145,7 +145,7 @@ export function VaultRequestsPanel({
       <div className="tvp-card">
         {filtered.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
-            No document requests match this filter.
+            No document requests in this view — request a document from talent to start tracking it here.
           </div>
         ) : (
           <table className="tvp-table">
@@ -425,7 +425,7 @@ function ReviewDialog({
             <HistoryIcon className="inline h-4 w-4 mr-1" />Submission history
           </h4>
           {detail.data?.history.length === 0 ? (
-            <p className="tvp-muted tvp-small">No prior events.</p>
+            <p className="tvp-muted tvp-small">No history yet — this request hasn't moved since it was created.</p>
           ) : (
             <div className="tvp-list" style={{ marginTop: 6 }}>
               {detail.data?.history.map((h: any) => (

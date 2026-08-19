@@ -79,11 +79,24 @@ const TOURS: Record<"admin" | "agency" | "talent", TourStep[]> = {
 
 type Rect = { top: number; left: number; width: number; height: number };
 
+/** Fired by the "Replay welcome tour" control in Settings. */
+export const REPLAY_TOUR_EVENT = "tvp:replay-tour";
+
 export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talent" }) {
   const steps = TOURS[portal];
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
+
+  // Manual replay from Settings, regardless of has_seen_onboarding history.
+  useEffect(() => {
+    const onReplay = () => {
+      setIdx(0);
+      setOpen(true);
+    };
+    window.addEventListener(REPLAY_TOUR_EVENT, onReplay);
+    return () => window.removeEventListener(REPLAY_TOUR_EVENT, onReplay);
+  }, []);
 
   // Show only on a user's very first visit.
   useEffect(() => {

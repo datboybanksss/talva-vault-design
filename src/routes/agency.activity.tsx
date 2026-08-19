@@ -325,7 +325,7 @@ function AgencyActivityLog() {
           {rows.isPending && <div className="tvp-muted">Loading activity…</div>}
           {!rows.isPending && filtered.length === 0 && (
             <div className="tvp-muted" style={{ padding: 20, textAlign: "center" }}>
-              No activity recorded in this range.
+              No activity in this date range — try widening the dates or clearing the filters.
             </div>
           )}
           {filtered.map((r) => {
