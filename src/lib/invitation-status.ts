@@ -15,7 +15,7 @@ export function effectiveInvitationStatus(
   return new Date(expiresAt).getTime() < Date.now() ? "expired" : s;
 }
 
-export function withEffectiveStatus<T extends { status?: any; expires_at?: any }>(
+export function withEffectiveStatus<T extends Record<string, any>>(
   row: T,
 ): T & { status: string; stored_status: string } {
   const stored = (row.status ?? "pending") as string;
@@ -26,7 +26,7 @@ export function withEffectiveStatus<T extends { status?: any; expires_at?: any }
   };
 }
 
-export function mapEffectiveStatus<T extends { status?: any; expires_at?: any }>(
+export function mapEffectiveStatus<T extends Record<string, any>>(
   rows: T[] | null | undefined,
 ): Array<T & { status: string; stored_status: string }> {
   return (rows ?? []).map(withEffectiveStatus);
