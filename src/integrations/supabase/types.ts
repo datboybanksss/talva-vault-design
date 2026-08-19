@@ -924,6 +924,27 @@ export type Database = {
           },
         ]
       }
+      agency_notification_dismissals: {
+        Row: {
+          dismissed_at: string
+          kind: string
+          snapshot: number
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          kind: string
+          snapshot?: number
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          kind?: string
+          snapshot?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       agency_retention_rules: {
         Row: {
           agency_id: string
