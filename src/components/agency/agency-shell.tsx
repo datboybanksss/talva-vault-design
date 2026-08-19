@@ -25,7 +25,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
-import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics } from "@/lib/agency.functions";
+import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics, dismissAgencyReminder } from "@/lib/agency.functions";
 
 type NavItem = {
   to: string;
