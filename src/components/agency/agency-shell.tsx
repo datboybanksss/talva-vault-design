@@ -284,8 +284,8 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                 )}
                 {items.map((n: any) => {
                   const Icon = toneIcon[n.tone] ?? Info;
-                  return (
-                    <div className="tvp-notification-item" key={n.id ?? n.title}>
+                  const body = (
+                    <>
                       <div
                         className={`tvp-kpi-icon tvp-bg-${n.tone} shrink-0`}
                         style={{ width: 32, height: 32 }}
@@ -300,10 +300,45 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                         >
                           {n.detail}
                         </div>
+                        {n.note && (
+                          <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
+                            {n.note}
+                          </div>
+                        )}
                       </div>
+                    </>
+                  );
+                  return (
+                    <div className="tvp-notification-item" key={n.id ?? n.title}>
+                      {n.to ? (
+                        <Link
+                          to={n.to}
+                          onClick={() => setBellOpen(false)}
+                          style={{ display: "contents", color: "inherit", textDecoration: "none" }}
+                        >
+                          {body}
+                        </Link>
+                      ) : (
+                        body
+                      )}
+                      {n.key && (
+                        <button
+                          type="button"
+                          className="tvp-icon-btn shrink-0"
+                          title="Dismiss"
+                          aria-label="Dismiss notification"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismissItem(n);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
+
               </div>
             )}
           </div>
