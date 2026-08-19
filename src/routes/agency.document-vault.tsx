@@ -503,7 +503,7 @@ export function VaultPage() {
                     >
                       <strong style={{ fontSize: 14 }}>{l.displayName}</strong>
                       <span className="tvp-muted" style={{ fontSize: 12, marginTop: 4 }}>
-                        {foldersPerTalent.get(l.id) ?? 0} folders · {stats.total} documents
+                        {foldersPerTalent.get(l.id) ?? 0} {(foldersPerTalent.get(l.id) ?? 0) === 1 ? "folder" : "folders"} · {stats.total} {stats.total === 1 ? "document" : "documents"}
                       </span>
                       <span style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                         {l.status !== "active" && (
