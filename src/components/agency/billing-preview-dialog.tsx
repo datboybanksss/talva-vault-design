@@ -3,7 +3,7 @@ import { BillingDocument, type BillingDocAgency, type BillingDocRecord } from ".
 import type { BillingLine } from "@/lib/billing";
 
 export function BillingPreviewDialog({
-  open, onClose, doc, lines, agency, canSend, onSend, sending,
+  open, onClose, doc, lines, agency, canSend, onSend, sending, sendFrom, recipients,
 }: {
   open: boolean;
   onClose: () => void;
@@ -13,6 +13,8 @@ export function BillingPreviewDialog({
   canSend?: boolean;
   onSend?: () => void;
   sending?: boolean;
+  sendFrom?: string | null;
+  recipients?: string[];
 }) {
   if (!open) return null;
   return (
@@ -52,6 +54,18 @@ export function BillingPreviewDialog({
             <button title="Close preview" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
           </div>
         </div>
+        {(sendFrom || (recipients && recipients.length > 0)) && (
+          <div
+            className="billing-preview-toolbar"
+            style={{ padding: "8px 16px", borderBottom: "1px solid #eee", fontSize: 12, color: "#5b5850" }}
+          >
+            {sendFrom && (<div><strong>From:</strong> {sendFrom}</div>)}
+            <div>
+              <strong>To:</strong>{" "}
+              {recipients && recipients.length > 0 ? recipients.join(", ") : "No recipients added yet"}
+            </div>
+          </div>
+        )}
         <div style={{ padding: 20, background: "#f2f1ed" }}>
           <div style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
             <BillingDocument doc={doc} lines={lines} agency={agency} />

@@ -2299,7 +2299,7 @@ export const getAgencyBillingSettings = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("agencies")
       .select(
-        "id, name, contact_email, contact_person, phone, country, business_type, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, default_quote_acceptance_days, default_quote_reminder_days, default_invoice_payment_days, invoice_overdue_grace_days, is_vat_registered, vat_number, default_vat_rate_bp, billing_address, logo_path, accent_color",
+        "id, name, contact_email, contact_person, phone, country, business_type, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, default_quote_acceptance_days, default_quote_reminder_days, default_invoice_payment_days, invoice_overdue_grace_days, is_vat_registered, vat_number, default_vat_rate_bp, billing_address, logo_path, accent_color, billing_from_email, billing_from_name, billing_from_verified_at, billing_from_token_expires_at",
       )
       .eq("id", agencyId)
       .single();
@@ -2449,6 +2449,8 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
         recipient_address: z.string().max(500).nullable(),
         recipient_vat_number: z.string().max(64).nullable(),
         recipient_email: z.string().max(200).nullable(),
+        recipient_emails: z.array(z.string().trim().email().max(200)).max(20).optional(),
+
         acceptance_window_days: z.number().int().min(1).max(365).nullable(),
         payment_terms_days: z.number().int().min(1).max(365).nullable(),
         lines: z.array(billingLineInput).min(1),
@@ -2495,7 +2497,11 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       allow_partial_payment: data.allow_partial_payment,
       recipient_address: data.recipient_address,
       recipient_vat_number: data.recipient_vat_number,
-      recipient_email: data.recipient_email,
+      recipient_email: data.recipient_email ?? data.recipient_emails?.[0] ?? null,
+      recipient_emails: Array.from(
+        new Set((data.recipient_emails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean)),
+      ),
+
       acceptance_window_days: data.acceptance_window_days,
       payment_terms_days: data.payment_terms_days,
       subtotal_cents: subtotal,
@@ -2551,18 +2557,40 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
 
 export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        recipients: z.array(z.string().trim().email().max(200)).max(20).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: doc, error: dErr } = await supabase
       .from("agency_billing_docs")
-      .select("id, kind, number, status")
+      .select("id, kind, number, status, client_name, currency, total_cents, due_date, notes, recipient_emails, recipient_email")
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .single();
     if (dErr) throw new Error(dErr.message);
     if (!doc) throw new Error("Not found");
+
+    const rawRecipients: string[] =
+      (data.recipients as string[] | undefined) ??
+      ((doc.recipient_emails as string[] | null) ?? (doc.recipient_email ? [doc.recipient_email as string] : []));
+    const recipients: string[] = Array.from(
+      new Set(rawRecipients.map((e) => e.trim().toLowerCase()).filter(Boolean)),
+    );
+
+    if (recipients.length === 0) throw new Error("Add at least one recipient email address");
+
+    const { data: agency } = await supabase
+      .from("agencies")
+      .select("name, billing_from_email, billing_from_verified_at, contact_email")
+      .eq("id", agencyId)
+      .single();
 
     let number: string = doc.number;
     if (!number || number.startsWith("DRAFT-")) {
@@ -2573,21 +2601,162 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
       if (mErr) throw new Error(mErr.message);
       number = minted as string;
     }
+
+    const { sendBillingDocEmail, billingFromHeader } = await import("@/lib/billing-email.server");
+    const { fmtMoney } = await import("@/lib/billing");
+    const senderVerified = !!agency?.billing_from_verified_at && !!agency?.billing_from_email;
+    const from = billingFromHeader(agency?.name, senderVerified, agency?.billing_from_email);
+    const replyTo = senderVerified ? agency!.billing_from_email : agency?.contact_email ?? null;
+
+    const results: Array<{ to: string; sent: boolean; reason?: string }> = [];
+    for (const to of recipients) {
+      const res = await sendBillingDocEmail({
+        to,
+        from,
+        replyTo,
+        agencyName: agency?.name ?? "TalVault",
+        kind: doc.kind,
+        number,
+        clientName: doc.client_name,
+        amount: fmtMoney(doc.total_cents ?? 0, doc.currency ?? "ZAR"),
+        dueDate: doc.due_date,
+        notes: doc.notes,
+        idempotencyKey: `billing-${doc.id}-${to}-${Date.now()}`,
+      });
+      results.push({ to, sent: res.sent, ...(res.sent ? {} : { reason: res.reason }) });
+    }
+    const deliveredTo = results.filter((r) => r.sent).map((r) => r.to);
+
     const { data: updated, error } = await supabase
       .from("agency_billing_docs")
-      .update({ number, status: "sent", sent_at: new Date().toISOString() })
+      .update({
+        number,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        recipient_emails: recipients,
+        recipient_email: recipients[0],
+        last_sent_to: deliveredTo.length ? deliveredTo : recipients,
+      })
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .select()
       .single();
     if (error) throw new Error(error.message);
+
     await logAgencyAudit(
       supabase, agencyId, userId, claims?.email,
       "send_billing_doc", "agency_billing_doc", data.id,
       `${doc.kind.toUpperCase()} ${number}`,
+      { recipients, delivered: deliveredTo, from, reply_to: replyTo },
     );
-    return updated;
+    return { ...updated, delivery: results };
   });
+
+// ---------------------------------------------------------------------------
+// Billing "send from" address — per-agency, verified before use
+// ---------------------------------------------------------------------------
+
+async function issueSenderVerification(
+  supabase: any,
+  agencyId: string,
+  email: string,
+  displayName: string | null,
+) {
+  const token = `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const { data: agency, error } = await supabase
+    .from("agencies")
+    .update({
+      billing_from_email: email,
+      billing_from_name: displayName,
+      billing_from_verified_at: null,
+      billing_from_token: token,
+      billing_from_token_expires_at: expires,
+      billing_from_last_sent_at: new Date().toISOString(),
+    })
+    .eq("id", agencyId)
+    .select("name")
+    .single();
+  if (error) throw new Error(error.message);
+
+  const { sendSenderVerificationEmail } = await import("@/lib/billing-email.server");
+  return sendSenderVerificationEmail(email, agency?.name ?? "your agency", token);
+}
+
+export const setAgencyBillingSender = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        email: z.string().trim().email().max(200),
+        display_name: z.string().trim().max(120).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const email = data.email.trim().toLowerCase();
+    const result = await issueSenderVerification(supabase, agencyId, email, data.display_name ?? null);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "billing_sender_verification_requested", "agency", agencyId, email,
+      { sent: result.sent, reason: result.sent ? null : result.reason },
+    );
+    return result;
+  });
+
+export const resendAgencyBillingSenderVerification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: agency } = await supabase
+      .from("agencies")
+      .select("billing_from_email, billing_from_name, billing_from_verified_at")
+      .eq("id", agencyId)
+      .single();
+    if (!agency?.billing_from_email) throw new Error("No sending address set");
+    if (agency.billing_from_verified_at) return { sent: true as const };
+
+    const result = await issueSenderVerification(
+      supabase, agencyId, agency.billing_from_email, agency.billing_from_name ?? null,
+    );
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "billing_sender_verification_resent", "agency", agencyId, agency.billing_from_email,
+    );
+    return result;
+  });
+
+export const clearAgencyBillingSender = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+    const { error } = await supabase
+      .from("agencies")
+      .update({
+        billing_from_email: null,
+        billing_from_name: null,
+        billing_from_verified_at: null,
+        billing_from_token: null,
+        billing_from_token_expires_at: null,
+      })
+      .eq("id", agencyId);
+    if (error) throw new Error(error.message);
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "billing_sender_cleared", "agency", agencyId,
+    );
+    return { ok: true };
+  });
+
 
 // ---------------------------------------------------------------------------
 // Manage Folders — per-agency folder configuration (agency_folder_settings)
