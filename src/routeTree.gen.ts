@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TourTestRouteImport } from './routes/tour-test'
 import { Route as TalentRouteImport } from './routes/talent'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -55,11 +54,6 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as ApiPublicHooksTalentRemindersRouteImport } from './routes/api/public/hooks/talent-reminders'
 import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
 
-const TourTestRoute = TourTestRouteImport.update({
-  id: '/tour-test',
-  path: '/tour-test',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TalentRoute = TalentRouteImport.update({
   id: '/talent',
   path: '/talent',
@@ -292,7 +286,6 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
-  '/tour-test': typeof TourTestRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
@@ -336,7 +329,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/tour-test': typeof TourTestRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
@@ -382,7 +374,6 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
-  '/tour-test': typeof TourTestRoute
   '/admin/administrators': typeof AdminAdministratorsRoute
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
@@ -431,7 +422,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/talent'
-    | '/tour-test'
     | '/admin/administrators'
     | '/admin/agencies'
     | '/admin/audit'
@@ -475,7 +465,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/forgot-password'
     | '/reset-password'
-    | '/tour-test'
     | '/admin/administrators'
     | '/admin/audit'
     | '/admin/enroll-2fa'
@@ -520,7 +509,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/talent'
-    | '/tour-test'
     | '/admin/administrators'
     | '/admin/agencies'
     | '/admin/audit'
@@ -568,7 +556,6 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TalentRoute: typeof TalentRouteWithChildren
-  TourTestRoute: typeof TourTestRoute
   InviteTokenRoute: typeof InviteTokenRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
   ApiPublicLovedOneFileRoute: typeof ApiPublicLovedOneFileRoute
@@ -579,13 +566,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tour-test': {
-      id: '/tour-test'
-      path: '/tour-test'
-      fullPath: '/tour-test'
-      preLoaderRoute: typeof TourTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/talent': {
       id: '/talent'
       path: '/talent'
@@ -1022,7 +1002,6 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TalentRoute: TalentRouteWithChildren,
-  TourTestRoute: TourTestRoute,
   InviteTokenRoute: InviteTokenRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
   ApiPublicLovedOneFileRoute: ApiPublicLovedOneFileRoute,
