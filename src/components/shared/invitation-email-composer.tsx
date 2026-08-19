@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import {
   INVITATION_VARIANTS,
@@ -161,6 +161,9 @@ export function SendStatusBanner({ status }: { status: { kind: "ok" | "error"; m
         borderLeft: `3px solid ${status.kind === "ok" ? "var(--tvp-green)" : "var(--tvp-amber)"}`,
       }}
     >
+      {status.kind === "ok"
+        ? <CheckCircle2 className="h-4 w-4" style={{ color: "var(--tvp-green)", marginTop: 2 }} />
+        : <AlertTriangle className="h-4 w-4" style={{ color: "var(--tvp-amber)", marginTop: 2 }} />}
       <div style={{ fontSize: 14, lineHeight: 1.5 }}>{status.message}</div>
     </div>
   );
