@@ -25,7 +25,6 @@ import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
 import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
 import { Route as LovedOneTokenRouteImport } from './routes/loved-one.$token'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
-import { Route as DevModalCheckRouteImport } from './routes/dev.modal-check'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
 import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
 import { Route as AgencyQuotesInvoicesRouteImport } from './routes/agency.quotes-invoices'
@@ -136,11 +135,6 @@ const LovedOneTokenRoute = LovedOneTokenRouteImport.update({
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DevModalCheckRoute = DevModalCheckRouteImport.update({
-  id: '/dev/modal-check',
-  path: '/dev/modal-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgencyTalentRoute = AgencyTalentRouteImport.update({
@@ -329,7 +323,6 @@ export interface FileRoutesByFullPath {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
-  '/dev/modal-check': typeof DevModalCheckRoute
   '/invite/$token': typeof InviteTokenRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
@@ -374,7 +367,6 @@ export interface FileRoutesByTo {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
-  '/dev/modal-check': typeof DevModalCheckRoute
   '/invite/$token': typeof InviteTokenRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
@@ -425,7 +417,6 @@ export interface FileRoutesById {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
-  '/dev/modal-check': typeof DevModalCheckRoute
   '/invite/$token': typeof InviteTokenRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
@@ -477,7 +468,6 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
-    | '/dev/modal-check'
     | '/invite/$token'
     | '/loved-one/$token'
     | '/talent/budget'
@@ -522,7 +512,6 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
-    | '/dev/modal-check'
     | '/invite/$token'
     | '/loved-one/$token'
     | '/talent/budget'
@@ -572,7 +561,6 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/agency/talent'
-    | '/dev/modal-check'
     | '/invite/$token'
     | '/loved-one/$token'
     | '/talent/budget'
@@ -606,7 +594,6 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TalentRoute: typeof TalentRouteWithChildren
-  DevModalCheckRoute: typeof DevModalCheckRoute
   InviteTokenRoute: typeof InviteTokenRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
   ApiPublicLovedOneFileRoute: typeof ApiPublicLovedOneFileRoute
@@ -728,13 +715,6 @@ declare module '@tanstack/react-router' {
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dev/modal-check': {
-      id: '/dev/modal-check'
-      path: '/dev/modal-check'
-      fullPath: '/dev/modal-check'
-      preLoaderRoute: typeof DevModalCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agency/talent': {
@@ -1105,7 +1085,6 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TalentRoute: TalentRouteWithChildren,
-  DevModalCheckRoute: DevModalCheckRoute,
   InviteTokenRoute: InviteTokenRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
   ApiPublicLovedOneFileRoute: ApiPublicLovedOneFileRoute,
