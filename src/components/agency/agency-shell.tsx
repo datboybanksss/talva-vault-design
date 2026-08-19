@@ -19,7 +19,9 @@ import {
   AlertTriangle,
   Info,
   Clock,
+  X,
 } from "lucide-react";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
