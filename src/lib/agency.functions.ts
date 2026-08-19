@@ -2869,3 +2869,189 @@ export const getTalentInvitationByIdMine = createServerFn({ method: "GET" })
       .from("agencies").select("name").eq("id", agencyId).maybeSingle();
     return { ...inv, agency_name: agency?.name ?? null };
   });
+
+/* ------------------------------------------------------------------ */
+/* Folder catalogue (categories + subfolders + talent-type templates)  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The whole folder taxonomy, straight from the database: platform categories,
+ * their default/optional subfolders, this agency's overrides, and the extra
+ * subfolders each talent type adds. Nothing here is hardcoded in the app.
+ */
+export const listFolderCatalogue = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+
+    let agencyId: string | null = null;
+    let role: string | null = null;
+    try {
+      const caller = await getCallerAgency(supabase, userId);
+      agencyId = caller.agencyId;
+      role = caller.role;
+    } catch {
+      /* admins and talent can still read the platform catalogue */
+    }
+
+    const [cats, subs, tmpl, settings] = await Promise.all([
+      supabase
+        .from("folder_catalogue_categories")
+        .select(
+          "slug, name, sort_order, restricted, recommended, ai_filing_allowed, default_validity_rule, can_untick",
+        )
+        .order("sort_order"),
+      supabase
+        .from("folder_catalogue_subfolders")
+        .select("id, category_slug, name, kind, sort_order")
+        .order("sort_order"),
+      supabase
+        .from("folder_type_template_items")
+        .select("talent_type, category_slug, subfolder_name, sort_order")
+        .order("sort_order"),
+      agencyId
+        ? supabase
+            .from("agency_folder_subfolder_settings")
+            .select("id, category_slug, name, kind, enabled, sort_order, retention_years")
+            .eq("agency_id", agencyId)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    for (const r of [cats, subs, tmpl, settings]) {
+      if ((r as any).error) throw new Error((r as any).error.message);
+    }
+
+    return {
+      agencyId,
+      role,
+      categories: cats.data ?? [],
+      subfolders: subs.data ?? [],
+      templates: tmpl.data ?? [],
+      agencySubfolders: settings.data ?? [],
+    };
+  });
+
+/** Enable, disable, rename or add a subfolder for this agency. */
+export const upsertAgencySubfolderSetting = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        category_slug: z.string().min(1).max(120),
+        name: z.string().min(1).max(120),
+        kind: z.enum(["default", "optional"]).optional(),
+        enabled: z.boolean().optional(),
+        sort_order: z.number().int().min(0).max(9999).optional(),
+        retention_years: z.number().int().min(0).max(99).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: existing } = await supabase
+      .from("agency_folder_subfolder_settings")
+      .select("id")
+      .eq("agency_id", agencyId)
+      .eq("category_slug", data.category_slug)
+      .eq("name", data.name)
+      .maybeSingle();
+
+    const patch: Record<string, unknown> = {};
+    if (data.kind !== undefined) patch.kind = data.kind;
+    if (data.enabled !== undefined) patch.enabled = data.enabled;
+    if (data.sort_order !== undefined) patch.sort_order = data.sort_order;
+    if (data.retention_years !== undefined) patch.retention_years = data.retention_years;
+
+    if (existing) {
+      const { error } = await supabase
+        .from("agency_folder_subfolder_settings")
+        .update(patch)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase.from("agency_folder_subfolder_settings").insert({
+        agency_id: agencyId,
+        category_slug: data.category_slug,
+        name: data.name,
+        kind: data.kind ?? "default",
+        enabled: data.enabled ?? true,
+        sort_order: data.sort_order ?? 500,
+        retention_years: data.retention_years ?? null,
+      });
+      if (error) throw new Error(error.message);
+    }
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, (context as any).claims?.email,
+      "update_subfolder_setting", "folder", data.category_slug, data.name, patch,
+    );
+    return { ok: true };
+  });
+
+/** Drop an agency override, returning the subfolder to the platform default. */
+export const deleteAgencySubfolderSetting = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { error } = await supabase
+      .from("agency_folder_subfolder_settings")
+      .delete()
+      .eq("id", data.id)
+      .eq("agency_id", agencyId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/**
+ * Change a talent's type and re-provision folders: additive subfolders for the
+ * new type are created, and subfolders the old type brought in are flagged for
+ * manual review rather than deleted.
+ */
+export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      talent_link_id: z.string().uuid(),
+      talent_type: z.string().min(1).max(60),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: link, error: linkErr } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name, talent_type")
+      .eq("id", data.talent_link_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (linkErr) throw new Error(linkErr.message);
+    if (!link) throw new Error("Talent not found on your roster");
+
+    const { error } = await supabase
+      .from("agency_talent_links")
+      .update({ talent_type: data.talent_type })
+      .eq("id", link.id);
+    if (error) throw new Error(error.message);
+
+    const { data: flagged, error: rpcErr } = await supabase.rpc(
+      "reconcile_talent_type_folders",
+      { _talent_link_id: link.id, _new_talent_type: data.talent_type },
+    );
+    if (rpcErr) throw new Error(rpcErr.message);
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, (context as any).claims?.email,
+      "update_talent_type", "talent", link.id, link.display_name,
+      { from: link.talent_type, to: data.talent_type, flagged_for_review: flagged ?? 0 },
+    );
+
+    return { ok: true, flaggedForReview: (flagged as number) ?? 0 };
+  });

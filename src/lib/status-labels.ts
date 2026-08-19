@@ -54,9 +54,3 @@ export const BILLING_DOC_STATUSES: StatusMeta[] = [
 const billing = toMaps(BILLING_DOC_STATUSES);
 export const BILLING_DOC_STATUS_LABEL = billing.label;
 export const BILLING_DOC_STATUS_TONE = billing.tone;
-
-/**
- * Baseline talent types offered when an agency has none on its roster yet.
- * Live values from the roster are merged in ahead of these at the call site.
- */
-export const BASELINE_TALENT_TYPES = ["Athlete", "Artist", "Model"] as const;

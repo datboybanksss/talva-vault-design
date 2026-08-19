@@ -21,7 +21,7 @@ import {
   getAgencyVersionSignedUrl,
   upsertAgencyRetentionRule,
 } from "@/lib/agency.functions";
-import { FOLDER_CATEGORIES, FOLDER_NAMES } from "@/lib/folder-taxonomy";
+import { useFolderCatalogue, useFolderNames, type CatalogueCategory } from "@/lib/folder-catalogue";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -90,7 +90,6 @@ const tabs = ["All Documents", "Pending Review", "Needs Review", "Expiring", "Re
 type Tab = typeof tabs[number];
 
 
-const FOLDER_OPTIONS = FOLDER_NAMES;
 
 type FolderMeta = {
   key: string;
@@ -110,12 +109,14 @@ const FOLDER_META: Record<string, { description: string; icon: any }> = {
   "Rights, Licences & Compliance": { description: "Licences, certifications, compliance", icon: ShieldPlus },
   "Other Documents": { description: "Anything that does not fit elsewhere", icon: Files },
 };
-const ALLOWED_FOLDERS: FolderMeta[] = FOLDER_CATEGORIES.map((f) => ({
-  key: f.name,
-  label: f.name,
-  description: FOLDER_META[f.name]?.description ?? "",
-  icon: FOLDER_META[f.name]?.icon ?? FolderOpen,
-}));
+function allowedFoldersFrom(categories: CatalogueCategory[]): FolderMeta[] {
+  return categories.map((f) => ({
+    key: f.name,
+    label: f.name,
+    description: FOLDER_META[f.name]?.description ?? "",
+    icon: FOLDER_META[f.name]?.icon ?? FolderOpen,
+  }));
+}
 const BLOCKED_FOLDERS: FolderMeta[] = [
   { key: "family", label: "Family / Loved Ones", description: "Talent's personal contacts", icon: UsersIcon },
   { key: "medical", label: "Medical / Insurance", description: "Health records, insurance", icon: HeartPulse },
@@ -144,6 +145,7 @@ function daysUntil(iso: string | null): number | null {
 
 export function VaultPage() {
   const qc = useQueryClient();
+  const folderOptions = useFolderNames();
   const { data: docs } = useSuspenseQuery(docsQO);
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
   const { data: me } = useSuspenseQuery(meQO);
@@ -338,7 +340,7 @@ export function VaultPage() {
             <div className="flex gap-2">
               <select className="tvp-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
                 <option value="all">Folder: All</option>
-                {FOLDER_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                {folderOptions.map((f: string) => <option key={f} value={f}>{f}</option>)}
               </select>
               <select className="tvp-select" value={talentFilter} onChange={(e) => setTalentFilter(e.target.value)}>
                 <option value="all">Talent: All</option>
@@ -628,6 +630,8 @@ function UploadDialog({
   onDone: (doc?: { id: string; name: string }) => void;
   registerFn: ReturnType<typeof useServerFn<typeof registerAgencyVaultDocument>>;
 }) {
+  const catalogue = useFolderCatalogue();
+  const allowedFolderMeta = allowedFoldersFrom(catalogue.categories);
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -884,7 +888,7 @@ function UploadDialog({
               </div>
             ) : (
               (allowedFolders ?? []).map((f: { id: string; folderName: string }) => {
-                const meta = ALLOWED_FOLDERS.find((m) => m.key === f.folderName);
+                const meta = allowedFolderMeta.find((m) => m.key === f.folderName);
                 const Icon = meta?.icon ?? FileText;
                 const active = folder === f.folderName;
                 return (

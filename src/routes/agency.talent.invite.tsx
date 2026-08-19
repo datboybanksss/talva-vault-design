@@ -1,4 +1,8 @@
-import { FOLDER_CATEGORIES } from "@/lib/folder-taxonomy";
+import {
+  useFolderCatalogue,
+  resolveSubfolders,
+  talentTypesFrom,
+} from "@/lib/folder-catalogue";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -26,7 +30,6 @@ import {
   DEFAULT_TALENT_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
-import { BASELINE_TALENT_TYPES } from "@/lib/status-labels";
 
 
 export const Route = createFileRoute("/agency/talent/invite")({
@@ -62,6 +65,7 @@ function InviteTalent() {
 
   // Folder options come from this agency's own configuration (Manage folders);
   // the platform taxonomy is only the baseline before anything is configured.
+  const catalogue = useFolderCatalogue();
   const { defaultFolders, allFolders } = useMemo(() => {
     const configured = (folderSettings.data?.settings ?? []) as Array<{
       folder_name: string;
@@ -75,20 +79,20 @@ function InviteTalent() {
       };
     }
     return {
-      defaultFolders: FOLDER_CATEGORIES.filter((f) => f.recommended).map((f) => f.name),
-      allFolders: FOLDER_CATEGORIES.map((f) => f.name),
+      defaultFolders: catalogue.categories.filter((f) => f.recommended).map((f) => f.name),
+      allFolders: catalogue.categories.map((f) => f.name),
     };
-  }, [folderSettings.data]);
+  }, [folderSettings.data, catalogue.categories]);
 
   // Talent types the agency already uses, so the list grows with real data.
   const talentTypeOptions = useMemo(() => {
     const live = ((roster.data ?? []) as Array<{ talentType: string | null }>)
       .map((r) => r.talentType)
       .filter((t): t is string => !!t && t.trim().length > 0);
-    return Array.from(new Set([...live, ...BASELINE_TALENT_TYPES])).sort((a, b) =>
+    return Array.from(new Set([...live, ...talentTypesFrom(catalogue)])).sort((a, b) =>
       a.localeCompare(b),
     );
-  }, [roster.data]);
+  }, [roster.data, catalogue]);
 
   const [step, setStep] = useState(1);
   const [folderMode, setFolderMode] = useState<"standard" | "custom">("standard");
@@ -115,6 +119,20 @@ function InviteTalent() {
     });
 
   const activeFolders = folderMode === "standard" ? defaultFolders : customSelection;
+
+  /** Subfolders this category will provision, given the chosen talent type. */
+  const subfolderPreview = (categoryName: string) => {
+    const cat = catalogue.categories.find((c) => c.name === categoryName);
+    if (!cat) return "";
+    const subs = resolveSubfolders(catalogue, cat.slug, talentType || null).filter(
+      (x) => x.enabled && x.kind === "default",
+    );
+    if (subs.length === 0) return "";
+    return `${subs.length} subfolder${subs.length === 1 ? "" : "s"}: ${subs
+      .slice(0, 4)
+      .map((x) => x.name)
+      .join(", ")}${subs.length > 4 ? "…" : ""}`;
+  };
 
   const detailsValid = fullName.trim().length > 1 && /\S+@\S+\.\S+/.test(email.trim());
 
@@ -325,9 +343,17 @@ function InviteTalent() {
                       const on = customSelection.includes(f);
                       const rec = defaultFolders.includes(f);
                       return (
-                        <label key={f} className="tvp-rule-card">
+                        <label key={f} className="tvp-rule-card" style={{ alignItems: "flex-start" }}>
                           <span>
                             <input type="checkbox" checked={on} onChange={() => toggle(f)} /> {f}
+                            {on && (
+                              <span
+                                className="tvp-small tvp-muted"
+                                style={{ display: "block", marginTop: 4 }}
+                              >
+                                {subfolderPreview(f)}
+                              </span>
+                            )}
                           </span>
                           <span className="tvp-small">{rec ? "Recommended" : "Optional"}</span>
                         </label>

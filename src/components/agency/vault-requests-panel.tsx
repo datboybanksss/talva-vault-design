@@ -1,5 +1,5 @@
 import { ModalShell } from "@/components/shared/modal-shell";
-import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
+import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { useEffect, useMemo, useState } from "react";
@@ -29,7 +29,6 @@ export const requestsTalentQO = queryOptions({
   queryFn: () => listAgencyTalentLinksLite(),
 });
 
-const FOLDERS = FOLDER_NAMES;
 const REASONS = [
   { code: "illegible", label: "Illegible / unreadable" },
   { code: "wrong_document", label: "Wrong document" },
@@ -219,13 +218,18 @@ function NewRequestDialog({
     queryKey: ["agency", "retention-rules"],
     queryFn: () => rulesFn(),
   });
+  const folders = useFolderNames();
   const [f, setF] = useState({
     talent_link_id: talent[0]?.id ?? "",
     title: "",
-    folder: FOLDER_NAMES[0],
+    folder: "",
     instructions: "",
     due_date: "",
   });
+
+  useEffect(() => {
+    if (!f.folder && folders.length > 0) setF((s) => ({ ...s, folder: folders[0] }));
+  }, [folders, f.folder]);
 
   const folderRule = useMemo(() => {
     const rules = rulesQ.data ?? [];
@@ -261,7 +265,7 @@ function NewRequestDialog({
           </div>
           <div className="tvp-form-group"><label>Folder</label>
             <select value={f.folder} onChange={e => setF(s => ({ ...s, folder: e.target.value }))}>
-              {FOLDERS.map(x => <option key={x} value={x}>{x}</option>)}
+              {folders.map((x: string) => <option key={x} value={x}>{x}</option>)}
             </select>
           </div>
 
