@@ -1,4 +1,5 @@
 import { usePagedList } from "@/lib/pagination";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -462,26 +463,25 @@ function PrivateVault() {
                     <td>{new Date(d.created_at).toLocaleDateString()}</td>
                     <td>
                       <div className="tvp-row-actions">
-                        {d.pending_review && (
-                          <button
-                            title="Finish AI filing review"
-                            className="tvp-mini-btn"
-                            onClick={() => setAiReviewFor({ id: d.id, name: d.name })}
-                            aria-label="Finish filing review"
-                          >
-                            <Sparkles className="h-4 w-4" />
-                          </button>
-                        )}
-                        {d.storage_path ? (
-                          <button title="Download document" className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
-                            <Download className="h-4 w-4" />
-                          </button>
-                        ) : (
-                          <span className="tvp-muted" style={{ fontSize: 11 }}>No file</span>
-                        )}
-                        <button title="Delete document" className="tvp-mini-btn" onClick={() => onDeleteDoc(d.id, d.name)} aria-label="Delete">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <RowActionsMenu
+                          actions={[
+                            d.pending_review && {
+                              key: "review", label: "Finish filing review", icon: Sparkles,
+                              onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
+                            },
+                            {
+                              key: "download", label: "Download document", icon: Download,
+                              disabled: !d.storage_path,
+                              title: d.storage_path ? undefined : "No file attached to this document",
+                              onSelect: () => onDownload(d.id),
+                            },
+                            {
+                              key: "delete", label: "Delete document", icon: Trash2,
+                              destructive: true, separatorBefore: true,
+                              onSelect: () => onDeleteDoc(d.id, d.name),
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
