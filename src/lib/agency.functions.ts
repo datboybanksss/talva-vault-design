@@ -123,15 +123,108 @@ export const agencyWhoami = createServerFn({ method: "GET" })
   });
 
 // -----------------------------------------------------------------------------
-// Notifications — empty for now; per-feature reminders will land as we build.
+// Notifications — computed "needs attention" reminders for the bell dropdown.
+// Dismissals are per-user and re-surface when the underlying counts change.
 // -----------------------------------------------------------------------------
 export const listAgencyNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
-    await getCallerAgency(supabase, userId); // ensures caller is an agency member
-    return { computed: [] as any[], persisted: [] as any[] };
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: agencyPrefs } = await supabase
+      .from("agencies")
+      .select("expiry_notice_days")
+      .eq("id", agencyId)
+      .maybeSingle();
+    const expiryNoticeDays = agencyPrefs?.expiry_notice_days ?? 30;
+    const nowIso = new Date().toISOString();
+    const windowIso = new Date(Date.now() + expiryNoticeDays * 86400000).toISOString();
+
+    const [needsReviewRes, expiringRes, overdueRes, talentInvRes, staffInvRes] = await Promise.all([
+      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "needs_review"),
+      supabase
+        .from("talent_shared_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .not("validity_expires_at", "is", null)
+        .gte("validity_expires_at", nowIso)
+        .lte("validity_expires_at", windowIso),
+      supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "overdue"),
+      supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending"),
+      supabase.from("agency_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("kind", "staff").eq("status", "pending"),
+    ]);
+
+    const needsReview = needsReviewRes.count ?? 0;
+    const expiringSoon = expiringRes.count ?? 0;
+    const overdueInvoices = overdueRes.count ?? 0;
+    const invitesPending = (talentInvRes.count ?? 0) + (staffInvRes.count ?? 0);
+    const total = needsReview + expiringSoon + overdueInvoices + invitesPending;
+
+    const breakdown: string[] = [];
+    if (needsReview > 0) breakdown.push(`${needsReview} talent needing review`);
+    if (expiringSoon > 0) breakdown.push(`${expiringSoon} document${expiringSoon === 1 ? "" : "s"} expiring in ${expiryNoticeDays} day${expiryNoticeDays === 1 ? "" : "s"}`);
+    if (overdueInvoices > 0) breakdown.push(`${overdueInvoices} invoice${overdueInvoices === 1 ? "" : "s"} overdue`);
+    if (invitesPending > 0) breakdown.push(`${invitesPending} invitation${invitesPending === 1 ? "" : "s"} pending`);
+
+    const target =
+      needsReview > 0
+        ? "/agency/talent"
+        : expiringSoon > 0
+          ? "/agency/document-vault"
+          : overdueInvoices > 0
+            ? "/agency/quotes-invoices"
+            : "/agency/invitations";
+
+    const computed: any[] = [];
+    if (total > 0) {
+      computed.push({
+        id: "attention_summary",
+        key: "attention_summary",
+        snapshot: total,
+        tone: "amber",
+        title: `${total} item${total === 1 ? "" : "s"} need your attention`,
+        detail: breakdown.join(" · "),
+        note: "Status reflects manager-led documents only. Talent's Private Vault items are excluded.",
+        to: target,
+      });
+    }
+
+    const { data: dis } = await supabase
+      .from("agency_notification_dismissals")
+      .select("kind, snapshot")
+      .eq("user_id", userId);
+    const dismissed = new Map((dis ?? []).map((d: any) => [d.kind, d.snapshot as number]));
+
+    return {
+      computed: computed.filter((i) => {
+        const d = dismissed.get(i.key);
+        return d === undefined || d < i.snapshot;
+      }),
+      persisted: [] as any[],
+    };
   });
+
+export const dismissAgencyReminder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ kind: z.string().min(1).max(60), snapshot: z.number().int().nonnegative() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { error } = await supabase.from("agency_notification_dismissals").upsert(
+      {
+        user_id: userId,
+        kind: data.kind,
+        snapshot: data.snapshot,
+        dismissed_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,kind" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 // -----------------------------------------------------------------------------
 // Dashboard metrics — real counts scoped to caller's agency.
