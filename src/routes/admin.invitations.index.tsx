@@ -283,19 +283,20 @@ function InvitationsPage() {
               )}
               {visible.map((i: any) => {
                 const dLeft = daysBetween(i.expires_at);
+                const isOpen = (i.stored_status ?? i.status) === "pending";
                 const expiryTone =
-                  i.status === "pending" && dLeft < 0
+                  isOpen && dLeft < 0
                     ? "red"
-                    : i.status === "pending" && dLeft <= 3
+                    : isOpen && dLeft <= 3
                       ? "amber"
                       : "neutral";
                 const expiryLabel =
-                  i.status !== "pending"
+                  !isOpen
                     ? "—"
                     : dLeft < 0
                       ? "Expired"
                       : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
-                const readOnly = i.status !== "pending";
+                const readOnly = !isOpen;
                 return (
                   <tr
                     key={i.id}
@@ -375,7 +376,7 @@ function InvitationsPage() {
                                 <Pencil className="h-4 w-4" />
                               </button>
                             )}
-                            {i.status === "pending" && (
+                            {isOpen && (
                               <>
                                 <button
                                   className="tvp-mini-btn"
