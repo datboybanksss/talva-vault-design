@@ -12,6 +12,7 @@ import {
   logTalentMfaEnrolled,
   logTalentMfaDisabled,
 } from "@/lib/talent-audit.functions";
+import { ReplayTourCard } from "@/components/shared/replay-tour-card";
 
 export const Route = createFileRoute("/talent/settings")({
   ssr: false,
