@@ -8,13 +8,13 @@ export const Route = createFileRoute("/talent/budget")({
       {
         name: "description",
         content:
-          "Budget & Income is coming soon — plan monthly income, track expenses and view Manager quotes and invoices in one private place.",
+          "Budget & Income is on its way — plan monthly income, track expenses and view Manager quotes and invoices in one private place.",
       },
       { property: "og:title", content: "Budget & Income · TalVault Talent" },
       {
         property: "og:description",
         content:
-          "Budget & Income is coming soon to the TalVault Talent portal.",
+          "Budget & Income is on its way in the TalVault Talent portal.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
