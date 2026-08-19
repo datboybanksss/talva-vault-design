@@ -85,7 +85,12 @@ function AgencySettingsPage() {
 
       <div className="tvp-settings-tight">
         <Suspense fallback={<div className="tvp-muted" style={{ padding: 24 }}>Loading…</div>}>
-          {tab === "profile" && <AgencyProfilePanel />}
+          {tab === "profile" && (
+            <>
+              <AgencyProfilePanel />
+              <ReplayTourCard />
+            </>
+          )}
           {tab === "folders" && <FolderTemplatesPanel />}
           {tab === "document-rules" && <DocumentRulesPanel />}
           {tab === "quotes-invoices" && <QuotesInvoicesSettingsPanel />}
