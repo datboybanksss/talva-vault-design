@@ -5,65 +5,141 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * TalVault design system.
- * Single shared visual language across Admin, Talent Agency, Talent, Loved One.
- * Tokens defined in :root, mapped to Tailwind utilities via @theme inline.
+ * TalVault design system — 2026 trends update (approved 19 Aug 2026).
  *
- * DARK MODE — INTENTIONALLY DEFERRED (decision, not an open question).
- * TalVault ships light-only for now. Dark mode is a known, accepted future item
- * and is deliberately out of scope; do not add a theme toggle or `.dark`
- * overrides without an explicit decision to reverse this.
+ * Every colour, surface, border and shadow is a semantic token. The legacy
+ * token names (--bg, --surface, --line, --ink, --teal, --tvp-*) are now
+ * derived from the canonical scale below, so dark mode is a pure token flip:
+ * no component markup or per-component overrides.
  *
- * Why this is safe to defer: every colour, surface, border and shadow is already
- * expressed as a semantic token in :root (never hardcoded in components), and the
- * `dark` custom variant above is already registered. Adding dark mode later means
- * adding a `.dark { ... }` block that re-points the same token names plus a theme
- * toggle — no component rework and no token renaming required.
- *
- * The one prerequisite if/when it is picked up: a handful of legacy inline hex
- * colours on the public Loved One share pages would need moving onto tokens first.
+ * Dark mode follows the OS via prefers-color-scheme, and can be manually
+ * overridden by setting data-theme="light" | "dark" on <html>.
  */
 
 :root {
-  /* Sidebar */
-  --sidebar-bg: #064E58;
-  --sidebar-active: #086A70;
-  --sidebar-muted: #93C4C7;
+  /* ---------- Brand teal scale (platform-wide) ---------- */
+  --teal-900: #06484d;
+  --teal-800: #075056;
+  --teal-700: #086a70;
+  --teal-600: #0a7b8a;
+  --teal-500: #108b95;
+  --teal-300: #5fb3bc;
+  --teal-200: #bedadd;
+  --teal-100: #e3eff0;
+  --teal-050: #eff8f9;
 
-  /* Surfaces */
-  --bg: #FAFAF9;
-  --surface: #FFFFFF;
-  --surface-soft: #F7F7F6;
-  --line: #E5E7EB;
-  --line-strong: #D1D5DB;
+  --sidebar-bg:     #086a70;
+  --sidebar-active: #108b95;
+  --on-teal:        #ffffff;
 
-  /* Text */
-  --ink: #1A1F2A;
-  --text-body: #4B5563;
-  --muted-fg: #6B7280;
+  --blue-link: #2376cd;
+  --blue-link-hover: #1b5ea6;
 
-  /* Brand teal scale */
-  --teal: #064E58;
-  --teal-2: #086A70;
-  --teal-50: #EEF6F7;
-  --teal-100: #DEECEE;
-  --teal-200: #BEDADD;
+  --success-700: #047857;
+  --success-500: #059669;
+  --success-050: #d1fae5;
 
-  /* Brand amber accent */
-  --amber-accent: #E89348;
-  --amber-accent-bg: #FDF1E4;
+  --danger-600:  #dc2626;
+  --danger-700:  #b91c1c;
+  --danger-050:  #fee2e2;
 
-  /* Semantic */
-  --green: #059669;
-  --green-bg: #D1FAE5;
-  --amber: #E89348;
-  --amber-bg: #FDF1E4;
-  --red: #DC2626;
-  --red-bg: #FEE2E2;
-  --blue: #2563EB;
-  --blue-bg: #DBEAFE;
-  --purple: #7C3AED;
-  --purple-bg: #EDE9FE;
+  --warning-600: #b45309;
+  --warning-050: #fff4e5;
+
+  --amber-600:   #d97706;
+  --amber-050:   #fdf2e4;
+
+  --st-incomplete-bg:#ede9fe; --st-incomplete-fg:#6d28d9;
+  --st-invited-bg:   #dbeafe; --st-invited-fg:   #1d4ed8;
+  --st-accepted-bg:  #d1fae5; --st-accepted-fg:  #047857;
+  --st-expired-bg:   #fff4e5; --st-expired-fg:   #b45309;
+  --st-declined-bg:  #fee2e2; --st-declined-fg:  #b91c1c;
+  --st-suspended-bg: #e3eff0; --st-suspended-fg: #086a70;
+  --st-success-bg: var(--st-accepted-bg); --st-success-fg: var(--st-accepted-fg);
+  --st-info-bg:    var(--st-invited-bg);  --st-info-fg:    var(--st-invited-fg);
+  --st-warning-bg: var(--st-expired-bg);  --st-warning-fg: var(--st-expired-fg);
+  --st-danger-bg:  var(--st-declined-bg); --st-danger-fg:  var(--st-declined-fg);
+  --st-neutral-bg: #ece7df; --st-neutral-fg: #6b6157;
+
+  --cat-private:    #7c3aed;  --cat-private-bg:   #f5f1fe;
+  --cat-agency:     #2563eb;  --cat-agency-bg:    #edf3fe;
+  --cat-loved:      #059669;  --cat-loved-bg:     #eafaf2;
+  --cat-reminders:  #d97706;  --cat-reminders-bg: #fdf2e4;
+
+  --ink-900:  #142033;
+  --ink-700:  #384254;
+  --ink-500:  #748091;
+  --ink-400:  #9aa4b2;
+
+  --line-200: #ede8e0;
+  --line-300: #dcd4c8;
+  --line-100: #f4efe8;
+
+  --surface:        #ffffff;
+  --surface-soft:   #fffcf8;
+  --surface-app:    #fdf9f5;
+  --surface-income: #f0fafa;
+  --on-teal-dim:    #c8dde0;
+
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 16px;
+  --r-card: 18px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+
+  --sh-sm: 0 1px 2px rgba(13, 49, 56, .06);
+  --sh-md: 0 2px 8px rgba(13, 49, 56, .08);
+  --sh-lg: 0 8px 28px rgba(13, 49, 56, .12);
+  --sh-sheet: 0 -4px 24px rgba(13, 49, 56, .10);
+
+  --focus-ring: 0 0 0 3px rgba(16, 139, 149, 0.22);
+
+  --font-sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  --t-display-lg: clamp(32px, 6vw, 44px);
+  --t-display:  28px;
+  --t-title:    21px;
+  --t-h2:       17px;
+  --t-card:     15px;
+  --t-body:     15px;
+  --t-sub:      13px;
+  --t-meta:     12px;
+
+  --lh-tight: 1.25;
+  --lh-body:  1.5;
+
+  /* ---------- Legacy token bridge (derived — never hardcode) ---------- */
+  --sidebar-muted: var(--teal-300);
+
+  --bg: var(--surface-app);
+  --line: var(--line-200);
+  --line-strong: var(--line-300);
+
+  --ink: var(--ink-900);
+  --text-body: var(--ink-700);
+  --muted-fg: var(--ink-500);
+
+  --teal: var(--teal-700);
+  --teal-2: var(--teal-600);
+  --teal-50: var(--teal-050);
+
+  --amber-accent: var(--amber-600);
+  --amber-accent-bg: var(--amber-050);
+
+  --green: var(--success-500);
+  --green-bg: var(--success-050);
+  --amber: var(--amber-600);
+  --amber-bg: var(--amber-050);
+  --red: var(--danger-600);
+  --red-bg: var(--danger-050);
+  --blue: var(--cat-agency);
+  --blue-bg: var(--cat-agency-bg);
+  --purple: var(--cat-private);
+  --purple-bg: var(--cat-private-bg);
 
   /* Shape */
   --radius: 10px;
@@ -71,8 +147,8 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 14px;
-  --shadow-soft: 0 5px 18px rgba(20, 32, 51, 0.05);
-  --shadow-card: 0 12px 34px rgba(20, 32, 51, 0.07);
+  --shadow-soft: var(--sh-md);
+  --shadow-card: var(--sh-lg);
 
   --sidebar-width: 280px;
   --sidebar-collapsed-width: 92px;
@@ -85,7 +161,7 @@
   --popover: var(--surface);
   --popover-foreground: var(--ink);
   --primary: var(--teal);
-  --primary-foreground: #ffffff;
+  --primary-foreground: var(--on-teal);
   --secondary: var(--teal-100);
   --secondary-foreground: var(--teal);
   --muted: var(--surface-soft);
@@ -93,7 +169,7 @@
   --accent: var(--teal-100);
   --accent-foreground: var(--teal);
   --destructive: var(--red);
-  --destructive-foreground: #ffffff;
+  --destructive-foreground: var(--on-teal);
   --border: var(--line);
   --input: var(--line-strong);
   --ring: var(--teal-2);
@@ -105,14 +181,119 @@
   --chart-5: var(--purple);
 
   --sidebar: var(--sidebar-bg);
-  --sidebar-foreground: #ffffff;
+  --sidebar-foreground: var(--on-teal);
   --sidebar-primary: var(--sidebar-active);
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: var(--on-teal);
   --sidebar-accent: var(--sidebar-active);
-  --sidebar-accent-foreground: #ffffff;
+  --sidebar-accent-foreground: var(--on-teal);
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: var(--sidebar-active);
 }
+
+/* ---------- Dark theme: token flips only ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface:        #0c2b31;
+    --surface-soft:   #0f3138;
+    --surface-app:    #061f24;
+    --surface-income: #0d3237;
+    --ink-900: #eaf4f4;
+    --ink-700: #c3d8da;
+    --ink-500: #8ea9ad;
+    --ink-400: #7f9da2;
+    --line-100: #16393f;
+    --line-200: #1d474e;
+    --line-300: #275a62;
+    --teal-900: #04262c;
+    --teal-800: #05313a;
+    --teal-700: #35b0ba;
+    --teal-600: #4ac0c9;
+    --teal-500: #5fd0d8;
+    --teal-300: #7fd3db;
+    --teal-200: #2a6b74;
+    --teal-100: #14424a;
+    --teal-050: #10353c;
+    --on-teal:  #052a30;
+    --on-teal-dim: #0c3b43;
+    --sidebar-bg:     #04262c;
+    --sidebar-active: #0c4a52;
+    --blue-link:       #7ab6f5;
+    --blue-link-hover: #a5cdf9;
+    --success-700: #6ee7b7; --success-500: #34d399; --success-050: #0e3a2c;
+    --danger-600:  #f87171; --danger-700:  #fca5a5; --danger-050:  #401a1a;
+    --warning-600: #fcd34d; --warning-050: #3d2a0b;
+    --amber-600:   #fcd34d; --amber-050:   #33240a;
+    --st-incomplete-bg:#241d3d; --st-incomplete-fg:#c4b5fd;
+    --st-invited-bg:   #14243f; --st-invited-fg:   #93c5fd;
+    --st-accepted-bg:  #0e3a2c; --st-accepted-fg:  #6ee7b7;
+    --st-expired-bg:   #3d2a0b; --st-expired-fg:   #fcd34d;
+    --st-declined-bg:  #401a1a; --st-declined-fg:  #fca5a5;
+    --st-suspended-bg: #14424a; --st-suspended-fg: #7fd3db;
+    --st-neutral-bg:   #26302f; --st-neutral-fg:   #b3bfbd;
+    --cat-private:   #c4b5fd; --cat-private-bg:   #241d3d;
+    --cat-agency:    #93c5fd; --cat-agency-bg:    #14243f;
+    --cat-loved:     #6ee7b7; --cat-loved-bg:     #0f2d24;
+    --cat-reminders: #fcd34d; --cat-reminders-bg: #33240a;
+    --sh-sm: 0 1px 2px rgba(0,0,0,.50);
+    --sh-md: 0 2px 10px rgba(0,0,0,.55);
+    --sh-lg: 0 8px 30px rgba(0,0,0,.60);
+    --sh-sheet: 0 -4px 26px rgba(0,0,0,.55);
+    --focus-ring: 0 0 0 3px rgba(95,208,216,.30);
+    --sidebar-border: rgba(255, 255, 255, 0.12);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --surface:        #0c2b31;
+  --surface-soft:   #0f3138;
+  --surface-app:    #061f24;
+  --surface-income: #0d3237;
+  --ink-900: #eaf4f4;
+  --ink-700: #c3d8da;
+  --ink-500: #8ea9ad;
+  --ink-400: #7f9da2;
+  --line-100: #16393f;
+  --line-200: #1d474e;
+  --line-300: #275a62;
+  --teal-900: #04262c;
+  --teal-800: #05313a;
+  --teal-700: #35b0ba;
+  --teal-600: #4ac0c9;
+  --teal-500: #5fd0d8;
+  --teal-300: #7fd3db;
+  --teal-200: #2a6b74;
+  --teal-100: #14424a;
+  --teal-050: #10353c;
+  --on-teal:  #052a30;
+  --on-teal-dim: #0c3b43;
+  --sidebar-bg:     #04262c;
+  --sidebar-active: #0c4a52;
+  --blue-link:       #7ab6f5;
+  --blue-link-hover: #a5cdf9;
+  --success-700: #6ee7b7; --success-500: #34d399; --success-050: #0e3a2c;
+  --danger-600:  #f87171; --danger-700:  #fca5a5; --danger-050:  #401a1a;
+  --warning-600: #fcd34d; --warning-050: #3d2a0b;
+  --amber-600:   #fcd34d; --amber-050:   #33240a;
+  --st-incomplete-bg:#241d3d; --st-incomplete-fg:#c4b5fd;
+  --st-invited-bg:   #14243f; --st-invited-fg:   #93c5fd;
+  --st-accepted-bg:  #0e3a2c; --st-accepted-fg:  #6ee7b7;
+  --st-expired-bg:   #3d2a0b; --st-expired-fg:   #fcd34d;
+  --st-declined-bg:  #401a1a; --st-declined-fg:  #fca5a5;
+  --st-suspended-bg: #14424a; --st-suspended-fg: #7fd3db;
+  --st-neutral-bg:   #26302f; --st-neutral-fg:   #b3bfbd;
+  --cat-private:   #c4b5fd; --cat-private-bg:   #241d3d;
+  --cat-agency:    #93c5fd; --cat-agency-bg:    #14243f;
+  --cat-loved:     #6ee7b7; --cat-loved-bg:     #0f2d24;
+  --cat-reminders: #fcd34d; --cat-reminders-bg: #33240a;
+  --sh-sm: 0 1px 2px rgba(0,0,0,.50);
+  --sh-md: 0 2px 10px rgba(0,0,0,.55);
+  --sh-lg: 0 8px 30px rgba(0,0,0,.60);
+  --sh-sheet: 0 -4px 26px rgba(0,0,0,.55);
+  --focus-ring: 0 0 0 3px rgba(95,208,216,.30);
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  color-scheme: dark;
+}
+
 
 @theme inline {
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
