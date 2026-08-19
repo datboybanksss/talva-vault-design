@@ -52,6 +52,7 @@ import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitati
 import { Route as AdminAgenciesIdRouteImport } from './routes/admin.agencies.$id'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksTalentRemindersRouteImport } from './routes/api/public/hooks/talent-reminders'
+import { Route as AgencyInvitationsIdEmailPreviewRouteImport } from './routes/agency.invitations.$id.email-preview'
 import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
 
 const TalentRoute = TalentRouteImport.update({
@@ -271,6 +272,12 @@ const ApiPublicHooksTalentRemindersRoute =
     path: '/api/public/hooks/talent-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AgencyInvitationsIdEmailPreviewRoute =
+  AgencyInvitationsIdEmailPreviewRouteImport.update({
+    id: '/$id/email-preview',
+    path: '/$id/email-preview',
+    getParentRoute: () => AgencyInvitationsRoute,
+  } as any)
 const AdminInvitationsIdEmailPreviewRoute =
   AdminInvitationsIdEmailPreviewRouteImport.update({
     id: '/$id/email-preview',
@@ -298,7 +305,7 @@ export interface FileRoutesByFullPath {
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
-  '/agency/invitations': typeof AgencyInvitationsRoute
+  '/agency/invitations': typeof AgencyInvitationsRouteWithChildren
   '/agency/my-account': typeof AgencyMyAccountRoute
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
@@ -321,6 +328,7 @@ export interface FileRoutesByFullPath {
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
@@ -339,7 +347,7 @@ export interface FileRoutesByTo {
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
-  '/agency/invitations': typeof AgencyInvitationsRoute
+  '/agency/invitations': typeof AgencyInvitationsRouteWithChildren
   '/agency/my-account': typeof AgencyMyAccountRoute
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
@@ -362,6 +370,7 @@ export interface FileRoutesByTo {
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
@@ -386,7 +395,7 @@ export interface FileRoutesById {
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
   '/agency/document-vault': typeof AgencyDocumentVaultRoute
   '/agency/folder-templates': typeof AgencyFolderTemplatesRoute
-  '/agency/invitations': typeof AgencyInvitationsRoute
+  '/agency/invitations': typeof AgencyInvitationsRouteWithChildren
   '/agency/my-account': typeof AgencyMyAccountRoute
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
@@ -409,6 +418,7 @@ export interface FileRoutesById {
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
@@ -457,6 +467,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/'
     | '/admin/invitations/'
     | '/admin/invitations/$id/email-preview'
+    | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
     | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
@@ -498,6 +509,7 @@ export interface FileRouteTypes {
     | '/admin/agencies'
     | '/admin/invitations'
     | '/admin/invitations/$id/email-preview'
+    | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
     | '/lovable/email/queue/process'
   id:
@@ -544,6 +556,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/'
     | '/admin/invitations/'
     | '/admin/invitations/$id/email-preview'
+    | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
     | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
@@ -867,6 +880,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksTalentRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agency/invitations/$id/email-preview': {
+      id: '/agency/invitations/$id/email-preview'
+      path: '/$id/email-preview'
+      fullPath: '/agency/invitations/$id/email-preview'
+      preLoaderRoute: typeof AgencyInvitationsIdEmailPreviewRouteImport
+      parentRoute: typeof AgencyInvitationsRoute
+    }
     '/admin/invitations/$id/email-preview': {
       id: '/admin/invitations/$id/email-preview'
       path: '/$id/email-preview'
@@ -930,6 +950,17 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface AgencyInvitationsRouteChildren {
+  AgencyInvitationsIdEmailPreviewRoute: typeof AgencyInvitationsIdEmailPreviewRoute
+}
+
+const AgencyInvitationsRouteChildren: AgencyInvitationsRouteChildren = {
+  AgencyInvitationsIdEmailPreviewRoute: AgencyInvitationsIdEmailPreviewRoute,
+}
+
+const AgencyInvitationsRouteWithChildren =
+  AgencyInvitationsRoute._addFileChildren(AgencyInvitationsRouteChildren)
+
 interface AgencyTalentRouteChildren {
   AgencyTalentInviteRoute: typeof AgencyTalentInviteRoute
 }
@@ -948,7 +979,7 @@ interface AgencyRouteChildren {
   AgencyDocumentRulesRoute: typeof AgencyDocumentRulesRoute
   AgencyDocumentVaultRoute: typeof AgencyDocumentVaultRoute
   AgencyFolderTemplatesRoute: typeof AgencyFolderTemplatesRoute
-  AgencyInvitationsRoute: typeof AgencyInvitationsRoute
+  AgencyInvitationsRoute: typeof AgencyInvitationsRouteWithChildren
   AgencyMyAccountRoute: typeof AgencyMyAccountRoute
   AgencyQuotesInvoicesRoute: typeof AgencyQuotesInvoicesRoute
   AgencySettingsRoute: typeof AgencySettingsRoute
@@ -963,7 +994,7 @@ const AgencyRouteChildren: AgencyRouteChildren = {
   AgencyDocumentRulesRoute: AgencyDocumentRulesRoute,
   AgencyDocumentVaultRoute: AgencyDocumentVaultRoute,
   AgencyFolderTemplatesRoute: AgencyFolderTemplatesRoute,
-  AgencyInvitationsRoute: AgencyInvitationsRoute,
+  AgencyInvitationsRoute: AgencyInvitationsRouteWithChildren,
   AgencyMyAccountRoute: AgencyMyAccountRoute,
   AgencyQuotesInvoicesRoute: AgencyQuotesInvoicesRoute,
   AgencySettingsRoute: AgencySettingsRoute,
