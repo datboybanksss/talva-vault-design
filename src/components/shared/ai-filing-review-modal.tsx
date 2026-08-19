@@ -6,6 +6,11 @@
  * it currently receives a locally-derived default (the folder chosen at upload,
  * no detected expiry), and can later be handed a real API response with the exact
  * same shape — no other change to this component or its callers.
+ *
+ * UX contract: every field is live and editable the moment the popup opens. The
+ * suggestion only pre-fills them. Editing IS the correction mechanism, so there
+ * is no per-field confirm step and no separate "reject" path — whatever sits in
+ * the fields when "Save filing" is pressed is what gets written.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -21,7 +26,6 @@ import {
   Loader2,
   Clock,
   Check,
-  Pencil,
   HelpCircle,
 } from "lucide-react";
 import {
@@ -63,6 +67,10 @@ type Props = {
   onDone: () => void;
 };
 
+type CatalogItem = { id: string; label: string };
+
+const PATH_SEP = " → ";
+
 function minusDays(iso: string, days: number) {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - days);
@@ -80,40 +88,40 @@ const AMBER_PANEL = {
   fontSize: 13,
 } as const;
 
+const FIELD_COL = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+  flex: "1 1 220px",
+  minWidth: 0,
+} as const;
 
 /**
- * Provenance row for a single suggested field: where the value came from, how
- * confident the suggestion was, the verbatim source sentence on demand, and the
- * Confirm / Edit actions. Flips to "Edited by you" as soon as the human changes
- * or confirms ownership of the value.
+ * Passive provenance strip for a field: where the value came from, how confident
+ * the suggestion was, and the verbatim source sentence on demand. It carries no
+ * Confirm/Edit actions — the field itself is always editable, and the badge flips
+ * to "Edited by you" the moment the value is changed.
  */
 function FieldProvenance({
-  field,
   value,
   source,
   confidence,
   sourceText,
-  onConfirm,
-  onEdit,
 }: {
-  field: string;
   value: string;
   source: "ai" | "user";
   confidence?: "high" | "medium" | "low" | null;
   sourceText?: string | null;
-  onConfirm: () => void;
-  onEdit: () => void;
 }) {
   const [showSource, setShowSource] = useState(false);
-  const confirmed = source === "user";
+  const edited = source === "user";
 
   return (
     <div className="tv-prov" data-source={source}>
       <div className="tv-prov__head">
-        <span className="tv-prov__field">{field}</span>
         <span className="tv-prov__value">{value}</span>
         <span className="tv-prov__badge" style={{ marginLeft: "auto" }}>
-          {confirmed ? (
+          {edited ? (
             <>
               <Check className="h-3 w-3" /> Edited by you
             </>
@@ -124,30 +132,6 @@ function FieldProvenance({
             </>
           )}
         </span>
-      </div>
-
-      {showSource && (
-        <p className="tv-prov__source">
-          {sourceText
-            ? `"${sourceText}"`
-            : confirmed
-              ? "You set this value yourself, so there is no document extract behind it."
-              : "No source sentence was captured for this field — the suggestion came from the folder you uploaded into, not from the document's contents."}
-        </p>
-      )}
-
-      <div className="tv-prov__acts">
-        <button
-          type="button"
-          className="tv-btn tv-btn--primary"
-          onClick={onConfirm}
-          disabled={confirmed}
-        >
-          <Check className="h-3.5 w-3.5" /> {confirmed ? "Confirmed" : "Confirm"}
-        </button>
-        <button type="button" className="tv-btn tv-btn--secondary" onClick={onEdit}>
-          <Pencil className="h-3.5 w-3.5" /> Edit
-        </button>
         <button
           type="button"
           className="tv-btn tv-btn--ghost"
@@ -158,6 +142,16 @@ function FieldProvenance({
           {showSource ? "Hide source" : "Where did this come from?"}
         </button>
       </div>
+
+      {showSource && (
+        <p className="tv-prov__source">
+          {sourceText
+            ? `"${sourceText}"`
+            : edited
+              ? "You set this value yourself, so there is no document extract behind it."
+              : "No source sentence was captured for this field — the suggestion came from the folder you uploaded into, not from the document's contents."}
+        </p>
+      )}
     </div>
   );
 }
@@ -183,7 +177,7 @@ export function AiFilingReviewModal({
     staleTime: Infinity,
   });
 
-  const catalog = data?.catalog ?? [];
+  const catalog: CatalogItem[] = data?.catalog ?? [];
 
   /**
    * Placeholder suggestion until a real service is wired in: default to the folder
@@ -201,9 +195,45 @@ export function AiFilingReviewModal({
     };
   }, [suggestionProp, data]);
 
-  // --- section state -----------------------------------------------------
-  const [picking, setPicking] = useState(false);
-  const [destination, setDestination] = useState<string | null>(null);
+  /**
+   * The catalog arrives as flattened "Parent → Child" paths. Split it back into a
+   * two-level tree so folder and subfolder can be picked separately. Agency folder
+   * lists are flat, in which case every group simply has no children.
+   */
+  const tree = useMemo(() => {
+    const order: string[] = [];
+    const groups = new Map<string, { ownId: string | null; children: CatalogItem[] }>();
+    for (const item of catalog) {
+      const parts = item.label.split(PATH_SEP);
+      const top = parts[0];
+      if (!groups.has(top)) {
+        groups.set(top, { ownId: null, children: [] });
+        order.push(top);
+      }
+      const group = groups.get(top)!;
+      if (parts.length === 1) group.ownId = item.id;
+      else group.children.push({ id: item.id, label: parts.slice(1).join(PATH_SEP) });
+    }
+    return { order, groups };
+  }, [catalog]);
+
+  /** Resolve a stored destination id back to its (top-level, subfolder) pair. */
+  const locate = useMemo(
+    () => (id: string | null) => {
+      if (!id) return { top: "", sub: "" };
+      for (const top of tree.order) {
+        const group = tree.groups.get(top)!;
+        if (group.ownId === id) return { top, sub: "" };
+        if (group.children.some((c) => c.id === id)) return { top, sub: id };
+      }
+      return { top: "", sub: "" };
+    },
+    [tree],
+  );
+
+  // --- field state (all live from the moment the popup opens) ----------------
+  const [topFolder, setTopFolder] = useState<string>("");
+  const [subFolder, setSubFolder] = useState<string>("");
   const [expiry, setExpiry] = useState<string>("");
   const [leadDays, setLeadDays] = useState<number>(30);
   const [noReminder, setNoReminder] = useState(false);
@@ -212,19 +242,26 @@ export function AiFilingReviewModal({
 
   useEffect(() => {
     if (!data || !suggestion) return;
-    setDestination(suggestion.folder_id);
+    const { top, sub } = locate(suggestion.folder_id);
+    setTopFolder(top);
+    setSubFolder(sub);
     setExpiry(suggestion.expiry_date ?? "");
     setLeadDays(suggestion.reminder_lead_days ?? data.defaultReminderDays ?? 30);
+    setNoReminder(false);
     setFolderSource("ai");
     setExpirySource("ai");
-    if (!suggestion.folder_id) setPicking(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  const destinationLabel = useMemo(
-    () => catalog.find((c: { id: string; label: string }) => c.id === destination)?.label ?? null,
-    [catalog, destination],
-  );
+  const activeGroup = topFolder ? tree.groups.get(topFolder) : undefined;
+  const subOptions = activeGroup?.children ?? [];
+
+  /** What actually gets written: the subfolder when one is picked, else the folder. */
+  const destination = subFolder || activeGroup?.ownId || null;
+
+  const destinationLabel = topFolder
+    ? [topFolder, subOptions.find((c) => c.id === subFolder)?.label].filter(Boolean).join(PATH_SEP)
+    : null;
 
   const reminderDate = expiry && !noReminder ? minusDays(expiry, leadDays) : null;
 
@@ -242,29 +279,10 @@ export function AiFilingReviewModal({
         },
       }),
     onSuccess: () => {
-      toast.success("Filing confirmed.");
+      toast.success("Filing saved.");
       onDone();
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not save filing."),
-  });
-
-  const reject = useMutation({
-    mutationFn: () =>
-      confirmFn({
-        data: {
-          scope,
-          document_id: documentId,
-          destination: null,
-          expires_at: null,
-          reminder_at: null,
-          ai_assisted: false,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Suggestion rejected — the document stays where you uploaded it.");
-      onDone();
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Could not reject suggestion."),
   });
 
   const skip = useMutation({
@@ -276,8 +294,7 @@ export function AiFilingReviewModal({
     onError: (e: any) => toast.error(e?.message ?? "Could not skip this document."),
   });
 
-  const busy = save.isPending || reject.isPending || skip.isPending;
-  const canSave = !busy;
+  const busy = save.isPending || skip.isPending;
 
   return (
     <div
@@ -346,11 +363,11 @@ export function AiFilingReviewModal({
 
         {!isLoading && !isError && (
           <>
-            {/* ---------------- Section 1: folder ---------------- */}
+            {/* ---------------- Folder & subfolder ---------------- */}
             <section className="tvp-card tvp-panel tvp-settings-tight" style={{ gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <FolderTree className="h-4 w-4" style={{ color: "var(--tvp-teal, #0f766e)" }} />
-                <strong style={{ fontSize: 14 }}>Suggested folder &amp; subfolder</strong>
+                <strong style={{ fontSize: 14 }}>Folder &amp; subfolder</strong>
                 {suggestion?.confidence && (
                   <span
                     className="tvp-muted"
@@ -366,71 +383,93 @@ export function AiFilingReviewModal({
                 )}
               </div>
 
-              {!picking ? (
-                <>
-                  <div style={{ fontSize: 15, fontWeight: 600 }} data-testid="filing-destination">
-                    {destinationPrefix}: {destinationLabel ?? "Unfiled"}
-                  </div>
-                  {data?.secondaryHint && (
-                    <div className="tvp-muted" style={{ fontSize: 12 }}>
-                      {data.secondaryHint}
-                    </div>
-                  )}
-                  {suggestion?.rationale && (
-                    <div className="tvp-muted" style={{ fontSize: 12 }}>
-                      {suggestion.rationale}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <label style={FIELD_COL}>
                   <span className="tvp-muted" style={{ fontSize: 12 }}>
-                    Choose a destination
+                    {destinationPrefix} folder
                   </span>
                   <select
                     className="tvp-select"
                     aria-label="Destination folder"
-                    value={destination ?? ""}
+                    value={topFolder}
+                    disabled={busy}
                     onChange={(e) => {
-                      setDestination(e.target.value || null);
+                      setTopFolder(e.target.value);
+                      setSubFolder("");
                       setFolderSource("user");
                     }}
                   >
                     <option value="">Leave where it was uploaded</option>
-                    {catalog.map((c: { id: string; label: string }) => (
+                    {tree.order.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label style={{ ...FIELD_COL, opacity: subOptions.length ? 1 : 0.55 }}>
+                  <span className="tvp-muted" style={{ fontSize: 12 }}>
+                    Subfolder
+                  </span>
+                  <select
+                    className="tvp-select"
+                    aria-label="Destination subfolder"
+                    value={subFolder}
+                    disabled={busy || subOptions.length === 0}
+                    onChange={(e) => {
+                      setSubFolder(e.target.value);
+                      setFolderSource("user");
+                    }}
+                  >
+                    <option value="" disabled={!activeGroup?.ownId && subOptions.length > 0}>
+                      {subOptions.length === 0
+                        ? "No subfolders"
+                        : activeGroup?.ownId
+                          ? "None — file in the main folder"
+                          : "Choose a subfolder"}
+                    </option>
+                    {subOptions.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.label}
                       </option>
                     ))}
                   </select>
                 </label>
+              </div>
+
+              <div style={{ fontSize: 13 }} data-testid="filing-destination">
+                {destinationPrefix}: <strong>{destinationLabel ?? "Unfiled"}</strong>
+              </div>
+
+              {data?.secondaryHint && (
+                <div className="tvp-muted" style={{ fontSize: 12 }}>
+                  {data.secondaryHint}
+                </div>
+              )}
+              {suggestion?.rationale && (
+                <div className="tvp-muted" style={{ fontSize: 12 }}>
+                  {suggestion.rationale}
+                </div>
               )}
 
               <FieldProvenance
-                field="Folder"
                 value={destinationLabel ?? "Unfiled"}
                 source={folderSource}
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.folder_source_text ?? null}
-                onConfirm={() => {
-                  setFolderSource("user");
-                  setPicking(false);
-                }}
-                onEdit={() => setPicking(true)}
               />
             </section>
 
-            {/* ---------------- Section 2: expiry ---------------- */}
+            {/* ---------------- Expiry & reminder ---------------- */}
             <section className="tvp-card tvp-panel tvp-settings-tight" style={{ gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <CalendarClock className="h-4 w-4" style={{ color: "var(--tvp-amber, #b45309)" }} />
-                <strong style={{ fontSize: 14 }}>Suggested expiry &amp; reminder</strong>
+                <strong style={{ fontSize: 14 }}>Expiry &amp; reminder</strong>
               </div>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <label
-                  style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}
-                >
+                <label style={FIELD_COL}>
                   <span className="tvp-muted" style={{ fontSize: 12 }}>
                     Expiry date
                   </span>
@@ -439,6 +478,7 @@ export function AiFilingReviewModal({
                     className="tvp-select"
                     aria-label="Expiry date"
                     value={expiry}
+                    disabled={busy}
                     onChange={(e) => {
                       setExpiry(e.target.value);
                       setNoReminder(false);
@@ -446,9 +486,8 @@ export function AiFilingReviewModal({
                     }}
                   />
                 </label>
-                <label
-                  style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}
-                >
+
+                <label style={{ ...FIELD_COL, opacity: expiry ? 1 : 0.55 }}>
                   <span className="tvp-muted" style={{ fontSize: 12 }}>
                     Remind me this many days before
                   </span>
@@ -459,7 +498,7 @@ export function AiFilingReviewModal({
                     className="tvp-select"
                     aria-label="Reminder lead days"
                     value={leadDays}
-                    disabled={noReminder || !expiry}
+                    disabled={busy || noReminder || !expiry}
                     onChange={(e) => {
                       setLeadDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)));
                       setExpirySource("user");
@@ -468,41 +507,38 @@ export function AiFilingReviewModal({
                 </label>
               </div>
 
-              <div className="tvp-muted" style={{ fontSize: 12 }} data-testid="reminder-summary">
-                {noReminder
-                  ? "No reminder will be set."
-                  : reminderDate
-                    ? `Reminder on ${reminderDate}.`
-                    : expiry
-                      ? "Set a lead time to schedule a reminder."
-                      : "No expiry detected on this document — add one if it has a valid-until date."}
-              </div>
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  className={noReminder ? "tvp-primary" : "tvp-secondary"}
-                  onClick={() => {
-                    setNoReminder((v) => !v);
-                    setExpirySource("user");
-                  }}
+              {expiry && (
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}
                 >
-                  {noReminder ? "Reminder off" : "No reminder needed"}
-                </button>
+                  <input
+                    type="checkbox"
+                    checked={noReminder}
+                    disabled={busy}
+                    onChange={(e) => {
+                      setNoReminder(e.target.checked);
+                      setExpirySource("user");
+                    }}
+                  />
+                  <span>No reminder needed for this document</span>
+                </label>
+              )}
+
+              <div className="tvp-muted" style={{ fontSize: 12 }} data-testid="reminder-summary">
+                {!expiry
+                  ? "No expiry set — add one above if this document has a valid-until date, and the reminder field unlocks."
+                  : noReminder
+                    ? "No reminder will be set."
+                    : reminderDate
+                      ? `Reminder on ${reminderDate}.`
+                      : "Set a lead time to schedule a reminder."}
               </div>
 
               <FieldProvenance
-                field="Expiry"
                 value={expiry ? expiry : "No expiry"}
                 source={expirySource}
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.expiry_source_text ?? null}
-                onConfirm={() => setExpirySource("user")}
-                onEdit={() =>
-                  (
-                    document.querySelector<HTMLInputElement>('input[aria-label="Expiry date"]')
-                  )?.focus()
-                }
               />
             </section>
 
@@ -515,22 +551,15 @@ export function AiFilingReviewModal({
               <div>
                 <strong>Human validation required.</strong>
                 <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                  Suggestions are never applied automatically. Review the fields above, then save
-                  — or skip for now and come back to it from the Pending review filter.
+                  Suggestions are never applied automatically. Edit anything above that isn't
+                  right, then save — or skip for now and come back to it from the Pending review
+                  filter.
                 </div>
               </div>
             </div>
 
             {/* ---------------- Footer ---------------- */}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className="tvp-secondary"
-                onClick={() => reject.mutate()}
-                disabled={busy}
-              >
-                {reject.isPending ? "Rejecting…" : "Reject AI suggestion"}
-              </button>
               <button
                 type="button"
                 className="tvp-secondary"
@@ -544,7 +573,7 @@ export function AiFilingReviewModal({
                 type="button"
                 className="tvp-primary"
                 onClick={() => save.mutate()}
-                disabled={!canSave}
+                disabled={busy}
               >
                 {save.isPending ? "Saving…" : "Save filing"}
               </button>
