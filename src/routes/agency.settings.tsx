@@ -2,11 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { Suspense } from "react";
 import { AgencyProfilePanel } from "@/components/agency/agency-profile-panel";
-import {
-  FolderTemplatesPanel,
-  folderTemplatesListQO,
-  folderTemplatesMeQO,
-} from "@/components/agency/folder-templates-panel";
+import { ManageFoldersPanel, manageFoldersQO } from "@/components/agency/manage-folders-panel";
 import {
   DocumentRulesPanel,
   documentRulesQO,
@@ -29,10 +25,7 @@ export const Route = createFileRoute("/agency/settings")({
   loader: async ({ context, deps }) => {
     const tab = deps.tab;
     if (tab === "folders") {
-      await Promise.all([
-        context.queryClient.ensureQueryData(folderTemplatesListQO),
-        context.queryClient.ensureQueryData(folderTemplatesMeQO),
-      ]);
+      await context.queryClient.ensureQueryData(manageFoldersQO);
     } else if (tab === "document-rules") {
       await Promise.all([
         context.queryClient.ensureQueryData(documentRulesQO),
@@ -92,7 +85,7 @@ function AgencySettingsPage() {
               <ReplayTourCard />
             </>
           )}
-          {tab === "folders" && <FolderTemplatesPanel />}
+          {tab === "folders" && <ManageFoldersPanel />}
           {tab === "document-rules" && <DocumentRulesPanel />}
           {tab === "quotes-invoices" && <QuotesInvoicesSettingsPanel />}
         </Suspense>

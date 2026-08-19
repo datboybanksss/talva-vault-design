@@ -1589,3 +1589,22 @@
 .tvp-kebab-danger:hover,
 .tvp-kebab-danger[data-highlighted] { background: var(--red-bg); color: var(--red); }
 .tvp-kebab-sep { height: 1px; margin: 5px 4px; background: var(--line-200); }
+
+/* --- Manage Folders: default folder selection grid --- */
+.tvp-folder-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 4px;
+}
+@media (max-width: 900px) { .tvp-folder-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .tvp-folder-grid { grid-template-columns: 1fr; } }
+.tvp-folder-card {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px;
+  border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface);
+  cursor: pointer;
+}
+.tvp-folder-card:hover { border-color: var(--tvp-teal-2); }
+.tvp-folder-card input[type="checkbox"] { margin-top: 2px; accent-color: var(--tvp-teal); }
+.tvp-folder-card input[type="checkbox"]:disabled { cursor: not-allowed; }
+.tvp-folder-card-name { display: block; font-size: 13px; font-weight: 800; color: var(--ink); }
+.tvp-folder-card-meta { display: block; font-size: 11.5px; color: var(--muted-fg); margin-top: 2px; }
+.tvp-folder-card-custom { background: var(--tvp-teal-100); border-color: var(--tvp-teal-2); }
+.tvp-folder-divider { height: 1px; background: var(--line); margin: 26px 0 18px; }
