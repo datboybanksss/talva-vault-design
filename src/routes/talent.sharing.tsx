@@ -286,8 +286,10 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
             <span>
               {fresh.email.sent
                 ? "Notification email sent to your Loved One (link only, no code)."
-                : fresh.email.reason === "email_not_configured"
-                  ? "Email sending isn't set up on this project yet — copy the link and send it yourself."
+                : fresh.email.reason === "email_not_configured" ||
+                    fresh.email.reason === "domain_unverified"
+                  ? EMAIL_FALLBACK_NOTICE
+
                   : fresh.email.reason === "regenerated"
                     ? "New code issued. The link is unchanged."
                     : "Notification email wasn't sent — copy the link and send it yourself."}
