@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { mapEffectiveStatus } from "@/lib/invitation-status";
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -395,7 +396,7 @@ export const listAgencyInvitationsForAgency = createServerFn({ method: "GET" })
       .eq("agency_id", data.agency_id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return mapEffectiveStatus(rows);
   });
 
 export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
@@ -410,7 +411,7 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
       .eq("agency_id", data.agency_id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return mapEffectiveStatus(rows);
   });
 
 export const getInvitationById = createServerFn({ method: "GET" })
@@ -479,7 +480,7 @@ export const listAgencyInvitations = createServerFn({ method: "GET" })
       .select("*")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return mapEffectiveStatus(data);
   });
 
 // Create as DRAFT — admin must upload compliance docs then call finalize.
@@ -1125,7 +1126,7 @@ export const listAdminInvitations = createServerFn({ method: "GET" })
       .select("*")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return mapEffectiveStatus(data);
   });
 
 export const inviteAdministrator = createServerFn({ method: "POST" })

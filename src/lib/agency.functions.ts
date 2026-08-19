@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { effectiveInvitationStatus } from "@/lib/invitation-status";
 
 function extractRequestMeta(): { ip_address: string | null; user_agent: string | null } {
   try {
@@ -392,14 +393,20 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
 
     const talent: InviteRow[] = (talentRes.data ?? []).map((r: any) => ({
       id: r.id, type: "talent", recipient_name: r.talent_name ?? null,
-      email: r.email, status: r.status, token: r.token,
+      email: r.email,
+      status: effectiveInvitationStatus(r.status, r.expires_at),
+      stored_status: r.status,
+      token: r.token,
       invited_by: r.invited_by, invited_by_label: labelFor(r.invited_by),
       last_sent_at: r.last_sent_at, expires_at: r.expires_at,
       send_count: r.send_count, created_at: r.created_at, role: null,
     }));
     const staff: InviteRow[] = (staffRes.data ?? []).map((r: any) => ({
       id: r.id, type: "staff", recipient_name: r.contact_person ?? null,
-      email: r.email, status: r.status, token: r.token,
+      email: r.email,
+      status: effectiveInvitationStatus(r.status, r.expires_at),
+      stored_status: r.status,
+      token: r.token,
       invited_by: r.invited_by, invited_by_label: labelFor(r.invited_by),
       last_sent_at: r.last_sent_at, expires_at: r.expires_at,
       send_count: r.send_count, created_at: r.created_at, role: r.role ?? "staff",
