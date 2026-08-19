@@ -150,10 +150,13 @@ function TalentSettings() {
             <div className="tvp-form-group">
               <label>Talent Type</label>
               <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
-                <option>Athlete</option>
-                <option>Artist</option>
-                <option>Model</option>
-                <option>Other</option>
+                <option value="">Not set</option>
+                {talentTypeOptions.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+                {talentType && !talentTypeOptions.includes(talentType) && (
+                  <option value={talentType}>{talentType}</option>
+                )}
               </select>
             </div>
           </div>
