@@ -13,6 +13,7 @@ import {
   reactivateTalentRelationship,
   listAgencyAuditLog,
 } from "@/lib/agency.functions";
+import { TALENT_LINK_STATUS_LABEL, TALENT_LINK_STATUS_TONE } from "@/lib/status-labels";
 
 const ACTIVITY_ACTION_LABELS: Record<string, string> = {
   create_talent_invitation: "Invited talent",
