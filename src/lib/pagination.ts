@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 /** Platform-wide batch size for every long list. */
-export const PAGE_SIZE = 25;
+export const PAGE_SIZE = 10;
 
 /**
  * Incremental windowing over an already-loaded array (client-side lists).

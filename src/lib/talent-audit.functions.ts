@@ -71,7 +71,7 @@ export const listTalentAuditLog = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        limit: z.number().int().min(1).max(100).default(25),
+        limit: z.number().int().min(1).max(100).default(10),
         offset: z.number().int().min(0).default(0),
       })
       .parse(d ?? {}),

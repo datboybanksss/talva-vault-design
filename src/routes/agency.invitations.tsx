@@ -253,7 +253,7 @@ function InvitationsPage() {
                 );
               })}
               <LoadMoreRow
-                colSpan={7}
+                colSpan={8}
                 noun="invitations"
                 shown={page.shown}
                 total={page.total}
