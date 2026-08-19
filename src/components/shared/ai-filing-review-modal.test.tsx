@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -138,7 +138,8 @@ describe("AiFilingReviewModal", () => {
     await user.clear(expiryInput());
     await user.type(expiryInput(), "2027-06-15");
     await user.clear(leadInput());
-    await user.type(leadInput(), "14");
+    expect(leadInput().value).toBe(""); // clearing does not snap back to a value
+    fireEvent.change(leadInput(), { target: { value: "14" } });
 
     // Provenance flips to the human once a field is touched.
     expect(screen.getAllByText(/Edited by you/i).length).toBeGreaterThan(0);

@@ -235,7 +235,8 @@ export function AiFilingReviewModal({
   const [topFolder, setTopFolder] = useState<string>("");
   const [subFolder, setSubFolder] = useState<string>("");
   const [expiry, setExpiry] = useState<string>("");
-  const [leadDays, setLeadDays] = useState<number>(30);
+  /** Held as text so the field can be cleared while typing without snapping back. */
+  const [leadDaysText, setLeadDaysText] = useState<string>("30");
   const [noReminder, setNoReminder] = useState(false);
   const [folderSource, setFolderSource] = useState<"ai" | "user">("ai");
   const [expirySource, setExpirySource] = useState<"ai" | "user">("ai");
@@ -246,7 +247,7 @@ export function AiFilingReviewModal({
     setTopFolder(top);
     setSubFolder(sub);
     setExpiry(suggestion.expiry_date ?? "");
-    setLeadDays(suggestion.reminder_lead_days ?? data.defaultReminderDays ?? 30);
+    setLeadDaysText(String(suggestion.reminder_lead_days ?? data.defaultReminderDays ?? 30));
     setNoReminder(false);
     setFolderSource("ai");
     setExpirySource("ai");
@@ -263,7 +264,10 @@ export function AiFilingReviewModal({
     ? [topFolder, subOptions.find((c) => c.id === subFolder)?.label].filter(Boolean).join(PATH_SEP)
     : null;
 
-  const reminderDate = expiry && !noReminder ? minusDays(expiry, leadDays) : null;
+  const leadDays = Math.max(1, Math.min(365, Number(leadDaysText) || 0));
+  const leadDaysValid = leadDaysText.trim() !== "" && Number(leadDaysText) >= 1;
+  const reminderDate =
+    expiry && !noReminder && leadDaysValid ? minusDays(expiry, leadDays) : null;
 
   const save = useMutation({
     mutationFn: () =>
@@ -497,12 +501,13 @@ export function AiFilingReviewModal({
                     max={365}
                     className="tvp-select"
                     aria-label="Reminder lead days"
-                    value={leadDays}
+                    value={leadDaysText}
                     disabled={busy || noReminder || !expiry}
                     onChange={(e) => {
-                      setLeadDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)));
+                      setLeadDaysText(e.target.value.replace(/[^0-9]/g, "").slice(0, 3));
                       setExpirySource("user");
                     }}
+                    onBlur={() => setLeadDaysText(String(leadDays))}
                   />
                 </label>
               </div>
@@ -531,7 +536,7 @@ export function AiFilingReviewModal({
                     ? "No reminder will be set."
                     : reminderDate
                       ? `Reminder on ${reminderDate}.`
-                      : "Set a lead time to schedule a reminder."}
+                      : "Enter a lead time between 1 and 365 days to schedule a reminder."}
               </div>
 
               <FieldProvenance
