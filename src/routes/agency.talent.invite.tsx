@@ -220,9 +220,10 @@ function InviteTalent() {
                   <div className="tvp-form-group">
                     <label>Talent type</label>
                     <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
-                      <option>Athlete</option>
-                      <option>Artist</option>
-                      <option>Model</option>
+                      <option value="">Not specified</option>
+                      {talentTypeOptions.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="tvp-form-group">
@@ -299,7 +300,7 @@ function InviteTalent() {
                       ))}
                     </div>
                     <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
-                      One click. Same six folders you use across the roster.
+                      One click. The same {defaultFolders.length} folder{defaultFolders.length === 1 ? "" : "s"} you use across the roster.
                     </div>
                   </button>
 
@@ -321,7 +322,7 @@ function InviteTalent() {
                 {folderMode === "custom" && (
                   <div className="tvp-rule-grid" style={{ marginTop: 16 }}>
                     {allFolders.map((f) => {
-                      const on = selected.includes(f);
+                      const on = customSelection.includes(f);
                       const rec = defaultFolders.includes(f);
                       return (
                         <label key={f} className="tvp-rule-card">
