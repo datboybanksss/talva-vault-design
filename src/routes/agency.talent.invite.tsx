@@ -30,10 +30,8 @@ const steps = [
   { num: 4, title: "Review & send", sub: "Send invite" },
 ];
 
-const defaultFolders = [
-  "ID Documents", "Contracts", "Travel", "Certified Documents", "Tax", "Proof of Accounts",
-];
-const optionalFolders = ["Property", "Sponsorships"];
+const defaultFolders = FOLDER_CATEGORIES.filter((f) => f.recommended).map((f) => f.name);
+const optionalFolders = FOLDER_CATEGORIES.filter((f) => !f.recommended).map((f) => f.name);
 const allFolders = [...defaultFolders, ...optionalFolders];
 
 function InviteTalent() {
