@@ -7,6 +7,11 @@ import { toast } from "sonner";
 import { listAgencyTalent } from "@/lib/agency.functions";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import {
+  TALENT_LINK_STATUS_LABEL,
+  TALENT_LINK_STATUS_TONE,
+  TALENT_LINK_TABS,
+} from "@/lib/status-labels";
 
 export const Route = createFileRoute("/agency/talent")({
   head: () => ({ meta: [{ title: "Talent roster · TalVault" }] }),
