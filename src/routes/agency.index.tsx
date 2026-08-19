@@ -59,25 +59,8 @@ export const Route = createFileRoute("/agency/")({
   component: AgencyDashboard,
 });
 
-const STATUS_LABEL: Record<string, string> = {
-  active: "Active",
-  invited: "Invited",
-  expired: "Expired",
-  read_only: "Read-only",
-  revoked: "Revoked",
-  needs_review: "Needs review",
-  ended: "Ended",
-};
-
-const STATUS_TONE: Record<string, string> = {
-  active: "green",
-  invited: "blue",
-  expired: "amber",
-  read_only: "teal",
-  revoked: "red",
-  needs_review: "purple",
-  ended: "neutral",
-};
+const STATUS_LABEL = TALENT_LINK_STATUS_LABEL;
+const STATUS_TONE = TALENT_LINK_STATUS_TONE;
 
 const CHIP_ORDER: Array<{ key: string; tone: string }> = [
   { key: "active", tone: "green" },
