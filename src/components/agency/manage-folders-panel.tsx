@@ -1,3 +1,4 @@
+import { ModalShell } from "@/components/shared/modal-shell";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -265,8 +266,7 @@ export function ManageFoldersPanel() {
                 Save rule
               </button>
             </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
     </div>
   );
