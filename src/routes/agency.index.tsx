@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { Users, FileText, Mail, FileSpreadsheet, RotateCcw, PauseCircle, Info, AlertTriangle, UserPlus, Settings, FolderCog, Sparkles, Activity, ShieldCheck, ClipboardCheck, CalendarClock, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import {
