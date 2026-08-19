@@ -13,6 +13,7 @@ import {
   logTalentMfaDisabled,
 } from "@/lib/talent-audit.functions";
 import { ReplayTourCard } from "@/components/shared/replay-tour-card";
+import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 
 export const Route = createFileRoute("/talent/settings")({
   ssr: false,
@@ -50,7 +51,9 @@ function TalentSettings() {
     | null;
 
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
-  const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "Athlete");
+  const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "");
+  const catalogue = useFolderCatalogue();
+  const talentTypeOptions = talentTypesFrom(catalogue);
   const [savingProfile, setSavingProfile] = useState(false);
   const [expiryDays, setExpiryDays] = useState("30");
   const [savingPrefs, setSavingPrefs] = useState(false);
@@ -147,10 +150,13 @@ function TalentSettings() {
             <div className="tvp-form-group">
               <label>Talent Type</label>
               <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
-                <option>Athlete</option>
-                <option>Artist</option>
-                <option>Model</option>
-                <option>Other</option>
+                <option value="">Not set</option>
+                {talentTypeOptions.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+                {talentType && !talentTypeOptions.includes(talentType) && (
+                  <option value={talentType}>{talentType}</option>
+                )}
               </select>
             </div>
           </div>
