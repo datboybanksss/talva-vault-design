@@ -97,7 +97,7 @@ function terminalTitle(reason: Reason): string {
 }
 function terminalBody(reason: Reason): string {
   switch (reason) {
-    case "expired": return "Contact your Talent Manager to receive a fresh invitation link.";
+    case "expired": return "Contact your Manager to receive a fresh invitation link.";
     case "accepted": return "This invitation has already been used. Sign in to your account instead.";
     case "revoked": return "This invitation has been withdrawn. Contact your Manager for a new one.";
     default: return "The link you followed doesn't match any active invitation. Double-check the URL or contact your Manager.";
