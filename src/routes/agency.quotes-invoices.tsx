@@ -7,6 +7,7 @@ import {
   FileText, CheckCircle2, AlertCircle, Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BILLING_DOC_STATUS_LABEL, BILLING_DOC_STATUS_TONE } from "@/lib/status-labels";
 import {
   listAgencyBillingDocs,
   updateAgencyBillingDocStatus,
