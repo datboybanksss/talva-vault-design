@@ -49,7 +49,7 @@ function BreakdownTable({
     <div className="tvp-card" style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--tvp-line)", fontWeight: 800 }}>{title}</div>
       {rows.length === 0 ? (
-        <div className="tvp-empty" style={{ padding: 28 }}>No activity in this period.</div>
+        <div className="tvp-report-empty">No activity in this period.</div>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table className="tvp-table tvp-report-table">
@@ -136,7 +136,7 @@ export function BillingReportsPanel({
           Invoiced vs received · last {report.trend.length} months
         </div>
         {!hasTrend ? (
-          <div className="tvp-empty" style={{ padding: 28 }}>No invoicing activity yet to chart.</div>
+          <div className="tvp-report-empty">No invoicing activity yet to chart.</div>
         ) : (
           <div style={{ width: "100%", height: 260 }}>
             <ResponsiveContainer>
