@@ -439,11 +439,18 @@ function QIPage() {
   const send = useMutation({
     mutationFn: async () => {
       if (!editor.id) throw new Error("Save the record first");
-      return sendFn({ data: { id: editor.id } });
+      if (editor.recipient_emails.length === 0) throw new Error("Add at least one recipient email address");
+      return sendFn({ data: { id: editor.id, recipients: editor.recipient_emails } });
     },
     onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
-      toast.success(`Marked as sent — ${res.number}`);
+      const delivered = (res.delivery ?? []).filter((d: any) => d.sent).length;
+      const total = (res.delivery ?? []).length;
+      toast.success(
+        total
+          ? `${res.number} sent to ${delivered} of ${total} recipient${total === 1 ? "" : "s"}`
+          : `Marked as sent — ${res.number}`,
+      );
       setEditor((prev) => ({ ...prev, number: res.number, status: "sent" }));
       setPreviewOpen(false);
       setEditorOpen(false);
