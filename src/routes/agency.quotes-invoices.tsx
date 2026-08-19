@@ -22,6 +22,8 @@ import {
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, emptyLine, fmtMoney } from "@/lib/billing";
 import { BillingPreviewDialog } from "@/components/agency/billing-preview-dialog";
+import { EmailChipsInput } from "@/components/shared/email-chips-input";
+
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
