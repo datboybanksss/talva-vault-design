@@ -1,3 +1,4 @@
+import { ModalShell } from "@/components/shared/modal-shell";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -1251,8 +1252,7 @@ function BrowseFoldersDialog({
   }, [rows, counts]);
 
   return (
-    <div className="tvp-modal-backdrop" onClick={onClose}>
-      <div className="tvp-modal tvp-settings-tight" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+    <ModalShell onClose={onClose} maxWidth={720} className="tvp-settings-tight">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <div>
             <h2 className="tvp-h2" style={{ margin: 0 }}>Browse folders</h2>
@@ -1306,7 +1306,6 @@ function BrowseFoldersDialog({
             </div>
           ))}
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

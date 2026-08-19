@@ -1,3 +1,4 @@
+import { ModalShell } from "@/components/shared/modal-shell";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
@@ -266,8 +267,7 @@ function InvoiceDialog({
 }) {
   const [v, setV] = useState({ number: defaults.number, total: defaults.total, dueDate: "", notes: "" });
   return (
-    <div className="tvp-modal-backdrop" onClick={onClose}>
-      <div className="tvp-modal" onClick={e => e.stopPropagation()}>
+    <ModalShell onClose={onClose}>
         <div className="tvp-modal-header">
           <h3 className="tvp-h2 inline-flex items-center gap-2"><Receipt className="h-5 w-5" />New invoice for contract</h3>
           <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
@@ -287,7 +287,6 @@ function InvoiceDialog({
             <Save className="h-4 w-4" />Create invoice
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

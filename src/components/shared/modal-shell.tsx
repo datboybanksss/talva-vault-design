@@ -21,12 +21,14 @@ export function ModalShell({
   maxWidth = 560,
   labelledBy,
   closeOnBackdrop = true,
+  className,
 }: {
   onClose: () => void;
   children: ReactNode;
   maxWidth?: number;
   labelledBy?: string;
   closeOnBackdrop?: boolean;
+  className?: string;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -51,7 +53,7 @@ export function ModalShell({
       role="presentation"
     >
       <div
-        className="tvp-modal"
+        className={className ? `tvp-modal ${className}` : "tvp-modal"}
         style={{ maxWidth }}
         role="dialog"
         aria-modal="true"

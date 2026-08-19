@@ -1,4 +1,5 @@
 import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
+import { ModalShell } from "@/components/shared/modal-shell";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -260,8 +261,7 @@ function FreshSharePanel({ fresh, onDismiss }: { fresh: FreshShare; onDismiss: (
 
 function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () => void }) {
   return (
-    <div className="tvp-modal-backdrop" onClick={onClose}>
-      <div className="tvp-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+    <ModalShell onClose={onClose} maxWidth={480}>
         <div className="tvp-modal-head">
           <h2 className="tvp-h2"><Lock className="h-4 w-4" /> Access code</h2>
           <button title="Close" className="tvp-mini-btn" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
@@ -309,8 +309,7 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
         <div className="tvp-modal-foot">
           <button className="tvp-primary" onClick={onClose}>Done</button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 
@@ -382,8 +381,7 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
   }
 
   return (
-    <div className="tvp-modal-backdrop" onClick={onClose}>
-      <div className="tvp-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 680 }}>
+    <ModalShell onClose={onClose} maxWidth={680}>
         <div className="tvp-modal-head">
           <h2 className="tvp-h2"><Plus className="h-5 w-5" /> New share</h2>
           <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
@@ -470,8 +468,7 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
             {saving ? "Creating…" : "Create secure share"}
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 
