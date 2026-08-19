@@ -1,3 +1,4 @@
+import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
