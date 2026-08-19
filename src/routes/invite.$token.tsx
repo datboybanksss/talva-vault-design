@@ -235,7 +235,7 @@ function Wizard({
   );
 }
 
-export function ProgressBar({ step }: { step: number }) {
+function ProgressBar({ step }: { step: number }) {
   return (
     <div
       style={{ display: "flex", gap: 6, marginBottom: 20 }}
@@ -263,7 +263,7 @@ export function ProgressBar({ step }: { step: number }) {
 
 /* ------------------------------- Steps ------------------------------------ */
 
-export function Step1({ invite, onContinue }: { invite: Extract<ResolvedInvitation, { ok: true }>; onContinue: () => void }) {
+function Step1({ invite, onContinue }: { invite: Extract<ResolvedInvitation, { ok: true }>; onContinue: () => void }) {
   return (
     <>
       <h2 className="tv-auth-title">Accept Agency Invite</h2>
@@ -522,7 +522,7 @@ function StepButtons({ onBack, onContinue }: { onBack: () => void; onContinue: (
 
 /* ----------------------------- Branding panel ----------------------------- */
 
-export function BrandingPanel() {
+function BrandingPanel() {
   return (
     <aside className="tv-auth-hero">
       <div className="tv-auth-brand">
