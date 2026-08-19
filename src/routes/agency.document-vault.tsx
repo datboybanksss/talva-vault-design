@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import {
   Upload, FolderOpen, Sparkles, FileText, Files, Trash2, Download, Eye, X, Loader2,
-  Lock, History, ShieldPlus, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw, Plane, Briefcase,
+  Lock, History, ShieldPlus, Search, ChevronRight, ChevronDown, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw, Plane, Briefcase,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -1482,105 +1482,5 @@ function OverrideDialog({
         </div>
       </form>
     </div>
-  );
-}
-
-function BrowseFoldersDialog({
-  docs,
-  onClose,
-  onPick,
-}: {
-  docs: VaultDoc[];
-  onClose: () => void;
-  onPick: (talentLinkId: string, folder: string) => void;
-}) {
-  const listFn = useServerFn(listAllAgencyProvisionedFolders);
-  const { data: rows, isLoading, error } = useQuery({
-    queryKey: ["agency", "vault", "all-provisioned-folders"],
-    queryFn: () => listFn({}) as Promise<
-      { id: string; folderName: string; sortOrder: number; talentLinkId: string; talentName: string; talentStatus: string }[]
-    >,
-  });
-
-  const counts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const d of docs) {
-      if (!d.talentLinkId) continue;
-      const k = `${d.talentLinkId}::${d.folder}`;
-      m.set(k, (m.get(k) ?? 0) + 1);
-    }
-    return m;
-  }, [docs]);
-
-  const grouped = useMemo(() => {
-    const g = new Map<string, { talentName: string; talentStatus: string; folders: { id: string; folderName: string; count: number }[] }>();
-    for (const r of rows ?? []) {
-      const entry = g.get(r.talentLinkId) ?? { talentName: r.talentName, talentStatus: r.talentStatus, folders: [] };
-      entry.folders.push({
-        id: r.id,
-        folderName: r.folderName,
-        count: counts.get(`${r.talentLinkId}::${r.folderName}`) ?? 0,
-      });
-      g.set(r.talentLinkId, entry);
-    }
-    return Array.from(g.entries()).sort((a, b) => a[1].talentName.localeCompare(b[1].talentName));
-  }, [rows, counts]);
-
-  return (
-    <ModalShell onClose={onClose} maxWidth={720} className="tvp-settings-tight">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <div>
-            <h2 className="tvp-h2" style={{ margin: 0 }}>Browse folders</h2>
-            <p className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-              Provisioned folders per talent. Click one to filter the vault.
-            </p>
-          </div>
-          <button title="Close" className="tvp-mini-btn" onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
-        </div>
-
-        {isLoading && <div className="tvp-muted" style={{ padding: 16 }}>Loading folders…</div>}
-        {error && <div className="tvp-callout" style={{ background: "var(--tvp-amber-bg)", borderColor: "var(--tvp-amber)" }}>
-          <div className="tvp-callout-icon tvp-bg-amber"><AlertTriangle className="h-4 w-4" /></div>
-          <div>Failed to load folders: {(error as Error).message}</div>
-        </div>}
-        {!isLoading && !error && grouped.length === 0 && (
-          <div className="tvp-callout">
-            <div className="tvp-callout-icon tvp-bg-purple"><FolderOpen className="h-4 w-4" /></div>
-            <div>
-              <strong>No folders provisioned yet.</strong>{" "}
-              <span className="tvp-muted">Invite a talent and pick a folder set to get started.</span>
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: "60vh", overflowY: "auto" }}>
-          {grouped.map(([talentLinkId, entry]) => (
-            <div key={talentLinkId} className="tvp-card tvp-panel" style={{ padding: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <strong>{entry.talentName}</strong>
-                {entry.talentStatus !== "active" && (
-                  <span className="tvp-status tvp-amber" style={{ textTransform: "capitalize" }}>{entry.talentStatus}</span>
-                )}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>
-                {entry.folders.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    className="tvp-secondary"
-                    style={{ justifyContent: "flex-start", padding: "10px 12px" }}
-                    onClick={() => onPick(talentLinkId, f.folderName)}
-                    title={`Filter vault by ${entry.talentName} · ${f.folderName}`}
-                  >
-                    <FolderOpen className="h-4 w-4" />
-                    <span style={{ flex: 1, textAlign: "left" }}>{f.folderName}</span>
-                    <span className="tvp-muted" style={{ fontSize: 11 }}>{f.count}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-    </ModalShell>
   );
 }
