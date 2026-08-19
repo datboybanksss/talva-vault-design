@@ -411,7 +411,7 @@ function AuthPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="name@email.com"
               />
             </div>
             <div className="tv-auth-field">

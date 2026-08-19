@@ -445,17 +445,17 @@ function NewInvitationModal({
               {type === "talent" ? (
                 <div className="tvp-form-group">
                   <label>Talent name *</label>
-                  <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Lara Maseko" />
+                  <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. full name as it appears on ID" />
                 </div>
               ) : (
                 <div className="tvp-form-group">
                   <label>Contact person</label>
-                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sipho Dlamini" />
+                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. full name as it appears on ID" />
                 </div>
               )}
               <div className="tvp-form-group">
                 <label>Email *</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="name@example.com" />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="name@email.com" />
               </div>
               {type === "staff" && (
                 <div className="tvp-form-group">
