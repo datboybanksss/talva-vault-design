@@ -111,7 +111,7 @@ function AdminsPage() {
   const invitePage = usePagedList(invitations.data ?? []);
 
   const pendingInvites = (invitations.data ?? []).filter(
-    (i: any) => i.status === "pending",
+    (i: any) => (i.stored_status ?? i.status) === "pending",
   );
 
   return (
@@ -365,7 +365,7 @@ function AdminsPage() {
                     </td>
                     <td className="tvp-muted">{i.invited_by_email ?? "—"}</td>
                     <td>
-                      {isMain && i.status === "pending" && (
+                      {isMain && (i.stored_status ?? i.status) === "pending" && (
                         <button
                           className="tvp-secondary"
                           onClick={() => revoke.mutate(i.id)}
