@@ -2588,3 +2588,94 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     );
     return updated;
   });
+
+// ---------------------------------------------------------------------------
+// Manage Folders — per-agency folder configuration (agency_folder_settings)
+// ---------------------------------------------------------------------------
+
+export const listAgencyFolderSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId, role } = await getCallerAgency(supabase, userId);
+
+    const { data, error } = await supabase
+      .from("agency_folder_settings")
+      .select(
+        "id, folder_name, applied_by_default, ai_filing_allowed, default_validity_rule, can_untick_during_onboarding",
+      )
+      .eq("agency_id", agencyId);
+    if (error) throw new Error(error.message);
+
+    return { role, agencyId, settings: data ?? [] };
+  });
+
+export const upsertAgencyFolderSetting = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      folder_name: z.string().min(1).max(120),
+      applied_by_default: z.boolean().optional(),
+      ai_filing_allowed: z.boolean().optional(),
+      default_validity_rule: z.string().min(1).max(200).optional(),
+      can_untick_during_onboarding: z.boolean().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const patch: Record<string, unknown> = {};
+    if (data.applied_by_default !== undefined) patch.applied_by_default = data.applied_by_default;
+    if (data.ai_filing_allowed !== undefined) patch.ai_filing_allowed = data.ai_filing_allowed;
+    if (data.default_validity_rule !== undefined) patch.default_validity_rule = data.default_validity_rule;
+    if (data.can_untick_during_onboarding !== undefined)
+      patch.can_untick_during_onboarding = data.can_untick_during_onboarding;
+
+    const { data: existing } = await supabase
+      .from("agency_folder_settings")
+      .select("id")
+      .eq("agency_id", agencyId)
+      .eq("folder_name", data.folder_name)
+      .maybeSingle();
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from("agency_folder_settings")
+        .update(patch)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("agency_folder_settings")
+        .insert({ agency_id: agencyId, folder_name: data.folder_name, ...patch });
+      if (error) throw new Error(error.message);
+    }
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, (context as any).claims?.email ?? null,
+      "update_folder_setting", "folder", data.folder_name, data.folder_name,
+    );
+    return { ok: true };
+  });
+
+export const resetAgencyFolderSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { error } = await supabase
+      .from("agency_folder_settings")
+      .delete()
+      .eq("agency_id", agencyId);
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, (context as any).claims?.email ?? null,
+      "reset_folder_settings", "agency", agencyId, "Folder defaults reset",
+    );
+    return { ok: true };
+  });
