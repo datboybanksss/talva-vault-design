@@ -508,52 +508,29 @@ function AgencyDashboard() {
                         <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13, height: 32 }}>
                           Open <ArrowRight className="inline h-3 w-3" />
                         </Link>
-                        <button
-                          className="tvp-mini-btn"
-                          title="Actions"
-                          onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
-                          disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
+                        <RowActionsMenu
+                          actions={[
+                            isOwner && r.status === "ended" && {
+                              key: "reactivate", label: "Reactivate relationship", icon: RotateCcw,
+                              disabled: reactivateMut.isPending,
+                              onSelect: () => {
+                                if (confirm(`Reactivate relationship with ${r.displayName}?`)) reactivateMut.mutate(r.id);
+                              },
+                            },
+                            isOwner && r.status !== "ended" && {
+                              key: "pause", label: "Pause relationship", icon: PauseCircle,
+                              destructive: true, disabled: endMut.isPending,
+                              onSelect: () => {
+                                if (
+                                  confirm(
+                                    `Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`,
+                                  )
+                                ) endMut.mutate(r.id);
+                              },
+                            },
+                          ]}
+                        />
                       </div>
-                      {openMenuId === r.id && isOwner && (
-                        <div
-                          style={{
-                            position: "absolute", right: 8, top: 32, zIndex: 20,
-                            background: "white", border: "1px solid var(--tvp-border, #e5e7eb)",
-                            borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
-                            minWidth: 200, padding: 4,
-                          }}
-                          onMouseLeave={() => setOpenMenuId(null)}
-                        >
-                          {r.status === "ended" ? (
-                            <button
-                              className="tvp-mini-btn"
-                              style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px" }}
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                if (confirm(`Reactivate relationship with ${r.displayName}?`)) {
-                                  reactivateMut.mutate(r.id);
-                                }
-                              }}
-                            >
-                              Reactivate relationship
-                            </button>
-                          ) : (
-                            <button
-                              className="tvp-mini-btn"
-                              style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "var(--tvp-red, #b91c1c)" }}
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                if (confirm(`Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
-                                  endMut.mutate(r.id);
-                                }
-                              }}
-                            >
-                              Pause relationship…
-                            </button>
-                          )}
                         </div>
                       )}
                     </td>
@@ -714,52 +691,29 @@ function RecentTalentActivity({
                     <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13, height: 32 }}>
                       Open <ArrowRight className="inline h-3 w-3" />
                     </Link>
-                    <button
-                      className="tvp-mini-btn"
-                      title="Actions"
-                      onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
-                      disabled={!isOwner || endMut.isPending || reactivateMut.isPending}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
+                    <RowActionsMenu
+                      actions={[
+                        isOwner && r.status === "ended" && {
+                          key: "reactivate", label: "Reactivate relationship", icon: RotateCcw,
+                          disabled: reactivateMut.isPending,
+                          onSelect: () => {
+                            if (confirm(`Reactivate relationship with ${r.displayName}?`)) reactivateMut.mutate(r.id);
+                          },
+                        },
+                        isOwner && r.status !== "ended" && {
+                          key: "pause", label: "Pause relationship", icon: PauseCircle,
+                          destructive: true, disabled: endMut.isPending,
+                          onSelect: () => {
+                            if (
+                              confirm(
+                                `Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`,
+                              )
+                            ) endMut.mutate(r.id);
+                          },
+                        },
+                      ]}
+                    />
                   </div>
-                  {openMenuId === r.id && isOwner && (
-                    <div
-                      style={{
-                        position: "absolute", right: 8, top: 32, zIndex: 20,
-                        background: "white", border: "1px solid var(--tvp-border, #e5e7eb)",
-                        borderRadius: 8, boxShadow: "0 8px 24px rgba(15,23,42,0.12)",
-                        minWidth: 200, padding: 4,
-                      }}
-                      onMouseLeave={() => setOpenMenuId(null)}
-                    >
-                      {r.status === "ended" ? (
-                        <button
-                          className="tvp-mini-btn"
-                          style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px" }}
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            if (confirm(`Reactivate relationship with ${r.displayName}?`)) {
-                              reactivateMut.mutate(r.id);
-                            }
-                          }}
-                        >
-                          Reactivate relationship
-                        </button>
-                      ) : (
-                        <button
-                          className="tvp-mini-btn"
-                          style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "var(--tvp-red, #b91c1c)" }}
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            if (confirm(`Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`)) {
-                              endMut.mutate(r.id);
-                            }
-                          }}
-                        >
-                          Pause relationship…
-                        </button>
-                      )}
                     </div>
                   )}
                 </td>
