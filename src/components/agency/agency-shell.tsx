@@ -1,4 +1,5 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { type ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -255,6 +256,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           </button>
           <input className="tvp-search-top" placeholder="Search..." />
 
+          <ThemeToggle />
           <div className="tvp-notification-wrap">
             <button
               className="tvp-icon-btn"
