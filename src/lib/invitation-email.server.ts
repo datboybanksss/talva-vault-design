@@ -33,7 +33,7 @@ export async function sendInvitationEmail(
         subject: mail.subject,
         html: mail.html,
         text: mail.text,
-        label: "agency_invitation",
+        label,
         purpose: "transactional",
         idempotency_key: key,
       },
