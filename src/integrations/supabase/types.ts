@@ -733,6 +733,50 @@ export type Database = {
           },
         ]
       }
+      agency_folder_settings: {
+        Row: {
+          agency_id: string
+          ai_filing_allowed: boolean
+          applied_by_default: boolean
+          can_untick_during_onboarding: boolean
+          created_at: string
+          default_validity_rule: string
+          folder_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          ai_filing_allowed?: boolean
+          applied_by_default?: boolean
+          can_untick_during_onboarding?: boolean
+          created_at?: string
+          default_validity_rule?: string
+          folder_name: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          ai_filing_allowed?: boolean
+          applied_by_default?: boolean
+          can_untick_during_onboarding?: boolean
+          created_at?: string
+          default_validity_rule?: string
+          folder_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_folder_settings_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_folder_template_items: {
         Row: {
           created_at: string
