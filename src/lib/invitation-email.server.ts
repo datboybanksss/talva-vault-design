@@ -13,6 +13,7 @@ export async function sendInvitationEmail(
   to: string,
   mail: { subject: string; html: string; text: string },
   idempotencyKey?: string,
+  label: "agency_invitation" | "talent_invitation" | "admin_invitation" = "agency_invitation",
 ): Promise<SendResult> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) return { sent: false, reason: "email_not_configured" };
@@ -20,7 +21,8 @@ export async function sendInvitationEmail(
   const from = process.env["EMAIL_FROM"] ?? "TalVault <invitations@notify.talvault.com>";
   const senderDomain = (from.match(/@([^>\s]+)/)?.[1] ?? "notify.talvault.com").trim();
 
-  const key = idempotencyKey ?? `agency-invite-${to}-${Date.now()}`;
+  const key = idempotencyKey ?? `${label}-${to}-${Date.now()}`;
+
 
   try {
     const res = await sendLovableEmail(
@@ -31,7 +33,7 @@ export async function sendInvitationEmail(
         subject: mail.subject,
         html: mail.html,
         text: mail.text,
-        label: "agency_invitation",
+        label,
         purpose: "transactional",
         idempotency_key: key,
       },

@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, ShieldCheck, UserPlus, X, Pencil } from "lucide-react";
+import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban } from "lucide-react";
 import {
   listAdministrators,
   whoami,
@@ -14,6 +14,13 @@ import {
 import { toast } from "sonner";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
+import {
+  DEFAULT_ADMIN_INVITATION_SUBJECT,
+  DEFAULT_ADMIN_INVITATION_BODY,
+  EMAIL_FALLBACK_NOTICE,
+} from "@/lib/invitation-email";
 
 export const Route = createFileRoute("/admin/administrators")({
   head: () => ({ meta: [{ title: "Administrators · TalVault Admin" }] }),
@@ -21,12 +28,14 @@ export const Route = createFileRoute("/admin/administrators")({
 });
 
 function AdminsPage() {
+  const navigate = useNavigate();
   const listFn = useServerFn(listAdministrators);
   const whoamiFn = useServerFn(whoami);
   const listInvFn = useServerFn(listAdminInvitations);
   const inviteFn = useServerFn(inviteAdministrator);
   const revokeFn = useServerFn(revokeAdminInvitation);
   const updateAdminFn = useServerFn(updateAdministrator);
+  const sendAdminEmailFn = useServerFn(sendAdminInvitationEmail);
   const qc = useQueryClient();
 
   const admins = useQuery({
@@ -49,12 +58,24 @@ function AdminsPage() {
   const invite = useMutation({
     mutationFn: (input: { email: string; permission_level: "view_only" | "edit" }) =>
       inviteFn({ data: input }),
-    onSuccess: () => {
+    onSuccess: async (inv: any) => {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
-      toast.success("Administrator invitation sent.");
       setInviteOpen(false);
       setInviteEmail("");
       setInvitePerm("edit");
+
+      // Send the invitation email. Delivery failure never discards the
+      // invitation — the link can still be copied and sent manually.
+      const res: any = await sendAdminEmailFn({
+        data: {
+          id: inv.id,
+          subject: DEFAULT_ADMIN_INVITATION_SUBJECT,
+          body: DEFAULT_ADMIN_INVITATION_BODY,
+          invite_url: `${window.location.origin}/invite/admin/${inv.token}`,
+        },
+      }).catch(() => ({ sent: false }));
+      if (res?.sent) toast.success("Administrator invitation sent.");
+      else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to invite"),
   });
@@ -366,13 +387,41 @@ function AdminsPage() {
                     <td className="tvp-muted">{i.invited_by_email ?? "—"}</td>
                     <td>
                       {isMain && (i.stored_status ?? i.status) === "pending" && (
-                        <button
-                          className="tvp-secondary"
-                          onClick={() => revoke.mutate(i.id)}
-                          disabled={revoke.isPending}
-                        >
-                          Revoke
-                        </button>
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                          <RowActionsMenu
+                            actions={[
+                              {
+                                key: "email", label: "Edit & send email", icon: Mail,
+                                onSelect: () =>
+                                  navigate({
+                                    to: "/admin/administrators/$id/email-preview",
+                                    params: { id: i.id },
+                                  }),
+                              },
+                              {
+                                key: "copy", label: "Copy invite link", icon: Link2,
+                                title: "Copying does not extend expiry",
+                                onSelect: async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(
+                                      `${window.location.origin}/invite/admin/${i.token}`,
+                                    );
+                                    toast.success("Invite link copied.");
+                                  } catch {
+                                    toast.error("Copy failed");
+                                  }
+                                },
+                              },
+                              {
+                                key: "revoke", label: "Revoke invitation", icon: Ban,
+                                destructive: true, separatorBefore: true,
+                                onSelect: () => {
+                                  if (confirm(`Revoke invitation to ${i.email}?`)) revoke.mutate(i.id);
+                                },
+                              },
+                            ]}
+                          />
+                        </div>
                       )}
                     </td>
                   </tr>

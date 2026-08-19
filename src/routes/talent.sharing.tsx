@@ -1,3 +1,4 @@
+import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -139,6 +140,15 @@ function SharingPage() {
                           {s.loved_one_email}{s.relationship ? ` · ${s.relationship}` : ""}
                           {s.email_sent_at ? " · emailed" : ""}
                         </div>
+                        {!s.email_sent_at && (
+                          <div
+                            className="tvp-muted"
+                            style={{ fontSize: 11, marginTop: 2, color: "var(--st-warn-fg, var(--tvp-amber))" }}
+                            title={EMAIL_FALLBACK_NOTICE}
+                          >
+                            No email sent — share the link yourself
+                          </div>
+                        )}
                       </td>
                       <td>{scope}</td>
                       <td>
@@ -286,8 +296,10 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
             <span>
               {fresh.email.sent
                 ? "Notification email sent to your Loved One (link only, no code)."
-                : fresh.email.reason === "email_not_configured"
-                  ? "Email sending isn't set up on this project yet — copy the link and send it yourself."
+                : fresh.email.reason === "email_not_configured" ||
+                    fresh.email.reason === "domain_unverified"
+                  ? EMAIL_FALLBACK_NOTICE
+
                   : fresh.email.reason === "regenerated"
                     ? "New code issued. The link is unchanged."
                     : "Notification email wasn't sent — copy the link and send it yourself."}

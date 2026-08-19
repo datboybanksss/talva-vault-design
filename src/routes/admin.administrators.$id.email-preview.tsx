@@ -4,11 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Send, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { getInvitationById } from "@/lib/admin.functions";
-import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
+import { getAdminInvitationById } from "@/lib/admin.functions";
+import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
 import {
-  DEFAULT_INVITATION_SUBJECT,
-  DEFAULT_INVITATION_BODY,
+  DEFAULT_ADMIN_INVITATION_SUBJECT,
+  DEFAULT_ADMIN_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
 import {
@@ -16,23 +16,23 @@ import {
   SendStatusBanner,
 } from "@/components/shared/invitation-email-composer";
 
-export const Route = createFileRoute("/admin/invitations/$id/email-preview")({
-  head: () => ({ meta: [{ title: "Invitation email · TalVault Admin" }] }),
-  component: EmailPreviewPage,
+export const Route = createFileRoute("/admin/administrators/$id/email-preview")({
+  head: () => ({ meta: [{ title: "Administrator invitation email · TalVault Admin" }] }),
+  component: AdminEmailPreviewPage,
 });
 
-function EmailPreviewPage() {
-  const { id } = useParams({ from: "/admin/invitations/$id/email-preview" });
-  const getFn = useServerFn(getInvitationById);
-  const sendFn = useServerFn(sendAgencyInvitationEmail);
+function AdminEmailPreviewPage() {
+  const { id } = useParams({ from: "/admin/administrators/$id/email-preview" });
+  const getFn = useServerFn(getAdminInvitationById);
+  const sendFn = useServerFn(sendAdminInvitationEmail);
   const q = useQuery({
-    queryKey: ["admin", "invitation", id],
+    queryKey: ["admin", "admin-invitation", id],
     queryFn: () => getFn({ data: { id } }),
   });
   const inv = q.data as any;
 
-  const [subject, setSubject] = useState(DEFAULT_INVITATION_SUBJECT);
-  const [body, setBody] = useState(DEFAULT_INVITATION_BODY);
+  const [subject, setSubject] = useState(DEFAULT_ADMIN_INVITATION_SUBJECT);
+  const [body, setBody] = useState(DEFAULT_ADMIN_INVITATION_BODY);
   const [status, setStatus] = useState<{ kind: "ok" | "error"; message: string } | null>(null);
 
   const [origin, setOrigin] = useState("https://talvault.app");
@@ -40,7 +40,7 @@ function EmailPreviewPage() {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
   }, []);
 
-  const inviteUrl = inv ? `${origin}/invite/${inv.token}` : "";
+  const inviteUrl = inv ? `${origin}/invite/admin/${inv.token}` : "";
   const expiryDate = inv
     ? new Date(inv.expires_at).toLocaleDateString("en-GB", {
         day: "numeric", month: "long", year: "numeric",
@@ -84,14 +84,14 @@ function EmailPreviewPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/admin/invitations" search={{}} className="tvp-link"
+          <Link to="/admin/administrators" className="tvp-link"
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}>
-            <ArrowLeft className="h-3 w-3" /> Back to invitations
+            <ArrowLeft className="h-3 w-3" /> Back to administrators
           </Link>
-          <h1 className="tvp-h1" style={{ marginTop: 4 }}>Invitation email</h1>
+          <h1 className="tvp-h1" style={{ marginTop: 4 }}>Administrator invitation email</h1>
           <div className="tvp-subtitle">
             Edit the subject and message, preview it exactly as the recipient sees it, then send.
-            Tokens available: {"{{contact_person}}"}, {"{{agency_name}}"}, {"{{email}}"}, {"{{expiry_date}}"}.
+            Tokens available: {"{{email}}"}, {"{{permission_level}}"}, {"{{expiry_date}}"}.
           </div>
         </div>
         <div className="tvp-actions">
@@ -115,20 +115,19 @@ function EmailPreviewPage() {
 
       {inv && (
         <InvitationEmailComposer
-          variant="agency"
+          variant="admin"
           subject={subject}
           setSubject={setSubject}
           body={body}
           setBody={setBody}
-          defaultSubject={DEFAULT_INVITATION_SUBJECT}
-          defaultBody={DEFAULT_INVITATION_BODY}
+          defaultSubject={DEFAULT_ADMIN_INVITATION_SUBJECT}
+          defaultBody={DEFAULT_ADMIN_INVITATION_BODY}
           recipientEmail={inv.email}
           inviteUrl={inviteUrl}
           expiryDate={expiryDate}
           tokens={{
-            contact_person: inv.contact_person,
-            agency_name: inv.agency_name,
             email: inv.email,
+            permission_level: inv.permission_level,
             expiry_date: expiryDate,
             invite_url: inviteUrl,
           }}

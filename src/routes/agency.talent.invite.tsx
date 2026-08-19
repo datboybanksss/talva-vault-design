@@ -18,6 +18,13 @@ import {
   listAgencyStaff,
   createTalentInvitationMine,
 } from "@/lib/agency.functions";
+import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
+import {
+  DEFAULT_TALENT_INVITATION_SUBJECT,
+  DEFAULT_TALENT_INVITATION_BODY,
+  EMAIL_FALLBACK_NOTICE,
+} from "@/lib/invitation-email";
+
 
 export const Route = createFileRoute("/agency/talent/invite")({
   head: () => ({ meta: [{ title: "Invite talent · TalVault" }] }),
@@ -41,6 +48,7 @@ function InviteTalent() {
   const whoamiFn = useServerFn(agencyWhoami);
   const staffFn = useServerFn(listAgencyStaff);
   const createFn = useServerFn(createTalentInvitationMine);
+  const sendEmailFn = useServerFn(sendTalentInvitationEmail);
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
   const staff = useQuery({ queryKey: ["agency", "staff"], queryFn: () => staffFn() });
@@ -82,10 +90,39 @@ function InviteTalent() {
           talent_type: talentType || null,
         },
       }),
-    onSuccess: () => {
+    onSuccess: async (inv: any) => {
       qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
       qc.invalidateQueries({ queryKey: ["agency", "talent"] });
-      toast.success("Invitation sent. The link expires on the date you set.");
+
+      // Actually send the invitation email. A delivery failure must not lose
+      // the invitation — it already exists and the link can be copied.
+      let sent = false;
+      let reason: string | undefined;
+      try {
+        const res: any = await sendEmailFn({
+          data: {
+            id: inv.id,
+            subject: DEFAULT_TALENT_INVITATION_SUBJECT,
+            body: DEFAULT_TALENT_INVITATION_BODY,
+            invite_url: `${window.location.origin}/invite/talent/${inv.token}`,
+          },
+        });
+        sent = !!res?.sent;
+        reason = res?.reason;
+      } catch (e: any) {
+        reason = e?.message;
+      }
+
+      if (sent) {
+        toast.success("Invitation sent. The link expires on the date you set.");
+      } else {
+        toast.warning(
+          reason === "domain_unverified" || reason === "email_not_configured"
+            ? EMAIL_FALLBACK_NOTICE
+            : "Invitation created, but the email could not be sent. Copy the link and send it yourself for now.",
+          { duration: 9000 },
+        );
+      }
       navigate({ to: "/agency/invitations" });
     },
     onError: (e: any) => toast.error(e?.message ?? "The invitation could not be sent."),

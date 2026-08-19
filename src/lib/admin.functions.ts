@@ -1514,3 +1514,19 @@ export const updateAdministrator = createServerFn({ method: "POST" })
     return { ok: true, changes };
   });
 
+
+// Single administrator invitation, used by the invitation email composer.
+export const getAdminInvitationById = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { data: inv, error } = await supabase
+      .from("admin_invitations")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return inv;
+  });

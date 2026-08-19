@@ -1,12 +1,18 @@
 import { FOLDER_NAMES } from "@/lib/folder-taxonomy";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
+import {
+  DEFAULT_TALENT_INVITATION_SUBJECT,
+  DEFAULT_TALENT_INVITATION_BODY,
+  EMAIL_FALLBACK_NOTICE,
+} from "@/lib/invitation-email";
 import { LoadMoreRow } from "@/components/shared/load-more";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog } from "lucide-react";
+import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog, Mail } from "lucide-react";
 import { toast } from "sonner";
 import {
   agencyWhoami,
@@ -52,6 +58,7 @@ function daysBetween(iso: string) {
 type InviteType = "talent" | "staff";
 
 function InvitationsPage() {
+  const navigate = useNavigate();
   const listFn = useServerFn(listAgencyInvitationsMine);
   const whoamiFn = useServerFn(agencyWhoami);
   const createTalent = useServerFn(createTalentInvitationMine);
@@ -223,6 +230,14 @@ function InvitationsPage() {
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                         <RowActionsMenu
                           actions={[
+                            i.type === "talent" && isOwner && {
+                              key: "email", label: "Edit & send email", icon: Mail,
+                              onSelect: () =>
+                                navigate({
+                                  to: "/agency/invitations/$id/email-preview",
+                                  params: { id: i.id },
+                                }),
+                            },
                             {
                               key: "copy", label: "Copy invite link", icon: Link2,
                               title: "Copying does not extend expiry",
@@ -268,8 +283,17 @@ function InvitationsPage() {
           onSubmit={async (payload) => {
             try {
               if (openForm === "talent") {
-                await createTalent({ data: payload as any });
-                toast.success("Talent invitation sent.");
+                const inv: any = await createTalent({ data: payload as any });
+                const res: any = await sendTalentInvitationEmail({
+                  data: {
+                    id: inv.id,
+                    subject: DEFAULT_TALENT_INVITATION_SUBJECT,
+                    body: DEFAULT_TALENT_INVITATION_BODY,
+                    invite_url: `${window.location.origin}/invite/talent/${inv.token}`,
+                  },
+                }).catch(() => ({ sent: false }));
+                if (res?.sent) toast.success("Talent invitation sent.");
+                else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
               } else {
                 await createStaff({ data: payload as any });
                 toast.success("Staff invitation sent.");

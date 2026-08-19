@@ -4,11 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Send, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { getInvitationById } from "@/lib/admin.functions";
-import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
+import { getTalentInvitationByIdMine } from "@/lib/agency.functions";
+import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
 import {
-  DEFAULT_INVITATION_SUBJECT,
-  DEFAULT_INVITATION_BODY,
+  DEFAULT_TALENT_INVITATION_SUBJECT,
+  DEFAULT_TALENT_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
 import {
@@ -16,23 +16,30 @@ import {
   SendStatusBanner,
 } from "@/components/shared/invitation-email-composer";
 
-export const Route = createFileRoute("/admin/invitations/$id/email-preview")({
-  head: () => ({ meta: [{ title: "Invitation email · TalVault Admin" }] }),
-  component: EmailPreviewPage,
+export const Route = createFileRoute("/agency/invitations/$id/email-preview")({
+  head: () => ({
+    meta: [
+      { title: "Talent invitation email · TalVault" },
+      { name: "description", content: "Edit, preview and send the invitation email for a talent invite." },
+      { property: "og:title", content: "Talent invitation email · TalVault" },
+      { property: "og:description", content: "Edit, preview and send the invitation email for a talent invite." },
+    ],
+  }),
+  component: TalentEmailPreviewPage,
 });
 
-function EmailPreviewPage() {
-  const { id } = useParams({ from: "/admin/invitations/$id/email-preview" });
-  const getFn = useServerFn(getInvitationById);
-  const sendFn = useServerFn(sendAgencyInvitationEmail);
+function TalentEmailPreviewPage() {
+  const { id } = useParams({ from: "/agency/invitations/$id/email-preview" });
+  const getFn = useServerFn(getTalentInvitationByIdMine);
+  const sendFn = useServerFn(sendTalentInvitationEmail);
   const q = useQuery({
-    queryKey: ["admin", "invitation", id],
+    queryKey: ["agency", "talent-invitation", id],
     queryFn: () => getFn({ data: { id } }),
   });
   const inv = q.data as any;
 
-  const [subject, setSubject] = useState(DEFAULT_INVITATION_SUBJECT);
-  const [body, setBody] = useState(DEFAULT_INVITATION_BODY);
+  const [subject, setSubject] = useState(DEFAULT_TALENT_INVITATION_SUBJECT);
+  const [body, setBody] = useState(DEFAULT_TALENT_INVITATION_BODY);
   const [status, setStatus] = useState<{ kind: "ok" | "error"; message: string } | null>(null);
 
   const [origin, setOrigin] = useState("https://talvault.app");
@@ -40,7 +47,7 @@ function EmailPreviewPage() {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
   }, []);
 
-  const inviteUrl = inv ? `${origin}/invite/${inv.token}` : "";
+  const inviteUrl = inv ? `${origin}/invite/talent/${inv.token}` : "";
   const expiryDate = inv
     ? new Date(inv.expires_at).toLocaleDateString("en-GB", {
         day: "numeric", month: "long", year: "numeric",
@@ -84,14 +91,14 @@ function EmailPreviewPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/admin/invitations" search={{}} className="tvp-link"
+          <Link to="/agency/invitations" className="tvp-link"
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}>
             <ArrowLeft className="h-3 w-3" /> Back to invitations
           </Link>
-          <h1 className="tvp-h1" style={{ marginTop: 4 }}>Invitation email</h1>
+          <h1 className="tvp-h1" style={{ marginTop: 4 }}>Talent invitation email</h1>
           <div className="tvp-subtitle">
-            Edit the subject and message, preview it exactly as the recipient sees it, then send.
-            Tokens available: {"{{contact_person}}"}, {"{{agency_name}}"}, {"{{email}}"}, {"{{expiry_date}}"}.
+            Edit the subject and message, preview it exactly as your talent sees it, then send.
+            Tokens available: {"{{talent_name}}"}, {"{{agency_name}}"}, {"{{email}}"}, {"{{expiry_date}}"}.
           </div>
         </div>
         <div className="tvp-actions">
@@ -115,18 +122,18 @@ function EmailPreviewPage() {
 
       {inv && (
         <InvitationEmailComposer
-          variant="agency"
+          variant="talent"
           subject={subject}
           setSubject={setSubject}
           body={body}
           setBody={setBody}
-          defaultSubject={DEFAULT_INVITATION_SUBJECT}
-          defaultBody={DEFAULT_INVITATION_BODY}
+          defaultSubject={DEFAULT_TALENT_INVITATION_SUBJECT}
+          defaultBody={DEFAULT_TALENT_INVITATION_BODY}
           recipientEmail={inv.email}
           inviteUrl={inviteUrl}
           expiryDate={expiryDate}
           tokens={{
-            contact_person: inv.contact_person,
+            talent_name: inv.talent_name,
             agency_name: inv.agency_name,
             email: inv.email,
             expiry_date: expiryDate,

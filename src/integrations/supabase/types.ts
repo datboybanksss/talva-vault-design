@@ -56,6 +56,7 @@ export type Database = {
           accepted_user_id: string | null
           created_at: string
           email: string
+          email_sent_at: string | null
           expires_at: string
           id: string
           invited_by: string | null
@@ -64,12 +65,14 @@ export type Database = {
           revoked_at: string | null
           revoked_by: string | null
           status: string
+          token: string
         }
         Insert: {
           accepted_at?: string | null
           accepted_user_id?: string | null
           created_at?: string
           email: string
+          email_sent_at?: string | null
           expires_at?: string
           id?: string
           invited_by?: string | null
@@ -78,12 +81,14 @@ export type Database = {
           revoked_at?: string | null
           revoked_by?: string | null
           status?: string
+          token?: string
         }
         Update: {
           accepted_at?: string | null
           accepted_user_id?: string | null
           created_at?: string
           email?: string
+          email_sent_at?: string | null
           expires_at?: string
           id?: string
           invited_by?: string | null
@@ -92,6 +97,7 @@ export type Database = {
           revoked_at?: string | null
           revoked_by?: string | null
           status?: string
+          token?: string
         }
         Relationships: []
       }
@@ -862,6 +868,7 @@ export type Database = {
           contact_person: string | null
           created_at: string
           email: string
+          email_sent_at: string | null
           expires_at: string
           id: string
           invited_by: string | null
@@ -884,6 +891,7 @@ export type Database = {
           contact_person?: string | null
           created_at?: string
           email: string
+          email_sent_at?: string | null
           expires_at?: string
           id?: string
           invited_by?: string | null
@@ -906,6 +914,7 @@ export type Database = {
           contact_person?: string | null
           created_at?: string
           email?: string
+          email_sent_at?: string | null
           expires_at?: string
           id?: string
           invited_by?: string | null
@@ -1517,6 +1526,7 @@ export type Database = {
           agency_id: string
           created_at: string
           email: string
+          email_sent_at: string | null
           expires_at: string
           folder_mode: string
           folder_selection: Json
@@ -1536,6 +1546,7 @@ export type Database = {
           agency_id: string
           created_at?: string
           email: string
+          email_sent_at?: string | null
           expires_at?: string
           folder_mode?: string
           folder_selection?: Json
@@ -1555,6 +1566,7 @@ export type Database = {
           agency_id?: string
           created_at?: string
           email?: string
+          email_sent_at?: string | null
           expires_at?: string
           folder_mode?: string
           folder_selection?: Json

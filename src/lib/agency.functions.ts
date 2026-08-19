@@ -2679,3 +2679,24 @@ export const resetAgencyFolderSettings = createServerFn({ method: "POST" })
     );
     return { ok: true };
   });
+
+// Single talent invitation for the caller's agency, used by the talent
+// invitation email composer.
+export const getTalentInvitationByIdMine = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: inv, error } = await supabase
+      .from("talent_invitations")
+      .select("*")
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) return null;
+    const { data: agency } = await supabase
+      .from("agencies").select("name").eq("id", agencyId).maybeSingle();
+    return { ...inv, agency_name: agency?.name ?? null };
+  });
