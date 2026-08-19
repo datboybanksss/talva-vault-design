@@ -13,6 +13,7 @@ import {
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { usePagedList } from "@/lib/pagination";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/invitations/")({
@@ -324,90 +325,50 @@ function InvitationsPage() {
                     </td>
                     <td>{i.send_count}</td>
                     <td>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        {i.status === "draft" ? (
-                          <>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Continue draft (add compliance documents and send)"
-                              onClick={() =>
-                                nav({
-                                  to: "/admin/invitations/new",
-                                  search: { draft: i.id } as any,
-                                })
-                              }
-                            >
-                              <FileEdit className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Delete draft (removes compliance docs and agency shell)"
-                              onClick={() => setPendingDelete(i)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <Link
-                              to="/admin/invitations/$id/email-preview"
-                              params={{ id: i.id }}
-                              className="tvp-mini-btn"
-                              title="Preview branded email"
-                            >
-                              <Mail className="h-4 w-4" />
-                            </Link>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Copy invite link (does not extend expiry)"
-                              onClick={() => copyLink(i)}
-                            >
-                              <Link2 className="h-4 w-4" />
-                            </button>
-                            {!readOnly && (
-                              <button
-                                className="tvp-mini-btn"
-                                title="Edit email (only before acceptance)"
-                                onClick={() => {
-                                  setEditing(i);
-                                  setEmailDraft(i.email);
-                                }}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                            )}
-                            {isOpen && (
-                              <>
-                                <button
-                                  className="tvp-mini-btn"
-                                  title="Resend (logs new send, refreshes expiry)"
-                                  onClick={() => resendM.mutate(i.id)}
-                                >
-                                  <RefreshCw className="h-4 w-4" />
-                                </button>
-                                <button
-                                  className="tvp-mini-btn"
-                                  title="Revoke invitation"
-                                  onClick={() => {
-                                    if (confirm(`Revoke invitation to ${i.agency_name}?`))
-                                      revokeM.mutate(i.id);
-                                  }}
-                                >
-                                  <Ban className="h-4 w-4" />
-                                </button>
-                              </>
-                            )}
-                            {i.status !== "accepted" && (
-                              <button
-                                className="tvp-mini-btn"
-                                title="Delete invitation permanently (removes compliance docs; if no agency members, removes the shell agency too)"
-                                onClick={() => setPendingDelete(i)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            )}
-                          </>
-                        )}
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <RowActionsMenu
+                          actions={[
+                            i.status === "draft" && {
+                              key: "continue", label: "Continue draft", icon: FileEdit,
+                              title: "Add compliance documents and send",
+                              onSelect: () => nav({ to: "/admin/invitations/new", search: { draft: i.id } as any }),
+                            },
+                            i.status !== "draft" && {
+                              key: "preview", label: "Preview branded email", icon: Mail,
+                              to: "/admin/invitations/$id/email-preview", params: { id: i.id },
+                            },
+                            i.status !== "draft" && {
+                              key: "copy", label: "Copy invite link", icon: Link2,
+                              title: "Copying does not extend expiry",
+                              onSelect: () => copyLink(i),
+                            },
+                            i.status !== "draft" && !readOnly && {
+                              key: "edit", label: "Edit email address", icon: Pencil,
+                              title: "Only possible before the invitation is accepted",
+                              onSelect: () => { setEditing(i); setEmailDraft(i.email); },
+                            },
+                            i.status !== "draft" && isOpen && {
+                              key: "resend", label: "Resend invitation", icon: RefreshCw,
+                              title: "Logs a new send and refreshes expiry",
+                              onSelect: () => resendM.mutate(i.id),
+                            },
+                            i.status !== "draft" && isOpen && {
+                              key: "revoke", label: "Revoke invitation", icon: Ban,
+                              destructive: true, separatorBefore: true,
+                              onSelect: () => {
+                                if (confirm(`Revoke invitation to ${i.agency_name}?`)) revokeM.mutate(i.id);
+                              },
+                            },
+                            i.status !== "accepted" && {
+                              key: "delete",
+                              label: i.status === "draft" ? "Delete draft" : "Delete invitation",
+                              icon: Trash2, destructive: true,
+                              separatorBefore: i.status === "draft",
+                              title: "Removes compliance documents, and the shell agency if it has no members",
+                              onSelect: () => setPendingDelete(i),
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
