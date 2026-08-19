@@ -86,7 +86,7 @@ function Landing() {
           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-teal mb-3">
             Portal selector · Demo
           </div>
-          <h1 className="text-[40px] md:text-[52px] font-black text-ink leading-[1.05] tracking-tight">
+          <h1 className="display-lg">
             One vault.
             <br />
             Four trusted roles.
