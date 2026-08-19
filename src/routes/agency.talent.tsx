@@ -148,7 +148,7 @@ function TalentPage() {
             className={`tvp-tab${tab === t.key ? " tvp-active" : ""}`}
             onClick={() => setTab(t.key)}
           >
-            {t.key === "all" ? "All" : STATUS_LABEL[t.key]}{" "}
+            {t.label}{" "}
             <span className={`tvp-status tvp-${t.tone}`}>{counts.get(t.key) ?? 0}</span>
           </button>
         ))}
