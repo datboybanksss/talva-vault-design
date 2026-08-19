@@ -54,6 +54,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as ApiPublicHooksTalentRemindersRouteImport } from './routes/api/public/hooks/talent-reminders'
 import { Route as AgencyInvitationsIdEmailPreviewRouteImport } from './routes/agency.invitations.$id.email-preview'
 import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
+import { Route as AdminAdministratorsIdEmailPreviewRouteImport } from './routes/admin.administrators.$id.email-preview'
 
 const TalentRoute = TalentRouteImport.update({
   id: '/talent',
@@ -284,6 +285,12 @@ const AdminInvitationsIdEmailPreviewRoute =
     path: '/$id/email-preview',
     getParentRoute: () => AdminInvitationsRoute,
   } as any)
+const AdminAdministratorsIdEmailPreviewRoute =
+  AdminAdministratorsIdEmailPreviewRouteImport.update({
+    id: '/$id/email-preview',
+    path: '/$id/email-preview',
+    getParentRoute: () => AdminAdministratorsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -293,7 +300,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
-  '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
@@ -327,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
+  '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
@@ -337,7 +345,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
   '/admin/my-account': typeof AdminMyAccountRoute
@@ -369,6 +377,7 @@ export interface FileRoutesByTo {
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
+  '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
@@ -383,7 +392,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
-  '/admin/administrators': typeof AdminAdministratorsRoute
+  '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
@@ -417,6 +426,7 @@ export interface FileRoutesById {
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
+  '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
+    | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
     | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/invite/talent/$token'
     | '/admin/agencies'
     | '/admin/invitations'
+    | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
     | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
@@ -555,6 +567,7 @@ export interface FileRouteTypes {
     | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
+    | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
     | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
@@ -894,8 +907,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInvitationsIdEmailPreviewRouteImport
       parentRoute: typeof AdminInvitationsRoute
     }
+    '/admin/administrators/$id/email-preview': {
+      id: '/admin/administrators/$id/email-preview'
+      path: '/$id/email-preview'
+      fullPath: '/admin/administrators/$id/email-preview'
+      preLoaderRoute: typeof AdminAdministratorsIdEmailPreviewRouteImport
+      parentRoute: typeof AdminAdministratorsRoute
+    }
   }
 }
+
+interface AdminAdministratorsRouteChildren {
+  AdminAdministratorsIdEmailPreviewRoute: typeof AdminAdministratorsIdEmailPreviewRoute
+}
+
+const AdminAdministratorsRouteChildren: AdminAdministratorsRouteChildren = {
+  AdminAdministratorsIdEmailPreviewRoute:
+    AdminAdministratorsIdEmailPreviewRoute,
+}
+
+const AdminAdministratorsRouteWithChildren =
+  AdminAdministratorsRoute._addFileChildren(AdminAdministratorsRouteChildren)
 
 interface AdminAgenciesRouteChildren {
   AdminAgenciesIdRoute: typeof AdminAgenciesIdRoute
@@ -927,7 +959,7 @@ const AdminInvitationsRouteWithChildren =
   AdminInvitationsRoute._addFileChildren(AdminInvitationsRouteChildren)
 
 interface AdminRouteChildren {
-  AdminAdministratorsRoute: typeof AdminAdministratorsRoute
+  AdminAdministratorsRoute: typeof AdminAdministratorsRouteWithChildren
   AdminAgenciesRoute: typeof AdminAgenciesRouteWithChildren
   AdminAuditRoute: typeof AdminAuditRoute
   AdminEnroll2faRoute: typeof AdminEnroll2faRoute
@@ -938,7 +970,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminAdministratorsRoute: AdminAdministratorsRoute,
+  AdminAdministratorsRoute: AdminAdministratorsRouteWithChildren,
   AdminAgenciesRoute: AdminAgenciesRouteWithChildren,
   AdminAuditRoute: AdminAuditRoute,
   AdminEnroll2faRoute: AdminEnroll2faRoute,
