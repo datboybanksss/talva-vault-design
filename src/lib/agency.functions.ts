@@ -424,6 +424,48 @@ const folderSelectionItem = z.object({
   retention_years: z.number().int().min(0).max(100).nullable().optional(),
 });
 
+/** Active members of the caller's agency, for manager assignment dropdowns. */
+export const listAgencyStaff = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: members, error } = await supabase
+      .from("agency_members")
+      .select("user_id, role")
+      .eq("agency_id", agencyId)
+      .eq("suspended", false)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    const ids = (members ?? []).map((m: any) => m.user_id);
+    const { data: profs } = ids.length
+      ? await supabase
+          .from("profiles")
+          .select("id, display_name, first_name, last_name, email")
+          .in("id", ids)
+      : { data: [] as any[] };
+
+    const byId = new Map<string, any>();
+    for (const p of profs ?? []) byId.set(p.id as string, p);
+
+    return (members ?? []).map((m: any) => {
+      const p = byId.get(m.user_id);
+      const name =
+        p?.display_name ||
+        [p?.first_name, p?.last_name].filter(Boolean).join(" ") ||
+        p?.email ||
+        "Team member";
+      return {
+        userId: m.user_id as string,
+        role: (m.role as string) ?? "staff",
+        name: name as string,
+        email: (p?.email as string) ?? "",
+      };
+    });
+  });
+
 export const createTalentInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -433,6 +475,8 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
       expiry_days: z.number().int().min(1).max(60).default(14),
       folder_mode: z.enum(["standard", "custom"]).default("standard"),
       folder_selection: z.array(folderSelectionItem).default([]),
+      manager_user_id: z.string().uuid().nullable().optional(),
+      talent_type: z.string().max(60).nullable().optional(),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
