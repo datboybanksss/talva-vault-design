@@ -294,6 +294,8 @@ function AgencyDashboard() {
               </div>
             </div>
           </div>
+        </div>
+      )}
 
       {!isEmpty && attentionTotal > 0 && (
         <div
