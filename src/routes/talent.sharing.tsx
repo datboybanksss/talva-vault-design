@@ -1,3 +1,4 @@
+import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
