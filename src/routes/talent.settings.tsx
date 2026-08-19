@@ -13,6 +13,7 @@ import {
   logTalentMfaDisabled,
 } from "@/lib/talent-audit.functions";
 import { ReplayTourCard } from "@/components/shared/replay-tour-card";
+import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 
 export const Route = createFileRoute("/talent/settings")({
   ssr: false,
