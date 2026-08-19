@@ -219,21 +219,9 @@ function AgencyDashboard() {
   const firstName = who.data?.firstName || who.data?.displayName?.split(" ")[0] || "there";
 
   const talentCount = metrics.data?.talentCount ?? rows.length;
-  const needsReview = metrics.data?.needsReviewCount ?? 0;
-  const expiringSoon = metrics.data?.expiringSoonCount ?? 0;
-  const expiryNoticeDays = metrics.data?.expiryNoticeDays ?? 30;
   const invitesPending = metrics.data?.invitationsNeedAction ?? 0;
-  const overdueInvoices = metrics.data?.overdueInvoicesCount ?? 0;
-  const attentionTotal = needsReview + expiringSoon + invitesPending + overdueInvoices;
   const isEmpty = !metrics.isLoading && !talent.isLoading && talentCount === 0 && invitesPending === 0;
 
-  const reviewTarget = needsReview > 0
-    ? "/agency/talent"
-    : expiringSoon > 0
-      ? "/agency/document-vault"
-      : overdueInvoices > 0
-        ? "/agency/quotes-invoices"
-        : "/agency/invitations";
 
   return (
     <>
