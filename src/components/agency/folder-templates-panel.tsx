@@ -134,7 +134,7 @@ export function FolderTemplatesPanel() {
       <div className="tvp-topbar">
         <div>
           <h2 className="tvp-h2">Manage Folders</h2>
-          <div className="tvp-subtitle">Reusable folder sets that seed retention rules when applied.</div>
+          <div className="tvp-subtitle">Reusable folder sets that apply your retention rules automatically.</div>
         </div>
         <div className="tvp-actions">
           {isOwner && (
