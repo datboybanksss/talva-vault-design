@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 import { usePagedList } from "@/lib/pagination";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/agencies/")({
@@ -308,6 +309,8 @@ function AgenciesPage() {
               {visible.map((a: any) => {
                 const invitation = a.invitation;
                 const inviteEmail = invitation?.email ?? a.contact_email;
+                const isDraftInvite = a.status === "invited" && !!invitation && invitation.status === "draft";
+                const isSentInvite = a.status === "invited" && !!invitation && invitation.status !== "draft";
                 return (
                   <tr key={a.id}>
                     <td>
