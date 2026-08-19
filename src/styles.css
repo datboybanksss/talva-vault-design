@@ -828,6 +828,15 @@
   & .tvp-toolbar { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--tvp-line); flex-wrap: wrap; }
   & .tvp-search { height: 40px; border: 1px solid var(--tvp-line-strong); background: var(--surface); border-radius: 11px; padding: 0 14px; min-width: 240px; font-size: 13px; color: var(--tvp-ink); }
   & .tvp-search:focus { outline: none; border-color: var(--tvp-teal-2); box-shadow: var(--focus-ring); }
+  & .tvp-input { height: 40px; border: 1px solid var(--tvp-line-strong); background: var(--surface); border-radius: 11px; padding: 0 12px; color: var(--tvp-text); font-size: 13px; }
+  & .tvp-period-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  & .tvp-period-icon { color: var(--tvp-teal); display: grid; place-items: center; }
+  & .tvp-period-label { font-size: 12px; font-weight: 900; color: var(--tvp-muted); text-transform: uppercase; letter-spacing: .04em; }
+  & .tvp-period-current { font-size: 12px; font-weight: 800; color: var(--tvp-teal); background: var(--tvp-teal-50); border: 1px solid var(--tvp-teal-200); border-radius: 999px; padding: 4px 10px; }
+  & .tvp-sort-th { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; }
+  & .tvp-report-table td.tvp-num, & .tvp-report-table th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  & .tvp-report-table tfoot td { border-top: 2px solid var(--tvp-teal-2); background: var(--tvp-surface-soft); }
+  & .tvp-report-empty { padding: 28px; text-align: center; font-size: 13px; color: var(--tvp-muted); }
   & .tvp-select { height: 40px; border: 1px solid var(--tvp-line-strong); background: var(--surface); border-radius: 11px; padding: 0 12px; color: var(--tvp-text); font-size: 13px; }
 
   & .tvp-callout {
