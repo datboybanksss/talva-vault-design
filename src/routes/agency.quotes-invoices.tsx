@@ -144,7 +144,7 @@ type EditorState = {
   allow_partial_payment: boolean;
   recipient_address: string;
   recipient_vat_number: string;
-  recipient_email: string;
+  recipient_emails: string[];
   acceptance_window_days: string;
   payment_terms_days: string;
   lines: BillingLine[];
@@ -166,7 +166,7 @@ function emptyEditor(kind: "quote" | "invoice", defaultVatBp = 1500, defaultAcce
     allow_partial_payment: false,
     recipient_address: "",
     recipient_vat_number: "",
-    recipient_email: "",
+    recipient_emails: [],
     acceptance_window_days: kind === "quote" ? String(defaultAcceptDays) : "",
     payment_terms_days: kind === "invoice" ? String(defaultPayDays) : "",
     lines: [emptyLine(0, defaultVatBp)],
@@ -366,7 +366,7 @@ function QIPage() {
         allow_partial_payment: !!full.doc.allow_partial_payment,
         recipient_address: full.doc.recipient_address ?? "",
         recipient_vat_number: full.doc.recipient_vat_number ?? "",
-        recipient_email: full.doc.recipient_email ?? "",
+        recipient_emails: (full.doc.recipient_emails as string[] | null) ?? (full.doc.recipient_email ? [full.doc.recipient_email] : []),
         acceptance_window_days: full.doc.acceptance_window_days ? String(full.doc.acceptance_window_days) : "",
         payment_terms_days: full.doc.payment_terms_days ? String(full.doc.payment_terms_days) : "",
         lines: lines.length > 0 ? lines : [emptyLine(0, settings?.default_vat_rate_bp ?? 1500)],
@@ -378,6 +378,15 @@ function QIPage() {
       setLoadingEditor(false);
     }
   }
+
+  const sendFromLabel = useMemo(() => {
+    const s: any = settings;
+    const verified = !!s?.billing_from_verified_at && !!s?.billing_from_email;
+    const name = (verified && s?.billing_from_name) || s?.name || "TalVault";
+    return verified
+      ? `${name} (replies to ${s.billing_from_email})`
+      : `${name} (TalVault system address — verify your own address in Settings)`;
+  }, [settings]);
 
   const editorTotals = useMemo(() => computeTotals(editor.lines), [editor.lines]);
 
@@ -402,7 +411,8 @@ function QIPage() {
           allow_partial_payment: editor.kind === "invoice" ? editor.allow_partial_payment : false,
           recipient_address: editor.recipient_address.trim() || null,
           recipient_vat_number: editor.recipient_vat_number.trim() || null,
-          recipient_email: editor.recipient_email.trim() || null,
+          recipient_email: editor.recipient_emails[0] ?? null,
+          recipient_emails: editor.recipient_emails,
           acceptance_window_days: editor.kind === "quote" && editor.acceptance_window_days
             ? Number(editor.acceptance_window_days) : null,
           payment_terms_days: editor.kind === "invoice" && editor.payment_terms_days
@@ -789,9 +799,12 @@ function QIPage() {
                     <label>Recipient billing address</label>
                     <textarea rows={2} value={editor.recipient_address} onChange={(e) => setEditor({ ...editor, recipient_address: e.target.value })} placeholder="Required by SARS for invoices over R5,000" />
                   </div>
-                  <div className="tvp-form-group">
-                    <label>Recipient email</label>
-                    <input type="email" value={editor.recipient_email} onChange={(e) => setEditor({ ...editor, recipient_email: e.target.value })} />
+                  <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
+                    <label>Recipient emails</label>
+                    <EmailChipsInput
+                      value={editor.recipient_emails}
+                      onChange={(next) => setEditor({ ...editor, recipient_emails: next })}
+                    />
                   </div>
                   <div className="tvp-form-group">
                     <label>Recipient VAT number</label>
@@ -932,7 +945,7 @@ function QIPage() {
             client_name: editor.client_name || null,
             recipient_address: editor.recipient_address || null,
             recipient_vat_number: editor.recipient_vat_number || null,
-            recipient_email: editor.recipient_email || null,
+            recipient_email: editor.recipient_emails[0] ?? null,
             talent_name: editor.talent_name || null,
             description: editor.description || null,
             issued_at: editor.issued_at,
@@ -945,7 +958,13 @@ function QIPage() {
           }}
           lines={editor.lines.filter((l) => l.description.trim())}
           agency={previewAgency}
-          canSend={!!editor.id && (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))}
+          sendFrom={sendFromLabel}
+          recipients={editor.recipient_emails}
+          canSend={
+            !!editor.id &&
+            editor.recipient_emails.length > 0 &&
+            (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
+          }
           onSend={() => send.mutate()}
           sending={send.isPending}
         />

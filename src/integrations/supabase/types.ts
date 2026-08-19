@@ -162,6 +162,12 @@ export type Database = {
         Row: {
           accent_color: string
           billing_address: string | null
+          billing_from_email: string | null
+          billing_from_last_sent_at: string | null
+          billing_from_name: string | null
+          billing_from_token: string | null
+          billing_from_token_expires_at: string | null
+          billing_from_verified_at: string | null
           business_type: string | null
           contact_email: string | null
           contact_person: string | null
@@ -194,6 +200,12 @@ export type Database = {
         Insert: {
           accent_color?: string
           billing_address?: string | null
+          billing_from_email?: string | null
+          billing_from_last_sent_at?: string | null
+          billing_from_name?: string | null
+          billing_from_token?: string | null
+          billing_from_token_expires_at?: string | null
+          billing_from_verified_at?: string | null
           business_type?: string | null
           contact_email?: string | null
           contact_person?: string | null
@@ -226,6 +238,12 @@ export type Database = {
         Update: {
           accent_color?: string
           billing_address?: string | null
+          billing_from_email?: string | null
+          billing_from_last_sent_at?: string | null
+          billing_from_name?: string | null
+          billing_from_token?: string | null
+          billing_from_token_expires_at?: string | null
+          billing_from_verified_at?: string | null
           business_type?: string | null
           contact_email?: string | null
           contact_person?: string | null
@@ -403,12 +421,14 @@ export type Database = {
           is_vat_invoice: boolean
           issued_at: string
           kind: Database["public"]["Enums"]["doc_kind"]
+          last_sent_to: string[] | null
           notes: string | null
           number: string
           paid_at: string | null
           payment_terms_days: number | null
           recipient_address: string | null
           recipient_email: string | null
+          recipient_emails: string[]
           recipient_vat_number: string | null
           sent_at: string | null
           shared_with_talent: boolean
@@ -436,12 +456,14 @@ export type Database = {
           is_vat_invoice?: boolean
           issued_at?: string
           kind: Database["public"]["Enums"]["doc_kind"]
+          last_sent_to?: string[] | null
           notes?: string | null
           number: string
           paid_at?: string | null
           payment_terms_days?: number | null
           recipient_address?: string | null
           recipient_email?: string | null
+          recipient_emails?: string[]
           recipient_vat_number?: string | null
           sent_at?: string | null
           shared_with_talent?: boolean
@@ -469,12 +491,14 @@ export type Database = {
           is_vat_invoice?: boolean
           issued_at?: string
           kind?: Database["public"]["Enums"]["doc_kind"]
+          last_sent_to?: string[] | null
           notes?: string | null
           number?: string
           paid_at?: string | null
           payment_terms_days?: number | null
           recipient_address?: string | null
           recipient_email?: string | null
+          recipient_emails?: string[]
           recipient_vat_number?: string | null
           sent_at?: string | null
           shared_with_talent?: boolean

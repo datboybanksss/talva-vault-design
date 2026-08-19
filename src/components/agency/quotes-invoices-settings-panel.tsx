@@ -9,6 +9,7 @@ import {
   updateAgencyLogoPath,
 } from "@/lib/agency.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { BillingSenderCard } from "@/components/agency/billing-sender-card";
 
 const ACCENT_PRESETS = [
   { name: "TalVault Teal", value: "#064E58" },
@@ -122,6 +123,13 @@ export function QuotesInvoicesSettingsPanel() {
       </div>
 
       <div className="tvp-rule-grid" style={{ marginTop: 14 }}>
+        <BillingSenderCard
+          email={(data as any)?.billing_from_email ?? null}
+          displayName={(data as any)?.billing_from_name ?? null}
+          verifiedAt={(data as any)?.billing_from_verified_at ?? null}
+          pendingUntil={(data as any)?.billing_from_token_expires_at ?? null}
+        />
+
         <div className="tvp-card tvp-panel">
           <h3 className="tvp-h3">
             <Clock className="inline h-4 w-4 mr-1" />Quote Acceptance
