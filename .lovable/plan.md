@@ -1,65 +1,68 @@
-# Pre-launch copy & readiness audit — findings only
+# Folder taxonomy: subfolders + talent-type templates
 
-No changes made. Findings below, grouped by severity, each with file path, exact string, and a suggested replacement in TalVault voice.
+One schema pass covering categories, subfolders and talent-type templates together — no bolt-on.
 
-## P0 — launch blockers
+## Decision needed first: restricted category access control
 
-### 1. Dead mock screen wired into the live sidebar
-`src/routes/agency.talent.tsx` — the entire Talent Roster page is a hardcoded array. Real customers reach it from the Agency sidebar ("Talent") and from five links on the Agency dashboard.
-- `{ name: "Caster Semenya", sub: "Athlete · Connected 12 May 2026", ... }` and three sibling rows (`Lara Maseko`, `Neo Khumalo`, `Maya Daniels`).
-- Tab counts are literals: `{ label: "All", count: 24 }`, `Active 18`, `Invited 6`, `Expired 2`, `Read-only 3`, `Revoked 1`.
-- Lead filter hardcodes staff: `<option>Thandi Ndlovu</option><option>Sipho Dlamini</option>`.
-- Search box and all three selects are inert.
-- Suggested: replace with a live query of the agency roster; empty state "No talent on your roster yet — invite your first talent to get started."
+I checked for an existing "some agency staff can't see this" pattern. There isn't one.
 
-### 2. Non-functional invite wizard behind a primary CTA
-`src/routes/agency.talent.invite.tsx` — reached via the dashboard's primary "Invite Talent" button. Step 4 shows fixed fake data and "Send Invitation" does nothing.
-- `<strong>Caster Semenya</strong>`, `<strong>caster@example.com</strong>`, `<strong>Thandi Ndlovu</strong>`
-- `<option>Thandi Ndlovu (Owner)</option><option>Sipho Dlamini</option><option>Aaliyah Mokoena</option>`
-- `placeholder="e.g. Caster Semenya"`
-- Suggested: point the CTA at the working invitation flow, or bind this wizard to real form state and the live send server function; review panel should echo the values entered.
+- The talent Private Vault is restricted by `user_id = auth.uid()` — owner-scoped to the talent themselves. It is not a staff-visibility model and can't be reused here.
+- Everything agency-side (`talent_shared_documents`, `agency_talent_folders`, `agency_talent_links`) uses one flat rule: `is_agency_member(auth.uid(), agency_id)`. Any member of the agency sees everything.
+- The only finer-grained signals that already exist are `agency_talent_links.manager_user_id` (assigned manager) and `has_agency_role(user, agency, 'owner')`.
 
-### 3. Admin 2FA enforcement is switched off
-`src/routes/admin.tsx:11` — `const ENFORCE_ADMIN_2FA = false;` with the comment "⚠️ PRE-LAUNCH CHECKLIST — MUST FLIP BACK TO `true` BEFORE LAUNCH… This is a testing-convenience toggle only."
-- Suggested: set to `true` and delete the toggle so admin 2FA is unconditional.
+**Proposed approach** — extend the existing pattern rather than invent a permission model:
 
-### 4. The reported string
-`src/routes/admin.index.tsx:136` — `Excludes deleted / test records`
-- Suggested: `Talent currently active across all agencies`
+1. New security-definer function `public.can_access_talent_folder(_user_id uuid, _talent_link_id uuid, _restricted boolean)`:
+   - not restricted → same as today, `is_agency_member`
+   - restricted → `has_agency_role(..., 'owner')` OR `manager_user_id = _user_id` OR the talent themselves
+2. Add `restricted boolean` to the category configuration, seeded `true` only for Medical, Fitness & Insurance.
+3. Swap the SELECT/UPDATE/DELETE policies on `agency_talent_folders` and `talent_shared_documents` to route through that function, so restriction is enforced in the database, not only hidden in the UI.
+4. UI: restricted categories carry a lock chip; staff without access don't see the folder or its documents at all (rows never reach them).
 
-## P1 — internal/dev language visible to users
+Two sub-decisions I need from you:
 
-| File | Exact string | Suggested replacement |
-| --- | --- | --- |
-| `src/routes/index.tsx:87` | `Portal selector · Demo` | `Choose your portal` |
-| `src/routes/index.tsx:139` | `UI demo · mock data · no live accounts` | Remove the line entirely |
-| `src/components/agency/vault-requests-panel.tsx:114` | `The Talent Portal isn't live yet — requests are seed-data-ready and will hook into talent submissions once it ships.` | `Talent see your request in their portal and upload directly to it.` |
-| `src/components/agency/folder-templates-panel.tsx:137` | `Reusable folder sets that seed retention rules when applied.` | `Reusable folder sets that apply your retention rules automatically.` |
-| `src/routes/admin.audit.tsx:278` | `Event ID: {selected.id}` | Keep, but label it `Reference` — a raw UUID labelled "Event ID" reads as internal plumbing |
+- **A.** If a talent has no assigned manager, should the restricted category fall back to owner-only (my default), or to all members?
+- **B.** Should agency-wide admins (platform admins, `has_role('admin')`) retain visibility of restricted medical folders? Today they can read everything. My default: platform admins keep read access for support, and every read is written to the audit log.
 
-## P2 — unfinished states a customer would notice
+## Schema
 
-- `src/routes/talent.budget.tsx:66-68` — `Coming soon` badge plus `Budget & Income is not available yet`. Honest, but it is a full sidebar entry leading to a dead page. Suggested: hide the nav item until it ships, or soften to `Budget & Income — arriving soon. Your Vault and sharing work as normal today.`
-- `src/components/agency/vault-requests-panel.tsx` — request flow depends on the talent side being live; verify end-to-end before launch.
-- `src/lib/ai-filing.functions.ts:6` — code comment only, not user-visible: "No AI is involved yet — the UI seeds its 'suggestion' from the folder…". Worth confirming the AI Review modal's confidence/provenance wording is not overclaiming to users.
+Three new tables, all agency-scoped and editable — the spec content is seeded as data, never as component arrays.
 
-## P3 — voice and locale
+```text
+folder_catalogue_categories      platform baseline, 10 rows
+  slug, name, sort_order, restricted, ai_filing_allowed,
+  default_validity_rule, recommended, can_untick
 
-- `src/lib/talent-vault-defaults.ts:24` — `Driver's License` → `Driver's Licence` (SA/British English). Same file line 58: `Vehicle License Disk` → `Vehicle Licence Disc`.
-- `src/routes/agency.talent.tsx` mixes Title Case status labels (`Needs Review`, `Read-only`) with sentence case elsewhere; standardise on sentence case.
-- Placeholder emails are fine in context but sample names should stay generic: `agency.invitations.tsx:448,453` use `e.g. Lara Maseko` / `e.g. Sipho Dlamini`; `talent.sharing.tsx:385` uses `sarah@example.com`. Suggested: `e.g. full name as it appears on ID` and `name@email.com`.
+folder_catalogue_subfolders      platform baseline, per category
+  category_slug, name, kind ('default' | 'optional'), sort_order
 
-## Clean — checked and clear
+folder_type_template_items       talent-type additive templates
+  talent_type, category_slug, subfolder_name, sort_order
+```
 
-- No `TODO`, `FIXME`, `lorem ipsum`, `dummy`, `staging`, or `debug` strings in user-visible copy.
-- No environment names, feature-flag states, or `console.log` fallbacks rendered in UI.
-- No test/QA email identities (`test.manager@…`, `Sample Agency`) anywhere in the app.
-- Lovable references are confined to auto-generated integration files and error reporting, none user-visible.
+Per-agency editing keeps working through the existing `agency_folder_settings` (category level) plus a new `agency_folder_subfolder_settings` (agency_id, category_slug, name, kind, enabled) which overlays the catalogue. Reading is always catalogue + agency overlay, so an agency can rename, disable or add subfolders without a code change.
 
-## Suggested fix order, once approved
+`agency_talent_folders` gains `parent_folder_id`, `subfolder_name`, `source` ('default' | 'talent_type' | 'manual') and `restricted`, so provisioned subfolders are real rows with a known origin.
 
-1. Flip `ENFORCE_ADMIN_2FA` and remove the toggle.
-2. Fix the admin subhead and the two landing-page demo strings.
-3. Replace the mock Talent Roster and invite wizard with live data (largest item).
-4. Copy sweep for P1 table, P3 locale and casing.
-5. Decide on the Budget nav item.
+`BASELINE_TALENT_TYPES` expands to Athlete, Musician / Singer, Actor / Performer, Influencer / Content Creator, Presenter / Public Figure, Other — sourced from the template table, with `Artist` / `Model` mapped forward for existing rows.
+
+## Provisioning logic
+
+- On onboarding: applied categories create their Default subfolders, plus the talent type's additive rows, deduped case-insensitively per parent.
+- On talent-type change: add newly-applicable subfolders only. Subfolders that no longer apply are left in place — if they hold documents they are flagged `needs_review` for manual action, never deleted.
+- Optional subfolders are offered, not created.
+
+## Screens
+
+- **Manage Folders** and **Default Folder Selection**: each category row expands to its subfolders, with Default/Optional chips, enable/disable, rename and add — all writing to the agency overlay.
+- **Folder Rules**: same expand/collapse, retention rule editable at both category and subfolder level.
+- Restricted categories show a lock chip and a one-line explanation of who can see them.
+
+## Migration safety
+
+Existing `agency_talent_folders` rows stay valid — they become top-level category rows. Nothing is renamed or deleted in this pass; the rename log table already in place (`folder_taxonomy_rename_log`) records any mapping applied.
+
+## Anything else needing your call
+
+- **C.** "Travel Insurance" appears as Optional under both Travel & Visas and Medical, Fitness & Insurance. I'll keep both (different parents, so not a duplicate) unless you'd rather it live in one place.
+- **D.** Several talent-type additions repeat a category's own defaults (e.g. Athlete adds "Medical Clearance", already a Medical default). These dedupe to a single row, marked as a default. No action needed unless you want them tracked as type-specific.
