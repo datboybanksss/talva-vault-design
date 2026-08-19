@@ -1441,6 +1441,45 @@ export type Database = {
           },
         ]
       }
+      folder_rename_migration_log: {
+        Row: {
+          batch_id: string
+          batch_label: string
+          column_name: string
+          created_at: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          row_id: string | null
+          row_snapshot: Json | null
+          source_table: string
+        }
+        Insert: {
+          batch_id: string
+          batch_label: string
+          column_name: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          row_id?: string | null
+          row_snapshot?: Json | null
+          source_table: string
+        }
+        Update: {
+          batch_id?: string
+          batch_label?: string
+          column_name?: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          row_id?: string | null
+          row_snapshot?: Json | null
+          source_table?: string
+        }
+        Relationships: []
+      }
       folder_taxonomy_rename_log: {
         Row: {
           column_name: string
@@ -2313,6 +2352,10 @@ export type Database = {
       }
       reconcile_talent_type_folders: {
         Args: { _new_talent_type: string; _talent_link_id: string }
+        Returns: number
+      }
+      rollback_folder_rename_batch: {
+        Args: { _batch_id: string }
         Returns: number
       }
       rollback_folder_taxonomy_rename: {
