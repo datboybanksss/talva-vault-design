@@ -16,6 +16,8 @@ import {
 import {
   agencyWhoami,
   listAgencyStaff,
+  listAgencyTalent,
+  listAgencyFolderSettings,
   createTalentInvitationMine,
 } from "@/lib/agency.functions";
 import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
@@ -24,6 +26,7 @@ import {
   DEFAULT_TALENT_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
+import { BASELINE_TALENT_TYPES } from "@/lib/status-labels";
 
 
 export const Route = createFileRoute("/agency/talent/invite")({
@@ -38,29 +41,62 @@ const steps = [
   { num: 4, title: "Review & send", sub: "Send invite" },
 ];
 
-const defaultFolders = FOLDER_CATEGORIES.filter((f) => f.recommended).map((f) => f.name);
-const optionalFolders = FOLDER_CATEGORIES.filter((f) => !f.recommended).map((f) => f.name);
-const allFolders = [...defaultFolders, ...optionalFolders];
-
 function InviteTalent() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const whoamiFn = useServerFn(agencyWhoami);
   const staffFn = useServerFn(listAgencyStaff);
+  const rosterFn = useServerFn(listAgencyTalent);
+  const folderSettingsFn = useServerFn(listAgencyFolderSettings);
   const createFn = useServerFn(createTalentInvitationMine);
   const sendEmailFn = useServerFn(sendTalentInvitationEmail);
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
   const staff = useQuery({ queryKey: ["agency", "staff"], queryFn: () => staffFn() });
+  const roster = useQuery({ queryKey: ["agency", "talent"], queryFn: () => rosterFn() });
+  const folderSettings = useQuery({
+    queryKey: ["agency", "folder-settings"],
+    queryFn: () => folderSettingsFn(),
+  });
   const isOwner = who.data?.role === "owner";
+
+  // Folder options come from this agency's own configuration (Manage folders);
+  // the platform taxonomy is only the baseline before anything is configured.
+  const { defaultFolders, allFolders } = useMemo(() => {
+    const configured = (folderSettings.data?.settings ?? []) as Array<{
+      folder_name: string;
+      applied_by_default: boolean;
+    }>;
+    if (configured.length > 0) {
+      const all = configured.map((s) => s.folder_name).sort((a, b) => a.localeCompare(b));
+      return {
+        defaultFolders: configured.filter((s) => s.applied_by_default).map((s) => s.folder_name),
+        allFolders: all,
+      };
+    }
+    return {
+      defaultFolders: FOLDER_CATEGORIES.filter((f) => f.recommended).map((f) => f.name),
+      allFolders: FOLDER_CATEGORIES.map((f) => f.name),
+    };
+  }, [folderSettings.data]);
+
+  // Talent types the agency already uses, so the list grows with real data.
+  const talentTypeOptions = useMemo(() => {
+    const live = ((roster.data ?? []) as Array<{ talentType: string | null }>)
+      .map((r) => r.talentType)
+      .filter((t): t is string => !!t && t.trim().length > 0);
+    return Array.from(new Set([...live, ...BASELINE_TALENT_TYPES])).sort((a, b) =>
+      a.localeCompare(b),
+    );
+  }, [roster.data]);
 
   const [step, setStep] = useState(1);
   const [folderMode, setFolderMode] = useState<"standard" | "custom">("standard");
-  const [selected, setSelected] = useState<string[]>(defaultFolders);
+  const [selected, setSelected] = useState<string[] | null>(null);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [talentType, setTalentType] = useState("Athlete");
+  const [talentType, setTalentType] = useState("");
   const [expiryDays, setExpiryDays] = useState(14);
   const [managerId, setManagerId] = useState("");
 
@@ -70,10 +106,15 @@ function InviteTalent() {
     [staffList, managerId],
   );
 
-  const toggle = (f: string) =>
-    setSelected((s) => (s.includes(f) ? s.filter((x) => x !== f) : [...s, f]));
+  const customSelection = selected ?? defaultFolders;
 
-  const activeFolders = folderMode === "standard" ? defaultFolders : selected;
+  const toggle = (f: string) =>
+    setSelected((s) => {
+      const base = s ?? defaultFolders;
+      return base.includes(f) ? base.filter((x) => x !== f) : [...base, f];
+    });
+
+  const activeFolders = folderMode === "standard" ? defaultFolders : customSelection;
 
   const detailsValid = fullName.trim().length > 1 && /\S+@\S+\.\S+/.test(email.trim());
 
@@ -179,9 +220,10 @@ function InviteTalent() {
                   <div className="tvp-form-group">
                     <label>Talent type</label>
                     <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
-                      <option>Athlete</option>
-                      <option>Artist</option>
-                      <option>Model</option>
+                      <option value="">Not specified</option>
+                      {talentTypeOptions.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="tvp-form-group">
@@ -258,7 +300,7 @@ function InviteTalent() {
                       ))}
                     </div>
                     <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
-                      One click. Same six folders you use across the roster.
+                      One click. The same {defaultFolders.length} folder{defaultFolders.length === 1 ? "" : "s"} you use across the roster.
                     </div>
                   </button>
 
@@ -280,7 +322,7 @@ function InviteTalent() {
                 {folderMode === "custom" && (
                   <div className="tvp-rule-grid" style={{ marginTop: 16 }}>
                     {allFolders.map((f) => {
-                      const on = selected.includes(f);
+                      const on = customSelection.includes(f);
                       const rec = defaultFolders.includes(f);
                       return (
                         <label key={f} className="tvp-rule-card">
@@ -301,7 +343,7 @@ function InviteTalent() {
                 <div className="tvp-review-grid" style={{ marginTop: 14 }}>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent</span><strong>{fullName.trim() || "—"}</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Email</span><strong>{email.trim() || "—"}</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent type</span><strong>{talentType}</strong></div>
+                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent type</span><strong>{talentType || "Not specified"}</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Manager</span><strong>{managerName}</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Invitation expiry</span><strong>{expiryDays} days</strong></div>
                   <div className="tvp-review-item"><span className="tvp-muted tvp-small">Folders</span><strong>{activeFolders.length} enabled{folderMode === "standard" ? " (standard set)" : " (custom)"}</strong></div>

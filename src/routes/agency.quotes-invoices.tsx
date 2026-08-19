@@ -7,6 +7,7 @@ import {
   FileText, CheckCircle2, AlertCircle, Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BILLING_DOC_STATUS_LABEL, BILLING_DOC_STATUS_TONE } from "@/lib/status-labels";
 import {
   listAgencyBillingDocs,
   updateAgencyBillingDocStatus,
@@ -68,20 +69,14 @@ export const Route = createFileRoute("/agency/quotes-invoices")({
   component: QIPage,
 });
 
-const STATUS_TONE: Record<Row["status"], string> = {
-  draft: "neutral", sent: "blue", accepted: "green", declined: "red",
-  partial: "amber", paid: "green", overdue: "red", cancelled: "neutral",
-};
-const STATUS_LABEL: Record<Row["status"], string> = {
-  draft: "Draft", sent: "Sent", accepted: "Accepted", declined: "Declined",
-  partial: "Partial", paid: "Paid", overdue: "Late", cancelled: "Cancelled",
-};
+const STATUS_TONE = BILLING_DOC_STATUS_TONE as Record<Row["status"], string>;
+const STATUS_LABEL = BILLING_DOC_STATUS_LABEL as Record<Row["status"], string>;
 
 type ChipKey = "quote_draft" | "invoice_draft" | "quote_sent" | "accepted" | "partial" | "late";
 const CHIPS: Array<{ key: ChipKey; label: string; tone: string }> = [
-  { key: "quote_draft",   label: "Quote Drafts",   tone: "teal" },
-  { key: "invoice_draft", label: "Invoice Drafts", tone: "purple" },
-  { key: "quote_sent",    label: "Quote Sent",     tone: "blue" },
+  { key: "quote_draft",   label: "Quote drafts",   tone: "teal" },
+  { key: "invoice_draft", label: "Invoice drafts", tone: "purple" },
+  { key: "quote_sent",    label: "Quotes sent",    tone: "blue" },
   { key: "accepted",      label: "Accepted",       tone: "green" },
   { key: "partial",       label: "Partial",        tone: "amber" },
   { key: "late",          label: "Late",           tone: "red" },

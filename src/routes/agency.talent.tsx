@@ -7,42 +7,20 @@ import { toast } from "sonner";
 import { listAgencyTalent } from "@/lib/agency.functions";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import {
+  TALENT_LINK_STATUS_LABEL,
+  TALENT_LINK_STATUS_TONE,
+  TALENT_LINK_TABS,
+} from "@/lib/status-labels";
 
 export const Route = createFileRoute("/agency/talent")({
   head: () => ({ meta: [{ title: "Talent roster · TalVault" }] }),
   component: TalentPage,
 });
 
-const STATUS_LABEL: Record<string, string> = {
-  active: "Active",
-  invited: "Invited",
-  expired: "Expired",
-  read_only: "Read-only",
-  revoked: "Revoked",
-  needs_review: "Needs review",
-  ended: "Ended",
-};
-
-const STATUS_TONE: Record<string, string> = {
-  active: "green",
-  invited: "blue",
-  expired: "amber",
-  read_only: "teal",
-  revoked: "red",
-  needs_review: "purple",
-  ended: "neutral",
-};
-
-const TAB_ORDER: Array<{ key: string; tone: string }> = [
-  { key: "all", tone: "neutral" },
-  { key: "active", tone: "green" },
-  { key: "invited", tone: "blue" },
-  { key: "needs_review", tone: "purple" },
-  { key: "expired", tone: "amber" },
-  { key: "read_only", tone: "teal" },
-  { key: "revoked", tone: "red" },
-  { key: "ended", tone: "neutral" },
-];
+const STATUS_LABEL = TALENT_LINK_STATUS_LABEL;
+const STATUS_TONE = TALENT_LINK_STATUS_TONE;
+const TAB_ORDER = TALENT_LINK_TABS;
 
 type TalentRow = {
   id: string;
@@ -170,7 +148,7 @@ function TalentPage() {
             className={`tvp-tab${tab === t.key ? " tvp-active" : ""}`}
             onClick={() => setTab(t.key)}
           >
-            {t.key === "all" ? "All" : STATUS_LABEL[t.key]}{" "}
+            {t.label}{" "}
             <span className={`tvp-status tvp-${t.tone}`}>{counts.get(t.key) ?? 0}</span>
           </button>
         ))}
