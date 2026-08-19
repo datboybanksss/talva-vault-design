@@ -1,77 +1,65 @@
-## Feasibility findings (your questions 1–4)
+# Pre-launch copy & readiness audit — findings only
 
-**1. What AI access actually exists**
+No changes made. Findings below, grouped by severity, each with file path, exact string, and a suggested replacement in TalVault voice.
 
-You already have a first-class AI gateway wired into this project — no Anthropic key, no connector needed. `LOVABLE_API_KEY` is present as a backend secret, and the Lovable AI Gateway is reachable server-side at `https://ai.gateway.lovable.dev/v1` (OpenAI-compatible). It is billed from your workspace credits, not a third-party account.
+## P0 — launch blockers
 
-Vision/document capability is available: the default model `openai/gpt-5.5` accepts image input **and PDF input** (as a base64 `file` content block) in the same chat request as text. So we do not need a separate OCR step, a PDF-to-image renderer, or a native binary — which matters, because the server runtime here is a Cloudflare-style Worker where `sharp`/`canvas`/`pdftoppm` are not available. Sending the raw PDF/image bytes to the model is the only realistic path, and it's supported.
+### 1. Dead mock screen wired into the live sidebar
+`src/routes/agency.talent.tsx` — the entire Talent Roster page is a hardcoded array. Real customers reach it from the Agency sidebar ("Talent") and from five links on the Agency dashboard.
+- `{ name: "Caster Semenya", sub: "Athlete · Connected 12 May 2026", ... }` and three sibling rows (`Lara Maseko`, `Neo Khumalo`, `Maya Daniels`).
+- Tab counts are literals: `{ label: "All", count: 24 }`, `Active 18`, `Invited 6`, `Expired 2`, `Read-only 3`, `Revoked 1`.
+- Lead filter hardcodes staff: `<option>Thandi Ndlovu</option><option>Sipho Dlamini</option>`.
+- Search box and all three selects are inert.
+- Suggested: replace with a live query of the agency roster; empty state "No talent on your roster yet — invite your first talent to get started."
 
-Practical limits: JPG/PNG/WEBP and PDF work. Office files (DOCX/XLSX) and >~20MB files do not — those fall back to filename/metadata-only suggestion or "no suggestion".
+### 2. Non-functional invite wizard behind a primary CTA
+`src/routes/agency.talent.invite.tsx` — reached via the dashboard's primary "Invite Talent" button. Step 4 shows fixed fake data and "Send Invitation" does nothing.
+- `<strong>Caster Semenya</strong>`, `<strong>caster@example.com</strong>`, `<strong>Thandi Ndlovu</strong>`
+- `<option>Thandi Ndlovu (Owner)</option><option>Sipho Dlamini</option><option>Aaliyah Mokoena</option>`
+- `placeholder="e.g. Caster Semenya"`
+- Suggested: point the CTA at the working invitation flow, or bind this wizard to real form state and the live send server function; review panel should echo the values entered.
 
-**2. Realistic pipeline**
+### 3. Admin 2FA enforcement is switched off
+`src/routes/admin.tsx:11` — `const ENFORCE_ADMIN_2FA = false;` with the comment "⚠️ PRE-LAUNCH CHECKLIST — MUST FLIP BACK TO `true` BEFORE LAUNCH… This is a testing-convenience toggle only."
+- Suggested: set to `true` and delete the toggle so admin 2FA is unconditional.
 
-```text
-upload file to storage  ->  server fn: suggestFiling
-   |  fetch bytes (service role) -> base64
-   |  build catalog of ALLOWED destinations for this actor
-   |  one chat call: gpt-5.5, structured JSON output
-   v
-{ folder, subfolder, confidence, doc_type,
-  expiry_date | null, reminder_lead_days | null, rationale }
-   ->  popup shows it; nothing is written until the user confirms
-```
+### 4. The reported string
+`src/routes/admin.index.tsx:136` — `Excludes deleted / test records`
+- Suggested: `Talent currently active across all agencies`
 
-Key design point: the folder catalog is **passed in as a closed list**, built per-actor from real data — Talent gets their active `talent_private_folders` tree (parent → child), Agency gets that talent's `agency_talent_folders` rows. The model picks from the list only; anything off-list is discarded and treated as "no suggestion". That keeps it aligned with the Manage-folders checklist and blocked/allowed rules already built.
+## P1 — internal/dev language visible to users
 
-Schema constraints stay flat and bound-free (no `.min()`/enums built from runtime data) to avoid gateway schema errors, with a guarded fallback so a bad response degrades to "no suggestion" rather than crashing the upload.
+| File | Exact string | Suggested replacement |
+| --- | --- | --- |
+| `src/routes/index.tsx:87` | `Portal selector · Demo` | `Choose your portal` |
+| `src/routes/index.tsx:139` | `UI demo · mock data · no live accounts` | Remove the line entirely |
+| `src/components/agency/vault-requests-panel.tsx:114` | `The Talent Portal isn't live yet — requests are seed-data-ready and will hook into talent submissions once it ships.` | `Talent see your request in their portal and upload directly to it.` |
+| `src/components/agency/folder-templates-panel.tsx:137` | `Reusable folder sets that seed retention rules when applied.` | `Reusable folder sets that apply your retention rules automatically.` |
+| `src/routes/admin.audit.tsx:278` | `Event ID: {selected.id}` | Keep, but label it `Reference` — a raw UUID labelled "Event ID" reads as internal plumbing |
 
-**3. Cost / latency, sync vs async**
+## P2 — unfinished states a customer would notice
 
-A single-page ID or passport image is a few thousand tokens; a 5-page PDF is meaningfully more. Realistic latency is roughly 3–10 seconds — too long to freeze the upload button, short enough that a separate background job queue is overkill.
+- `src/routes/talent.budget.tsx:66-68` — `Coming soon` badge plus `Budget & Income is not available yet`. Honest, but it is a full sidebar entry leading to a dead page. Suggested: hide the nav item until it ships, or soften to `Budget & Income — arriving soon. Your Vault and sharing work as normal today.`
+- `src/components/agency/vault-requests-panel.tsx` — request flow depends on the talent side being live; verify end-to-end before launch.
+- `src/lib/ai-filing.functions.ts:6` — code comment only, not user-visible: "No AI is involved yet — the UI seeds its 'suggestion' from the folder…". Worth confirming the AI Review modal's confidence/provenance wording is not overclaiming to users.
 
-Recommendation: **upload completes first, popup opens immediately in a loading state, suggestion streams in when ready.** Concretely:
-- File uploads to storage and the row is created with `status = 'ai_suggested'` (Agency) / unfiled (Talent) — the document is never lost if the AI call fails.
-- The popup appears right away with skeletons, then fills in.
-- The user can hit "Choose different folder" and file manually at any point without waiting.
-- Cost control: only run on image/PDF under a size cap, only on first upload (not on every new version unless the folder is unset), and cap pages considered. Failures are silent — the user just files manually.
+## P3 — voice and locale
 
-**4. Shared component + where the placeholder lives**
+- `src/lib/talent-vault-defaults.ts:24` — `Driver's License` → `Driver's Licence` (SA/British English). Same file line 58: `Vehicle License Disk` → `Vehicle Licence Disc`.
+- `src/routes/agency.talent.tsx` mixes Title Case status labels (`Needs Review`, `Read-only`) with sentence case elsewhere; standardise on sentence case.
+- Placeholder emails are fine in context but sample names should stay generic: `agency.invitations.tsx:448,453` use `e.g. Lara Maseko` / `e.g. Sipho Dlamini`; `talent.sharing.tsx:385` uses `sarah@example.com`. Suggested: `e.g. full name as it appears on ID` and `name@email.com`.
 
-Confirmed. The "AI Filing Suggestions" card in `src/routes/agency.document-vault.tsx` (~line 425) is exactly the UI-only placeholder you remember — a purple Sparkles card reading "AI filing coming soon." This plan replaces that copy with a live status/history panel and moves the actual interaction into one shared modal used by both portals. The schema already anticipates this: `talent_shared_documents.ai_suggested_folder` and `ai_suggested_expiry` exist and are currently unused, as does the `ai_suggested` document status.
+## Clean — checked and clear
 
----
+- No `TODO`, `FIXME`, `lorem ipsum`, `dummy`, `staging`, or `debug` strings in user-visible copy.
+- No environment names, feature-flag states, or `console.log` fallbacks rendered in UI.
+- No test/QA email identities (`test.manager@…`, `Sample Agency`) anywhere in the app.
+- Lovable references are confined to auto-generated integration files and error reporting, none user-visible.
 
-## Plan
+## Suggested fix order, once approved
 
-### A. Shared popup component
-
-New `src/components/shared/ai-filing-review-modal.tsx` — one component, both portals, `tvp-*` tokens, purple/Sparkles accent to match the existing card.
-
-Sections, per your reference design:
-1. **Suggested Folder & Subfolder** — primary destination ("Private Vault: Personal → Passport"); for Talent, a secondary context line ("Agency Shared Folder, if shared: Travel → Passport") shown only when the talent is linked to an agency. Actions: `Choose different folder` (swaps in an inline picker over the real allowed-folder list) / `Confirm Folder/Subfolder`.
-2. **Suggested Expiry & Reminder** — detected expiry date plus suggested reminder lead time (editable). Actions: `No reminder needed` / `Confirm Expiry & Reminder`.
-3. **Human validation required** notice — permanent, styled as an amber callout, reinforcing that nothing is auto-filed.
-4. Footer: `Reject AI Suggestion` (files with no AI metadata, user picks manually) / `Save Confirmed Filing` (enabled once both sections are resolved).
-
-States handled: loading skeleton, no-suggestion, unsupported-file-type, error.
-
-### B. Backend
-
-- `src/lib/ai-filing.server.ts` — gateway provider helper + the prompt/catalog builder + guarded structured-output call.
-- `src/lib/ai-filing.functions.ts` — `suggestDocumentFiling` (auth-gated, takes storage bucket + path + actor scope, returns the suggestion DTO) and `confirmDocumentFiling` (applies the confirmed folder/expiry/reminder, writes an audit entry).
-- Suggestions are **not** persisted before confirmation for Talent; for Agency the existing `ai_suggested_folder` / `ai_suggested_expiry` columns are populated so a half-finished review can be resumed.
-
-### C. Wiring
-
-- **Agency**: `UploadDialog` in `agency.document-vault.tsx` — on successful register, open the shared modal instead of closing straight to the list. Replace the placeholder card copy with a live panel listing documents currently sitting in `ai_suggested` status awaiting review.
-- **Talent**: the Private Vault upload path in `talent.vault.tsx` / `talent-vault.functions.ts` — same modal, catalog sourced from the user's active folder tree, confirmation writes `folder_id`, `expires_at`, `reminder_at`.
-
-### D. Verification
-
-Real end-to-end browser test on both portals with a sample passport-style image and a multi-page PDF: confirm the suggestion returns a valid in-catalog folder, an expiry is detected, rejection files cleanly, and a gateway failure degrades to manual filing without losing the upload.
-
-### Assumptions worth correcting if wrong
-
-- Reminder lead time defaults to the portal's existing `expiry_notice_days` setting when the model doesn't suggest one.
-- No new schema migration needed for Agency; Talent may need nothing either since `expires_at`/`reminder_at` already exist. I'll confirm during build rather than adding columns speculatively.
-- Running only on first upload, not on every new version.
+1. Flip `ENFORCE_ADMIN_2FA` and remove the toggle.
+2. Fix the admin subhead and the two landing-page demo strings.
+3. Replace the mock Talent Roster and invite wizard with live data (largest item).
+4. Copy sweep for P1 table, P3 locale and casing.
+5. Decide on the Budget nav item.
