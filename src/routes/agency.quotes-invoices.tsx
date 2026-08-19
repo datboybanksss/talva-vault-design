@@ -234,6 +234,48 @@ function QIPage() {
     };
   }, [rows, chipCounts]);
 
+  // Live financial summary — all figures derived from the real billing records.
+  const money = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const inThisMonth = (dateIso: string) => dateIso >= iso(monthStart) && dateIso < iso(monthEnd);
+
+    const currency = rows[0]?.currency ?? "ZAR";
+    let quotedCents = 0, quotedCount = 0;
+    let invoicedCents = 0, invoicedCount = 0;
+    let receivedCents = 0;
+    let outstandingCents = 0, outstandingCount = 0, overdueCount = 0;
+
+    for (const r of rows) {
+      if (r.status === "cancelled") continue;
+      if (r.kind === "quote") {
+        if (inThisMonth(r.issued_at)) { quotedCents += r.total_cents; quotedCount += 1; }
+        continue;
+      }
+      if (inThisMonth(r.issued_at)) { invoicedCents += r.total_cents; invoicedCount += 1; }
+      if (r.status === "paid") {
+        receivedCents += r.total_cents;
+      } else if (r.status === "sent" || r.status === "partial" || r.status === "overdue") {
+        outstandingCents += r.total_cents;
+        outstandingCount += 1;
+        if (r.status === "overdue") overdueCount += 1;
+      }
+    }
+
+    return {
+      currency,
+      quotedCents, quotedCount,
+      invoicedCents, invoicedCount,
+      receivedCents,
+      outstandingCents, outstandingCount, overdueCount,
+      monthLabel: now.toLocaleDateString("en-ZA", { month: "long" }),
+    };
+  }, [rows]);
+
+
+
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = rows.filter((r) =>
