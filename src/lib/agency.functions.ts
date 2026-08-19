@@ -198,8 +198,9 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
 
     return {
       computed: computed.filter((i) => {
-        const d = dismissed.get(i.key);
-        return d === undefined || d < i.snapshot;
+        const d = dismissed.get(i.key) as number | undefined | null;
+        return d === undefined || d === null || d < i.snapshot;
+
       }),
       persisted: [] as any[],
     };
