@@ -8,11 +8,11 @@ import {
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
 import { LoadMoreRow } from "@/components/shared/load-more";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog } from "lucide-react";
+import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog, Mail } from "lucide-react";
 import { toast } from "sonner";
 import {
   agencyWhoami,
@@ -58,6 +58,7 @@ function daysBetween(iso: string) {
 type InviteType = "talent" | "staff";
 
 function InvitationsPage() {
+  const navigate = useNavigate();
   const listFn = useServerFn(listAgencyInvitationsMine);
   const whoamiFn = useServerFn(agencyWhoami);
   const createTalent = useServerFn(createTalentInvitationMine);
