@@ -298,55 +298,7 @@ function AgencyDashboard() {
         </div>
       )}
 
-      {!isEmpty && attentionTotal > 0 && (
-        <div
-          className="tvp-card"
-          style={{
-            padding: "14px 18px",
-            marginBottom: 20,
-            background: "var(--tvp-amber-bg, #fef3c7)",
-            borderLeft: "4px solid var(--tvp-amber, #d97706)",
-            display: "flex",
-            gap: 12,
-            alignItems: "flex-start",
-          }}
-        >
-          <AlertTriangle className="h-5 w-5" style={{ color: "var(--tvp-amber, #d97706)", flexShrink: 0, marginTop: 2 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>
-              {attentionTotal} item{attentionTotal === 1 ? "" : "s"} need your attention
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ fontSize: 13 }}>
-              {needsReview > 0 && (
-                <Link to="/agency/talent" className="tvp-link">
-                  {needsReview} talent needing review
-                </Link>
-              )}
-              {expiringSoon > 0 && (
-                <Link to="/agency/document-vault" className="tvp-link">
-                  {expiringSoon} document{expiringSoon === 1 ? "" : "s"} expiring in {expiryNoticeDays} day{expiryNoticeDays === 1 ? "" : "s"}
-                </Link>
-              )}
-              {overdueInvoices > 0 && (
-                <Link to="/agency/quotes-invoices" className="tvp-link">
-                  {overdueInvoices} invoice{overdueInvoices === 1 ? "" : "s"} overdue
-                </Link>
-              )}
-              {invitesPending > 0 && (
-                <Link to="/agency/invitations" className="tvp-link">
-                  {invitesPending} invitation{invitesPending === 1 ? "" : "s"} pending
-                </Link>
-              )}
-            </div>
-            <div className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-              Status reflects manager-led documents only. Talent's Private Vault items are excluded.
-            </div>
-          </div>
-          <Link to={reviewTarget} className="tvp-primary" style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
-            Review now
-          </Link>
-        </div>
-      )}
+
       <div className="tvp-grid tvp-kpi-grid">
         <Link to="/agency/talent" className="tvp-card tvp-kpi tvp-clickable">
           <div className="tvp-kpi-icon tvp-bg-teal"><Users className="h-5 w-5" /></div>
