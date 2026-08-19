@@ -18,6 +18,13 @@ import {
   listAgencyStaff,
   createTalentInvitationMine,
 } from "@/lib/agency.functions";
+import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
+import {
+  DEFAULT_TALENT_INVITATION_SUBJECT,
+  DEFAULT_TALENT_INVITATION_BODY,
+  EMAIL_FALLBACK_NOTICE,
+} from "@/lib/invitation-email";
+
 
 export const Route = createFileRoute("/agency/talent/invite")({
   head: () => ({ meta: [{ title: "Invite talent · TalVault" }] }),
