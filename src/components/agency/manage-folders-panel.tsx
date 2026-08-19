@@ -1,3 +1,4 @@
+import { ModalShell } from "@/components/shared/modal-shell";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -208,12 +209,7 @@ export function ManageFoldersPanel() {
       </table>
 
       {ruleEditor && (
-        <div className="tvp-modal-backdrop" onClick={() => setRuleEditor(null)}>
-          <div
-            className="tvp-modal tvp-settings-tight"
-            style={{ maxWidth: 480 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <ModalShell onClose={() => setRuleEditor(null)} maxWidth={480} className="tvp-settings-tight">
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div>
                 <h2 className="tvp-h2" style={{ margin: 0 }}>Default validity rule</h2>
@@ -270,8 +266,7 @@ export function ManageFoldersPanel() {
                 Save rule
               </button>
             </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
     </div>
   );
