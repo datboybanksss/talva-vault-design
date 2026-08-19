@@ -275,7 +275,7 @@ function AuditPage() {
                     </p>
                     <h3 className="tvp-h3" style={{ marginTop: 10 }}>{humanAction(selected.action)}</h3>
                     <p className="tvp-muted" style={{ fontSize: 12 }}>
-                      Event ID: {selected.id}
+                      Reference: {selected.id}
                     </p>
                     <div style={{ marginTop: 16 }}>
                       <div style={{ fontWeight: 900, marginBottom: 4 }}>Actor</div>
