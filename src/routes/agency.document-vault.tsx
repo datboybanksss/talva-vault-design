@@ -44,6 +44,7 @@ type TalentLinkLite = { id: string; displayName: string; status: string };
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { usePagedList } from "@/lib/pagination";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const docsQO = queryOptions({
@@ -382,67 +383,50 @@ export function VaultPage() {
                     </td>
                     <td className="tvp-muted">{formatValidity(d.validityExpiresAt)}</td>
                     <td>
-                      <div className="flex gap-1 justify-end">
-                        <button
-                          className="tvp-mini-btn"
-                          title="View"
-                          disabled={!d.storagePath || viewMut.isPending}
-                          onClick={() => viewMut.mutate(d.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          className="tvp-mini-btn"
-                          title="Download"
-                          disabled={!d.storagePath || downloadMut.isPending}
-                          onClick={() => downloadMut.mutate(d.id)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                        {d.pendingReview && (
-                          <button
-                            className="tvp-mini-btn"
-                            title="Finish AI filing review"
-                            onClick={() => setAiReviewFor({ id: d.id, name: d.name })}
-                          >
-                            <Sparkles className="h-4 w-4" />
-                          </button>
-                        )}
-                        <button
-                          className="tvp-mini-btn"
-                          title="Version history"
-                          onClick={() => setVersionsFor(d)}
-                        >
-                          <History className="h-4 w-4" />
-                        </button>
-                        <button
-                          className="tvp-mini-btn"
-                          title="Upload new version"
-                          onClick={() => setNewVersionFor(d)}
-                        >
-                          <Upload className="h-4 w-4" />
-                        </button>
-                        {isOwner && (
-                          <button
-                            className="tvp-mini-btn"
-                            title="Set retention override"
-                            onClick={() => setOverrideFor(d)}
-                          >
-                            <ShieldPlus className="h-4 w-4" />
-                          </button>
-                        )}
-                        <button
-                          className="tvp-mini-btn"
-                          title={isLocked ? `Locked until ${lockDate}` : "Delete"}
-                          disabled={isLocked || deleteMut.isPending}
-                          onClick={() => {
-                            if (confirm(`Delete "${d.name}"? This removes the file and all versions.`)) {
-                              deleteMut.mutate(d.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                      <div className="tvp-row-actions">
+                        <RowActionsMenu
+                          actions={[
+                            {
+                              key: "view", label: "View document", icon: Eye,
+                              disabled: !d.storagePath || viewMut.isPending,
+                              title: d.storagePath ? undefined : "No file attached to this document",
+                              onSelect: () => viewMut.mutate(d.id),
+                            },
+                            {
+                              key: "download", label: "Download document", icon: Download,
+                              disabled: !d.storagePath || downloadMut.isPending,
+                              onSelect: () => downloadMut.mutate(d.id),
+                            },
+                            d.pendingReview && {
+                              key: "review", label: "Finish filing review", icon: Sparkles,
+                              onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
+                            },
+                            {
+                              key: "versions", label: "Version history", icon: History,
+                              separatorBefore: true,
+                              onSelect: () => setVersionsFor(d),
+                            },
+                            {
+                              key: "newversion", label: "Upload new version", icon: Upload,
+                              onSelect: () => setNewVersionFor(d),
+                            },
+                            isOwner && {
+                              key: "retention", label: "Set retention override", icon: ShieldPlus,
+                              onSelect: () => setOverrideFor(d),
+                            },
+                            {
+                              key: "delete", label: "Delete document", icon: Trash2,
+                              destructive: true, separatorBefore: true,
+                              disabled: isLocked || deleteMut.isPending,
+                              title: isLocked ? `Locked until ${lockDate}` : undefined,
+                              onSelect: () => {
+                                if (confirm(`Delete "${d.name}"? This removes the file and all versions.`)) {
+                                  deleteMut.mutate(d.id);
+                                }
+                              },
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

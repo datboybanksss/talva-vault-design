@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 import { usePagedList } from "@/lib/pagination";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/agencies/")({
@@ -308,6 +309,8 @@ function AgenciesPage() {
               {visible.map((a: any) => {
                 const invitation = a.invitation;
                 const inviteEmail = invitation?.email ?? a.contact_email;
+                const isDraftInvite = a.status === "invited" && !!invitation && invitation.status === "draft";
+                const isSentInvite = a.status === "invited" && !!invitation && invitation.status !== "draft";
                 return (
                   <tr key={a.id}>
                     <td>
@@ -344,94 +347,8 @@ function AgenciesPage() {
                       })}
                     </td>
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        {a.status === "invited" && invitation && invitation.status === "draft" ? (
-                          <>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Continue draft (upload compliance docs and send)"
-                              onClick={() =>
-                                nav({
-                                  to: "/admin/invitations/new",
-                                  search: { draft: invitation.id } as any,
-                                })
-                              }
-                            >
-                              <FileEdit className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Delete draft (removes compliance docs and shell)"
-                              onClick={() =>
-                                setPendingDelete({
-                                  inviteId: invitation.id,
-                                  agencyName: a.name,
-                                  email: invitation.email,
-                                })
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : a.status === "invited" && invitation ? (
-                          <>
-                            <Link
-                              to="/admin/invitations/$id/email-preview"
-                              params={{ id: invitation.id }}
-                              className="tvp-mini-btn"
-                              title="Preview branded email"
-                            >
-                              <Mail className="h-4 w-4" />
-                            </Link>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Copy invite link (does not extend expiry)"
-                              onClick={() => copyInviteLink(invitation)}
-                            >
-                              <Link2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Correct invite email"
-                              onClick={() => {
-                                setEditingInvite({ id: invitation.id, email: invitation.email, agencyName: a.name });
-                                setEmailDraft(invitation.email);
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Resend invite (refreshes expiry)"
-                              onClick={() => resendM.mutate(invitation.id)}
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Revoke invitation"
-                              onClick={() => {
-                                if (confirm(`Revoke invitation to ${a.name}?`))
-                                  revokeM.mutate(invitation.id);
-                              }}
-                            >
-                              <Ban className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="tvp-mini-btn"
-                              title="Delete invitation permanently (removes shell agency if empty)"
-                              onClick={() =>
-                                setPendingDelete({
-                                  inviteId: invitation.id,
-                                  agencyName: a.name,
-                                  email: invitation.email,
-                                })
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : a.status === "invited" && inviteEmail ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+                        {a.status === "invited" && !invitation && inviteEmail && (
                           <Link
                             to="/admin/invitations"
                             search={{ email: inviteEmail }}
@@ -441,24 +358,71 @@ function AgenciesPage() {
                           >
                             Manage invite →
                           </Link>
-                        ) : null}
-                        {a.status === "suspended" ? (
-                          <button
-                            className="tvp-mini-btn"
-                            title="Reinstate agency"
-                            onClick={() => unsuspendM.mutate(a.id)}
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                          </button>
-                        ) : (
-                          <button
-                            className="tvp-mini-btn"
-                            title="Suspend agency"
-                            onClick={() => doSuspend(a.id, a.name)}
-                          >
-                            <Ban className="h-4 w-4" />
-                          </button>
                         )}
+                        <RowActionsMenu
+                          actions={[
+                            isDraftInvite && {
+                              key: "continue", label: "Continue draft", icon: FileEdit,
+                              onSelect: () =>
+                                nav({ to: "/admin/invitations/new", search: { draft: invitation!.id } as any }),
+                            },
+                            isSentInvite && {
+                              key: "preview", label: "Preview branded email", icon: Mail,
+                              to: "/admin/invitations/$id/email-preview",
+                              params: { id: invitation?.id ?? "" },
+                            },
+                            isSentInvite && {
+                              key: "copy", label: "Copy invite link", icon: Link2,
+                              title: "Copying does not extend expiry",
+                              onSelect: () => copyInviteLink(invitation!),
+                            },
+                            isSentInvite && {
+                              key: "edit", label: "Correct invite email", icon: Pencil,
+                              onSelect: () => {
+                                setEditingInvite({ id: invitation!.id, email: invitation!.email, agencyName: a.name });
+                                setEmailDraft(invitation!.email);
+                              },
+                            },
+                            isSentInvite && {
+                              key: "resend", label: "Resend invite", icon: RefreshCw,
+                              title: "Refreshes the expiry date",
+                              onSelect: () => resendM.mutate(invitation!.id),
+                            },
+                            a.status === "suspended"
+                              ? {
+                                  key: "reinstate", label: "Reinstate agency", icon: RotateCcw,
+                                  separatorBefore: true,
+                                  onSelect: () => unsuspendM.mutate(a.id),
+                                }
+                              : {
+                                  key: "suspend", label: "Suspend agency", icon: Ban,
+                                  destructive: true, separatorBefore: true,
+                                  onSelect: () => doSuspend(a.id, a.name),
+                                },
+                            isSentInvite && {
+                              key: "revoke", label: "Revoke invitation", icon: Ban,
+                              destructive: true,
+                              onSelect: () => {
+                                if (confirm(`Revoke invitation to ${a.name}?`)) revokeM.mutate(invitation!.id);
+                              },
+                            },
+                            (isDraftInvite || isSentInvite) && {
+                              key: "delete",
+                              label: isDraftInvite ? "Delete draft" : "Delete invitation",
+                              icon: Trash2,
+                              destructive: true,
+                              title: isDraftInvite
+                                ? "Removes compliance documents and the agency shell"
+                                : "Removes the shell agency if it has no members",
+                              onSelect: () =>
+                                setPendingDelete({
+                                  inviteId: invitation!.id,
+                                  agencyName: a.name,
+                                  email: invitation!.email,
+                                }),
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

@@ -1537,3 +1537,52 @@
   .tv-app .tvp-life-chip:hover,
   .tv-app a.tvp-user-dot:hover { transform: none !important; }
 }
+
+/* --- Row overflow ("kebab") menu — shared RowActionsMenu ------------------- */
+/* Single source of truth for row/card secondary actions across all portals.  */
+.tvp-kebab-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--line-200);
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  display: grid; place-items: center;
+  color: var(--ink-700, var(--ink));
+  flex-shrink: 0;
+}
+.tvp-kebab-btn:hover,
+.tvp-kebab-btn[data-state="open"] {
+  background: var(--teal-050, var(--tvp-teal-50));
+  border-color: var(--teal-200, var(--tvp-teal-200));
+  color: var(--teal-600, var(--tvp-teal));
+}
+.tvp-kebab-btn:disabled { opacity: .45; }
+
+.tvp-kebab-menu {
+  min-width: 216px;
+  padding: 6px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-200);
+  background: var(--surface);
+  box-shadow: var(--sh-lg);
+}
+.tvp-kebab-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 700;
+  color: var(--ink-700, var(--ink));
+  cursor: pointer;
+  text-decoration: none;
+}
+.tvp-kebab-item:hover,
+.tvp-kebab-item[data-highlighted] {
+  background: var(--teal-050, var(--tvp-teal-50));
+  color: var(--teal-600, var(--tvp-teal));
+  outline: none;
+}
+.tvp-kebab-item[data-disabled] { opacity: .45; pointer-events: none; }
+.tvp-kebab-danger { color: var(--red); }
+.tvp-kebab-danger:hover,
+.tvp-kebab-danger[data-highlighted] { background: var(--red-bg); color: var(--red); }
+.tvp-kebab-sep { height: 1px; margin: 5px 4px; background: var(--line-200); }
