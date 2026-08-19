@@ -16,6 +16,8 @@ import {
 import {
   agencyWhoami,
   listAgencyStaff,
+  listAgencyTalent,
+  listAgencyFolderSettings,
   createTalentInvitationMine,
 } from "@/lib/agency.functions";
 import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
@@ -24,6 +26,7 @@ import {
   DEFAULT_TALENT_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
+import { BASELINE_TALENT_TYPES } from "@/lib/status-labels";
 
 
 export const Route = createFileRoute("/agency/talent/invite")({
@@ -37,10 +40,6 @@ const steps = [
   { num: 3, title: "Shared folder", sub: "Choose professional folders" },
   { num: 4, title: "Review & send", sub: "Send invite" },
 ];
-
-const defaultFolders = FOLDER_CATEGORIES.filter((f) => f.recommended).map((f) => f.name);
-const optionalFolders = FOLDER_CATEGORIES.filter((f) => !f.recommended).map((f) => f.name);
-const allFolders = [...defaultFolders, ...optionalFolders];
 
 function InviteTalent() {
   const navigate = useNavigate();
