@@ -16,7 +16,7 @@ import {
   TALENT_LINK_TABS,
 } from "@/lib/status-labels";
 
-export const Route = createFileRoute("/agency/talent")({
+export const Route = createFileRoute("/agency/talent/")({
   head: () => ({ meta: [{ title: "Talent roster · TalVault" }] }),
   component: TalentPage,
 });
