@@ -42,6 +42,7 @@ import { Route as AdminEnroll2faRouteImport } from './routes/admin.enroll-2fa'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
 import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
+import { Route as AgencyTalentIndexRouteImport } from './routes/agency.talent.index'
 import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invitations.index'
 import { Route as AdminAgenciesIndexRouteImport } from './routes/admin.agencies.index'
 import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
@@ -223,6 +224,11 @@ const AdminAdministratorsRoute = AdminAdministratorsRouteImport.update({
   path: '/administrators',
   getParentRoute: () => AdminRoute,
 } as any)
+const AgencyTalentIndexRoute = AgencyTalentIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgencyTalentRoute,
+} as any)
 const AdminInvitationsIndexRoute = AdminInvitationsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -349,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
+  '/agency/talent/': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
@@ -374,7 +381,6 @@ export interface FileRoutesByTo {
   '/agency/my-account': typeof AgencyMyAccountRoute
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
-  '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
@@ -394,6 +400,7 @@ export interface FileRoutesByTo {
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
+  '/agency/talent': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
@@ -445,6 +452,7 @@ export interface FileRoutesById {
   '/invite/talent/$token': typeof InviteTalentTokenRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
+  '/agency/talent/': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
@@ -497,6 +505,7 @@ export interface FileRouteTypes {
     | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
+    | '/agency/talent/'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
     | '/agency/invitations/$id/email-preview'
@@ -522,7 +531,6 @@ export interface FileRouteTypes {
     | '/agency/my-account'
     | '/agency/quotes-invoices'
     | '/agency/settings'
-    | '/agency/talent'
     | '/invite/$token'
     | '/loved-one/$token'
     | '/talent/budget'
@@ -542,6 +550,7 @@ export interface FileRouteTypes {
     | '/invite/talent/$token'
     | '/admin/agencies'
     | '/admin/invitations'
+    | '/agency/talent'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
     | '/agency/invitations/$id/email-preview'
@@ -592,6 +601,7 @@ export interface FileRouteTypes {
     | '/invite/talent/$token'
     | '/admin/agencies/'
     | '/admin/invitations/'
+    | '/agency/talent/'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
     | '/agency/invitations/$id/email-preview'
@@ -850,6 +860,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdministratorsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/agency/talent/': {
+      id: '/agency/talent/'
+      path: '/'
+      fullPath: '/agency/talent/'
+      preLoaderRoute: typeof AgencyTalentIndexRouteImport
+      parentRoute: typeof AgencyTalentRoute
+    }
     '/admin/invitations/': {
       id: '/admin/invitations/'
       path: '/'
@@ -1036,10 +1053,12 @@ const AgencyInvitationsRouteWithChildren =
 
 interface AgencyTalentRouteChildren {
   AgencyTalentInviteRoute: typeof AgencyTalentInviteRoute
+  AgencyTalentIndexRoute: typeof AgencyTalentIndexRoute
 }
 
 const AgencyTalentRouteChildren: AgencyTalentRouteChildren = {
   AgencyTalentInviteRoute: AgencyTalentInviteRoute,
+  AgencyTalentIndexRoute: AgencyTalentIndexRoute,
 }
 
 const AgencyTalentRouteWithChildren = AgencyTalentRoute._addFileChildren(
