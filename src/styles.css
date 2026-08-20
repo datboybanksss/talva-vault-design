@@ -1168,7 +1168,7 @@
 }
 .tv-auth .tv-auth-brand-title { font-size: 22px; font-weight: 700; letter-spacing: -.4px; line-height: 1; }
 .tv-auth .tv-auth-brand-sub { font-size: 11px; letter-spacing: 2.5px; color: var(--on-teal-dim); margin-top: 6px; font-weight: 700; }
-.tv-auth .tv-auth-headline { font-size: var(--t-display-lg); font-weight: 700; line-height: 1.12; letter-spacing: -.6px; max-width: 460px; }
+.tv-auth .tv-auth-headline { color: var(--on-teal, #ffffff); font-size: var(--t-display-lg); font-weight: 700; line-height: 1.12; letter-spacing: -.6px; max-width: 460px; }
 .tv-auth .tv-auth-sub { color: var(--on-teal-dim); font-size: 14px; line-height: 1.55; max-width: 440px; margin-top: 14px; }
 .tv-auth .tv-auth-points { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; }
 .tv-auth .tv-auth-point { display: flex; align-items: center; gap: 12px; color: var(--on-teal-dim); font-size: 13.5px; font-weight: 700; }
