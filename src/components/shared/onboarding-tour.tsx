@@ -8,7 +8,9 @@ export type TourStep = {
   body: string;
 };
 
-const TOURS: Record<"admin" | "agency" | "talent", TourStep[]> = {
+export type Portal = "admin" | "agency" | "talent";
+
+const TOURS: Record<Portal, TourStep[]> = {
   talent: [
     {
       selector: '[data-tour="/talent/vault"]',
@@ -76,6 +78,11 @@ const TOURS: Record<"admin" | "agency" | "talent", TourStep[]> = {
     },
   ],
 };
+
+/** Read-only access to a portal's tour steps (source of truth for help copy). */
+export function getTourSteps(portal: Portal): TourStep[] {
+  return TOURS[portal];
+}
 
 type Rect = { top: number; left: number; width: number; height: number };
 

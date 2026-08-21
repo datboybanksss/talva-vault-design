@@ -1,5 +1,6 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { HelpMenu } from "@/components/shared/help-menu";
 import { type ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useRouterState, useNavigate, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -245,6 +246,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" />
           </button>
           <ThemeToggle />
+          <HelpMenu portal="talent" />
           <div className="tvp-notification-wrap">
             <button
               className="tvp-icon-btn"
