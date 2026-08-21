@@ -94,7 +94,9 @@ function AgencyDashboard() {
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
   const metrics = useQuery({
-    queryKey: ["agency", "metrics"],
+    // Same key as the shell's metrics query so the two share one cache entry
+    // instead of polling getAgencyDashboardMetrics twice a minute.
+    queryKey: ["agency", "dashboard", "metrics"],
     queryFn: () => getMetricsFn(),
     refetchInterval: 60_000,
   });

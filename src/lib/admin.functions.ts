@@ -190,15 +190,20 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
 
+    // Counts use head-only exact counts so the dashboard never streams whole
+    // tables back just to call .length on them.
     const [agencies, talent, docs, shares] = await Promise.all([
       supabase.from("agencies").select("id, status"),
       supabase
         .from("talent_profiles")
-        .select("id, is_test, deleted_at")
+        .select("id", { count: "exact", head: true })
         .is("deleted_at", null)
         .eq("is_test", false),
       supabase.from("agency_documents").select("shared_folder_count, private_vault_count"),
-      supabase.from("loved_one_shares").select("id").eq("is_active", true),
+      supabase
+        .from("loved_one_shares")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true),
     ]);
 
     const statusCounts: Record<string, number> = {
@@ -214,14 +219,14 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     }
 
     const totalAgencies = agencies.data?.length ?? 0;
-    const totalTalent = talent.data?.length ?? 0;
+    const totalTalent = talent.count ?? 0;
     const totalDocs =
       (docs.data ?? []).reduce(
         (sum: number, d: any) =>
           sum + (d.shared_folder_count ?? 0) + (d.private_vault_count ?? 0),
         0,
       ) ?? 0;
-    const activeShares = shares.data?.length ?? 0;
+    const activeShares = shares.count ?? 0;
 
     return {
       totalAgencies,

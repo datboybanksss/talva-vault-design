@@ -344,35 +344,36 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     const expiryNoticeDays = agencyPrefs?.expiry_notice_days ?? 30;
     const in30dIso = new Date(Date.now() + expiryNoticeDays * 86400000).toISOString();
     const nowIso = new Date().toISOString();
-    const [managersRes, docsRes, expiringRes, lastDocRes] = await Promise.all([
+    // One paged scan over the agency's shared documents feeds all three
+    // per-talent aggregates (total, expiring soon, most recent upload).
+    // Previously this ran three separate unbounded scans of the same table,
+    // each silently capped at PostgREST's 1000-row default.
+    const fetchAgencyDocRows = async () => {
+      const page = 1000;
+      const out: any[] = [];
+      for (let from = 0; ; from += page) {
+        const { data, error: docErr } = await supabase
+          .from("talent_shared_documents")
+          .select("talent_link_id, created_at, validity_expires_at")
+          .eq("agency_id", agencyId)
+          .order("created_at", { ascending: false })
+          .range(from, from + page - 1);
+        if (docErr) throw new Error(docErr.message);
+        const batch = data ?? [];
+        out.push(...batch);
+        if (batch.length < page) break;
+      }
+      return out;
+    };
+
+    const [managersRes, docRows] = await Promise.all([
       managerIds.length
         ? supabase
             .from("profiles")
             .select("id, display_name, first_name, last_name, email")
             .in("id", managerIds)
         : Promise.resolve({ data: [] as any[] }),
-      linkIds.length
-        ? supabase
-            .from("talent_shared_documents")
-            .select("talent_link_id")
-            .in("talent_link_id", linkIds)
-        : Promise.resolve({ data: [] as any[] }),
-      linkIds.length
-        ? supabase
-            .from("talent_shared_documents")
-            .select("talent_link_id")
-            .in("talent_link_id", linkIds)
-            .not("validity_expires_at", "is", null)
-            .gte("validity_expires_at", nowIso)
-            .lte("validity_expires_at", in30dIso)
-        : Promise.resolve({ data: [] as any[] }),
-      linkIds.length
-        ? supabase
-            .from("talent_shared_documents")
-            .select("talent_link_id, created_at")
-            .in("talent_link_id", linkIds)
-            .order("created_at", { ascending: false })
-        : Promise.resolve({ data: [] as any[] }),
+      linkIds.length ? fetchAgencyDocRows() : Promise.resolve([] as any[]),
     ]);
 
     const managerMap = new Map<string, string>();
@@ -386,20 +387,19 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     }
 
     const docCount = new Map<string, number>();
-    for (const d of (docsRes as any).data ?? []) {
-      const k = d.talent_link_id as string;
-      docCount.set(k, (docCount.get(k) ?? 0) + 1);
-    }
     const expiringCount = new Map<string, number>();
-    for (const d of (expiringRes as any).data ?? []) {
-      const k = d.talent_link_id as string;
-      expiringCount.set(k, (expiringCount.get(k) ?? 0) + 1);
-    }
     const lastDocAt = new Map<string, string>();
-    for (const d of (lastDocRes as any).data ?? []) {
+    for (const d of docRows as any[]) {
       const k = d.talent_link_id as string;
+      if (!k) continue;
+      docCount.set(k, (docCount.get(k) ?? 0) + 1);
       if (!lastDocAt.has(k)) lastDocAt.set(k, d.created_at as string);
+      const exp = d.validity_expires_at as string | null;
+      if (exp && exp >= nowIso && exp <= in30dIso) {
+        expiringCount.set(k, (expiringCount.get(k) ?? 0) + 1);
+      }
     }
+
 
 
     return rows.map((r: any) => ({
