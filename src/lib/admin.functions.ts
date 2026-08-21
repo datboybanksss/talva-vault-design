@@ -226,7 +226,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
           sum + (d.shared_folder_count ?? 0) + (d.private_vault_count ?? 0),
         0,
       ) ?? 0;
-    const activeShares = shares.data?.length ?? 0;
+    const activeShares = shares.count ?? 0;
 
     return {
       totalAgencies,
