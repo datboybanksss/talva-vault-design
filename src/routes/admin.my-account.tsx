@@ -17,7 +17,6 @@ import { friendlyAuthError } from "@/lib/password";
 import { SectionHeader } from "@/components/account/section-header";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
-import { ReplayTourCard } from "@/components/shared/replay-tour-card";
 
 export const Route = createFileRoute("/admin/my-account")({
   head: () => ({ meta: [{ title: "My Account · TalVault Admin" }] }),
@@ -64,9 +63,6 @@ function MyAccountPage() {
               logDisabled={() => logMfaDisabledFn()}
               contextLabel="administrator"
             />
-          </div>
-          <div className="tvp-account-full">
-            <ReplayTourCard />
           </div>
         </div>
       )}

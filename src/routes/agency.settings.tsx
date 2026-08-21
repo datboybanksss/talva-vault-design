@@ -10,7 +10,6 @@ import {
   documentRulesMeQO,
 } from "@/components/agency/document-rules-panel";
 import { QuotesInvoicesSettingsPanel } from "@/components/agency/quotes-invoices-settings-panel";
-import { ReplayTourCard } from "@/components/shared/replay-tour-card";
 
 const tabSchema = z.enum(["profile", "folders", "document-rules", "quotes-invoices"]).catch("profile");
 
@@ -80,10 +79,7 @@ function AgencySettingsPage() {
       <div className="tvp-settings-tight">
         <Suspense fallback={<div className="tvp-muted" style={{ padding: 24 }}>Loading…</div>}>
           {tab === "profile" && (
-            <>
-              <AgencyProfilePanel />
-              <ReplayTourCard />
-            </>
+<AgencyProfilePanel />
           )}
           {tab === "folders" && <ManageFoldersPanel />}
           {tab === "document-rules" && <DocumentRulesPanel />}
