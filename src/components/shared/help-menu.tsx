@@ -20,6 +20,7 @@ export function HelpMenu({ portal }: { portal: Portal }) {
   const [busy, setBusy] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const steps = getTourSteps(portal);
+  const [selected, setSelected] = useState<string[]>(() => steps.map((s) => s.key));
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -36,6 +37,11 @@ export function HelpMenu({ portal }: { portal: Portal }) {
     };
   }, []);
 
+  const allSelected = selected.length === steps.length;
+
+  const toggle = (key: string) =>
+    setSelected((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]));
+
   async function startWalkthrough() {
     setBusy(true);
     try {
@@ -47,8 +53,9 @@ export function HelpMenu({ portal }: { portal: Portal }) {
         .update({ has_seen_onboarding: false } as any)
         .eq("id", uid);
       if (error) throw error;
+      const keys = steps.filter((s) => selected.includes(s.key)).map((s) => s.key);
       setOpen(false);
-      window.dispatchEvent(new CustomEvent(REPLAY_TOUR_EVENT));
+      window.dispatchEvent(new CustomEvent(REPLAY_TOUR_EVENT, { detail: { keys } }));
       toast.success("Here we go — the walkthrough is starting.");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not start the walkthrough.");
@@ -74,20 +81,43 @@ export function HelpMenu({ portal }: { portal: Portal }) {
       </button>
       {open && (
         <div className="tvp-notification-panel" data-testid="help-menu-panel">
-          <div className="tvp-h2" style={{ marginBottom: 6 }}>
-            Getting started
+          <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+            <div className="tvp-h2">Getting started</div>
+            <button
+              type="button"
+              className="tvp-link"
+              onClick={() => setSelected(allSelected ? [] : steps.map((s) => s.key))}
+            >
+              {allSelected ? "Clear all" : "Select all"}
+            </button>
           </div>
           <p className="tvp-muted" style={{ fontSize: 13 }}>
-            See how to use {PORTAL_LABEL[portal]}. A short walkthrough covering:
+            See how to use {PORTAL_LABEL[portal]}. Pick the topics you'd like the walkthrough to
+            cover:
           </p>
-          <ul className="tvp-muted" style={{ fontSize: 13, margin: "8px 0 12px 18px", listStyle: "disc" }}>
+          <div style={{ margin: "8px 0 12px" }}>
             {steps.map((s) => (
-              <li key={s.title} style={{ marginTop: 2 }}>
-                {s.title}
-              </li>
+              <label
+                key={s.key}
+                className="flex items-center gap-2"
+                style={{ fontSize: 13, padding: "3px 0", cursor: "pointer" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(s.key)}
+                  onChange={() => toggle(s.key)}
+                  data-testid={`help-topic-${s.key}`}
+                />
+                <span>{s.title}</span>
+              </label>
             ))}
-          </ul>
-          <button className="tvp-secondary" onClick={startWalkthrough} disabled={busy} data-testid="replay-tour">
+          </div>
+          <button
+            className="tvp-secondary"
+            onClick={startWalkthrough}
+            disabled={busy || selected.length === 0}
+            data-testid="replay-tour"
+          >
             <Compass className="h-4 w-4" /> {busy ? "Starting…" : "Start walkthrough"}
           </button>
         </div>
@@ -95,5 +125,6 @@ export function HelpMenu({ portal }: { portal: Portal }) {
     </div>
   );
 }
+
 
 export default HelpMenu;
