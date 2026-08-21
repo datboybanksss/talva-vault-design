@@ -490,7 +490,7 @@ export function VaultPage() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, marginTop: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, marginTop: 12, alignItems: "start" }}>
                 {talentLinks.map((l) => {
                   const stats = docsPerTalent.get(l.id) ?? { total: 0, review: 0 };
                   return (
