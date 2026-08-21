@@ -155,24 +155,32 @@ export function getTourSteps(portal: Portal): TourStep[] {
 
 type Rect = { top: number; left: number; width: number; height: number };
 
-/** Fired by the "Replay welcome tour" control in Settings. */
+/**
+ * Fired by the Help menu. Optional `detail.keys` limits the run to those step
+ * keys (in the portal's normal order); with no detail the full tour runs.
+ */
 export const REPLAY_TOUR_EVENT = "tvp:replay-tour";
 
 export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talent" }) {
-  const steps = TOURS[portal];
+  const allSteps = TOURS[portal];
+  const [keys, setKeys] = useState<string[] | null>(null);
+  const steps = keys ? allSteps.filter((s) => keys.includes(s.key)) : allSteps;
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
 
-  // Manual replay from Settings, regardless of has_seen_onboarding history.
+  // Manual replay from the Help menu, optionally scoped to selected topics.
   useEffect(() => {
-    const onReplay = () => {
+    const onReplay = (e: Event) => {
+      const detail = (e as CustomEvent<{ keys?: string[] } | undefined>).detail;
+      setKeys(detail?.keys?.length ? detail.keys : null);
       setIdx(0);
       setOpen(true);
     };
     window.addEventListener(REPLAY_TOUR_EVENT, onReplay);
     return () => window.removeEventListener(REPLAY_TOUR_EVENT, onReplay);
   }, []);
+
 
   // Show only on a user's very first visit.
   useEffect(() => {
