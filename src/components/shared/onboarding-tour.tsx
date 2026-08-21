@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type TourStep = {
+  /** Stable slug used for topic selection — independent of title/selector. */
+  key: string;
   /** CSS selector for the element to spotlight. Falls back to a centred card. */
   selector: string;
   title: string;
@@ -13,21 +15,37 @@ export type Portal = "admin" | "agency" | "talent";
 const TOURS: Record<Portal, TourStep[]> = {
   talent: [
     {
+      key: "dashboard",
+      selector: '[data-tour="/talent"]',
+      title: "Dashboard",
+      body: "Your home screen — a quick read on what's outstanding, what's expiring and what your Manager has asked for.",
+    },
+    {
+      key: "vault",
       selector: '[data-tour="/talent/vault"]',
       title: "Your Vault",
       body: "Everything you upload lives here — your Private Vault (only you can see it) and the Agency Shared Folder your Manager can access.",
     },
     {
+      key: "sharing",
       selector: '[data-tour="/talent/sharing"]',
       title: "Shared Access",
       body: "Give a loved one time-limited access to specific documents. They get a secure link; you give them the access code separately.",
     },
     {
+      key: "budget",
+      selector: '[data-tour="/talent/budget"]',
+      title: "Budget & Income",
+      body: "A place to track earnings and spending against your contracts. It's on its way — we'll let you know the moment it opens.",
+    },
+    {
+      key: "needs-attention",
       selector: '[data-tour="needs-attention"]',
       title: "Needs attention",
       body: "Your dashboard surfaces expiring documents and requests from your Manager here. Dismiss anything you've handled.",
     },
     {
+      key: "settings",
       selector: '[data-tour="/talent/settings"]',
       title: "Settings",
       body: "Manage which folder categories are active, notification reminders, your password and two-factor authentication.",
@@ -35,43 +53,93 @@ const TOURS: Record<Portal, TourStep[]> = {
   ],
   agency: [
     {
+      key: "dashboard",
+      selector: '[data-tour="/agency"]',
+      title: "Dashboard",
+      body: "Your daily overview — roster size, compliance, anything expiring soon and the latest talent activity.",
+    },
+    {
+      key: "talent-roster",
       selector: '[data-tour="/agency/talent"]',
       title: "Talent Roster",
       body: "Every talent you manage, their status and their compliance at a glance.",
     },
     {
+      key: "document-vault",
       selector: '[data-tour="/agency/document-vault"]',
       title: "Document Vault",
       body: "Upload, review and request documents. The Requests tab tracks anything you're waiting on from talent.",
     },
     {
+      key: "invitations",
       selector: '[data-tour="/agency/invitations"]',
       title: "Invitations",
       body: "Invite new talent and choose the shared folders they'll get the moment they accept.",
     },
     {
+      key: "quotes-invoices",
+      selector: '[data-tour="/agency/quotes-invoices"]',
+      title: "Quotes & Invoices",
+      body: "Create quotes, convert them to invoices and track payment. The summary cards total quoted, invoiced, received and outstanding for the period you pick, and the Reports tab breaks it down with CSV or PDF export.",
+    },
+    {
+      key: "activity-log",
+      selector: '[data-tour="/agency/activity"]',
+      title: "Activity Log",
+      body: "A filterable record of every action on your account — who did what, when, and from which device.",
+    },
+    {
+      key: "agency-profile",
+      selector: '[data-tour="/agency/settings"]',
+      title: "Agency Profile",
+      body: "Your agency details, logo, tax settings and the verified address your billing emails are sent from.",
+    },
+    {
+      key: "manage-folders",
+      selector: '[data-tour="/agency/settings"]',
+      title: "Manage Folders",
+      body: "Under Settings, choose which folder categories and subfolders your talent get, and set templates per talent type.",
+    },
+    {
+      key: "document-rules",
       selector: '[data-tour="/agency/settings"]',
       title: "Document Rules",
-      body: "Under Settings you'll find Document Rules, folder templates, your Agency Profile and billing preferences.",
+      body: "Set expiry and reminder rules per document type so renewals are chased before anything lapses.",
     },
   ],
   admin: [
     {
+      key: "dashboard",
+      selector: '[data-tour="/admin"]',
+      title: "Dashboard",
+      body: "Platform health at a glance — agencies, active talent, outstanding invites and anything needing review.",
+    },
+    {
+      key: "agencies",
       selector: '[data-tour="/admin/agencies"]',
       title: "Agencies",
       body: "Every agency on the platform — activate, suspend and inspect their setup from here.",
     },
     {
+      key: "invitations",
       selector: '[data-tour="/admin/invitations"]',
       title: "Agency Invitations",
       body: "Create and track agency invites, edit the invitation email and send or copy the secure link.",
     },
     {
+      key: "quotes-invoices",
+      selector: '[data-tour="/admin/quotes-invoices"]',
+      title: "Quotes & Invoices",
+      body: "Billing activity across the platform, so you can see what agencies have quoted, invoiced and collected.",
+    },
+    {
+      key: "administrators",
       selector: '[data-tour="/admin/administrators"]',
       title: "Administrators",
       body: "Manage who has platform admin access and their two-factor enrolment.",
     },
     {
+      key: "audit",
       selector: '[data-tour="/admin/audit"]',
       title: "Audit & Support Log",
       body: "A full, filterable record of every privileged action, with IP and device details.",
@@ -83,6 +151,7 @@ const TOURS: Record<Portal, TourStep[]> = {
 export function getTourSteps(portal: Portal): TourStep[] {
   return TOURS[portal];
 }
+
 
 type Rect = { top: number; left: number; width: number; height: number };
 
