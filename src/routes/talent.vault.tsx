@@ -17,9 +17,12 @@ import {
   listPrivateVault,
   deletePrivateFolder,
   createPrivateUploadUrl,
+  finalisePrivateUpload,
   getPrivateDocumentDownloadUrl,
   deletePrivateDocument,
 } from "@/lib/talent-vault.functions";
+import { preflightUpload } from "@/lib/file-validation";
+
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { toast } from "sonner";
 import {
@@ -123,6 +126,8 @@ function PrivateVault() {
   const load = useServerFn(listPrivateVault);
   const deleteFolder = useServerFn(deletePrivateFolder);
   const createUpload = useServerFn(createPrivateUploadUrl);
+  const finalise = useServerFn(finalisePrivateUpload);
+
   const download = useServerFn(getPrivateDocumentDownloadUrl);
   const deleteDoc = useServerFn(deletePrivateDocument);
   const fileInput = useRef<HTMLInputElement | null>(null);
