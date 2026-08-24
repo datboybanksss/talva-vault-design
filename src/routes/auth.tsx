@@ -2,6 +2,7 @@ import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PORTAL_FOR_DENIED_CODE, checkPortalAccess } from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
 import { ShieldCheck, Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
@@ -85,12 +86,61 @@ function AuthPage() {
   const [mfaCode, setMfaCode] = useState("");
 
   const portal = useMemo(() => portalFromNext(search.next), [search.next]);
-  const denied = useMemo(() => deniedMessage(search.denied, portal), [search.denied, portal]);
+  // The `denied` param is only a hint from the gate that bounced us here. It is
+  // never trusted on its own: we re-check the *current* session before showing
+  // the banner, so a stale param from an earlier denial (back button, refresh,
+  // shared link, or signing in as a different account) can never linger.
+  const [deniedState, setDeniedState] = useState<"checking" | "confirmed">("checking");
+  const deniedPortal = search.denied ? PORTAL_FOR_DENIED_CODE[search.denied] : undefined;
+
+  useEffect(() => {
+    if (!search.denied) {
+      setDeniedState("checking");
+      return;
+    }
+    let mounted = true;
+    const revalidate = async () => {
+      // Unknown code, or no portal to check against — drop it rather than
+      // showing a message we cannot substantiate.
+      const result = deniedPortal ? await checkPortalAccess(deniedPortal) : "granted";
+      if (!mounted) return;
+      if (result === "denied") {
+        setDeniedState("confirmed");
+        return;
+      }
+      if (result === "error") return; // transient: keep checking, show nothing
+      // Access is now granted, or nobody is signed in. Either way the denial no
+      // longer applies — clear it so the normal sign-in / auto-redirect flow runs.
+      nav({
+        to: "/auth",
+        search: { next: search.next, reset: search.reset } as never,
+        replace: true,
+      });
+    };
+    void revalidate();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      void revalidate();
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [search.denied, search.next, search.reset, deniedPortal, nav]);
+
+  const denied = useMemo(
+    () =>
+      search.denied && deniedState === "confirmed"
+        ? deniedMessage(search.denied, portal)
+        : null,
+    [search.denied, deniedState, portal],
+  );
 
   useEffect(() => {
     let mounted = true;
-    // A portal gate bounced us back here on purpose. Never auto-redirect in
-    // that case — it would loop silently and look like "sign-in does nothing".
+    // A confirmed portal denial: never auto-redirect, it would loop silently
+    // and look like "sign-in does nothing".
+    if (search.denied && deniedState === "confirmed") return;
+    // While the denial is still being re-checked, hold off too.
     if (search.denied) return;
     // Only auto-redirect to next when we already have an AAL2 session (or the
     // account has no verified MFA factor). Otherwise we'd bypass the challenge.
@@ -113,7 +163,7 @@ function AuthPage() {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [nav, search.next, search.denied]);
+  }, [nav, search.next, search.denied, deniedState]);
 
   const isSignIn = mode === "sign-in";
 

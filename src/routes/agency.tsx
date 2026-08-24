@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { AgencyShell } from "@/components/agency/agency-shell";
-import { supabase } from "@/integrations/supabase/client";
+import { checkPortalAccess } from "@/lib/portal-access";
 
 export const Route = createFileRoute("/agency")({
   ssr: false,
@@ -16,22 +16,14 @@ export const Route = createFileRoute("/agency")({
     ],
   }),
   beforeLoad: async ({ location }) => {
-    const { data: userRes } = await supabase.auth.getUser();
-    if (!userRes.user) {
-      throw redirect({ to: "/auth", search: { next: location.href } });
-    }
-    // Must be an active (non-suspended) member of at least one agency.
-    const { data: member } = await supabase
-      .from("agency_members")
-      .select("agency_id")
-      .eq("user_id", userRes.user.id)
-      .eq("suspended", false)
-      .limit(1)
-      .maybeSingle();
-    if (!member) {
+    const access = await checkPortalAccess("agency");
+    if (access !== "granted") {
       throw redirect({
         to: "/auth",
-        search: { next: location.href, denied: "not_agency" },
+        search:
+          access === "denied"
+            ? { next: location.href, denied: "not_agency" }
+            : { next: location.href },
       });
     }
   },
