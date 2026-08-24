@@ -556,8 +556,8 @@ export function VaultPage() {
                         {l.status !== "active" && (
                           <span className="tvp-status tvp-amber" style={{ textTransform: "capitalize" }}>{l.status}</span>
                         )}
-                        {stats.review > 0 && (
-                          <span className="tvp-status tvp-purple">{stats.review} to review</span>
+                        {(stats?.reviewCount ?? 0) > 0 && (
+                          <span className="tvp-status tvp-purple">{stats?.reviewCount} to review</span>
                         )}
                       </span>
                     </button>
