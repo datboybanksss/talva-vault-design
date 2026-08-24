@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { AgencyShell } from "@/components/agency/agency-shell";
-import { checkPortalAccess } from "@/lib/portal-access";
+import { checkMfaGate, checkPortalAccess } from "@/lib/portal-access";
 
 export const Route = createFileRoute("/agency")({
   ssr: false,
@@ -26,6 +26,9 @@ export const Route = createFileRoute("/agency")({
             : { next: location.href },
       });
     }
+    const mfa = await checkMfaGate();
+    if (mfa === "enrol") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
+    if (mfa === "challenge") throw redirect({ to: "/auth", search: { next: location.href } });
   },
   component: AgencyLayout,
 });
