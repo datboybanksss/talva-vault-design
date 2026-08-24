@@ -1004,7 +1004,7 @@ function UploadDialog({
 
     setBusy(true);
     try {
-      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const safeName = file.name.replace(/[^\w.-]+/g, "_");
       const path = `${agencyId}/${talentLinkId || "unassigned"}/${crypto.randomUUID()}-${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("talent-documents")
@@ -1420,7 +1420,7 @@ function NewVersionDialog({
 
     setBusy(true);
     try {
-      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const safeName = file.name.replace(/[^\w.-]+/g, "_");
       const path = `${agencyId}/${doc.talentLinkId || "unassigned"}/${crypto.randomUUID()}-${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("talent-documents")

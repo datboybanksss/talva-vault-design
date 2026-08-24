@@ -104,7 +104,7 @@ function InviteTalent() {
   const [expiryDays, setExpiryDays] = useState(14);
   const [managerId, setManagerId] = useState("");
 
-  const staffList = (staff.data ?? []) as Array<{ userId: string; name: string; role: string }>;
+  const staffList = useMemo(() => (staff.data ?? []) as Array<{ userId: string; name: string; role: string }>, [staff.data]);
   const managerName = useMemo(
     () => staffList.find((s) => s.userId === managerId)?.name ?? "Not assigned yet",
     [staffList, managerId],

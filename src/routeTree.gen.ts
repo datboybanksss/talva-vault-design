@@ -50,6 +50,7 @@ import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$t
 import { Route as InviteAdminTokenRouteImport } from './routes/invite.admin.$token'
 import { Route as ApiPublicVerifyBillingSenderRouteImport } from './routes/api/public/verify-billing-sender'
 import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/loved-one-file'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
@@ -266,6 +267,11 @@ const ApiPublicLovedOneFileRoute = ApiPublicLovedOneFileRouteImport.update({
   path: '/api/public/loved-one-file',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
   id: '/invite',
   path: '/invite',
@@ -356,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/api/public/verify-billing-sender': typeof ApiPublicVerifyBillingSenderRoute
   '/invite/admin/$token': typeof InviteAdminTokenRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/api/public/verify-billing-sender': typeof ApiPublicVerifyBillingSenderRoute
   '/invite/admin/$token': typeof InviteAdminTokenRoute
@@ -455,6 +463,7 @@ export interface FileRoutesById {
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
   '/api/public/verify-billing-sender': typeof ApiPublicVerifyBillingSenderRoute
   '/invite/admin/$token': typeof InviteAdminTokenRoute
@@ -509,6 +518,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public/health'
     | '/api/public/loved-one-file'
     | '/api/public/verify-billing-sender'
     | '/invite/admin/$token'
@@ -555,6 +565,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public/health'
     | '/api/public/loved-one-file'
     | '/api/public/verify-billing-sender'
     | '/invite/admin/$token'
@@ -607,6 +618,7 @@ export interface FileRouteTypes {
     | '/admin/invitations/new'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
+    | '/api/public/health'
     | '/api/public/loved-one-file'
     | '/api/public/verify-billing-sender'
     | '/invite/admin/$token'
@@ -632,6 +644,7 @@ export interface RootRouteChildren {
   TalentRoute: typeof TalentRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicLovedOneFileRoute: typeof ApiPublicLovedOneFileRoute
   ApiPublicVerifyBillingSenderRoute: typeof ApiPublicVerifyBillingSenderRoute
   InviteAdminTokenRoute: typeof InviteAdminTokenRoute
@@ -929,6 +942,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLovedOneFileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agency/talent/invite': {
       id: '/agency/talent/invite'
       path: '/invite'
@@ -1148,6 +1168,7 @@ const rootRouteChildren: RootRouteChildren = {
   TalentRoute: TalentRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicLovedOneFileRoute: ApiPublicLovedOneFileRoute,
   ApiPublicVerifyBillingSenderRoute: ApiPublicVerifyBillingSenderRoute,
   InviteAdminTokenRoute: InviteAdminTokenRoute,

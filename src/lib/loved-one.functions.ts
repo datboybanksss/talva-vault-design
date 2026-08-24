@@ -174,6 +174,17 @@ export const unlockLovedOneShare = createServerFn({ method: "POST" })
     z.object({ token: z.string().min(20).max(80), code: z.string().trim().min(4).max(40) }).parse(i),
   )
   .handler(async ({ data }) => {
+    // IP-level throttle on top of the per-share failed-attempt lock, so a
+    // single caller can't sweep many share tokens (TVA-SEC-006).
+    const { guardPublicToken } = await import("@/lib/rate-limit.server");
+    const guard = await guardPublicToken({
+      bucket: "loved_one_unlock",
+      token: data.token,
+      perIp: { max: 20, windowSeconds: 600, blockSeconds: 1800 },
+      perToken: { max: 12, windowSeconds: 600, blockSeconds: 1800 },
+    });
+    if (!guard.allowed) return { ok: false as const, reason: "throttled" as const };
+
     const share = await loadShareByToken(data.token);
     if (!share) return { ok: false as const, reason: "not_found" as const };
     if ("_invalid" in share) return { ok: false as const, reason: share._invalid };

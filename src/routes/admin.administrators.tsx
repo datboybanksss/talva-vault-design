@@ -120,7 +120,7 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
   });
 
-  const list = admins.data ?? [];
+  const list = useMemo(() => admins.data ?? [], [admins.data]);
   const stats = useMemo(() => {
     return {
       total: list.length,

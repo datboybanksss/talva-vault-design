@@ -77,7 +77,7 @@ function TalentPage() {
   const listFn = useServerFn(listAgencyTalent);
   const talent = useQuery({ queryKey: ["agency", "talent"], queryFn: () => listFn() });
 
-  const rows: TalentRow[] = (talent.data ?? []) as TalentRow[];
+  const rows: TalentRow[] = useMemo(() => (talent.data ?? []) as TalentRow[], [talent.data]);
 
   const [tab, setTab] = useState("all");
   const [search, setSearch] = useState("");

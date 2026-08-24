@@ -1,6 +1,6 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Clock, Download, Folder, FileText, AlertTriangle, Lock, Eye, KeyRound, X } from "lucide-react";
 import { toast } from "sonner";
@@ -33,13 +33,20 @@ function LovedOnePage() {
   });
   const [viewer, setViewer] = useState<{ url: string; name: string } | null>(null);
 
-  function refresh(t?: string) {
-    load({ data: { token, ticket: t } })
-      .then(setState)
-      .catch((e) => setState({ status: "error", error: e?.message }));
-  }
+  const refresh = useCallback(
+    (t?: string) => {
+      load({ data: { token, ticket: t } })
+        .then(setState)
+        .catch((e) => setState({ status: "error", error: e?.message }));
+    },
+    [load, token],
+  );
 
-  useEffect(() => { refresh(ticket); /* eslint-disable-next-line */ }, [token]);
+  // Initial load only — unlocking calls refresh() explicitly with a new ticket.
+  const initialTicket = useRef(ticket);
+  useEffect(() => {
+    refresh(initialTicket.current);
+  }, [refresh]);
 
   async function onUnlock(code: string) {
     const res: any = await unlock({ data: { token, code } });
@@ -173,7 +180,9 @@ function CodeGate({
         setErr(
           res.reason === "locked"
             ? "Too many incorrect attempts. This link is now locked — ask the sharer for a new code."
-            : `That access code isn't correct.${res.remaining != null ? ` ${res.remaining} attempt${res.remaining === 1 ? "" : "s"} left.` : ""}`,
+            : res.reason === "throttled"
+              ? "Too many attempts from this device. Please wait a few minutes and try again."
+              : `That access code isn't correct.${res.remaining != null ? ` ${res.remaining} attempt${res.remaining === 1 ? "" : "s"} left.` : ""}`,
         );
       }
     } catch {

@@ -1709,6 +1709,39 @@ export type Database = {
         }
         Relationships: []
       }
+      public_rate_limits: {
+        Row: {
+          attempts: number
+          blocked_until: string | null
+          bucket: string
+          created_at: string
+          id: string
+          subject: string
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          attempts?: number
+          blocked_until?: string | null
+          bucket: string
+          created_at?: string
+          id?: string
+          subject: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          attempts?: number
+          blocked_until?: string | null
+          bucket?: string
+          created_at?: string
+          id?: string
+          subject?: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -2464,6 +2497,20 @@ export type Database = {
         Args: { _doc_id: string }
         Returns: string
       }
+      consume_rate_limit: {
+        Args: {
+          _block_seconds?: number
+          _bucket: string
+          _max_attempts: number
+          _subject: string
+          _window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          retry_after_seconds: number
+        }[]
+      }
       current_user_agency_id: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -2527,6 +2574,10 @@ export type Database = {
       reconcile_talent_type_folders: {
         Args: { _new_talent_type: string; _talent_link_id: string }
         Returns: number
+      }
+      reset_rate_limit: {
+        Args: { _bucket: string; _subject: string }
+        Returns: undefined
       }
       rollback_folder_rename_batch: {
         Args: { _batch_id: string }

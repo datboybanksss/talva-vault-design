@@ -149,7 +149,7 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CreateUploadUrlInput.parse(input))
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
-    const safeName = data.file_name.replace(/[^\w.\-]+/g, "_");
+    const safeName = data.file_name.replace(/[^\w.-]+/g, "_");
     const path = `${userId}/${crypto.randomUUID()}-${safeName}`;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

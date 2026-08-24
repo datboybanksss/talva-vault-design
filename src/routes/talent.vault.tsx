@@ -152,7 +152,7 @@ function PrivateVault() {
     queryFn: () => load() as Promise<{ folders: PrivateFolder[]; documents: PrivateDoc[] }>,
   });
 
-  const folders = data?.folders ?? [];
+  const folders = useMemo(() => data?.folders ?? [], [data]);
   const documents = data?.documents ?? [];
   const topFolders = useMemo(() => folders.filter((f) => !f.parent_id), [folders]);
   const subsByParent = useMemo(() => {
