@@ -192,8 +192,9 @@ function PrivateVault() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("Max upload size is 50 MB.");
+    const problem = preflightUpload(file);
+    if (problem) {
+      toast.error(problem);
       return;
     }
     try {
@@ -211,8 +212,11 @@ function PrivateVault() {
         body: file,
       });
       if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+      // Server-side signature/size check; rejects and cleans up bad files.
+      await finalise({ data: { document_id } });
       toast.success("Document uploaded.");
       invalidate();
+
       if (document_id) setAiReviewFor({ id: document_id as string, name: file.name });
     } catch (err: any) {
       toast.error(err?.message ?? "Upload failed.");

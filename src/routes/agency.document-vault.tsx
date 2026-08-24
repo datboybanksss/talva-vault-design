@@ -1024,8 +1024,10 @@ function UploadDialog({
           talent_link_id: talentLinkId || null,
           status,
           validity_expires_at: expiry ? new Date(expiry).toISOString() : null,
+          mime_type: file.type || null,
         },
       });
+
       toast.success("Uploaded");
       onDone(inserted?.id ? { id: inserted.id as string, name: finalName } : undefined);
     } catch (err: any) {
