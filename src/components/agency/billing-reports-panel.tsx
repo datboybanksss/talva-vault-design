@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { ClientOnly } from "@tanstack/react-router";
+
+const BillingTrendChart = lazy(() => import("./billing-trend-chart"));
 import { Download, FileDown, ArrowUp, ArrowDown, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { fmtMoney } from "@/lib/billing";
