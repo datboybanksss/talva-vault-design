@@ -32,9 +32,15 @@ export const documentRulesQO = queryOptions({
   queryKey: ["agency", "retention", "rules"],
   queryFn: () => listAgencyRetentionRules() as Promise<Rule[]>,
 });
+/** Bounded picker list — the rules panel only needs a shortlist of documents. */
 export const documentRulesDocsQO = queryOptions({
-  queryKey: ["agency", "vault", "docs"],
-  queryFn: () => listAgencyVaultDocuments() as Promise<any[]>,
+  queryKey: ["agency", "retention", "doc-picker"],
+  queryFn: async () => {
+    const res = (await listAgencyVaultDocuments({
+      data: { limit: 100, offset: 0 },
+    })) as { rows: any[]; total: number };
+    return res.rows;
+  },
 });
 export const documentRulesMeQO = queryOptions({
   queryKey: ["agency", "whoami"],

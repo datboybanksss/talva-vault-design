@@ -2277,6 +2277,24 @@ export type Database = {
         Args: { _email: string; _invitation_id: string; _user_id: string }
         Returns: string
       }
+      agency_vault_folder_counts: {
+        Args: { _agency_id: string; _talent_link_id: string }
+        Returns: {
+          doc_count: number
+          expiring_count: number
+          folder: string
+          review_count: number
+        }[]
+      }
+      agency_vault_talent_summary: {
+        Args: { _agency_id: string }
+        Returns: {
+          doc_count: number
+          folder_count: number
+          review_count: number
+          talent_link_id: string
+        }[]
+      }
       can_access_talent_folder: {
         Args: {
           _restricted: boolean

@@ -732,47 +732,215 @@ export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
 // Path convention: <agency_id>/<talent_link_id_or_"unassigned">/<uuid>-<filename>
 // -----------------------------------------------------------------------------
 
-export const listAgencyVaultDocuments = createServerFn({ method: "GET" })
+const VAULT_DOC_COLUMNS =
+  "id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review";
+
+function mapVaultDoc(r: any, talentMap: Map<string, string>) {
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    folder: r.folder as string,
+    status: r.status as string,
+    validityExpiresAt: (r.validity_expires_at as string) ?? null,
+    storagePath: (r.storage_path as string) ?? null,
+    talentLinkId: (r.talent_link_id as string) ?? null,
+    talentName: r.talent_link_id ? (talentMap.get(r.talent_link_id) ?? "Unassigned") : "Unassigned",
+    uploadedBy: (r.uploaded_by as string) ?? null,
+    createdAt: r.created_at as string,
+    updatedAt: r.updated_at as string,
+    lockedUntil: (r.locked_until as string) ?? null,
+    currentVersionId: (r.current_version_id as string) ?? null,
+    pendingReview: Boolean(r.pending_review),
+  };
+}
+
+async function resolveTalentNames(supabase: any, rows: any[]) {
+  const linkIds = Array.from(new Set(rows.map((r: any) => r.talent_link_id).filter(Boolean)));
+  const talentMap = new Map<string, string>();
+  if (linkIds.length) {
+    const { data: links } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name")
+      .in("id", linkIds);
+    for (const l of links ?? []) talentMap.set(l.id as string, l.display_name as string);
+  }
+  return talentMap;
+}
+
+const vaultTab = z.enum(["all", "pending_review", "needs_review", "expiring", "recently_updated"]);
+
+/**
+ * Server-side filtered + paged vault listing. Every filter, the free-text
+ * search and the page window run in Postgres, so the browser never has to hold
+ * the full document set (and we never hit PostgREST's 1000-row response cap).
+ */
+export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        talentLinkId: z.string().uuid().nullish(),
+        folderNames: z.array(z.string()).nullish(),
+        folder: z.string().nullish(),
+        search: z.string().default(""),
+        tab: vaultTab.default("all"),
+        limit: z.number().int().min(1).max(100).default(10),
+        offset: z.number().int().min(0).default(0),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const applyFilters = (q: any) => {
+      let out = q.eq("agency_id", agencyId);
+      if (data.talentLinkId) out = out.eq("talent_link_id", data.talentLinkId);
+      if (data.folderNames?.length) out = out.in("folder", data.folderNames);
+      if (data.folder) out = out.eq("folder", data.folder);
+      if (data.tab === "pending_review") out = out.eq("pending_review", true);
+      if (data.tab === "needs_review") out = out.eq("status", "needs_review");
+      if (data.tab === "expiring") {
+        const now = new Date();
+        const in90 = new Date(now.getTime() + 90 * 86400000);
+        out = out
+          .not("validity_expires_at", "is", null)
+          .gte("validity_expires_at", now.toISOString())
+          .lte("validity_expires_at", in90.toISOString());
+      }
+      if (data.tab === "recently_updated") {
+        out = out.gte("updated_at", new Date(Date.now() - 30 * 86400000).toISOString());
+      }
+      return out;
+    };
+
+    const term = data.search.trim().replace(/[%,()]/g, " ");
+    let searchClause: string | null = null;
+    if (term) {
+      // Talent name lives on the linked row, so resolve matching links first and
+      // fold them into the same OR filter to keep this a single round trip.
+      const { data: links } = await supabase
+        .from("agency_talent_links")
+        .select("id")
+        .eq("agency_id", agencyId)
+        .ilike("display_name", `%${term}%`)
+        .limit(500);
+      const ids = (links ?? []).map((l: any) => l.id);
+      searchClause =
+        `name.ilike.%${term}%,folder.ilike.%${term}%` +
+        (ids.length ? `,talent_link_id.in.(${ids.join(",")})` : "");
+    }
+
+    let listQ = applyFilters(
+      supabase.from("talent_shared_documents").select(VAULT_DOC_COLUMNS),
+    );
+    let countQ = applyFilters(
+      supabase.from("talent_shared_documents").select("id", { count: "exact", head: true }),
+    );
+    if (searchClause) {
+      listQ = listQ.or(searchClause);
+      countQ = countQ.or(searchClause);
+    }
+
+    const [{ data: docs, error }, { count, error: countErr }] = await Promise.all([
+      listQ.order("created_at", { ascending: false }).range(data.offset, data.offset + data.limit - 1),
+      countQ,
+    ]);
+    if (error) throw new Error(error.message);
+    if (countErr) throw new Error(countErr.message);
+
+    const rows = docs ?? [];
+    const talentMap = await resolveTalentNames(supabase, rows);
+    return { rows: rows.map((r: any) => mapVaultDoc(r, talentMap)), total: count ?? 0 };
+  });
+
+/** Documents expiring within N days, smallest window first (dashboard strip). */
+export const listAgencyVaultExpiring = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ days: z.number().int().min(1).max(365).default(180), limit: z.number().int().min(1).max(50).default(5) })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: docs, error } = await supabase
+      .from("talent_shared_documents")
+      .select(VAULT_DOC_COLUMNS)
+      .eq("agency_id", agencyId)
+      .not("validity_expires_at", "is", null)
+      .gte("validity_expires_at", new Date().toISOString())
+      .lte("validity_expires_at", new Date(Date.now() + data.days * 86400000).toISOString())
+      .order("validity_expires_at", { ascending: true })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    const rows = docs ?? [];
+    const talentMap = await resolveTalentNames(supabase, rows);
+    return rows.map((r: any) => mapVaultDoc(r, talentMap));
+  });
+
+/** Grouped per-talent document/folder counts for the vault talent picker. */
+export const getAgencyVaultTalentSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
-
-    const { data: docs, error } = await supabase
-      .from("talent_shared_documents")
-      .select("id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review")
-      .eq("agency_id", agencyId)
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.rpc("agency_vault_talent_summary", { _agency_id: agencyId });
     if (error) throw new Error(error.message);
-
-    const rows = docs ?? [];
-    const linkIds = Array.from(new Set(rows.map((r: any) => r.talent_link_id).filter(Boolean)));
-    const talentMap = new Map<string, string>();
-    if (linkIds.length) {
-      const { data: links } = await supabase
-        .from("agency_talent_links")
-        .select("id, display_name")
-        .in("id", linkIds);
-      for (const l of links ?? []) talentMap.set(l.id as string, l.display_name as string);
-    }
-
-    return rows.map((r: any) => ({
-      id: r.id as string,
-      name: r.name as string,
-      folder: r.folder as string,
-      status: r.status as string,
-      validityExpiresAt: (r.validity_expires_at as string) ?? null,
-      storagePath: (r.storage_path as string) ?? null,
-      talentLinkId: (r.talent_link_id as string) ?? null,
-      talentName: r.talent_link_id ? (talentMap.get(r.talent_link_id) ?? "Unassigned") : "Unassigned",
-      uploadedBy: (r.uploaded_by as string) ?? null,
-      createdAt: r.created_at as string,
-      updatedAt: r.updated_at as string,
-      lockedUntil: (r.locked_until as string) ?? null,
-      currentVersionId: (r.current_version_id as string) ?? null,
-      pendingReview: Boolean(r.pending_review),
+    return (data ?? []).map((r: any) => ({
+      talentLinkId: r.talent_link_id as string,
+      docCount: Number(r.doc_count ?? 0),
+      reviewCount: Number(r.review_count ?? 0),
+      folderCount: Number(r.folder_count ?? 0),
     }));
   });
+
+/** Grouped per-folder counts for one talent (folder grid badges). */
+export const getAgencyVaultFolderCounts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ talent_link_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: rows, error } = await supabase.rpc("agency_vault_folder_counts", {
+      _agency_id: agencyId,
+      _talent_link_id: data.talent_link_id,
+    });
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r: any) => ({
+      folder: r.folder as string,
+      docCount: Number(r.doc_count ?? 0),
+      reviewCount: Number(r.review_count ?? 0),
+      expiringCount: Number(r.expiring_count ?? 0),
+    }));
+  });
+
+/** Retention-lock KPI counts for the Document Rules panel. */
+export const getAgencyVaultLockCounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const nowIso = new Date().toISOString();
+    const soonIso = new Date(Date.now() + 90 * 86400000).toISOString();
+    const [locked, soon] = await Promise.all([
+      supabase
+        .from("talent_shared_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .gt("locked_until", nowIso),
+      supabase
+        .from("talent_shared_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .gt("locked_until", nowIso)
+        .lt("locked_until", soonIso),
+    ]);
+    if (locked.error) throw new Error(locked.error.message);
+    if (soon.error) throw new Error(soon.error.message);
+    return { locked: locked.count ?? 0, unlockingSoon: soon.count ?? 0 };
+  });
+
 
 export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

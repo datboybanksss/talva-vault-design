@@ -1,16 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Upload, FolderOpen, Sparkles, FileText, Files, Trash2, Download, Eye, X, Loader2,
   Lock, History, ShieldPlus, Search, ChevronRight, ChevronDown, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw, Plane, Briefcase,
 } from "lucide-react";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery, useInfiniteQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   listAgencyVaultDocuments,
+  listAgencyVaultExpiring,
+  getAgencyVaultTalentSummary,
+  getAgencyVaultFolderCounts,
   listAgencyTalentLinksLite,
   listAgencyTalentFolders,
-  listAllAgencyProvisionedFolders,
   registerAgencyVaultDocument,
   getAgencyVaultSignedUrl,
   deleteAgencyVaultDocument,
@@ -41,16 +43,32 @@ type VaultDoc = {
   pendingReview?: boolean;
 };
 type TalentLinkLite = { id: string; displayName: string; status: string };
+type TalentSummary = {
+  talentLinkId: string;
+  docCount: number;
+  reviewCount: number;
+  folderCount: number;
+};
+type FolderCount = {
+  folder: string;
+  docCount: number;
+  reviewCount: number;
+  expiringCount: number;
+};
 
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
-import { usePagedList } from "@/lib/pagination";
+import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
-export const docsQO = queryOptions({
-  queryKey: ["agency", "vault", "docs"],
-  queryFn:  () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
+export const talentSummaryQO = queryOptions({
+  queryKey: ["agency", "vault", "talent-summary"],
+  queryFn: () => getAgencyVaultTalentSummary() as Promise<TalentSummary[]>,
+});
+export const expiringQO = queryOptions({
+  queryKey: ["agency", "vault", "expiring"],
+  queryFn: () => listAgencyVaultExpiring({ data: { days: 180, limit: 5 } }) as Promise<VaultDoc[]>,
 });
 export const talentLinksQO = queryOptions({
   queryKey: ["agency", "vault", "talent-links"],
@@ -67,7 +85,8 @@ export const Route = createFileRoute("/agency/document-vault")({
     typeof search.tab === "string" ? { tab: search.tab } : {},
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(docsQO),
+      context.queryClient.ensureQueryData(talentSummaryQO),
+      context.queryClient.ensureQueryData(expiringQO),
       context.queryClient.ensureQueryData(talentLinksQO),
       context.queryClient.ensureQueryData(meQO),
       context.queryClient.ensureQueryData(requestsListQO),
@@ -151,38 +170,44 @@ type ProvisionedFolder = {
   restricted: boolean;
   needsReview: boolean;
   source: string;
-  talentLinkId: string;
-  talentName: string;
-  talentStatus: string;
-  talentType: string | null;
 };
 
-export const provisionedFoldersQO = queryOptions({
-  queryKey: ["agency", "vault", "all-provisioned-folders"],
-  queryFn: () => listAllAgencyProvisionedFolders({}) as Promise<ProvisionedFolder[]>,
-});
+/** Folders for one talent only — never the whole roster's folder set. */
+const talentFoldersQO = (talentLinkId: string | null) =>
+  queryOptions({
+    queryKey: ["agency", "vault", "talent-folders", talentLinkId],
+    queryFn: () =>
+      listAgencyTalentFolders({ data: { talent_link_id: talentLinkId! } }) as Promise<ProvisionedFolder[]>,
+    enabled: !!talentLinkId,
+  });
 
-function matchesTab(d: VaultDoc, tab: Tab): boolean {
-  if (tab === "Pending Review") return !!d.pendingReview;
-  if (tab === "Needs Review") return d.status === "needs_review";
-  if (tab === "Expiring") {
-    const dd = daysUntil(d.validityExpiresAt);
-    return dd !== null && dd >= 0 && dd <= 90;
-  }
-  if (tab === "Recently Updated") {
-    return (Date.now() - new Date(d.updatedAt).getTime()) / 86400000 <= 30;
-  }
-  return true;
-}
+const folderCountsQO = (talentLinkId: string | null) =>
+  queryOptions({
+    queryKey: ["agency", "vault", "folder-counts", talentLinkId],
+    queryFn: () =>
+      getAgencyVaultFolderCounts({ data: { talent_link_id: talentLinkId! } }) as Promise<FolderCount[]>,
+    enabled: !!talentLinkId,
+  });
+
+/** Maps the visible tab onto the server-side filter the API understands. */
+const TAB_FILTER: Record<Tab, "all" | "pending_review" | "needs_review" | "expiring" | "recently_updated"> = {
+  "All Documents": "all",
+  "Pending Review": "pending_review",
+  "Needs Review": "needs_review",
+  "Expiring": "expiring",
+  "Recently Updated": "recently_updated",
+  "Requests": "all",
+};
+
 
 export function VaultPage() {
   const qc = useQueryClient();
   const folderOptions = useFolderNames();
-  const { data: docs } = useSuspenseQuery(docsQO);
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
   const { data: me } = useSuspenseQuery(meQO);
   const { data: requestRows } = useSuspenseQuery(requestsListQO);
-  const { data: provisioned = [], isLoading: foldersLoading } = useQuery(provisionedFoldersQO);
+  const { data: talentSummary = [] } = useSuspenseQuery(talentSummaryQO);
+  const { data: expiring = [] } = useSuspenseQuery(expiringQO);
   const searchParams = Route.useSearch();
   const initialTab: Tab = (tabs as readonly string[]).includes(searchParams.tab ?? "")
     ? (searchParams.tab as Tab)
@@ -240,10 +265,14 @@ export function VaultPage() {
   });
 
   // ---- Folder tree for the selected talent, live from agency_talent_folders ----
-  const talentFolders = useMemo(
-    () => provisioned.filter((f) => f.talentLinkId === talentId),
-    [provisioned, talentId],
-  );
+  const { data: talentFolders = [], isLoading: foldersLoading } = useQuery(talentFoldersQO(talentId));
+  const { data: folderCounts = [] } = useQuery(folderCountsQO(talentId));
+
+  const countsByFolder = useMemo(() => {
+    const m = new Map<string, FolderCount>();
+    for (const c of folderCounts) m.set(c.folder, c);
+    return m;
+  }, [folderCounts]);
 
   const categories = useMemo(() => {
     const parents = talentFolders
@@ -254,75 +283,91 @@ export function VaultPage() {
         .filter((f) => f.parentFolderId === p.id)
         .sort((a, b) => a.sortOrder - b.sortOrder || a.folderName.localeCompare(b.folderName));
       const names = [p.folderName, ...children.map((c) => c.folderName)];
-      const scoped = docs.filter((d) => d.talentLinkId === talentId && names.includes(d.folder));
+      const agg = names.reduce(
+        (acc, n) => {
+          const c = countsByFolder.get(n);
+          if (c) {
+            acc.count += c.docCount;
+            acc.reviewCount += c.reviewCount;
+            acc.expiringCount += c.expiringCount;
+          }
+          return acc;
+        },
+        { count: 0, reviewCount: 0, expiringCount: 0 },
+      );
       return {
         folder: p,
         children,
         names,
-        count: scoped.length,
-        reviewCount: scoped.filter((d) => d.pendingReview || d.status === "needs_review").length,
-        expiringCount: scoped.filter((d) => {
-          const dd = daysUntil(d.validityExpiresAt);
-          return dd !== null && dd >= 0 && dd <= 90;
-        }).length,
+        ...agg,
         needsReview: p.needsReview || children.some((c) => c.needsReview),
       };
     });
-  }, [talentFolders, docs, talentId]);
+  }, [talentFolders, countsByFolder]);
 
-  const docsPerTalent = useMemo(() => {
-    const m = new Map<string, { total: number; review: number }>();
-    for (const d of docs) {
-      if (!d.talentLinkId) continue;
-      const e = m.get(d.talentLinkId) ?? { total: 0, review: 0 };
-      e.total += 1;
-      if (d.pendingReview || d.status === "needs_review") e.review += 1;
-      m.set(d.talentLinkId, e);
-    }
+  const summaryByTalent = useMemo(() => {
+    const m = new Map<string, TalentSummary>();
+    for (const s of talentSummary) m.set(s.talentLinkId, s);
     return m;
-  }, [docs]);
-
-  const foldersPerTalent = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const f of provisioned) {
-      if (f.parentFolderId) continue;
-      m.set(f.talentLinkId, (m.get(f.talentLinkId) ?? 0) + 1);
-    }
-    return m;
-  }, [provisioned]);
+  }, [talentSummary]);
 
   const selectedTalent = talentLinks.find((l) => l.id === talentId) ?? null;
 
   // ---- Which documents the current mode + tab are looking at ----
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let list = docs;
-    if (mode === "browse") {
-      if (talentId) list = list.filter((d) => d.talentLinkId === talentId);
-      if (folderSel) list = list.filter((d) => folderSel.names.includes(d.folder));
-    } else {
-      if (folderFilter !== "all") list = list.filter((d) => d.folder === folderFilter);
-      if (talentFilter !== "all") list = list.filter((d) => d.talentLinkId === talentFilter);
-      if (q) {
-        list = list.filter(
-          (d) => d.name.toLowerCase().includes(q) || d.talentName.toLowerCase().includes(q) || d.folder.toLowerCase().includes(q),
-        );
-      }
-    }
-    return list.filter((d) => matchesTab(d, tab));
-  }, [docs, mode, talentId, folderSel, folderFilter, talentFilter, search, tab]);
+  // Filtering, search and paging all happen in Postgres: the browser only ever
+  // holds the pages it has actually asked for.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  const page = usePagedList(filtered, {
-    resetKey: `${mode}|${talentId}|${folderSel?.label}|${folderFilter}|${talentFilter}|${search}|${tab}`,
+  const queryArgs = useMemo(() => {
+    const base = {
+      tab: TAB_FILTER[tab],
+      talentLinkId: null as string | null,
+      folderNames: null as string[] | null,
+      folder: null as string | null,
+      search: "",
+    };
+    if (mode === "browse") {
+      base.talentLinkId = talentId;
+      base.folderNames = folderSel?.names ?? null;
+    } else {
+      base.folder = folderFilter === "all" ? null : folderFilter;
+      base.talentLinkId = talentFilter === "all" ? null : talentFilter;
+      base.search = debouncedSearch;
+    }
+    return base;
+  }, [mode, tab, talentId, folderSel, folderFilter, talentFilter, debouncedSearch]);
+
+  const docsQuery = useInfiniteQuery({
+    queryKey: ["agency", "vault", "docs", queryArgs],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      listAgencyVaultDocuments({
+        data: { ...queryArgs, limit: PAGE_SIZE, offset: pageParam as number },
+      }) as Promise<{ rows: VaultDoc[]; total: number }>,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((n, p) => n + p.rows.length, 0);
+      return loaded < lastPage.total ? loaded : undefined;
+    },
   });
 
-  const expiring = useMemo(() => {
-    return docs
-      .map((d) => ({ ...d, days: daysUntil(d.validityExpiresAt) }))
-      .filter((d) => d.days !== null && d.days >= 0 && d.days <= 180)
-      .sort((a, b) => (a.days ?? 0) - (b.days ?? 0))
-      .slice(0, 5);
-  }, [docs]);
+  const visibleDocs = useMemo(
+    () => (docsQuery.data?.pages ?? []).flatMap((p) => p.rows),
+    [docsQuery.data],
+  );
+  const totalDocs = docsQuery.data?.pages[0]?.total ?? 0;
+  const page = {
+    visible: visibleDocs,
+    shown: visibleDocs.length,
+    total: totalDocs,
+    hasMore: !!docsQuery.hasNextPage,
+    loadMore: () => docsQuery.fetchNextPage(),
+    isLoadingMore: docsQuery.isFetchingNextPage,
+  };
+
 
   const showTalentPicker = mode === "browse" && !talentId && tab === "All Documents";
   const showFolderGrid = mode === "browse" && !!talentId && !folderSel && tab === "All Documents";
@@ -381,8 +426,8 @@ export function VaultPage() {
                   <strong>{d.talentName} · {d.name}</strong>
                   <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
                 </div>
-                <span className={`tvp-status tvp-${(d.days ?? 0) <= 60 ? "amber" : "blue"}`}>
-                  {d.days} days
+                <span className={`tvp-status tvp-${(daysUntil(d.validityExpiresAt) ?? 0) <= 60 ? "amber" : "blue"}`}>
+                  {daysUntil(d.validityExpiresAt)} days
                 </span>
               </div>
             ))}
@@ -492,7 +537,9 @@ export function VaultPage() {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, marginTop: 12, alignItems: "start" }}>
                 {talentLinks.map((l) => {
-                  const stats = docsPerTalent.get(l.id) ?? { total: 0, review: 0 };
+                  const stats = summaryByTalent.get(l.id);
+                  const totalDocsForTalent = stats?.docCount ?? 0;
+                  const folderTotal = stats?.folderCount ?? 0;
                   return (
                     <button
                       key={l.id}
@@ -503,14 +550,14 @@ export function VaultPage() {
                     >
                       <strong style={{ fontSize: 14 }}>{l.displayName}</strong>
                       <span className="tvp-muted" style={{ fontSize: 12, marginTop: 4 }}>
-                        {foldersPerTalent.get(l.id) ?? 0} {(foldersPerTalent.get(l.id) ?? 0) === 1 ? "folder" : "folders"} · {stats.total} {stats.total === 1 ? "document" : "documents"}
+                        {folderTotal} {folderTotal === 1 ? "folder" : "folders"} · {totalDocsForTalent} {totalDocsForTalent === 1 ? "document" : "documents"}
                       </span>
                       <span style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                         {l.status !== "active" && (
                           <span className="tvp-status tvp-amber" style={{ textTransform: "capitalize" }}>{l.status}</span>
                         )}
-                        {stats.review > 0 && (
-                          <span className="tvp-status tvp-purple">{stats.review} to review</span>
+                        {(stats?.reviewCount ?? 0) > 0 && (
+                          <span className="tvp-status tvp-purple">{stats?.reviewCount} to review</span>
                         )}
                       </span>
                     </button>
@@ -581,7 +628,7 @@ export function VaultPage() {
                             {c.children.length > 0 && (
                               <div className="tvp-subfolder-list">
                                 {c.children.map((s) => {
-                                  const n = docs.filter((d) => d.talentLinkId === talentId && d.folder === s.folderName).length;
+                                  const n = countsByFolder.get(s.folderName)?.docCount ?? 0;
                                   return (
                                     <button
                                       key={s.id}
@@ -631,7 +678,7 @@ export function VaultPage() {
               </div>
             </div>
           )}
-          {filtered.length === 0 ? (
+          {page.total === 0 ? (
             <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
               {mode === "search"
                 ? "No documents match your search — try a different term or clear the filters."
