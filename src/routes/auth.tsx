@@ -2,6 +2,7 @@ import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PORTAL_FOR_DENIED_CODE, checkPortalAccess } from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
 import { ShieldCheck, Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
