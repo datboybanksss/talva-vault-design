@@ -66,7 +66,7 @@ export function VaultFoldersPanel() {
   async function setAll(on: boolean) {
     setBusy("__all");
     try {
-      for (const c of DEFAULT_CATEGORIES) {
+      for (const c of categories) {
         const has = present.has(c.name);
         if (on && !has) await restore({ data: { name: c.name } });
         if (!on && has) await remove({ data: { id: present.get(c.name)! } });
