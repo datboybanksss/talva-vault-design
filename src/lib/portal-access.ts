@@ -59,15 +59,17 @@ async function runCheck(key: PortalKey, userId: string): Promise<AccessResult> {
 }
 
 export async function checkPortalAccess(key: PortalKey): Promise<AccessResult> {
-  // getUser() resolves only once the client has hydrated its session from
-  // storage (or refreshed it), so the role check never runs against a
-  // half-initialised auth state.
-  const { data: userRes, error: userErr } = await supabase.auth.getUser();
-  if (userErr) return "error";
-  if (!userRes.user) return "signed-out";
+  // getSession() resolves once the client has hydrated its session from storage
+  // (and refreshed it if needed), so the role check never runs against a
+  // half-initialised auth state. It also reports "no session" without the
+  // AuthSessionMissingError that getUser() throws when signed out.
+  const { data: sessRes, error: sessErr } = await supabase.auth.getSession();
+  if (sessErr) return "error";
+  const userId = sessRes.session?.user?.id;
+  if (!userId) return "signed-out";
 
-  const first = await runCheck(key, userRes.user.id);
+  const first = await runCheck(key, userId);
   if (first !== "error") return first;
   // One retry: a single failed round-trip must not turn into a false denial.
-  return runCheck(key, userRes.user.id);
+  return runCheck(key, userId);
 }
