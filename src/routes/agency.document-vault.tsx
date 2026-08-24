@@ -170,29 +170,35 @@ type ProvisionedFolder = {
   restricted: boolean;
   needsReview: boolean;
   source: string;
-  talentLinkId: string;
-  talentName: string;
-  talentStatus: string;
-  talentType: string | null;
 };
 
-export const provisionedFoldersQO = queryOptions({
-  queryKey: ["agency", "vault", "all-provisioned-folders"],
-  queryFn: () => listAllAgencyProvisionedFolders({}) as Promise<ProvisionedFolder[]>,
-});
+/** Folders for one talent only — never the whole roster's folder set. */
+const talentFoldersQO = (talentLinkId: string | null) =>
+  queryOptions({
+    queryKey: ["agency", "vault", "talent-folders", talentLinkId],
+    queryFn: () =>
+      listAgencyTalentFolders({ data: { talent_link_id: talentLinkId! } }) as Promise<ProvisionedFolder[]>,
+    enabled: !!talentLinkId,
+  });
 
-function matchesTab(d: VaultDoc, tab: Tab): boolean {
-  if (tab === "Pending Review") return !!d.pendingReview;
-  if (tab === "Needs Review") return d.status === "needs_review";
-  if (tab === "Expiring") {
-    const dd = daysUntil(d.validityExpiresAt);
-    return dd !== null && dd >= 0 && dd <= 90;
-  }
-  if (tab === "Recently Updated") {
-    return (Date.now() - new Date(d.updatedAt).getTime()) / 86400000 <= 30;
-  }
-  return true;
-}
+const folderCountsQO = (talentLinkId: string | null) =>
+  queryOptions({
+    queryKey: ["agency", "vault", "folder-counts", talentLinkId],
+    queryFn: () =>
+      getAgencyVaultFolderCounts({ data: { talent_link_id: talentLinkId! } }) as Promise<FolderCount[]>,
+    enabled: !!talentLinkId,
+  });
+
+/** Maps the visible tab onto the server-side filter the API understands. */
+const TAB_FILTER: Record<Tab, "all" | "pending_review" | "needs_review" | "expiring" | "recently_updated"> = {
+  "All Documents": "all",
+  "Pending Review": "pending_review",
+  "Needs Review": "needs_review",
+  "Expiring": "expiring",
+  "Recently Updated": "recently_updated",
+  "Requests": "all",
+};
+
 
 export function VaultPage() {
   const qc = useQueryClient();
