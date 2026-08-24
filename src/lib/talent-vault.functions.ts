@@ -175,6 +175,55 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
     return { document_id: row.id, upload: signed, storage_path: path };
   });
 
+/**
+ * TVA-SEC-004: called by the client immediately after the signed-URL PUT
+ * completes. The document row already exists (it is created up-front so the
+ * signed URL has somewhere to land), so a rejected file must take both the
+ * stored object and the row with it.
+ */
+export const finalisePrivateUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ document_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId, supabase } = context;
+
+    const { data: doc, error } = await supabase
+      .from("talent_private_documents")
+      .select("id, user_id, storage_path, mime_type")
+      .eq("id", data.document_id)
+      .single();
+    if (error) throw new Error(error.message);
+    if (doc.user_id !== userId) throw new Error("Forbidden");
+    if (!doc.storage_path) throw new Error("No file attached.");
+
+    const { validateStoredUpload, UploadRejected } = await import(
+      "@/lib/file-validation.server"
+    );
+    try {
+      const result = await validateStoredUpload({
+        bucket: BUCKET,
+        path: doc.storage_path,
+        claimedMime: doc.mime_type,
+      });
+      // Trust the size we measured, not the one the browser reported.
+      await supabase
+        .from("talent_private_documents")
+        .update({ size_bytes: result.sizeBytes })
+        .eq("id", doc.id);
+      return { ok: true as const, size_bytes: result.sizeBytes };
+    } catch (e) {
+      // The object is already removed by validateStoredUpload; drop the row too
+      // so the vault never shows a phantom document.
+      await supabase.from("talent_private_documents").delete().eq("id", doc.id);
+      if (e instanceof UploadRejected) throw new Error(e.message);
+      throw e;
+    }
+  });
+
+
+
 const DocIdInput = z.object({ id: z.string().uuid() });
 
 export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
