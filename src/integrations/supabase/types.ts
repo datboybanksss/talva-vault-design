@@ -2536,6 +2536,15 @@ export type Database = {
         Args: { _migration_key?: string }
         Returns: number
       }
+      seed_agency_owner_account: {
+        Args: {
+          _agency_id: string
+          _email: string
+          _full_name?: string
+          _password?: string
+        }
+        Returns: string
+      }
       seed_talent_default_folders: {
         Args: { _user_id: string }
         Returns: undefined
