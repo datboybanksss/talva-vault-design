@@ -163,7 +163,7 @@ function AuthPage() {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [nav, search.next, search.denied]);
+  }, [nav, search.next, search.denied, deniedState]);
 
   const isSignIn = mode === "sign-in";
 
