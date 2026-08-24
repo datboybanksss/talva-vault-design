@@ -43,6 +43,18 @@ type VaultDoc = {
   pendingReview?: boolean;
 };
 type TalentLinkLite = { id: string; displayName: string; status: string };
+type TalentSummary = {
+  talentLinkId: string;
+  docCount: number;
+  reviewCount: number;
+  folderCount: number;
+};
+type FolderCount = {
+  folder: string;
+  docCount: number;
+  reviewCount: number;
+  expiringCount: number;
+};
 
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
