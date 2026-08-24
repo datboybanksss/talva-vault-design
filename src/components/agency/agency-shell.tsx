@@ -264,7 +264,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <input className="tvp-search-top" placeholder="Search..." />
+          
 
           <ThemeToggle />
           <HelpMenu portal="agency" />

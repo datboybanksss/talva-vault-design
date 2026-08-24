@@ -241,7 +241,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               View only — no edit access
             </span>
           )}
-          <input className="tvp-search-top" placeholder="Search..." />
+          
           <ThemeToggle />
           <HelpMenu portal="admin" />
           <div className="tvp-notification-wrap">
