@@ -122,7 +122,10 @@ function InvitationsPage() {
   });
 
   const copyLink = async (inv: any) => {
-    const url = `${window.location.origin}/invite/${inv.token}`;
+    const url =
+      inv.type === "talent"
+        ? `${window.location.origin}/invite/talent/${inv.token}`
+        : `${window.location.origin}/invite/${inv.token}`;
     try {
       await navigator.clipboard.writeText(url);
       await logCopyFn({ data: { id: inv.id, type: inv.type } });
