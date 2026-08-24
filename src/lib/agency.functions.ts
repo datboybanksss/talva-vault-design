@@ -1101,6 +1101,8 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
       talent_link_id: z.string().uuid().nullable().optional(),
       status: z.enum(["ai_suggested", "filed", "needs_review"]).default("needs_review"),
       validity_expires_at: z.string().nullable().optional(),
+      mime_type: z.string().max(160).nullable().optional(),
+
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -1125,6 +1127,17 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
         throw new Error("RELATIONSHIP_ENDED: this talent relationship has ended — new uploads are blocked. Reactivate the relationship to share new documents.");
       }
     }
+
+    // TVA-SEC-004: the browser uploaded straight to storage, so verify the real
+    // bytes before this document becomes visible to anyone.
+    const { validateStoredUpload } = await import("@/lib/file-validation.server");
+    await validateStoredUpload({
+      bucket: "talent-documents",
+      path: data.storage_path,
+      claimedMime: data.mime_type ?? null,
+    });
+
+
 
 
     const { data: inserted, error } = await supabase
@@ -1376,6 +1389,16 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
     if (!data.storage_path.startsWith(`${agencyId}/`)) {
       throw new Error("Invalid storage path for this agency.");
     }
+
+    // TVA-SEC-004: verify the newly uploaded version's real bytes.
+    const { validateStoredUpload } = await import("@/lib/file-validation.server");
+    await validateStoredUpload({
+      bucket: "talent-documents",
+      path: data.storage_path,
+      claimedMime: data.mime_type ?? null,
+    });
+
+
 
     const { data: doc, error: dErr } = await supabase
       .from("talent_shared_documents")
@@ -2545,6 +2568,22 @@ export const updateAgencyLogoPath = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+
+    // TVA-SEC-004: a logo is rendered in quotes/invoices, so only accept files
+    // whose bytes really are a raster image (never SVG — it can carry script).
+    if (data.storage_path) {
+      if (!data.storage_path.startsWith(`${agencyId}/`)) {
+        throw new Error("Invalid storage path for this agency.");
+      }
+      const { validateStoredUpload } = await import("@/lib/file-validation.server");
+      await validateStoredUpload({
+        bucket: "agency-branding",
+        path: data.storage_path,
+        profile: "image",
+      });
+    }
+
+
     const { data: cur } = await supabase
       .from("agencies")
       .select("logo_path")

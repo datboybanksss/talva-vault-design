@@ -706,6 +706,17 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
     if (!data.storage_path.startsWith(`${data.invitation_id}/`)) {
       throw new Error("Invalid storage path.");
     }
+
+    // TVA-SEC-004: compliance documents are uploaded browser -> storage, so the
+    // declared name/type/size are untrusted. Verify the stored bytes.
+    const { validateStoredUpload } = await import("@/lib/file-validation.server");
+    await validateStoredUpload({
+      bucket: "agency-compliance-docs",
+      path: data.storage_path,
+      claimedMime: data.mime_type ?? null,
+    });
+
+
     const { data: row, error } = await supabase
       .from("agency_compliance_documents")
       .insert({
