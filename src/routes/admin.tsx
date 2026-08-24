@@ -16,23 +16,23 @@ export const Route = createFileRoute("/admin")({
     ],
   }),
   beforeLoad: async ({ location }) => {
+    const access = await checkPortalAccess("admin");
+    if (access !== "granted") {
+      throw redirect({
+        to: "/auth",
+        // Only a settled "denied" earns the banner. A signed-out visitor or a
+        // check that could not complete just gets the plain sign-in screen.
+        search:
+          access === "denied"
+            ? { next: location.href, denied: "not_admin" }
+            : { next: location.href },
+      });
+    }
     const { data: userRes } = await supabase.auth.getUser();
     if (!userRes.user) {
-      throw redirect({
-        to: "/auth",
-        search: { next: location.href },
-      });
+      throw redirect({ to: "/auth", search: { next: location.href } });
     }
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _user_id: userRes.user.id,
-      _role: "admin",
-    });
-    if (!isAdmin) {
-      throw redirect({
-        to: "/auth",
-        search: { next: location.href, denied: "not_admin" },
-      });
-    }
+
 
     // Two-factor authentication is mandatory for the main admin and for admins
     // with edit rights. View-only admins are not forced to enrol. The enrolment
