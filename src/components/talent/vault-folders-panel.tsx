@@ -98,7 +98,7 @@ export function VaultFoldersPanel() {
           <button className="tvp-secondary" onClick={() => setAll(false)} disabled={busy !== null || activeCount === 0}>
             Deselect all
           </button>
-          <button className="tvp-primary" onClick={() => setAll(true)} disabled={busy !== null || activeCount === DEFAULT_CATEGORIES.length}>
+          <button className="tvp-primary" onClick={() => setAll(true)} disabled={busy !== null || categories.length === 0 || activeCount === categories.length}>
             <FolderPlus className="h-4 w-4" /> Select all
           </button>
         </div>
