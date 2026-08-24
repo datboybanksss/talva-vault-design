@@ -71,7 +71,8 @@ export const Route = createFileRoute("/agency/document-vault")({
     typeof search.tab === "string" ? { tab: search.tab } : {},
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(docsQO),
+      context.queryClient.ensureQueryData(talentSummaryQO),
+      context.queryClient.ensureQueryData(expiringQO),
       context.queryClient.ensureQueryData(talentLinksQO),
       context.queryClient.ensureQueryData(meQO),
       context.queryClient.ensureQueryData(requestsListQO),
