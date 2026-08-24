@@ -108,7 +108,6 @@ function AuthPage() {
         setDeniedState("confirmed");
         return;
       }
-      console.log("[denied-revalidate]", result);
       if (result === "error") return; // transient: keep checking, show nothing
       // Access is now granted, or nobody is signed in. Either way the denial no
       // longer applies — clear it so the normal sign-in / auto-redirect flow runs.

@@ -63,9 +63,7 @@ export async function checkPortalAccess(key: PortalKey): Promise<AccessResult> {
   // (and refreshed it if needed), so the role check never runs against a
   // half-initialised auth state. It also reports "no session" without the
   // AuthSessionMissingError that getUser() throws when signed out.
-  console.log("[pa] start", key);
   const { data: sessRes, error: sessErr } = await supabase.auth.getSession();
-  console.log("[pa] session", !!sessRes?.session, sessErr?.message);
   if (sessErr) return "error";
   const userId = sessRes.session?.user?.id;
   if (!userId) return "signed-out";
