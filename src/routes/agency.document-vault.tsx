@@ -48,9 +48,13 @@ import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
-export const docsQO = queryOptions({
-  queryKey: ["agency", "vault", "docs"],
-  queryFn:  () => listAgencyVaultDocuments() as Promise<VaultDoc[]>,
+export const talentSummaryQO = queryOptions({
+  queryKey: ["agency", "vault", "talent-summary"],
+  queryFn: () => getAgencyVaultTalentSummary() as Promise<TalentSummary[]>,
+});
+export const expiringQO = queryOptions({
+  queryKey: ["agency", "vault", "expiring"],
+  queryFn: () => listAgencyVaultExpiring({ data: { days: 180, limit: 5 } }) as Promise<VaultDoc[]>,
 });
 export const talentLinksQO = queryOptions({
   queryKey: ["agency", "vault", "talent-links"],
