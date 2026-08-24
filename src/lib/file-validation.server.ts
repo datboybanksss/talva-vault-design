@@ -129,12 +129,33 @@ function looksLikeText(head: Uint8Array): boolean {
   return true;
 }
 
+/**
+ * Markup that a browser would execute if it were ever served inline. SVG and
+ * HTML are plain text by every byte-level measure, so they slip past the text
+ * sniff — but both can carry <script>. We never accept them as uploads.
+ */
+function looksLikeActiveMarkup(head: Uint8Array): boolean {
+  const start = new TextDecoder("utf-8", { fatal: false })
+    .decode(head.subarray(0, 512))
+    .trimStart()
+    .toLowerCase();
+  return (
+    start.startsWith("<svg") ||
+    start.startsWith("<html") ||
+    start.startsWith("<!doctype html") ||
+    (start.startsWith("<?xml") && start.includes("<svg"))
+  );
+}
+
 export function detectKind(head: Uint8Array): DetectedKind | null {
   for (const sig of SIGNATURES) {
     if (matches(head, sig)) return sig.kind;
   }
-  return looksLikeText(head) ? "text" : null;
+  if (!looksLikeText(head)) return null;
+  if (looksLikeActiveMarkup(head)) return null;
+  return "text";
 }
+
 
 export class UploadRejected extends Error {
   readonly code: string;
