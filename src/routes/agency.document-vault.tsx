@@ -62,19 +62,19 @@ import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
-export const talentSummaryQO = queryOptions({
+const talentSummaryQO = queryOptions({
   queryKey: ["agency", "vault", "talent-summary"],
   queryFn: () => getAgencyVaultTalentSummary() as Promise<TalentSummary[]>,
 });
-export const expiringQO = queryOptions({
+const expiringQO = queryOptions({
   queryKey: ["agency", "vault", "expiring"],
   queryFn: () => listAgencyVaultExpiring({ data: { days: 180, limit: 5 } }) as Promise<VaultDoc[]>,
 });
-export const talentLinksQO = queryOptions({
+const talentLinksQO = queryOptions({
   queryKey: ["agency", "vault", "talent-links"],
   queryFn:  () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
 });
-export const meQO = queryOptions({
+const meQO = queryOptions({
   queryKey: ["agency", "whoami"],
   queryFn:  () => agencyWhoami(),
 });
@@ -200,7 +200,7 @@ const TAB_FILTER: Record<Tab, "all" | "pending_review" | "needs_review" | "expir
 };
 
 
-export function VaultPage() {
+function VaultPage() {
   const qc = useQueryClient();
   const folderOptions = useFolderNames();
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
