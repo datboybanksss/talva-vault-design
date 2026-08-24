@@ -265,10 +265,14 @@ export function VaultPage() {
   });
 
   // ---- Folder tree for the selected talent, live from agency_talent_folders ----
-  const talentFolders = useMemo(
-    () => provisioned.filter((f) => f.talentLinkId === talentId),
-    [provisioned, talentId],
-  );
+  const { data: talentFolders = [], isLoading: foldersLoading } = useQuery(talentFoldersQO(talentId));
+  const { data: folderCounts = [] } = useQuery(folderCountsQO(talentId));
+
+  const countsByFolder = useMemo(() => {
+    const m = new Map<string, FolderCount>();
+    for (const c of folderCounts) m.set(c.folder, c);
+    return m;
+  }, [folderCounts]);
 
   const categories = useMemo(() => {
     const parents = talentFolders
@@ -279,75 +283,91 @@ export function VaultPage() {
         .filter((f) => f.parentFolderId === p.id)
         .sort((a, b) => a.sortOrder - b.sortOrder || a.folderName.localeCompare(b.folderName));
       const names = [p.folderName, ...children.map((c) => c.folderName)];
-      const scoped = docs.filter((d) => d.talentLinkId === talentId && names.includes(d.folder));
+      const agg = names.reduce(
+        (acc, n) => {
+          const c = countsByFolder.get(n);
+          if (c) {
+            acc.count += c.docCount;
+            acc.reviewCount += c.reviewCount;
+            acc.expiringCount += c.expiringCount;
+          }
+          return acc;
+        },
+        { count: 0, reviewCount: 0, expiringCount: 0 },
+      );
       return {
         folder: p,
         children,
         names,
-        count: scoped.length,
-        reviewCount: scoped.filter((d) => d.pendingReview || d.status === "needs_review").length,
-        expiringCount: scoped.filter((d) => {
-          const dd = daysUntil(d.validityExpiresAt);
-          return dd !== null && dd >= 0 && dd <= 90;
-        }).length,
+        ...agg,
         needsReview: p.needsReview || children.some((c) => c.needsReview),
       };
     });
-  }, [talentFolders, docs, talentId]);
+  }, [talentFolders, countsByFolder]);
 
-  const docsPerTalent = useMemo(() => {
-    const m = new Map<string, { total: number; review: number }>();
-    for (const d of docs) {
-      if (!d.talentLinkId) continue;
-      const e = m.get(d.talentLinkId) ?? { total: 0, review: 0 };
-      e.total += 1;
-      if (d.pendingReview || d.status === "needs_review") e.review += 1;
-      m.set(d.talentLinkId, e);
-    }
+  const summaryByTalent = useMemo(() => {
+    const m = new Map<string, TalentSummary>();
+    for (const s of talentSummary) m.set(s.talentLinkId, s);
     return m;
-  }, [docs]);
-
-  const foldersPerTalent = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const f of provisioned) {
-      if (f.parentFolderId) continue;
-      m.set(f.talentLinkId, (m.get(f.talentLinkId) ?? 0) + 1);
-    }
-    return m;
-  }, [provisioned]);
+  }, [talentSummary]);
 
   const selectedTalent = talentLinks.find((l) => l.id === talentId) ?? null;
 
   // ---- Which documents the current mode + tab are looking at ----
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let list = docs;
-    if (mode === "browse") {
-      if (talentId) list = list.filter((d) => d.talentLinkId === talentId);
-      if (folderSel) list = list.filter((d) => folderSel.names.includes(d.folder));
-    } else {
-      if (folderFilter !== "all") list = list.filter((d) => d.folder === folderFilter);
-      if (talentFilter !== "all") list = list.filter((d) => d.talentLinkId === talentFilter);
-      if (q) {
-        list = list.filter(
-          (d) => d.name.toLowerCase().includes(q) || d.talentName.toLowerCase().includes(q) || d.folder.toLowerCase().includes(q),
-        );
-      }
-    }
-    return list.filter((d) => matchesTab(d, tab));
-  }, [docs, mode, talentId, folderSel, folderFilter, talentFilter, search, tab]);
+  // Filtering, search and paging all happen in Postgres: the browser only ever
+  // holds the pages it has actually asked for.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  const page = usePagedList(filtered, {
-    resetKey: `${mode}|${talentId}|${folderSel?.label}|${folderFilter}|${talentFilter}|${search}|${tab}`,
+  const queryArgs = useMemo(() => {
+    const base = {
+      tab: TAB_FILTER[tab],
+      talentLinkId: null as string | null,
+      folderNames: null as string[] | null,
+      folder: null as string | null,
+      search: "",
+    };
+    if (mode === "browse") {
+      base.talentLinkId = talentId;
+      base.folderNames = folderSel?.names ?? null;
+    } else {
+      base.folder = folderFilter === "all" ? null : folderFilter;
+      base.talentLinkId = talentFilter === "all" ? null : talentFilter;
+      base.search = debouncedSearch;
+    }
+    return base;
+  }, [mode, tab, talentId, folderSel, folderFilter, talentFilter, debouncedSearch]);
+
+  const docsQuery = useInfiniteQuery({
+    queryKey: ["agency", "vault", "docs", queryArgs],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      listAgencyVaultDocuments({
+        data: { ...queryArgs, limit: PAGE_SIZE, offset: pageParam as number },
+      }) as Promise<{ rows: VaultDoc[]; total: number }>,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((n, p) => n + p.rows.length, 0);
+      return loaded < lastPage.total ? loaded : undefined;
+    },
   });
 
-  const expiring = useMemo(() => {
-    return docs
-      .map((d) => ({ ...d, days: daysUntil(d.validityExpiresAt) }))
-      .filter((d) => d.days !== null && d.days >= 0 && d.days <= 180)
-      .sort((a, b) => (a.days ?? 0) - (b.days ?? 0))
-      .slice(0, 5);
-  }, [docs]);
+  const visibleDocs = useMemo(
+    () => (docsQuery.data?.pages ?? []).flatMap((p) => p.rows),
+    [docsQuery.data],
+  );
+  const totalDocs = docsQuery.data?.pages[0]?.total ?? 0;
+  const page = {
+    visible: visibleDocs,
+    shown: visibleDocs.length,
+    total: totalDocs,
+    hasMore: !!docsQuery.hasNextPage,
+    loadMore: () => docsQuery.fetchNextPage(),
+    isLoadingMore: docsQuery.isFetchingNextPage,
+  };
+
 
   const showTalentPicker = mode === "browse" && !talentId && tab === "All Documents";
   const showFolderGrid = mode === "browse" && !!talentId && !folderSel && tab === "All Documents";
