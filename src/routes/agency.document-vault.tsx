@@ -4,13 +4,15 @@ import {
   Upload, FolderOpen, Sparkles, FileText, Files, Trash2, Download, Eye, X, Loader2,
   Lock, History, ShieldPlus, Search, ChevronRight, ChevronDown, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw, Plane, Briefcase,
 } from "lucide-react";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery, useInfiniteQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   listAgencyVaultDocuments,
+  listAgencyVaultExpiring,
+  getAgencyVaultTalentSummary,
+  getAgencyVaultFolderCounts,
   listAgencyTalentLinksLite,
   listAgencyTalentFolders,
-  listAllAgencyProvisionedFolders,
   registerAgencyVaultDocument,
   getAgencyVaultSignedUrl,
   deleteAgencyVaultDocument,
