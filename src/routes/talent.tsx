@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { TalentShell } from "@/components/talent/talent-shell";
-import { supabase } from "@/integrations/supabase/client";
+import { checkPortalAccess } from "@/lib/portal-access";
 import { getTalentContext } from "@/lib/talent.functions";
 
 export const Route = createFileRoute("/talent")({
@@ -17,21 +17,18 @@ export const Route = createFileRoute("/talent")({
     ],
   }),
   beforeLoad: async ({ location }) => {
-    const { data: userRes } = await supabase.auth.getUser();
-    if (!userRes.user) {
-      throw redirect({ to: "/auth", search: { next: location.href } });
-    }
-  },
-  loader: async () => {
-    const ctx = await getTalentContext();
-    if (!ctx.profile) {
+    const access = await checkPortalAccess("talent");
+    if (access !== "granted") {
       throw redirect({
         to: "/auth",
-        search: { next: "/talent", denied: "not_talent" },
+        search:
+          access === "denied"
+            ? { next: location.href, denied: "not_talent" }
+            : { next: location.href },
       });
     }
-    return ctx;
   },
+  loader: async () => getTalentContext(),
   component: TalentLayout,
 });
 
