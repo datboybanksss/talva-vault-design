@@ -201,9 +201,10 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
         .eq("is_test", false),
       supabase.from("agency_documents").select("shared_folder_count, private_vault_count"),
       supabase
-        .from("loved_one_shares")
+        // Admins read share metadata through the token-free admin view.
+        .from("admin_loved_one_shares_view")
         .select("id", { count: "exact", head: true })
-        .eq("is_active", true),
+        .eq("is_currently_active", true),
     ]);
 
     const statusCounts: Record<string, number> = {
