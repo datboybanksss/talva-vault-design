@@ -109,10 +109,11 @@ export function VaultFoldersPanel() {
       ) : (
         <>
           <p className="tvp-muted" style={{ fontSize: 12, margin: "6px 0 12px" }}>
-            {activeCount} of {DEFAULT_CATEGORIES.length} categories active
+            {activeCount} of {categories.length} categories active
           </p>
           <div className="tvp-folder-tree">
-            {DEFAULT_CATEGORIES.map((c) => {
+            {categories.map((c) => {
+
               const active = present.has(c.name);
               const isBusy = busy === c.name || busy === "__all";
               return (
