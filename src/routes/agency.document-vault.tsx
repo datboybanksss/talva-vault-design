@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Upload, FolderOpen, Sparkles, FileText, Files, Trash2, Download, Eye, X, Loader2,
   Lock, History, ShieldPlus, Search, ChevronRight, ChevronDown, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw, Plane, Briefcase,
@@ -58,7 +58,7 @@ type FolderCount = {
 
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
-import { usePagedList } from "@/lib/pagination";
+import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
@@ -426,8 +426,8 @@ export function VaultPage() {
                   <strong>{d.talentName} · {d.name}</strong>
                   <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
                 </div>
-                <span className={`tvp-status tvp-${(d.days ?? 0) <= 60 ? "amber" : "blue"}`}>
-                  {d.days} days
+                <span className={`tvp-status tvp-${(daysUntil(d.validityExpiresAt) ?? 0) <= 60 ? "amber" : "blue"}`}>
+                  {daysUntil(d.validityExpiresAt)} days
                 </span>
               </div>
             ))}
@@ -537,7 +537,9 @@ export function VaultPage() {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, marginTop: 12, alignItems: "start" }}>
                 {talentLinks.map((l) => {
-                  const stats = docsPerTalent.get(l.id) ?? { total: 0, review: 0 };
+                  const stats = summaryByTalent.get(l.id);
+                  const totalDocsForTalent = stats?.docCount ?? 0;
+                  const folderTotal = stats?.folderCount ?? 0;
                   return (
                     <button
                       key={l.id}
@@ -548,7 +550,7 @@ export function VaultPage() {
                     >
                       <strong style={{ fontSize: 14 }}>{l.displayName}</strong>
                       <span className="tvp-muted" style={{ fontSize: 12, marginTop: 4 }}>
-                        {foldersPerTalent.get(l.id) ?? 0} {(foldersPerTalent.get(l.id) ?? 0) === 1 ? "folder" : "folders"} · {stats.total} {stats.total === 1 ? "document" : "documents"}
+                        {folderTotal} {folderTotal === 1 ? "folder" : "folders"} · {totalDocsForTalent} {totalDocsForTalent === 1 ? "document" : "documents"}
                       </span>
                       <span style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                         {l.status !== "active" && (
@@ -626,7 +628,7 @@ export function VaultPage() {
                             {c.children.length > 0 && (
                               <div className="tvp-subfolder-list">
                                 {c.children.map((s) => {
-                                  const n = docs.filter((d) => d.talentLinkId === talentId && d.folder === s.folderName).length;
+                                  const n = countsByFolder.get(s.folderName)?.docCount ?? 0;
                                   return (
                                     <button
                                       key={s.id}
@@ -676,7 +678,7 @@ export function VaultPage() {
               </div>
             </div>
           )}
-          {filtered.length === 0 ? (
+          {page.total === 0 ? (
             <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
               {mode === "search"
                 ? "No documents match your search — try a different term or clear the filters."
