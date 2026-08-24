@@ -1101,6 +1101,8 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
       talent_link_id: z.string().uuid().nullable().optional(),
       status: z.enum(["ai_suggested", "filed", "needs_review"]).default("needs_review"),
       validity_expires_at: z.string().nullable().optional(),
+      mime_type: z.string().max(160).nullable().optional(),
+
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -1125,6 +1127,17 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
         throw new Error("RELATIONSHIP_ENDED: this talent relationship has ended — new uploads are blocked. Reactivate the relationship to share new documents.");
       }
     }
+
+    // TVA-SEC-004: the browser uploaded straight to storage, so verify the real
+    // bytes before this document becomes visible to anyone.
+    const { validateStoredUpload } = await import("@/lib/file-validation.server");
+    await validateStoredUpload({
+      bucket: "talent-documents",
+      path: data.storage_path,
+      claimedMime: data.mime_type ?? null,
+    });
+
+
 
 
     const { data: inserted, error } = await supabase
