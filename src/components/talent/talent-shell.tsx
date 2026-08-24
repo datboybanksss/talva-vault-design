@@ -5,6 +5,7 @@ import { type ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useRouterState, useNavigate, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
+import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getTalentDashboard, listTalentDismissals, dismissTalentReminder } from "@/lib/talent.functions";
@@ -45,6 +46,7 @@ const settings: NavItem[] = [
 ];
 
 export function TalentShell({ children }: { children: ReactNode }) {
+  useIdleSignOut();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);

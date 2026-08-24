@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
+import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { whoami, listNotifications, dismissNotification, dismissComputedNotification } from "@/lib/admin.functions";
 
 type NavItem = {
@@ -74,6 +75,7 @@ const toneIcon: Record<string, any> = {
 };
 
 export function AdminShell({ children }: { children: ReactNode }) {
+  useIdleSignOut();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);

@@ -1,7 +1,7 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { supabase } from "@/integrations/supabase/client";
-import { checkPortalAccess } from "@/lib/portal-access";
+import { checkMfaGate, checkPortalAccess } from "@/lib/portal-access";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -35,27 +35,12 @@ export const Route = createFileRoute("/admin")({
     }
 
 
-    // Two-factor authentication is mandatory for the main admin and for admins
-    // with edit rights. View-only admins are not forced to enrol. The enrolment
-    // page itself must stay reachable, so the gate is skipped when already there.
+    // Two-factor authentication is mandatory for every account, with no
+    // permission-level exemption. The enrolment page must stay reachable.
     if (location.pathname === "/admin/enroll-2fa") return;
-    const { data: role } = await supabase
-      .from("user_roles")
-      .select("is_main_admin, permission_level")
-      .eq("user_id", userRes.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    const twoFaRequired =
-      !!role?.is_main_admin || role?.permission_level === "edit";
-    if (twoFaRequired) {
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const verified = (factors?.totp ?? []).find(
-        (f) => f.status === "verified",
-      );
-      if (!verified) {
-        throw redirect({ to: "/admin/enroll-2fa" });
-      }
-    }
+    const mfa = await checkMfaGate();
+    if (mfa === "enrol") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
+    if (mfa === "challenge") throw redirect({ to: "/auth", search: { next: location.href } });
   },
   component: AdminLayout,
 });

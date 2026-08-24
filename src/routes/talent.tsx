@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { TalentShell } from "@/components/talent/talent-shell";
-import { checkPortalAccess } from "@/lib/portal-access";
+import { checkMfaGate, checkPortalAccess } from "@/lib/portal-access";
 import { getTalentContext } from "@/lib/talent.functions";
 
 export const Route = createFileRoute("/talent")({
@@ -27,6 +27,9 @@ export const Route = createFileRoute("/talent")({
             : { next: location.href },
       });
     }
+    const mfa = await checkMfaGate();
+    if (mfa === "enrol") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
+    if (mfa === "challenge") throw redirect({ to: "/auth", search: { next: location.href } });
   },
   loader: async () => getTalentContext(),
   component: TalentLayout,

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TalentRouteImport } from './routes/talent'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as Enroll2faRouteImport } from './routes/enroll-2fa'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgencyRouteImport } from './routes/agency'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -72,6 +73,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Enroll2faRoute = Enroll2faRouteImport.update({
+  id: '/enroll-2fa',
+  path: '/enroll-2fa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -316,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRoute
+  '/enroll-2fa': typeof Enroll2faRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
@@ -365,6 +372,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/enroll-2fa': typeof Enroll2faRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
@@ -413,6 +421,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRoute
+  '/enroll-2fa': typeof Enroll2faRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
@@ -466,6 +475,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agency'
     | '/auth'
+    | '/enroll-2fa'
     | '/forgot-password'
     | '/reset-password'
     | '/talent'
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/enroll-2fa'
     | '/forgot-password'
     | '/reset-password'
     | '/admin/administrators'
@@ -562,6 +573,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/agency'
     | '/auth'
+    | '/enroll-2fa'
     | '/forgot-password'
     | '/reset-password'
     | '/talent'
@@ -614,6 +626,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AgencyRoute: typeof AgencyRouteWithChildren
   AuthRoute: typeof AuthRoute
+  Enroll2faRoute: typeof Enroll2faRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TalentRoute: typeof TalentRouteWithChildren
@@ -648,6 +661,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enroll-2fa': {
+      id: '/enroll-2fa'
+      path: '/enroll-2fa'
+      fullPath: '/enroll-2fa'
+      preLoaderRoute: typeof Enroll2faRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -1122,6 +1142,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AgencyRoute: AgencyRouteWithChildren,
   AuthRoute: AuthRoute,
+  Enroll2faRoute: Enroll2faRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TalentRoute: TalentRouteWithChildren,

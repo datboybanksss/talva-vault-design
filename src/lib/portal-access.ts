@@ -73,3 +73,49 @@ export async function checkPortalAccess(key: PortalKey): Promise<AccessResult> {
   // One retry: a single failed round-trip must not turn into a false denial.
   return runCheck(key, userId);
 }
+
+export const PORTAL_HOME: Record<PortalKey, string> = {
+  admin: "/admin",
+  agency: "/agency",
+  talent: "/talent",
+};
+
+/**
+ * Where should *this* account land after signing in, when no explicit `next`
+ * was requested? Resolved from the account's actual access, never assumed.
+ *
+ * Assuming "/admin" for everyone is what produced the phantom denial banner:
+ * a non-admin signing in was auto-sent to /admin, the admin gate settled a
+ * genuine denial, and bounced them back to /auth?denied=not_admin — a denial
+ * the user never asked for and could not clear by navigating to /auth again.
+ */
+export async function resolvePortalHome(): Promise<string | null> {
+  const { data: sessRes } = await supabase.auth.getSession();
+  const userId = sessRes.session?.user?.id;
+  if (!userId) return null;
+  for (const key of ["admin", "agency", "talent"] as PortalKey[]) {
+    if ((await runCheck(key, userId)) === "granted") return PORTAL_HOME[key];
+  }
+  return null;
+}
+
+export type MfaGate = "ok" | "enrol" | "challenge";
+
+/**
+ * Two-factor authentication is mandatory for every account on every portal.
+ * Returns what the gate must do before letting the user in:
+ *  - "enrol"     → no verified TOTP factor yet
+ *  - "challenge" → factor exists but this session is still AAL1
+ */
+export async function checkMfaGate(): Promise<MfaGate> {
+  const { data: factors, error } = await supabase.auth.mfa.listFactors();
+  if (error) return "ok"; // transient failure must not lock anyone out
+  const all = ((factors as unknown as { all?: { factor_type: string; status: string }[] })?.all) ?? [];
+  const verified =
+    (factors?.totp ?? []).some((f) => f.status === "verified") ||
+    all.some((f) => f.factor_type === "totp" && f.status === "verified");
+  if (!verified) return "enrol";
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return "challenge";
+  return "ok";
+}

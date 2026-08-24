@@ -1,8 +1,8 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PORTAL_FOR_DENIED_CODE, checkPortalAccess } from "@/lib/portal-access";
+import { PORTAL_FOR_DENIED_CODE, checkPortalAccess, resolvePortalHome } from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
 import { ShieldCheck, Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
@@ -121,11 +121,22 @@ function AuthPage() {
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
       void revalidate();
     });
+    // A page restored from the back/forward cache keeps its old React state,
+    // so an already-"confirmed" denial would linger without a fresh check.
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        setDeniedState("checking");
+        void revalidate();
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
+      window.removeEventListener("pageshow", onPageShow);
     };
   }, [search.denied, search.next, search.reset, deniedPortal, nav]);
+
 
   const denied = useMemo(
     () =>
@@ -133,6 +144,27 @@ function AuthPage() {
         ? deniedMessage(search.denied, portal)
         : null,
     [search.denied, deniedState, portal],
+  );
+
+  // Where to send a signed-in user. An explicit `next` wins; otherwise the
+  // destination is resolved from the account's real access rather than assumed
+  // to be /admin (that assumption is what manufactured phantom denials).
+  const goNext = useCallback(
+    async (replace = false) => {
+      const explicit =
+        search.next && search.next.startsWith("/") && !search.next.startsWith("//")
+          ? search.next
+          : null;
+      const dest = explicit ?? (await resolvePortalHome());
+      if (!dest) {
+        setInfo(
+          "You're signed in, but this account isn't linked to a workspace yet. Ask your agency owner or manager to send you an invitation.",
+        );
+        return;
+      }
+      nav({ to: dest as any, replace });
+    },
+    [search.next, nav],
   );
 
   useEffect(() => {
@@ -149,21 +181,22 @@ function AuthPage() {
       if (!mounted || !sess.session) return;
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return;
-      nav({ to: sanitizeNext(search.next) as any });
+      void goNext();
     })();
     const { data: sub } = supabase.auth.onAuthStateChange(async (evt, session) => {
       if (!session) return;
       if (evt === "MFA_CHALLENGE_VERIFIED" || evt === "SIGNED_IN" || evt === "TOKEN_REFRESHED") {
         const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return;
-        nav({ to: sanitizeNext(search.next) as any });
+        void goNext();
       }
     });
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [nav, search.next, search.denied, deniedState]);
+  }, [goNext, search.denied, deniedState]);
+
 
   const isSignIn = mode === "sign-in";
 
@@ -209,7 +242,7 @@ function AuthPage() {
         } else if (search.denied) {
           // The auto-redirect effect is disabled while `denied` is present, so
           // navigate explicitly (and drop the stale denial from the URL).
-          nav({ to: sanitizeNext(search.next) as any, replace: true });
+          void goNext(true);
         }
       } else {
         const { error } = await supabase.auth.signUp({
