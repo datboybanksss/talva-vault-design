@@ -240,21 +240,59 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * The Private Vault folder taxonomy, read from the database catalogue.
+ * Single source of truth shared with the `seed_talent_default_folders`
+ * routine — nothing about the taxonomy lives in app code.
+ */
+export const listTalentVaultCatalogue = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const [cats, subs] = await Promise.all([
+      supabase
+        .from("talent_vault_catalogue_categories")
+        .select("slug, name, icon, tone, sort_order, is_starter")
+        .order("sort_order"),
+      supabase
+        .from("talent_vault_catalogue_subfolders")
+        .select("id, category_slug, parent_name, name, kind, sort_order")
+        .order("sort_order"),
+    ]);
+    if (cats.error) throw new Error(cats.error.message);
+    if (subs.error) throw new Error(subs.error.message);
+    return { categories: cats.data ?? [], subfolders: subs.data ?? [] };
+  });
+
 const RestoreDefaultInput = z.object({ name: z.string().trim().min(1).max(120) });
 
 /**
  * Restore a default top-level category. If a soft-removed instance exists it is
  * simply un-hidden (documents and subfolders preserved); otherwise the full
- * recommended subfolder set (including "Other") is re-created fresh.
+ * recommended subfolder set (including "Other") is re-created fresh from the
+ * database catalogue.
  */
 export const restoreDefaultFolder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RestoreDefaultInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { DEFAULT_CATEGORIES } = await import("./talent-vault-defaults");
-    const cat = DEFAULT_CATEGORIES.find((c) => c.name === data.name);
+
+    const { data: cat, error: catErr } = await supabase
+      .from("talent_vault_catalogue_categories")
+      .select("slug, name, icon, tone, sort_order")
+      .eq("name", data.name)
+      .maybeSingle();
+    if (catErr) throw new Error(catErr.message);
     if (!cat) throw new Error("Unknown default category.");
+
+    const { data: subs, error: subErr } = await supabase
+      .from("talent_vault_catalogue_subfolders")
+      .select("parent_name, name, kind, sort_order")
+      .eq("category_slug", cat.slug)
+      .order("sort_order");
+    if (subErr) throw new Error(subErr.message);
+    const rowsAll = subs ?? [];
 
     const { data: existing } = await supabase
       .from("talent_private_folders")
@@ -290,37 +328,53 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
       .single();
     if (topErr) throw new Error(topErr.message);
 
-    const rows: Array<{ user_id: string; parent_id: string; name: string; sort_order: number }> = [];
-    let order = 0;
-    for (const child of cat.children ?? []) {
-      rows.push({ user_id: userId, parent_id: top.id, name: child, sort_order: order++ });
-    }
-    if (rows.length) {
-      const { error } = await supabase.from("talent_private_folders").insert(rows);
-      if (error) throw new Error(error.message);
-    }
+    const groups = rowsAll.filter((r) => r.kind === "group" && !r.parent_name);
+    let otherOrder = 0;
 
-    let groupOrder = 0;
-    for (const group of cat.groups ?? []) {
-      const { data: g, error: gErr } = await supabase
-        .from("talent_private_folders")
-        .insert({ user_id: userId, parent_id: top.id, name: group.name, sort_order: groupOrder++ })
-        .select("id")
-        .single();
-      if (gErr) throw new Error(gErr.message);
-      const kids = group.children.map((name, i) => ({
-        user_id: userId,
-        parent_id: g.id,
-        name,
-        sort_order: i,
-      }));
-      if (kids.length) {
-        const { error } = await supabase.from("talent_private_folders").insert(kids);
+    if (groups.length) {
+      for (const group of groups) {
+        const { data: g, error: gErr } = await supabase
+          .from("talent_private_folders")
+          .insert({
+            user_id: userId,
+            parent_id: top.id,
+            name: group.name,
+            sort_order: group.sort_order,
+          })
+          .select("id")
+          .single();
+        if (gErr) throw new Error(gErr.message);
+
+        const kids = rowsAll
+          .filter((r) => r.kind === "folder" && r.parent_name === group.name)
+          .map((r) => ({
+            user_id: userId,
+            parent_id: g.id,
+            name: r.name,
+            sort_order: r.sort_order,
+          }));
+        if (kids.length) {
+          const { error } = await supabase.from("talent_private_folders").insert(kids);
+          if (error) throw new Error(error.message);
+        }
+      }
+      otherOrder = 99;
+    } else {
+      const flat = rowsAll.filter((r) => r.kind === "folder" && !r.parent_name);
+      if (flat.length) {
+        const { error } = await supabase.from("talent_private_folders").insert(
+          flat.map((r) => ({
+            user_id: userId,
+            parent_id: top.id,
+            name: r.name,
+            sort_order: r.sort_order,
+          })),
+        );
         if (error) throw new Error(error.message);
+        otherOrder = flat[flat.length - 1].sort_order + 1;
       }
     }
 
-    const otherOrder = cat.groups?.length ? 99 : order;
     const { error: otherErr } = await supabase
       .from("talent_private_folders")
       .insert({ user_id: userId, parent_id: top.id, name: "Other", sort_order: otherOrder });
@@ -328,3 +382,4 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
 
     return { id: top.id, restored: true };
   });
+
