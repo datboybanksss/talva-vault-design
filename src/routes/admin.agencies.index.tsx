@@ -121,7 +121,7 @@ function AgenciesPage() {
   const [editingInvite, setEditingInvite] = useState<{ id: string; email: string; agencyName: string } | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
 
-  const list = agencies.data ?? [];
+  const list = useMemo(() => agencies.data ?? [], [agencies.data]);
   const filteredRows = useMemo(() => {
     return list.filter((a: any) => {
       if (tab !== "all" && a.status !== tab) return false;

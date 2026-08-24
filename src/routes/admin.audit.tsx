@@ -71,7 +71,7 @@ function AuditPage() {
     refetchInterval: 30_000,
   });
 
-  const byAction = summary.data?.byAction ?? {};
+  const byAction = useMemo(() => summary.data?.byAction ?? {}, [summary.data]);
 
   const areaCounts = useMemo(() => {
     const c: Record<string, number> = { all: summary.data?.total ?? 0 };

@@ -177,7 +177,7 @@ export function AiFilingReviewModal({
     staleTime: Infinity,
   });
 
-  const catalog: CatalogItem[] = data?.catalog ?? [];
+  const catalog: CatalogItem[] = useMemo(() => data?.catalog ?? [], [data]);
 
   /**
    * Placeholder suggestion until a real service is wired in: default to the folder

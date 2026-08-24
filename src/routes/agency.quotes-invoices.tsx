@@ -248,7 +248,7 @@ function QIPage() {
   // for the selected period, using real calendar maths against today's date.
   const resolvedPeriod = useMemo(
     () => resolvePeriod(period.key, period.custom, new Date()),
-    [period.key, period.custom.from, period.custom.to],
+    [period.key, period.custom],
   );
   const report = useMemo(
     () => buildBillingReport(rows, resolvedPeriod, new Date()),

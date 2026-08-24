@@ -79,6 +79,7 @@ function terminalTitle(reason: Exclude<ResolvedInvitation, { ok: true }>["reason
     case "expired": return "This invitation has expired";
     case "accepted": return "Invitation already accepted";
     case "revoked": return "Invitation revoked";
+    case "throttled": return "Too many attempts";
     case "unsupported": return "Unsupported invitation";
     default: return "Invitation not found";
   }
@@ -88,6 +89,7 @@ function terminalBody(reason: Exclude<ResolvedInvitation, { ok: true }>["reason"
     case "expired": return "Contact your TalVault administrator to receive a fresh invitation link.";
     case "accepted": return "This invitation has already been used. Sign in to your account instead.";
     case "revoked": return "This invitation has been withdrawn. Contact your administrator for a new one.";
+    case "throttled": return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact your administrator.";
     case "unsupported": return "This link isn't handled by the Agency Activation flow.";
     default: return "The link you followed doesn't match any active invitation. Double-check the URL or contact your administrator.";
   }

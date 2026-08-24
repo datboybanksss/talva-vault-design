@@ -133,7 +133,7 @@ function AgencyDashboard() {
     queryFn: () => listActivityFn({ data: {} }) as Promise<any[]>,
     refetchInterval: 60_000,
   });
-  const activityRows: any[] = activity.data ?? [];
+  const activityRows: any[] = useMemo(() => activity.data ?? [], [activity.data]);
   const filteredActivity = useMemo(() => {
     const f = ACTIVITY_FILTERS.find((x) => x.key === activityFilter);
     const list = !f || f.actions.length === 0
@@ -160,7 +160,7 @@ function AgencyDashboard() {
     createdAt: string;
     updatedAt: string;
   };
-  const rows: TalentRow[] = (talent.data ?? []) as TalentRow[];
+  const rows: TalentRow[] = useMemo(() => (talent.data ?? []) as TalentRow[], [talent.data]);
 
 
   const managerOptions = useMemo(

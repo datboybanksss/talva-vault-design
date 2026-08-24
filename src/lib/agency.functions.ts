@@ -466,7 +466,7 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
         ...(staffRes.data ?? []).map((r: any) => r.invited_by).filter(Boolean),
       ]),
     );
-    let inviterMap = new Map<string, string>();
+    const inviterMap = new Map<string, string>();
     if (inviterIds.length) {
       const { data: profiles } = await supabase
         .from("profiles")
@@ -1922,7 +1922,7 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
 
     const actorIds = Array.from(new Set((rows ?? []).map((r: any) => r.actor_id).filter(Boolean)));
-    let actorMap = new Map<string, string>();
+    const actorMap = new Map<string, string>();
     if (actorIds.length) {
       const { data: profiles } = await supabase
         .from("profiles")

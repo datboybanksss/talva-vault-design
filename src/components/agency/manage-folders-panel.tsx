@@ -211,7 +211,8 @@ export function ManageFoldersPanel() {
                   onClick={() =>
                     setExpanded((s) => {
                       const n = new Set(s);
-                      n.has(row.slug) ? n.delete(row.slug) : n.add(row.slug);
+                      if (n.has(row.slug)) n.delete(row.slug);
+                      else n.add(row.slug);
                       return n;
                     })
                   }

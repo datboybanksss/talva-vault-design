@@ -53,7 +53,7 @@ function QuotesInvoicesPage() {
   const [chipFilter, setChipFilter] = useState<ChipKey>("all");
   const [search, setSearch] = useState("");
 
-  const rows = q.data ?? [];
+  const rows = useMemo(() => q.data ?? [], [q.data]);
   const agencies = useMemo(
     () => Array.from(new Set(rows.map((r: any) => r.agency_name))) as string[],
     [rows],

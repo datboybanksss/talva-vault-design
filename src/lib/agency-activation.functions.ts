@@ -18,11 +18,15 @@ export type ResolvedInvitation =
       role: string | null;
       expires_at: string;
     }
-  | { ok: false; reason: "not_found" | "expired" | "accepted" | "revoked" | "unsupported" };
+  | { ok: false; reason: "not_found" | "expired" | "accepted" | "revoked" | "unsupported" | "throttled" };
 
 export const resolveAgencyInvitationToken = createServerFn({ method: "POST" })
   .inputValidator((v) => resolveInput.parse(v))
   .handler(async ({ data }): Promise<ResolvedInvitation> => {
+    const { guardPublicToken } = await import("@/lib/rate-limit.server");
+    const guard = await guardPublicToken({ bucket: "invite_resolve_agency", token: data.token });
+    if (!guard.allowed) return { ok: false, reason: "throttled" };
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: inv } = await supabaseAdmin
       .from("agency_invitations")
@@ -71,6 +75,7 @@ export type ActivationResult =
         | "email_mismatch"
         | "weak_password"
         | "account_exists"
+        | "throttled"
         | "unknown";
       message: string;
     };
@@ -78,6 +83,16 @@ export type ActivationResult =
 export const activateAgencyInvitation = createServerFn({ method: "POST" })
   .inputValidator((v) => activateInput.parse(v))
   .handler(async ({ data }): Promise<ActivationResult> => {
+    const { guardPublicToken, throttleMessage } = await import("@/lib/rate-limit.server");
+    const guard = await guardPublicToken({
+      bucket: "invite_activate_agency",
+      token: data.token,
+      perIp: { max: 10, windowSeconds: 900, blockSeconds: 1800 },
+      perToken: { max: 6, windowSeconds: 900, blockSeconds: 1800 },
+    });
+    if (!guard.allowed)
+      return { ok: false, code: "throttled", message: throttleMessage(guard) };
+
     const pwErr = validateNewPassword(data.password);
     if (pwErr) return { ok: false, code: "weak_password", message: pwErr };
 
@@ -137,5 +152,7 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
       .eq("id", inv.id)
       .eq("status", "pending");
 
+    const { clearTokenGuard } = await import("@/lib/rate-limit.server");
+    await clearTokenGuard("invite_activate_agency", data.token);
     return { ok: true, email: inv.email };
   });

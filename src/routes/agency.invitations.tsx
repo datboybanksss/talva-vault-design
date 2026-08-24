@@ -78,7 +78,7 @@ function InvitationsPage() {
   const [openForm, setOpenForm] = useState<InviteType | null>(null);
 
   const isOwner = who.data?.role === "owner";
-  const list = invites.data ?? [];
+  const list = useMemo(() => invites.data ?? [], [invites.data]);
   const filteredRows = useMemo(() => {
     switch (tab) {
       case "all": return list;

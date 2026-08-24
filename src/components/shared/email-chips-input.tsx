@@ -62,7 +62,7 @@ export function EmailChipsInput({
     if (!/[,;\s]/.test(text)) return;
     e.preventDefault();
     const parts = text.split(/[,;\s]+/).filter(Boolean);
-    let next = [...value];
+    const next = [...value];
     const bad: string[] = [];
     for (const p of parts) {
       const email = p.trim().toLowerCase();

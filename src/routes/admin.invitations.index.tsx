@@ -131,7 +131,7 @@ function InvitationsPage() {
     return () => { clearTimeout(t); clearTimeout(clear); };
   }, [emailParam, invites.data]);
 
-  const list = invites.data ?? [];
+  const list = useMemo(() => invites.data ?? [], [invites.data]);
   const counts = useMemo(() => {
     const c: Record<string, number> = {
       all: list.length,

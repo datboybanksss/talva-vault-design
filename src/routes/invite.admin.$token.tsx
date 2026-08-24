@@ -78,6 +78,7 @@ function terminalTitle(reason: Reason): string {
     case "expired": return "This invitation has expired";
     case "accepted": return "Invitation already accepted";
     case "revoked": return "Invitation revoked";
+    case "throttled": return "Too many attempts";
     default: return "Invitation not found";
   }
 }
@@ -86,6 +87,7 @@ function terminalBody(reason: Reason): string {
     case "expired": return "Contact the Main Administrator to receive a fresh invitation link.";
     case "accepted": return "This invitation has already been used. Sign in to your account instead.";
     case "revoked": return "This invitation has been withdrawn. Contact the Main Administrator for a new one.";
+    case "throttled": return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact the Main Administrator.";
     default: return "The link you followed doesn't match any active invitation. Double-check the URL or contact the Main Administrator.";
   }
 }
