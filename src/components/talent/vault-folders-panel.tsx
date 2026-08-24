@@ -8,7 +8,11 @@ import {
   restoreDefaultFolder,
   deletePrivateFolder,
 } from "@/lib/talent-vault.functions";
-import { DEFAULT_CATEGORIES, STARTER_CATEGORIES, subfolderCount } from "@/lib/talent-vault-defaults";
+import {
+  useTalentVaultCatalogue,
+  starterCategories,
+  subfolderCount,
+} from "@/lib/talent-vault-catalogue";
 
 type Folder = { id: string; parent_id: string | null; name: string };
 
@@ -19,10 +23,15 @@ export function VaultFoldersPanel() {
   const remove = useServerFn(deletePrivateFolder);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { catalogue, isLoading: catLoading } = useTalentVaultCatalogue();
+  const categories = catalogue.categories;
+  const starterCount = starterCategories(catalogue).length;
+
+  const { data, isLoading: vaultLoading } = useQuery({
     queryKey: ["talent", "private-vault"],
     queryFn: () => load() as Promise<{ folders: Folder[]; documents: unknown[] }>,
   });
+  const isLoading = catLoading || vaultLoading;
 
   const present = useMemo(() => {
     const map = new Map<string, string>();
@@ -30,7 +39,8 @@ export function VaultFoldersPanel() {
     return map;
   }, [data]);
 
-  const activeCount = DEFAULT_CATEGORIES.filter((c) => present.has(c.name)).length;
+  const activeCount = categories.filter((c) => present.has(c.name)).length;
+
 
   async function toggle(name: string, on: boolean) {
     setBusy(name);
@@ -56,7 +66,7 @@ export function VaultFoldersPanel() {
   async function setAll(on: boolean) {
     setBusy("__all");
     try {
-      for (const c of DEFAULT_CATEGORIES) {
+      for (const c of categories) {
         const has = present.has(c.name);
         if (on && !has) await restore({ data: { name: c.name } });
         if (!on && has) await remove({ data: { id: present.get(c.name)! } });
@@ -77,8 +87,9 @@ export function VaultFoldersPanel() {
         <div>
           <h2 className="tvp-h2">Manage folders</h2>
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-            New vaults start with {STARTER_CATEGORIES.length} everyday categories. Switch on any of
-            the other {DEFAULT_CATEGORIES.length - STARTER_CATEGORIES.length} whenever you need
+            New vaults start with {starterCount} everyday categories. Switch on any of
+            the other {Math.max(categories.length - starterCount, 0)} whenever you need
+
             them — turning one on provisions its full subfolder set; turning it off hides it
             (documents are kept and return if you switch it back on).
           </p>
@@ -87,7 +98,7 @@ export function VaultFoldersPanel() {
           <button className="tvp-secondary" onClick={() => setAll(false)} disabled={busy !== null || activeCount === 0}>
             Deselect all
           </button>
-          <button className="tvp-primary" onClick={() => setAll(true)} disabled={busy !== null || activeCount === DEFAULT_CATEGORIES.length}>
+          <button className="tvp-primary" onClick={() => setAll(true)} disabled={busy !== null || categories.length === 0 || activeCount === categories.length}>
             <FolderPlus className="h-4 w-4" /> Select all
           </button>
         </div>
@@ -98,10 +109,11 @@ export function VaultFoldersPanel() {
       ) : (
         <>
           <p className="tvp-muted" style={{ fontSize: 12, margin: "6px 0 12px" }}>
-            {activeCount} of {DEFAULT_CATEGORIES.length} categories active
+            {activeCount} of {categories.length} categories active
           </p>
           <div className="tvp-folder-tree">
-            {DEFAULT_CATEGORIES.map((c) => {
+            {categories.map((c) => {
+
               const active = present.has(c.name);
               const isBusy = busy === c.name || busy === "__all";
               return (
@@ -130,7 +142,7 @@ export function VaultFoldersPanel() {
                   <span style={{ minWidth: 0 }}>
                     <span className="tvp-folder-name" style={{ display: "block" }}>{c.name}</span>
                     <span className="tvp-folder-meta" style={{ display: "block" }}>
-                      {subfolderCount(c)} subfolders · {active ? "Active" : "Hidden"}
+                      {subfolderCount(catalogue, c.slug)} subfolders · {active ? "Active" : "Hidden"}
                     </span>
                   </span>
                 </label>
