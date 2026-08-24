@@ -2241,6 +2241,80 @@ export type Database = {
           },
         ]
       }
+      talent_vault_catalogue_categories: {
+        Row: {
+          created_at: string
+          icon: string
+          is_starter: boolean
+          name: string
+          slug: string
+          sort_order: number
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          icon: string
+          is_starter?: boolean
+          name: string
+          slug: string
+          sort_order: number
+          tone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          is_starter?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      talent_vault_catalogue_subfolders: {
+        Row: {
+          category_slug: string
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          parent_name: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_slug: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          parent_name?: string | null
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          category_slug?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          parent_name?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_vault_catalogue_subfolders_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "talent_vault_catalogue_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
