@@ -2344,7 +2344,89 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_loved_one_shares_view: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email_sent_at: string | null
+          expires_at: string | null
+          failed_attempts: number | null
+          has_access_code: boolean | null
+          id: string | null
+          is_active: boolean | null
+          is_currently_active: boolean | null
+          is_expired: boolean | null
+          last_viewed_at: string | null
+          locked_at: string | null
+          loved_one_email: string | null
+          loved_one_name: string | null
+          note: string | null
+          permission: string | null
+          relationship: string | null
+          revoked_at: string | null
+          scope: Json | null
+          share_kind: string | null
+          talent_id: string | null
+          view_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          failed_attempts?: number | null
+          has_access_code?: never
+          id?: string | null
+          is_active?: boolean | null
+          is_currently_active?: never
+          is_expired?: never
+          last_viewed_at?: string | null
+          locked_at?: string | null
+          loved_one_email?: string | null
+          loved_one_name?: string | null
+          note?: string | null
+          permission?: string | null
+          relationship?: string | null
+          revoked_at?: string | null
+          scope?: Json | null
+          share_kind?: string | null
+          talent_id?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          failed_attempts?: number | null
+          has_access_code?: never
+          id?: string | null
+          is_active?: boolean | null
+          is_currently_active?: never
+          is_expired?: never
+          last_viewed_at?: string | null
+          locked_at?: string | null
+          loved_one_email?: string | null
+          loved_one_name?: string | null
+          note?: string | null
+          permission?: string | null
+          relationship?: string | null
+          revoked_at?: string | null
+          scope?: Json | null
+          share_kind?: string | null
+          talent_id?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loved_one_shares_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_talent_invitation: {
