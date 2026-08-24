@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { supabase } from "@/integrations/supabase/client";
+import { checkPortalAccess } from "@/lib/portal-access";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
