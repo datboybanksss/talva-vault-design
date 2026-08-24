@@ -8,7 +8,11 @@ import {
   restoreDefaultFolder,
   deletePrivateFolder,
 } from "@/lib/talent-vault.functions";
-import { DEFAULT_CATEGORIES, STARTER_CATEGORIES, subfolderCount } from "@/lib/talent-vault-defaults";
+import {
+  useTalentVaultCatalogue,
+  starterCategories,
+  subfolderCount,
+} from "@/lib/talent-vault-catalogue";
 
 type Folder = { id: string; parent_id: string | null; name: string };
 
@@ -19,10 +23,15 @@ export function VaultFoldersPanel() {
   const remove = useServerFn(deletePrivateFolder);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { catalogue, isLoading: catLoading } = useTalentVaultCatalogue();
+  const categories = catalogue.categories;
+  const starterCount = starterCategories(catalogue).length;
+
+  const { data, isLoading: vaultLoading } = useQuery({
     queryKey: ["talent", "private-vault"],
     queryFn: () => load() as Promise<{ folders: Folder[]; documents: unknown[] }>,
   });
+  const isLoading = catLoading || vaultLoading;
 
   const present = useMemo(() => {
     const map = new Map<string, string>();
@@ -30,7 +39,8 @@ export function VaultFoldersPanel() {
     return map;
   }, [data]);
 
-  const activeCount = DEFAULT_CATEGORIES.filter((c) => present.has(c.name)).length;
+  const activeCount = categories.filter((c) => present.has(c.name)).length;
+
 
   async function toggle(name: string, on: boolean) {
     setBusy(name);
