@@ -203,11 +203,11 @@ const TAB_FILTER: Record<Tab, "all" | "pending_review" | "needs_review" | "expir
 export function VaultPage() {
   const qc = useQueryClient();
   const folderOptions = useFolderNames();
-  const { data: docs } = useSuspenseQuery(docsQO);
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
   const { data: me } = useSuspenseQuery(meQO);
   const { data: requestRows } = useSuspenseQuery(requestsListQO);
-  const { data: provisioned = [], isLoading: foldersLoading } = useQuery(provisionedFoldersQO);
+  const { data: talentSummary = [] } = useSuspenseQuery(talentSummaryQO);
+  const { data: expiring = [] } = useSuspenseQuery(expiringQO);
   const searchParams = Route.useSearch();
   const initialTab: Tab = (tabs as readonly string[]).includes(searchParams.tab ?? "")
     ? (searchParams.tab as Tab)
