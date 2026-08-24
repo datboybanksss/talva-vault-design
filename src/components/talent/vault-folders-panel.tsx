@@ -142,7 +142,7 @@ export function VaultFoldersPanel() {
                   <span style={{ minWidth: 0 }}>
                     <span className="tvp-folder-name" style={{ display: "block" }}>{c.name}</span>
                     <span className="tvp-folder-meta" style={{ display: "block" }}>
-                      {subfolderCount(c)} subfolders · {active ? "Active" : "Hidden"}
+                      {subfolderCount(catalogue, c.slug)} subfolders · {active ? "Active" : "Hidden"}
                     </span>
                   </span>
                 </label>
