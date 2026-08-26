@@ -281,14 +281,21 @@ function AuthPage() {
         code: mfaCode.trim(),
       });
       if (vErr) throw vErr;
-      // onAuthStateChange (MFA_CHALLENGE_VERIFIED) will redirect us.
-      setInfo("Verified — redirecting…");
+      // Don't rely on onAuthStateChange to move us on: that subscription is
+      // suppressed while `denied` is in the URL, and supabase-js does not
+      // always emit an event the listener sees. Navigate explicitly — this is
+      // what left users stuck on "Verified — redirecting…".
+      setInfo("Verified — signing you in…");
+      setMfaFactorId(null);
+      setMfaCode("");
+      await goNext(true);
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
       setBusy(false);
     }
   };
+
 
   const cancelMfa = async () => {
     // If the user bails out of the MFA challenge, drop the aal1 session so
