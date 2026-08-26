@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Smartphone, ShieldCheck, KeyRound, Copy, Check } from "lucide-react";
 import { z } from "zod";
@@ -59,7 +59,46 @@ function EnrollTwoFactorPage() {
     navigate({ to: (dest ?? "/auth") as never, replace: true });
   };
 
+  const startedRef = useRef(false);
+
+  const beginEnroll = async () => {
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const allFactors = ((factors as any)?.all ?? []) as any[];
+    const verified = allFactors.find(
+      (f: any) => f.factor_type === "totp" && f.status === "verified",
+    );
+    if (verified) {
+      await goHome();
+      return;
+    }
+
+    // Clear abandoned unverified factors, otherwise enrol() fails with
+    // "a factor with this friendly name already exists".
+    for (const f of allFactors) {
+      if (f.status !== "verified") {
+        await supabase.auth.mfa.unenroll({ factorId: f.id });
+      }
+    }
+    const { data: sess } = await supabase.auth.getSession();
+    const user = sess.session?.user;
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      issuer: "TalVault",
+      friendlyName: `TalVault (${user?.email ?? user?.id ?? "account"})`,
+    });
+    if (error) throw error;
+    setPendingFactorId(data.id);
+    setQrSvg((data.totp as any)?.qr_code ?? null);
+    setSecret((data.totp as any)?.secret ?? null);
+    setCode("");
+  };
+
   useEffect(() => {
+    // Guard against React StrictMode double-invoke: two parallel runs would
+    // unenrol each other's fresh factor, leaving a stale id that fails
+    // challenge with "Factor not found".
+    if (startedRef.current) return;
+    startedRef.current = true;
     (async () => {
       try {
         const { data: sess } = await supabase.auth.getSession();
@@ -69,33 +108,7 @@ function EnrollTwoFactorPage() {
           return;
         }
         setEmail(user.email ?? "");
-
-        const { data: factors } = await supabase.auth.mfa.listFactors();
-        const allFactors = ((factors as any)?.all ?? []) as any[];
-        const verified = allFactors.find(
-          (f: any) => f.factor_type === "totp" && f.status === "verified",
-        );
-        if (verified) {
-          await goHome();
-          return;
-        }
-
-        // Clear abandoned unverified factors, otherwise enrol() fails with
-        // "a factor with this friendly name already exists".
-        for (const f of allFactors) {
-          if (f.status !== "verified") {
-            await supabase.auth.mfa.unenroll({ factorId: f.id });
-          }
-        }
-        const { data, error } = await supabase.auth.mfa.enroll({
-          factorType: "totp",
-          issuer: "TalVault",
-          friendlyName: `TalVault (${user.email ?? user.id})`,
-        });
-        if (error) throw error;
-        setPendingFactorId(data.id);
-        setQrSvg((data.totp as any)?.qr_code ?? null);
-        setSecret((data.totp as any)?.secret ?? null);
+        await beginEnroll();
       } catch (e) {
         setError(friendlyAuthError(e));
       } finally {
@@ -104,6 +117,7 @@ function EnrollTwoFactorPage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const verify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +128,17 @@ function EnrollTwoFactorPage() {
       const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({
         factorId: pendingFactorId,
       });
-      if (cErr) throw cErr;
+      if (cErr) {
+        // The pending factor vanished (stale tab, duplicate enrol). Rebuild a
+        // fresh QR code instead of showing a confusing "Factor not found".
+        if ((cErr as any)?.code === "mfa_factor_not_found" || (cErr as any)?.status === 404) {
+          await beginEnroll();
+          setError("That setup code expired. Scan the new QR code and try again.");
+          return;
+        }
+        throw cErr;
+      }
+
       const { error: vErr } = await supabase.auth.mfa.verify({
         factorId: pendingFactorId,
         challengeId: ch.id,
