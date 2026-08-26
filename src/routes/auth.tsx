@@ -180,8 +180,20 @@ function AuthPage() {
       const { data: sess } = await supabase.auth.getSession();
       if (!mounted || !sess.session) return;
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return;
+      if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") {
+        // Already password-authenticated, only the second factor is missing:
+        // resume the challenge instead of making them sign in all over again.
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
+        if (mounted && totp) {
+          setEmail(sess.session.user.email ?? "");
+          setMfaFactorId(totp.id);
+          setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
+        }
+        return;
+      }
       void goNext();
+
     })();
     const { data: sub } = supabase.auth.onAuthStateChange(async (evt, session) => {
       if (!session) return;
@@ -281,14 +293,21 @@ function AuthPage() {
         code: mfaCode.trim(),
       });
       if (vErr) throw vErr;
-      // onAuthStateChange (MFA_CHALLENGE_VERIFIED) will redirect us.
-      setInfo("Verified — redirecting…");
+      // Don't rely on onAuthStateChange to move us on: that subscription is
+      // suppressed while `denied` is in the URL, and supabase-js does not
+      // always emit an event the listener sees. Navigate explicitly — this is
+      // what left users stuck on "Verified — redirecting…".
+      setInfo("Verified — signing you in…");
+      setMfaFactorId(null);
+      setMfaCode("");
+      await goNext(true);
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
       setBusy(false);
     }
   };
+
 
   const cancelMfa = async () => {
     // If the user bails out of the MFA challenge, drop the aal1 session so
