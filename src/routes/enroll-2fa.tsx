@@ -128,7 +128,17 @@ function EnrollTwoFactorPage() {
       const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({
         factorId: pendingFactorId,
       });
-      if (cErr) throw cErr;
+      if (cErr) {
+        // The pending factor vanished (stale tab, duplicate enrol). Rebuild a
+        // fresh QR code instead of showing a confusing "Factor not found".
+        if ((cErr as any)?.code === "mfa_factor_not_found" || (cErr as any)?.status === 404) {
+          await beginEnroll();
+          setError("That setup code expired. Scan the new QR code and try again.");
+          return;
+        }
+        throw cErr;
+      }
+
       const { error: vErr } = await supabase.auth.mfa.verify({
         factorId: pendingFactorId,
         challengeId: ch.id,
