@@ -180,8 +180,20 @@ function AuthPage() {
       const { data: sess } = await supabase.auth.getSession();
       if (!mounted || !sess.session) return;
       const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return;
+      if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") {
+        // Already password-authenticated, only the second factor is missing:
+        // resume the challenge instead of making them sign in all over again.
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
+        if (mounted && totp) {
+          setEmail(sess.session.user.email ?? "");
+          setMfaFactorId(totp.id);
+          setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
+        }
+        return;
+      }
       void goNext();
+
     })();
     const { data: sub } = supabase.auth.onAuthStateChange(async (evt, session) => {
       if (!session) return;
