@@ -39,14 +39,6 @@ function InvitePage() {
   const { token } = Route.useParams();
   const nav = useNavigate();
 
-  // Sign out any pre-existing session so the wizard runs cleanly.
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) await supabase.auth.signOut();
-    })();
-  }, []);
-
   const inviteQ = useQuery({
     queryKey: ["agency-invite-token", token],
     queryFn: () => resolveAgencyInvitationToken({ data: { token } }),
@@ -66,12 +58,45 @@ function InvitePage() {
           ) : inviteQ.data.ok === false ? (
             <TerminalError title={terminalTitle(inviteQ.data.reason)} body={terminalBody(inviteQ.data.reason)} />
           ) : (
-            <Wizard invite={inviteQ.data} token={token} onDone={() => nav({ to: "/agency" })} />
+            <InviteBody invite={inviteQ.data} token={token} onDone={() => nav({ to: "/agency" })} />
           )}
         </div>
       </section>
     </div>
   );
+}
+
+function InviteBody({
+  invite,
+  token,
+  onDone,
+}: {
+  invite: Extract<ResolvedInvitation, { ok: true }>;
+  token: string;
+  onDone: () => void;
+}) {
+  const gate = useInviteAccountGate({ token, kind: "agency", invitedEmail: invite.email });
+
+  if (gate.state !== "new-account") {
+    return (
+      <InviteAccountGatePanel
+        eyebrow="Agency Activation"
+        token={token}
+        kind="agency"
+        invitedEmail={invite.email}
+        state={gate.state}
+        signedInEmail={gate.signedInEmail}
+        error={gate.error}
+        onUseDifferentAccount={async () => {
+          await supabase.auth.signOut();
+          gate.setState("new-account");
+        }}
+      />
+    );
+  }
+
+  return <Wizard invite={invite} token={token} onDone={onDone} />;
+
 }
 
 function terminalTitle(reason: Exclude<ResolvedInvitation, { ok: true }>["reason"]): string {
