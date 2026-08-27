@@ -93,7 +93,7 @@ function InviteBody({
         error={gate.error}
         onUseDifferentAccount={async () => {
           await supabase.auth.signOut();
-          gate.setState("new-account");
+          window.location.reload();
         }}
       />
     );
