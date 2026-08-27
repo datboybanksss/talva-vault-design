@@ -19,6 +19,8 @@ import {
 const searchSchema = z.object({
   next: z.string().optional(),
   denied: z.string().optional(),
+  invite: z.string().optional(),
+  invite_kind: z.enum(INVITE_KINDS).optional(),
   reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
 });
 
