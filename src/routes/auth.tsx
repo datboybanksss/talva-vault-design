@@ -15,6 +15,7 @@ import {
   validateNewPassword,
   friendlyAuthError,
 } from "@/lib/password";
+import { INVITE_KINDS, claimInvitation } from "@/lib/invite-claim.functions";
 
 const searchSchema = z.object({
   next: z.string().optional(),
