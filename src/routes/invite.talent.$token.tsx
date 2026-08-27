@@ -63,7 +63,7 @@ function TalentInvitePage() {
       <section className="tv-auth-panel">
         <div className="tv-auth-card" style={{ maxWidth: 520 }}>
           {invite ? (
-            <Wizard invite={invite} token={token} onDone={() => nav({ to: "/talent" })} />
+            <InviteBody invite={invite} token={token} onDone={() => nav({ to: "/talent" })} />
           ) : inviteQ.isLoading ? (
             <div className="tv-auth-tag">Loading your invitation…</div>
           ) : !resolved ? (
@@ -78,6 +78,39 @@ function TalentInvitePage() {
     </div>
   );
 }
+
+function InviteBody({
+  invite,
+  token,
+  onDone,
+}: {
+  invite: Extract<ResolvedTalentInvitation, { ok: true }>;
+  token: string;
+  onDone: () => void;
+}) {
+  const gate = useInviteAccountGate({ token, kind: "talent", invitedEmail: invite.email });
+
+  if (gate.state !== "new-account") {
+    return (
+      <InviteAccountGatePanel
+        eyebrow="Talent Activation"
+        token={token}
+        kind="talent"
+        invitedEmail={invite.email}
+        state={gate.state}
+        signedInEmail={gate.signedInEmail}
+        error={gate.error}
+        onUseDifferentAccount={async () => {
+          await supabase.auth.signOut();
+          gate.setState("new-account");
+        }}
+      />
+    );
+  }
+
+  return <Wizard invite={invite} token={token} onDone={onDone} />;
+}
+
 
 type Reason = Exclude<ResolvedTalentInvitation, { ok: true }>["reason"];
 
