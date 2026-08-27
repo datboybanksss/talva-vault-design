@@ -36,12 +36,6 @@ function TalentInvitePage() {
   const { token } = Route.useParams();
   const nav = useNavigate();
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) await supabase.auth.signOut();
-    })();
-  }, []);
 
   const inviteQ = useQuery({
     queryKey: ["talent-invite-token", token],
