@@ -19,6 +19,10 @@ import {
   activateAdminInvitation,
   type ResolvedAdminInvitation,
 } from "@/lib/admin-activation.functions";
+import {
+  InviteAccountGatePanel,
+  useInviteAccountGate,
+} from "@/components/shared/invite-account-gate";
 
 export const Route = createFileRoute("/invite/admin/$token")({
   ssr: false,
@@ -35,14 +39,6 @@ export const Route = createFileRoute("/invite/admin/$token")({
 function AdminInvitePage() {
   const { token } = Route.useParams();
   const nav = useNavigate();
-
-  // Sign out any pre-existing session so the wizard runs cleanly.
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) await supabase.auth.signOut();
-    })();
-  }, []);
 
   const inviteQ = useQuery({
     queryKey: ["admin-invite-token", token],
@@ -63,13 +59,46 @@ function AdminInvitePage() {
           ) : inviteQ.data.ok === false ? (
             <TerminalError title={terminalTitle(inviteQ.data.reason)} body={terminalBody(inviteQ.data.reason)} />
           ) : (
-            <Wizard invite={inviteQ.data} token={token} onDone={() => nav({ to: "/admin" })} />
+            <InviteBody invite={inviteQ.data} token={token} onDone={() => nav({ to: "/admin" })} />
           )}
         </div>
       </section>
     </div>
   );
 }
+
+function InviteBody({
+  invite,
+  token,
+  onDone,
+}: {
+  invite: Extract<ResolvedAdminInvitation, { ok: true }>;
+  token: string;
+  onDone: () => void;
+}) {
+  const gate = useInviteAccountGate({ token, kind: "admin", invitedEmail: invite.email });
+
+  if (gate.state !== "new-account") {
+    return (
+      <InviteAccountGatePanel
+        eyebrow="Administrator Activation"
+        token={token}
+        kind="admin"
+        invitedEmail={invite.email}
+        state={gate.state}
+        signedInEmail={gate.signedInEmail}
+        error={gate.error}
+        onUseDifferentAccount={async () => {
+          await supabase.auth.signOut();
+          gate.setState("new-account");
+        }}
+      />
+    );
+  }
+
+  return <Wizard invite={invite} token={token} onDone={onDone} />;
+}
+
 
 type Reason = Exclude<ResolvedAdminInvitation, { ok: true }>["reason"];
 
