@@ -22,6 +22,10 @@ import {
   AGENCY_ACTIVATION_STEPS,
   AGENCY_ACTIVATION_STEP_COUNT,
 } from "@/lib/activation-steps";
+import {
+  InviteAccountGatePanel,
+  useInviteAccountGate,
+} from "@/components/shared/invite-account-gate";
 
 export const Route = createFileRoute("/invite/$token")({
   ssr: false,
