@@ -154,6 +154,19 @@ function AuthPage() {
   // to be /admin (that assumption is what manufactured phantom denials).
   const goNext = useCallback(
     async (replace = false) => {
+      // Arrived here from an invitation link with an existing account: attach
+      // the invitation to this account silently, then land on its workspace.
+      if (search.invite && search.invite_kind) {
+        const res = await claimInvitation({
+          data: { token: search.invite, kind: search.invite_kind },
+        });
+        if (res.ok) {
+          nav({ to: res.dest as any, replace: true });
+          return;
+        }
+        setError(res.message);
+        return;
+      }
       const explicit =
         search.next && search.next.startsWith("/") && !search.next.startsWith("//")
           ? search.next
@@ -167,8 +180,9 @@ function AuthPage() {
       }
       nav({ to: dest as any, replace });
     },
-    [search.next, nav],
+    [search.next, search.invite, search.invite_kind, nav],
   );
+
 
   useEffect(() => {
     let mounted = true;
