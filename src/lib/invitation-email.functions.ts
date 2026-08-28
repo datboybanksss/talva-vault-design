@@ -169,7 +169,8 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
   });
 
 /**
- * Administrator invitation email — Main Administrator only.
+ * Administrator invitation email — Main Administrator or any administrator
+ * holding the highest permission level (mirrors who may create the invite).
  */
 export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -179,12 +180,18 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
 
     const { data: role, error: roleErr } = await supabase
       .from("user_roles")
-      .select("is_main_admin")
+      .select("is_main_admin, permission_level")
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
     if (roleErr) throw new Error(roleErr.message);
-    if (!role?.is_main_admin) throw new Error("Forbidden: Main Administrator only");
+    const { canInviteAdministrators } = await import("@/lib/admin-permissions");
+    if (!role?.is_main_admin && !canInviteAdministrators(role?.permission_level)) {
+      throw new Error(
+        "Forbidden: only administrators with full access may send administrator invitations.",
+      );
+    }
+
 
     const { data: inv, error } = await supabase
       .from("admin_invitations")
