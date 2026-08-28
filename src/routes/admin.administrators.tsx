@@ -18,6 +18,8 @@ import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
 import {
   HIGHEST_ADMIN_PERMISSION,
+  ADMIN_PERMISSION_LEVELS,
+
   adminPermission,
   canInviteAdministrators,
   grantableAdminPermissions,
