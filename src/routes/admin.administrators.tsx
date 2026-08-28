@@ -17,6 +17,13 @@ import { LoadMoreRow } from "@/components/shared/load-more";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
 import {
+  HIGHEST_ADMIN_PERMISSION,
+  adminPermission,
+  canInviteAdministrators,
+  grantableAdminPermissions,
+} from "@/lib/admin-permissions";
+
+import {
   DEFAULT_ADMIN_INVITATION_SUBJECT,
   DEFAULT_ADMIN_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
