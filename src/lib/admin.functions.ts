@@ -1159,7 +1159,11 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertMainAdmin(supabase, userId);
+    // Any administrator at the highest permission level may invite colleagues;
+    // the Main Administrator retains this ability too. Enforced server-side.
+    const inviter = await assertCanInviteAdministrator(supabase, userId);
+    assertGrantablePermission(inviter.permissionLevel, data.permission_level);
+
 
     // Reject if email is already an admin
     const { data: existingProfile } = await supabase
