@@ -406,7 +406,7 @@ function AdminsPage() {
                     </td>
                     <td className="tvp-muted">{i.invited_by_email ?? "—"}</td>
                     <td>
-                      {isMain && (i.stored_status ?? i.status) === "pending" && (
+                      {canInvite && (i.stored_status ?? i.status) === "pending" && (
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
                           <RowActionsMenu
                             actions={[
