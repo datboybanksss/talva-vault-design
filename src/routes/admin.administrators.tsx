@@ -510,8 +510,12 @@ function AdminsPage() {
                 onChange={(e) => setEditPermission(e.target.value as any)}
                 disabled={editAdmin.is_main_admin}
               >
-                <option value="edit">Edit rights — full access</option>
-                <option value="view_only">View only — read-only access</option>
+                {ADMIN_PERMISSION_LEVELS.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.optionLabel}
+                  </option>
+                ))}
+
               </select>
               {editAdmin.is_main_admin && (
                 <span
