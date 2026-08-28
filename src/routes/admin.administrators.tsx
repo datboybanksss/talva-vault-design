@@ -382,10 +382,11 @@ function AdminsPage() {
                     <td><strong>{i.email}</strong></td>
                     <td>
                       <span
-                        className={`tvp-status tvp-${i.permission_level === "edit" ? "green" : "amber"}`}
+                        className={`tvp-status tvp-${adminPermission(i.permission_level)?.tone ?? "amber"}`}
                       >
-                        {i.permission_level === "edit" ? "Edit rights" : "View only"}
+                        {adminPermission(i.permission_level)?.label ?? "—"}
                       </span>
+
                     </td>
                     <td>
                       <span
