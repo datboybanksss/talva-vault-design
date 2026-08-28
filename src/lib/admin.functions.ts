@@ -2,6 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { mapEffectiveStatus } from "@/lib/invitation-status";
+import {
+  HIGHEST_ADMIN_PERMISSION,
+  canInviteAdministrators,
+  grantableAdminPermissions,
+} from "@/lib/admin-permissions";
+
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -28,6 +34,45 @@ async function assertMainAdmin(supabase: any, userId: string) {
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: main administrator only.");
 }
+
+/**
+ * Administrator invitations may be sent by the Main Administrator or by any
+ * administrator holding the highest permission level. Returns the inviter's
+ * own level so the caller can cap what they are allowed to grant.
+ */
+async function assertCanInviteAdministrator(supabase: any, userId: string) {
+  await assertAdmin(supabase, userId);
+  const { data: row, error } = await supabase
+    .from("user_roles")
+    .select("is_main_admin, permission_level")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const permissionLevel = (row?.permission_level ?? "view_only") as string;
+  const isMainAdmin = !!row?.is_main_admin;
+  if (!isMainAdmin && !canInviteAdministrators(permissionLevel)) {
+    throw new Error(
+      "Forbidden: only administrators with full access may invite other administrators.",
+    );
+  }
+  return {
+    isMainAdmin,
+    // The Main Administrator is always treated as holding the highest level.
+    permissionLevel: isMainAdmin ? HIGHEST_ADMIN_PERMISSION : permissionLevel,
+  };
+}
+
+/** An inviter may only grant a permission level at or below their own. */
+function assertGrantablePermission(inviterLevel: string, requested: string) {
+  const allowed = grantableAdminPermissions(inviterLevel).some((p) => p.value === requested);
+  if (!allowed) {
+    throw new Error(
+      "Forbidden: you cannot grant a permission level above your own.",
+    );
+  }
+}
+
 
 async function logAudit(
   supabase: any,
@@ -1159,7 +1204,11 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertMainAdmin(supabase, userId);
+    // Any administrator at the highest permission level may invite colleagues;
+    // the Main Administrator retains this ability too. Enforced server-side.
+    const inviter = await assertCanInviteAdministrator(supabase, userId);
+    assertGrantablePermission(inviter.permissionLevel, data.permission_level);
+
 
     // Reject if email is already an admin
     const { data: existingProfile } = await supabase
@@ -1212,7 +1261,12 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
       "admin_invitation",
       inv.id,
       data.email,
-      { permission_level: data.permission_level, expires_at: expiresAt },
+      {
+        permission_level: data.permission_level,
+        expires_at: expiresAt,
+        inviter_permission_level: inviter.permissionLevel,
+        inviter_is_main_admin: inviter.isMainAdmin,
+      },
     );
     return inv;
   });
@@ -1222,7 +1276,8 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertMainAdmin(supabase, userId);
+    await assertCanInviteAdministrator(supabase, userId);
+
     const { data: inv, error } = await supabase
       .from("admin_invitations")
       .update({

@@ -17,6 +17,15 @@ import { LoadMoreRow } from "@/components/shared/load-more";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
 import {
+  HIGHEST_ADMIN_PERMISSION,
+  ADMIN_PERMISSION_LEVELS,
+
+  adminPermission,
+  canInviteAdministrators,
+  grantableAdminPermissions,
+} from "@/lib/admin-permissions";
+
+import {
   DEFAULT_ADMIN_INVITATION_SUBJECT,
   DEFAULT_ADMIN_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
@@ -54,6 +63,13 @@ function AdminsPage() {
   });
 
   const isMain = !!me.data?.isMainAdmin;
+  // Any administrator at the highest permission level may invite colleagues.
+  const myPermission = isMain
+    ? HIGHEST_ADMIN_PERMISSION
+    : (me.data?.permissionLevel as string | undefined);
+  const canInvite = isMain || canInviteAdministrators(myPermission);
+  const grantable = grantableAdminPermissions(myPermission);
+
 
   const invite = useMutation({
     mutationFn: (input: { email: string; permission_level: "view_only" | "edit" }) =>
@@ -217,10 +233,11 @@ function AdminsPage() {
                       </td>
                       <td>
                         <span
-                          className={`tvp-status tvp-${a.permission_level === "edit" ? "green" : "amber"}`}
+                          className={`tvp-status tvp-${adminPermission(a.permission_level)?.tone ?? "amber"}`}
                         >
-                          {a.permission_level === "edit" ? "Edit rights" : "View only"}
+                          {adminPermission(a.permission_level)?.label ?? "—"}
                         </span>
+
                       </td>
                       <td>
                         {new Date(a.created_at).toLocaleDateString("en-GB", {
@@ -270,14 +287,14 @@ function AdminsPage() {
                   Sent invites become active when the invitee signs up with the matching email.
                 </span>
               </div>
-              {isMain && !inviteOpen && (
+              {canInvite && !inviteOpen && (
                 <button className="tvp-primary" onClick={() => setInviteOpen(true)}>
                   <UserPlus className="h-4 w-4" style={{ marginRight: 6 }} />
                   Add
                 </button>
               )}
             </div>
-            {isMain && inviteOpen && (
+            {canInvite && inviteOpen && (
               <div
                 className="tvp-card tvp-invite-panel"
                 style={{ margin: "0 0 16px", background: "var(--tvp-muted-bg, #f8fafc)" }}
@@ -294,7 +311,9 @@ function AdminsPage() {
                 </div>
                 <p className="tvp-muted tvp-invite-desc" style={{ fontSize: 12 }}>
                   The invitee becomes an administrator at the selected permission level as
-                  soon as they sign up with this email. This action is recorded in the audit log.
+                  soon as they sign up with this email. You may only grant a level at or
+                  below your own, and only the Main Administrator can designate another
+                  Main Administrator. This action is recorded in the audit log.
                 </p>
                 <div className="tvp-invite-form-row">
                   <div className="tvp-form-group">
@@ -313,16 +332,18 @@ function AdminsPage() {
                       value={invitePerm}
                       onChange={(e) => setInvitePerm(e.target.value as any)}
                     >
-                      <option value="edit">Edit rights — full access</option>
-                      <option value="view_only">View only — read-only access</option>
+                      {grantable.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.optionLabel}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
                 <span className="tvp-muted tvp-invite-hint">
-                  {invitePerm === "edit"
-                    ? "Can perform all administrator actions (suspend agencies, send invites, approve legal copy, etc.)."
-                    : "Can view every admin screen but cannot perform any write action."}
+                  {adminPermission(invitePerm)?.description}
                 </span>
+
                 <div className="tvp-footer-actions">
                   <button className="tvp-secondary" onClick={() => setInviteOpen(false)}>
                     Cancel
@@ -363,10 +384,11 @@ function AdminsPage() {
                     <td><strong>{i.email}</strong></td>
                     <td>
                       <span
-                        className={`tvp-status tvp-${i.permission_level === "edit" ? "green" : "amber"}`}
+                        className={`tvp-status tvp-${adminPermission(i.permission_level)?.tone ?? "amber"}`}
                       >
-                        {i.permission_level === "edit" ? "Edit rights" : "View only"}
+                        {adminPermission(i.permission_level)?.label ?? "—"}
                       </span>
+
                     </td>
                     <td>
                       <span
@@ -386,7 +408,7 @@ function AdminsPage() {
                     </td>
                     <td className="tvp-muted">{i.invited_by_email ?? "—"}</td>
                     <td>
-                      {isMain && (i.stored_status ?? i.status) === "pending" && (
+                      {canInvite && (i.stored_status ?? i.status) === "pending" && (
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
                           <RowActionsMenu
                             actions={[
@@ -490,8 +512,12 @@ function AdminsPage() {
                 onChange={(e) => setEditPermission(e.target.value as any)}
                 disabled={editAdmin.is_main_admin}
               >
-                <option value="edit">Edit rights — full access</option>
-                <option value="view_only">View only — read-only access</option>
+                {ADMIN_PERMISSION_LEVELS.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.optionLabel}
+                  </option>
+                ))}
+
               </select>
               {editAdmin.is_main_admin && (
                 <span
