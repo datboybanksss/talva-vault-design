@@ -231,10 +231,11 @@ function AdminsPage() {
                       </td>
                       <td>
                         <span
-                          className={`tvp-status tvp-${a.permission_level === "edit" ? "green" : "amber"}`}
+                          className={`tvp-status tvp-${adminPermission(a.permission_level)?.tone ?? "amber"}`}
                         >
-                          {a.permission_level === "edit" ? "Edit rights" : "View only"}
+                          {adminPermission(a.permission_level)?.label ?? "—"}
                         </span>
+
                       </td>
                       <td>
                         {new Date(a.created_at).toLocaleDateString("en-GB", {
