@@ -285,14 +285,14 @@ function AdminsPage() {
                   Sent invites become active when the invitee signs up with the matching email.
                 </span>
               </div>
-              {isMain && !inviteOpen && (
+              {canInvite && !inviteOpen && (
                 <button className="tvp-primary" onClick={() => setInviteOpen(true)}>
                   <UserPlus className="h-4 w-4" style={{ marginRight: 6 }} />
                   Add
                 </button>
               )}
             </div>
-            {isMain && inviteOpen && (
+            {canInvite && inviteOpen && (
               <div
                 className="tvp-card tvp-invite-panel"
                 style={{ margin: "0 0 16px", background: "var(--tvp-muted-bg, #f8fafc)" }}
@@ -309,7 +309,9 @@ function AdminsPage() {
                 </div>
                 <p className="tvp-muted tvp-invite-desc" style={{ fontSize: 12 }}>
                   The invitee becomes an administrator at the selected permission level as
-                  soon as they sign up with this email. This action is recorded in the audit log.
+                  soon as they sign up with this email. You may only grant a level at or
+                  below your own, and only the Main Administrator can designate another
+                  Main Administrator. This action is recorded in the audit log.
                 </p>
                 <div className="tvp-invite-form-row">
                   <div className="tvp-form-group">
@@ -328,16 +330,18 @@ function AdminsPage() {
                       value={invitePerm}
                       onChange={(e) => setInvitePerm(e.target.value as any)}
                     >
-                      <option value="edit">Edit rights — full access</option>
-                      <option value="view_only">View only — read-only access</option>
+                      {grantable.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.optionLabel}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
                 <span className="tvp-muted tvp-invite-hint">
-                  {invitePerm === "edit"
-                    ? "Can perform all administrator actions (suspend agencies, send invites, approve legal copy, etc.)."
-                    : "Can view every admin screen but cannot perform any write action."}
+                  {adminPermission(invitePerm)?.description}
                 </span>
+
                 <div className="tvp-footer-actions">
                   <button className="tvp-secondary" onClick={() => setInviteOpen(false)}>
                     Cancel
