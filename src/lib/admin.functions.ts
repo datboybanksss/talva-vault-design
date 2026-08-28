@@ -1261,7 +1261,12 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
       "admin_invitation",
       inv.id,
       data.email,
-      { permission_level: data.permission_level, expires_at: expiresAt },
+      {
+        permission_level: data.permission_level,
+        expires_at: expiresAt,
+        inviter_permission_level: inviter.permissionLevel,
+        inviter_is_main_admin: inviter.isMainAdmin,
+      },
     );
     return inv;
   });
@@ -1271,7 +1276,8 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertMainAdmin(supabase, userId);
+    await assertCanInviteAdministrator(supabase, userId);
+
     const { data: inv, error } = await supabase
       .from("admin_invitations")
       .update({
