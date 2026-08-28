@@ -54,6 +54,13 @@ function AdminsPage() {
   });
 
   const isMain = !!me.data?.isMainAdmin;
+  // Any administrator at the highest permission level may invite colleagues.
+  const myPermission = isMain
+    ? HIGHEST_ADMIN_PERMISSION
+    : (me.data?.permissionLevel as string | undefined);
+  const canInvite = isMain || canInviteAdministrators(myPermission);
+  const grantable = grantableAdminPermissions(myPermission);
+
 
   const invite = useMutation({
     mutationFn: (input: { email: string; permission_level: "view_only" | "edit" }) =>
