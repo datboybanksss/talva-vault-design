@@ -135,6 +135,7 @@ function FieldProvenance({
         <button
           type="button"
           className="tv-btn tv-btn--ghost"
+          data-tour="filing-source-toggle"
           onClick={() => setShowSource((v) => !v)}
           aria-expanded={showSource}
         >
@@ -375,6 +376,7 @@ export function AiFilingReviewModal({
                 {suggestion?.confidence && (
                   <span
                     className="tvp-muted"
+                    data-tour="filing-confidence"
                     style={{
                       marginLeft: "auto",
                       fontSize: 11,
@@ -394,6 +396,7 @@ export function AiFilingReviewModal({
                   </span>
                   <select
                     className="tvp-select"
+                    data-tour="filing-folder"
                     aria-label="Destination folder"
                     value={topFolder}
                     disabled={busy}
@@ -418,6 +421,7 @@ export function AiFilingReviewModal({
                   </span>
                   <select
                     className="tvp-select"
+                    data-tour="filing-subfolder"
                     aria-label="Destination subfolder"
                     value={subFolder}
                     disabled={busy || subOptions.length === 0}
@@ -480,6 +484,7 @@ export function AiFilingReviewModal({
                   <input
                     type="date"
                     className="tvp-select"
+                    data-tour="filing-expiry"
                     aria-label="Expiry date"
                     value={expiry}
                     disabled={busy}
@@ -500,6 +505,7 @@ export function AiFilingReviewModal({
                     min={1}
                     max={365}
                     className="tvp-select"
+                    data-tour="filing-reminder-days"
                     aria-label="Reminder lead days"
                     value={leadDaysText}
                     disabled={busy || noReminder || !expiry}
@@ -548,7 +554,7 @@ export function AiFilingReviewModal({
             </section>
 
             {/* ---------------- Human validation notice ---------------- */}
-            <div style={AMBER_PANEL}>
+            <div style={AMBER_PANEL} data-tour="filing-validation-notice">
               <ShieldAlert
                 className="h-4 w-4 shrink-0"
                 style={{ color: "var(--tvp-amber, #b45309)", marginTop: 2 }}
@@ -568,6 +574,7 @@ export function AiFilingReviewModal({
               <button
                 type="button"
                 className="tvp-secondary"
+                data-tour="filing-skip"
                 title="Leave it where it was uploaded and review later"
                 onClick={() => skip.mutate()}
                 disabled={busy}
@@ -577,6 +584,7 @@ export function AiFilingReviewModal({
               <button
                 type="button"
                 className="tvp-primary"
+                data-tour="filing-save"
                 onClick={() => save.mutate()}
                 disabled={busy}
               >
