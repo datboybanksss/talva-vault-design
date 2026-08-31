@@ -295,7 +295,9 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     setGuide(null);
     setKeys(null);
     setIdx(0);
+    rectRef.current = null;
     setRect(null);
+    setFading(false);
     if (!g) return;
     if (seenRef.current && !seenRef.current.includes(g.id)) seenRef.current.push(g.id);
     if (g.kind === "overview") overviewDoneRef.current = true;
