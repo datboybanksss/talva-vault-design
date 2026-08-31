@@ -121,6 +121,8 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
 
   const rectRef = useRef<Rect | null>(null);
   const settlingRef = useRef(false);
+  const currentRouteRef = useRef<string | null>(null);
+  const measureRef = useRef<((force?: boolean) => void) | null>(null);
   const seenRef = useRef<string[] | null>(null);
   const overviewDoneRef = useRef<boolean | null>(null);
   const autoCheckedRef = useRef<Set<string>>(new Set());
@@ -191,16 +193,21 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     if (!step) return;
     let cancelled = false;
     const isFirst = rectRef.current === null;
+    const targetRoute = step.route?.to ?? null;
+    // A step is "cross-page" when it navigates somewhere different from where
+    // the previous step left us (or when it is the very first step). Steps that
+    // stay on the same page must not fade at all — the spotlight simply glides.
+    const crossPage =
+      isFirst || (targetRoute !== null && targetRoute !== currentRouteRef.current);
+
     setReady(false);
     settlingRef.current = true;
-    // Keep the previous spotlight in place and fade it out instead of snapping
-    // it away — a route/tab change should read as a dissolve, not a cut.
-    if (!isFirst) setFading(true);
+    if (crossPage) setFading(true);
 
     (async () => {
       const reduced = prefersReducedMotion();
       if (step.route) {
-        if (!isFirst && !reduced) await sleep(200); // let the fade-out play
+        if (crossPage && !isFirst && !reduced) await sleep(220); // fade-out completes
         if (cancelled) return;
         try {
           await navigate({
@@ -211,6 +218,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
           /* route may not accept these search params — carry on */
         }
         if (cancelled) return;
+        currentRouteRef.current = targetRoute;
         if (!reduced) await sleep(120); // let the new page paint
       }
 
@@ -221,8 +229,23 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
         if (cancelled) return;
       }
       settlingRef.current = false;
-      setReady(true);
-      setFading(false);
+
+      if (crossPage) {
+        // Still fully transparent here: snap the rect to its final position
+        // (position transitions are disabled by .tvp-tour-fading), then reveal
+        // on a later frame so opacity is the only thing that animates.
+        setReady(true);
+        measureRef.current?.(true);
+        await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
+        if (cancelled) return;
+        await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
+        if (cancelled) return;
+        setFading(false);
+      } else {
+        // Same page: leave it visible and let the CSS position transition
+        // carry the spotlight across to the new control.
+        setReady(true);
+      }
     })();
 
     return () => {
@@ -232,9 +255,11 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guide?.id, idx, step?.key]);
 
+
   /* --------------------------------------------------- measurement ------- */
-  const measure = useCallback(() => {
-    if (!open || !ready || !step) return;
+  const measure = useCallback((force = false) => {
+    if (!open || !step) return;
+    if (!ready && !force) return;
     const el = document.querySelector(step.selector) as HTMLElement | null;
     if (!el || el.offsetParent === null) {
       rectRef.current = null;
@@ -261,6 +286,8 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     rectRef.current = next;
     setRect(next);
   }, [open, ready, step]);
+
+  measureRef.current = measure;
 
   useLayoutEffect(() => {
     measure();
@@ -298,6 +325,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     rectRef.current = null;
     setRect(null);
     setFading(false);
+    currentRouteRef.current = null;
     if (!g) return;
     if (seenRef.current && !seenRef.current.includes(g.id)) seenRef.current.push(g.id);
     if (g.kind === "overview") overviewDoneRef.current = true;
