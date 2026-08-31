@@ -144,7 +144,7 @@ function InvitationsPage() {
             Unique link per recipient. Copy never extends expiry. All actions are audit logged.
           </div>
         </div>
-        <div className="tvp-actions">
+        <div className="tvp-actions" data-tour="agency-invite-actions">
           <button
             className="tvp-secondary"
             disabled={!isOwner}
@@ -164,7 +164,7 @@ function InvitationsPage() {
         </div>
       </div>
 
-      <div className="tvp-tabs">
+      <div className="tvp-tabs" data-tour="agency-invite-tabs">
         {(["all", "talent", "staff", "expired", "revoked"] as const).map((k) => (
           <button
             key={k}

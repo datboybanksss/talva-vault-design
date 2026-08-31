@@ -81,7 +81,7 @@ function SharingPage() {
             Share private documents with a Loved One via a time-bound magic link plus a one-time access code.
           </div>
         </div>
-        <div className="tvp-actions">
+        <div className="tvp-actions" data-tour="talent-share-new">
           <button className="tvp-primary" onClick={() => { setPrefill(null); setShowModal(true); }}>
             <Share2 className="h-4 w-4" /> New share
           </button>
@@ -116,7 +116,7 @@ function SharingPage() {
           </div>
         ) : (
           <div className="tvp-table-wrap">
-            <table className="tvp-table">
+            <table className="tvp-table" data-tour="talent-share-table">
               <thead>
                 <tr><th>Recipient</th><th>Scope</th><th>Access</th><th>Expires</th><th>Views</th><th>Status</th><th></th></tr>
               </thead>

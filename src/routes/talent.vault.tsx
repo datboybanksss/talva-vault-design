@@ -77,7 +77,7 @@ function VaultPage() {
       </div>
 
 
-      <div className="tvp-tabs">
+      <div className="tvp-tabs" data-tour="talent-vault-tabs">
         <button className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`} onClick={() => goTo("private")}>
           <Lock className="h-4 w-4" /> Private Vault
         </button>

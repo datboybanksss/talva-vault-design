@@ -113,7 +113,7 @@ export function QuotesInvoicesSettingsPanel() {
 
   return (
     <>
-      <div className="tvp-topbar">
+      <div className="tvp-topbar" data-tour="billing-settings">
         <div>
           <h2 className="tvp-h2">Quotes &amp; Invoices Settings</h2>
           <div className="tvp-subtitle">

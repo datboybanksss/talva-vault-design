@@ -82,7 +82,7 @@ export function DocumentRulesPanel() {
     <>
       <div className="tvp-topbar">
         <div>
-          <h2 className="tvp-h2">Document Rules</h2>
+          <h2 className="tvp-h2" data-tour="document-rules">Document Rules</h2>
           <div className="tvp-subtitle">
             Retention rules lock documents from deletion for compliance windows.
           </div>

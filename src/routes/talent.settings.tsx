@@ -116,7 +116,7 @@ function TalentSettings() {
         </div>
       </div>
 
-      <div className="tvp-tabs">
+      <div className="tvp-tabs" data-tour="talent-settings-tabs">
         <button className={`tvp-tab${mode === "profile" ? " tvp-active" : ""}`} onClick={() => setMode("profile")}>Profile</button>
         <button className={`tvp-tab${mode === "account" ? " tvp-active" : ""}`} onClick={() => setMode("account")}>Account</button>
         <button className={`tvp-tab${mode === "security" ? " tvp-active" : ""}`} onClick={() => setMode("security")}>Security log</button>

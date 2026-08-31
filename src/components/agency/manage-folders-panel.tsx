@@ -135,7 +135,7 @@ export function ManageFoldersPanel() {
     <div className="tvp-card tvp-panel tvp-settings-tight">
       <div className="tvp-panel-head">
         <div>
-          <h2 className="tvp-h2" style={{ margin: 0 }}>Default Folder Selection</h2>
+          <h2 className="tvp-h2" data-tour="manage-folders" style={{ margin: 0 }}>Default Folder Selection</h2>
           <p className="tvp-muted" style={{ fontSize: 12, marginTop: 4, maxWidth: 620 }}>
             Tick the folders that should be pre-selected for every new Talent profile. These can
             still be unticked during individual Talent onboarding.

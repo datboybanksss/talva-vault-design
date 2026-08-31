@@ -436,7 +436,7 @@ function VaultPage() {
       </div>
       )}
 
-      <div className="tvp-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
+      <div className="tvp-tabs" data-tour="vault-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
         {tabs.map((t) => {
           const isRequests = t === "Requests";
           if (isRequests && mode === "search") return null;
