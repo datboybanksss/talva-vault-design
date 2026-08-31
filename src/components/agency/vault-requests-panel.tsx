@@ -258,7 +258,7 @@ function NewRequestDialog({
           <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
         <div className="tvp-form-grid" style={{ padding: 16 }}>
-          <div className="tvp-form-group"><label>Talent</label>
+          <div className="tvp-form-group" data-tour="request-talent"><label>Talent</label>
             <select value={f.talent_link_id} onChange={e => setF(s => ({ ...s, talent_link_id: e.target.value }))}>
               {talent.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}
             </select>
@@ -388,7 +388,7 @@ function ReviewDialog({
             </div>
           </div>
 
-          <h4 className="tvp-h3">Outcome</h4>
+          <h4 className="tvp-h3" data-tour="request-outcome">Outcome</h4>
           <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr", marginTop: 8 }}>
             {[
               { key: "completed", label: "Complete", icon: CheckCircle2, tone: "green" },

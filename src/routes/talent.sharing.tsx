@@ -388,13 +388,13 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
         </div>
         <div className="tvp-modal-body">
           <div className="tvp-form-grid">
-            <div className="tvp-form-group"><label>Loved One name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah Mokoena" /></div>
+            <div className="tvp-form-group" data-tour="share-recipient"><label>Loved One name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah Mokoena" /></div>
             <div className="tvp-form-group"><label>Email (link is sent here)</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com" /></div>
             <div className="tvp-form-group"><label>Relationship</label><input value={rel} onChange={(e) => setRel(e.target.value)} placeholder="Spouse, Sibling, Advisor…" /></div>
             <div className="tvp-form-group"><label>Access duration (days)</label><input type="number" min={1} max={365} value={days} onChange={(e) => setDays(Number(e.target.value))} /></div>
           </div>
 
-          <h3 className="tvp-h3" style={{ marginTop: 16 }}>What are you sharing?</h3>
+          <h3 className="tvp-h3" data-tour="share-scope" style={{ marginTop: 16 }}>What are you sharing?</h3>
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             <ChoiceChip active={kind === "folders"} onClick={() => setKind("folders")} label="Whole folders" />
             <ChoiceChip active={kind === "document"} onClick={() => setKind("document")} label="A single document" />
@@ -441,7 +441,7 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
             </div>
           )}
 
-          <h3 className="tvp-h3" style={{ marginTop: 18 }}>What can they do?</h3>
+          <h3 className="tvp-h3" data-tour="share-permission" style={{ marginTop: 18 }}>What can they do?</h3>
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             <ChoiceChip active={permission === "view"} onClick={() => setPermission("view")} label="View only (watermarked)" icon={<Eye className="h-3 w-3" />} />
             <ChoiceChip active={permission === "download"} onClick={() => setPermission("download")} label="View & download" icon={<Download className="h-3 w-3" />} />
