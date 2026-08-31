@@ -341,18 +341,15 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
       aria-label={`${guide!.title} walkthrough`}
     >
       {rect ? (
-        <>
-          <div
-            className="tvp-tour-spot"
-            style={{
-              top: rect.top - pad,
-              left: rect.left - pad,
-              width: rect.width + pad * 2,
-              height: rect.height + pad * 2,
-            }}
-          />
-          <div className="tvp-tour-dim" />
-        </>
+        <div
+          className="tvp-tour-spot"
+          style={{
+            top: rect.top - pad,
+            left: rect.left - pad,
+            width: rect.width + pad * 2,
+            height: rect.height + pad * 2,
+          }}
+        />
       ) : (
         <div className="tvp-tour-dim" />
       )}
