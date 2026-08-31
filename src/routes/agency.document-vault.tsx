@@ -216,6 +216,13 @@ function VaultPage() {
   const [tab, setTab] = useState<Tab>(initialTab);
   const [requestsAutoOpen, setRequestsAutoOpen] = useState(false);
 
+  // Keep the tab in step with the URL so links (and guided walkthroughs) can
+  // open a specific tab on a page that is already mounted.
+  useEffect(() => {
+    const t = searchParams.tab;
+    if (t && (tabs as readonly string[]).includes(t)) setTab(t as Tab);
+  }, [searchParams.tab]);
+
   const needsActionCount = useMemo(
     () => requestRows.filter(r => r.status === "pending" || r.status === "submitted").length,
     [requestRows],
@@ -519,7 +526,7 @@ function VaultPage() {
           onAutoOpenConsumed={() => setRequestsAutoOpen(false)}
         />
       ) : (
-      <div className="tvp-stack">
+      <div className="tvp-stack" data-tour="vault-panes">
         {showTalentPicker && (
           <div className="tvp-card">
             <h2 className="tvp-h2" style={{ marginBottom: 2 }}>Select a talent</h2>
