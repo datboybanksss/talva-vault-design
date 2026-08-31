@@ -94,6 +94,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-folder",
+        route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-folder"]',
         title: "Folder & subfolder",
         body: "Say you upload a photo of your passport. The AI fills Private Vault folder with \"Identity Documents\" and Subfolder with \"Passports\", and shows a confidence label — high, medium or low. Under the fields the value carries a \"Suggested by AI\" badge with that confidence.",
@@ -101,6 +102,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-source",
+        route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-source-toggle"]',
         title: "Where did this come from?",
         body: "Click \"Where did this come from?\" and the exact sentence the AI read from your document is shown — for a passport, something like \"Republic of South Africa — Passport No. M00123456\". If the sentence doesn't support the suggestion, don't trust it.",
@@ -108,6 +110,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-edit",
+        route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-subfolder"]',
         title: "The fields are live — just change them",
         body: "There's no approve or reject button. Open the Subfolder dropdown and pick \"Identity cards\" instead, and the badge flips straight to \"Edited by you\". Whatever is sitting in the fields is what gets saved.",
@@ -115,6 +118,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-expiry",
+        route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-expiry"]',
         title: "Expiry & reminder",
         body: "The AI also reads expiry dates. On a passport it would set Expiry date to 2031-04-18 and put 30 in \"Remind me this many days before\", so a reminder lands on 2031-03-19. Check the source sentence, correct the date if it's misread, or tick \"No reminder needed for this document\" when the document never expires.",
@@ -122,6 +126,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-save",
+        route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-save"]',
         title: "Nothing is filed automatically",
         body: "\"Save filing\" writes exactly what's in the fields at that moment — folder, expiry and reminder. \"Skip for now\" doesn't lose the document: it stays uploaded and waits for you under the Pending review filter, so you can come back when you have the paperwork in front of you.",
@@ -370,6 +375,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-folder",
+        route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-folder"]',
         title: "Folder & subfolder",
         body: "Upload a scan of a talent's passport and the AI sets Agency Shared Folder folder to \"Identity Documents\" and Subfolder to \"Passports\", with a confidence label of high, medium or low. The value below carries a \"Suggested by AI\" badge showing that confidence.",
@@ -377,6 +383,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-source",
+        route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-source-toggle"]',
         title: "Where did this come from?",
         body: "Click \"Where did this come from?\" to see the verbatim sentence the suggestion was drawn from — for that passport, \"Republic of South Africa — Passport No. M00123456\". If the extract doesn't back the folder, change it.",
@@ -384,6 +391,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-edit",
+        route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-subfolder"]',
         title: "The fields are live, not a proposal",
         body: "There is no accept or reject step. Change the Subfolder dropdown to \"Identity cards\" and the badge immediately reads \"Edited by you\" — your value is what gets written, the suggestion is only a pre-fill.",
@@ -391,6 +399,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-expiry",
+        route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-expiry"]',
         title: "Expiry & reminder",
         body: "The AI also proposes an expiry it read off the document — on a driving licence, Expiry date 2029-07-31 — plus a lead time in \"Remind me this many days before\", say 45, giving a reminder on 2029-06-16. Check the source sentence, correct a misread date, or tick \"No reminder needed for this document\".",
@@ -398,6 +407,7 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "ai-review-save",
+        route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-save"]',
         title: "Human validation required",
         body: "Nothing is ever filed automatically. \"Save filing\" writes exactly what's in the fields at that moment. \"Skip for now\" leaves the document queued under the Pending review filter on the tabs you saw earlier, so it's never lost — just waiting.",
