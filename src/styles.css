@@ -1419,22 +1419,44 @@
 
 /* --- First-run onboarding tour (shared across portals) --- */
 .tvp-tour { position: fixed; inset: 0; z-index: 90; }
-.tvp-tour-dim { position: absolute; inset: 0; background: rgba(12, 22, 28, .6); }
+.tvp-tour-dim {
+  position: absolute; inset: 0; background: rgba(12, 22, 28, .6);
+  opacity: 1; transition: opacity .22s ease;
+}
 .tvp-tour-spot {
   position: absolute; border-radius: 12px; pointer-events: none;
   box-shadow: 0 0 0 9999px rgba(12, 22, 28, .6);
   outline: 2px solid var(--tvp-amber);
-  transition: top .18s ease, left .18s ease, width .18s ease, height .18s ease;
+  opacity: 1;
+  transition:
+    top .28s cubic-bezier(.4, 0, .2, 1),
+    left .28s cubic-bezier(.4, 0, .2, 1),
+    width .28s cubic-bezier(.4, 0, .2, 1),
+    height .28s cubic-bezier(.4, 0, .2, 1),
+    opacity .22s ease;
 }
 .tvp-tour-tip {
   position: absolute; width: min(340px, calc(100vw - 32px));
   background: var(--surface); border: 1px solid var(--tvp-line); border-radius: 14px;
   box-shadow: 0 24px 60px rgba(12, 22, 28, .28); padding: 16px 18px;
+  opacity: 1;
+  transition:
+    top .28s cubic-bezier(.4, 0, .2, 1),
+    left .28s cubic-bezier(.4, 0, .2, 1),
+    opacity .22s ease;
 }
 .tvp-tour-tip-center {
   left: 50%; transform: translateX(-50%);
   bottom: max(16px, env(safe-area-inset-bottom)); top: auto;
   width: min(420px, calc(100vw - 24px));
+}
+/* Cross-step fade: applied while a step is routing / settling. */
+.tvp-tour-fading .tvp-tour-spot,
+.tvp-tour-fading .tvp-tour-tip,
+.tvp-tour-fading .tvp-tour-dim { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tvp-tour-spot, .tvp-tour-tip, .tvp-tour-dim { transition: none; }
 }
 .tvp-tour-step {
   font-size: 11px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase;
