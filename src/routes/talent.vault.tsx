@@ -77,7 +77,7 @@ function VaultPage() {
       </div>
 
 
-      <div className="tvp-tabs">
+      <div className="tvp-tabs" data-tour="talent-vault-tabs">
         <button className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`} onClick={() => goTo("private")}>
           <Lock className="h-4 w-4" /> Private Vault
         </button>
@@ -86,9 +86,11 @@ function VaultPage() {
         </button>
       </div>
 
-      {mode === "private" && <PrivateVault />}
+      <div data-tour="talent-vault-body">
+        {mode === "private" && <PrivateVault />}
 
-      {mode === "agency" && <AgencySharedFolder initialView={view ?? "folder"} />}
+        {mode === "agency" && <AgencySharedFolder initialView={view ?? "folder"} />}
+      </div>
 
 
 

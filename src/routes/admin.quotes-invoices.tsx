@@ -152,7 +152,7 @@ function QuotesInvoicesPage() {
 
   return (
     <>
-      <div className="tvp-topbar">
+      <div className="tvp-topbar" data-tour="admin-billing-header">
         <div>
           <h1 className="tvp-h1">Quotes & Invoices</h1>
           <div
@@ -171,7 +171,7 @@ function QuotesInvoicesPage() {
       </div>
 
       {/* KPI row — platform-level rollups */}
-      <div className="tvp-grid tvp-kpi-grid">
+      <div className="tvp-grid tvp-kpi-grid" data-tour="admin-billing-kpis">
         <div className="tvp-card tvp-kpi">
           <div className="tvp-kpi-icon tvp-bg-teal"><FileText className="h-5 w-5" /></div>
           <div>
@@ -262,7 +262,7 @@ function QuotesInvoicesPage() {
           </div>
         </div>
         <div className="tvp-table-wrap">
-          <table className="tvp-table">
+          <table className="tvp-table" data-tour="admin-billing-table">
             <thead>
               <tr>
                 <th>Agency</th><th>Type</th><th>Number</th><th>Client</th>

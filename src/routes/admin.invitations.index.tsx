@@ -183,7 +183,7 @@ function InvitationsPage() {
             Unique link per recipient. Copy never extends expiry. All actions are audit logged.
           </div>
         </div>
-        <div className="tvp-actions">
+        <div className="tvp-actions" data-tour="admin-invite-actions">
           <Link to="/admin/invitations/new" className="tvp-primary">
             <Send className="h-4 w-4" />New Invitation
           </Link>
@@ -191,7 +191,7 @@ function InvitationsPage() {
       </div>
 
       {/* KPI row */}
-      <div className="tvp-grid tvp-kpi-grid">
+      <div className="tvp-grid tvp-kpi-grid" data-tour="admin-invite-kpis">
         <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("all")}>
           <div className="tvp-kpi-icon tvp-bg-teal"><Mail className="h-5 w-5" /></div>
           <div>
@@ -261,7 +261,7 @@ function InvitationsPage() {
           )}
         </div>
         <div className="tvp-table-wrap">
-          <table className="tvp-table">
+          <table className="tvp-table" data-tour="admin-invite-table">
             <thead>
               <tr>
                 <th>Agency</th>

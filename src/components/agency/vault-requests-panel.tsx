@@ -117,7 +117,7 @@ export function VaultRequestsPanel({
             </span>
           </div>
         </div>
-        <button className="tvp-accent" onClick={() => setShowNew(true)} style={{ flexShrink: 0 }}>
+        <button className="tvp-accent" data-tour="vault-new-request" onClick={() => setShowNew(true)} style={{ flexShrink: 0 }}>
           <Plus className="h-4 w-4" />New request
         </button>
       </div>
@@ -148,7 +148,7 @@ export function VaultRequestsPanel({
             No document requests in this view — request a document from talent to start tracking it here.
           </div>
         ) : (
-          <table className="tvp-table">
+          <table className="tvp-table" data-tour="vault-requests-table">
             <thead>
               <tr>
                 <th>Title</th><th>Talent</th><th>Folder</th>

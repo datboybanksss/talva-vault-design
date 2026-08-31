@@ -1,188 +1,105 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+/**
+ * Guided walkthrough runtime.
+ *
+ * Two layers, both rendered by this component:
+ *  - the portal overview tour (one step per top-level section), gated by
+ *    profiles.has_seen_onboarding;
+ *  - named module guides that walk a workflow inside one section, may
+ *    navigate between pages and tabs, and are gated individually by
+ *    profiles.seen_tours.
+ *
+ * Guide content lives in src/lib/tours — this file only plays it.
+ */
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getGuide,
+  getOverviewGuide,
+  matchModuleGuides,
+  type Portal,
+  type TourGuide,
+  type TourStep,
+} from "@/lib/tours";
 
-export type TourStep = {
-  /** Stable slug used for topic selection — independent of title/selector. */
-  key: string;
-  /** CSS selector for the element to spotlight. Falls back to a centred card. */
-  selector: string;
-  title: string;
-  body: string;
-};
-
-export type Portal = "admin" | "agency" | "talent";
-
-const TOURS: Record<Portal, TourStep[]> = {
-  talent: [
-    {
-      key: "dashboard",
-      selector: '[data-tour="/talent"]',
-      title: "Dashboard",
-      body: "Your home screen — a quick read on what's outstanding, what's expiring and what your Manager has asked for.",
-    },
-    {
-      key: "vault",
-      selector: '[data-tour="/talent/vault"]',
-      title: "Your Vault",
-      body: "Everything you upload lives here — your Private Vault (only you can see it) and the Agency Shared Folder your Manager can access.",
-    },
-    {
-      key: "sharing",
-      selector: '[data-tour="/talent/sharing"]',
-      title: "Shared Access",
-      body: "Give a loved one time-limited access to specific documents. They get a secure link; you give them the access code separately.",
-    },
-    {
-      key: "budget",
-      selector: '[data-tour="/talent/budget"]',
-      title: "Budget & Income",
-      body: "A place to track earnings and spending against your contracts. It's on its way — we'll let you know the moment it opens.",
-    },
-    {
-      key: "needs-attention",
-      selector: '[data-tour="needs-attention"]',
-      title: "Needs attention",
-      body: "Your dashboard surfaces expiring documents and requests from your Manager here. Dismiss anything you've handled.",
-    },
-    {
-      key: "settings",
-      selector: '[data-tour="/talent/settings"]',
-      title: "Settings",
-      body: "Manage which folder categories are active, notification reminders, your password and two-factor authentication.",
-    },
-  ],
-  agency: [
-    {
-      key: "dashboard",
-      selector: '[data-tour="/agency"]',
-      title: "Dashboard",
-      body: "Your daily overview — roster size, compliance, anything expiring soon and the latest talent activity.",
-    },
-    {
-      key: "talent-roster",
-      selector: '[data-tour="/agency/talent"]',
-      title: "Talent Roster",
-      body: "Every talent you manage, their status and their compliance at a glance.",
-    },
-    {
-      key: "document-vault",
-      selector: '[data-tour="/agency/document-vault"]',
-      title: "Document Vault",
-      body: "Upload, review and request documents. The Requests tab tracks anything you're waiting on from talent.",
-    },
-    {
-      key: "invitations",
-      selector: '[data-tour="/agency/invitations"]',
-      title: "Invitations",
-      body: "Invite new talent and choose the shared folders they'll get the moment they accept.",
-    },
-    {
-      key: "quotes-invoices",
-      selector: '[data-tour="/agency/quotes-invoices"]',
-      title: "Quotes & Invoices",
-      body: "Create quotes, convert them to invoices and track payment. The summary cards total quoted, invoiced, received and outstanding for the period you pick, and the Reports tab breaks it down with CSV or PDF export.",
-    },
-    {
-      key: "activity-log",
-      selector: '[data-tour="/agency/activity"]',
-      title: "Activity Log",
-      body: "A filterable record of every action on your account — who did what, when, and from which device.",
-    },
-    {
-      key: "agency-profile",
-      selector: '[data-tour="/agency/settings"]',
-      title: "Agency Profile",
-      body: "Your agency details, logo, tax settings and the verified address your billing emails are sent from.",
-    },
-    {
-      key: "manage-folders",
-      selector: '[data-tour="/agency/settings"]',
-      title: "Manage Folders",
-      body: "Under Settings, choose which folder categories and subfolders your talent get, and set templates per talent type.",
-    },
-    {
-      key: "document-rules",
-      selector: '[data-tour="/agency/settings"]',
-      title: "Document Rules",
-      body: "Set expiry and reminder rules per document type so renewals are chased before anything lapses.",
-    },
-  ],
-  admin: [
-    {
-      key: "dashboard",
-      selector: '[data-tour="/admin"]',
-      title: "Dashboard",
-      body: "Platform health at a glance — agencies, active talent, outstanding invites and anything needing review.",
-    },
-    {
-      key: "agencies",
-      selector: '[data-tour="/admin/agencies"]',
-      title: "Agencies",
-      body: "Every agency on the platform — activate, suspend and inspect their setup from here.",
-    },
-    {
-      key: "invitations",
-      selector: '[data-tour="/admin/invitations"]',
-      title: "Agency Invitations",
-      body: "Create and track agency invites, edit the invitation email and send or copy the secure link.",
-    },
-    {
-      key: "quotes-invoices",
-      selector: '[data-tour="/admin/quotes-invoices"]',
-      title: "Quotes & Invoices",
-      body: "Billing activity across the platform, so you can see what agencies have quoted, invoiced and collected.",
-    },
-    {
-      key: "administrators",
-      selector: '[data-tour="/admin/administrators"]',
-      title: "Administrators",
-      body: "Manage who has platform admin access and their two-factor enrolment.",
-    },
-    {
-      key: "audit",
-      selector: '[data-tour="/admin/audit"]',
-      title: "Audit & Support Log",
-      body: "A full, filterable record of every privileged action, with IP and device details.",
-    },
-  ],
-};
-
-/** Read-only access to a portal's tour steps (source of truth for help copy). */
-export function getTourSteps(portal: Portal): TourStep[] {
-  return TOURS[portal];
-}
-
+export type { Portal, TourStep } from "@/lib/tours";
+export { getTourSteps, getOverviewGuide, getModuleGuides } from "@/lib/tours";
 
 type Rect = { top: number; left: number; width: number; height: number };
 
 /**
- * Fired by the Help menu. Optional `detail.keys` limits the run to those step
- * keys (in the portal's normal order); with no detail the full tour runs.
+ * Fired by the Help menu. `detail.guideId` selects the guide (defaults to the
+ * portal overview); optional `detail.keys` limits the run to those step keys.
  */
 export const REPLAY_TOUR_EVENT = "tvp:replay-tour";
 
-export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talent" }) {
-  const allSteps = TOURS[portal];
+async function markSeen(guide: TourGuide) {
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth?.user?.id;
+    if (!uid) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("seen_tours")
+      .eq("id", uid)
+      .maybeSingle();
+    const seen: string[] = ((data as any)?.seen_tours as string[] | null) ?? [];
+    const next = seen.includes(guide.id) ? seen : [...seen, guide.id];
+    const patch: Record<string, unknown> = { seen_tours: next };
+    if (guide.kind === "overview") patch.has_seen_onboarding = true;
+    await supabase.from("profiles").update(patch as any).eq("id", uid);
+  } catch {
+    /* non-blocking */
+  }
+}
+
+function waitForSelector(selector: string, timeoutMs = 1500): Promise<HTMLElement | null> {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const tick = () => {
+      const el = document.querySelector(selector) as HTMLElement | null;
+      if (el && el.offsetParent !== null) return resolve(el);
+      if (Date.now() - started > timeoutMs) return resolve(null);
+      window.setTimeout(tick, 60);
+    };
+    tick();
+  });
+}
+
+export function OnboardingTour({ portal }: { portal: Portal }) {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const [guide, setGuide] = useState<TourGuide | null>(null);
   const [keys, setKeys] = useState<string[] | null>(null);
-  const steps = keys ? allSteps.filter((s) => keys.includes(s.key)) : allSteps;
-  const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
+  const [ready, setReady] = useState(true);
 
-  // Manual replay from the Help menu, optionally scoped to selected topics.
+  const seenRef = useRef<string[] | null>(null);
+  const overviewDoneRef = useRef<boolean | null>(null);
+  const autoCheckedRef = useRef<Set<string>>(new Set());
+
+  const allSteps = guide?.steps ?? [];
+  const steps: TourStep[] = keys ? allSteps.filter((s) => keys.includes(s.key)) : allSteps;
+  const open = !!guide && steps.length > 0;
+
+  /* --------------------------------------------------- manual replay ----- */
   useEffect(() => {
     const onReplay = (e: Event) => {
-      const detail = (e as CustomEvent<{ keys?: string[] } | undefined>).detail;
+      const detail = (e as CustomEvent<{ guideId?: string; keys?: string[] } | undefined>).detail;
+      const g = detail?.guideId ? getGuide(detail.guideId) : getOverviewGuide(portal);
+      if (!g) return;
       setKeys(detail?.keys?.length ? detail.keys : null);
       setIdx(0);
-      setOpen(true);
+      setGuide(g);
     };
     window.addEventListener(REPLAY_TOUR_EVENT, onReplay);
     return () => window.removeEventListener(REPLAY_TOUR_EVENT, onReplay);
-  }, []);
+  }, [portal]);
 
-
-  // Show only on a user's very first visit.
+  /* --------------------------------------------------- first-visit ------- */
+  // Load the user's seen state once.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -191,19 +108,69 @@ export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talen
       if (!uid) return;
       const { data } = await supabase
         .from("profiles")
-        .select("has_seen_onboarding")
+        .select("has_seen_onboarding, seen_tours")
         .eq("id", uid)
         .maybeSingle();
-      if (!cancelled && data && (data as any).has_seen_onboarding === false) setOpen(true);
+      if (cancelled || !data) return;
+      seenRef.current = ((data as any).seen_tours as string[] | null) ?? [];
+      overviewDoneRef.current = (data as any).has_seen_onboarding !== false;
+      if (!overviewDoneRef.current) {
+        setIdx(0);
+        setKeys(null);
+        setGuide(getOverviewGuide(portal));
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [portal]);
 
+  // Auto-play the first unseen module guide for the section being viewed.
+  useEffect(() => {
+    if (guide) return;
+    if (seenRef.current === null || overviewDoneRef.current !== true) return;
+    const candidate = matchModuleGuides(portal, pathname).find(
+      (g) => !seenRef.current!.includes(g.id) && !autoCheckedRef.current.has(g.id),
+    );
+    if (!candidate) return;
+    autoCheckedRef.current.add(candidate.id);
+    setIdx(0);
+    setKeys(null);
+    setGuide(candidate);
+  }, [guide, pathname, portal]);
+
+  /* --------------------------------------------------- step routing ------ */
+  const step = open ? steps[idx] : undefined;
+
+  useEffect(() => {
+    if (!step) return;
+    let cancelled = false;
+    setReady(false);
+    setRect(null);
+    (async () => {
+      if (step.route) {
+        try {
+          await navigate({
+            to: step.route.to as any,
+            search: (step.route.search ?? {}) as any,
+          });
+        } catch {
+          /* route may not accept these search params — carry on */
+        }
+      }
+      await waitForSelector(step.selector);
+      if (!cancelled) setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guide?.id, idx, step?.key]);
+
+  /* --------------------------------------------------- measurement ------- */
   const measure = useCallback(() => {
-    if (!open) return;
-    const el = document.querySelector(steps[idx]?.selector ?? "") as HTMLElement | null;
+    if (!open || !ready || !step) return;
+    const el = document.querySelector(step.selector) as HTMLElement | null;
     if (!el || el.offsetParent === null) {
       setRect(null);
       return;
@@ -214,7 +181,7 @@ export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talen
       return;
     }
     setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
-  }, [open, idx, steps]);
+  }, [open, ready, step]);
 
   useLayoutEffect(() => {
     measure();
@@ -230,21 +197,18 @@ export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talen
     };
   }, [open, measure]);
 
+  /* --------------------------------------------------- finish ------------ */
   const finish = useCallback(async () => {
-    setOpen(false);
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth?.user?.id;
-      if (uid) {
-        await supabase
-          .from("profiles")
-          .update({ has_seen_onboarding: true } as any)
-          .eq("id", uid);
-      }
-    } catch {
-      /* non-blocking */
-    }
-  }, []);
+    const g = guide;
+    setGuide(null);
+    setKeys(null);
+    setIdx(0);
+    setRect(null);
+    if (!g) return;
+    if (seenRef.current && !seenRef.current.includes(g.id)) seenRef.current.push(g.id);
+    if (g.kind === "overview") overviewDoneRef.current = true;
+    await markSeen(g);
+  }, [guide]);
 
   useEffect(() => {
     if (!open) return;
@@ -255,12 +219,11 @@ export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talen
     return () => document.removeEventListener("keydown", onKey);
   }, [open, finish]);
 
-  if (!open || steps.length === 0) return null;
+  if (!open || !step) return null;
 
-  const step = steps[idx]!;
   const last = idx === steps.length - 1;
 
-  // Tooltip placement: beside the spotlight on desktop, pinned to the bottom of
+  // Tooltip placement: beside the spotlight on desktop, pinned to the centre of
   // the viewport when there is no visible target (mobile drawer closed, etc.).
   const pad = 8;
   const tipStyle: React.CSSProperties = rect
@@ -277,7 +240,7 @@ export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talen
     : {};
 
   return (
-    <div className="tvp-tour" role="dialog" aria-modal="true" aria-label="Getting started tour">
+    <div className="tvp-tour" role="dialog" aria-modal="true" aria-label={`${guide!.title} walkthrough`}>
       {rect ? (
         <div
           className="tvp-tour-spot"
@@ -294,7 +257,7 @@ export function OnboardingTour({ portal }: { portal: "admin" | "agency" | "talen
 
       <div className={`tvp-tour-tip${rect ? "" : " tvp-tour-tip-center"}`} style={tipStyle}>
         <div className="tvp-tour-step">
-          Step {idx + 1} of {steps.length}
+          {guide!.title} · Step {idx + 1} of {steps.length}
         </div>
         <div className="tvp-tour-title">{step.title}</div>
         <p className="tvp-tour-body">{step.body}</p>

@@ -1676,6 +1676,7 @@ export type Database = {
           id: string
           last_name: string | null
           phone: string | null
+          seen_tours: string[]
           terms_accepted_at: string | null
           updated_at: string
         }
@@ -1690,6 +1691,7 @@ export type Database = {
           id: string
           last_name?: string | null
           phone?: string | null
+          seen_tours?: string[]
           terms_accepted_at?: string | null
           updated_at?: string
         }
@@ -1704,6 +1706,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          seen_tours?: string[]
           terms_accepted_at?: string | null
           updated_at?: string
         }

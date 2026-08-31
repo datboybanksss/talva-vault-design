@@ -521,13 +521,13 @@ function QIPage() {
         <div>
           <h1 className="tvp-h1">Quotes & Invoices</h1>
         </div>
-        <div className="tvp-actions">
+        <div className="tvp-actions" data-tour="billing-new">
           <button className="tvp-secondary" onClick={() => openNew("quote")}><Plus className="h-4 w-4" />New Quote</button>
           <button className="tvp-primary" onClick={() => openNew("invoice")}><Plus className="h-4 w-4" />New Invoice</button>
         </div>
       </div>
 
-      <div className="tvp-subtabs" style={{ maxWidth: 320 }}>
+      <div className="tvp-subtabs" data-tour="billing-subtabs" style={{ maxWidth: 320 }}>
         <button className={`tvp-subtab${view === "overview" ? " tvp-active" : ""}`} onClick={() => setView("overview")}>Overview</button>
         <button className={`tvp-subtab${view === "reports" ? " tvp-active" : ""}`} onClick={() => setView("reports")}>Reports</button>
       </div>
@@ -545,7 +545,9 @@ function QIPage() {
         <BillingPeriodSelector value={period} onChange={setPeriod} label={resolvedPeriod.label} />
       </div>
 
-      <BillingSummaryCards report={report} />
+      <div data-tour="billing-summary">
+        <BillingSummaryCards report={report} />
+      </div>
 
       <div className="tvp-grid tvp-kpi-grid">
 
@@ -632,7 +634,7 @@ function QIPage() {
           ))}
         </div>
 
-        <table className="tvp-table">
+        <table className="tvp-table" data-tour="billing-table">
           <thead>
             <tr>
               <th>Reference</th><th>Type</th><th>Talent</th><th>Client</th><th>Status</th>
@@ -696,7 +698,7 @@ function QIPage() {
                         <Link2 className="h-4 w-4" />
                       </button>
                       {r.kind === "quote" && !linkedInvoice && (
-                        <button className="tvp-mini-btn" title="Convert to invoice" onClick={() => convert.mutate(r)}>
+                        <button className="tvp-mini-btn" data-tour="billing-convert" title="Convert to invoice" onClick={() => convert.mutate(r)}>
                           <ArrowRightLeft className="h-4 w-4" />
                         </button>
                       )}
