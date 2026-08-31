@@ -117,7 +117,10 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   const [idx, setIdx] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const [ready, setReady] = useState(true);
+  const [fading, setFading] = useState(false);
 
+  const rectRef = useRef<Rect | null>(null);
+  const settlingRef = useRef(false);
   const seenRef = useRef<string[] | null>(null);
   const overviewDoneRef = useRef<boolean | null>(null);
   const autoCheckedRef = useRef<Set<string>>(new Set());
