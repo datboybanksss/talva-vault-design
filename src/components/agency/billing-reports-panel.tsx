@@ -107,7 +107,7 @@ export function BillingReportsPanel({
     <div style={{ display: "grid", gap: 16 }}>
       <div className="tvp-card" style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
         <BillingPeriodSelector value={period} onChange={onPeriodChange} label={report.period.label} />
-        <div className="tvp-actions">
+        <div className="tvp-actions" data-tour="billing-export">
           <button
             className="tvp-secondary"
             onClick={() => {

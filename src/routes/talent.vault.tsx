@@ -350,7 +350,7 @@ function PrivateVault() {
             </p>
           </div>
           <div className="tvp-row-actions">
-            <button className="tvp-primary" onClick={() => triggerUpload(null)}><Upload className="h-4 w-4" /> Upload</button>
+            <button className="tvp-primary" data-tour="talent-vault-upload" onClick={() => triggerUpload(null)}><Upload className="h-4 w-4" /> Upload</button>
           </div>
         </div>
 

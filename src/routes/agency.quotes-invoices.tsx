@@ -749,11 +749,11 @@ function QIPage() {
                     <label>Number {!editor.number && <span className="tvp-muted" style={{ fontSize: 11 }}>(auto on send)</span>}</label>
                     <input value={editor.number} onChange={(e) => setEditor({ ...editor, number: e.target.value })} placeholder={editor.kind === "quote" ? "QT-2026-0001" : "INV-2026-0001"} />
                   </div>
-                  <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
+                  <div className="tvp-form-group" data-tour="editor-ref" style={{ gridColumn: "1 / -1" }}>
                     <label>Reference / description</label>
                     <input value={editor.description} onChange={(e) => setEditor({ ...editor, description: e.target.value })} placeholder="e.g. Brand campaign — Autumn 2026" maxLength={200} />
                   </div>
-                  <div className="tvp-form-group">
+                  <div className="tvp-form-group" data-tour="editor-client">
                     <label>Client / recipient name</label>
                     <input value={editor.client_name} onChange={(e) => setEditor({ ...editor, client_name: e.target.value })} />
                   </div>
@@ -765,7 +765,7 @@ function QIPage() {
                     <label>Recipient billing address</label>
                     <textarea rows={2} value={editor.recipient_address} onChange={(e) => setEditor({ ...editor, recipient_address: e.target.value })} placeholder="Required by SARS for invoices over R5,000" />
                   </div>
-                  <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
+                  <div className="tvp-form-group" data-tour="editor-recipients" style={{ gridColumn: "1 / -1" }}>
                     <label>Recipient emails</label>
                     <EmailChipsInput
                       value={editor.recipient_emails}
@@ -811,7 +811,7 @@ function QIPage() {
                 <div style={{ marginTop: 20 }}>
                   <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
                     <h3 className="tvp-h3" style={{ margin: 0 }}>Line items</h3>
-                    <button className="tvp-secondary" type="button" onClick={addLine}><Plus className="h-4 w-4" />Add line</button>
+                    <button className="tvp-secondary" type="button" data-tour="editor-add-line" onClick={addLine}><Plus className="h-4 w-4" />Add line</button>
                   </div>
                   <div style={{ border: "1px solid var(--tvp-border, #e5e5e5)", borderRadius: 6, overflow: "hidden" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", background: "#f7f7f5", fontSize: 11, textTransform: "uppercase", color: "#666", fontWeight: 700 }}>
@@ -834,7 +834,7 @@ function QIPage() {
                         </div>
                       );
                     })}
-                    <div style={{ padding: "10px 12px", borderTop: "2px solid #e5e5e5", background: "#fafaf7", display: "grid", gridTemplateColumns: "1fr 260px", gap: 8, fontSize: 13 }}>
+                    <div data-tour="editor-totals" style={{ padding: "10px 12px", borderTop: "2px solid #e5e5e5", background: "#fafaf7", display: "grid", gridTemplateColumns: "1fr 260px", gap: 8, fontSize: 13 }}>
                       <div className="tvp-muted" style={{ fontSize: 11 }}>
                         Totals calculated from lines. Subtotal is VAT-exclusive; VAT is applied per line.
                       </div>
@@ -876,7 +876,7 @@ function QIPage() {
                   </label>
                 </div>
 
-                <div className="flex justify-between items-center gap-2" style={{ marginTop: 20, flexWrap: "wrap" }}>
+                <div className="flex justify-between items-center gap-2" data-tour="editor-actions" style={{ marginTop: 20, flexWrap: "wrap" }}>
                   <div>
                     <button
                       className="tvp-secondary"
