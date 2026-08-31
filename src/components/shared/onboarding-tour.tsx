@@ -187,10 +187,18 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   useEffect(() => {
     if (!step) return;
     let cancelled = false;
+    const isFirst = rectRef.current === null;
     setReady(false);
-    setRect(null);
+    settlingRef.current = true;
+    // Keep the previous spotlight in place and fade it out instead of snapping
+    // it away — a route/tab change should read as a dissolve, not a cut.
+    if (!isFirst) setFading(true);
+
     (async () => {
+      const reduced = prefersReducedMotion();
       if (step.route) {
+        if (!isFirst && !reduced) await sleep(200); // let the fade-out play
+        if (cancelled) return;
         try {
           await navigate({
             to: step.route.to as any,
@@ -199,12 +207,24 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
         } catch {
           /* route may not accept these search params — carry on */
         }
+        if (cancelled) return;
+        if (!reduced) await sleep(120); // let the new page paint
       }
-      await waitForSelector(step.selector);
-      if (!cancelled) setReady(true);
+
+      const el = await waitForSelector(step.selector);
+      if (cancelled) return;
+      if (el) {
+        await scrollIntoViewAndSettle(el);
+        if (cancelled) return;
+      }
+      settlingRef.current = false;
+      setReady(true);
+      setFading(false);
     })();
+
     return () => {
       cancelled = true;
+      settlingRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guide?.id, idx, step?.key]);
@@ -214,28 +234,55 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     if (!open || !ready || !step) return;
     const el = document.querySelector(step.selector) as HTMLElement | null;
     if (!el || el.offsetParent === null) {
+      rectRef.current = null;
       setRect(null);
       return;
     }
     const r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) {
+      rectRef.current = null;
       setRect(null);
       return;
     }
-    setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    const next = { top: r.top, left: r.left, width: r.width, height: r.height };
+    const prev = rectRef.current;
+    if (
+      prev &&
+      Math.abs(prev.top - next.top) < 0.5 &&
+      Math.abs(prev.left - next.left) < 0.5 &&
+      Math.abs(prev.width - next.width) < 0.5 &&
+      Math.abs(prev.height - next.height) < 0.5
+    ) {
+      return; // no meaningful change — don't churn state
+    }
+    rectRef.current = next;
+    setRect(next);
   }, [open, ready, step]);
 
   useLayoutEffect(() => {
     measure();
   }, [measure]);
 
+  // Re-measure on resize/scroll, but never while a deliberate scroll-into-view
+  // is still settling, and only once per frame — the CSS transition then
+  // carries the spotlight/tooltip to the new position smoothly.
   useEffect(() => {
     if (!open) return;
-    window.addEventListener("resize", measure);
-    window.addEventListener("scroll", measure, true);
+    let frame = 0;
+    const onMove = () => {
+      if (settlingRef.current) return;
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        measure();
+      });
+    };
+    window.addEventListener("resize", onMove);
+    window.addEventListener("scroll", onMove, true);
     return () => {
-      window.removeEventListener("resize", measure);
-      window.removeEventListener("scroll", measure, true);
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", onMove);
+      window.removeEventListener("scroll", onMove, true);
     };
   }, [open, measure]);
 
