@@ -1450,10 +1450,15 @@
   bottom: max(16px, env(safe-area-inset-bottom)); top: auto;
   width: min(420px, calc(100vw - 24px));
 }
-/* Cross-step fade: applied while a step is routing / settling. */
+/* Cross-page step change: hide, snap into place, then reveal. While hidden,
+   only opacity may animate — position/size must jump instantly so the
+   spotlight never slides into view as it fades back in. */
 .tvp-tour-fading .tvp-tour-spot,
 .tvp-tour-fading .tvp-tour-tip,
 .tvp-tour-fading .tvp-tour-dim { opacity: 0; }
+.tvp-tour-fading .tvp-tour-spot,
+.tvp-tour-fading .tvp-tour-tip { transition: opacity .2s ease; }
+
 
 @media (prefers-reduced-motion: reduce) {
   .tvp-tour-spot, .tvp-tour-tip, .tvp-tour-dim { transition: none; }
