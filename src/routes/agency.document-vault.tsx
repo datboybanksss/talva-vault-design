@@ -385,7 +385,7 @@ function VaultPage() {
         <div>
           <h1 className="tvp-h1">Document Vault</h1>
         </div>
-        <div className="tvp-actions">
+        <div className="tvp-actions" data-tour="vault-actions">
           <button
             className={mode === "search" ? "tvp-primary" : "tvp-secondary"}
             onClick={() => {

@@ -198,7 +198,7 @@ function AgenciesPage() {
           <h1 className="tvp-h1">Agencies</h1>
           <div className="tvp-subtitle">Manage and monitor all agency accounts.</div>
         </div>
-        <div className="tvp-actions">
+        <div className="tvp-actions" data-tour="admin-agency-actions">
           <button className="tvp-secondary" onClick={exportCsv}>
             <Download className="h-4 w-4" />Export
           </button>
@@ -291,7 +291,7 @@ function AgenciesPage() {
           )}
         </div>
         <div className="tvp-table-wrap">
-          <table className="tvp-table">
+          <table className="tvp-table" data-tour="admin-agency-table">
             <thead>
               <tr>
                 <th>Agency</th><th>Status</th><th>Contact</th><th>Country</th><th>Talent</th><th>Created</th><th></th>
