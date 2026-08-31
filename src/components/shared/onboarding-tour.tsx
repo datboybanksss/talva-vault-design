@@ -66,6 +66,48 @@ function waitForSelector(selector: string, timeoutMs = 1500): Promise<HTMLElemen
   });
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+
+/**
+ * Smooth-scroll the target to the centre of the viewport and resolve only once
+ * the scroll has actually settled (its box stops moving for a few frames), so
+ * the measurement that follows is taken against a stable position.
+ */
+async function scrollIntoViewAndSettle(el: HTMLElement, timeoutMs = 900): Promise<void> {
+  try {
+    el.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "center",
+      inline: "nearest",
+    });
+  } catch {
+    el.scrollIntoView();
+  }
+  await new Promise<void>((resolve) => {
+    const started = Date.now();
+    let lastTop = Number.NaN;
+    let lastLeft = Number.NaN;
+    let stable = 0;
+    const tick = () => {
+      const r = el.getBoundingClientRect();
+      if (Math.abs(r.top - lastTop) < 0.5 && Math.abs(r.left - lastLeft) < 0.5) {
+        stable += 1;
+      } else {
+        stable = 0;
+      }
+      lastTop = r.top;
+      lastLeft = r.left;
+      if (stable >= 4 || Date.now() - started > timeoutMs) return resolve();
+      window.requestAnimationFrame(tick);
+    };
+    window.requestAnimationFrame(tick);
+  });
+}
+
 export function OnboardingTour({ portal }: { portal: Portal }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
