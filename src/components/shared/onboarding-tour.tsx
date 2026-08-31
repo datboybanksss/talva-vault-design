@@ -334,17 +334,25 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     : {};
 
   return (
-    <div className="tvp-tour" role="dialog" aria-modal="true" aria-label={`${guide!.title} walkthrough`}>
+    <div
+      className={`tvp-tour${fading ? " tvp-tour-fading" : ""}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${guide!.title} walkthrough`}
+    >
       {rect ? (
-        <div
-          className="tvp-tour-spot"
-          style={{
-            top: rect.top - pad,
-            left: rect.left - pad,
-            width: rect.width + pad * 2,
-            height: rect.height + pad * 2,
-          }}
-        />
+        <>
+          <div
+            className="tvp-tour-spot"
+            style={{
+              top: rect.top - pad,
+              left: rect.left - pad,
+              width: rect.width + pad * 2,
+              height: rect.height + pad * 2,
+            }}
+          />
+          <div className="tvp-tour-dim" />
+        </>
       ) : (
         <div className="tvp-tour-dim" />
       )}
