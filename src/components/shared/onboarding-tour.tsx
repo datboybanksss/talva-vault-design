@@ -121,6 +121,8 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
 
   const rectRef = useRef<Rect | null>(null);
   const settlingRef = useRef(false);
+  const currentRouteRef = useRef<string | null>(null);
+  const measureRef = useRef<((force?: boolean) => void) | null>(null);
   const seenRef = useRef<string[] | null>(null);
   const overviewDoneRef = useRef<boolean | null>(null);
   const autoCheckedRef = useRef<Set<string>>(new Set());
@@ -255,8 +257,9 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
 
 
   /* --------------------------------------------------- measurement ------- */
-  const measure = useCallback(() => {
-    if (!open || !ready || !step) return;
+  const measure = useCallback((force = false) => {
+    if (!open || !step) return;
+    if (!ready && !force) return;
     const el = document.querySelector(step.selector) as HTMLElement | null;
     if (!el || el.offsetParent === null) {
       rectRef.current = null;
@@ -283,6 +286,8 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     rectRef.current = next;
     setRect(next);
   }, [open, ready, step]);
+
+  measureRef.current = measure;
 
   useLayoutEffect(() => {
     measure();
@@ -320,6 +325,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     rectRef.current = null;
     setRect(null);
     setFading(false);
+    currentRouteRef.current = null;
     if (!g) return;
     if (seenRef.current && !seenRef.current.includes(g.id)) seenRef.current.push(g.id);
     if (g.kind === "overview") overviewDoneRef.current = true;
