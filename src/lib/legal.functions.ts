@@ -18,7 +18,7 @@ export type CurrentLegalDocument = {
 const input = z.object({ doc_type: z.enum(["agency", "talent"]) });
 
 export const getCurrentLegalDocument = createServerFn({ method: "POST" })
-  .inputValidator((v) => input.parse(v))
+  .validator((v: unknown) => input.parse(v))
   .handler(async ({ data }): Promise<CurrentLegalDocument> => {
     const { createClient } = await import("@supabase/supabase-js");
     const supabasePublic = createClient(
