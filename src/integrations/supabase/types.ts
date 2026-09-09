@@ -1551,6 +1551,50 @@ export type Database = {
           },
         ]
       }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          doc_type: string
+          document_id: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string
+          doc_type: string
+          document_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          doc_type?: string
+          document_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_acceptances_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_copy_items: {
         Row: {
           approved_at: string | null
@@ -1581,6 +1625,42 @@ export type Database = {
           status?: Database["public"]["Enums"]["legal_status"]
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      legal_documents: {
+        Row: {
+          body: string
+          created_at: string
+          doc_type: string
+          effective_at: string
+          id: string
+          is_current: boolean
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          doc_type: string
+          effective_at?: string
+          id?: string
+          is_current?: boolean
+          title: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          doc_type?: string
+          effective_at?: string
+          id?: string
+          is_current?: boolean
+          title?: string
+          updated_at?: string
+          version?: string
         }
         Relationships: []
       }
