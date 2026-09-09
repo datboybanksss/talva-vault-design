@@ -184,6 +184,7 @@ function Wizard({
           phone: phone.trim() || undefined,
           password,
           terms_accepted: true as const,
+          terms_version: legal?.version ?? "",
         },
       }),
     onSuccess: async (res) => {
@@ -277,6 +278,8 @@ function Wizard({
           onSubmit={submit}
           busy={activate.isPending}
           error={error}
+          legal={legal}
+          legalLoading={legalQ.isLoading}
         />
       )}
     </>
