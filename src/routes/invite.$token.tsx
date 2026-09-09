@@ -512,9 +512,15 @@ function Step4({
           style={{ marginTop: 3, width: 16, height: 16 }}
         />
         <span>
-          I have read and accept the <a href="/legal/terms" target="_blank" rel="noreferrer" className="tv-auth-link">Terms &amp; Conditions</a> and <a href="/legal/privacy" target="_blank" rel="noreferrer" className="tv-auth-link">Privacy Policy</a>.
+          I accept the TalVault Terms &amp; Conditions
+          {legal ? ` (${legal.version})` : ""}.
         </span>
       </label>
+      {!terms && (
+        <div className="tv-auth-hint" style={{ marginTop: 8 }}>
+          Please read the terms above and tick the box to enable activation.
+        </div>
+      )}
       {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
       <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
         <button
@@ -530,7 +536,7 @@ function Step4({
           type="button"
           className="tv-auth-submit"
           onClick={onSubmit}
-          disabled={!terms || busy}
+          disabled={!terms || busy || !legal}
           style={{ flex: 1, marginTop: 0, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
         >
           {busy ? (
