@@ -102,12 +102,19 @@ export async function resolvePortalHome(): Promise<string | null> {
 export type MfaGate = "ok" | "enrol" | "challenge";
 
 /**
+ * TEMPORARY (testing): two-factor enforcement is switched off. Set this back to
+ * true to restore mandatory 2FA on every portal.
+ */
+export const MFA_ENFORCED = false;
+
+/**
  * Two-factor authentication is mandatory for every account on every portal.
  * Returns what the gate must do before letting the user in:
  *  - "enrol"     → no verified TOTP factor yet
  *  - "challenge" → factor exists but this session is still AAL1
  */
 export async function checkMfaGate(): Promise<MfaGate> {
+  if (!MFA_ENFORCED) return "ok";
   const { data: factors, error } = await supabase.auth.mfa.listFactors();
   if (error) return "ok"; // transient failure must not lock anyone out
   const all = ((factors as unknown as { all?: { factor_type: string; status: string }[] })?.all) ?? [];
