@@ -6,6 +6,8 @@ import { ShieldCheck, Lock, FolderLock, Sparkles, Users, Check, ArrowLeft } from
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/password-input";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
+import { LegalDocumentView } from "@/components/shared/legal-document-view";
+import { getCurrentLegalDocument } from "@/lib/legal.functions";
 import {
   MIN_PW_LENGTH,
   PW_POLICY_HINT,
