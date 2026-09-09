@@ -425,7 +425,24 @@ function Step3({
           minLength={MIN_PW_LENGTH}
         />
       </div>
-      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 4, cursor: "pointer", fontSize: 14 }}>
+      <div style={{ marginTop: 18 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 650, margin: 0 }}>Terms &amp; Conditions</h3>
+        {legal ? (
+          <>
+            <div className="tv-auth-hint" style={{ marginTop: 6 }}>
+              {legal.title} · Version {legal.version}
+            </div>
+            <LegalDocumentView body={legal.body} />
+          </>
+        ) : (
+          <div className="tv-auth-hint" style={{ marginTop: 10 }}>
+            {legalLoading
+              ? "Loading the latest Terms & Conditions…"
+              : "We couldn't load the Terms & Conditions just now. Please refresh the page and try again."}
+          </div>
+        )}
+      </div>
+      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, cursor: "pointer", fontSize: 14 }}>
         <input
           type="checkbox"
           checked={terms}
@@ -433,11 +450,14 @@ function Step3({
           style={{ marginTop: 3, width: 16, height: 16 }}
         />
         <span>
-          I have read and accept the{" "}
-          <a href="/legal/terms" target="_blank" rel="noreferrer" className="tv-auth-link">Terms &amp; Conditions</a> and{" "}
-          <a href="/legal/privacy" target="_blank" rel="noreferrer" className="tv-auth-link">Privacy Policy</a>.
+          I accept the TalVault Terms &amp; Conditions{legal ? ` (${legal.version})` : ""}.
         </span>
       </label>
+      {!terms && (
+        <div className="tv-auth-hint" style={{ marginTop: 8 }}>
+          Please read the terms above and tick the box to enable activation.
+        </div>
+      )}
       {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
       <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
         <button
