@@ -26,6 +26,11 @@ import {
   InviteAccountGatePanel,
   useInviteAccountGate,
 } from "@/components/shared/invite-account-gate";
+import { LegalDocumentView } from "@/components/shared/legal-document-view";
+import {
+  getCurrentLegalDocument,
+  type CurrentLegalDocument,
+} from "@/lib/legal.functions";
 
 export const Route = createFileRoute("/invite/$token")({
   ssr: false,
