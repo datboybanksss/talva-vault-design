@@ -61,6 +61,7 @@ const activateInput = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   password: z.string().min(12).max(200),
   terms_accepted: z.literal(true),
+  terms_version: z.string().trim().min(1).max(40),
 });
 
 export type ActivationResult =
