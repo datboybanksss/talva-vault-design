@@ -232,6 +232,7 @@ function Wizard({
       const v = validateNewPassword(password);
       if (v) { setError(v); return; }
       if (password !== confirmPw) { setError("Passwords do not match."); return; }
+      if (!legal) { setError("The Terms & Conditions are still loading. Please try again in a moment."); return; }
       if (!terms) { setError("You must accept the Terms & Conditions to continue."); return; }
       activate.mutate();
       return;
@@ -485,7 +486,7 @@ function Step3({
           type="button"
           className="tv-auth-submit"
           onClick={onContinue}
-          disabled={busy}
+          disabled={busy || !terms || !legal}
           style={{ flex: 1, marginTop: 0, height: 46 }}
         >
           {busy ? "Creating your vault…" : "Create account"}
