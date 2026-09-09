@@ -166,6 +166,14 @@ function Wizard({
   const strength = useMemo(() => scorePassword(password), [password]);
   const req = useMemo(() => checkRequirements(password), [password]);
 
+  const legalQ = useQuery({
+    queryKey: ["legal-doc", "agency"],
+    queryFn: () => getCurrentLegalDocument({ data: { doc_type: "agency" } }),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+  const legal = legalQ.data ?? null;
+
   const activate = useMutation({
     mutationFn: () =>
       activateAgencyInvitation({
@@ -215,6 +223,10 @@ function Wizard({
 
   const submit = () => {
     setError(null);
+    if (!legal) {
+      setError("The Terms & Conditions are still loading. Please try again in a moment.");
+      return;
+    }
     if (!terms) { setError("You must accept the Terms & Conditions to continue."); return; }
     activate.mutate();
   };
