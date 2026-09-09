@@ -61,6 +61,7 @@ const activateInput = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   password: z.string().min(12).max(200),
   terms_accepted: z.literal(true),
+  terms_version: z.string().trim().min(1).max(40),
 });
 
 export type ActivationResult =
@@ -133,6 +134,27 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
         };
       }
       return { ok: false, code: "unknown", message: msg };
+    }
+
+    // Terms acceptance is recorded before anything else: if it cannot be
+    // written, the account is rolled back so no workspace is ever activated
+    // without a matching acceptance record.
+    try {
+      const { recordLegalAcceptance } = await import("@/lib/legal-acceptance.server");
+      await recordLegalAcceptance({
+        userId: created.user.id,
+        docType: "agency",
+        version: data.terms_version,
+      });
+    } catch (e: any) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id).catch(() => undefined);
+      return {
+        ok: false,
+        code: "unknown",
+        message:
+          e?.message ??
+          "We couldn't record your acceptance of the Terms & Conditions. Please try again.",
+      };
     }
 
     // Populate the additional profile fields the trigger doesn't handle.

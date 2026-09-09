@@ -6,6 +6,8 @@ import { ShieldCheck, Lock, FolderLock, Sparkles, Users, Check, ArrowLeft } from
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/password-input";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
+import { LegalDocumentView } from "@/components/shared/legal-document-view";
+import { getCurrentLegalDocument } from "@/lib/legal.functions";
 import {
   MIN_PW_LENGTH,
   PW_POLICY_HINT,
@@ -178,6 +180,14 @@ function Wizard({
   const strength = useMemo(() => scorePassword(password), [password]);
   const req = useMemo(() => checkRequirements(password), [password]);
 
+  const legalQ = useQuery({
+    queryKey: ["legal-doc", "talent"],
+    queryFn: () => getCurrentLegalDocument({ data: { doc_type: "talent" } }),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+  const legal = legalQ.data ?? null;
+
   const activate = useMutation({
     mutationFn: () =>
       activateTalentInvitation({
@@ -192,6 +202,7 @@ function Wizard({
           phone_number: phone.trim() || undefined,
           password,
           terms_accepted: true as const,
+          terms_version: legal?.version ?? "",
         },
       }),
     onSuccess: async (res) => {
@@ -221,6 +232,7 @@ function Wizard({
       const v = validateNewPassword(password);
       if (v) { setError(v); return; }
       if (password !== confirmPw) { setError("Passwords do not match."); return; }
+      if (!legal) { setError("The Terms & Conditions are still loading. Please try again in a moment."); return; }
       if (!terms) { setError("You must accept the Terms & Conditions to continue."); return; }
       activate.mutate();
       return;
@@ -252,6 +264,7 @@ function Wizard({
           confirmPw={confirmPw} setConfirmPw={setConfirmPw}
           strength={strength} req={req}
           terms={terms} setTerms={setTerms}
+          legal={legal} legalLoading={legalQ.isLoading}
           onBack={goBack} onContinue={goNext}
           busy={activate.isPending} error={error}
         />
@@ -376,7 +389,7 @@ function Step2({
 }
 
 function Step3({
-  password, setPassword, confirmPw, setConfirmPw, strength, req, terms, setTerms, onBack, onContinue, busy, error,
+  password, setPassword, confirmPw, setConfirmPw, strength, req, terms, setTerms, onBack, onContinue, busy, error, legal, legalLoading,
 }: any) {
   return (
     <>
@@ -425,7 +438,24 @@ function Step3({
           minLength={MIN_PW_LENGTH}
         />
       </div>
-      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 4, cursor: "pointer", fontSize: 14 }}>
+      <div style={{ marginTop: 18 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 650, margin: 0 }}>Terms &amp; Conditions</h3>
+        {legal ? (
+          <>
+            <div className="tv-auth-hint" style={{ marginTop: 6 }}>
+              {legal.title} · Version {legal.version}
+            </div>
+            <LegalDocumentView body={legal.body} />
+          </>
+        ) : (
+          <div className="tv-auth-hint" style={{ marginTop: 10 }}>
+            {legalLoading
+              ? "Loading the latest Terms & Conditions…"
+              : "We couldn't load the Terms & Conditions just now. Please refresh the page and try again."}
+          </div>
+        )}
+      </div>
+      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, cursor: "pointer", fontSize: 14 }}>
         <input
           type="checkbox"
           checked={terms}
@@ -433,11 +463,14 @@ function Step3({
           style={{ marginTop: 3, width: 16, height: 16 }}
         />
         <span>
-          I have read and accept the{" "}
-          <a href="/legal/terms" target="_blank" rel="noreferrer" className="tv-auth-link">Terms &amp; Conditions</a> and{" "}
-          <a href="/legal/privacy" target="_blank" rel="noreferrer" className="tv-auth-link">Privacy Policy</a>.
+          I accept the TalVault Terms &amp; Conditions{legal ? ` (${legal.version})` : ""}.
         </span>
       </label>
+      {!terms && (
+        <div className="tv-auth-hint" style={{ marginTop: 8 }}>
+          Please read the terms above and tick the box to enable activation.
+        </div>
+      )}
       {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
       <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
         <button
@@ -453,7 +486,7 @@ function Step3({
           type="button"
           className="tv-auth-submit"
           onClick={onContinue}
-          disabled={busy}
+          disabled={busy || !terms || !legal}
           style={{ flex: 1, marginTop: 0, height: 46 }}
         >
           {busy ? "Creating your vault…" : "Create account"}

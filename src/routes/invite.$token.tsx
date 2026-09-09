@@ -26,6 +26,11 @@ import {
   InviteAccountGatePanel,
   useInviteAccountGate,
 } from "@/components/shared/invite-account-gate";
+import { LegalDocumentView } from "@/components/shared/legal-document-view";
+import {
+  getCurrentLegalDocument,
+  type CurrentLegalDocument,
+} from "@/lib/legal.functions";
 
 export const Route = createFileRoute("/invite/$token")({
   ssr: false,
@@ -161,6 +166,14 @@ function Wizard({
   const strength = useMemo(() => scorePassword(password), [password]);
   const req = useMemo(() => checkRequirements(password), [password]);
 
+  const legalQ = useQuery({
+    queryKey: ["legal-doc", "agency"],
+    queryFn: () => getCurrentLegalDocument({ data: { doc_type: "agency" } }),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+  const legal = legalQ.data ?? null;
+
   const activate = useMutation({
     mutationFn: () =>
       activateAgencyInvitation({
@@ -171,6 +184,7 @@ function Wizard({
           phone: phone.trim() || undefined,
           password,
           terms_accepted: true as const,
+          terms_version: legal?.version ?? "",
         },
       }),
     onSuccess: async (res) => {
@@ -210,6 +224,10 @@ function Wizard({
 
   const submit = () => {
     setError(null);
+    if (!legal) {
+      setError("The Terms & Conditions are still loading. Please try again in a moment.");
+      return;
+    }
     if (!terms) { setError("You must accept the Terms & Conditions to continue."); return; }
     activate.mutate();
   };
@@ -260,6 +278,8 @@ function Wizard({
           onSubmit={submit}
           busy={activate.isPending}
           error={error}
+          legal={legal}
+          legalLoading={legalQ.isLoading}
         />
       )}
     </>
@@ -448,36 +468,33 @@ function Step3({
 }
 
 function Step4({
-  agencyName, terms, setTerms, onBack, onSubmit, busy, error,
+  agencyName, terms, setTerms, onBack, onSubmit, busy, error, legal, legalLoading,
 }: {
   agencyName: string;
   terms: boolean; setTerms: (v: boolean) => void;
   onBack: () => void; onSubmit: () => void; busy: boolean; error: string | null;
+  legal: CurrentLegalDocument; legalLoading: boolean;
 }) {
   return (
     <>
       <h2 className="tv-auth-title">Terms &amp; Conditions</h2>
       <p className="tv-auth-tag">
-        Please review and accept our terms to complete setup for <strong>{agencyName}</strong>.
+        Please read and accept our terms to complete setup for <strong>{agencyName}</strong>.
       </p>
-      <div
-        style={{
-          marginTop: 12,
-          padding: 14,
-          borderRadius: "var(--radius)",
-          border: "1px solid var(--line)",
-          maxHeight: 200,
-          overflowY: "auto",
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: "var(--muted-fg)",
-          background: "var(--surface-soft)",
-        }}
-      >
-        <p><strong>TalVault Manager Terms of Service (Summary)</strong></p>
-        <p>By activating this workspace you agree to safeguard talent data, respect retention policies configured by administrators, and use the platform only for legitimate agency operations. Full terms and our Privacy Policy govern your use of TalVault.</p>
-        <p>You acknowledge that all actions are audit logged, that document retention locks are legally binding, and that account credentials must not be shared.</p>
-      </div>
+      {legal ? (
+        <>
+          <div className="tv-auth-hint" style={{ marginTop: 10 }}>
+            {legal.title} · Version {legal.version}
+          </div>
+          <LegalDocumentView body={legal.body} />
+        </>
+      ) : (
+        <div className="tv-auth-hint" style={{ marginTop: 12 }}>
+          {legalLoading
+            ? "Loading the latest Terms & Conditions…"
+            : "We couldn't load the Terms & Conditions just now. Please refresh the page and try again."}
+        </div>
+      )}
       <label
         style={{
           display: "flex",
@@ -495,9 +512,15 @@ function Step4({
           style={{ marginTop: 3, width: 16, height: 16 }}
         />
         <span>
-          I have read and accept the <a href="/legal/terms" target="_blank" rel="noreferrer" className="tv-auth-link">Terms &amp; Conditions</a> and <a href="/legal/privacy" target="_blank" rel="noreferrer" className="tv-auth-link">Privacy Policy</a>.
+          I accept the TalVault Terms &amp; Conditions
+          {legal ? ` (${legal.version})` : ""}.
         </span>
       </label>
+      {!terms && (
+        <div className="tv-auth-hint" style={{ marginTop: 8 }}>
+          Please read the terms above and tick the box to enable activation.
+        </div>
+      )}
       {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
       <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
         <button
@@ -513,7 +536,7 @@ function Step4({
           type="button"
           className="tv-auth-submit"
           onClick={onSubmit}
-          disabled={!terms || busy}
+          disabled={!terms || busy || !legal}
           style={{ flex: 1, marginTop: 0, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
         >
           {busy ? (

@@ -65,6 +65,7 @@ const activateInput = z.object({
   phone_number: z.string().trim().max(40).optional().or(z.literal("")),
   password: z.string().min(12).max(200),
   terms_accepted: z.literal(true),
+  terms_version: z.string().trim().min(1).max(40),
 });
 
 export type TalentActivationResult =
@@ -145,6 +146,22 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
 
     const userId = created.user.id;
     const nz = (v?: string) => (v && v.trim().length > 0 ? v.trim() : null);
+
+    // Terms acceptance is recorded first: if it cannot be written, the account
+    // is rolled back so no vault is activated without an acceptance record.
+    try {
+      const { recordLegalAcceptance } = await import("@/lib/legal-acceptance.server");
+      await recordLegalAcceptance({ userId, docType: "talent", version: data.terms_version });
+    } catch (e: any) {
+      await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => undefined);
+      return {
+        ok: false,
+        code: "unknown",
+        message:
+          e?.message ??
+          "We couldn't record your acceptance of the Terms & Conditions. Please try again.",
+      };
+    }
 
     await supabaseAdmin
       .from("talent_profiles")
