@@ -21,8 +21,6 @@ export const getCurrentLegalDocument = createServerFn({ method: "POST" })
   .inputValidator((v) => input.parse(v))
   .handler(async ({ data }): Promise<CurrentLegalDocument> => {
     const { createClient } = await import("@supabase/supabase-js");
-    const { default: _unused } = { default: null } as { default: null };
-    void _unused;
     const supabasePublic = createClient(
       process.env["SUPABASE_URL"]!,
       process.env["SUPABASE_PUBLISHABLE_KEY"]!,
