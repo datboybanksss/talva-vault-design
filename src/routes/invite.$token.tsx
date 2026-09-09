@@ -448,36 +448,33 @@ function Step3({
 }
 
 function Step4({
-  agencyName, terms, setTerms, onBack, onSubmit, busy, error,
+  agencyName, terms, setTerms, onBack, onSubmit, busy, error, legal, legalLoading,
 }: {
   agencyName: string;
   terms: boolean; setTerms: (v: boolean) => void;
   onBack: () => void; onSubmit: () => void; busy: boolean; error: string | null;
+  legal: CurrentLegalDocument; legalLoading: boolean;
 }) {
   return (
     <>
       <h2 className="tv-auth-title">Terms &amp; Conditions</h2>
       <p className="tv-auth-tag">
-        Please review and accept our terms to complete setup for <strong>{agencyName}</strong>.
+        Please read and accept our terms to complete setup for <strong>{agencyName}</strong>.
       </p>
-      <div
-        style={{
-          marginTop: 12,
-          padding: 14,
-          borderRadius: "var(--radius)",
-          border: "1px solid var(--line)",
-          maxHeight: 200,
-          overflowY: "auto",
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: "var(--muted-fg)",
-          background: "var(--surface-soft)",
-        }}
-      >
-        <p><strong>TalVault Manager Terms of Service (Summary)</strong></p>
-        <p>By activating this workspace you agree to safeguard talent data, respect retention policies configured by administrators, and use the platform only for legitimate agency operations. Full terms and our Privacy Policy govern your use of TalVault.</p>
-        <p>You acknowledge that all actions are audit logged, that document retention locks are legally binding, and that account credentials must not be shared.</p>
-      </div>
+      {legal ? (
+        <>
+          <div className="tv-auth-hint" style={{ marginTop: 10 }}>
+            {legal.title} · Version {legal.version}
+          </div>
+          <LegalDocumentView body={legal.body} />
+        </>
+      ) : (
+        <div className="tv-auth-hint" style={{ marginTop: 12 }}>
+          {legalLoading
+            ? "Loading the latest Terms & Conditions…"
+            : "We couldn't load the Terms & Conditions just now. Please refresh the page and try again."}
+        </div>
+      )}
       <label
         style={{
           display: "flex",
