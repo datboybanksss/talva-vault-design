@@ -178,6 +178,14 @@ function Wizard({
   const strength = useMemo(() => scorePassword(password), [password]);
   const req = useMemo(() => checkRequirements(password), [password]);
 
+  const legalQ = useQuery({
+    queryKey: ["legal-doc", "talent"],
+    queryFn: () => getCurrentLegalDocument({ data: { doc_type: "talent" } }),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+  const legal = legalQ.data ?? null;
+
   const activate = useMutation({
     mutationFn: () =>
       activateTalentInvitation({
@@ -192,6 +200,7 @@ function Wizard({
           phone_number: phone.trim() || undefined,
           password,
           terms_accepted: true as const,
+          terms_version: legal?.version ?? "",
         },
       }),
     onSuccess: async (res) => {
@@ -252,6 +261,7 @@ function Wizard({
           confirmPw={confirmPw} setConfirmPw={setConfirmPw}
           strength={strength} req={req}
           terms={terms} setTerms={setTerms}
+          legal={legal} legalLoading={legalQ.isLoading}
           onBack={goBack} onContinue={goNext}
           busy={activate.isPending} error={error}
         />
@@ -376,7 +386,7 @@ function Step2({
 }
 
 function Step3({
-  password, setPassword, confirmPw, setConfirmPw, strength, req, terms, setTerms, onBack, onContinue, busy, error,
+  password, setPassword, confirmPw, setConfirmPw, strength, req, terms, setTerms, onBack, onContinue, busy, error, legal, legalLoading,
 }: any) {
   return (
     <>
