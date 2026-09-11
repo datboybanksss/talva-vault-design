@@ -185,8 +185,29 @@ function NewInvitationPage() {
   });
 
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+  const [slotErrors, setSlotErrors] = useState<Record<string, string>>({});
+  const clearSlotError = (slotKey: string) =>
+    setSlotErrors((prev) => {
+      if (!(slotKey in prev)) return prev;
+      const next = { ...prev };
+      delete next[slotKey];
+      return next;
+    });
+
   async function uploadForSlot(slotKey: string, file: File) {
     if (!draftId) return;
+    const normalise = (n: string) => n.trim().toLowerCase();
+    const duplicate = docs.some(
+      (d: any) => normalise(d.file_name ?? "") === normalise(file.name),
+    );
+    if (duplicate) {
+      setSlotErrors((prev) => ({
+        ...prev,
+        [slotKey]: `A document named "${file.name}" has already been uploaded for this agency.`,
+      }));
+      return;
+    }
+    clearSlotError(slotKey);
     setUploadingSlot(slotKey);
     try {
       const safe = file.name.replace(/[^A-Za-z0-9._-]/g, "_");
