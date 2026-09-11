@@ -624,6 +624,121 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
     return inv;
   });
 
+// Update an existing DRAFT — stays editable until it is finalised.
+export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string(),
+        agency_name: z.string().min(1).optional(),
+        contact_person: z.string().optional(),
+        email: z.string().email().optional(),
+        business_type: z.enum(["formal", "informal"]).optional(),
+        expiry_days: z.number().int().min(1).max(60).optional(),
+        registered_contact_number: z.string().optional(),
+        registered_mobile_number: z.string().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdminCanEdit(supabase, userId);
+
+    const { data: inv, error: iErr } = await supabase
+      .from("agency_invitations")
+      .select("id, agency_id, agency_name, email, status")
+      .eq("id", data.id)
+      .single();
+    if (iErr) throw new Error(iErr.message);
+    if (inv.status !== "draft") {
+      throw new Error(
+        `This invitation is already ${inv.status} and can no longer be edited as a draft.`,
+      );
+    }
+
+    const nextEmail = data.email ?? inv.email;
+    if (data.email && data.email.toLowerCase() !== (inv.email ?? "").toLowerCase()) {
+      const nowIso = new Date().toISOString();
+      const { data: clash } = await supabase
+        .from("agency_invitations")
+        .select("id, agency_name, status")
+        .ilike("email", data.email)
+        .in("status", ["pending", "draft"])
+        .gt("expires_at", nowIso)
+        .neq("id", data.id)
+        .maybeSingle();
+      if (clash?.id) {
+        throw new Error(
+          `An active ${clash.status} invitation for ${data.email} already exists (${clash.agency_name}).`,
+        );
+      }
+      const { data: activeAgency } = await supabase
+        .from("agencies")
+        .select("id, name")
+        .ilike("contact_email", data.email)
+        .eq("status", "accepted")
+        .maybeSingle();
+      if (activeAgency?.id) {
+        throw new Error(
+          `${activeAgency.name} is already onboarded with ${data.email}. Use a different contact email.`,
+        );
+      }
+    }
+
+    const patch: Record<string, unknown> = {};
+    if (data.agency_name !== undefined) patch.agency_name = data.agency_name;
+    if (data.contact_person !== undefined)
+      patch.contact_person = data.contact_person || null;
+    if (data.email !== undefined) patch.email = data.email;
+    if (data.business_type !== undefined) patch.business_type = data.business_type;
+    if (data.registered_contact_number !== undefined)
+      patch.registered_contact_number = data.registered_contact_number || null;
+    if (data.registered_mobile_number !== undefined)
+      patch.registered_mobile_number = data.registered_mobile_number || null;
+    if (data.expiry_days !== undefined) {
+      patch.expires_at = new Date(
+        Date.now() + data.expiry_days * 24 * 3600 * 1000,
+      ).toISOString();
+    }
+    patch.updated_at = new Date().toISOString();
+
+    const { data: updated, error: uErr } = await supabase
+      .from("agency_invitations")
+      .update(patch)
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (uErr) throw new Error(uErr.message);
+
+    if (inv.agency_id) {
+      const agencyPatch: Record<string, unknown> = {};
+      if (data.agency_name !== undefined) agencyPatch.name = data.agency_name;
+      if (data.email !== undefined) agencyPatch.contact_email = nextEmail;
+      if (data.contact_person !== undefined)
+        agencyPatch.contact_person = data.contact_person || null;
+      if (data.business_type !== undefined)
+        agencyPatch.business_type = data.business_type;
+      if (Object.keys(agencyPatch).length > 0) {
+        await supabase.from("agencies").update(agencyPatch).eq("id", inv.agency_id);
+      }
+    }
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "update_agency_invitation_draft",
+      "invitation",
+      data.id,
+      updated.agency_name,
+      { changed: Object.keys(patch).filter((k) => k !== "updated_at") },
+    );
+    return updated;
+  });
+
+
+
 // Finalize: move draft -> pending after compliance docs uploaded.
 const REQUIRED_FILE_SLOTS: Record<"formal" | "informal", string[]> = {
   formal: ["cipc", "director_id", "proof_of_address"],
