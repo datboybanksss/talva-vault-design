@@ -460,6 +460,18 @@ function NewInvitationPage() {
                       />
                     </label>
                   </div>
+                  {slotErrors[slot.key] && (
+                    <p
+                      role="alert"
+                      style={{
+                        margin: "8px 0 0",
+                        fontSize: 12,
+                        color: "var(--tvp-danger, #B42318)",
+                      }}
+                    >
+                      {slotErrors[slot.key]}
+                    </p>
+                  )}
                   {uploaded.length > 0 && (
                     <ul style={{ margin: "8px 0 0", padding: 0, listStyle: "none" }}>
                       {uploaded.map((u) => (
