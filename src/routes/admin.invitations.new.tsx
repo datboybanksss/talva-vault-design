@@ -229,7 +229,8 @@ function NewInvitationPage() {
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       toast.success(`${file.name} uploaded.`);
     } catch (e: any) {
-      toast.error(e.message ?? "Upload failed");
+      const msg = e?.message ?? "Upload failed";
+      setSlotErrors((prev) => ({ ...prev, [slotKey]: msg }));
     } finally {
       setUploadingSlot(null);
     }
