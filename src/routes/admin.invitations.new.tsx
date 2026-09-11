@@ -185,8 +185,29 @@ function NewInvitationPage() {
   });
 
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+  const [slotErrors, setSlotErrors] = useState<Record<string, string>>({});
+  const clearSlotError = (slotKey: string) =>
+    setSlotErrors((prev) => {
+      if (!(slotKey in prev)) return prev;
+      const next = { ...prev };
+      delete next[slotKey];
+      return next;
+    });
+
   async function uploadForSlot(slotKey: string, file: File) {
     if (!draftId) return;
+    const normalise = (n: string) => n.trim().toLowerCase();
+    const duplicate = docs.some(
+      (d: any) => normalise(d.file_name ?? "") === normalise(file.name),
+    );
+    if (duplicate) {
+      setSlotErrors((prev) => ({
+        ...prev,
+        [slotKey]: `A document named "${file.name}" has already been uploaded for this agency.`,
+      }));
+      return;
+    }
+    clearSlotError(slotKey);
     setUploadingSlot(slotKey);
     try {
       const safe = file.name.replace(/[^A-Za-z0-9._-]/g, "_");
@@ -208,7 +229,8 @@ function NewInvitationPage() {
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       toast.success(`${file.name} uploaded.`);
     } catch (e: any) {
-      toast.error(e.message ?? "Upload failed");
+      const msg = e?.message ?? "Upload failed";
+      setSlotErrors((prev) => ({ ...prev, [slotKey]: msg }));
     } finally {
       setUploadingSlot(null);
     }
@@ -438,6 +460,18 @@ function NewInvitationPage() {
                       />
                     </label>
                   </div>
+                  {slotErrors[slot.key] && (
+                    <p
+                      role="alert"
+                      style={{
+                        margin: "8px 0 0",
+                        fontSize: 12,
+                        color: "var(--tvp-danger, #B42318)",
+                      }}
+                    >
+                      {slotErrors[slot.key]}
+                    </p>
+                  )}
                   {uploaded.length > 0 && (
                     <ul style={{ margin: "8px 0 0", padding: 0, listStyle: "none" }}>
                       {uploaded.map((u) => (

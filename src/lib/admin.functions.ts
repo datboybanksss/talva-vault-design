@@ -877,6 +877,25 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
     });
 
 
+    // A given file name may only be uploaded once per agency onboarding record,
+    // across every document slot. Compared case-insensitively.
+    const normalise = (n: string) => n.trim().toLowerCase();
+    const { data: existingDocs, error: exErr } = await supabase
+      .from("agency_compliance_documents")
+      .select("id, file_name")
+      .eq("invitation_id", data.invitation_id);
+    if (exErr) throw new Error(exErr.message);
+    const clash = (existingDocs ?? []).some(
+      (d: { file_name: string }) => normalise(d.file_name) === normalise(data.file_name),
+    );
+    if (clash) {
+      // Remove the just-uploaded object so no orphan is left in storage.
+      await supabase.storage.from("agency-compliance-docs").remove([data.storage_path]);
+      throw new Error(
+        `A document named "${data.file_name}" has already been uploaded for this agency.`,
+      );
+    }
+
     const { data: row, error } = await supabase
       .from("agency_compliance_documents")
       .insert({
