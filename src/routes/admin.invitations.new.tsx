@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   createAgencyInvitationDraft,
+  updateAgencyInvitationDraft,
   finalizeAgencyInvitation,
   listAgencyInvitations,
   listComplianceDocuments,
@@ -44,12 +45,19 @@ const SLOTS: Record<BusinessType, Slot[]> = {
   ],
 };
 
+function daysUntil(iso?: string | null) {
+  if (!iso) return 14;
+  const d = Math.ceil((new Date(iso).getTime() - Date.now()) / (24 * 3600 * 1000));
+  return d >= 1 && d <= 60 ? d : 14;
+}
+
 function NewInvitationPage() {
   const { draft: draftIdFromUrl } = Route.useSearch();
   const nav = useNavigate();
   const qc = useQueryClient();
 
   const createDraftFn = useServerFn(createAgencyInvitationDraft);
+  const updateDraftFn = useServerFn(updateAgencyInvitationDraft);
   const finalizeFn = useServerFn(finalizeAgencyInvitation);
   const listInvsFn = useServerFn(listAgencyInvitations);
   const listDocsFn = useServerFn(listComplianceDocuments);
@@ -58,33 +66,34 @@ function NewInvitationPage() {
 
   const [draftId, setDraftId] = useState<string>(draftIdFromUrl || "");
 
-  // Phase 1 form state
+  // Details
   const [agencyName, setAgencyName] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
   const [businessType, setBusinessType] = useState<BusinessType | "">("");
   const [expiryDays, setExpiryDays] = useState(14);
-  // Phase 2 extras
   const [regContact, setRegContact] = useState("");
   const [regMobile, setRegMobile] = useState("");
 
-  // If arriving with a draft id, hydrate the fields from the invitations list.
+  // Hydrate from the stored draft when one is opened.
   const invQ = useQuery({
     queryKey: ["admin", "invitations"],
     queryFn: () => listInvsFn(),
     enabled: !!draftIdFromUrl,
   });
   const draftRow = (invQ.data ?? []).find((i: any) => i.id === draftIdFromUrl);
-  const hydratedRef = useRef(false);
-  if (draftRow && !hydratedRef.current) {
-    hydratedRef.current = true;
+
+  useEffect(() => {
+    if (!draftRow) return;
     setAgencyName(draftRow.agency_name ?? "");
     setContact(draftRow.contact_person ?? "");
     setEmail(draftRow.email ?? "");
     setBusinessType((draftRow.business_type as BusinessType) ?? "");
     setRegContact(draftRow.registered_contact_number ?? "");
     setRegMobile(draftRow.registered_mobile_number ?? "");
-  }
+    setExpiryDays(daysUntil(draftRow.expires_at));
+    setDraftId(draftRow.id);
+  }, [draftRow?.id]);
 
   const createDraftM = useMutation({
     mutationFn: () =>
@@ -100,10 +109,31 @@ function NewInvitationPage() {
     onSuccess: (row: any) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       setDraftId(row.id);
-      toast.success("Draft saved. Upload compliance documents to send.");
+      toast.success("Draft saved. You can keep editing it until you send.");
       nav({ to: "/admin/invitations/new", search: { draft: row.id } as any, replace: true });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to save draft"),
+  });
+
+  const updateDraftM = useMutation({
+    mutationFn: () =>
+      updateDraftFn({
+        data: {
+          id: draftId,
+          agency_name: agencyName,
+          contact_person: contact,
+          email,
+          business_type: (businessType || undefined) as BusinessType | undefined,
+          expiry_days: expiryDays,
+          registered_contact_number: regContact,
+          registered_mobile_number: regMobile,
+        },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Draft updated.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update draft"),
   });
 
   const docsQ = useQuery({
@@ -114,15 +144,29 @@ function NewInvitationPage() {
   const docs: any[] = docsQ.data ?? [];
 
   const finalizeM = useMutation({
-    mutationFn: () =>
-      finalizeFn({
+    mutationFn: async () => {
+      // Persist any unsaved edits first so sending always reflects the form.
+      await updateDraftFn({
+        data: {
+          id: draftId,
+          agency_name: agencyName,
+          contact_person: contact,
+          email,
+          business_type: (businessType || undefined) as BusinessType | undefined,
+          expiry_days: expiryDays,
+          registered_contact_number: regContact,
+          registered_mobile_number: regMobile,
+        },
+      });
+      return finalizeFn({
         data: {
           id: draftId,
           registered_contact_number: regContact || undefined,
           registered_mobile_number: regMobile || undefined,
           expiry_days: expiryDays,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Invitation sent. Recipient will receive the branded email.");
@@ -170,16 +214,15 @@ function NewInvitationPage() {
     }
   }
 
-  const canSaveDraft =
-    !draftId &&
-    agencyName.trim() &&
-    email.trim() &&
-    businessType &&
-    !createDraftM.isPending;
+  const detailsComplete = !!(agencyName.trim() && email.trim() && businessType);
+  const savingDraft = createDraftM.isPending || updateDraftM.isPending;
+  const canSaveDraft = detailsComplete && !savingDraft;
 
   const slotList = businessType ? SLOTS[businessType as BusinessType] : [];
+  const slotKeys = new Set(slotList.map((s) => s.key));
   const uploadedSlots = new Set(docs.map((d) => d.doc_slot));
   const missingSlots = slotList.filter((s) => !uploadedSlots.has(s.key));
+  const staleDocs = docs.filter((d) => !slotKeys.has(d.doc_slot));
   const missingPhone =
     businessType === "formal"
       ? !regContact.trim()
@@ -187,7 +230,17 @@ function NewInvitationPage() {
         ? !regMobile.trim()
         : true;
   const canSend =
-    !!draftId && missingSlots.length === 0 && !missingPhone && !finalizeM.isPending;
+    !!draftId &&
+    detailsComplete &&
+    missingSlots.length === 0 &&
+    !missingPhone &&
+    !finalizeM.isPending;
+
+  const outstanding = [
+    ...(detailsComplete ? [] : ["agency details"]),
+    ...missingSlots.map((s) => s.label.toLowerCase()),
+    ...(missingPhone ? ["contact number"] : []),
+  ];
 
   return (
     <>
@@ -204,14 +257,14 @@ function NewInvitationPage() {
             {draftId ? "Continue Agency Invitation" : "New Agency Invitation"}
           </h1>
           <div className="tvp-subtitle">
-            Two-step: save a draft, upload the compliance documents required by the business type,
-            then send. The invited agency does not upload these — you do.
+            Save your progress as a draft at any point and come back to it. Everything stays
+            editable until you finalise and send. The invited agency does not upload the
+            compliance documents — you do.
           </div>
         </div>
       </div>
 
       <div className="tvp-card tvp-panel">
-        {/* Phase indicator */}
         <div style={{ display: "flex", gap: 12, marginBottom: 18, fontSize: 13 }}>
           <span
             className="tvp-status"
@@ -220,7 +273,7 @@ function NewInvitationPage() {
               color: draftId ? "var(--tvp-green)" : "var(--tvp-teal)",
             }}
           >
-            {draftId ? "✓ Step 1: Draft saved" : "Step 1: Draft details"}
+            {draftId ? "Step 1: Draft saved · still editable" : "Step 1: Agency details"}
           </span>
           <span
             className="tvp-status"
@@ -233,11 +286,7 @@ function NewInvitationPage() {
           </span>
         </div>
 
-        {/* Phase 1 form */}
-        <fieldset
-          disabled={!!draftId}
-          style={{ border: "none", padding: 0, margin: 0, opacity: draftId ? 0.7 : 1 }}
-        >
+        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
           <div className="tvp-form-group">
             <label>Agency name *</label>
             <input
@@ -279,7 +328,7 @@ function NewInvitationPage() {
                     style={{
                       textAlign: "left",
                       padding: 14,
-                      cursor: draftId ? "not-allowed" : "pointer",
+                      cursor: "pointer",
                       border: active
                         ? "2px solid var(--tvp-teal)"
                         : "1px solid var(--tvp-border)",
@@ -311,24 +360,27 @@ function NewInvitationPage() {
           </div>
         </fieldset>
 
-        {!draftId && (
-          <div className="tvp-footer-actions">
-            <Link to="/admin/invitations" className="tvp-secondary">
-              Cancel
-            </Link>
-            <button
-              className="tvp-primary"
-              type="button"
-              disabled={!canSaveDraft}
-              onClick={() => createDraftM.mutate()}
-            >
-              {createDraftM.isPending ? "Saving…" : "Save draft & continue →"}
-            </button>
-          </div>
+        <div className="tvp-footer-actions">
+          <Link to="/admin/invitations" className="tvp-secondary">
+            {draftId ? "Close" : "Cancel"}
+          </Link>
+          <button
+            className="tvp-primary"
+            type="button"
+            disabled={!canSaveDraft}
+            onClick={() => (draftId ? updateDraftM.mutate() : createDraftM.mutate())}
+          >
+            {savingDraft ? "Saving…" : draftId ? "Save draft" : "Save draft & continue →"}
+          </button>
+        </div>
+        {!detailsComplete && (
+          <p className="tvp-muted" style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}>
+            Add an agency name, contact email and business type to save a draft.
+          </p>
         )}
       </div>
 
-      {/* Phase 2 — compliance docs */}
+      {/* Compliance documents */}
       {draftId && businessType && (
         <div className="tvp-card tvp-panel" style={{ marginTop: 16 }}>
           <h2 className="tvp-h2">Compliance documents ({businessType})</h2>
@@ -421,6 +473,33 @@ function NewInvitationPage() {
             })}
           </div>
 
+          {staleDocs.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div className="tvp-muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                No longer required for this business type — you can remove these.
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                {staleDocs.map((u) => (
+                  <li
+                    key={u.id}
+                    style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "4px 0" }}
+                  >
+                    <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
+                    <span>{u.file_name}</span>
+                    <button
+                      className="tvp-mini-btn"
+                      title="Remove"
+                      style={{ marginLeft: "auto" }}
+                      onClick={() => deleteDocM.mutate(u.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="tvp-form-group" style={{ marginTop: 16 }}>
             <label>
               {businessType === "formal"
@@ -439,26 +518,6 @@ function NewInvitationPage() {
             />
           </div>
 
-          {!canSend && (
-            <div
-              className="tvp-callout"
-              style={{
-                padding: 10,
-                marginTop: 8,
-                background: "rgba(232,147,72,0.08)",
-                border: "1px solid var(--tvp-amber)",
-                borderRadius: 8,
-                fontSize: 13,
-              }}
-            >
-              <strong>Cannot send yet.</strong>{" "}
-              {missingSlots.length > 0 && (
-                <>Missing: {missingSlots.map((s) => s.label).join(", ")}. </>
-              )}
-              {missingPhone && <>Phone number required. </>}
-            </div>
-          )}
-
           <div className="tvp-footer-actions">
             <Link to="/admin/invitations" className="tvp-secondary">
               Save & close
@@ -472,6 +531,11 @@ function NewInvitationPage() {
               {finalizeM.isPending ? "Sending…" : "Create & send invitation"}
             </button>
           </div>
+          {!canSend && outstanding.length > 0 && (
+            <p className="tvp-muted" style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}>
+              Still outstanding: {outstanding.join(", ")}.
+            </p>
+          )}
         </div>
       )}
     </>
