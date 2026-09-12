@@ -2444,8 +2444,9 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
       })
       .eq("id", agencyId)
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!updated) throw new Error("You do not have permission to update the main contact.");
     await logAgencyAudit(
       supabase, agencyId, userId, claims?.email,
       "update_agency_main_contact", "agency", agencyId,
