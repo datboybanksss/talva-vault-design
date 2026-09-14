@@ -8,6 +8,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   ChevronLeft,
   LayoutGrid,
+  BarChart3,
   Building2,
   Send,
   ScrollText,
@@ -36,6 +37,7 @@ type NavItem = {
 
 const manage: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
+  { to: "/admin/reporting", label: "Reporting", icon: <BarChart3 /> },
   { to: "/admin/agencies", label: "Agencies", icon: <Building2 /> },
   {
     to: "/admin/invitations",
