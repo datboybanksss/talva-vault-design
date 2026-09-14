@@ -736,6 +736,10 @@ function QIPage() {
       </>
       )}
 
+      {paymentsDocId && (
+        <InvoicePaymentsDialog docId={paymentsDocId} onClose={() => setPaymentsDocId(null)} />
+      )}
+
       {editorOpen && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={() => setEditorOpen(false)}>
           <div className="tvp-card" style={{ maxWidth: 820, width: "100%", maxHeight: "92vh", overflow: "auto", padding: 24, marginTop: 16 }} onClick={(e) => e.stopPropagation()}>
