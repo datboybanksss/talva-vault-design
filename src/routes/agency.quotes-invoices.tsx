@@ -202,6 +202,7 @@ function QIPage() {
 
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentsDocId, setPaymentsDocId] = useState<string | null>(null);
   const [chipFilter, setChipFilter] = useState<ChipKey | "all">("all");
   const [talentFilter, setTalentFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("newest");
