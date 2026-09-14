@@ -49,6 +49,60 @@ async function logAgencyAudit(
 }
 
 
+/**
+ * Records that someone at the agency looked at a specific talent's shared
+ * vault. This is the agency side of the two-sided north star metric, so it is
+ * attributed to the talent link rather than to a document.
+ *
+ * Browsing a vault fires many reads (paging, tab switches, opening files), so
+ * one view per actor/talent is kept every 30 minutes — enough to show real
+ * engagement without flooding the activity log. Best-effort: a logging failure
+ * must never break the read that triggered it.
+ */
+const VAULT_VIEW_ACTION = "talent_vault_viewed";
+const VAULT_VIEW_WINDOW_MS = 30 * 60 * 1000;
+
+async function logTalentVaultView(
+  supabase: any,
+  agencyId: string,
+  userId: string,
+  email: string | undefined,
+  talentLinkId: string,
+) {
+  try {
+    const since = new Date(Date.now() - VAULT_VIEW_WINDOW_MS).toISOString();
+    const { data: recent } = await supabase
+      .from("agency_audit_log")
+      .select("id")
+      .eq("agency_id", agencyId)
+      .eq("actor_id", userId)
+      .eq("action", VAULT_VIEW_ACTION)
+      .eq("target_id", talentLinkId)
+      .gte("created_at", since)
+      .limit(1);
+    if (recent && recent.length > 0) return;
+
+    const { data: link } = await supabase
+      .from("agency_talent_links")
+      .select("display_name")
+      .eq("id", talentLinkId)
+      .maybeSingle();
+
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      email,
+      VAULT_VIEW_ACTION,
+      "talent_link",
+      talentLinkId,
+      link?.display_name ?? null as any,
+    );
+  } catch {
+    /* activity logging is best-effort */
+  }
+}
+
 async function assertAgencyOwner(supabase: any, userId: string, agencyId: string) {
   const { data, error } = await supabase.rpc("has_agency_role", {
     _user_id: userId,
