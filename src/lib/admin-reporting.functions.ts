@@ -459,7 +459,7 @@ export const REPORTING_METRICS = [
   "agencies_added",
   "invitations",
   "invitations_accepted",
-  "north_star_talent",
+  "north_star_pairs",
   "active_talent",
   "shares",
   "documents_uploaded",
