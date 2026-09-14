@@ -1229,17 +1229,22 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("storage_path, agency_id, name")
+      .select("storage_path, agency_id, name, talent_link_id")
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) throw new Error("This document is no longer available.");
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
     if (!row.storage_path) throw new Error("No file attached to this document.");
+
+    if (row.talent_link_id) {
+      await logTalentVaultView(supabase, agencyId, userId, claims?.email, row.talent_link_id);
+    }
 
     const options = data.disposition === "attachment" ? { download: row.name as string } : undefined;
     const { data: signed, error: sErr } = await supabase
