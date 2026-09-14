@@ -546,17 +546,38 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           ]),
         };
       }
-      case "north_star_talent":
+      case "north_star_pairs": {
+        const pairs = await northStarPairs(admin, period);
+        const names = await agencyNames(admin, pairs.map((p) => p.agencyId));
+        const readable = (a: string) => a.replace(/_/g, " ");
+        const all = pairs
+          .map((p) => [
+            names.get(p.agencyId) ?? "—",
+            p.talentName,
+            p.talentActions.length ? p.talentActions.map(readable).join(", ") : "No activity",
+            p.agencyActions.length ? p.agencyActions.map(readable).join(", ") : "No activity",
+            p.both ? "Both sides" : p.talentActions.length ? "Talent only" : p.agencyActions.length ? "Agency only" : "Neither",
+          ])
+          .sort((a, b) => {
+            const rank = (r: string) =>
+              r === "Both sides" ? 0 : r === "Talent only" ? 1 : r === "Agency only" ? 2 : 3;
+            return rank(String(a[4])) - rank(String(b[4]));
+          });
+        return {
+          total: all.length,
+          note:
+            "Every live agency–talent relationship in the period. Only rows marked “Both sides” count towards the north star. Quotes and invoices are not counted yet — they cannot be tied to a specific talent.",
+          columns: ["Agency", "Talent", "Talent activity", "Agency activity", "Counts as engaged"],
+          rows: all.slice(range.from, range.to + 1),
+        };
+      }
       case "active_talent": {
         const rows = await activityRows(admin, period.fromIso, period.toIso);
         const talent = await onboardedTalent(admin, period.toIso);
         const byUser = new Map<string, any>();
         for (const t of talent) byUser.set(t.talent_user_id, t);
         const sets = activeSets(rows.filter((r) => byUser.has(r.actor_id)));
-        const qualifying =
-          data.metric === "north_star_talent"
-            ? [...sets.logins].filter((id) => sets.vault.has(id))
-            : [...sets.any];
+        const qualifying = [...sets.any];
         const names = await agencyNames(admin, qualifying.map((id) => byUser.get(id)?.agency_id));
         const counts = new Map<string, number>();
         const last = new Map<string, string>();
