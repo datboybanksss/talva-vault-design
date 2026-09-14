@@ -3415,7 +3415,7 @@ export const deleteInvoicePayment = createServerFn({ method: "POST" })
 
     await logAgencyAudit(
       supabase, agencyId, userId, claims?.email,
-      "delete_invoice_payment", "agency_billing_doc", row.doc_id, null,
+      "delete_invoice_payment", "agency_billing_doc", row.doc_id, undefined,
       { amount_cents: row.amount_cents },
     );
     return { ok: true };
