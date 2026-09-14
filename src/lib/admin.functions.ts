@@ -237,13 +237,10 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
 
     // Counts use head-only exact counts so the dashboard never streams whole
     // tables back just to call .length on them.
-    const [agencies, talent, docs, shares] = await Promise.all([
+    const [agencies, talentRows, docs, shares] = await Promise.all([
       supabase.from("agencies").select("id, status"),
-      supabase
-        .from("talent_profiles")
-        .select("id", { count: "exact", head: true })
-        .is("deleted_at", null)
-        .eq("is_test", false),
+      // Shared definition with the Reporting page — see src/lib/onboarded-talent.ts.
+      fetchOnboardedTalent(supabase),
       supabase.from("agency_documents").select("shared_folder_count, private_vault_count"),
       supabase
         // Admins read share metadata through the token-free admin view.
@@ -251,6 +248,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
         .select("id", { count: "exact", head: true })
         .eq("is_currently_active", true),
     ]);
+
 
     const statusCounts: Record<string, number> = {
       incomplete: 0,
