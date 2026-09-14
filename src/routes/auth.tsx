@@ -275,6 +275,7 @@ function AuthPage() {
           setMfaCode("");
           setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
         } else if (search.denied) {
+          recordSignIn();
           // The auto-redirect effect is disabled while `denied` is present, so
           // navigate explicitly (and drop the stale denial from the URL).
           void goNext(true);
