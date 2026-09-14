@@ -36,6 +36,7 @@ import { Route as AgencyDocumentVaultRouteImport } from './routes/agency.documen
 import { Route as AgencyDocumentRulesRouteImport } from './routes/agency.document-rules'
 import { Route as AgencyDocumentRequestsRouteImport } from './routes/agency.document-requests'
 import { Route as AgencyActivityRouteImport } from './routes/agency.activity'
+import { Route as AdminReportingRouteImport } from './routes/admin.reporting'
 import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
 import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
 import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
@@ -196,6 +197,11 @@ const AgencyActivityRoute = AgencyActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AgencyRoute,
 } as any)
+const AdminReportingRoute = AdminReportingRouteImport.update({
+  id: '/reporting',
+  path: '/reporting',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminQuotesInvoicesRoute = AdminQuotesInvoicesRouteImport.update({
   id: '/quotes-invoices',
   path: '/quotes-invoices',
@@ -339,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
+  '/admin/reporting': typeof AdminReportingRoute
   '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
@@ -387,6 +394,7 @@ export interface FileRoutesByTo {
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
+  '/admin/reporting': typeof AdminReportingRoute
   '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
@@ -440,6 +448,7 @@ export interface FileRoutesById {
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
+  '/admin/reporting': typeof AdminReportingRoute
   '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
@@ -495,6 +504,7 @@ export interface FileRouteTypes {
     | '/admin/invitations'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
+    | '/admin/reporting'
     | '/agency/activity'
     | '/agency/document-requests'
     | '/agency/document-rules'
@@ -543,6 +553,7 @@ export interface FileRouteTypes {
     | '/admin/enroll-2fa'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
+    | '/admin/reporting'
     | '/agency/activity'
     | '/agency/document-requests'
     | '/agency/document-rules'
@@ -595,6 +606,7 @@ export interface FileRouteTypes {
     | '/admin/invitations'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
+    | '/admin/reporting'
     | '/agency/activity'
     | '/agency/document-requests'
     | '/agency/document-rules'
@@ -844,6 +856,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyActivityRouteImport
       parentRoute: typeof AgencyRoute
     }
+    '/admin/reporting': {
+      id: '/admin/reporting'
+      path: '/reporting'
+      fullPath: '/admin/reporting'
+      preLoaderRoute: typeof AdminReportingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/quotes-invoices': {
       id: '/admin/quotes-invoices'
       path: '/quotes-invoices'
@@ -1064,6 +1083,7 @@ interface AdminRouteChildren {
   AdminInvitationsRoute: typeof AdminInvitationsRouteWithChildren
   AdminMyAccountRoute: typeof AdminMyAccountRoute
   AdminQuotesInvoicesRoute: typeof AdminQuotesInvoicesRoute
+  AdminReportingRoute: typeof AdminReportingRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -1075,6 +1095,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminInvitationsRoute: AdminInvitationsRouteWithChildren,
   AdminMyAccountRoute: AdminMyAccountRoute,
   AdminQuotesInvoicesRoute: AdminQuotesInvoicesRoute,
+  AdminReportingRoute: AdminReportingRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
