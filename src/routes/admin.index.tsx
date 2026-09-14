@@ -134,6 +134,13 @@ function AdminDashboard() {
             <div className="tvp-kpi-value">{metrics.data?.totalTalent ?? "—"}</div>
             <div className="tvp-kpi-label">Total Talent Onboarded</div>
             <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Talent currently active across all agencies</div>
+            <div
+              className="tvp-kpi-sub"
+              title="North star metric: % of onboarded talent who have logged in and interacted with their vault (upload, edit, or share) within the last 30 days. See the Reporting tab for the live figure and trend."
+              style={{ color: "var(--tvp-teal)", display: "inline-flex", alignItems: "center", gap: 4, marginTop: 2 }}
+            >
+              North star: active vault engagement, last 30 days →
+            </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi" title="Aggregate count only. Admin never previews Talent Private Vault contents.">
