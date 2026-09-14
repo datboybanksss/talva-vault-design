@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions }
 import { useServerFn } from "@tanstack/react-start";
 import {
   Plus, Trash2, Pencil, X, Save, ArrowRightLeft, Link2, Eye, Send,
-  FileText, CheckCircle2, AlertCircle, Search,
+  FileText, CheckCircle2, AlertCircle, Search, Wallet,
 } from "lucide-react";
+import { InvoicePaymentsDialog } from "@/components/agency/invoice-payments-dialog";
 import { toast } from "sonner";
 import { BILLING_DOC_STATUS_LABEL, BILLING_DOC_STATUS_TONE } from "@/lib/status-labels";
 import {
@@ -700,6 +701,15 @@ function QIPage() {
                       {r.kind === "quote" && !linkedInvoice && (
                         <button className="tvp-mini-btn" data-tour="billing-convert" title="Convert to invoice" onClick={() => convert.mutate(r)}>
                           <ArrowRightLeft className="h-4 w-4" />
+                        </button>
+                      )}
+                      {r.kind === "invoice" && r.status !== "draft" && (
+                        <button
+                          className="tvp-mini-btn"
+                          title="Payments received"
+                          onClick={() => setPaymentsDocId(r.id)}
+                        >
+                          <Wallet className="h-4 w-4" />
                         </button>
                       )}
                       <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></button>
