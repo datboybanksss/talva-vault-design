@@ -261,8 +261,12 @@ export const getReportingSummary = createServerFn({ method: "GET" })
     const now = activeSets(rowsNow.filter((r) => talentIds.has(r.actor_id)));
     const before = activeSets(rowsPrior.filter((r) => talentIdsPrior.has(r.actor_id)));
 
-    const northStarCount = [...now.logins].filter((id) => now.vault.has(id)).length;
-    const northStarPriorCount = [...before.logins].filter((id) => before.vault.has(id)).length;
+    const [pairsNow, pairsPrior] = await Promise.all([
+      northStarPairs(admin, period),
+      northStarPairs(admin, prior),
+    ]);
+    const northStarCount = pairsNow.filter((p) => p.both).length;
+    const northStarPriorCount = pairsPrior.filter((p) => p.both).length;
     const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
 
     // ---- Growth & funnel -----------------------------------------------------
