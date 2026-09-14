@@ -43,7 +43,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => CreateShareInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { supabase, userId, claims } = context as any;
     const talentId = await ensureTalentProfile(supabase, userId);
 
     const folderIds = data.share_kind === "document" ? [] : data.private_folder_ids;
@@ -105,6 +105,14 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
           .eq("id", row.id).eq("created_by", userId);
       }
     }
+
+    const { recordTalentActivity } = await import("@/lib/talent-activity.server");
+    await recordTalentActivity(supabase, userId, claims?.email, "vault_document_shared", {
+      targetType: "loved_one_share",
+      targetId: row.id,
+      targetLabel: data.loved_one_name,
+      detail: { share_kind: data.share_kind },
+    });
 
     // access_code is returned exactly once — it is never stored in plain text.
     return { id: row.id, token: row.token, access_code: accessCode, email };

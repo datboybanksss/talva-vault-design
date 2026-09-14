@@ -187,11 +187,11 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
     z.object({ document_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { userId, supabase } = context;
+    const { userId, supabase, claims } = context as any;
 
     const { data: doc, error } = await supabase
       .from("talent_private_documents")
-      .select("id, user_id, storage_path, mime_type")
+      .select("id, user_id, name, storage_path, mime_type")
       .eq("id", data.document_id)
       .single();
     if (error) throw new Error(error.message);
@@ -212,6 +212,11 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
         .from("talent_private_documents")
         .update({ size_bytes: result.sizeBytes })
         .eq("id", doc.id);
+      const { recordTalentActivity } = await import("@/lib/talent-activity.server");
+      await recordTalentActivity(supabase, userId, claims?.email, "vault_document_uploaded", {
+        targetId: doc.id,
+        targetLabel: doc.name ?? null,
+      });
       return { ok: true as const, size_bytes: result.sizeBytes };
     } catch (e) {
       // The object is already removed by validateStoredUpload; drop the row too
@@ -251,10 +256,10 @@ export const deletePrivateDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => DocIdInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { supabase, userId, claims } = context as any;
     const { data: doc } = await supabase
       .from("talent_private_documents")
-      .select("id, storage_path, user_id")
+      .select("id, name, storage_path, user_id")
       .eq("id", data.id)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
@@ -269,6 +274,11 @@ export const deletePrivateDocument = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.storage.from(BUCKET).remove([doc.storage_path]);
     }
+    const { recordTalentActivity } = await import("@/lib/talent-activity.server");
+    await recordTalentActivity(supabase, userId, claims?.email, "vault_document_deleted", {
+      targetId: doc.id,
+      targetLabel: doc.name ?? null,
+    });
     return { ok: true };
   });
 
@@ -281,11 +291,17 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => MoveDocInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { supabase, userId, claims } = context as any;
+    const { error } = await supabase
       .from("talent_private_documents")
       .update({ folder_id: data.folder_id })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    const { recordTalentActivity } = await import("@/lib/talent-activity.server");
+    await recordTalentActivity(supabase, userId, claims?.email, "vault_document_moved", {
+      targetId: data.id,
+      detail: { folder_id: data.folder_id },
+    });
     return { ok: true };
   });
 
