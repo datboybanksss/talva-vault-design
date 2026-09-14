@@ -196,14 +196,13 @@ async function northStarPairs(
   const { data: requests } = await admin
     .from("agency_document_requests")
     .select("talent_link_id, created_at, reviewed_at")
-    .or(
-      `and(created_at.gte.${period.fromIso},created_at.lte.${period.toIso}),` +
-        `and(reviewed_at.gte.${period.fromIso},reviewed_at.lte.${period.toIso})`,
-    );
+    .lte("created_at", period.toIso);
   for (const r of requests ?? []) {
     if (!r.talent_link_id) continue;
-    const created = r.created_at >= period.fromIso && r.created_at <= period.toIso;
-    addAgency(r.talent_link_id, created ? "document_request_created" : "document_request_reviewed");
+    const inWindow = (ts: string | null) =>
+      !!ts && ts >= period.fromIso && ts <= period.toIso;
+    if (inWindow(r.created_at)) addAgency(r.talent_link_id, "document_request_created");
+    if (inWindow(r.reviewed_at)) addAgency(r.talent_link_id, "document_request_reviewed");
   }
 
   const pairs = [...byId.values()];
