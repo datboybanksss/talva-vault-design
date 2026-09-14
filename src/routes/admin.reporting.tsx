@@ -146,7 +146,7 @@ function ReportingPage() {
       ["Generated", new Date(d.generatedAt).toLocaleString("en-ZA")],
       [],
       ["Metric", "Value", "Context"],
-      ["Talent active in vault (north star)", `${d.northStar.pct}%`, `${d.northStar.active} of ${d.northStar.total} onboarded talent`],
+      ["Two-sided engagement (north star)", `${d.northStar.pct}%`, `${d.northStar.active} of ${d.northStar.total} live agency-talent relationships active on both sides`],
       ["Agencies added", d.growth.agenciesAdded, `${d.growth.agenciesAddedPrior} in prior period`],
       ["Invite-to-acceptance rate", `${d.growth.acceptanceRate}%`, `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations`],
       ["Median time to accept (days)", d.growth.medianDaysToAccept ?? "No acceptances", `${d.growth.acceptedInPeriod} accepted in period`],
