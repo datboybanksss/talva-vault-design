@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { mapEffectiveStatus } from "@/lib/invitation-status";
+import { fetchOnboardedTalent, fetchOnboardedTalentLinks } from "@/lib/onboarded-talent";
+
 import {
   HIGHEST_ADMIN_PERMISSION,
   canInviteAdministrators,
@@ -237,13 +239,10 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
 
     // Counts use head-only exact counts so the dashboard never streams whole
     // tables back just to call .length on them.
-    const [agencies, talent, docs, shares] = await Promise.all([
+    const [agencies, talentRows, docs, shares] = await Promise.all([
       supabase.from("agencies").select("id, status"),
-      supabase
-        .from("talent_profiles")
-        .select("id", { count: "exact", head: true })
-        .is("deleted_at", null)
-        .eq("is_test", false),
+      // Shared definition with the Reporting page — see src/lib/onboarded-talent.ts.
+      fetchOnboardedTalent(supabase),
       supabase.from("agency_documents").select("shared_folder_count, private_vault_count"),
       supabase
         // Admins read share metadata through the token-free admin view.
@@ -251,6 +250,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
         .select("id", { count: "exact", head: true })
         .eq("is_currently_active", true),
     ]);
+
 
     const statusCounts: Record<string, number> = {
       incomplete: 0,
@@ -265,7 +265,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     }
 
     const totalAgencies = agencies.data?.length ?? 0;
-    const totalTalent = talent.count ?? 0;
+    const totalTalent = talentRows.length;
     const totalDocs =
       (docs.data ?? []).reduce(
         (sum: number, d: any) =>
@@ -299,16 +299,13 @@ export const listAgencies = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    // talent counts per agency
-    const { data: talent } = await supabase
-      .from("talent_profiles")
-      .select("agency_id")
-      .is("deleted_at", null)
-      .eq("is_test", false);
+    // talent counts per agency — same definition as the dashboard and Reporting
+    const talent = await fetchOnboardedTalentLinks(supabase);
     const talentByAgency = new Map<string, number>();
-    for (const t of talent ?? []) {
+    for (const t of talent) {
       talentByAgency.set(t.agency_id, (talentByAgency.get(t.agency_id) ?? 0) + 1);
     }
+
 
     const { data: invitations } = await supabase
       .from("agency_invitations")

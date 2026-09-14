@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { fetchOnboardedTalent } from "@/lib/onboarded-talent";
+
 // Mirrors the canonical actions in talent-activity.server.ts; kept local so this
 // client-reachable module never pulls a server-only file into the browser graph.
 const TALENT_LOGIN_ACTION = "login";
@@ -74,17 +76,14 @@ async function activityRows(admin: any, fromIso: string, toIso: string) {
   return (data ?? []) as { actor_id: string; action: string; created_at: string }[];
 }
 
-/** Onboarded talent: a live link between an agency and a signed-up talent. */
+/**
+ * Onboarded talent — shared definition with the Admin Overview dashboard.
+ * See src/lib/onboarded-talent.ts.
+ */
 async function onboardedTalent(admin: any, toIso: string) {
-  const { data, error } = await admin
-    .from("agency_talent_links")
-    .select("id, agency_id, talent_user_id, display_name, status, created_at")
-    .not("talent_user_id", "is", null)
-    .neq("status", "revoked")
-    .lte("created_at", toIso);
-  if (error) throw new Error(error.message);
-  return (data ?? []) as any[];
+  return (await fetchOnboardedTalent(admin, toIso)) as any[];
 }
+
 
 function activeSets(rows: { actor_id: string; action: string }[]) {
   const logins = new Set<string>();
