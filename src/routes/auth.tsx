@@ -16,6 +16,12 @@ import {
   friendlyAuthError,
 } from "@/lib/password";
 import { INVITE_KINDS, claimInvitation } from "@/lib/invite-claim.functions";
+import { logTalentSignIn } from "@/lib/talent-audit.functions";
+
+/** Best-effort activity logging — never blocks or fails a sign-in. */
+function recordSignIn() {
+  void logTalentSignIn().catch(() => {});
+}
 
 const searchSchema = z.object({
   next: z.string().optional(),
