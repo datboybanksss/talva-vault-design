@@ -1,7 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { TALENT_LOGIN_ACTION, TALENT_VAULT_ACTIONS } from "@/lib/talent-activity.shared";
+// Mirrors the canonical actions in talent-activity.server.ts; kept local so this
+// client-reachable module never pulls a server-only file into the browser graph.
+const TALENT_LOGIN_ACTION = "login";
+const TALENT_VAULT_ACTIONS = [
+  "vault_document_uploaded",
+  "vault_document_moved",
+  "vault_document_deleted",
+  "vault_folder_created",
+  "vault_document_shared",
+];
 
 // -----------------------------------------------------------------------------
 // Helpers
