@@ -66,6 +66,25 @@ export const logTalentMfaDisabled = createServerFn({ method: "POST" })
     return writeTalentAudit(supabase, userId, claims?.email, "mfa_disabled", "Two-factor authentication");
   });
 
+/**
+ * Records a successful sign-in. Called from the sign-in screen for every
+ * account; reporting only counts actors that are linked talent.
+ */
+export const logTalentSignIn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { recordTalentActivity, TALENT_LOGIN_ACTION } = await import(
+      "@/lib/talent-activity.server"
+    );
+    await recordTalentActivity(supabase, userId, claims?.email, TALENT_LOGIN_ACTION, {
+      targetType: "account",
+      targetId: userId,
+      targetLabel: "Signed in",
+    });
+    return { ok: true };
+  });
+
 export const listTalentAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>

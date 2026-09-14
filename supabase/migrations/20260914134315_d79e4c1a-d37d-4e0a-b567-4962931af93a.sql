@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.recompute_invoice_payment_status(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.invoice_payments_sync_status() FROM PUBLIC, anon, authenticated;

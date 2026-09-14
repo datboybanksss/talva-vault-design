@@ -16,6 +16,12 @@ import {
   friendlyAuthError,
 } from "@/lib/password";
 import { INVITE_KINDS, claimInvitation } from "@/lib/invite-claim.functions";
+import { logTalentSignIn } from "@/lib/talent-audit.functions";
+
+/** Best-effort activity logging — never blocks or fails a sign-in. */
+function recordSignIn() {
+  void logTalentSignIn().catch(() => {});
+}
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -268,10 +274,13 @@ function AuthPage() {
           setMfaFactorId(totp.id);
           setMfaCode("");
           setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
-        } else if (search.denied) {
-          // The auto-redirect effect is disabled while `denied` is present, so
-          // navigate explicitly (and drop the stale denial from the URL).
-          void goNext(true);
+        } else {
+          recordSignIn();
+          if (search.denied) {
+            // The auto-redirect effect is disabled while `denied` is present, so
+            // navigate explicitly (and drop the stale denial from the URL).
+            void goNext(true);
+          }
         }
       } else {
         const { error } = await supabase.auth.signUp({
@@ -314,6 +323,7 @@ function AuthPage() {
       // suppressed while `denied` is in the URL, and supabase-js does not
       // always emit an event the listener sees. Navigate explicitly — this is
       // what left users stuck on "Verified — redirecting…".
+      recordSignIn();
       setInfo("Verified — signing you in…");
       setMfaFactorId(null);
       setMfaCode("");

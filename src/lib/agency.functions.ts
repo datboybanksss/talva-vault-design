@@ -3281,3 +3281,142 @@ export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
 
     return { ok: true, flaggedForReview: (flagged as number) ?? 0 };
   });
+
+// -----------------------------------------------------------------------------
+// Invoice payments — partial and full receipts against an invoice
+// -----------------------------------------------------------------------------
+
+/** Payments recorded against one invoice, newest first, plus the running totals. */
+export const listInvoicePayments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ doc_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: doc, error: dErr } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, currency, total_cents, status, due_date, allow_partial_payment")
+      .eq("id", data.doc_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (dErr) throw new Error(dErr.message);
+    if (!doc) throw new Error("Invoice not found.");
+
+    const { data: rows, error } = await supabase
+      .from("agency_invoice_payments")
+      .select("id, amount_cents, paid_on, method, reference, notes, created_at")
+      .eq("doc_id", data.doc_id)
+      .order("paid_on", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const received = (rows ?? []).reduce(
+      (n: number, r: any) => n + Number(r.amount_cents ?? 0),
+      0,
+    );
+    return {
+      doc,
+      payments: rows ?? [],
+      received_cents: received,
+      outstanding_cents: Math.max(0, Number(doc.total_cents ?? 0) - received),
+    };
+  });
+
+export const recordInvoicePayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        doc_id: z.string().uuid(),
+        amount_cents: z.number().int().positive(),
+        paid_on: z.string().min(10),
+        method: z.string().max(60).nullable().optional(),
+        reference: z.string().max(120).nullable().optional(),
+        notes: z.string().max(500).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: doc, error: dErr } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, total_cents, status")
+      .eq("id", data.doc_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (dErr) throw new Error(dErr.message);
+    if (!doc) throw new Error("Invoice not found.");
+    if (doc.kind !== "invoice") throw new Error("Payments can only be recorded against invoices.");
+    if (doc.status === "draft") {
+      throw new Error("Send the invoice before recording a payment against it.");
+    }
+    if (doc.status === "cancelled") {
+      throw new Error("This invoice is cancelled — no payment can be recorded.");
+    }
+
+    const { data: existing, error: eErr } = await supabase
+      .from("agency_invoice_payments")
+      .select("amount_cents")
+      .eq("doc_id", data.doc_id);
+    if (eErr) throw new Error(eErr.message);
+    const already = (existing ?? []).reduce(
+      (n: number, r: any) => n + Number(r.amount_cents ?? 0),
+      0,
+    );
+    if (already + data.amount_cents > Number(doc.total_cents ?? 0)) {
+      throw new Error("That payment is more than the amount still outstanding on this invoice.");
+    }
+
+    const { data: row, error } = await supabase
+      .from("agency_invoice_payments")
+      .insert({
+        doc_id: data.doc_id,
+        agency_id: agencyId,
+        amount_cents: data.amount_cents,
+        paid_on: data.paid_on,
+        method: data.method ?? null,
+        reference: data.reference ?? null,
+        notes: data.notes ?? null,
+        recorded_by: userId,
+      })
+      .select("id, amount_cents, paid_on")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("The payment could not be recorded. Check your access and try again.");
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "record_invoice_payment", "agency_billing_doc", doc.id,
+      `INVOICE ${doc.number}`,
+      { amount_cents: data.amount_cents, paid_on: data.paid_on },
+    );
+
+    return row;
+  });
+
+export const deleteInvoicePayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: row, error } = await supabase
+      .from("agency_invoice_payments")
+      .delete()
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select("id, doc_id, amount_cents")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("That payment could not be removed. Check your access and try again.");
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "delete_invoice_payment", "agency_billing_doc", row.doc_id, undefined,
+      { amount_cents: row.amount_cents },
+    );
+    return { ok: true };
+  });

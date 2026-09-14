@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions }
 import { useServerFn } from "@tanstack/react-start";
 import {
   Plus, Trash2, Pencil, X, Save, ArrowRightLeft, Link2, Eye, Send,
-  FileText, CheckCircle2, AlertCircle, Search,
+  FileText, CheckCircle2, AlertCircle, Search, Wallet,
 } from "lucide-react";
+import { InvoicePaymentsDialog } from "@/components/agency/invoice-payments-dialog";
 import { toast } from "sonner";
 import { BILLING_DOC_STATUS_LABEL, BILLING_DOC_STATUS_TONE } from "@/lib/status-labels";
 import {
@@ -201,6 +202,7 @@ function QIPage() {
 
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentsDocId, setPaymentsDocId] = useState<string | null>(null);
   const [chipFilter, setChipFilter] = useState<ChipKey | "all">("all");
   const [talentFilter, setTalentFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("newest");
@@ -702,6 +704,15 @@ function QIPage() {
                           <ArrowRightLeft className="h-4 w-4" />
                         </button>
                       )}
+                      {r.kind === "invoice" && r.status !== "draft" && (
+                        <button
+                          className="tvp-mini-btn"
+                          title="Payments received"
+                          onClick={() => setPaymentsDocId(r.id)}
+                        >
+                          <Wallet className="h-4 w-4" />
+                        </button>
+                      )}
                       <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></button>
                       <button className="tvp-mini-btn" title="Delete" onClick={() => { if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id); }}>
                         <Trash2 className="h-4 w-4" />
@@ -723,6 +734,10 @@ function QIPage() {
         </table>
       </div>
       </>
+      )}
+
+      {paymentsDocId && (
+        <InvoicePaymentsDialog docId={paymentsDocId} onClose={() => setPaymentsDocId(null)} />
       )}
 
       {editorOpen && (
