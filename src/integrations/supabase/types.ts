@@ -1017,6 +1017,63 @@ export type Database = {
           },
         ]
       }
+      agency_invoice_payments: {
+        Row: {
+          agency_id: string
+          amount_cents: number
+          created_at: string
+          doc_id: string
+          id: string
+          method: string | null
+          notes: string | null
+          paid_on: string
+          recorded_by: string | null
+          reference: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          amount_cents: number
+          created_at?: string
+          doc_id: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          paid_on?: string
+          recorded_by?: string | null
+          reference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          amount_cents?: number
+          created_at?: string
+          doc_id?: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          paid_on?: string
+          recorded_by?: string | null
+          reference?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_invoice_payments_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_invoice_payments_doc_id_fkey"
+            columns: ["doc_id"]
+            isOneToOne: false
+            referencedRelation: "agency_billing_docs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_members: {
         Row: {
           agency_id: string
@@ -2653,6 +2710,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      recompute_invoice_payment_status: {
+        Args: { _doc_id: string }
+        Returns: undefined
       }
       reconcile_talent_type_folders: {
         Args: { _new_talent_type: string; _talent_link_id: string }
