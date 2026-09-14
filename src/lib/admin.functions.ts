@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { mapEffectiveStatus } from "@/lib/invitation-status";
-import { fetchOnboardedTalent } from "@/lib/onboarded-talent";
+import { fetchOnboardedTalent, fetchOnboardedTalentLinks } from "@/lib/onboarded-talent";
 
 import {
   HIGHEST_ADMIN_PERMISSION,
@@ -299,16 +299,13 @@ export const listAgencies = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    // talent counts per agency
-    const { data: talent } = await supabase
-      .from("talent_profiles")
-      .select("agency_id")
-      .is("deleted_at", null)
-      .eq("is_test", false);
+    // talent counts per agency — same definition as the dashboard and Reporting
+    const talent = await fetchOnboardedTalentLinks(supabase);
     const talentByAgency = new Map<string, number>();
-    for (const t of talent ?? []) {
+    for (const t of talent) {
       talentByAgency.set(t.agency_id, (talentByAgency.get(t.agency_id) ?? 0) + 1);
     }
+
 
     const { data: invitations } = await supabase
       .from("agency_invitations")

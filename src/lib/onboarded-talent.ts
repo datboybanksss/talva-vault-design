@@ -21,10 +21,13 @@ export type OnboardedTalent = {
 };
 
 /**
+ * Every eligible link, without de-duplication — use for per-agency counts,
+ * where a talent linked to two agencies should count once for each.
+ *
  * @param client  any Supabase client with read access to the two tables
  * @param toIso   optional upper bound on link creation, for period reporting
  */
-export async function fetchOnboardedTalent(
+export async function fetchOnboardedTalentLinks(
   client: any,
   toIso?: string,
 ): Promise<OnboardedTalent[]> {
@@ -55,15 +58,23 @@ export async function fetchOnboardedTalent(
       .filter((p: any) => !p.is_test && !p.deleted_at)
       .map((p: any) => p.user_id),
   );
+  return links.filter((l) => eligible.has(l.talent_user_id));
+}
 
+/** Distinct onboarded people (a talent linked to two agencies counts once). */
+export async function fetchOnboardedTalent(
+  client: any,
+  toIso?: string,
+): Promise<OnboardedTalent[]> {
+  const links = await fetchOnboardedTalentLinks(client, toIso);
   const seen = new Set<string>();
   return links.filter((l) => {
-    if (!eligible.has(l.talent_user_id)) return false;
     if (seen.has(l.talent_user_id)) return false;
     seen.add(l.talent_user_id);
     return true;
   });
 }
+
 
 /** Convenience wrapper for dashboards that only need the headline number. */
 export async function countOnboardedTalent(client: any, toIso?: string): Promise<number> {
