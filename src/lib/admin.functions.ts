@@ -265,7 +265,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     }
 
     const totalAgencies = agencies.data?.length ?? 0;
-    const totalTalent = talent.count ?? 0;
+    const totalTalent = talentRows.length;
     const totalDocs =
       (docs.data ?? []).reduce(
         (sum: number, d: any) =>
