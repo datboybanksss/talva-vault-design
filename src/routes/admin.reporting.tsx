@@ -255,11 +255,15 @@ function ReportingPage() {
           <h2 className="tvp-h2" style={{ marginBottom: 10 }}>North star</h2>
           <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 24 }}>
             <Card
-              label="Onboarded talent active in their vault"
+              label="Two-sided engagement (agency and talent)"
               value={`${d.northStar.pct}%`}
-              sub={`${d.northStar.active} of ${d.northStar.total} onboarded talent signed in and worked on a document`}
-              note={trackingNote}
-              metric="north_star_talent"
+              sub={`${d.northStar.active} of ${d.northStar.total} live agency–talent relationships had activity from both sides${
+                d.northStar.talentOnlyCount || d.northStar.agencyOnlyCount
+                  ? ` · ${d.northStar.talentOnlyCount} talent only, ${d.northStar.agencyOnlyCount} agency only`
+                  : ""
+              }`}
+              note={`${trackingNote ?? ""} · Quotes and invoices are not counted yet — they cannot be tied to a specific talent.`}
+              metric="north_star_pairs"
               onDrill={onDrill}
             >
               <Delta value={d.northStar.pct - d.northStar.priorPct} unit="pts" />
