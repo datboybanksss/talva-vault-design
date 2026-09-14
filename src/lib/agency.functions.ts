@@ -49,6 +49,60 @@ async function logAgencyAudit(
 }
 
 
+/**
+ * Records that someone at the agency looked at a specific talent's shared
+ * vault. This is the agency side of the two-sided north star metric, so it is
+ * attributed to the talent link rather than to a document.
+ *
+ * Browsing a vault fires many reads (paging, tab switches, opening files), so
+ * one view per actor/talent is kept every 30 minutes — enough to show real
+ * engagement without flooding the activity log. Best-effort: a logging failure
+ * must never break the read that triggered it.
+ */
+const VAULT_VIEW_ACTION = "talent_vault_viewed";
+const VAULT_VIEW_WINDOW_MS = 30 * 60 * 1000;
+
+async function logTalentVaultView(
+  supabase: any,
+  agencyId: string,
+  userId: string,
+  email: string | undefined,
+  talentLinkId: string,
+) {
+  try {
+    const since = new Date(Date.now() - VAULT_VIEW_WINDOW_MS).toISOString();
+    const { data: recent } = await supabase
+      .from("agency_audit_log")
+      .select("id")
+      .eq("agency_id", agencyId)
+      .eq("actor_id", userId)
+      .eq("action", VAULT_VIEW_ACTION)
+      .eq("target_id", talentLinkId)
+      .gte("created_at", since)
+      .limit(1);
+    if (recent && recent.length > 0) return;
+
+    const { data: link } = await supabase
+      .from("agency_talent_links")
+      .select("display_name")
+      .eq("id", talentLinkId)
+      .maybeSingle();
+
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      email,
+      VAULT_VIEW_ACTION,
+      "talent_link",
+      talentLinkId,
+      link?.display_name ?? null as any,
+    );
+  } catch {
+    /* activity logging is best-effort */
+  }
+}
+
 async function assertAgencyOwner(supabase: any, userId: string, agencyId: string) {
   const { data, error } = await supabase.rpc("has_agency_role", {
     _user_id: userId,
@@ -790,8 +844,12 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
       .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+
+    if (data.talentLinkId) {
+      await logTalentVaultView(supabase, agencyId, userId, claims?.email, data.talentLinkId);
+    }
 
     const applyFilters = (q: any) => {
       let out = q.eq("agency_id", agencyId);
@@ -1171,17 +1229,22 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("storage_path, agency_id, name")
+      .select("storage_path, agency_id, name, talent_link_id")
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) throw new Error("This document is no longer available.");
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
     if (!row.storage_path) throw new Error("No file attached to this document.");
+
+    if (row.talent_link_id) {
+      await logTalentVaultView(supabase, agencyId, userId, claims?.email, row.talent_link_id);
+    }
 
     const options = data.disposition === "attachment" ? { download: row.name as string } : undefined;
     const { data: signed, error: sErr } = await supabase

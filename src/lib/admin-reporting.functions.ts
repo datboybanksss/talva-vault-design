@@ -85,6 +85,131 @@ async function onboardedTalent(admin: any, toIso: string) {
 }
 
 
+// -----------------------------------------------------------------------------
+// North star — two-sided engagement per agency/talent relationship
+// -----------------------------------------------------------------------------
+//
+// A relationship counts as engaged in a period when BOTH sides acted:
+//   talent side  — a sign-in or any vault action (talent_audit_log)
+//   agency side  — an action attributable to that specific talent:
+//                  viewing their shared vault, a document action on one of
+//                  their documents, a document request, or an invitation action
+//
+// Quotes and invoices are deliberately excluded: they only carry a typed-in
+// client/talent name today and cannot be tied to a talent link reliably.
+
+export type NorthStarPair = {
+  linkId: string;
+  agencyId: string;
+  talentName: string;
+  talentActions: string[];
+  agencyActions: string[];
+  both: boolean;
+};
+
+async function northStarPairs(
+  admin: any,
+  period: { fromIso: string; toIso: string },
+): Promise<NorthStarPair[]> {
+  // Denominator: every live (non-revoked) relationship that existed by the end
+  // of the period.
+  const { data: links, error: linkErr } = await admin
+    .from("agency_talent_links")
+    .select("id, agency_id, talent_user_id, talent_invitation_id, display_name, created_at")
+    .neq("status", "revoked")
+    .lte("created_at", period.toIso);
+  if (linkErr) throw new Error(linkErr.message);
+  const live = (links ?? []) as any[];
+  if (live.length === 0) return [];
+
+  const byId = new Map<string, NorthStarPair>();
+  const byTalentUser = new Map<string, string[]>();
+  const byInvitation = new Map<string, string>();
+  for (const l of live) {
+    byId.set(l.id, {
+      linkId: l.id,
+      agencyId: l.agency_id,
+      talentName: l.display_name,
+      talentActions: [],
+      agencyActions: [],
+      both: false,
+    });
+    if (l.talent_user_id) {
+      byTalentUser.set(l.talent_user_id, [...(byTalentUser.get(l.talent_user_id) ?? []), l.id]);
+    }
+    if (l.talent_invitation_id) byInvitation.set(l.talent_invitation_id, l.id);
+  }
+
+  const addTalent = (linkId: string, action: string) => {
+    const p = byId.get(linkId);
+    if (p && !p.talentActions.includes(action)) p.talentActions.push(action);
+  };
+  const addAgency = (linkId: string, action: string) => {
+    const p = byId.get(linkId);
+    if (p && !p.agencyActions.includes(action)) p.agencyActions.push(action);
+  };
+
+  // ---- Talent side ----------------------------------------------------------
+  const talentRows = await activityRows(admin, period.fromIso, period.toIso);
+  for (const r of talentRows) {
+    for (const linkId of byTalentUser.get(r.actor_id) ?? []) addTalent(linkId, r.action);
+  }
+
+  // ---- Agency side ----------------------------------------------------------
+  const { data: agencyRows, error: agErr } = await admin
+    .from("agency_audit_log")
+    .select("agency_id, action, target_type, target_id")
+    .gte("created_at", period.fromIso)
+    .lte("created_at", period.toIso);
+  if (agErr) throw new Error(agErr.message);
+
+  const docIds = [
+    ...new Set(
+      (agencyRows ?? [])
+        .filter((r: any) => r.target_type === "document" && r.target_id)
+        .map((r: any) => r.target_id as string),
+    ),
+  ];
+  const docToLink = new Map<string, string>();
+  if (docIds.length > 0) {
+    const { data: docs } = await admin
+      .from("talent_shared_documents")
+      .select("id, talent_link_id")
+      .in("id", docIds);
+    for (const d of docs ?? []) if (d.talent_link_id) docToLink.set(d.id, d.talent_link_id);
+  }
+
+  for (const r of agencyRows ?? []) {
+    if (!r.target_id) continue;
+    if (r.target_type === "talent_link") addAgency(r.target_id, r.action);
+    else if (r.target_type === "document") {
+      const linkId = docToLink.get(r.target_id);
+      if (linkId) addAgency(linkId, r.action);
+    } else if (r.target_type === "talent_invitation") {
+      const linkId = byInvitation.get(r.target_id);
+      if (linkId) addAgency(linkId, r.action);
+    }
+  }
+
+  // Document requests are stored against a talent link directly rather than
+  // written to the audit log, so they are counted from their own table.
+  const { data: requests } = await admin
+    .from("agency_document_requests")
+    .select("talent_link_id, created_at, reviewed_at")
+    .lte("created_at", period.toIso);
+  for (const r of requests ?? []) {
+    if (!r.talent_link_id) continue;
+    const inWindow = (ts: string | null) =>
+      !!ts && ts >= period.fromIso && ts <= period.toIso;
+    if (inWindow(r.created_at)) addAgency(r.talent_link_id, "document_request_created");
+    if (inWindow(r.reviewed_at)) addAgency(r.talent_link_id, "document_request_reviewed");
+  }
+
+  const pairs = [...byId.values()];
+  for (const p of pairs) p.both = p.talentActions.length > 0 && p.agencyActions.length > 0;
+  return pairs;
+}
+
 function activeSets(rows: { actor_id: string; action: string }[]) {
   const logins = new Set<string>();
   const vault = new Set<string>();
@@ -135,8 +260,12 @@ export const getReportingSummary = createServerFn({ method: "GET" })
     const now = activeSets(rowsNow.filter((r) => talentIds.has(r.actor_id)));
     const before = activeSets(rowsPrior.filter((r) => talentIdsPrior.has(r.actor_id)));
 
-    const northStarCount = [...now.logins].filter((id) => now.vault.has(id)).length;
-    const northStarPriorCount = [...before.logins].filter((id) => before.vault.has(id)).length;
+    const [pairsNow, pairsPrior] = await Promise.all([
+      northStarPairs(admin, period),
+      northStarPairs(admin, prior),
+    ]);
+    const northStarCount = pairsNow.filter((p) => p.both).length;
+    const northStarPriorCount = pairsPrior.filter((p) => p.both).length;
     const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
 
     // ---- Growth & funnel -----------------------------------------------------
@@ -283,9 +412,11 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       trackingSince,
       northStar: {
         active: northStarCount,
-        total: talentIds.size,
-        pct: pct(northStarCount, talentIds.size),
-        priorPct: pct(northStarPriorCount, talentIdsPrior.size),
+        total: pairsNow.length,
+        pct: pct(northStarCount, pairsNow.length),
+        priorPct: pct(northStarPriorCount, pairsPrior.length),
+        talentOnlyCount: pairsNow.filter((p) => p.talentActions.length > 0 && !p.both).length,
+        agencyOnlyCount: pairsNow.filter((p) => p.agencyActions.length > 0 && !p.both).length,
       },
       growth: {
         agenciesAdded: agenciesAdded ?? 0,
@@ -327,7 +458,7 @@ export const REPORTING_METRICS = [
   "agencies_added",
   "invitations",
   "invitations_accepted",
-  "north_star_talent",
+  "north_star_pairs",
   "active_talent",
   "shares",
   "documents_uploaded",
@@ -414,17 +545,38 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           ]),
         };
       }
-      case "north_star_talent":
+      case "north_star_pairs": {
+        const pairs = await northStarPairs(admin, period);
+        const names = await agencyNames(admin, pairs.map((p) => p.agencyId));
+        const readable = (a: string) => a.replace(/_/g, " ");
+        const all = pairs
+          .map((p) => [
+            names.get(p.agencyId) ?? "—",
+            p.talentName,
+            p.talentActions.length ? p.talentActions.map(readable).join(", ") : "No activity",
+            p.agencyActions.length ? p.agencyActions.map(readable).join(", ") : "No activity",
+            p.both ? "Both sides" : p.talentActions.length ? "Talent only" : p.agencyActions.length ? "Agency only" : "Neither",
+          ])
+          .sort((a, b) => {
+            const rank = (r: string) =>
+              r === "Both sides" ? 0 : r === "Talent only" ? 1 : r === "Agency only" ? 2 : 3;
+            return rank(String(a[4])) - rank(String(b[4]));
+          });
+        return {
+          total: all.length,
+          note:
+            "Every live agency–talent relationship in the period. Only rows marked “Both sides” count towards the north star. Quotes and invoices are not counted yet — they cannot be tied to a specific talent.",
+          columns: ["Agency", "Talent", "Talent activity", "Agency activity", "Counts as engaged"],
+          rows: all.slice(range.from, range.to + 1),
+        };
+      }
       case "active_talent": {
         const rows = await activityRows(admin, period.fromIso, period.toIso);
         const talent = await onboardedTalent(admin, period.toIso);
         const byUser = new Map<string, any>();
         for (const t of talent) byUser.set(t.talent_user_id, t);
         const sets = activeSets(rows.filter((r) => byUser.has(r.actor_id)));
-        const qualifying =
-          data.metric === "north_star_talent"
-            ? [...sets.logins].filter((id) => sets.vault.has(id))
-            : [...sets.any];
+        const qualifying = [...sets.any];
         const names = await agencyNames(admin, qualifying.map((id) => byUser.get(id)?.agency_id));
         const counts = new Map<string, number>();
         const last = new Map<string, string>();
