@@ -85,6 +85,132 @@ async function onboardedTalent(admin: any, toIso: string) {
 }
 
 
+// -----------------------------------------------------------------------------
+// North star — two-sided engagement per agency/talent relationship
+// -----------------------------------------------------------------------------
+//
+// A relationship counts as engaged in a period when BOTH sides acted:
+//   talent side  — a sign-in or any vault action (talent_audit_log)
+//   agency side  — an action attributable to that specific talent:
+//                  viewing their shared vault, a document action on one of
+//                  their documents, a document request, or an invitation action
+//
+// Quotes and invoices are deliberately excluded: they only carry a typed-in
+// client/talent name today and cannot be tied to a talent link reliably.
+
+export type NorthStarPair = {
+  linkId: string;
+  agencyId: string;
+  talentName: string;
+  talentActions: string[];
+  agencyActions: string[];
+  both: boolean;
+};
+
+async function northStarPairs(
+  admin: any,
+  period: { fromIso: string; toIso: string },
+): Promise<NorthStarPair[]> {
+  // Denominator: every live (non-revoked) relationship that existed by the end
+  // of the period.
+  const { data: links, error: linkErr } = await admin
+    .from("agency_talent_links")
+    .select("id, agency_id, talent_user_id, talent_invitation_id, display_name, created_at")
+    .neq("status", "revoked")
+    .lte("created_at", period.toIso);
+  if (linkErr) throw new Error(linkErr.message);
+  const live = (links ?? []) as any[];
+  if (live.length === 0) return [];
+
+  const byId = new Map<string, NorthStarPair>();
+  const byTalentUser = new Map<string, string[]>();
+  const byInvitation = new Map<string, string>();
+  for (const l of live) {
+    byId.set(l.id, {
+      linkId: l.id,
+      agencyId: l.agency_id,
+      talentName: l.display_name,
+      talentActions: [],
+      agencyActions: [],
+      both: false,
+    });
+    if (l.talent_user_id) {
+      byTalentUser.set(l.talent_user_id, [...(byTalentUser.get(l.talent_user_id) ?? []), l.id]);
+    }
+    if (l.talent_invitation_id) byInvitation.set(l.talent_invitation_id, l.id);
+  }
+
+  const addTalent = (linkId: string, action: string) => {
+    const p = byId.get(linkId);
+    if (p && !p.talentActions.includes(action)) p.talentActions.push(action);
+  };
+  const addAgency = (linkId: string, action: string) => {
+    const p = byId.get(linkId);
+    if (p && !p.agencyActions.includes(action)) p.agencyActions.push(action);
+  };
+
+  // ---- Talent side ----------------------------------------------------------
+  const talentRows = await activityRows(admin, period.fromIso, period.toIso);
+  for (const r of talentRows) {
+    for (const linkId of byTalentUser.get(r.actor_id) ?? []) addTalent(linkId, r.action);
+  }
+
+  // ---- Agency side ----------------------------------------------------------
+  const { data: agencyRows, error: agErr } = await admin
+    .from("agency_audit_log")
+    .select("agency_id, action, target_type, target_id")
+    .gte("created_at", period.fromIso)
+    .lte("created_at", period.toIso);
+  if (agErr) throw new Error(agErr.message);
+
+  const docIds = [
+    ...new Set(
+      (agencyRows ?? [])
+        .filter((r: any) => r.target_type === "document" && r.target_id)
+        .map((r: any) => r.target_id as string),
+    ),
+  ];
+  const docToLink = new Map<string, string>();
+  if (docIds.length > 0) {
+    const { data: docs } = await admin
+      .from("talent_shared_documents")
+      .select("id, talent_link_id")
+      .in("id", docIds);
+    for (const d of docs ?? []) if (d.talent_link_id) docToLink.set(d.id, d.talent_link_id);
+  }
+
+  for (const r of agencyRows ?? []) {
+    if (!r.target_id) continue;
+    if (r.target_type === "talent_link") addAgency(r.target_id, r.action);
+    else if (r.target_type === "document") {
+      const linkId = docToLink.get(r.target_id);
+      if (linkId) addAgency(linkId, r.action);
+    } else if (r.target_type === "talent_invitation") {
+      const linkId = byInvitation.get(r.target_id);
+      if (linkId) addAgency(linkId, r.action);
+    }
+  }
+
+  // Document requests are stored against a talent link directly rather than
+  // written to the audit log, so they are counted from their own table.
+  const { data: requests } = await admin
+    .from("agency_document_requests")
+    .select("talent_link_id, created_at, reviewed_at")
+    .or(
+      `and(created_at.gte.${period.fromIso},created_at.lte.${period.toIso}),` +
+        `and(reviewed_at.gte.${period.fromIso},reviewed_at.lte.${period.toIso})`,
+    );
+  for (const r of requests ?? []) {
+    if (!r.talent_link_id) continue;
+    const created = r.created_at >= period.fromIso && r.created_at <= period.toIso;
+    addAgency(r.talent_link_id, created ? "document_request_created" : "document_request_reviewed");
+  }
+
+  const pairs = [...byId.values()];
+  for (const p of pairs) p.both = p.talentActions.length > 0 && p.agencyActions.length > 0;
+  return pairs;
+}
+
 function activeSets(rows: { actor_id: string; action: string }[]) {
   const logins = new Set<string>();
   const vault = new Set<string>();
