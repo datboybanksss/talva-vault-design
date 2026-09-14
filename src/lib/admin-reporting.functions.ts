@@ -413,9 +413,11 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       trackingSince,
       northStar: {
         active: northStarCount,
-        total: talentIds.size,
-        pct: pct(northStarCount, talentIds.size),
-        priorPct: pct(northStarPriorCount, talentIdsPrior.size),
+        total: pairsNow.length,
+        pct: pct(northStarCount, pairsNow.length),
+        priorPct: pct(northStarPriorCount, pairsPrior.length),
+        talentOnlyCount: pairsNow.filter((p) => p.talentActions.length > 0 && !p.both).length,
+        agencyOnlyCount: pairsNow.filter((p) => p.agencyActions.length > 0 && !p.both).length,
       },
       growth: {
         agenciesAdded: agenciesAdded ?? 0,
