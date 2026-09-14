@@ -844,8 +844,12 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
       .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+
+    if (data.talentLinkId) {
+      await logTalentVaultView(supabase, agencyId, userId, claims?.email, data.talentLinkId);
+    }
 
     const applyFilters = (q: any) => {
       let out = q.eq("agency_id", agencyId);
