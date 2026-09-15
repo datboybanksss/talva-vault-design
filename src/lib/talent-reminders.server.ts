@@ -1,10 +1,13 @@
 // Server-only reminder engine. Detects documents crossing their reminder /
-// expiry threshold and materialises in-app notifications. Email delivery is a
-// separate later step (talent_notifications.email_sent_at stays null until the
-// sending domain is verified).
+// expiry threshold, materialises in-app notifications, and then attempts an
+// email for each newly created reminder through the shared Lovable email
+// infrastructure. The send is a graceful no-op while the sending domain is
+// unverified (talent_notifications.email_sent_at simply stays null), so no code
+// change is needed once verification completes.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type Prefs = {
+  in_app_enabled?: boolean;
   in_app?: Record<string, boolean>;
   email?: boolean;
 };
