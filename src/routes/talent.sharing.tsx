@@ -404,9 +404,16 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             <ChoiceChip active={kind === "folders"} onClick={() => setKind("folders")} label="Whole folders" />
             <ChoiceChip active={kind === "document"} onClick={() => setKind("document")} label="A single document" />
+            <ChoiceChip active={kind === "billing"} onClick={() => setKind("billing")} label="Quotes & invoices" icon={<Receipt className="h-3 w-3" />} />
           </div>
 
-          {kind === "folders" ? (
+          {kind === "billing" ? (
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 10 }}>
+              Shares the quotes and invoices your Manager has shared with you — the same set you see
+              on Budget &amp; Income. They open as read-only records, not downloadable files, and the
+              list stays current if your Manager shares more.
+            </p>
+          ) : kind === "folders" ? (
             isLoading ? <p className="tvp-muted" style={{ marginTop: 10 }}>Loading vault…</p> : (
               <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
                 {topFolders.map((f: any) => (
