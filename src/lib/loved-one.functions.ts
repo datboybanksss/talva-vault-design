@@ -226,6 +226,71 @@ async function loadShareByToken(token: string) {
   return share;
 }
 
+/**
+ * Billing shares expose exactly the set the talent themselves can see — the
+ * quotes and invoices their Manager has shared with them. Nothing else in the
+ * agency's books is reachable through a Loved One link.
+ */
+async function loadSharedBilling(talentId: string | null) {
+  if (!talentId) return [] as any[];
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: profile } = await supabaseAdmin
+    .from("talent_profiles").select("user_id").eq("id", talentId).maybeSingle();
+  if (!profile?.user_id) return [] as any[];
+
+  const { data: link } = await supabaseAdmin
+    .from("agency_talent_links")
+    .select("agency_id, display_name")
+    .eq("talent_user_id", profile.user_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!link) return [] as any[];
+
+  const { data: docs } = await supabaseAdmin
+    .from("agency_billing_docs")
+    .select(
+      "id, kind, number, client_name, talent_name, description, issued_at, due_date, currency, notes, status, recipient_address, recipient_vat_number, recipient_email, acceptance_window_days, payment_terms_days",
+    )
+    .eq("agency_id", link.agency_id)
+    .eq("shared_with_talent", true)
+    .ilike("talent_name", link.display_name)
+    .order("issued_at", { ascending: false });
+  const rows = docs ?? [];
+  if (rows.length === 0) return [] as any[];
+
+  const { data: lines } = await supabaseAdmin
+    .from("agency_billing_doc_lines")
+    .select("doc_id, description, quantity, unit_price_cents, vat_rate_bp, sort_order")
+    .in("doc_id", rows.map((r) => r.id))
+    .order("sort_order", { ascending: true });
+
+  const { data: agency } = await supabaseAdmin
+    .from("agencies")
+    .select(
+      "name, contact_email, phone, country, business_type, billing_address, is_vat_registered, vat_number, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, accent_color, default_invoice_payment_days, default_quote_acceptance_days, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions",
+    )
+    .eq("id", link.agency_id)
+    .maybeSingle();
+
+  const agencyDoc = { ...(agency ?? { name: "Your Manager" }), logo_url: null };
+
+  return rows.map((doc) => ({
+    doc,
+    agency: agencyDoc,
+    lines: (lines ?? [])
+      .filter((l) => l.doc_id === doc.id)
+      .map((l) => ({
+        description: l.description,
+        quantity: Number(l.quantity),
+        unit_price_cents: Number(l.unit_price_cents),
+        vat_rate_bp: Number(l.vat_rate_bp),
+        sort_order: Number(l.sort_order),
+      })),
+  }));
+}
+
 /** Exchanges the access code for a short-lived signed ticket. */
 export const unlockLovedOneShare = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) =>
