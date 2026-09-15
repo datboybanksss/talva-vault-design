@@ -294,16 +294,26 @@ export function TalentShell({ children }: { children: ReactNode }) {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
-              {notifications.length > 0 && <span className="tvp-dot">{notifications.length}</span>}
+              {bellCount > 0 && <span className="tvp-dot">{bellCount}</span>}
             </button>
             {bellOpen && (
               <div className="tvp-notification-panel">
                 <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
                   <div className="tvp-h2">Reminders</div>
+                  <Link
+                    to="/talent/notifications"
+                    className="tvp-link"
+                    onClick={() => setBellOpen(false)}
+                    style={{ fontSize: 12 }}
+                  >
+                    All reminders
+                  </Link>
                 </div>
-                {notifications.length === 0 ? (
+                {bellCount === 0 ? (
                   <p className="tvp-muted" style={{ fontSize: 13, padding: "8px 2px" }}>
-                    You're all caught up.
+                    {bell?.enabled === false
+                      ? "In-app reminders are switched off in Settings → Notifications."
+                      : "You're all caught up."}
                   </p>
                 ) : (
                   notifications.map((n, i) => (
