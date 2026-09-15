@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useSessionReady } from "@/hooks/use-session-ready";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -24,8 +25,14 @@ export const Route = createFileRoute("/admin/my-account")({
 });
 
 function MyAccountPage() {
+  const sessionReady = useSessionReady();
   const whoamiFn = useServerFn(whoami);
-  const me = useQuery({ queryKey: ["whoami"], queryFn: () => whoamiFn() });
+  const me = useQuery({
+    queryKey: ["whoami"],
+    queryFn: () => whoamiFn(),
+    enabled: sessionReady,
+    retry: false,
+  });
 
   const logPwFn = useServerFn(logOwnPasswordChange);
   const logMfaEnrolledFn = useServerFn(logMfaEnrolled);

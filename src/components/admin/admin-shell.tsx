@@ -1,4 +1,5 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
+import { useSessionReady } from "@/hooks/use-session-ready";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { HelpMenu } from "@/components/shared/help-menu";
 import { type ReactNode, useState, useEffect, useRef } from "react";
@@ -86,6 +87,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const sessionReady = useSessionReady();
   const whoamiFn = useServerFn(whoami);
   const listNotificationsFn = useServerFn(listNotifications);
   const dismissFn = useServerFn(dismissNotification);
@@ -94,12 +96,16 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { data: me } = useQuery({
     queryKey: ["whoami"],
     queryFn: () => whoamiFn(),
+    enabled: sessionReady,
+    retry: false,
     refetchOnMount: "always",
     staleTime: 0,
   });
   const { data: notifs } = useQuery({
     queryKey: ["admin", "notifications"],
     queryFn: () => listNotificationsFn(),
+    enabled: sessionReady,
+    retry: false,
     refetchInterval: 60_000,
   });
 

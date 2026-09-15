@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useSessionReady } from "@/hooks/use-session-ready";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -59,6 +60,7 @@ export const Route = createFileRoute("/admin/administrators")({
 function AdminsPage() {
   const navigate = useNavigate();
   const listFn = useServerFn(listAdministrators);
+  const sessionReady = useSessionReady();
   const whoamiFn = useServerFn(whoami);
   const listInvFn = useServerFn(listAdminInvitations);
   const inviteFn = useServerFn(inviteAdministrator);
@@ -76,6 +78,8 @@ function AdminsPage() {
   const me = useQuery({
     queryKey: ["whoami"],
     queryFn: () => whoamiFn(),
+    enabled: sessionReady,
+    retry: false,
     refetchOnMount: "always",
     staleTime: 0,
   });
