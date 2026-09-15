@@ -584,6 +584,78 @@ function AdminsPage() {
           </div>
         </div>
       )}
+
+      {editInvite && (
+        <ModalShell
+          onClose={() => !updateInviteMut.isPending && setEditInvite(null)}
+          maxWidth={520}
+          labelledBy="edit-invite-title"
+        >
+          <div className="tvp-modal-head">
+            <h2 className="tvp-h2" id="edit-invite-title">
+              Edit access level — {editInvite.email}
+            </h2>
+            <button
+              title="Close"
+              className="tvp-mini-btn"
+              onClick={() => setEditInvite(null)}
+              aria-label="Close"
+              disabled={updateInviteMut.isPending}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="tvp-modal-body">
+            <p className="tvp-muted" style={{ fontSize: 12, margin: "0 0 14px" }}>
+              Changes the level this invitation will grant when it is accepted.
+              You may only set a level at or below your own, and the change is
+              recorded in the audit log.
+            </p>
+            <div className="tvp-form-group">
+              <label>Access level</label>
+              <select
+                value={editInvitePerm}
+                onChange={(e) => setEditInvitePerm(e.target.value as any)}
+                disabled={updateInviteMut.isPending}
+              >
+                {grantable.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.optionLabel}
+                  </option>
+                ))}
+              </select>
+              <span className="tvp-muted" style={{ fontSize: 12 }}>
+                {adminPermission(editInvitePerm)?.description}
+              </span>
+            </div>
+          </div>
+          <div className="tvp-modal-foot">
+            <button
+              className="tvp-secondary"
+              onClick={() => setEditInvite(null)}
+              disabled={updateInviteMut.isPending}
+            >
+              Cancel
+            </button>
+            <button
+              className="tvp-primary"
+              onClick={() =>
+                updateInviteMut.mutate({
+                  id: editInvite.id,
+                  permission_level: editInvitePerm,
+                })
+              }
+              disabled={
+                updateInviteMut.isPending ||
+                editInvitePerm === editInvite.permission_level
+              }
+            >
+              {updateInviteMut.isPending ? "Saving…" : "Save access level"}
+            </button>
+          </div>
+        </ModalShell>
+      )}
     </>
+
   );
 }
