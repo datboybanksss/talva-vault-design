@@ -104,11 +104,12 @@ export function AgencyProfilePanel() {
               </div>
               <div className="tvp-form-group">
                 <label>Country</label>
-                <input
+                <CountrySelect
                   value={profile.country}
-                  onChange={(e) => setProfile((p) => ({ ...p, country: e.target.value }))}
+                  onChange={(country) => setProfile((p) => ({ ...p, country }))}
                 />
               </div>
+
               <div className="tvp-form-group">
                 <label>Primary contact email</label>
                 <input
