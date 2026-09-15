@@ -136,20 +136,40 @@ function LovedOnePage() {
         )}
       </div>
 
-      {folders.map((f) => (
-        <FolderBlock key={f.id} name={f.name} docs={byFolder.get(f.id) ?? []} canDownload={canDownload} onOpen={openDoc} />
-      ))}
+      {isBilling ? (
+        <>
+          {billing.map((b: any) => (
+            <BillingBlock
+              key={b.doc.id}
+              record={b}
+              watermarked={!canDownload}
+              watermark={`${share.loved_one_email ?? share.loved_one_name} · ${new Date().toLocaleString("en-GB")}`}
+            />
+          ))}
+          {billing.length === 0 && (
+            <p style={{ color: "#65707A", fontSize: 14 }}>
+              No quotes or invoices have been shared yet — check back later.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {folders.map((f) => (
+            <FolderBlock key={f.id} name={f.name} docs={byFolder.get(f.id) ?? []} canDownload={canDownload} onOpen={openDoc} />
+          ))}
 
-      {(byFolder.get(null)?.length ?? 0) > 0 && (
-        <FolderBlock
-          name={share.share_kind === "document" ? "Shared document" : "Additional documents"}
-          docs={byFolder.get(null)!}
-          canDownload={canDownload}
-          onOpen={openDoc}
-        />
+          {(byFolder.get(null)?.length ?? 0) > 0 && (
+            <FolderBlock
+              name={share.share_kind === "document" ? "Shared document" : "Additional documents"}
+              docs={byFolder.get(null)!}
+              canDownload={canDownload}
+              onOpen={openDoc}
+            />
+          )}
+
+          {documents.length === 0 && <p style={{ color: "#65707A", fontSize: 14 }}>Nothing has been shared with you yet — check back once documents are added.</p>}
+        </>
       )}
-
-      {documents.length === 0 && <p style={{ color: "#65707A", fontSize: 14 }}>Nothing has been shared with you yet — check back once documents are added.</p>}
 
       {viewer && (
         <WatermarkedViewer
