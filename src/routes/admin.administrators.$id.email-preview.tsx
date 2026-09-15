@@ -26,11 +26,29 @@ function AdminEmailPreviewPage() {
   const { id } = useParams({ from: "/admin/administrators/$id/email-preview" });
   const getFn = useServerFn(getAdminInvitationById);
   const sendFn = useServerFn(sendAdminInvitationEmail);
+  const resendFn = useServerFn(resendAdminInvitation);
+  const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["admin", "admin-invitation", id],
     queryFn: () => getFn({ data: { id } }),
   });
   const inv = q.data as any;
+
+  // A lapsed invitation carries a dead link: sending it again would just email
+  // a link that fails on arrival, so the expiry has to be refreshed first.
+  const isExpired =
+    !!inv && effectiveInvitationStatus(inv.status, inv.expires_at) === "expired";
+
+  const resendM = useMutation({
+    mutationFn: () => resendFn({ data: { id, extend_days: 14 } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitation", id] });
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
+      setStatus({ kind: "ok", message: "Expiry refreshed — this invitation can be sent again." });
+      toast.success("Invitation reopened · expiry refreshed.");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Could not refresh the expiry."),
+  });
 
   const [subject, setSubject] = useState(DEFAULT_ADMIN_INVITATION_SUBJECT);
   const [body, setBody] = useState(DEFAULT_ADMIN_INVITATION_BODY);
