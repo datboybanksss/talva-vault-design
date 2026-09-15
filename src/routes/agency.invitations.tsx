@@ -57,6 +57,20 @@ function daysBetween(iso: string) {
 
 type InviteType = "talent" | "staff";
 
+const EMPTY_STATE: Record<"all" | "talent" | "staff" | "expired" | "revoked", string> = {
+  all: "No invitations yet — invite your first talent or staff member to get started.",
+  talent: "No talent invitations yet — invite your first talent to get started.",
+  staff: "No staff invitations yet — invite your first staff member to get started.",
+  expired: "No expired invitations.",
+  revoked: "No revoked invitations.",
+};
+
+const STAFF_ROLE_LABEL: Record<string, string> = {
+  owner: "Manager (Owner)",
+  lead: "Lead manager",
+  staff: "Staff manager",
+};
+
 function InvitationsPage() {
   const navigate = useNavigate();
   const listFn = useServerFn(listAgencyInvitationsMine);
@@ -197,7 +211,7 @@ function InvitationsPage() {
                 <tr><td colSpan={8} className="tvp-muted">Loading…</td></tr>
               )}
               {!invites.isLoading && visible.length === 0 && (
-                <tr><td colSpan={8} className="tvp-muted">No talent invitations yet — invite your first talent to get started.</td></tr>
+                <tr><td colSpan={8} className="tvp-muted">{EMPTY_STATE[tab]}</td></tr>
               )}
               {visible.map((i: any) => {
                 const dLeft = daysBetween(i.expires_at);
@@ -233,12 +247,13 @@ function InvitationsPage() {
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                         <RowActionsMenu
                           actions={[
-                            i.type === "talent" && isOwner && {
+                            isOwner && {
                               key: "email", label: "Edit & send email", icon: Mail,
                               onSelect: () =>
                                 navigate({
                                   to: "/agency/invitations/$id/email-preview",
                                   params: { id: i.id },
+                                  search: { type: i.type as "talent" | "staff" },
                                 }),
                             },
                             {
