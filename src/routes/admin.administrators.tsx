@@ -63,6 +63,8 @@ function AdminsPage() {
   const listInvFn = useServerFn(listAdminInvitations);
   const inviteFn = useServerFn(inviteAdministrator);
   const revokeFn = useServerFn(revokeAdminInvitation);
+  const resendFn = useServerFn(resendAdminInvitation);
+  const deleteInviteFn = useServerFn(deleteAdminInvitation);
   const updateAdminFn = useServerFn(updateAdministrator);
   const sendAdminEmailFn = useServerFn(sendAdminInvitationEmail);
   const qc = useQueryClient();
