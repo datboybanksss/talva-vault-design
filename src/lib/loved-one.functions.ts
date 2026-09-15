@@ -322,6 +322,9 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
     for (const d of docsInFolders.data ?? []) dedup.set(d.id, d);
     for (const d of singleDocs.data ?? []) dedup.set(d.id, d);
 
+    const billing =
+      share.share_kind === "billing" ? await loadSharedBilling(share.talent_id) : [];
+
     const { data: counter } = await supabaseAdmin
       .from("loved_one_shares").select("view_count").eq("id", share.id).single();
     await supabaseAdmin.from("loved_one_shares").update({
@@ -338,11 +341,12 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
         expires_at: share.expires_at,
         note: share.note,
         permission: share.permission as "view" | "download",
-        share_kind: share.share_kind as "folders" | "document",
+        share_kind: share.share_kind as "folders" | "document" | "billing",
       },
       sharer,
       folders: folders.data ?? [],
       documents: Array.from(dedup.values()),
+      billing,
     };
   });
 
