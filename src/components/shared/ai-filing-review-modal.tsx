@@ -2,10 +2,11 @@
  * Filing review popup — shared by BOTH the Agency Document Vault and the Talent
  * Private Vault. Opens after an upload completes, before the document counts as filed.
  *
- * There is no AI service wired up yet. The `suggestion` prop is the single seam:
- * it currently receives a locally-derived default (the folder chosen at upload,
- * no detected expiry), and can later be handed a real API response with the exact
- * same shape — no other change to this component or its callers.
+ * No document-content AI service is wired up yet. When no `suggestion` prop is
+ * given we run a filename heuristic (keyword → folder, date pattern → expiry).
+ * A suggestion badge is only shown when that heuristic actually inferred
+ * something; otherwise the field is labelled as a plain default. The `suggestion`
+ * prop remains the seam for a real service, with the same shape.
  *
  * UX contract: every field is live and editable the moment the popup opens. The
  * suggestion only pre-fills them. Editing IS the correction mechanism, so there
@@ -33,6 +34,7 @@ import {
   confirmDocumentFiling,
   skipDocumentFiling,
 } from "@/lib/ai-filing.functions";
+import { suggestFromFileName } from "@/lib/filing-heuristics";
 
 export type AiFilingScope = "talent" | "agency";
 
@@ -101,23 +103,31 @@ const FIELD_COL = {
  * the suggestion was, and the verbatim source sentence on demand. It carries no
  * Confirm/Edit actions — the field itself is always editable, and the badge flips
  * to "Edited by you" the moment the value is changed.
+ *
+ * The "Suggested by AI" badge is only shown when something was genuinely
+ * inferred. Otherwise the value is simply the default and says so.
  */
 function FieldProvenance({
   value,
   source,
+  suggested,
   confidence,
   sourceText,
+  defaultLabel,
 }: {
   value: string;
   source: "ai" | "user";
+  /** True only when a real suggestion produced this value. */
+  suggested: boolean;
   confidence?: "high" | "medium" | "low" | null;
   sourceText?: string | null;
+  defaultLabel: string;
 }) {
   const [showSource, setShowSource] = useState(false);
   const edited = source === "user";
 
   return (
-    <div className="tv-prov" data-source={source}>
+    <div className="tv-prov" data-source={edited ? "user" : suggested ? "ai" : "default"}>
       <div className="tv-prov__head">
         <span className="tv-prov__value">{value}</span>
         <span className="tv-prov__badge" style={{ marginLeft: "auto" }}>
@@ -125,10 +135,14 @@ function FieldProvenance({
             <>
               <Check className="h-3 w-3" /> Edited by you
             </>
-          ) : (
+          ) : suggested ? (
             <>
               <Sparkles className="h-3 w-3" /> Suggested by AI
               {confidence ? ` · ${confidence} confidence` : ""}
+            </>
+          ) : (
+            <>
+              <FolderTree className="h-3 w-3" /> {defaultLabel}
             </>
           )}
         </span>
@@ -150,7 +164,7 @@ function FieldProvenance({
             ? `"${sourceText}"`
             : edited
               ? "You set this value yourself, so there is no document extract behind it."
-              : "No source sentence was captured for this field — the suggestion came from the folder you uploaded into, not from the document's contents."}
+              : "Nothing was detected for this field, so it fell back to the default — the folder you uploaded into, with no expiry."}
         </p>
       )}
     </div>
@@ -181,12 +195,31 @@ export function AiFilingReviewModal({
   const catalog: CatalogItem[] = useMemo(() => data?.catalog ?? [], [data]);
 
   /**
-   * Placeholder suggestion until a real service is wired in: default to the folder
-   * the document was uploaded into, no detected expiry, portal-default lead time.
+   * Real suggestion if a caller passed one; otherwise a filename heuristic. When
+   * the heuristic finds nothing, we fall back to a plain default (the folder the
+   * document was uploaded into) which is never presented as an AI suggestion.
    */
+  const heuristic = useMemo(
+    () => (suggestionProp || !data ? null : suggestFromFileName(documentName, catalog)),
+    [suggestionProp, data, catalog, documentName],
+  );
+
+  const isGenuineSuggestion = Boolean(suggestionProp) || Boolean(heuristic);
+
   const suggestion: FilingSuggestion | null = useMemo(() => {
     if (suggestionProp) return suggestionProp;
     if (!data) return null;
+    if (heuristic) {
+      return {
+        folder_id: heuristic.folder_id ?? data.currentDestination ?? null,
+        expiry_date: heuristic.expiry_date,
+        reminder_lead_days: data.defaultReminderDays ?? 30,
+        confidence: heuristic.confidence,
+        rationale: heuristic.rationale,
+        folder_source_text: heuristic.folder_source_text,
+        expiry_source_text: heuristic.expiry_source_text,
+      };
+    }
     return {
       folder_id: data.currentDestination ?? null,
       expiry_date: null,
@@ -194,7 +227,8 @@ export function AiFilingReviewModal({
       confidence: null,
       rationale: null,
     };
-  }, [suggestionProp, data]);
+  }, [suggestionProp, data, heuristic]);
+
 
   /**
    * The catalog arrives as flattened "Parent → Child" paths. Split it back into a
@@ -280,7 +314,7 @@ export function AiFilingReviewModal({
           expires_at: expiry ? new Date(`${expiry}T00:00:00Z`).toISOString() : null,
           reminder_at: reminderDate ? new Date(`${reminderDate}T09:00:00Z`).toISOString() : null,
           ai_assisted:
-            Boolean(suggestionProp) && (folderSource === "ai" || expirySource === "ai"),
+            isGenuineSuggestion && (folderSource === "ai" || expirySource === "ai"),
         },
       }),
     onSuccess: () => {
@@ -464,6 +498,8 @@ export function AiFilingReviewModal({
               <FieldProvenance
                 value={destinationLabel ?? "Unfiled"}
                 source={folderSource}
+                suggested={Boolean(suggestionProp) || Boolean(heuristic?.folder_id)}
+                defaultLabel="Default folder"
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.folder_source_text ?? null}
               />
@@ -548,6 +584,8 @@ export function AiFilingReviewModal({
               <FieldProvenance
                 value={expiry ? expiry : "No expiry"}
                 source={expirySource}
+                suggested={Boolean(suggestionProp) || Boolean(heuristic?.expiry_date)}
+                defaultLabel="No expiry detected"
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.expiry_source_text ?? null}
               />

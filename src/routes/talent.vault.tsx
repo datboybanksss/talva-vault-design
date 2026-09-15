@@ -26,7 +26,7 @@ import { preflightUpload } from "@/lib/file-validation";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { toast } from "sonner";
 import {
-  Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
+  Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen, Archive,
   Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
   ChevronDown, Search,
 } from "lucide-react";
@@ -178,12 +178,16 @@ function PrivateVault() {
 
   async function onDeleteFolder(id: string, name: string, isTop: boolean) {
     const message = isTop
-      ? `Remove "${name}" from your vault? It will be hidden, and you can restore it later from Settings → Manage folders with its documents intact.`
-      : `Delete "${name}"? Only empty subfolders can be deleted.`;
+      ? `Remove "${name}" from your vault? Nothing is deleted — the folder is hidden with its documents intact, and you can restore it later from Settings → Manage folders.`
+      : `Permanently delete "${name}"? This cannot be undone, and only empty subfolders can be deleted.`;
     if (!window.confirm(message)) return;
     try {
       await deleteFolder({ data: { id } });
-      toast.success(isTop ? "Folder removed — restore it any time from Settings." : "Folder deleted.");
+      toast.success(
+        isTop
+          ? "Folder removed — restore it any time from Settings → Manage folders."
+          : "Subfolder permanently deleted.",
+      );
       invalidate();
     } catch (e: any) {
       toast.error(e?.message ?? "Could not delete.");
@@ -419,7 +423,7 @@ function PrivateVault() {
 
                         <div className="tvp-footer-actions" style={{ marginTop: 2 }}>
                           <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
-                          <button title="Remove folder" className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name, true)} aria-label="Remove folder"><Trash2 className="h-4 w-4" /></button>
+                          <button title="Remove folder — hidden, restorable from Settings" className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name, true)} aria-label="Remove folder (restorable)"><Archive className="h-4 w-4" /></button>
                         </div>
                       </div>
                     </div>
