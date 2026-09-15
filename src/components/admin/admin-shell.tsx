@@ -238,11 +238,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </button>
           {me?.isAdmin && !me?.canEdit && (
             <span
-              className="tvp-status tvp-amber"
-              title="You have view-only access. Write actions are disabled."
+              className={`tvp-status tvp-${me?.permissionLevel === "agency_support" ? "blue" : "amber"}`}
+              title={
+                me?.permissionLevel === "agency_support"
+                  ? "You can support agency clients (resend, revoke, correct and copy agency invitations). Suspending agencies, managing administrators and approving legal copy need full edit access."
+                  : "You have view-only access. Write actions are disabled."
+              }
               style={{ marginRight: "auto" }}
             >
-              View only — no edit access
+              {me?.permissionLevel === "agency_support"
+                ? "Agency Support — limited access"
+                : "View only — no edit access"}
             </span>
           )}
           

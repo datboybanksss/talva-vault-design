@@ -9,6 +9,7 @@ import {
   unsuspendAgency,
   listAgencyInvitationsForAgency,
   listTalentInvitationsForAgency,
+  whoami,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
@@ -45,6 +46,7 @@ function AgencyDetail() {
   const unsuspendFn = useServerFn(unsuspendAgency);
   const listAgencyInvFn = useServerFn(listAgencyInvitationsForAgency);
   const listTalentInvFn = useServerFn(listTalentInvitationsForAgency);
+  const whoamiFn = useServerFn(whoami);
   const qc = useQueryClient();
   const [suspendOpen, setSuspendOpen] = useState(false);
 
@@ -60,6 +62,12 @@ function AgencyDetail() {
     queryKey: ["admin", "agency", id, "talent-invitations"],
     queryFn: () => listTalentInvFn({ data: { agency_id: id } }),
   });
+  // Suspending or reinstating an agency needs full edit rights; anything less
+  // is shown the control disabled rather than a server-side "Forbidden".
+  const me = useQuery({ queryKey: ["whoami"], queryFn: () => whoamiFn() });
+  const canEdit = !!me.data?.canEdit;
+  const noEditTitle =
+    "You need full edit access to suspend or reinstate an agency. Ask a Main Administrator to change your access level.";
 
   const suspendM = useMutation({
     mutationFn: (reason: string) => suspendFn({ data: { id, reason } }),
@@ -104,13 +112,20 @@ function AgencyDetail() {
         {a && (
           <div className="tvp-actions">
             {a.status === "suspended" ? (
-              <button className="tvp-secondary" onClick={() => unsuspendM.mutate()}>
+              <button
+                className="tvp-secondary"
+                onClick={() => unsuspendM.mutate()}
+                disabled={!canEdit}
+                title={canEdit ? "Reinstate this agency" : noEditTitle}
+              >
                 <RotateCcw className="h-4 w-4" />Reinstate
               </button>
             ) : (
               <button
                 className="tvp-secondary"
                 onClick={() => setSuspendOpen(true)}
+                disabled={!canEdit}
+                title={canEdit ? "Suspend this agency" : noEditTitle}
               >
                 <Ban className="h-4 w-4" />Suspend
               </button>

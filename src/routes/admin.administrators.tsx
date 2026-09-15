@@ -2,13 +2,15 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban, SlidersHorizontal } from "lucide-react";
+import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban, SlidersHorizontal, RefreshCw, Trash2, CalendarX } from "lucide-react";
 import {
   listAdministrators,
   whoami,
   listAdminInvitations,
   inviteAdministrator,
   revokeAdminInvitation,
+  resendAdminInvitation,
+  deleteAdminInvitation,
   updateAdministrator,
   updateAdminInvitation,
 } from "@/lib/admin.functions";
@@ -26,6 +28,7 @@ import {
   adminPermission,
   canInviteAdministrators,
   grantableAdminPermissions,
+  type AdminPermissionLevel,
 } from "@/lib/admin-permissions";
 
 import {
@@ -33,6 +36,20 @@ import {
   DEFAULT_ADMIN_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
+
+/** Administrator invitation statuses, styled like the Agency invitations page. */
+const statusLabel: Record<string, string> = {
+  pending: "Invited",
+  accepted: "Accepted",
+  expired: "Expired",
+  revoked: "Revoked",
+};
+const statusTone: Record<string, string> = {
+  pending: "blue",
+  accepted: "green",
+  expired: "red",
+  revoked: "neutral",
+};
 
 export const Route = createFileRoute("/admin/administrators")({
   head: () => ({ meta: [{ title: "Administrators · TalVault Admin" }] }),
@@ -46,6 +63,8 @@ function AdminsPage() {
   const listInvFn = useServerFn(listAdminInvitations);
   const inviteFn = useServerFn(inviteAdministrator);
   const revokeFn = useServerFn(revokeAdminInvitation);
+  const resendFn = useServerFn(resendAdminInvitation);
+  const deleteInviteFn = useServerFn(deleteAdminInvitation);
   const updateAdminFn = useServerFn(updateAdministrator);
   const sendAdminEmailFn = useServerFn(sendAdminInvitationEmail);
   const qc = useQueryClient();
@@ -75,7 +94,7 @@ function AdminsPage() {
 
 
   const invite = useMutation({
-    mutationFn: (input: { email: string; permission_level: "view_only" | "edit" }) =>
+    mutationFn: (input: { email: string; permission_level: AdminPermissionLevel }) =>
       inviteFn({ data: input }),
     onSuccess: async (inv: any) => {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
@@ -108,18 +127,47 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
+  // Reopens a lapsed (or simply forgotten) invitation: refresh the expiry,
+  // then re-send the same email the invite flow sends.
+  const resend = useMutation({
+    mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
+    onSuccess: async (inv: any) => {
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
+      const res: any = await sendAdminEmailFn({
+        data: {
+          id: inv.id,
+          subject: DEFAULT_ADMIN_INVITATION_SUBJECT,
+          body: DEFAULT_ADMIN_INVITATION_BODY,
+          invite_url: `${window.location.origin}/invite/admin/${inv.token}`,
+        },
+      }).catch(() => ({ sent: false }));
+      if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
+      else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to resend invitation"),
+  });
+
+  const deleteInvite = useMutation({
+    mutationFn: (id: string) => deleteInviteFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
+      toast.success("Invitation deleted.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to delete invitation"),
+  });
+
   // Editing the access level carried by a still-pending invitation, so a
   // mis-set level can be corrected without revoking and re-inviting.
   const updateInviteFn = useServerFn(updateAdminInvitation);
   const [editInvite, setEditInvite] = useState<any | null>(null);
-  const [editInvitePerm, setEditInvitePerm] = useState<"view_only" | "edit">("edit");
+  const [editInvitePerm, setEditInvitePerm] = useState<AdminPermissionLevel>("edit");
 
   useEffect(() => {
     if (editInvite) setEditInvitePerm(editInvite.permission_level ?? "edit");
   }, [editInvite]);
 
   const updateInviteMut = useMutation({
-    mutationFn: (input: { id: string; permission_level: "view_only" | "edit" }) =>
+    mutationFn: (input: { id: string; permission_level: AdminPermissionLevel }) =>
       updateInviteFn({ data: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
@@ -131,13 +179,13 @@ function AdminsPage() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [invitePerm, setInvitePerm] = useState<"view_only" | "edit">("edit");
+  const [invitePerm, setInvitePerm] = useState<AdminPermissionLevel>("edit");
 
 
   // Per-row edit (Main-admin only)
   const [editAdmin, setEditAdmin] = useState<any | null>(null);
   const [editDesignation, setEditDesignation] = useState("");
-  const [editPermission, setEditPermission] = useState<"view_only" | "edit">("edit");
+  const [editPermission, setEditPermission] = useState<AdminPermissionLevel>("edit");
 
   useEffect(() => {
     if (editAdmin) {
@@ -150,7 +198,7 @@ function AdminsPage() {
     mutationFn: (input: {
       user_id: string;
       designation: string | null;
-      permission_level: "view_only" | "edit";
+      permission_level: AdminPermissionLevel;
     }) => updateAdminFn({ data: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
@@ -172,8 +220,13 @@ function AdminsPage() {
   const adminPage = usePagedList(list);
   const invitePage = usePagedList(invitations.data ?? []);
 
+  // `status` is the effective status (a stored "pending" whose expiry has
+  // passed reads as "expired"), so a lapsed invite never counts as pending.
   const pendingInvites = (invitations.data ?? []).filter(
-    (i: any) => (i.stored_status ?? i.status) === "pending",
+    (i: any) => i.status === "pending",
+  );
+  const expiredInvites = (invitations.data ?? []).filter(
+    (i: any) => i.status === "expired",
   );
 
   return (
@@ -215,6 +268,16 @@ function AdminsPage() {
             <div className="tvp-kpi-label">Pending Admin Invites</div>
             <div className="tvp-kpi-sub tvp-warn" style={{ color: pendingInvites.length > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}>
               {pendingInvites.length > 0 ? "Awaiting sign-up" : "None outstanding"}
+            </div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-red"><CalendarX className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{expiredInvites.length}</div>
+            <div className="tvp-kpi-label">Expired / Lapsed</div>
+            <div className="tvp-kpi-sub" style={{ color: expiredInvites.length > 0 ? "var(--tvp-red)" : "var(--tvp-muted)" }}>
+              {expiredInvites.length > 0 ? "Resend to reopen" : "None lapsed"}
             </div>
           </div>
         </div>
@@ -416,14 +479,8 @@ function AdminsPage() {
 
                     </td>
                     <td>
-                      <span
-                        className={`tvp-status tvp-${
-                          i.status === "accepted" ? "green" :
-                          i.status === "pending" ? "blue" :
-                          i.status === "revoked" ? "red" : "amber"
-                        }`}
-                      >
-                        {i.status}
+                      <span className={`tvp-status tvp-${statusTone[i.status] ?? "amber"}`}>
+                        {statusLabel[i.status] ?? i.status}
                       </span>
                     </td>
                     <td>
@@ -433,10 +490,14 @@ function AdminsPage() {
                     </td>
                     <td className="tvp-muted">{i.invited_by_email ?? "—"}</td>
                     <td>
-                      {canInvite && (i.stored_status ?? i.status) === "pending" && (
+                      {canInvite && i.status !== "accepted" && (() => {
+                        // Still open = stored pending, whether or not it lapsed.
+                        const open = (i.stored_status ?? i.status) === "pending";
+                        return (
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
                           <RowActionsMenu
                             actions={[
+                              ...(open ? [
                               {
                                 key: "access", label: "Edit access level", icon: SlidersHorizontal,
                                 title: "Change the level this invitation grants",
@@ -450,7 +511,11 @@ function AdminsPage() {
                                     params: { id: i.id },
                                   }),
                               },
-
+                              {
+                                key: "resend", label: "Resend invitation", icon: RefreshCw,
+                                title: "Refresh the expiry and email the invitation again",
+                                onSelect: () => resend.mutate(i.id),
+                              },
                               {
                                 key: "copy", label: "Copy invite link", icon: Link2,
                                 title: "Copying does not extend expiry",
@@ -472,10 +537,21 @@ function AdminsPage() {
                                   if (confirm(`Revoke invitation to ${i.email}?`)) revoke.mutate(i.id);
                                 },
                               },
+                              ] : []),
+                              {
+                                key: "delete", label: "Delete invitation", icon: Trash2,
+                                destructive: true, separatorBefore: open,
+                                title: "Permanently remove this invitation from the list",
+                                onSelect: () => {
+                                  if (confirm(`Permanently delete the invitation to ${i.email}?`))
+                                    deleteInvite.mutate(i.id);
+                                },
+                              },
                             ]}
                           />
                         </div>
-                      )}
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}

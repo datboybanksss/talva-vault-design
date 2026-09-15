@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Send, Copy } from "lucide-react";
+import { ArrowLeft, Send, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { getAdminInvitationById } from "@/lib/admin.functions";
+import { getAdminInvitationById, resendAdminInvitation } from "@/lib/admin.functions";
+import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
 import {
   DEFAULT_ADMIN_INVITATION_SUBJECT,
@@ -25,11 +26,29 @@ function AdminEmailPreviewPage() {
   const { id } = useParams({ from: "/admin/administrators/$id/email-preview" });
   const getFn = useServerFn(getAdminInvitationById);
   const sendFn = useServerFn(sendAdminInvitationEmail);
+  const resendFn = useServerFn(resendAdminInvitation);
+  const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["admin", "admin-invitation", id],
     queryFn: () => getFn({ data: { id } }),
   });
   const inv = q.data as any;
+
+  // A lapsed invitation carries a dead link: sending it again would just email
+  // a link that fails on arrival, so the expiry has to be refreshed first.
+  const isExpired =
+    !!inv && effectiveInvitationStatus(inv.status, inv.expires_at) === "expired";
+
+  const resendM = useMutation({
+    mutationFn: () => resendFn({ data: { id, extend_days: 14 } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitation", id] });
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
+      setStatus({ kind: "ok", message: "Expiry refreshed — this invitation can be sent again." });
+      toast.success("Invitation reopened · expiry refreshed.");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Could not refresh the expiry."),
+  });
 
   const [subject, setSubject] = useState(DEFAULT_ADMIN_INVITATION_SUBJECT);
   const [body, setBody] = useState(DEFAULT_ADMIN_INVITATION_BODY);
@@ -98,15 +117,42 @@ function AdminEmailPreviewPage() {
           <button className="tvp-secondary" onClick={copyLink} disabled={!inv} title="Copy the unique invite link">
             <Copy className="h-4 w-4" />Copy link
           </button>
+          {isExpired && (
+            <button
+              className="tvp-secondary"
+              onClick={() => { setStatus(null); resendM.mutate(); }}
+              disabled={resendM.isPending}
+              title="Extend the expiry by 14 days so the link works again"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {resendM.isPending ? "Refreshing…" : "Resend & refresh expiry"}
+            </button>
+          )}
           <button
             className="tvp-primary"
-            disabled={!inv || sendM.isPending || !subject.trim() || !body.trim()}
+            disabled={!inv || isExpired || sendM.isPending || !subject.trim() || !body.trim()}
+            title={
+              isExpired
+                ? "This invitation has lapsed — refresh the expiry before sending."
+                : "Send this invitation email"
+            }
             onClick={() => { setStatus(null); sendM.mutate(); }}
           >
             <Send className="h-4 w-4" />{sendM.isPending ? "Sending…" : "Send email"}
           </button>
         </div>
       </div>
+
+      {isExpired && (
+        <div className="tvp-card" style={{ borderLeft: "3px solid var(--tvp-red)" }}>
+          <strong>This invitation has lapsed.</strong>{" "}
+          <span className="tvp-muted">
+            Its link no longer works, so sending it now would land the recipient on
+            an expired page. Use “Resend &amp; refresh expiry” to reopen it for a
+            further 14 days, then send the email.
+          </span>
+        </div>
+      )}
 
       <SendStatusBanner status={status} />
 

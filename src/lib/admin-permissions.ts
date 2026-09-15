@@ -3,7 +3,7 @@
  * Labels, descriptions and the ordering used for the "you may only grant a
  * level at or below your own" rule all come from here — never hardcode them.
  */
-export type AdminPermissionLevel = "view_only" | "edit";
+export type AdminPermissionLevel = "view_only" | "agency_support" | "edit";
 
 export type AdminPermissionDef = {
   value: AdminPermissionLevel;
@@ -12,18 +12,27 @@ export type AdminPermissionDef = {
   label: string;
   optionLabel: string;
   description: string;
-  tone: "green" | "amber";
+  tone: "green" | "amber" | "blue";
 };
 
 export const ADMIN_PERMISSION_LEVELS: AdminPermissionDef[] = [
   {
     value: "edit",
-    rank: 2,
+    rank: 3,
     label: "Edit rights",
     optionLabel: "Edit rights — full access",
     description:
       "Can perform all administrator actions (suspend agencies, send invites, approve legal copy, etc.).",
     tone: "green",
+  },
+  {
+    value: "agency_support",
+    rank: 2,
+    label: "Agency Support",
+    optionLabel: "Agency Support — limited access",
+    description:
+      "Can support agency clients: resend, revoke, copy and correct the email on agency invitations. Cannot suspend agencies, manage other administrators or approve legal copy.",
+    tone: "blue",
   },
   {
     value: "view_only",
@@ -56,4 +65,16 @@ export function grantableAdminPermissions(
 /** Only administrators at the highest level may invite other administrators. */
 export function canInviteAdministrators(inviterLevel?: string | null): boolean {
   return adminPermissionRank(inviterLevel) >= adminPermissionRank(HIGHEST_ADMIN_PERMISSION);
+}
+
+/** The lowest level allowed to act on behalf of an agency client. */
+export const AGENCY_SUPPORT_PERMISSION: AdminPermissionLevel = "agency_support";
+
+/**
+ * Agency-support actions: resending, revoking, correcting the email on, and
+ * copying the link for an AGENCY invitation. Deliberately excludes suspending
+ * an agency, managing administrators and approving legal copy.
+ */
+export function canSupportAgencies(level?: string | null): boolean {
+  return adminPermissionRank(level) >= adminPermissionRank(AGENCY_SUPPORT_PERMISSION);
 }

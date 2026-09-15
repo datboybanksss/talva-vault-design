@@ -1,0 +1,1 @@
+ALTER TYPE public.admin_permission_level ADD VALUE IF NOT EXISTS 'agency_support' BEFORE 'edit';

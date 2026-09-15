@@ -7,8 +7,12 @@ import { fetchOnboardedTalent, fetchOnboardedTalentLinks } from "@/lib/onboarded
 import {
   HIGHEST_ADMIN_PERMISSION,
   canInviteAdministrators,
+  canSupportAgencies,
   grantableAdminPermissions,
 } from "@/lib/admin-permissions";
+
+/** Every permission level an administrator invitation may carry. */
+const ADMIN_PERMISSION_ENUM = z.enum(["view_only", "agency_support", "edit"]);
 
 
 // -----------------------------------------------------------------------------
@@ -28,6 +32,42 @@ async function assertAdminCanEdit(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("can_admin_edit", { _user_id: userId });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: view-only administrators cannot perform this action.");
+}
+
+/**
+ * Reads the caller's stored admin permission level. The Main Administrator is
+ * always treated as holding the highest level.
+ */
+async function adminPermissionLevel(supabase: any, userId: string) {
+  const { data: row, error } = await supabase
+    .from("user_roles")
+    .select("is_main_admin, permission_level")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const isMainAdmin = !!row?.is_main_admin;
+  return {
+    isMainAdmin,
+    permissionLevel: (isMainAdmin
+      ? HIGHEST_ADMIN_PERMISSION
+      : ((row?.permission_level ?? "view_only") as string)),
+  };
+}
+
+/**
+ * Agency-support actions (resend/revoke/correct/copy an AGENCY invitation) are
+ * open to Agency Support administrators as well as full-edit ones.
+ */
+async function assertAdminCanSupportAgencies(supabase: any, userId: string) {
+  await assertAdmin(supabase, userId);
+  const { permissionLevel } = await adminPermissionLevel(supabase, userId);
+  if (!canSupportAgencies(permissionLevel)) {
+    throw new Error(
+      "Forbidden: view-only administrators cannot perform this action.",
+    );
+  }
+  return permissionLevel;
 }
 
 async function assertMainAdmin(supabase: any, userId: string) {
@@ -116,9 +156,13 @@ export const whoami = createServerFn({ method: "GET" })
     const adminRow = (roles ?? []).find((r: any) => r.role === "admin");
     const isAdmin = !!adminRow;
     const isMain = !!adminRow?.is_main_admin;
-    const permissionLevel: "view_only" | "edit" =
-      (adminRow?.permission_level as any) ?? "edit";
+    const permissionLevel: "view_only" | "agency_support" | "edit" = isMain
+      ? "edit"
+      : ((adminRow?.permission_level as any) ?? "edit");
     const canEdit = isAdmin && permissionLevel === "edit";
+    // Agency Support sits between view-only and full edit: it may act on
+    // agency invitations but not suspend agencies or manage administrators.
+    const canSupport = isAdmin && canSupportAgencies(permissionLevel);
     return {
       userId: userId as string,
       email: (profile?.email as string) ?? (claims?.email as string) ?? "",
@@ -131,6 +175,7 @@ export const whoami = createServerFn({ method: "GET" })
       isMainAdmin: isMain,
       permissionLevel,
       canEdit,
+      canSupportAgencies: canSupport,
       roles: roles ?? [],
     };
   });
@@ -1042,7 +1087,7 @@ export const resendInvitation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdminCanEdit(supabase, userId);
+    await assertAdminCanSupportAgencies(supabase, userId);
     const expires_at = new Date(
       Date.now() + data.extend_days * 24 * 3600 * 1000,
     ).toISOString();
@@ -1081,7 +1126,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdminCanEdit(supabase, userId);
+    await assertAdminCanSupportAgencies(supabase, userId);
     const { data: inv, error } = await supabase
       .from("agency_invitations")
       .update({ status: "revoked" })
@@ -1108,7 +1153,7 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdminCanEdit(supabase, userId);
+    await assertAdminCanSupportAgencies(supabase, userId);
     const { data: existing, error: exErr } = await supabase
       .from("agency_invitations")
       .select("status, email, agency_name")
@@ -1145,7 +1190,7 @@ export const logCopyLink = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanSupportAgencies(supabase, userId);
     const { data: inv } = await supabase
       .from("agency_invitations")
       .select("agency_name")
@@ -1301,7 +1346,7 @@ export const listAdministrators = createServerFn({ method: "GET" })
       display_name: (profMap.get(r.user_id) as any)?.display_name ?? "",
       designation: (profMap.get(r.user_id) as any)?.designation ?? "",
       is_main_admin: r.is_main_admin,
-      permission_level: r.permission_level as "view_only" | "edit",
+      permission_level: r.permission_level as "view_only" | "agency_support" | "edit",
       created_at: r.created_at,
     }));
   });
@@ -1328,7 +1373,7 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().email(),
-        permission_level: z.enum(["view_only", "edit"]),
+        permission_level: ADMIN_PERMISSION_ENUM,
         expiry_days: z.number().int().min(1).max(60).default(14),
       })
       .parse(d),
@@ -1357,15 +1402,24 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
       if (hasAdmin) throw new Error("That user is already an administrator.");
     }
 
-    // Reject if a pending non-expired invite already exists
+    // Any still-open invitation (pending, whether or not it has lapsed) blocks
+    // a brand-new one — an expired invite is reopened with Resend, never
+    // duplicated into a second orphaned row for the same person.
     const { data: dupe } = await supabase
       .from("admin_invitations")
-      .select("id")
+      .select("id, expires_at")
       .ilike("email", data.email)
       .eq("status", "pending")
-      .gt("expires_at", new Date().toISOString())
+      .limit(1)
       .maybeSingle();
-    if (dupe?.id) throw new Error("A pending invitation already exists for that email.");
+    if (dupe?.id) {
+      const lapsed = new Date(dupe.expires_at).getTime() < Date.now();
+      throw new Error(
+        lapsed
+          ? "An invitation for that email has already been sent and has lapsed. Use Resend invitation on the existing row to reopen it instead of creating a second one."
+          : "A pending invitation already exists for that email. Use Resend invitation on the existing row if they need it again.",
+      );
+    }
 
     const expiresAt = new Date(
       Date.now() + data.expiry_days * 24 * 3600 * 1000,
@@ -1413,7 +1467,7 @@ export const updateAdminInvitation = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string(),
-        permission_level: z.enum(["view_only", "edit"]),
+        permission_level: ADMIN_PERMISSION_ENUM,
       })
       .parse(d),
   )
@@ -1495,6 +1549,103 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
       { permission_level: inv.permission_level },
     );
     return inv;
+  });
+
+/**
+ * Reopens an administrator invitation that is still open (pending, whether or
+ * not it has already lapsed) by pushing its expiry out again. Accepted and
+ * revoked invitations are deliberately not resendable.
+ */
+export const resendAdminInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string(), extend_days: z.number().default(14) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertCanInviteAdministrator(supabase, userId);
+
+    const { data: existing, error: exErr } = await supabase
+      .from("admin_invitations")
+      .select("id, email, status, permission_level")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (exErr) throw new Error(exErr.message);
+    if (!existing) throw new Error("Invitation not found.");
+    if (existing.status !== "pending") {
+      throw new Error(
+        `This invitation is ${existing.status} and can no longer be resent. Invite the person again instead.`,
+      );
+    }
+
+    const expires_at = new Date(
+      Date.now() + data.extend_days * 24 * 3600 * 1000,
+    ).toISOString();
+
+    const { data: inv, error } = await supabase
+      .from("admin_invitations")
+      .update({ expires_at, status: "pending" })
+      .eq("id", data.id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) throw new Error("You do not have permission to resend this invitation.");
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "resend_admin_invitation",
+      "admin_invitation",
+      inv.id,
+      inv.email,
+      { expires_at, permission_level: inv.permission_level },
+    );
+    return inv;
+  });
+
+/**
+ * Permanently removes a stale administrator invitation. Only invitations that
+ * were never accepted may be deleted, so the acceptance trail stays intact.
+ */
+export const deleteAdminInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertCanInviteAdministrator(supabase, userId);
+
+    const { data: inv, error } = await supabase
+      .from("admin_invitations")
+      .select("id, email, status, permission_level, accepted_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) throw new Error("Invitation not found.");
+    if (inv.status === "accepted" || inv.accepted_at) {
+      throw new Error("An accepted invitation cannot be deleted.");
+    }
+
+    // There is deliberately no delete policy on this table, so the removal
+    // runs with service-role rights after the permission check above.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: delErr } = await supabaseAdmin
+      .from("admin_invitations")
+      .delete()
+      .eq("id", data.id);
+    if (delErr) throw new Error(delErr.message);
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "delete_admin_invitation",
+      "admin_invitation",
+      inv.id,
+      inv.email,
+      { previous_status: inv.status, permission_level: inv.permission_level },
+    );
+    return { deleted: true };
   });
 
 // Records an audit event when a signed-in admin changes their OWN password.
@@ -1700,7 +1851,7 @@ export const updateAdministrator = createServerFn({ method: "POST" })
       .object({
         user_id: z.string().uuid(),
         designation: z.string().trim().max(120).nullable().optional(),
-        permission_level: z.enum(["view_only", "edit"]).optional(),
+        permission_level: ADMIN_PERMISSION_ENUM.optional(),
       })
       .parse(d),
   )

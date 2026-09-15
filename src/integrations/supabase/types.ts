@@ -2765,7 +2765,7 @@ export type Database = {
       tv_map_legacy_folder: { Args: { _name: string }; Returns: string }
     }
     Enums: {
-      admin_permission_level: "view_only" | "edit"
+      admin_permission_level: "view_only" | "agency_support" | "edit"
       agency_invitation_kind: "agency_onboarding" | "staff"
       agency_status:
         | "incomplete"
@@ -2946,7 +2946,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      admin_permission_level: ["view_only", "edit"],
+      admin_permission_level: ["view_only", "agency_support", "edit"],
       agency_invitation_kind: ["agency_onboarding", "staff"],
       agency_status: [
         "incomplete",
