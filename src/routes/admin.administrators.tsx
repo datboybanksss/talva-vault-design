@@ -438,6 +438,11 @@ function AdminsPage() {
                           <RowActionsMenu
                             actions={[
                               {
+                                key: "access", label: "Edit access level", icon: SlidersHorizontal,
+                                title: "Change the level this invitation grants",
+                                onSelect: () => setEditInvite(i),
+                              },
+                              {
                                 key: "email", label: "Edit & send email", icon: Mail,
                                 onSelect: () =>
                                   navigate({
@@ -445,6 +450,7 @@ function AdminsPage() {
                                     params: { id: i.id },
                                   }),
                               },
+
                               {
                                 key: "copy", label: "Copy invite link", icon: Link2,
                                 title: "Copying does not extend expiry",
