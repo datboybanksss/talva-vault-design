@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { FileText, Receipt, Wallet, Lock } from "lucide-react";
+import { FileText, Receipt, Wallet, Lock, Info } from "lucide-react";
 import { listTalentBillingDocuments } from "@/lib/talent.functions";
 import { fmtMoney } from "@/lib/billing";
 
