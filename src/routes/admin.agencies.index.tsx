@@ -14,6 +14,12 @@ import {
   deleteAgencyInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
+import {
+  DEFAULT_INVITATION_SUBJECT,
+  DEFAULT_INVITATION_BODY,
+  EMAIL_FALLBACK_NOTICE,
+} from "@/lib/invitation-email";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -46,6 +52,7 @@ function AgenciesPage() {
   const suspendFn = useServerFn(suspendAgency);
   const unsuspendFn = useServerFn(unsuspendAgency);
   const resendFn = useServerFn(resendInvitation);
+  const sendAgencyEmailFn = useServerFn(sendAgencyInvitationEmail);
   const revokeFn = useServerFn(revokeInvitation);
   const updateEmailFn = useServerFn(updateInvitationEmail);
   const logCopyFn = useServerFn(logCopyLink);
@@ -77,9 +84,19 @@ function AgenciesPage() {
   });
   const resendM = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
-    onSuccess: () => {
+    onSuccess: async (inv: any) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Invitation resent · expiry refreshed · logged.");
+      // Expiry is refreshed regardless; only claim the email went out if it did.
+      const res: any = await sendAgencyEmailFn({
+        data: {
+          id: inv.id,
+          subject: DEFAULT_INVITATION_SUBJECT,
+          body: DEFAULT_INVITATION_BODY,
+          invite_url: `${window.location.origin}/invite/${inv.token}`,
+        },
+      }).catch(() => ({ sent: false }));
+      if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
+      else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to resend"),
   });
