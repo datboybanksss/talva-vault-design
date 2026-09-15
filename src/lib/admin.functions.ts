@@ -34,6 +34,42 @@ async function assertAdminCanEdit(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: view-only administrators cannot perform this action.");
 }
 
+/**
+ * Reads the caller's stored admin permission level. The Main Administrator is
+ * always treated as holding the highest level.
+ */
+async function adminPermissionLevel(supabase: any, userId: string) {
+  const { data: row, error } = await supabase
+    .from("user_roles")
+    .select("is_main_admin, permission_level")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const isMainAdmin = !!row?.is_main_admin;
+  return {
+    isMainAdmin,
+    permissionLevel: (isMainAdmin
+      ? HIGHEST_ADMIN_PERMISSION
+      : ((row?.permission_level ?? "view_only") as string)),
+  };
+}
+
+/**
+ * Agency-support actions (resend/revoke/correct/copy an AGENCY invitation) are
+ * open to Agency Support administrators as well as full-edit ones.
+ */
+async function assertAdminCanSupportAgencies(supabase: any, userId: string) {
+  await assertAdmin(supabase, userId);
+  const { permissionLevel } = await adminPermissionLevel(supabase, userId);
+  if (!canSupportAgencies(permissionLevel)) {
+    throw new Error(
+      "Forbidden: view-only administrators cannot perform this action.",
+    );
+  }
+  return permissionLevel;
+}
+
 async function assertMainAdmin(supabase: any, userId: string) {
   await assertAdmin(supabase, userId);
   const { data, error } = await supabase.rpc("is_main_admin", { _user_id: userId });
