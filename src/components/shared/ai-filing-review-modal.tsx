@@ -497,6 +497,8 @@ export function AiFilingReviewModal({
               <FieldProvenance
                 value={destinationLabel ?? "Unfiled"}
                 source={folderSource}
+                suggested={Boolean(suggestionProp) || Boolean(heuristic?.folder_id)}
+                defaultLabel="Default folder"
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.folder_source_text ?? null}
               />
@@ -581,6 +583,8 @@ export function AiFilingReviewModal({
               <FieldProvenance
                 value={expiry ? expiry : "No expiry"}
                 source={expirySource}
+                suggested={Boolean(suggestionProp) || Boolean(heuristic?.expiry_date)}
+                defaultLabel="No expiry detected"
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.expiry_source_text ?? null}
               />
