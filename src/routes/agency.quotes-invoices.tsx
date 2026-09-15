@@ -983,6 +983,13 @@ function QIPage() {
             editor.recipient_emails.length > 0 &&
             (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
           }
+          sendDisabledReason={
+            !editor.id
+              ? "Save this draft first before sending."
+              : editor.recipient_emails.length === 0
+                ? "Add at least one recipient email address before sending."
+                : "This record has already been sent."
+          }
           onSend={() => send.mutate()}
           sending={send.isPending}
         />
