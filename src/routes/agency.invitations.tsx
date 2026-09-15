@@ -640,3 +640,99 @@ function NewInvitationModal({
   );
 }
 
+
+/**
+ * Active staff roster. Everyone who has accepted a staff invitation, with the
+ * role they hold today. The agency owner can change a staff member's role
+ * here; the change is audit logged like every other agency action.
+ */
+function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
+  const qc = useQueryClient();
+  const rosterFn = useServerFn(listAgencyStaffRoster);
+  const roleFn = useServerFn(updateAgencyStaffRole);
+
+  const staff = useQuery({
+    queryKey: ["agency", "staff-roster"],
+    queryFn: () => rosterFn(),
+  });
+
+  const changeRole = useMutation({
+    mutationFn: (v: { member_id: string; role: "staff" | "lead" }) => roleFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "staff-roster"] });
+      toast.success("Role updated and logged.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update role"),
+  });
+
+  const rows = (staff.data ?? []) as any[];
+
+  return (
+    <div className="tvp-card" style={{ marginTop: 18 }}>
+      <div className="tvp-panel-head">
+        <div>
+          <h2 className="tvp-h2">Active staff</h2>
+          <div className="tvp-subtitle">
+            {isOwner
+              ? "People who have accepted a staff invitation. Only you, as the Manager (Owner), can change a role."
+              : "People who have accepted a staff invitation. Only the Manager (Owner) can change a role."}
+          </div>
+        </div>
+      </div>
+      <div className="tvp-table-wrap">
+        <table className="tvp-table">
+          <thead>
+            <tr>
+              <th style={{ minWidth: 180 }}>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {staff.isLoading && <tr><td colSpan={5} className="tvp-muted">Loading…</td></tr>}
+            {!staff.isLoading && rows.length === 0 && (
+              <tr><td colSpan={5} className="tvp-muted">No staff members yet — invite a staff member to get started.</td></tr>
+            )}
+            {rows.map((m) => {
+              const editable = isOwner && m.role !== "owner" && !m.isSelf && !m.suspended;
+              return (
+                <tr key={m.id}>
+                  <td><strong>{m.name}</strong>{m.isSelf && <span className="tvp-status tvp-neutral" style={{ marginLeft: 6 }}>You</span>}</td>
+                  <td>{m.email || "—"}</td>
+                  <td>
+                    {editable ? (
+                      <select
+                        className="tvp-select"
+                        value={m.role === "lead" ? "lead" : "staff"}
+                        disabled={changeRole.isPending}
+                        onChange={(e) =>
+                          changeRole.mutate({ member_id: m.id, role: e.target.value as "staff" | "lead" })
+                        }
+                        style={{ minWidth: 190, height: 32, fontSize: 12 }}
+                      >
+                        <option value="staff">Staff manager (view + limited actions)</option>
+                        <option value="lead">Lead manager (full talent operations)</option>
+                      </select>
+                    ) : (
+                      <span className="tvp-status tvp-neutral">
+                        {STAFF_ROLE_LABEL[m.role] ?? m.role}
+                      </span>
+                    )}
+                  </td>
+                  <td>{fmtDate(m.joinedAt)}</td>
+                  <td>
+                    <span className={`tvp-status tvp-${m.suspended ? "red" : "green"}`}>
+                      {m.suspended ? "Suspended" : "Active"}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
