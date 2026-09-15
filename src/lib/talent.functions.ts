@@ -728,7 +728,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
       .limit(1)
       .maybeSingle();
 
-    if (!link) return { link: null, documents: [] as any[] };
+    if (!link) return { link: null, documents: [] as any[], unshared_count: 0 };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -745,6 +745,15 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
 
     const rows = docs ?? [];
 
+    // Count-only signal: the talent can see that unshared billing activity
+    // exists in their name, without any amounts or client names.
+    const { count: unsharedCount } = await supabaseAdmin
+      .from("agency_billing_docs")
+      .select("id", { count: "exact", head: true })
+      .eq("agency_id", link.agency_id)
+      .eq("shared_with_talent", false)
+      .ilike("talent_name", link.display_name);
+
     // Amounts actually received, so partially paid invoices read honestly.
     const ids = rows.filter((r) => r.kind === "invoice").map((r) => r.id);
     const received = new Map<string, number>();
@@ -760,6 +769,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
 
     return {
       link: { id: link.id, display_name: link.display_name },
+      unshared_count: unsharedCount ?? 0,
       documents: rows.map((r) => ({
         ...r,
         received_cents: received.get(r.id) ?? 0,

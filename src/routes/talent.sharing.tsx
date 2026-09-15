@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Share2, Key, Ban, Copy, Clock, Eye, Plus, Info, X, Lock, Download, RefreshCw, Mail, FileText, Send } from "lucide-react";
+import { Share2, Key, Ban, Copy, Clock, Eye, Plus, Info, X, Lock, Download, RefreshCw, Mail, FileText, Send, Receipt } from "lucide-react";
 import {
   listMyLovedOneShares,
   createLovedOneShare,
@@ -135,9 +135,11 @@ function SharingPage() {
                   const locked = !!s.locked_at;
                   const status = revoked ? "revoked" : expired ? "expired" : locked ? "locked" : (exp - now < 3 * 86400_000) ? "expiring" : "active";
                   const scope =
-                    s.share_kind === "document"
-                      ? "1 document"
-                      : `${s.scope?.private_folder_ids?.length ?? 0} folder(s)`;
+                    s.share_kind === "billing"
+                      ? "Quotes & invoices"
+                      : s.share_kind === "document"
+                        ? "1 document"
+                        : `${s.scope?.private_folder_ids?.length ?? 0} folder(s)`;
                   const tone = status === "active" ? "green" : status === "expiring" || status === "locked" ? "amber" : "teal";
                   return (
                     <tr key={s.id}>
@@ -331,7 +333,7 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
   const [rel, setRel] = useState(prefill?.relationship ?? "");
   const [days, setDays] = useState(30);
   const [note, setNote] = useState("");
-  const [kind, setKind] = useState<"folders" | "document">("folders");
+  const [kind, setKind] = useState<"folders" | "document" | "billing">("folders");
   const [permission, setPermission] = useState<"view" | "download">("view");
   const [sendEmail, setSendEmail] = useState(true);
   const [folderIds, setFolderIds] = useState<Set<string>>(new Set());
@@ -404,9 +406,16 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             <ChoiceChip active={kind === "folders"} onClick={() => setKind("folders")} label="Whole folders" />
             <ChoiceChip active={kind === "document"} onClick={() => setKind("document")} label="A single document" />
+            <ChoiceChip active={kind === "billing"} onClick={() => setKind("billing")} label="Quotes & invoices" icon={<Receipt className="h-3 w-3" />} />
           </div>
 
-          {kind === "folders" ? (
+          {kind === "billing" ? (
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 10 }}>
+              Shares the quotes and invoices your Manager has shared with you — the same set you see
+              on Budget &amp; Income. They open as read-only records, not downloadable files, and the
+              list stays current if your Manager shares more.
+            </p>
+          ) : kind === "folders" ? (
             isLoading ? <p className="tvp-muted" style={{ marginTop: 10 }}>Loading vault…</p> : (
               <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
                 {topFolders.map((f: any) => (

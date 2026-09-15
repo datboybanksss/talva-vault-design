@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { FileText, Receipt, Wallet, Lock } from "lucide-react";
+import { FileText, Receipt, Wallet, Lock, Info } from "lucide-react";
 import { listTalentBillingDocuments } from "@/lib/talent.functions";
 import { fmtMoney } from "@/lib/billing";
 
@@ -106,6 +106,25 @@ function BudgetPage() {
 
       {!isLoading && !isError && data?.link && (
         <>
+          {Number(data?.unshared_count ?? 0) > 0 && (
+            <div className="tvp-callout" style={{ marginBottom: 18 }}>
+              <div className="tvp-callout-icon">
+                <Info className="h-4 w-4" />
+              </div>
+              <div>
+                <strong>
+                  {data.unshared_count} billing document
+                  {data.unshared_count === 1 ? "" : "s"} exist
+                  {data.unshared_count === 1 ? "s" : ""} in your name that
+                  {data.unshared_count === 1 ? " hasn't" : " haven't"} been shared with you yet.
+                </strong>{" "}
+                <span className="tvp-muted">
+                  Ask your Manager for visibility if you'd like to see the detail.
+                </span>
+              </div>
+            </div>
+          )}
+
           <div
             className="tvp-grid"
             style={{ gridTemplateColumns: "repeat(3, minmax(0,1fr))", marginBottom: 18 }}

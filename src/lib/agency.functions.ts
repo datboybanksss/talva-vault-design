@@ -2806,6 +2806,19 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       total_cents: total,
     };
 
+    // Editing a document the talent has already seen (or that has already gone
+    // out) must never happen silently — capture the before state first.
+    let prev: any = null;
+    if (data.id) {
+      const { data: before } = await supabase
+        .from("agency_billing_docs")
+        .select("id, kind, number, status, total_cents, due_date, shared_with_talent, talent_name")
+        .eq("id", data.id)
+        .eq("agency_id", agencyId)
+        .maybeSingle();
+      prev = before ?? null;
+    }
+
     let docId: string;
     if (data.id) {
       const { data: r, error } = await supabase
@@ -2847,6 +2860,66 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       "agency_billing_doc", docId, `${data.kind.toUpperCase()} ${number}`,
       { status: data.status, total_cents: total },
     );
+
+    // A live document is one the talent can already see, or one that has left
+    // the agency's hands. Changing those is an auditable, notifiable event.
+    const LIVE_STATUSES = ["sent", "accepted", "partial", "paid", "overdue"];
+    if (prev && (prev.shared_with_talent === true || LIVE_STATUSES.includes(prev.status))) {
+      const changes: Record<string, { from: any; to: any }> = {};
+      if (Number(prev.total_cents) !== total)
+        changes.total_cents = { from: Number(prev.total_cents), to: total };
+      if ((prev.due_date ?? null) !== (data.due_date ?? null))
+        changes.due_date = { from: prev.due_date ?? null, to: data.due_date ?? null };
+      if (prev.status !== data.status) changes.status = { from: prev.status, to: data.status };
+
+      if (Object.keys(changes).length > 0) {
+        await logAgencyAudit(
+          supabase, agencyId, userId, claims?.email,
+          "edit_shared_billing_doc",
+          "agency_billing_doc", docId, `${data.kind.toUpperCase()} ${number}`,
+          { was_shared: prev.shared_with_talent === true, previous_status: prev.status, changes },
+        );
+
+        // Tell the talent their numbers moved, through the same notification
+        // channel the rest of the Talent portal uses. Best-effort only.
+        if (prev.shared_with_talent === true) {
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const talentName = prev.talent_name ?? data.talent_name;
+            if (talentName) {
+              const { data: link } = await supabaseAdmin
+                .from("agency_talent_links")
+                .select("talent_user_id")
+                .eq("agency_id", agencyId)
+                .ilike("display_name", talentName)
+                .not("talent_user_id", "is", null)
+                .limit(1)
+                .maybeSingle();
+              if (link?.talent_user_id) {
+                await supabaseAdmin.from("talent_notifications").upsert(
+                  {
+                    user_id: link.talent_user_id,
+                    kind: "billing_doc_updated",
+                    dedupe_key: `billing_updated:${docId}:${Date.now()}`,
+                    title: `A ${data.kind} already shared with you was updated`,
+                    detail: `${data.kind === "quote" ? "Quote" : "Invoice"} ${number} was changed by your Manager. Open Budget & Income to see the current details.`,
+                    tone: "amber",
+                    target_type: "billing_doc",
+                    target_id: docId,
+                    due_at: new Date().toISOString(),
+                  },
+                  { onConflict: "user_id,dedupe_key", ignoreDuplicates: true },
+                );
+              }
+            }
+          } catch {
+            /* notifying is best-effort — never block a save */
+          }
+        }
+      }
+    }
+
+
 
     return { id: docId };
   });

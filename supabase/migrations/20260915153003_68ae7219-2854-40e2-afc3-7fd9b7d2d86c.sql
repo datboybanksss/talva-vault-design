@@ -1,0 +1,2 @@
+ALTER TABLE public.loved_one_shares DROP CONSTRAINT loved_one_shares_share_kind_check;
+ALTER TABLE public.loved_one_shares ADD CONSTRAINT loved_one_shares_share_kind_check CHECK (share_kind = ANY (ARRAY['folders'::text, 'document'::text, 'billing'::text]));

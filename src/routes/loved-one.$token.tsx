@@ -5,6 +5,48 @@ import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Clock, Download, Folder, FileText, AlertTriangle, Lock, Eye, KeyRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { getLovedOneShareByToken, getLovedOneFileUrl, unlockLovedOneShare } from "@/lib/loved-one.functions";
+import { BillingDocument } from "@/components/agency/billing-document";
+
+/** Read-only rendering of a shared quote or invoice — data, not a file. */
+function BillingBlock({
+  record, watermarked, watermark,
+}: { record: any; watermarked: boolean; watermark: string }) {
+  const tiles = Array.from({ length: 18 });
+  return (
+    <div style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 12, marginBottom: 14, overflow: "hidden", position: "relative" }}>
+      <div style={{ position: "relative" }}>
+        <BillingDocument doc={record.doc} lines={record.lines} agency={record.agency} />
+        {watermarked && (
+          <div
+            data-testid="lo-billing-watermark"
+            aria-hidden
+            style={{
+              position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden",
+              display: "grid", gridTemplateColumns: "repeat(3, 1fr)", alignContent: "space-around", gap: 12,
+            }}
+          >
+            {tiles.map((_, i) => (
+              <span
+                key={i}
+                style={{
+                  transform: "rotate(-28deg)", textAlign: "center", fontSize: 12, fontWeight: 700,
+                  color: "rgba(6,78,88,.18)", whiteSpace: "nowrap", overflow: "hidden", userSelect: "none",
+                }}
+              >
+                {watermark}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ padding: "10px 16px", borderTop: "1px solid #E5E7EB", fontSize: 11, color: "#65707A" }}>
+        {watermarked
+          ? "View only — this record is watermarked with your email and the time you opened it."
+          : "Shared with you for your records."}
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/loved-one/$token")({
   ssr: false,
@@ -93,6 +135,8 @@ function LovedOnePage() {
 
   const share = state.share;
   const canDownload = share.permission === "download";
+  const isBilling = share.share_kind === "billing";
+  const billing: any[] = state.billing ?? [];
   const folders: any[] = state.folders ?? [];
   const documents: any[] = state.documents ?? [];
   const byFolder = new Map<string | null, any[]>();
@@ -107,7 +151,8 @@ function LovedOnePage() {
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#064E58" }}>Hi {share.loved_one_name}</h1>
         <p style={{ color: "#65707A", fontSize: 14, marginTop: 6 }}>
-          {state.sharer?.full_name ?? "A TalVault user"} has shared the {share.share_kind === "document" ? "document" : "documents"} below with you.
+          {state.sharer?.full_name ?? "A TalVault user"} has shared the{" "}
+          {isBilling ? "quotes and invoices" : share.share_kind === "document" ? "document" : "documents"} below with you.
         </p>
         <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 12, color: "#65707A", flexWrap: "wrap" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -133,20 +178,40 @@ function LovedOnePage() {
         )}
       </div>
 
-      {folders.map((f) => (
-        <FolderBlock key={f.id} name={f.name} docs={byFolder.get(f.id) ?? []} canDownload={canDownload} onOpen={openDoc} />
-      ))}
+      {isBilling ? (
+        <>
+          {billing.map((b: any) => (
+            <BillingBlock
+              key={b.doc.id}
+              record={b}
+              watermarked={!canDownload}
+              watermark={`${share.loved_one_email ?? share.loved_one_name} · ${new Date().toLocaleString("en-GB")}`}
+            />
+          ))}
+          {billing.length === 0 && (
+            <p style={{ color: "#65707A", fontSize: 14 }}>
+              No quotes or invoices have been shared yet — check back later.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {folders.map((f) => (
+            <FolderBlock key={f.id} name={f.name} docs={byFolder.get(f.id) ?? []} canDownload={canDownload} onOpen={openDoc} />
+          ))}
 
-      {(byFolder.get(null)?.length ?? 0) > 0 && (
-        <FolderBlock
-          name={share.share_kind === "document" ? "Shared document" : "Additional documents"}
-          docs={byFolder.get(null)!}
-          canDownload={canDownload}
-          onOpen={openDoc}
-        />
+          {(byFolder.get(null)?.length ?? 0) > 0 && (
+            <FolderBlock
+              name={share.share_kind === "document" ? "Shared document" : "Additional documents"}
+              docs={byFolder.get(null)!}
+              canDownload={canDownload}
+              onOpen={openDoc}
+            />
+          )}
+
+          {documents.length === 0 && <p style={{ color: "#65707A", fontSize: 14 }}>Nothing has been shared with you yet — check back once documents are added.</p>}
+        </>
       )}
-
-      {documents.length === 0 && <p style={{ color: "#65707A", fontSize: 14 }}>Nothing has been shared with you yet — check back once documents are added.</p>}
 
       {viewer && (
         <WatermarkedViewer

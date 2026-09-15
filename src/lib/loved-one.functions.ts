@@ -31,7 +31,7 @@ const CreateShareInput = z.object({
   loved_one_email: z.string().trim().email().max(200),
   relationship: z.string().trim().max(80).optional(),
   days: z.number().int().min(1).max(365).default(30),
-  share_kind: z.enum(["folders", "document"]).default("folders"),
+  share_kind: z.enum(["folders", "document", "billing"]).default("folders"),
   permission: z.enum(["view", "download"]).default("view"),
   private_folder_ids: z.array(z.string().uuid()).default([]),
   private_document_ids: z.array(z.string().uuid()).default([]),
@@ -46,9 +46,14 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     const talentId = await ensureTalentProfile(supabase, userId);
 
-    const folderIds = data.share_kind === "document" ? [] : data.private_folder_ids;
-    const docIds = data.share_kind === "document" ? data.private_document_ids.slice(0, 1) : data.private_document_ids;
-    if (folderIds.length === 0 && docIds.length === 0) {
+    const isBilling = data.share_kind === "billing";
+    const folderIds = data.share_kind === "document" || isBilling ? [] : data.private_folder_ids;
+    const docIds = isBilling
+      ? []
+      : data.share_kind === "document"
+        ? data.private_document_ids.slice(0, 1)
+        : data.private_document_ids;
+    if (!isBilling && folderIds.length === 0 && docIds.length === 0) {
       throw new Error("Select at least one folder or a document to share.");
     }
 
@@ -94,7 +99,12 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
         sharerName: prof?.full_name ?? "A TalVault user",
         link: `${origin}/loved-one/${row.token}`,
         expiresAt: expires,
-        itemLabel: data.share_kind === "document" ? "a document" : "documents",
+        itemLabel:
+          data.share_kind === "document"
+            ? "a document"
+            : data.share_kind === "billing"
+              ? "quotes and invoices"
+              : "documents",
         note: data.note,
       });
       const result = await sendShareEmail(data.loved_one_email, mail);
@@ -216,6 +226,71 @@ async function loadShareByToken(token: string) {
   return share;
 }
 
+/**
+ * Billing shares expose exactly the set the talent themselves can see — the
+ * quotes and invoices their Manager has shared with them. Nothing else in the
+ * agency's books is reachable through a Loved One link.
+ */
+async function loadSharedBilling(talentId: string | null) {
+  if (!talentId) return [] as any[];
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: profile } = await supabaseAdmin
+    .from("talent_profiles").select("user_id").eq("id", talentId).maybeSingle();
+  if (!profile?.user_id) return [] as any[];
+
+  const { data: link } = await supabaseAdmin
+    .from("agency_talent_links")
+    .select("agency_id, display_name")
+    .eq("talent_user_id", profile.user_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!link) return [] as any[];
+
+  const { data: docs } = await supabaseAdmin
+    .from("agency_billing_docs")
+    .select(
+      "id, kind, number, client_name, talent_name, description, issued_at, due_date, currency, notes, status, recipient_address, recipient_vat_number, recipient_email, acceptance_window_days, payment_terms_days",
+    )
+    .eq("agency_id", link.agency_id)
+    .eq("shared_with_talent", true)
+    .ilike("talent_name", link.display_name)
+    .order("issued_at", { ascending: false });
+  const rows = docs ?? [];
+  if (rows.length === 0) return [] as any[];
+
+  const { data: lines } = await supabaseAdmin
+    .from("agency_billing_doc_lines")
+    .select("doc_id, description, quantity, unit_price_cents, vat_rate_bp, sort_order")
+    .in("doc_id", rows.map((r) => r.id))
+    .order("sort_order", { ascending: true });
+
+  const { data: agency } = await supabaseAdmin
+    .from("agencies")
+    .select(
+      "name, contact_email, phone, country, business_type, billing_address, is_vat_registered, vat_number, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, accent_color, default_invoice_payment_days, default_quote_acceptance_days, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions",
+    )
+    .eq("id", link.agency_id)
+    .maybeSingle();
+
+  const agencyDoc = { ...(agency ?? { name: "Your Manager" }), logo_url: null };
+
+  return rows.map((doc) => ({
+    doc,
+    agency: agencyDoc,
+    lines: (lines ?? [])
+      .filter((l) => l.doc_id === doc.id)
+      .map((l) => ({
+        description: l.description,
+        quantity: Number(l.quantity),
+        unit_price_cents: Number(l.unit_price_cents),
+        vat_rate_bp: Number(l.vat_rate_bp),
+        sort_order: Number(l.sort_order),
+      })),
+  }));
+}
+
 /** Exchanges the access code for a short-lived signed ticket. */
 export const unlockLovedOneShare = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) =>
@@ -312,6 +387,9 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
     for (const d of docsInFolders.data ?? []) dedup.set(d.id, d);
     for (const d of singleDocs.data ?? []) dedup.set(d.id, d);
 
+    const billing =
+      share.share_kind === "billing" ? await loadSharedBilling(share.talent_id) : [];
+
     const { data: counter } = await supabaseAdmin
       .from("loved_one_shares").select("view_count").eq("id", share.id).single();
     await supabaseAdmin.from("loved_one_shares").update({
@@ -328,11 +406,12 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
         expires_at: share.expires_at,
         note: share.note,
         permission: share.permission as "view" | "download",
-        share_kind: share.share_kind as "folders" | "document",
+        share_kind: share.share_kind as "folders" | "document" | "billing",
       },
       sharer,
       folders: folders.data ?? [],
       documents: Array.from(dedup.values()),
+      billing,
     };
   });
 
