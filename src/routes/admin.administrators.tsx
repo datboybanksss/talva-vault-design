@@ -2,13 +2,15 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban, SlidersHorizontal } from "lucide-react";
+import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban, SlidersHorizontal, RefreshCw, Trash2, CalendarX } from "lucide-react";
 import {
   listAdministrators,
   whoami,
   listAdminInvitations,
   inviteAdministrator,
   revokeAdminInvitation,
+  resendAdminInvitation,
+  deleteAdminInvitation,
   updateAdministrator,
   updateAdminInvitation,
 } from "@/lib/admin.functions";
