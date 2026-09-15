@@ -31,7 +31,7 @@ const CreateShareInput = z.object({
   loved_one_email: z.string().trim().email().max(200),
   relationship: z.string().trim().max(80).optional(),
   days: z.number().int().min(1).max(365).default(30),
-  share_kind: z.enum(["folders", "document"]).default("folders"),
+  share_kind: z.enum(["folders", "document", "billing"]).default("folders"),
   permission: z.enum(["view", "download"]).default("view"),
   private_folder_ids: z.array(z.string().uuid()).default([]),
   private_document_ids: z.array(z.string().uuid()).default([]),
@@ -46,9 +46,14 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     const talentId = await ensureTalentProfile(supabase, userId);
 
-    const folderIds = data.share_kind === "document" ? [] : data.private_folder_ids;
-    const docIds = data.share_kind === "document" ? data.private_document_ids.slice(0, 1) : data.private_document_ids;
-    if (folderIds.length === 0 && docIds.length === 0) {
+    const isBilling = data.share_kind === "billing";
+    const folderIds = data.share_kind === "document" || isBilling ? [] : data.private_folder_ids;
+    const docIds = isBilling
+      ? []
+      : data.share_kind === "document"
+        ? data.private_document_ids.slice(0, 1)
+        : data.private_document_ids;
+    if (!isBilling && folderIds.length === 0 && docIds.length === 0) {
       throw new Error("Select at least one folder or a document to share.");
     }
 
