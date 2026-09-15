@@ -8,7 +8,13 @@ import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getTalentDashboard, listTalentDismissals, dismissTalentReminder } from "@/lib/talent.functions";
+import {
+  getTalentDashboard,
+  listTalentDismissals,
+  dismissTalentReminder,
+  getTalentBellFeed,
+  markTalentNotificationRead,
+} from "@/lib/talent.functions";
 import {
   ChevronLeft,
   LayoutGrid,

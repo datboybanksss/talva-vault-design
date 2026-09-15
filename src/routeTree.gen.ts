@@ -23,6 +23,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TalentVaultRouteImport } from './routes/talent.vault'
 import { Route as TalentSharingRouteImport } from './routes/talent.sharing'
 import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
+import { Route as TalentNotificationsRouteImport } from './routes/talent.notifications'
 import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
 import { Route as LovedOneTokenRouteImport } from './routes/loved-one.$token'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
@@ -130,6 +131,11 @@ const TalentSharingRoute = TalentSharingRouteImport.update({
 const TalentSettingsRoute = TalentSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentNotificationsRoute = TalentNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => TalentRoute,
 } as any)
 const TalentBudgetRoute = TalentBudgetRouteImport.update({
@@ -359,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
+  '/talent/notifications': typeof TalentNotificationsRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
@@ -407,6 +414,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
+  '/talent/notifications': typeof TalentNotificationsRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
@@ -462,6 +470,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
+  '/talent/notifications': typeof TalentNotificationsRoute
   '/talent/settings': typeof TalentSettingsRoute
   '/talent/sharing': typeof TalentSharingRoute
   '/talent/vault': typeof TalentVaultRoute
@@ -518,6 +527,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/loved-one/$token'
     | '/talent/budget'
+    | '/talent/notifications'
     | '/talent/settings'
     | '/talent/sharing'
     | '/talent/vault'
@@ -566,6 +576,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/loved-one/$token'
     | '/talent/budget'
+    | '/talent/notifications'
     | '/talent/settings'
     | '/talent/sharing'
     | '/talent/vault'
@@ -620,6 +631,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/loved-one/$token'
     | '/talent/budget'
+    | '/talent/notifications'
     | '/talent/settings'
     | '/talent/sharing'
     | '/talent/vault'
@@ -763,6 +775,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/talent/settings'
       preLoaderRoute: typeof TalentSettingsRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/notifications': {
+      id: '/talent/notifications'
+      path: '/notifications'
+      fullPath: '/talent/notifications'
+      preLoaderRoute: typeof TalentNotificationsRouteImport
       parentRoute: typeof TalentRoute
     }
     '/talent/budget': {
@@ -1161,6 +1180,7 @@ const AgencyRouteWithChildren =
 
 interface TalentRouteChildren {
   TalentBudgetRoute: typeof TalentBudgetRoute
+  TalentNotificationsRoute: typeof TalentNotificationsRoute
   TalentSettingsRoute: typeof TalentSettingsRoute
   TalentSharingRoute: typeof TalentSharingRoute
   TalentVaultRoute: typeof TalentVaultRoute
@@ -1169,6 +1189,7 @@ interface TalentRouteChildren {
 
 const TalentRouteChildren: TalentRouteChildren = {
   TalentBudgetRoute: TalentBudgetRoute,
+  TalentNotificationsRoute: TalentNotificationsRoute,
   TalentSettingsRoute: TalentSettingsRoute,
   TalentSharingRoute: TalentSharingRoute,
   TalentVaultRoute: TalentVaultRoute,
