@@ -1126,7 +1126,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdminCanEdit(supabase, userId);
+    await assertAdminCanSupportAgencies(supabase, userId);
     const { data: inv, error } = await supabase
       .from("agency_invitations")
       .update({ status: "revoked" })
