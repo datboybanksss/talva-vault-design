@@ -2806,6 +2806,19 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       total_cents: total,
     };
 
+    // Editing a document the talent has already seen (or that has already gone
+    // out) must never happen silently — capture the before state first.
+    let prev: any = null;
+    if (data.id) {
+      const { data: before } = await supabase
+        .from("agency_billing_docs")
+        .select("id, kind, number, status, total_cents, due_date, shared_with_talent, talent_name")
+        .eq("id", data.id)
+        .eq("agency_id", agencyId)
+        .maybeSingle();
+      prev = before ?? null;
+    }
+
     let docId: string;
     if (data.id) {
       const { data: r, error } = await supabase
