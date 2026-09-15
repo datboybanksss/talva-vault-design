@@ -322,13 +322,15 @@ function NewRequestDialog({
             <label>Instructions</label>
             <textarea rows={3} value={f.instructions} onChange={e => setF(s => ({ ...s, instructions: e.target.value }))} />
           </div>
+          </div>
         </div>
-        <div className="tvp-modal-footer">
+        <div className="tvp-modal-foot">
           <button className="tvp-secondary" onClick={onClose}>Cancel</button>
           <button className="tvp-primary" disabled={!f.talent_link_id || !f.title || mut.isPending} onClick={() => mut.mutate()}>
             <Save className="h-4 w-4" />Create request
           </button>
         </div>
+
     </ModalShell>
   );
 }
