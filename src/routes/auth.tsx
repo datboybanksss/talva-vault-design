@@ -482,6 +482,30 @@ function AuthPage() {
             </div>
           )}
 
+          {denied && !mfaFactorId && pendingInvite && (
+            <div className="tv-auth-alert tv-info" style={{ marginTop: 18 }}>
+              You have a pending{" "}
+              {pendingInvite.kind === "agency"
+                ? "agency"
+                : pendingInvite.kind === "talent"
+                  ? "talent"
+                  : "administrator"}{" "}
+              invitation
+              {pendingInvite.label ? ` from ${pendingInvite.label}` : ""} waiting for
+              this account. Accept it to finish setting up your access.
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="tv-auth-link"
+                  disabled={claimingInvite}
+                  onClick={acceptPendingInvite}
+                >
+                  {claimingInvite ? "Accepting…" : "Accept invitation"}
+                </button>
+              </div>
+            </div>
+          )}
+
           {denied && !mfaFactorId && (
             <div className="tv-auth-alert" style={{ marginTop: 18 }}>
               {denied}
@@ -505,6 +529,7 @@ function AuthPage() {
               </div>
             </div>
           )}
+
 
 
           {!mfaFactorId && (
