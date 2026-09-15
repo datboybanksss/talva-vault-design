@@ -3,7 +3,7 @@
  * Labels, descriptions and the ordering used for the "you may only grant a
  * level at or below your own" rule all come from here — never hardcode them.
  */
-export type AdminPermissionLevel = "view_only" | "edit";
+export type AdminPermissionLevel = "view_only" | "agency_support" | "edit";
 
 export type AdminPermissionDef = {
   value: AdminPermissionLevel;
