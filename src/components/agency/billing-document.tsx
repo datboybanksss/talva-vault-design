@@ -64,6 +64,13 @@ export function BillingDocument({
       ? "Tax Invoice"
       : "Invoice";
   const isDraft = doc.number.startsWith("DRAFT-");
+  const hasPaymentDetails = !!(
+    agency.bank_name ||
+    agency.bank_account_holder ||
+    agency.bank_account_number ||
+    agency.bank_branch_code ||
+    agency.payment_instructions
+  );
   const smallInvoice = doc.kind === "invoice" && totals.total_cents < 500000; // < R5000
 
   return (

@@ -3,7 +3,7 @@ import { BillingDocument, type BillingDocAgency, type BillingDocRecord } from ".
 import type { BillingLine } from "@/lib/billing";
 
 export function BillingPreviewDialog({
-  open, onClose, doc, lines, agency, canSend, onSend, sending, sendFrom, recipients,
+  open, onClose, doc, lines, agency, canSend, sendDisabledReason, onSend, sending, sendFrom, recipients,
 }: {
   open: boolean;
   onClose: () => void;
@@ -11,6 +11,7 @@ export function BillingPreviewDialog({
   lines: BillingLine[];
   agency: BillingDocAgency;
   canSend?: boolean;
+  sendDisabledReason?: string;
   onSend?: () => void;
   sending?: boolean;
   sendFrom?: string | null;
