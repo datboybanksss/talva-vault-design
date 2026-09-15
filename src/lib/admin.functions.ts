@@ -1402,15 +1402,24 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
       if (hasAdmin) throw new Error("That user is already an administrator.");
     }
 
-    // Reject if a pending non-expired invite already exists
+    // Any still-open invitation (pending, whether or not it has lapsed) blocks
+    // a brand-new one — an expired invite is reopened with Resend, never
+    // duplicated into a second orphaned row for the same person.
     const { data: dupe } = await supabase
       .from("admin_invitations")
-      .select("id")
+      .select("id, expires_at")
       .ilike("email", data.email)
       .eq("status", "pending")
-      .gt("expires_at", new Date().toISOString())
+      .limit(1)
       .maybeSingle();
-    if (dupe?.id) throw new Error("A pending invitation already exists for that email.");
+    if (dupe?.id) {
+      const lapsed = new Date(dupe.expires_at).getTime() < Date.now();
+      throw new Error(
+        lapsed
+          ? "An invitation for that email has already been sent and has lapsed. Use Resend invitation on the existing row to reopen it instead of creating a second one."
+          : "A pending invitation already exists for that email. Use Resend invitation on the existing row if they need it again.",
+      );
+    }
 
     const expiresAt = new Date(
       Date.now() + data.expiry_days * 24 * 3600 * 1000,
