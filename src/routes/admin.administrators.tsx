@@ -490,10 +490,14 @@ function AdminsPage() {
                     </td>
                     <td className="tvp-muted">{i.invited_by_email ?? "—"}</td>
                     <td>
-                      {canInvite && (i.stored_status ?? i.status) === "pending" && (
+                      {canInvite && i.status !== "accepted" && (() => {
+                        // Still open = stored pending, whether or not it lapsed.
+                        const open = (i.stored_status ?? i.status) === "pending";
+                        return (
                         <div style={{ display: "flex", justifyContent: "flex-end" }}>
                           <RowActionsMenu
                             actions={[
+                              ...(open ? [
                               {
                                 key: "access", label: "Edit access level", icon: SlidersHorizontal,
                                 title: "Change the level this invitation grants",
@@ -507,7 +511,11 @@ function AdminsPage() {
                                     params: { id: i.id },
                                   }),
                               },
-
+                              {
+                                key: "resend", label: "Resend invitation", icon: RefreshCw,
+                                title: "Refresh the expiry and email the invitation again",
+                                onSelect: () => resend.mutate(i.id),
+                              },
                               {
                                 key: "copy", label: "Copy invite link", icon: Link2,
                                 title: "Copying does not extend expiry",
@@ -529,10 +537,21 @@ function AdminsPage() {
                                   if (confirm(`Revoke invitation to ${i.email}?`)) revoke.mutate(i.id);
                                 },
                               },
+                              ] : []),
+                              {
+                                key: "delete", label: "Delete invitation", icon: Trash2,
+                                destructive: true, separatorBefore: open,
+                                title: "Permanently remove this invitation from the list",
+                                onSelect: () => {
+                                  if (confirm(`Permanently delete the invitation to ${i.email}?`))
+                                    deleteInvite.mutate(i.id);
+                                },
+                              },
                             ]}
                           />
                         </div>
-                      )}
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}
