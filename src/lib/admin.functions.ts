@@ -1153,7 +1153,7 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdminCanEdit(supabase, userId);
+    await assertAdminCanSupportAgencies(supabase, userId);
     const { data: existing, error: exErr } = await supabase
       .from("agency_invitations")
       .select("status, email, agency_name")
