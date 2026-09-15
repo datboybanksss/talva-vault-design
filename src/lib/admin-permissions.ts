@@ -12,7 +12,7 @@ export type AdminPermissionDef = {
   label: string;
   optionLabel: string;
   description: string;
-  tone: "green" | "amber";
+  tone: "green" | "amber" | "blue";
 };
 
 export const ADMIN_PERMISSION_LEVELS: AdminPermissionDef[] = [
