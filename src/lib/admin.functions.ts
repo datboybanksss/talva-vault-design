@@ -1346,7 +1346,7 @@ export const listAdministrators = createServerFn({ method: "GET" })
       display_name: (profMap.get(r.user_id) as any)?.display_name ?? "",
       designation: (profMap.get(r.user_id) as any)?.designation ?? "",
       is_main_admin: r.is_main_admin,
-      permission_level: r.permission_level as "view_only" | "edit",
+      permission_level: r.permission_level as "view_only" | "agency_support" | "edit",
       created_at: r.created_at,
     }));
   });
