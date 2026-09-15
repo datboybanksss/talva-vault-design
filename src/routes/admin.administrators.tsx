@@ -271,6 +271,16 @@ function AdminsPage() {
             </div>
           </div>
         </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-red"><CalendarX className="h-5 w-5" /></div>
+          <div>
+            <div className="tvp-kpi-value">{expiredInvites.length}</div>
+            <div className="tvp-kpi-label">Expired / Lapsed</div>
+            <div className="tvp-kpi-sub" style={{ color: expiredInvites.length > 0 ? "var(--tvp-red)" : "var(--tvp-muted)" }}>
+              {expiredInvites.length > 0 ? "Resend to reopen" : "None lapsed"}
+            </div>
+          </div>
+        </div>
       </div>
 
       <>
