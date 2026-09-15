@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Clock, Receipt, FileSpreadsheet, Image as ImageIcon, Palette, Save, Trash2, Upload } from "lucide-react";
+import { Clock, Receipt, FileSpreadsheet, Image as ImageIcon, Landmark, Palette, Save, Trash2, Upload } from "lucide-react";
 import {
   getAgencyBillingSettings,
   updateAgencyBillingSettings,
@@ -218,6 +218,56 @@ export function QuotesInvoicesSettingsPanel() {
               onChange={(e) =>
                 update("default_vat_rate_bp", Math.round(Number(e.target.value) * 100))
               }
+            />
+          </div>
+        </div>
+
+        <div className="tvp-card tvp-panel">
+          <h3 className="tvp-h3">
+            <Landmark className="inline h-4 w-4 mr-1" />Banking details
+          </h3>
+          <div className="tvp-muted" style={{ fontSize: 11, marginBottom: 10 }}>
+            All optional. Shown together in a "Payment details" block on invoices only — never on quotations.
+          </div>
+          <div className="tvp-form-group">
+            <label>Bank name</label>
+            <input
+              value={form.bank_name}
+              onChange={(e) => update("bank_name", e.target.value)}
+              placeholder="e.g. Standard Bank"
+            />
+          </div>
+          <div className="tvp-form-group">
+            <label>Account holder</label>
+            <input
+              value={form.bank_account_holder}
+              onChange={(e) => update("bank_account_holder", e.target.value)}
+              placeholder="Name the account is registered under"
+            />
+          </div>
+          <div className="tvp-form-group">
+            <label>Account number</label>
+            <input
+              value={form.bank_account_number}
+              onChange={(e) => update("bank_account_number", e.target.value)}
+              placeholder="e.g. 123456789"
+            />
+          </div>
+          <div className="tvp-form-group">
+            <label>Branch code</label>
+            <input
+              value={form.bank_branch_code}
+              onChange={(e) => update("bank_branch_code", e.target.value)}
+              placeholder="e.g. 051001"
+            />
+          </div>
+          <div className="tvp-form-group">
+            <label>Other payment instructions</label>
+            <textarea
+              rows={3}
+              value={form.payment_instructions}
+              onChange={(e) => update("payment_instructions", e.target.value)}
+              placeholder="e.g. Please email proof of payment to accounts@youragency.co.za"
             />
           </div>
         </div>
