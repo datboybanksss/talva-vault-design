@@ -93,6 +93,8 @@ function LovedOnePage() {
 
   const share = state.share;
   const canDownload = share.permission === "download";
+  const isBilling = share.share_kind === "billing";
+  const billing: any[] = state.billing ?? [];
   const folders: any[] = state.folders ?? [];
   const documents: any[] = state.documents ?? [];
   const byFolder = new Map<string | null, any[]>();
@@ -107,7 +109,8 @@ function LovedOnePage() {
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#064E58" }}>Hi {share.loved_one_name}</h1>
         <p style={{ color: "#65707A", fontSize: 14, marginTop: 6 }}>
-          {state.sharer?.full_name ?? "A TalVault user"} has shared the {share.share_kind === "document" ? "document" : "documents"} below with you.
+          {state.sharer?.full_name ?? "A TalVault user"} has shared the{" "}
+          {isBilling ? "quotes and invoices" : share.share_kind === "document" ? "document" : "documents"} below with you.
         </p>
         <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 12, color: "#65707A", flexWrap: "wrap" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
