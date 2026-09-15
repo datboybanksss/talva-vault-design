@@ -253,11 +253,13 @@ function NewRequestDialog({
   });
   return (
     <ModalShell onClose={onClose}>
-        <div className="tvp-modal-header">
+        <div className="tvp-modal-head">
           <h3 className="tvp-h2">New document request</h3>
           <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
-        <div className="tvp-form-grid" style={{ padding: 16 }}>
+        <div className="tvp-modal-body">
+          <div className="tvp-form-grid" style={{ rowGap: 18 }}>
+
           <div className="tvp-form-group" data-tour="request-talent"><label>Talent</label>
             <select value={f.talent_link_id} onChange={e => setF(s => ({ ...s, talent_link_id: e.target.value }))}>
               {talent.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}
