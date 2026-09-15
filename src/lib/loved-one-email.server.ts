@@ -68,6 +68,58 @@ export function buildShareEmail(input: {
   return { subject, html, text };
 }
 
+/**
+ * Composes the "new access code issued" notification. Same security invariant:
+ * the code itself is never included — only the (unchanged) link.
+ */
+export function buildRegeneratedCodeEmail(input: {
+  lovedOneName: string;
+  sharerName: string;
+  link: string;
+  expiresAt: string;
+}) {
+  const subject = `${input.sharerName} has issued a new access code`;
+  const expires = new Date(input.expiresAt).toLocaleString("en-GB");
+
+  const text = [
+    `Hi ${input.lovedOneName},`,
+    ``,
+    `${input.sharerName} has issued a new one-time access code for the documents shared with you on TalVault.`,
+    `Your link has not changed:`,
+    input.link,
+    ``,
+    `Any previous code has stopped working. For your security the new code is NOT in this email —`,
+    `${input.sharerName} will give it to you directly (by phone or message).`,
+    ``,
+    `Access ends ${expires}.`,
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html><body style="margin:0;padding:24px;background:#F5F5F1;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1F2933;">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">
+    ${emailHeaderHtml("Secure sharing")}
+    <div style="padding:24px;">
+      <p style="margin:0 0 12px;">Hi ${escapeHtml(input.lovedOneName)},</p>
+      <p style="margin:0 0 18px;line-height:1.55;">
+        <strong>${escapeHtml(input.sharerName)}</strong> has issued a new one-time access code for the
+        documents shared with you. Your link has not changed.
+      </p>
+      <p style="margin:0 0 22px;">
+        <a href="${escapeHtml(input.link)}" style="display:inline-block;background:#064E58;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;">Open secure link</a>
+      </p>
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px;font-size:14px;line-height:1.55;">
+        <strong>Any previous code has stopped working.</strong><br/>
+        The new code is <strong>not included in this email</strong> — ${escapeHtml(input.sharerName)} will give it
+        to you directly by phone or message.
+      </div>
+      <p style="margin:20px 0 0;font-size:12px;color:#65707A;">Access ends ${escapeHtml(expires)}.</p>
+    </div>
+  </div>
+</body></html>`;
+
+  return { subject, html, text };
+}
+
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
