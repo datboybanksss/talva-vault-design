@@ -26,6 +26,15 @@ export const ADMIN_PERMISSION_LEVELS: AdminPermissionDef[] = [
     tone: "green",
   },
   {
+    value: "agency_support",
+    rank: 2,
+    label: "Agency Support",
+    optionLabel: "Agency Support — limited access",
+    description:
+      "Can support agency clients: resend, revoke, copy and correct the email on agency invitations. Cannot suspend agencies, manage other administrators or approve legal copy.",
+    tone: "blue",
+  },
+  {
     value: "view_only",
     rank: 1,
     label: "View only",
