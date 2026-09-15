@@ -156,9 +156,13 @@ export const whoami = createServerFn({ method: "GET" })
     const adminRow = (roles ?? []).find((r: any) => r.role === "admin");
     const isAdmin = !!adminRow;
     const isMain = !!adminRow?.is_main_admin;
-    const permissionLevel: "view_only" | "edit" =
-      (adminRow?.permission_level as any) ?? "edit";
+    const permissionLevel: "view_only" | "agency_support" | "edit" = isMain
+      ? "edit"
+      : ((adminRow?.permission_level as any) ?? "edit");
     const canEdit = isAdmin && permissionLevel === "edit";
+    // Agency Support sits between view-only and full edit: it may act on
+    // agency invitations but not suspend agencies or manage administrators.
+    const canSupport = isAdmin && canSupportAgencies(permissionLevel);
     return {
       userId: userId as string,
       email: (profile?.email as string) ?? (claims?.email as string) ?? "",
