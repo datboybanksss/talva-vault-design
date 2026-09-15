@@ -479,14 +479,8 @@ function AdminsPage() {
 
                     </td>
                     <td>
-                      <span
-                        className={`tvp-status tvp-${
-                          i.status === "accepted" ? "green" :
-                          i.status === "pending" ? "blue" :
-                          i.status === "revoked" ? "red" : "amber"
-                        }`}
-                      >
-                        {i.status}
+                      <span className={`tvp-status tvp-${statusTone[i.status] ?? "amber"}`}>
+                        {statusLabel[i.status] ?? i.status}
                       </span>
                     </td>
                     <td>
