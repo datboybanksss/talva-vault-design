@@ -153,8 +153,44 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
   const { data: inserted, error: insErr } = await supabaseAdmin
     .from("talent_notifications")
     .upsert(pending, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true })
-    .select("id");
+    .select("id, user_id, title, detail, email_sent_at");
   if (insErr) throw new Error(insErr.message);
 
-  return { scanned: profiles?.length ?? 0, created: inserted?.length ?? 0 };
+  const emailed = await emailNewReminders(inserted ?? [], emailByUser);
+
+  return { scanned: profiles?.length ?? 0, created: inserted?.length ?? 0, emailed };
+}
+
+/**
+ * Best-effort email for each freshly created reminder. Failures never break the
+ * scan: the in-app reminder already exists, and email_sent_at stays null so the
+ * UI keeps telling the truth about what was actually delivered.
+ */
+async function emailNewReminders(
+  rows: { id: string; user_id: string; title: string; detail: string | null; email_sent_at: string | null }[],
+  emailByUser: Map<string, string | null>,
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
+  const { buildReminderEmail } = await import("@/lib/talent-notification-email.server");
+
+  let sent = 0;
+  for (const row of rows) {
+    const to = emailByUser.get(row.user_id);
+    if (!to || row.email_sent_at) continue;
+    try {
+      const mail = buildReminderEmail({ title: row.title, detail: row.detail });
+      const res = await sendInvitationEmail(to, mail, `talent-reminder-${row.id}`, "talent_reminder");
+      if (res.sent) {
+        sent += 1;
+        await supabaseAdmin
+          .from("talent_notifications")
+          .update({ email_sent_at: new Date().toISOString() })
+          .eq("id", row.id);
+      }
+    } catch {
+      /* reminder email is best-effort */
+    }
+  }
+  return sent;
 }
