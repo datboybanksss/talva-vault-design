@@ -94,7 +94,7 @@ function AdminsPage() {
 
 
   const invite = useMutation({
-    mutationFn: (input: { email: string; permission_level: "view_only" | "edit" }) =>
+    mutationFn: (input: { email: string; permission_level: AdminPermissionLevel }) =>
       inviteFn({ data: input }),
     onSuccess: async (inv: any) => {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
@@ -131,14 +131,14 @@ function AdminsPage() {
   // mis-set level can be corrected without revoking and re-inviting.
   const updateInviteFn = useServerFn(updateAdminInvitation);
   const [editInvite, setEditInvite] = useState<any | null>(null);
-  const [editInvitePerm, setEditInvitePerm] = useState<"view_only" | "edit">("edit");
+  const [editInvitePerm, setEditInvitePerm] = useState<AdminPermissionLevel>("edit");
 
   useEffect(() => {
     if (editInvite) setEditInvitePerm(editInvite.permission_level ?? "edit");
   }, [editInvite]);
 
   const updateInviteMut = useMutation({
-    mutationFn: (input: { id: string; permission_level: "view_only" | "edit" }) =>
+    mutationFn: (input: { id: string; permission_level: AdminPermissionLevel }) =>
       updateInviteFn({ data: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
@@ -150,13 +150,13 @@ function AdminsPage() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [invitePerm, setInvitePerm] = useState<"view_only" | "edit">("edit");
+  const [invitePerm, setInvitePerm] = useState<AdminPermissionLevel>("edit");
 
 
   // Per-row edit (Main-admin only)
   const [editAdmin, setEditAdmin] = useState<any | null>(null);
   const [editDesignation, setEditDesignation] = useState("");
-  const [editPermission, setEditPermission] = useState<"view_only" | "edit">("edit");
+  const [editPermission, setEditPermission] = useState<AdminPermissionLevel>("edit");
 
   useEffect(() => {
     if (editAdmin) {
@@ -169,7 +169,7 @@ function AdminsPage() {
     mutationFn: (input: {
       user_id: string;
       designation: string | null;
-      permission_level: "view_only" | "edit";
+      permission_level: AdminPermissionLevel;
     }) => updateAdminFn({ data: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
