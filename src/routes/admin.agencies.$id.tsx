@@ -9,6 +9,7 @@ import {
   unsuspendAgency,
   listAgencyInvitationsForAgency,
   listTalentInvitationsForAgency,
+  whoami,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
