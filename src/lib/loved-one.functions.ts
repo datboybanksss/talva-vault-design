@@ -99,7 +99,12 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
         sharerName: prof?.full_name ?? "A TalVault user",
         link: `${origin}/loved-one/${row.token}`,
         expiresAt: expires,
-        itemLabel: data.share_kind === "document" ? "a document" : "documents",
+        itemLabel:
+          data.share_kind === "document"
+            ? "a document"
+            : data.share_kind === "billing"
+              ? "quotes and invoices"
+              : "documents",
         note: data.note,
       });
       const result = await sendShareEmail(data.loved_one_email, mail);
