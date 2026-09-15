@@ -40,8 +40,14 @@ type NavItem = {
   match?: string;
 };
 
-const buildManageNav = (vaultBadge: number, sharesBadge: number): NavItem[] => [
-  { to: "/talent", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
+const buildManageNav = (vaultBadge: number, sharesBadge: number, reminderBadge: number): NavItem[] => [
+  {
+    to: "/talent",
+    label: "Dashboard",
+    icon: <LayoutGrid />,
+    match: "exact",
+    ...(reminderBadge > 0 ? { badge: reminderBadge } : {}),
+  },
   { to: "/talent/vault", label: "Vault", icon: <Lock />, badge: vaultBadge },
   { to: "/talent/sharing", label: <>Shared<br />Access</>, icon: <Share2 />, badge: sharesBadge },
   { to: "/talent/budget", label: <>Budget &<br />Income</>, icon: <Wallet /> },
