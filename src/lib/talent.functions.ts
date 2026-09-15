@@ -604,3 +604,67 @@ export const dismissTalentReminder = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Read-only view of the quotes and invoices the talent's Manager has shared
+ * with them. Billing documents carry no talent foreign key yet — they record a
+ * typed talent name — so we match on the linked roster display name within the
+ * talent's own agency, and only ever return documents explicitly marked as
+ * shared with the talent. Talents have no RLS read on billing, so the admin
+ * client is used strictly after the caller's own link has been resolved.
+ */
+export const listTalentBillingDocuments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const { data: link } = await supabase
+      .from("agency_talent_links")
+      .select("id, agency_id, display_name, status")
+      .eq("talent_user_id", userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (!link) return { link: null, documents: [] as any[] };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: docs, error } = await supabaseAdmin
+      .from("agency_billing_docs")
+      .select(
+        "id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, sent_at, accepted_at, currency, total_cents, status, description",
+      )
+      .eq("agency_id", link.agency_id)
+      .eq("shared_with_talent", true)
+      .ilike("talent_name", link.display_name)
+      .order("issued_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const rows = docs ?? [];
+
+    // Amounts actually received, so partially paid invoices read honestly.
+    const ids = rows.filter((r) => r.kind === "invoice").map((r) => r.id);
+    const received = new Map<string, number>();
+    if (ids.length) {
+      const { data: payments } = await supabaseAdmin
+        .from("agency_invoice_payments")
+        .select("doc_id, amount_cents")
+        .in("doc_id", ids);
+      for (const p of payments ?? []) {
+        received.set(p.doc_id, (received.get(p.doc_id) ?? 0) + Number(p.amount_cents));
+      }
+    }
+
+    return {
+      link: { id: link.id, display_name: link.display_name },
+      documents: rows.map((r) => ({
+        ...r,
+        received_cents: received.get(r.id) ?? 0,
+        outstanding_cents:
+          r.kind === "invoice"
+            ? Math.max(0, Number(r.total_cents) - (received.get(r.id) ?? 0))
+            : 0,
+      })),
+    };
+  });
