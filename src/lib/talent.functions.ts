@@ -769,6 +769,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
 
     return {
       link: { id: link.id, display_name: link.display_name },
+      unshared_count: unsharedCount ?? 0,
       documents: rows.map((r) => ({
         ...r,
         received_cents: received.get(r.id) ?? 0,
