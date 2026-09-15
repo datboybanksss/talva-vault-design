@@ -33,6 +33,16 @@ export const DEFAULT_TALENT_INVITATION_BODY = [
   "Click the button below to accept your invitation and create your account. You'll choose your own password on the next screen — we never send passwords by email.",
 ].join("\n");
 
+export const DEFAULT_STAFF_INVITATION_SUBJECT = "Join {{agency_name}} on TalVault";
+
+export const DEFAULT_STAFF_INVITATION_BODY = [
+  "Hi {{contact_person}},",
+  "",
+  "{{agency_name}} has invited you to join their team on TalVault — the secure place where the agency manages its talent roster, shared folders and documents.",
+  "",
+  "Click the button below to accept your invitation and set up your account. You'll choose your own password on the next screen — we never send passwords by email.",
+].join("\n");
+
 export const DEFAULT_ADMIN_INVITATION_SUBJECT =
   "You've been invited to administer TalVault";
 
@@ -52,7 +62,7 @@ export type InvitationVariant = {
   footerBrand: string;
 };
 
-export const INVITATION_VARIANTS: Record<"agency" | "talent" | "admin", InvitationVariant> = {
+export const INVITATION_VARIANTS: Record<"agency" | "talent" | "staff" | "admin", InvitationVariant> = {
   agency: {
     strapline: "Secure document vault for talent agencies and their people.",
     ctaLabel: "Accept invitation",
@@ -63,6 +73,12 @@ export const INVITATION_VARIANTS: Record<"agency" | "talent" | "admin", Invitati
     strapline: "Your private vault for personal and professional documents.",
     ctaLabel: "Set up my vault",
     expiryHelp: "If the link expires, contact your Manager for a fresh invite.",
+    footerBrand: "TalVault",
+  },
+  staff: {
+    strapline: "Secure document vault for talent agencies and their people.",
+    ctaLabel: "Accept invitation",
+    expiryHelp: "If the link expires, ask your agency owner for a fresh invite.",
     footerBrand: "TalVault",
   },
   admin: {
@@ -133,7 +149,7 @@ export function buildInvitationEmail(input: {
   inviteUrl: string;
   expiryDate: string;
   /** Defaults to the agency variant so existing callers are unchanged. */
-  variant?: "agency" | "talent" | "admin";
+  variant?: "agency" | "talent" | "staff" | "admin";
 }) {
   const v = INVITATION_VARIANTS[input.variant ?? "agency"];
   const tokens: InvitationTokens = {

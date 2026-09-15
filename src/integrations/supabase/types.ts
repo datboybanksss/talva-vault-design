@@ -161,6 +161,10 @@ export type Database = {
       agencies: {
         Row: {
           accent_color: string
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_branch_code: string | null
+          bank_name: string | null
           billing_address: string | null
           billing_from_email: string | null
           billing_from_last_sent_at: string | null
@@ -189,6 +193,7 @@ export type Database = {
           main_contact_phone: string | null
           name: string
           notes: string | null
+          payment_instructions: string | null
           phone: string | null
           status: Database["public"]["Enums"]["agency_status"]
           suspended_at: string | null
@@ -199,6 +204,10 @@ export type Database = {
         }
         Insert: {
           accent_color?: string
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_branch_code?: string | null
+          bank_name?: string | null
           billing_address?: string | null
           billing_from_email?: string | null
           billing_from_last_sent_at?: string | null
@@ -227,6 +236,7 @@ export type Database = {
           main_contact_phone?: string | null
           name: string
           notes?: string | null
+          payment_instructions?: string | null
           phone?: string | null
           status?: Database["public"]["Enums"]["agency_status"]
           suspended_at?: string | null
@@ -237,6 +247,10 @@ export type Database = {
         }
         Update: {
           accent_color?: string
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_branch_code?: string | null
+          bank_name?: string | null
           billing_address?: string | null
           billing_from_email?: string | null
           billing_from_last_sent_at?: string | null
@@ -265,6 +279,7 @@ export type Database = {
           main_contact_phone?: string | null
           name?: string
           notes?: string | null
+          payment_instructions?: string | null
           phone?: string | null
           status?: Database["public"]["Enums"]["agency_status"]
           suspended_at?: string | null

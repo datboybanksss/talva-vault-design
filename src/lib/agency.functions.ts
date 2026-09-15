@@ -2574,7 +2574,7 @@ export const getAgencyBillingSettings = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("agencies")
       .select(
-        "id, name, contact_email, contact_person, phone, country, business_type, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, default_quote_acceptance_days, default_quote_reminder_days, default_invoice_payment_days, invoice_overdue_grace_days, is_vat_registered, vat_number, default_vat_rate_bp, billing_address, logo_path, accent_color, billing_from_email, billing_from_name, billing_from_verified_at, billing_from_token_expires_at",
+        "id, name, contact_email, contact_person, phone, country, business_type, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, default_quote_acceptance_days, default_quote_reminder_days, default_invoice_payment_days, invoice_overdue_grace_days, is_vat_registered, vat_number, default_vat_rate_bp, billing_address, logo_path, accent_color, billing_from_email, billing_from_name, billing_from_verified_at, billing_from_token_expires_at, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions",
       )
       .eq("id", agencyId)
       .single();
@@ -2606,6 +2606,11 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
           .string()
           .regex(/^#[0-9a-fA-F]{6}$/)
           .nullable(),
+        bank_name: z.string().max(160).nullable().optional(),
+        bank_account_holder: z.string().max(160).nullable().optional(),
+        bank_account_number: z.string().max(64).nullable().optional(),
+        bank_branch_code: z.string().max(32).nullable().optional(),
+        payment_instructions: z.string().max(1000).nullable().optional(),
       })
       .parse(d),
   )
@@ -3484,4 +3489,119 @@ export const deleteInvoicePayment = createServerFn({ method: "POST" })
       { amount_cents: row.amount_cents },
     );
     return { ok: true };
+  });
+
+/* ------------------------------------------------------------------ */
+/* Active staff roster — role management                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Full staff roster for the caller's agency, including suspended members and
+ * the owner. Used by the "Active staff" table on the Invitations page.
+ */
+export const listAgencyStaffRoster = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: members, error } = await supabase
+      .from("agency_members")
+      .select("id, user_id, role, suspended, created_at")
+      .eq("agency_id", agencyId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+
+    const ids = (members ?? []).map((m: any) => m.user_id);
+    const { data: profs } = ids.length
+      ? await supabase
+          .from("profiles")
+          .select("id, display_name, first_name, last_name, email")
+          .in("id", ids)
+      : { data: [] as any[] };
+    const byId = new Map<string, any>();
+    for (const p of profs ?? []) byId.set(p.id as string, p);
+
+    return (members ?? []).map((m: any) => {
+      const p = byId.get(m.user_id);
+      return {
+        id: m.id as string,
+        userId: m.user_id as string,
+        role: (m.role as string) ?? "staff",
+        suspended: !!m.suspended,
+        joinedAt: m.created_at as string,
+        isSelf: m.user_id === userId,
+        name:
+          p?.display_name ||
+          [p?.first_name, p?.last_name].filter(Boolean).join(" ") ||
+          p?.email ||
+          "Team member",
+        email: (p?.email as string) ?? "",
+      };
+    });
+  });
+
+/** Owner-only: change an accepted staff member's role between staff and lead. */
+export const updateAgencyStaffRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        member_id: z.string().uuid(),
+        role: z.enum(["staff", "lead"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: member, error: readErr } = await supabase
+      .from("agency_members")
+      .select("id, user_id, role")
+      .eq("id", data.member_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!member) throw new Error("Staff member not found for your agency.");
+    if (member.role === "owner") throw new Error("The agency owner's role cannot be changed here.");
+    if (member.user_id === userId) throw new Error("You cannot change your own role.");
+
+    const { data: updated, error } = await supabase
+      .from("agency_members")
+      .update({ role: data.role })
+      .eq("id", member.id)
+      .select("id, role")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Role could not be updated — you may not have permission.");
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "update_staff_role", "agency_member", member.id, member.user_id,
+      { from: member.role, to: data.role },
+    );
+    return updated;
+  });
+
+/** Staff invitation detail, for the shared email preview/compose screen. */
+export const getStaffInvitationByIdMine = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: inv, error } = await supabase
+      .from("agency_invitations")
+      .select("*")
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .eq("kind", "staff")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) return null;
+    const { data: agency } = await supabase
+      .from("agencies").select("name").eq("id", agencyId).maybeSingle();
+    return { ...inv, agency_name: agency?.name ?? null };
   });

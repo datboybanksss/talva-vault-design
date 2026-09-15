@@ -1,10 +1,12 @@
 import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
+import { sendTalentInvitationEmail, sendStaffInvitationEmail } from "@/lib/invitation-email.functions";
 import {
   DEFAULT_TALENT_INVITATION_SUBJECT,
   DEFAULT_TALENT_INVITATION_BODY,
+  DEFAULT_STAFF_INVITATION_SUBJECT,
+  DEFAULT_STAFF_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -23,6 +25,8 @@ import {
   revokeAgencyInvitationMine,
   logAgencyCopyLinkMine,
   listAgencyFolderTemplates,
+  listAgencyStaffRoster,
+  updateAgencyStaffRole,
 } from "@/lib/agency.functions";
 
 
@@ -56,6 +60,20 @@ function daysBetween(iso: string) {
 }
 
 type InviteType = "talent" | "staff";
+
+const EMPTY_STATE: Record<"all" | "talent" | "staff" | "expired" | "revoked", string> = {
+  all: "No invitations yet — invite your first talent or staff member to get started.",
+  talent: "No talent invitations yet — invite your first talent to get started.",
+  staff: "No staff invitations yet — invite your first staff member to get started.",
+  expired: "No expired invitations.",
+  revoked: "No revoked invitations.",
+};
+
+const STAFF_ROLE_LABEL: Record<string, string> = {
+  owner: "Manager (Owner)",
+  lead: "Lead manager",
+  staff: "Staff manager",
+};
 
 function InvitationsPage() {
   const navigate = useNavigate();
@@ -197,7 +215,7 @@ function InvitationsPage() {
                 <tr><td colSpan={8} className="tvp-muted">Loading…</td></tr>
               )}
               {!invites.isLoading && visible.length === 0 && (
-                <tr><td colSpan={8} className="tvp-muted">No talent invitations yet — invite your first talent to get started.</td></tr>
+                <tr><td colSpan={8} className="tvp-muted">{EMPTY_STATE[tab]}</td></tr>
               )}
               {visible.map((i: any) => {
                 const dLeft = daysBetween(i.expires_at);
@@ -233,12 +251,13 @@ function InvitationsPage() {
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                         <RowActionsMenu
                           actions={[
-                            i.type === "talent" && isOwner && {
+                            isOwner && {
                               key: "email", label: "Edit & send email", icon: Mail,
                               onSelect: () =>
                                 navigate({
                                   to: "/agency/invitations/$id/email-preview",
                                   params: { id: i.id },
+                                  search: { type: i.type as "talent" | "staff" },
                                 }),
                             },
                             {
@@ -279,6 +298,8 @@ function InvitationsPage() {
         </div>
       </div>
 
+      <ActiveStaffCard isOwner={isOwner} />
+
       {openForm && (
         <NewInvitationModal
           type={openForm}
@@ -298,8 +319,17 @@ function InvitationsPage() {
                 if (res?.sent) toast.success("Talent invitation sent.");
                 else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
               } else {
-                await createStaff({ data: payload as any });
-                toast.success("Staff invitation sent.");
+                const inv: any = await createStaff({ data: payload as any });
+                const res: any = await sendStaffInvitationEmail({
+                  data: {
+                    id: inv.id,
+                    subject: DEFAULT_STAFF_INVITATION_SUBJECT,
+                    body: DEFAULT_STAFF_INVITATION_BODY,
+                    invite_url: `${window.location.origin}/invite/${inv.token}`,
+                  },
+                }).catch(() => ({ sent: false }));
+                if (res?.sent) toast.success("Staff invitation sent.");
+                else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
               }
               qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
               setOpenForm(null);
@@ -623,3 +653,99 @@ function NewInvitationModal({
   );
 }
 
+
+/**
+ * Active staff roster. Everyone who has accepted a staff invitation, with the
+ * role they hold today. The agency owner can change a staff member's role
+ * here; the change is audit logged like every other agency action.
+ */
+function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
+  const qc = useQueryClient();
+  const rosterFn = useServerFn(listAgencyStaffRoster);
+  const roleFn = useServerFn(updateAgencyStaffRole);
+
+  const staff = useQuery({
+    queryKey: ["agency", "staff-roster"],
+    queryFn: () => rosterFn(),
+  });
+
+  const changeRole = useMutation({
+    mutationFn: (v: { member_id: string; role: "staff" | "lead" }) => roleFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "staff-roster"] });
+      toast.success("Role updated and logged.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update role"),
+  });
+
+  const rows = (staff.data ?? []) as any[];
+
+  return (
+    <div className="tvp-card" style={{ marginTop: 18 }}>
+      <div className="tvp-panel-head">
+        <div>
+          <h2 className="tvp-h2">Active staff</h2>
+          <div className="tvp-subtitle">
+            {isOwner
+              ? "People who have accepted a staff invitation. Only you, as the Manager (Owner), can change a role."
+              : "People who have accepted a staff invitation. Only the Manager (Owner) can change a role."}
+          </div>
+        </div>
+      </div>
+      <div className="tvp-table-wrap">
+        <table className="tvp-table">
+          <thead>
+            <tr>
+              <th style={{ minWidth: 180 }}>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {staff.isLoading && <tr><td colSpan={5} className="tvp-muted">Loading…</td></tr>}
+            {!staff.isLoading && rows.length === 0 && (
+              <tr><td colSpan={5} className="tvp-muted">No staff members yet — invite a staff member to get started.</td></tr>
+            )}
+            {rows.map((m) => {
+              const editable = isOwner && m.role !== "owner" && !m.isSelf && !m.suspended;
+              return (
+                <tr key={m.id}>
+                  <td><strong>{m.name}</strong>{m.isSelf && <span className="tvp-status tvp-neutral" style={{ marginLeft: 6 }}>You</span>}</td>
+                  <td>{m.email || "—"}</td>
+                  <td>
+                    {editable ? (
+                      <select
+                        className="tvp-select"
+                        value={m.role === "lead" ? "lead" : "staff"}
+                        disabled={changeRole.isPending}
+                        onChange={(e) =>
+                          changeRole.mutate({ member_id: m.id, role: e.target.value as "staff" | "lead" })
+                        }
+                        style={{ minWidth: 190, height: 32, fontSize: 12 }}
+                      >
+                        <option value="staff">Staff manager (view + limited actions)</option>
+                        <option value="lead">Lead manager (full talent operations)</option>
+                      </select>
+                    ) : (
+                      <span className="tvp-status tvp-neutral">
+                        {STAFF_ROLE_LABEL[m.role] ?? m.role}
+                      </span>
+                    )}
+                  </td>
+                  <td>{fmtDate(m.joinedAt)}</td>
+                  <td>
+                    <span className={`tvp-status tvp-${m.suspended ? "red" : "green"}`}>
+                      {m.suspended ? "Suspended" : "Active"}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

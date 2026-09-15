@@ -19,6 +19,7 @@ import {
   saveAgencyBillingDocFull,
   sendAgencyBillingDoc,
   getAgencyBillingSettings,
+  listAgencyTalentLinksLite,
 } from "@/lib/agency.functions";
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, emptyLine, fmtMoney } from "@/lib/billing";
@@ -199,6 +200,22 @@ function QIPage() {
     queryKey: ["agency", "billing-settings"],
     queryFn: () => getSettingsFn(),
   });
+
+  // Talent field is bound to the real roster so "Share with linked talent"
+  // and the talent's own Budget & Income view always resolve.
+  const rosterFn = useServerFn(listAgencyTalentLinksLite);
+  const { data: rosterData } = useQuery({
+    queryKey: ["agency", "talent-links-lite"],
+    queryFn: () => rosterFn(),
+  });
+  const roster = useMemo(
+    () => (rosterData ?? []).filter((t: any) => t.status !== "revoked"),
+    [rosterData],
+  );
+  const rosterNames = useMemo(
+    () => new Set(roster.map((t: any) => t.displayName.trim().toLowerCase())),
+    [roster],
+  );
 
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -514,6 +531,11 @@ function QIPage() {
         accent_color: settings.accent_color,
         default_invoice_payment_days: settings.default_invoice_payment_days,
         default_quote_acceptance_days: settings.default_quote_acceptance_days,
+        bank_name: (settings as any).bank_name ?? null,
+        bank_account_holder: (settings as any).bank_account_holder ?? null,
+        bank_account_number: (settings as any).bank_account_number ?? null,
+        bank_branch_code: (settings as any).bank_branch_code ?? null,
+        payment_instructions: (settings as any).payment_instructions ?? null,
       }
     : null;
 
@@ -774,7 +796,22 @@ function QIPage() {
                   </div>
                   <div className="tvp-form-group">
                     <label>Talent</label>
-                    <input value={editor.talent_name} onChange={(e) => setEditor({ ...editor, talent_name: e.target.value })} />
+                    <input
+                      list="tvp-talent-roster"
+                      value={editor.talent_name}
+                      onChange={(e) => setEditor({ ...editor, talent_name: e.target.value })}
+                      placeholder={roster.length ? "Search your roster, or leave blank" : "Leave blank for a client-only document"}
+                    />
+                    <datalist id="tvp-talent-roster">
+                      {roster.map((t: any) => <option key={t.id} value={t.displayName} />)}
+                    </datalist>
+                    <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
+                      {!editor.talent_name.trim()
+                        ? "Leave blank for a client-only document with no talent attached."
+                        : rosterNames.has(editor.talent_name.trim().toLowerCase())
+                          ? "Matched to your roster — sharing will reach this talent."
+                          : "Not on your roster — sharing won't reach a talent until the name matches one exactly."}
+                    </div>
                   </div>
                   <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
                     <label>Recipient billing address</label>
@@ -945,6 +982,13 @@ function QIPage() {
             !!editor.id &&
             editor.recipient_emails.length > 0 &&
             (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
+          }
+          sendDisabledReason={
+            !editor.id
+              ? "Save this draft first before sending."
+              : editor.recipient_emails.length === 0
+                ? "Add at least one recipient email address before sending."
+                : "This record has already been sent."
           }
           onSend={() => send.mutate()}
           sending={send.isPending}

@@ -246,3 +246,74 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
 
     return result;
   });
+
+/**
+ * Staff invitation email — sent by the owner of the agency that issued the
+ * invitation. Mirrors the talent flow, including the honest "not sent" result.
+ */
+export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => sendInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+
+    const { data: inv, error } = await supabase
+      .from("agency_invitations")
+      .select("id, agency_id, email, contact_person, agency_name, expires_at, status, kind")
+      .eq("id", data.id)
+      .eq("kind", "staff")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) throw new Error("Invitation not found");
+
+    const { data: isOwner, error: roleErr } = await supabase.rpc("has_agency_role", {
+      _user_id: userId,
+      _agency_id: inv.agency_id,
+      _role: "owner",
+    });
+    if (roleErr) throw new Error(roleErr.message);
+    if (!isOwner) throw new Error("Forbidden: only agency owners may send staff invitations.");
+
+    const { buildInvitationEmail } = await import("@/lib/invitation-email");
+    const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
+
+    const mail = buildInvitationEmail({
+      variant: "staff",
+      subject: data.subject,
+      body: data.body,
+      agencyName: inv.agency_name ?? "Your agency",
+      contactPerson: inv.contact_person,
+      recipientEmail: inv.email,
+      inviteUrl: data.invite_url,
+      expiryDate: fmtExpiry(inv.expires_at),
+    });
+
+    const result = await sendInvitationEmail(
+      inv.email,
+      mail,
+      `staff-invite-${inv.id}-${Date.now()}`,
+      "agency_invitation",
+    );
+
+    await supabase.from("agency_audit_log").insert({
+      agency_id: inv.agency_id,
+      actor_id: userId,
+      actor_email: claims?.email ?? null,
+      action: result.sent
+        ? "staff_invitation_email_sent"
+        : "staff_invitation_email_send_failed",
+      target_type: "agency_invitation",
+      target_id: inv.id,
+      target_label: inv.email,
+      detail: { subject: mail.subject, reason: result.sent ? null : result.reason },
+    });
+
+    if (result.sent) {
+      await supabase
+        .from("agency_invitations")
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq("id", inv.id);
+    }
+
+    return result;
+  });
