@@ -79,7 +79,9 @@ function TalentSettings() {
     }
     setSavingPrefs(true);
     try {
-      await updateTalentNotificationPrefs({ data: { expiry_notice_days: n, in_app: inApp } });
+      await updateTalentNotificationPrefs({
+        data: { expiry_notice_days: n, in_app_enabled: inAppEnabled, in_app: inApp },
+      });
       toast.success(`You'll be warned ${n} days before a document expires`);
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save notification settings");
