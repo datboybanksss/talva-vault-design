@@ -127,6 +127,35 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
+  // Reopens a lapsed (or simply forgotten) invitation: refresh the expiry,
+  // then re-send the same email the invite flow sends.
+  const resend = useMutation({
+    mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
+    onSuccess: async (inv: any) => {
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
+      const res: any = await sendAdminEmailFn({
+        data: {
+          id: inv.id,
+          subject: DEFAULT_ADMIN_INVITATION_SUBJECT,
+          body: DEFAULT_ADMIN_INVITATION_BODY,
+          invite_url: `${window.location.origin}/invite/admin/${inv.token}`,
+        },
+      }).catch(() => ({ sent: false }));
+      if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
+      else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to resend invitation"),
+  });
+
+  const deleteInvite = useMutation({
+    mutationFn: (id: string) => deleteInviteFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
+      toast.success("Invitation deleted.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to delete invitation"),
+  });
+
   // Editing the access level carried by a still-pending invitation, so a
   // mis-set level can be corrected without revoking and re-inviting.
   const updateInviteFn = useServerFn(updateAdminInvitation);
