@@ -101,23 +101,31 @@ const FIELD_COL = {
  * the suggestion was, and the verbatim source sentence on demand. It carries no
  * Confirm/Edit actions — the field itself is always editable, and the badge flips
  * to "Edited by you" the moment the value is changed.
+ *
+ * The "Suggested by AI" badge is only shown when something was genuinely
+ * inferred. Otherwise the value is simply the default and says so.
  */
 function FieldProvenance({
   value,
   source,
+  suggested,
   confidence,
   sourceText,
+  defaultLabel,
 }: {
   value: string;
   source: "ai" | "user";
+  /** True only when a real suggestion produced this value. */
+  suggested: boolean;
   confidence?: "high" | "medium" | "low" | null;
   sourceText?: string | null;
+  defaultLabel: string;
 }) {
   const [showSource, setShowSource] = useState(false);
   const edited = source === "user";
 
   return (
-    <div className="tv-prov" data-source={source}>
+    <div className="tv-prov" data-source={edited ? "user" : suggested ? "ai" : "default"}>
       <div className="tv-prov__head">
         <span className="tv-prov__value">{value}</span>
         <span className="tv-prov__badge" style={{ marginLeft: "auto" }}>
@@ -125,10 +133,14 @@ function FieldProvenance({
             <>
               <Check className="h-3 w-3" /> Edited by you
             </>
-          ) : (
+          ) : suggested ? (
             <>
               <Sparkles className="h-3 w-3" /> Suggested by AI
               {confidence ? ` · ${confidence} confidence` : ""}
+            </>
+          ) : (
+            <>
+              <FolderTree className="h-3 w-3" /> {defaultLabel}
             </>
           )}
         </span>
@@ -150,7 +162,7 @@ function FieldProvenance({
             ? `"${sourceText}"`
             : edited
               ? "You set this value yourself, so there is no document extract behind it."
-              : "No source sentence was captured for this field — the suggestion came from the folder you uploaded into, not from the document's contents."}
+              : "Nothing was detected for this field, so it fell back to the default — the folder you uploaded into, with no expiry."}
         </p>
       )}
     </div>
