@@ -1402,7 +1402,71 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
     return inv;
   });
 
+/**
+ * Change the access level granted by an administrator invitation that has not
+ * been accepted yet. Same authorisation as sending one: Main Administrator or
+ * an administrator at the highest level, capped to their own grantable levels.
+ */
+export const updateAdminInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string(),
+        permission_level: z.enum(["view_only", "edit"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const editor = await assertCanInviteAdministrator(supabase, userId);
+    assertGrantablePermission(editor.permissionLevel, data.permission_level);
+
+    const { data: current, error: cErr } = await supabase
+      .from("admin_invitations")
+      .select("id, email, permission_level, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!current) throw new Error("Invitation not found.");
+    if (current.status !== "pending") {
+      throw new Error(
+        `This invitation is ${current.status} — only a pending invitation can be changed.`,
+      );
+    }
+
+    const { data: inv, error } = await supabase
+      .from("admin_invitations")
+      .update({ permission_level: data.permission_level })
+      .eq("id", data.id)
+      .eq("status", "pending")
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) throw new Error("This invitation could not be updated.");
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "update_admin_invitation",
+      "admin_invitation",
+      inv.id,
+      inv.email,
+      {
+        changes: {
+          permission_level: {
+            from: current.permission_level,
+            to: data.permission_level,
+          },
+        },
+      },
+    );
+    return inv;
+  });
+
 export const revokeAdminInvitation = createServerFn({ method: "POST" })
+
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {

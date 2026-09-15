@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban } from "lucide-react";
+import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban, SlidersHorizontal } from "lucide-react";
 import {
   listAdministrators,
   whoami,
@@ -10,12 +10,15 @@ import {
   inviteAdministrator,
   revokeAdminInvitation,
   updateAdministrator,
+  updateAdminInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { ModalShell } from "@/components/shared/modal-shell";
 import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
+
 import {
   HIGHEST_ADMIN_PERMISSION,
   ADMIN_PERMISSION_LEVELS,
@@ -105,9 +108,31 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
+  // Editing the access level carried by a still-pending invitation, so a
+  // mis-set level can be corrected without revoking and re-inviting.
+  const updateInviteFn = useServerFn(updateAdminInvitation);
+  const [editInvite, setEditInvite] = useState<any | null>(null);
+  const [editInvitePerm, setEditInvitePerm] = useState<"view_only" | "edit">("edit");
+
+  useEffect(() => {
+    if (editInvite) setEditInvitePerm(editInvite.permission_level ?? "edit");
+  }, [editInvite]);
+
+  const updateInviteMut = useMutation({
+    mutationFn: (input: { id: string; permission_level: "view_only" | "edit" }) =>
+      updateInviteFn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
+      toast.success("Invitation access level updated.");
+      setEditInvite(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update invitation"),
+  });
+
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePerm, setInvitePerm] = useState<"view_only" | "edit">("edit");
+
 
   // Per-row edit (Main-admin only)
   const [editAdmin, setEditAdmin] = useState<any | null>(null);
@@ -413,6 +438,11 @@ function AdminsPage() {
                           <RowActionsMenu
                             actions={[
                               {
+                                key: "access", label: "Edit access level", icon: SlidersHorizontal,
+                                title: "Change the level this invitation grants",
+                                onSelect: () => setEditInvite(i),
+                              },
+                              {
                                 key: "email", label: "Edit & send email", icon: Mail,
                                 onSelect: () =>
                                   navigate({
@@ -420,6 +450,7 @@ function AdminsPage() {
                                     params: { id: i.id },
                                   }),
                               },
+
                               {
                                 key: "copy", label: "Copy invite link", icon: Link2,
                                 title: "Copying does not extend expiry",
@@ -553,6 +584,78 @@ function AdminsPage() {
           </div>
         </div>
       )}
+
+      {editInvite && (
+        <ModalShell
+          onClose={() => !updateInviteMut.isPending && setEditInvite(null)}
+          maxWidth={520}
+          labelledBy="edit-invite-title"
+        >
+          <div className="tvp-modal-head">
+            <h2 className="tvp-h2" id="edit-invite-title">
+              Edit access level — {editInvite.email}
+            </h2>
+            <button
+              title="Close"
+              className="tvp-mini-btn"
+              onClick={() => setEditInvite(null)}
+              aria-label="Close"
+              disabled={updateInviteMut.isPending}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="tvp-modal-body">
+            <p className="tvp-muted" style={{ fontSize: 12, margin: "0 0 14px" }}>
+              Changes the level this invitation will grant when it is accepted.
+              You may only set a level at or below your own, and the change is
+              recorded in the audit log.
+            </p>
+            <div className="tvp-form-group">
+              <label>Access level</label>
+              <select
+                value={editInvitePerm}
+                onChange={(e) => setEditInvitePerm(e.target.value as any)}
+                disabled={updateInviteMut.isPending}
+              >
+                {grantable.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.optionLabel}
+                  </option>
+                ))}
+              </select>
+              <span className="tvp-muted" style={{ fontSize: 12 }}>
+                {adminPermission(editInvitePerm)?.description}
+              </span>
+            </div>
+          </div>
+          <div className="tvp-modal-foot">
+            <button
+              className="tvp-secondary"
+              onClick={() => setEditInvite(null)}
+              disabled={updateInviteMut.isPending}
+            >
+              Cancel
+            </button>
+            <button
+              className="tvp-primary"
+              onClick={() =>
+                updateInviteMut.mutate({
+                  id: editInvite.id,
+                  permission_level: editInvitePerm,
+                })
+              }
+              disabled={
+                updateInviteMut.isPending ||
+                editInvitePerm === editInvite.permission_level
+              }
+            >
+              {updateInviteMut.isPending ? "Saving…" : "Save access level"}
+            </button>
+          </div>
+        </ModalShell>
+      )}
     </>
+
   );
 }

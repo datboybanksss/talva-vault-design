@@ -21,6 +21,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
+import {
+  DEFAULT_INVITATION_SUBJECT,
+  DEFAULT_INVITATION_BODY,
+  EMAIL_FALLBACK_NOTICE,
+} from "@/lib/invitation-email";
 
 export const Route = createFileRoute("/admin/invitations/new")({
   validateSearch: (raw: Record<string, unknown>): { draft?: string } =>
@@ -59,6 +65,7 @@ function NewInvitationPage() {
   const createDraftFn = useServerFn(createAgencyInvitationDraft);
   const updateDraftFn = useServerFn(updateAgencyInvitationDraft);
   const finalizeFn = useServerFn(finalizeAgencyInvitation);
+  const sendAgencyEmailFn = useServerFn(sendAgencyInvitationEmail);
   const listInvsFn = useServerFn(listAgencyInvitations);
   const listDocsFn = useServerFn(listComplianceDocuments);
   const recordDocFn = useServerFn(recordComplianceDocument);
@@ -167,13 +174,27 @@ function NewInvitationPage() {
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: async (inv: any) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Invitation sent. Recipient will receive the branded email.");
+
+      // The invitation exists either way — a delivery failure must never be
+      // reported as a successful send.
+      const res: any = await sendAgencyEmailFn({
+        data: {
+          id: inv.id,
+          subject: DEFAULT_INVITATION_SUBJECT,
+          body: DEFAULT_INVITATION_BODY,
+          invite_url: `${window.location.origin}/invite/${inv.token}`,
+        },
+      }).catch(() => ({ sent: false }));
+      if (res?.sent) toast.success("Invitation sent. The recipient will receive the branded email.");
+      else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
+
       nav({ to: "/admin/invitations" });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to send invitation"),
   });
+
 
   const deleteDocM = useMutation({
     mutationFn: (id: string) => deleteDocFn({ data: { id } }),

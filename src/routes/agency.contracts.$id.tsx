@@ -268,7 +268,7 @@ function InvoiceDialog({
   const [v, setV] = useState({ number: defaults.number, total: defaults.total, dueDate: "", notes: "" });
   return (
     <ModalShell onClose={onClose}>
-        <div className="tvp-modal-header">
+        <div className="tvp-modal-head">
           <h3 className="tvp-h2 inline-flex items-center gap-2"><Receipt className="h-5 w-5" />New invoice for contract</h3>
           <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
@@ -281,7 +281,7 @@ function InvoiceDialog({
             <textarea rows={3} value={v.notes} onChange={e => setV(s => ({ ...s, notes: e.target.value }))} />
           </div>
         </div>
-        <div className="tvp-modal-footer">
+        <div className="tvp-modal-foot">
           <button className="tvp-secondary" onClick={onClose}>Cancel</button>
           <button className="tvp-primary" disabled={saving || !v.number} onClick={() => onSave(v)}>
             <Save className="h-4 w-4" />Create invoice

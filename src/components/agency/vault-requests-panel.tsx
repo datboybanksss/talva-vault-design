@@ -253,11 +253,13 @@ function NewRequestDialog({
   });
   return (
     <ModalShell onClose={onClose}>
-        <div className="tvp-modal-header">
+        <div className="tvp-modal-head">
           <h3 className="tvp-h2">New document request</h3>
           <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
-        <div className="tvp-form-grid" style={{ padding: 16 }}>
+        <div className="tvp-modal-body">
+          <div className="tvp-form-grid" style={{ rowGap: 18 }}>
+
           <div className="tvp-form-group" data-tour="request-talent"><label>Talent</label>
             <select value={f.talent_link_id} onChange={e => setF(s => ({ ...s, talent_link_id: e.target.value }))}>
               {talent.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}
@@ -320,13 +322,15 @@ function NewRequestDialog({
             <label>Instructions</label>
             <textarea rows={3} value={f.instructions} onChange={e => setF(s => ({ ...s, instructions: e.target.value }))} />
           </div>
+          </div>
         </div>
-        <div className="tvp-modal-footer">
+        <div className="tvp-modal-foot">
           <button className="tvp-secondary" onClick={onClose}>Cancel</button>
           <button className="tvp-primary" disabled={!f.talent_link_id || !f.title || mut.isPending} onClick={() => mut.mutate()}>
             <Save className="h-4 w-4" />Create request
           </button>
         </div>
+
     </ModalShell>
   );
 }
@@ -370,7 +374,7 @@ function ReviewDialog({
 
   return (
     <ModalShell onClose={onClose} maxWidth={720}>
-        <div className="tvp-modal-header">
+        <div className="tvp-modal-head">
           <div>
             <h3 className="tvp-h2">Review: {request.title}</h3>
             <div className="tvp-muted tvp-small">{request.talentName} · {request.folder}</div>
@@ -447,7 +451,7 @@ function ReviewDialog({
           )}
         </div>
 
-        <div className="tvp-modal-footer">
+        <div className="tvp-modal-foot">
           <button className="tvp-secondary" onClick={onClose}>Cancel</button>
           <button
             className="tvp-primary"

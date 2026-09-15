@@ -15,7 +15,13 @@ import {
   validateNewPassword,
   friendlyAuthError,
 } from "@/lib/password";
-import { INVITE_KINDS, claimInvitation } from "@/lib/invite-claim.functions";
+import {
+  INVITE_KINDS,
+  claimInvitation,
+  pendingInvitationForMe,
+  type PendingInviteForMe,
+} from "@/lib/invite-claim.functions";
+
 import { logTalentSignIn } from "@/lib/talent-audit.functions";
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
@@ -154,6 +160,49 @@ function AuthPage() {
         : null,
     [search.denied, deniedState, portal],
   );
+
+  // A confirmed denial is not always the end of the road: the account may have
+  // been invited at this same address and simply never clicked the emailed
+  // link. Surface that invitation so they can accept it here.
+  const [pendingInvite, setPendingInvite] = useState<PendingInviteForMe | null>(null);
+  const [claimingInvite, setClaimingInvite] = useState(false);
+
+  useEffect(() => {
+    if (!denied) {
+      setPendingInvite(null);
+      return;
+    }
+    let mounted = true;
+    void pendingInvitationForMe({ data: {} })
+      .then((res) => {
+        if (mounted) setPendingInvite(res);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [denied]);
+
+  const acceptPendingInvite = useCallback(async () => {
+    if (!pendingInvite) return;
+    setClaimingInvite(true);
+    setError(null);
+    try {
+      const res = await claimInvitation({
+        data: { token: pendingInvite.token, kind: pendingInvite.kind },
+      });
+      if (res.ok) {
+        nav({ to: res.dest as any, replace: true });
+        return;
+      }
+      setError(res.message);
+    } catch (e: any) {
+      setError(e?.message ?? "We couldn't accept that invitation. Please try the emailed link.");
+    } finally {
+      setClaimingInvite(false);
+    }
+  }, [pendingInvite, nav]);
+
 
   // Where to send a signed-in user. An explicit `next` wins; otherwise the
   // destination is resolved from the account's real access rather than assumed
@@ -433,6 +482,30 @@ function AuthPage() {
             </div>
           )}
 
+          {denied && !mfaFactorId && pendingInvite && (
+            <div className="tv-auth-alert tv-info" style={{ marginTop: 18 }}>
+              You have a pending{" "}
+              {pendingInvite.kind === "agency"
+                ? "agency"
+                : pendingInvite.kind === "talent"
+                  ? "talent"
+                  : "administrator"}{" "}
+              invitation
+              {pendingInvite.label ? ` from ${pendingInvite.label}` : ""} waiting for
+              this account. Accept it to finish setting up your access.
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="tv-auth-link"
+                  disabled={claimingInvite}
+                  onClick={acceptPendingInvite}
+                >
+                  {claimingInvite ? "Accepting…" : "Accept invitation"}
+                </button>
+              </div>
+            </div>
+          )}
+
           {denied && !mfaFactorId && (
             <div className="tv-auth-alert" style={{ marginTop: 18 }}>
               {denied}
@@ -456,6 +529,7 @@ function AuthPage() {
               </div>
             </div>
           )}
+
 
 
           {!mfaFactorId && (
