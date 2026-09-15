@@ -112,13 +112,20 @@ function AgencyDetail() {
         {a && (
           <div className="tvp-actions">
             {a.status === "suspended" ? (
-              <button className="tvp-secondary" onClick={() => unsuspendM.mutate()}>
+              <button
+                className="tvp-secondary"
+                onClick={() => unsuspendM.mutate()}
+                disabled={!canEdit}
+                title={canEdit ? "Reinstate this agency" : noEditTitle}
+              >
                 <RotateCcw className="h-4 w-4" />Reinstate
               </button>
             ) : (
               <button
                 className="tvp-secondary"
                 onClick={() => setSuspendOpen(true)}
+                disabled={!canEdit}
+                title={canEdit ? "Suspend this agency" : noEditTitle}
               >
                 <Ban className="h-4 w-4" />Suspend
               </button>
