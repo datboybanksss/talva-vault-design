@@ -175,6 +175,7 @@ export const whoami = createServerFn({ method: "GET" })
       isMainAdmin: isMain,
       permissionLevel,
       canEdit,
+      canSupportAgencies: canSupport,
       roles: roles ?? [],
     };
   });
