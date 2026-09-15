@@ -665,6 +665,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       resubRequests,
       pendingRequests,
       actionRequests: pendingRequests + resubRequests,
+      inAppEnabled,
+      unreadNotifications,
       attention,
     };
   });
