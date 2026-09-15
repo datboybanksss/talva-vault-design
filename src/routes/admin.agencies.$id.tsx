@@ -62,6 +62,12 @@ function AgencyDetail() {
     queryKey: ["admin", "agency", id, "talent-invitations"],
     queryFn: () => listTalentInvFn({ data: { agency_id: id } }),
   });
+  // Suspending or reinstating an agency needs full edit rights; anything less
+  // is shown the control disabled rather than a server-side "Forbidden".
+  const me = useQuery({ queryKey: ["whoami"], queryFn: () => whoamiFn() });
+  const canEdit = !!me.data?.canEdit;
+  const noEditTitle =
+    "You need full edit access to suspend or reinstate an agency. Ask a Main Administrator to change your access level.";
 
   const suspendM = useMutation({
     mutationFn: (reason: string) => suspendFn({ data: { id, reason } }),
