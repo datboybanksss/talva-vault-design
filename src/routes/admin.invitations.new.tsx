@@ -167,13 +167,27 @@ function NewInvitationPage() {
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: async (inv: any) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Invitation sent. Recipient will receive the branded email.");
+
+      // The invitation exists either way — a delivery failure must never be
+      // reported as a successful send.
+      const res: any = await sendAgencyEmailFn({
+        data: {
+          id: inv.id,
+          subject: DEFAULT_INVITATION_SUBJECT,
+          body: DEFAULT_INVITATION_BODY,
+          invite_url: `${window.location.origin}/invite/${inv.token}`,
+        },
+      }).catch(() => ({ sent: false }));
+      if (res?.sent) toast.success("Invitation sent. The recipient will receive the branded email.");
+      else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
+
       nav({ to: "/admin/invitations" });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to send invitation"),
   });
+
 
   const deleteDocM = useMutation({
     mutationFn: (id: string) => deleteDocFn({ data: { id } }),
