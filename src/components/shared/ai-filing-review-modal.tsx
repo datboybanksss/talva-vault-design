@@ -2,10 +2,11 @@
  * Filing review popup — shared by BOTH the Agency Document Vault and the Talent
  * Private Vault. Opens after an upload completes, before the document counts as filed.
  *
- * There is no AI service wired up yet. The `suggestion` prop is the single seam:
- * it currently receives a locally-derived default (the folder chosen at upload,
- * no detected expiry), and can later be handed a real API response with the exact
- * same shape — no other change to this component or its callers.
+ * No document-content AI service is wired up yet. When no `suggestion` prop is
+ * given we run a filename heuristic (keyword → folder, date pattern → expiry).
+ * A suggestion badge is only shown when that heuristic actually inferred
+ * something; otherwise the field is labelled as a plain default. The `suggestion`
+ * prop remains the seam for a real service, with the same shape.
  *
  * UX contract: every field is live and editable the moment the popup opens. The
  * suggestion only pre-fills them. Editing IS the correction mechanism, so there
@@ -313,7 +314,7 @@ export function AiFilingReviewModal({
           expires_at: expiry ? new Date(`${expiry}T00:00:00Z`).toISOString() : null,
           reminder_at: reminderDate ? new Date(`${reminderDate}T09:00:00Z`).toISOString() : null,
           ai_assisted:
-            Boolean(suggestionProp) && (folderSource === "ai" || expirySource === "ai"),
+            isGenuineSuggestion && (folderSource === "ai" || expirySource === "ai"),
         },
       }),
     onSuccess: () => {
