@@ -167,6 +167,8 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
         storage_path: path,
         mime_type: data.mime_type ?? null,
         size_bytes: data.size_bytes ?? null,
+        // Awaiting the filing review; cleared when the review is confirmed.
+        pending_review: true,
       })
       .select("id")
       .single();

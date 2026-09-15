@@ -1209,6 +1209,8 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
         validity_expires_at: data.validity_expires_at ?? null,
         storage_path: data.storage_path,
         uploaded_by: userId,
+        // Awaiting the filing review; cleared when the review is confirmed.
+        pending_review: true,
       })
       .select()
       .single();
