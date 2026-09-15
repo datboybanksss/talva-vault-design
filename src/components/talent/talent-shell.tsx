@@ -143,6 +143,21 @@ export function TalentShell({ children }: { children: ReactNode }) {
     to: string;
     search: { tab: "agency"; view: "requests" | "folder" };
   }[];
+
+  const bellCount = notifications.length + bellItems.length;
+  const manage = buildManageNav(vaultBadge, sharesBadge, bellCount);
+
+  async function markNotificationRead(id: string) {
+    try {
+      await markReadFn({ data: { id, read: true } });
+      queryClient.invalidateQueries({ queryKey: ["talent", "bell-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["talent", "notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
+    } catch {
+      /* non-blocking */
+    }
+  }
+
   // Loader data from /talent route: { profile, link, agency }
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
