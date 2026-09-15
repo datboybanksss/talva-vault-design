@@ -2574,7 +2574,7 @@ export const getAgencyBillingSettings = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("agencies")
       .select(
-        "id, name, contact_email, contact_person, phone, country, business_type, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, default_quote_acceptance_days, default_quote_reminder_days, default_invoice_payment_days, invoice_overdue_grace_days, is_vat_registered, vat_number, default_vat_rate_bp, billing_address, logo_path, accent_color, billing_from_email, billing_from_name, billing_from_verified_at, billing_from_token_expires_at",
+        "id, name, contact_email, contact_person, phone, country, business_type, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, default_quote_acceptance_days, default_quote_reminder_days, default_invoice_payment_days, invoice_overdue_grace_days, is_vat_registered, vat_number, default_vat_rate_bp, billing_address, logo_path, accent_color, billing_from_email, billing_from_name, billing_from_verified_at, billing_from_token_expires_at, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions",
       )
       .eq("id", agencyId)
       .single();
@@ -2606,6 +2606,11 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
           .string()
           .regex(/^#[0-9a-fA-F]{6}$/)
           .nullable(),
+        bank_name: z.string().max(160).nullable().optional(),
+        bank_account_holder: z.string().max(160).nullable().optional(),
+        bank_account_number: z.string().max(64).nullable().optional(),
+        bank_branch_code: z.string().max(32).nullable().optional(),
+        payment_instructions: z.string().max(1000).nullable().optional(),
       })
       .parse(d),
   )
