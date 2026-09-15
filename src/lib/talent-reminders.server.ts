@@ -40,18 +40,23 @@ type Pending = {
 export async function runTalentReminderScan(opts: { userId?: string } = {}) {
   let profileQ = supabaseAdmin
     .from("talent_profiles")
-    .select("id, user_id, expiry_notice_days, notification_prefs")
+    .select("id, user_id, email, expiry_notice_days, notification_prefs")
     .not("user_id", "is", null);
   if (opts.userId) profileQ = profileQ.eq("user_id", opts.userId);
   const { data: profiles, error } = await profileQ;
   if (error) throw new Error(error.message);
 
   const pending: Pending[] = [];
+  const emailByUser = new Map<string, string | null>();
 
   for (const p of profiles ?? []) {
     const userId = p.user_id as string;
     const noticeDays = (p.expiry_notice_days as number) ?? 30;
-    const prefs = ((p.notification_prefs ?? {}) as Prefs).in_app ?? {};
+    const allPrefs = (p.notification_prefs ?? {}) as Prefs;
+    // Master switch — when in-app reminders are off, nothing is materialised.
+    if (allPrefs.in_app_enabled === false) continue;
+    emailByUser.set(userId, (p.email as string | null) ?? null);
+    const prefs = allPrefs.in_app ?? {};
     const on = (k: string) => prefs[k] !== false;
     const cutoff = new Date(Date.now() + noticeDays * DAY).toISOString();
 
