@@ -28,6 +28,7 @@ import {
   adminPermission,
   canInviteAdministrators,
   grantableAdminPermissions,
+  type AdminPermissionLevel,
 } from "@/lib/admin-permissions";
 
 import {
@@ -35,6 +36,20 @@ import {
   DEFAULT_ADMIN_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
+
+/** Administrator invitation statuses, styled like the Agency invitations page. */
+const statusLabel: Record<string, string> = {
+  pending: "Invited",
+  accepted: "Accepted",
+  expired: "Expired",
+  revoked: "Revoked",
+};
+const statusTone: Record<string, string> = {
+  pending: "blue",
+  accepted: "green",
+  expired: "red",
+  revoked: "neutral",
+};
 
 export const Route = createFileRoute("/admin/administrators")({
   head: () => ({ meta: [{ title: "Administrators · TalVault Admin" }] }),
