@@ -185,6 +185,9 @@ function QuotesInvoicesPage() {
           <button className="tvp-secondary" onClick={exportCsv} disabled={visible.length === 0}>
             <Download className="h-4 w-4" />Export
           </button>
+          <button className="tvp-secondary" onClick={printPdf} disabled={filteredRows.length === 0}>
+            <FileDown className="h-4 w-4" />Print / Save PDF
+          </button>
         </div>
       </div>
 
