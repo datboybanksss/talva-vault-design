@@ -4,11 +4,13 @@ import { ShieldCheck } from "lucide-react";
 import { listTalentAuditLog } from "@/lib/talent-audit.functions";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { deviceLabel } from "@/lib/device";
 
 const ACTION_META: Record<string, { label: string; tone: string }> = {
   password_changed: { label: "Password changed", tone: "teal" },
   mfa_enrolled: { label: "Two-factor enabled", tone: "green" },
   mfa_disabled: { label: "Two-factor disabled", tone: "amber" },
+  login: { label: "Signed in", tone: "neutral" },
 };
 
 function humanAction(a: string) {
@@ -17,20 +19,7 @@ function humanAction(a: string) {
 
 function device(ua: string | null) {
   if (!ua) return "—";
-  const browser =
-    /Edg\//.test(ua) ? "Edge"
-      : /Chrome\//.test(ua) ? "Chrome"
-        : /Safari\//.test(ua) ? "Safari"
-          : /Firefox\//.test(ua) ? "Firefox"
-            : "Browser";
-  const os =
-    /Windows/.test(ua) ? "Windows"
-      : /Mac OS X/.test(ua) ? "macOS"
-        : /Android/.test(ua) ? "Android"
-          : /iPhone|iPad/.test(ua) ? "iOS"
-            : /Linux/.test(ua) ? "Linux"
-              : "Unknown OS";
-  return `${browser} · ${os}`;
+  return deviceLabel(ua);
 }
 
 export function SecurityLogPanel() {
