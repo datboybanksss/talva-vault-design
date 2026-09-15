@@ -19,6 +19,11 @@ export type BillingDocAgency = {
   accent_color: string | null;
   default_invoice_payment_days?: number | null;
   default_quote_acceptance_days?: number | null;
+  bank_name?: string | null;
+  bank_account_holder?: string | null;
+  bank_account_number?: string | null;
+  bank_branch_code?: string | null;
+  payment_instructions?: string | null;
 };
 
 export type BillingDocRecord = {
@@ -376,6 +381,34 @@ export function BillingDocument({
         >
           <div style={{ fontWeight: 700, marginBottom: 4 }}>Notes</div>
           {doc.notes}
+        </section>
+      )}
+
+      {doc.kind === "invoice" && hasPaymentDetails && (
+        <section
+          style={{
+            marginTop: 24,
+            padding: 12,
+            border: `1px solid ${accent}`,
+            borderRadius: 6,
+            fontSize: 12,
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 6, color: accent }}>Payment details</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 24px" }}>
+            {agency.bank_name && (<div><strong>Bank:</strong> {agency.bank_name}</div>)}
+            {agency.bank_account_holder && (<div><strong>Account holder:</strong> {agency.bank_account_holder}</div>)}
+            {agency.bank_account_number && (<div><strong>Account number:</strong> {agency.bank_account_number}</div>)}
+            {agency.bank_branch_code && (<div><strong>Branch code:</strong> {agency.bank_branch_code}</div>)}
+          </div>
+          {agency.payment_instructions && (
+            <div style={{ marginTop: 6, whiteSpace: "pre-line", color: "#555" }}>
+              {agency.payment_instructions}
+            </div>
+          )}
+          <div style={{ marginTop: 6, color: "#555" }}>
+            Please use <strong>{doc.number}</strong> as your payment reference.
+          </div>
         </section>
       )}
 

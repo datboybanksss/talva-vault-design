@@ -46,8 +46,13 @@ export function BillingPreviewDialog({
             <button className="tvp-secondary" onClick={() => window.print()}>
               <Printer className="h-4 w-4" />Print / Save PDF
             </button>
-            {canSend && onSend && (
-              <button className="tvp-primary" onClick={onSend} disabled={sending}>
+            {onSend && (
+              <button
+                className="tvp-primary"
+                onClick={canSend ? onSend : undefined}
+                disabled={!canSend || sending}
+                title={canSend ? "Mark as sent and email the recipients" : (sendDisabledReason ?? "Save this draft first before sending.")}
+              >
                 <Send className="h-4 w-4" />{sending ? "Sending…" : "Mark as sent"}
               </button>
             )}
