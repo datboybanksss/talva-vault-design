@@ -1551,6 +1551,103 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
     return inv;
   });
 
+/**
+ * Reopens an administrator invitation that is still open (pending, whether or
+ * not it has already lapsed) by pushing its expiry out again. Accepted and
+ * revoked invitations are deliberately not resendable.
+ */
+export const resendAdminInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string(), extend_days: z.number().default(14) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertCanInviteAdministrator(supabase, userId);
+
+    const { data: existing, error: exErr } = await supabase
+      .from("admin_invitations")
+      .select("id, email, status, permission_level")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (exErr) throw new Error(exErr.message);
+    if (!existing) throw new Error("Invitation not found.");
+    if (existing.status !== "pending") {
+      throw new Error(
+        `This invitation is ${existing.status} and can no longer be resent. Invite the person again instead.`,
+      );
+    }
+
+    const expires_at = new Date(
+      Date.now() + data.extend_days * 24 * 3600 * 1000,
+    ).toISOString();
+
+    const { data: inv, error } = await supabase
+      .from("admin_invitations")
+      .update({ expires_at, status: "pending" })
+      .eq("id", data.id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) throw new Error("You do not have permission to resend this invitation.");
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "resend_admin_invitation",
+      "admin_invitation",
+      inv.id,
+      inv.email,
+      { expires_at, permission_level: inv.permission_level },
+    );
+    return inv;
+  });
+
+/**
+ * Permanently removes a stale administrator invitation. Only invitations that
+ * were never accepted may be deleted, so the acceptance trail stays intact.
+ */
+export const deleteAdminInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertCanInviteAdministrator(supabase, userId);
+
+    const { data: inv, error } = await supabase
+      .from("admin_invitations")
+      .select("id, email, status, permission_level, accepted_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!inv) throw new Error("Invitation not found.");
+    if (inv.status === "accepted" || inv.accepted_at) {
+      throw new Error("An accepted invitation cannot be deleted.");
+    }
+
+    // There is deliberately no delete policy on this table, so the removal
+    // runs with service-role rights after the permission check above.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: delErr } = await supabaseAdmin
+      .from("admin_invitations")
+      .delete()
+      .eq("id", data.id);
+    if (delErr) throw new Error(delErr.message);
+
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "delete_admin_invitation",
+      "admin_invitation",
+      inv.id,
+      inv.email,
+      { previous_status: inv.status, permission_level: inv.permission_level },
+    );
+    return { deleted: true };
+  });
+
 // Records an audit event when a signed-in admin changes their OWN password.
 // The password value itself is deliberately NEVER accepted or logged here —
 // the actual credential update happens client-side via supabase.auth.
