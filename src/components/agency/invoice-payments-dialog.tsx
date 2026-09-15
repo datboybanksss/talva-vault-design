@@ -147,7 +147,30 @@ export function InvoicePaymentsDialog({
               </div>
               <div className="tvp-form-group">
                 <label>Method (optional)</label>
-                <input value={method} onChange={(e) => setMethod(e.target.value)} placeholder="e.g. EFT" />
+                <select value={method} onChange={(e) => setMethod(e.target.value)}>
+                  <option value="">Select…</option>
+                  <option value="EFT">EFT</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Card">Card</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="PayFast">PayFast</option>
+                  <option value="SnapScan">SnapScan</option>
+                  <option value="Other">Other</option>
+                  {/* Preserve a value captured before this became a dropdown
+                      rather than silently resetting to blank. */}
+                  {method &&
+                    ![
+                      "EFT",
+                      "Bank Transfer",
+                      "Cash",
+                      "Card",
+                      "Cheque",
+                      "PayFast",
+                      "SnapScan",
+                      "Other",
+                    ].includes(method) && <option value={method}>{method}</option>}
+                </select>
               </div>
               <div className="tvp-form-group">
                 <label>Reference (optional)</label>
