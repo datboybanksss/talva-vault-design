@@ -26,7 +26,7 @@ import { preflightUpload } from "@/lib/file-validation";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { toast } from "sonner";
 import {
-  Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen,
+  Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen, Archive,
   Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
   ChevronDown, Search,
 } from "lucide-react";
