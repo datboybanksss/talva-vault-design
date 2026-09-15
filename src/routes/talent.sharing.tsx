@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Share2, Key, Ban, Copy, Clock, Eye, Plus, Info, X, Lock, Download, RefreshCw, Mail, FileText, Send } from "lucide-react";
+import { Share2, Key, Ban, Copy, Clock, Eye, Plus, Info, X, Lock, Download, RefreshCw, Mail, FileText, Send, Receipt } from "lucide-react";
 import {
   listMyLovedOneShares,
   createLovedOneShare,
@@ -135,9 +135,11 @@ function SharingPage() {
                   const locked = !!s.locked_at;
                   const status = revoked ? "revoked" : expired ? "expired" : locked ? "locked" : (exp - now < 3 * 86400_000) ? "expiring" : "active";
                   const scope =
-                    s.share_kind === "document"
-                      ? "1 document"
-                      : `${s.scope?.private_folder_ids?.length ?? 0} folder(s)`;
+                    s.share_kind === "billing"
+                      ? "Quotes & invoices"
+                      : s.share_kind === "document"
+                        ? "1 document"
+                        : `${s.scope?.private_folder_ids?.length ?? 0} folder(s)`;
                   const tone = status === "active" ? "green" : status === "expiring" || status === "locked" ? "amber" : "teal";
                   return (
                     <tr key={s.id}>
