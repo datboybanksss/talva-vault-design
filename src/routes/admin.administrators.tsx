@@ -108,9 +108,31 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
+  // Editing the access level carried by a still-pending invitation, so a
+  // mis-set level can be corrected without revoking and re-inviting.
+  const updateInviteFn = useServerFn(updateAdminInvitation);
+  const [editInvite, setEditInvite] = useState<any | null>(null);
+  const [editInvitePerm, setEditInvitePerm] = useState<"view_only" | "edit">("edit");
+
+  useEffect(() => {
+    if (editInvite) setEditInvitePerm(editInvite.permission_level ?? "edit");
+  }, [editInvite]);
+
+  const updateInviteMut = useMutation({
+    mutationFn: (input: { id: string; permission_level: "view_only" | "edit" }) =>
+      updateInviteFn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
+      toast.success("Invitation access level updated.");
+      setEditInvite(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update invitation"),
+  });
+
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePerm, setInvitePerm] = useState<"view_only" | "edit">("edit");
+
 
   // Per-row edit (Main-admin only)
   const [editAdmin, setEditAdmin] = useState<any | null>(null);
