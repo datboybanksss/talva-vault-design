@@ -1087,7 +1087,7 @@ export const resendInvitation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdminCanEdit(supabase, userId);
+    await assertAdminCanSupportAgencies(supabase, userId);
     const expires_at = new Date(
       Date.now() + data.extend_days * 24 * 3600 * 1000,
     ).toISOString();
