@@ -21,6 +21,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
+import {
+  DEFAULT_INVITATION_SUBJECT,
+  DEFAULT_INVITATION_BODY,
+  EMAIL_FALLBACK_NOTICE,
+} from "@/lib/invitation-email";
 
 export const Route = createFileRoute("/admin/invitations/new")({
   validateSearch: (raw: Record<string, unknown>): { draft?: string } =>
@@ -59,6 +65,7 @@ function NewInvitationPage() {
   const createDraftFn = useServerFn(createAgencyInvitationDraft);
   const updateDraftFn = useServerFn(updateAgencyInvitationDraft);
   const finalizeFn = useServerFn(finalizeAgencyInvitation);
+  const sendAgencyEmailFn = useServerFn(sendAgencyInvitationEmail);
   const listInvsFn = useServerFn(listAgencyInvitations);
   const listDocsFn = useServerFn(listComplianceDocuments);
   const recordDocFn = useServerFn(recordComplianceDocument);
