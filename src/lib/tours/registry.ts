@@ -470,7 +470,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="billing-export"]',
         title: "Step 18 — export for your accountant",
-        body: "\"Export CSV\" downloads every line item in the period as a spreadsheet; \"Export PDF\" opens the print dialog for a formatted statement — allow pop-ups or nothing happens. Both use the period on screen, so set the period first.",
+        body: "\"Export CSV\" downloads every line item in the period as a spreadsheet; \"Print / Save PDF\" opens the print dialog for a formatted statement — choose \"Save as PDF\" as the destination. Both use the period on screen, so set the period first.",
         optional: true,
       },
     ],
