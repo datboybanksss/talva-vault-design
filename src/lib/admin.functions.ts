@@ -1190,7 +1190,7 @@ export const logCopyLink = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    await assertAdmin(supabase, userId);
+    await assertAdminCanSupportAgencies(supabase, userId);
     const { data: inv } = await supabase
       .from("agency_invitations")
       .select("agency_name")
