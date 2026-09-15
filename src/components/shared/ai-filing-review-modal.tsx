@@ -33,6 +33,7 @@ import {
   confirmDocumentFiling,
   skipDocumentFiling,
 } from "@/lib/ai-filing.functions";
+import { suggestFromFileName } from "@/lib/filing-heuristics";
 
 export type AiFilingScope = "talent" | "agency";
 
@@ -193,12 +194,31 @@ export function AiFilingReviewModal({
   const catalog: CatalogItem[] = useMemo(() => data?.catalog ?? [], [data]);
 
   /**
-   * Placeholder suggestion until a real service is wired in: default to the folder
-   * the document was uploaded into, no detected expiry, portal-default lead time.
+   * Real suggestion if a caller passed one; otherwise a filename heuristic. When
+   * the heuristic finds nothing, we fall back to a plain default (the folder the
+   * document was uploaded into) which is never presented as an AI suggestion.
    */
+  const heuristic = useMemo(
+    () => (suggestionProp || !data ? null : suggestFromFileName(documentName, catalog)),
+    [suggestionProp, data, catalog, documentName],
+  );
+
+  const isGenuineSuggestion = Boolean(suggestionProp) || Boolean(heuristic);
+
   const suggestion: FilingSuggestion | null = useMemo(() => {
     if (suggestionProp) return suggestionProp;
     if (!data) return null;
+    if (heuristic) {
+      return {
+        folder_id: heuristic.folder_id ?? data.currentDestination ?? null,
+        expiry_date: heuristic.expiry_date,
+        reminder_lead_days: data.defaultReminderDays ?? 30,
+        confidence: heuristic.confidence,
+        rationale: heuristic.rationale,
+        folder_source_text: heuristic.folder_source_text,
+        expiry_source_text: heuristic.expiry_source_text,
+      };
+    }
     return {
       folder_id: data.currentDestination ?? null,
       expiry_date: null,
@@ -206,7 +226,8 @@ export function AiFilingReviewModal({
       confidence: null,
       rationale: null,
     };
-  }, [suggestionProp, data]);
+  }, [suggestionProp, data, heuristic]);
+
 
   /**
    * The catalog arrives as flattened "Parent → Child" paths. Split it back into a
