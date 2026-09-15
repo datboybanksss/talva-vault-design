@@ -1,10 +1,12 @@
 import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
+import { sendTalentInvitationEmail, sendStaffInvitationEmail } from "@/lib/invitation-email.functions";
 import {
   DEFAULT_TALENT_INVITATION_SUBJECT,
   DEFAULT_TALENT_INVITATION_BODY,
+  DEFAULT_STAFF_INVITATION_SUBJECT,
+  DEFAULT_STAFF_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -317,8 +319,17 @@ function InvitationsPage() {
                 if (res?.sent) toast.success("Talent invitation sent.");
                 else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
               } else {
-                await createStaff({ data: payload as any });
-                toast.success("Staff invitation sent.");
+                const inv: any = await createStaff({ data: payload as any });
+                const res: any = await sendStaffInvitationEmail({
+                  data: {
+                    id: inv.id,
+                    subject: DEFAULT_STAFF_INVITATION_SUBJECT,
+                    body: DEFAULT_STAFF_INVITATION_BODY,
+                    invite_url: `${window.location.origin}/invite/${inv.token}`,
+                  },
+                }).catch(() => ({ sent: false }));
+                if (res?.sent) toast.success("Staff invitation sent.");
+                else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
               }
               qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
               setOpenForm(null);
