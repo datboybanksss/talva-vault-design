@@ -75,6 +75,12 @@ export const INVITATION_VARIANTS: Record<"agency" | "talent" | "staff" | "admin"
     expiryHelp: "If the link expires, contact your Manager for a fresh invite.",
     footerBrand: "TalVault",
   },
+  staff: {
+    strapline: "Secure document vault for talent agencies and their people.",
+    ctaLabel: "Accept invitation",
+    expiryHelp: "If the link expires, ask your agency owner for a fresh invite.",
+    footerBrand: "TalVault",
+  },
   admin: {
     strapline: "Internal administration for the TalVault platform.",
     ctaLabel: "Accept invitation",
