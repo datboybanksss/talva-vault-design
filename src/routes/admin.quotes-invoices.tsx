@@ -152,6 +152,22 @@ function QuotesInvoicesPage() {
     toast.success("Exported and logged to audit.");
   };
 
+  const filterLabel = useMemo(() => {
+    const parts: string[] = [];
+    parts.push(agencyFilter === "all" ? "All agencies" : agencyFilter);
+    parts.push(typeFilter === "all" ? "Quotes and invoices" : typeFilter === "quote" ? "Quotes only" : "Invoices only");
+    parts.push(chipFilter === "all" ? "All statuses" : (statusLabel[chipFilter] ?? chipFilter));
+    if (search.trim()) parts.push(`Search: "${search.trim()}"`);
+    parts.push(`${filteredRows.length} record${filteredRows.length === 1 ? "" : "s"}`);
+    return parts.join(" · ");
+  }, [agencyFilter, typeFilter, chipFilter, search, filteredRows.length]);
+
+  const printPdf = () => {
+    printHtmlDocument(buildAdminBillingHtml(filteredRows as any, kpis, filterLabel, statusLabel));
+    logExport.mutate("pdf-export");
+    toast.success("Print view opened and logged to audit.");
+  };
+
   return (
     <>
       <div className="tvp-topbar" data-tour="admin-billing-header">
