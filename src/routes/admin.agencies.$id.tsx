@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { useSessionReady } from "@/hooks/use-session-ready";
 import { ArrowLeft, Ban, RotateCcw, Send, Users } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -46,6 +47,7 @@ function AgencyDetail() {
   const unsuspendFn = useServerFn(unsuspendAgency);
   const listAgencyInvFn = useServerFn(listAgencyInvitationsForAgency);
   const listTalentInvFn = useServerFn(listTalentInvitationsForAgency);
+  const sessionReady = useSessionReady();
   const whoamiFn = useServerFn(whoami);
   const qc = useQueryClient();
   const [suspendOpen, setSuspendOpen] = useState(false);
@@ -64,7 +66,12 @@ function AgencyDetail() {
   });
   // Suspending or reinstating an agency needs full edit rights; anything less
   // is shown the control disabled rather than a server-side "Forbidden".
-  const me = useQuery({ queryKey: ["whoami"], queryFn: () => whoamiFn() });
+  const me = useQuery({
+    queryKey: ["whoami"],
+    queryFn: () => whoamiFn(),
+    enabled: sessionReady,
+    retry: false,
+  });
   const canEdit = !!me.data?.canEdit;
   const noEditTitle =
     "You need full edit access to suspend or reinstate an agency. Ask a Main Administrator to change your access level.";
