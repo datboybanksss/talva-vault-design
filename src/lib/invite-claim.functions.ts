@@ -75,7 +75,63 @@ export const inviteAccountStatus = createServerFn({ method: "POST" })
     return { account_exists: Boolean(profile), email: inv.email };
   });
 
+export type PendingInviteForMe = {
+  kind: InviteKind;
+  token: string;
+  /** Agency name, manager/agency name, or null for an administrator invite. */
+  label: string | null;
+  expires_at: string;
+};
+
+/**
+ * Does the *signed-in* account have a pending invitation waiting for it?
+ *
+ * Someone who already has a TalVault account (say, as an administrator) can be
+ * invited to an agency at the same address and then go straight to the sign-in
+ * page instead of clicking the emailed link. Without this they land on a flat
+ * "this account isn't a member of any agency" denial with nowhere to go. The
+ * lookup is keyed on the session's own email only, so it cannot be used to
+ * probe anyone else's invitations.
+ */
+export const pendingInvitationForMe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((v: unknown) =>
+    z.object({ kind: kindSchema.optional() }).parse(v ?? {}),
+  )
+  .handler(async ({ data, context }): Promise<PendingInviteForMe | null> => {
+    const email =
+      typeof context.claims.email === "string" ? context.claims.email.trim() : "";
+    if (!email) return null;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const kinds: InviteKind[] = data.kind ? [data.kind] : ["agency", "talent", "admin"];
+
+    for (const kind of kinds) {
+      const { data: rows } = await supabaseAdmin
+        .from(INVITE_TABLE[kind])
+        .select("token, expires_at, " + (kind === "agency" ? "agency_name" : kind === "talent" ? "talent_name" : "email"))
+        .ilike("email", email)
+        .eq("status", "pending")
+        .gt("expires_at", now)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const row = (rows ?? [])[0] as any;
+      if (row?.token) {
+        return {
+          kind,
+          token: row.token,
+          label: kind === "agency" ? row.agency_name ?? null : kind === "talent" ? row.talent_name ?? null : null,
+          expires_at: row.expires_at,
+        };
+      }
+    }
+    return null;
+  });
+
 export type ClaimResult =
+
   | { ok: true; kind: InviteKind; dest: string; already_linked: boolean }
   | {
       ok: false;

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban } from "lucide-react";
+import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban, SlidersHorizontal } from "lucide-react";
 import {
   listAdministrators,
   whoami,
@@ -10,12 +10,15 @@ import {
   inviteAdministrator,
   revokeAdminInvitation,
   updateAdministrator,
+  updateAdminInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { ModalShell } from "@/components/shared/modal-shell";
 import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
+
 import {
   HIGHEST_ADMIN_PERMISSION,
   ADMIN_PERMISSION_LEVELS,
