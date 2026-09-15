@@ -77,13 +77,78 @@ export const logTalentSignIn = createServerFn({ method: "POST" })
     const { recordTalentActivity, TALENT_LOGIN_ACTION } = await import(
       "@/lib/talent-activity.server"
     );
+    const meta = extractRequestMeta();
+    const { deviceLabel, deviceKey } = await import("@/lib/device");
+    const label = deviceLabel(meta.user_agent);
+    const key = deviceKey(meta.user_agent);
+
+    // Known-device check must run before the new entry is written.
+    let isNewDevice = false;
+    try {
+      const { data: past } = await supabase
+        .from("talent_audit_log")
+        .select("user_agent")
+        .eq("actor_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(300);
+      isNewDevice =
+        !!meta.user_agent && !(past ?? []).some((r: any) => deviceKey(r.user_agent) === key);
+    } catch {
+      /* detection is best-effort */
+    }
+
     await recordTalentActivity(supabase, userId, claims?.email, TALENT_LOGIN_ACTION, {
       targetType: "account",
       targetId: userId,
       targetLabel: "Signed in",
+      detail: { device: label, new_device: isNewDevice },
     });
-    return { ok: true };
+
+    if (isNewDevice) {
+      await notifyNewDevice(userId, label, key, meta.ip_address);
+    }
+    return { ok: true, newDevice: isNewDevice };
   });
+
+/**
+ * Surfaces a new-device sign-in through the same reminder channel as expiry
+ * warnings, so it reaches the bell and dashboard rather than sitting unseen in
+ * the security log. Talents cannot insert notifications themselves, so this
+ * runs through the privileged client after the caller has been authenticated.
+ */
+async function notifyNewDevice(
+  userId: string,
+  label: string,
+  key: string,
+  ip: string | null,
+): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const when = new Date();
+    await supabaseAdmin.from("talent_notifications").upsert(
+      {
+        user_id: userId,
+        kind: "new_device_signin",
+        dedupe_key: `new_device:${key}:${when.toISOString().slice(0, 10)}`,
+        title: `New sign-in from ${label} on ${when.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}`,
+        detail: ip
+          ? `If this wasn't you, change your password in Settings → Account. IP ${ip}.`
+          : "If this wasn't you, change your password in Settings → Account.",
+        tone: "amber",
+        target_type: "account",
+        target_id: userId,
+        due_at: when.toISOString(),
+      },
+      { onConflict: "user_id,dedupe_key", ignoreDuplicates: true },
+    );
+  } catch {
+    /* alerting is best-effort — never block a sign-in */
+  }
+}
 
 export const listTalentAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
