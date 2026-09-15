@@ -15,7 +15,13 @@ import {
   validateNewPassword,
   friendlyAuthError,
 } from "@/lib/password";
-import { INVITE_KINDS, claimInvitation } from "@/lib/invite-claim.functions";
+import {
+  INVITE_KINDS,
+  claimInvitation,
+  pendingInvitationForMe,
+  type PendingInviteForMe,
+} from "@/lib/invite-claim.functions";
+
 import { logTalentSignIn } from "@/lib/talent-audit.functions";
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
