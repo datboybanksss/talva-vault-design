@@ -18,7 +18,7 @@ export type AdminPermissionDef = {
 export const ADMIN_PERMISSION_LEVELS: AdminPermissionDef[] = [
   {
     value: "edit",
-    rank: 2,
+    rank: 3,
     label: "Edit rights",
     optionLabel: "Edit rights — full access",
     description:
