@@ -117,15 +117,42 @@ function AdminEmailPreviewPage() {
           <button className="tvp-secondary" onClick={copyLink} disabled={!inv} title="Copy the unique invite link">
             <Copy className="h-4 w-4" />Copy link
           </button>
+          {isExpired && (
+            <button
+              className="tvp-secondary"
+              onClick={() => { setStatus(null); resendM.mutate(); }}
+              disabled={resendM.isPending}
+              title="Extend the expiry by 14 days so the link works again"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {resendM.isPending ? "Refreshing…" : "Resend & refresh expiry"}
+            </button>
+          )}
           <button
             className="tvp-primary"
-            disabled={!inv || sendM.isPending || !subject.trim() || !body.trim()}
+            disabled={!inv || isExpired || sendM.isPending || !subject.trim() || !body.trim()}
+            title={
+              isExpired
+                ? "This invitation has lapsed — refresh the expiry before sending."
+                : "Send this invitation email"
+            }
             onClick={() => { setStatus(null); sendM.mutate(); }}
           >
             <Send className="h-4 w-4" />{sendM.isPending ? "Sending…" : "Send email"}
           </button>
         </div>
       </div>
+
+      {isExpired && (
+        <div className="tvp-card" style={{ borderLeft: "3px solid var(--tvp-red)" }}>
+          <strong>This invitation has lapsed.</strong>{" "}
+          <span className="tvp-muted">
+            Its link no longer works, so sending it now would land the recipient on
+            an expired page. Use “Resend &amp; refresh expiry” to reopen it for a
+            further 14 days, then send the email.
+          </span>
+        </div>
+      )}
 
       <SendStatusBanner status={status} />
 
