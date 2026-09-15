@@ -155,6 +155,49 @@ function AuthPage() {
     [search.denied, deniedState, portal],
   );
 
+  // A confirmed denial is not always the end of the road: the account may have
+  // been invited at this same address and simply never clicked the emailed
+  // link. Surface that invitation so they can accept it here.
+  const [pendingInvite, setPendingInvite] = useState<PendingInviteForMe | null>(null);
+  const [claimingInvite, setClaimingInvite] = useState(false);
+
+  useEffect(() => {
+    if (!denied) {
+      setPendingInvite(null);
+      return;
+    }
+    let mounted = true;
+    void pendingInvitationForMe({ data: {} })
+      .then((res) => {
+        if (mounted) setPendingInvite(res);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [denied]);
+
+  const acceptPendingInvite = useCallback(async () => {
+    if (!pendingInvite) return;
+    setClaimingInvite(true);
+    setError(null);
+    try {
+      const res = await claimInvitation({
+        data: { token: pendingInvite.token, kind: pendingInvite.kind },
+      });
+      if (res.ok) {
+        nav({ to: res.dest as any, replace: true });
+        return;
+      }
+      setError(res.message);
+    } catch (e: any) {
+      setError(e?.message ?? "We couldn't accept that invitation. Please try the emailed link.");
+    } finally {
+      setClaimingInvite(false);
+    }
+  }, [pendingInvite, nav]);
+
+
   // Where to send a signed-in user. An explicit `next` wins; otherwise the
   // destination is resolved from the account's real access rather than assumed
   // to be /admin (that assumption is what manufactured phantom denials).
