@@ -1,10 +1,13 @@
 // Server-only reminder engine. Detects documents crossing their reminder /
-// expiry threshold and materialises in-app notifications. Email delivery is a
-// separate later step (talent_notifications.email_sent_at stays null until the
-// sending domain is verified).
+// expiry threshold, materialises in-app notifications, and then attempts an
+// email for each newly created reminder through the shared Lovable email
+// infrastructure. The send is a graceful no-op while the sending domain is
+// unverified (talent_notifications.email_sent_at simply stays null), so no code
+// change is needed once verification completes.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type Prefs = {
+  in_app_enabled?: boolean;
   in_app?: Record<string, boolean>;
   email?: boolean;
 };
@@ -37,18 +40,23 @@ type Pending = {
 export async function runTalentReminderScan(opts: { userId?: string } = {}) {
   let profileQ = supabaseAdmin
     .from("talent_profiles")
-    .select("id, user_id, expiry_notice_days, notification_prefs")
+    .select("id, user_id, email, expiry_notice_days, notification_prefs")
     .not("user_id", "is", null);
   if (opts.userId) profileQ = profileQ.eq("user_id", opts.userId);
   const { data: profiles, error } = await profileQ;
   if (error) throw new Error(error.message);
 
   const pending: Pending[] = [];
+  const emailByUser = new Map<string, string | null>();
 
   for (const p of profiles ?? []) {
     const userId = p.user_id as string;
     const noticeDays = (p.expiry_notice_days as number) ?? 30;
-    const prefs = ((p.notification_prefs ?? {}) as Prefs).in_app ?? {};
+    const allPrefs = (p.notification_prefs ?? {}) as Prefs;
+    // Master switch — when in-app reminders are off, nothing is materialised.
+    if (allPrefs.in_app_enabled === false) continue;
+    emailByUser.set(userId, (p.email as string | null) ?? null);
+    const prefs = allPrefs.in_app ?? {};
     const on = (k: string) => prefs[k] !== false;
     const cutoff = new Date(Date.now() + noticeDays * DAY).toISOString();
 
@@ -145,8 +153,44 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
   const { data: inserted, error: insErr } = await supabaseAdmin
     .from("talent_notifications")
     .upsert(pending, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true })
-    .select("id");
+    .select("id, user_id, title, detail, email_sent_at");
   if (insErr) throw new Error(insErr.message);
 
-  return { scanned: profiles?.length ?? 0, created: inserted?.length ?? 0 };
+  const emailed = await emailNewReminders(inserted ?? [], emailByUser);
+
+  return { scanned: profiles?.length ?? 0, created: inserted?.length ?? 0, emailed };
+}
+
+/**
+ * Best-effort email for each freshly created reminder. Failures never break the
+ * scan: the in-app reminder already exists, and email_sent_at stays null so the
+ * UI keeps telling the truth about what was actually delivered.
+ */
+async function emailNewReminders(
+  rows: { id: string; user_id: string; title: string; detail: string | null; email_sent_at: string | null }[],
+  emailByUser: Map<string, string | null>,
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
+  const { buildReminderEmail } = await import("@/lib/talent-notification-email.server");
+
+  let sent = 0;
+  for (const row of rows) {
+    const to = emailByUser.get(row.user_id);
+    if (!to || row.email_sent_at) continue;
+    try {
+      const mail = buildReminderEmail({ title: row.title, detail: row.detail });
+      const res = await sendInvitationEmail(to, mail, `talent-reminder-${row.id}`, "talent_reminder");
+      if (res.sent) {
+        sent += 1;
+        await supabaseAdmin
+          .from("talent_notifications")
+          .update({ email_sent_at: new Date().toISOString() })
+          .eq("id", row.id);
+      }
+    } catch {
+      /* reminder email is best-effort */
+    }
+  }
+  return sent;
 }

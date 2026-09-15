@@ -13,7 +13,12 @@ export async function sendInvitationEmail(
   to: string,
   mail: { subject: string; html: string; text: string },
   idempotencyKey?: string,
-  label: "agency_invitation" | "talent_invitation" | "admin_invitation" = "agency_invitation",
+  label:
+    | "agency_invitation"
+    | "talent_invitation"
+    | "admin_invitation"
+    | "talent_reminder"
+    | "loved_one_share" = "agency_invitation",
 ): Promise<SendResult> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) return { sent: false, reason: "email_not_configured" };

@@ -8,7 +8,13 @@ import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getTalentDashboard, listTalentDismissals, dismissTalentReminder } from "@/lib/talent.functions";
+import {
+  getTalentDashboard,
+  listTalentDismissals,
+  dismissTalentReminder,
+  getTalentBellFeed,
+  markTalentNotificationRead,
+} from "@/lib/talent.functions";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -34,8 +40,14 @@ type NavItem = {
   match?: string;
 };
 
-const buildManageNav = (vaultBadge: number, sharesBadge: number): NavItem[] => [
-  { to: "/talent", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
+const buildManageNav = (vaultBadge: number, sharesBadge: number, reminderBadge: number): NavItem[] => [
+  {
+    to: "/talent",
+    label: "Dashboard",
+    icon: <LayoutGrid />,
+    match: "exact",
+    ...(reminderBadge > 0 ? { badge: reminderBadge } : {}),
+  },
   { to: "/talent/vault", label: "Vault", icon: <Lock />, badge: vaultBadge },
   { to: "/talent/sharing", label: <>Shared<br />Access</>, icon: <Share2 />, badge: sharesBadge },
   { to: "/talent/budget", label: <>Budget &<br />Income</>, icon: <Wallet /> },
@@ -64,7 +76,15 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const expiryNoticeDays = (dash as any)?.expiryNoticeDays ?? 30;
   const vaultBadge = ((dash as any)?.privateDocs ?? 0) + ((dash as any)?.sharedDocs ?? 0);
   const sharesBadge = (dash as any)?.activeShares ?? 0;
-  const manage = buildManageNav(vaultBadge, sharesBadge);
+  // Reminder-engine notifications (unread) — surfaced in the bell AND as a
+  // badge on the Dashboard nav item so a pending reminder is visible at a glance.
+  const loadBell = useServerFn(getTalentBellFeed);
+  const markReadFn = useServerFn(markTalentNotificationRead);
+  const { data: bell } = useQuery({
+    queryKey: ["talent", "bell-feed"],
+    queryFn: () => loadBell() as Promise<{ enabled: boolean; unreadCount: number; items: any[] }>,
+  });
+  const bellItems = bell?.enabled ? (bell.items ?? []) : [];
 
   const loadDismissals = useServerFn(listTalentDismissals);
   const dismissFn = useServerFn(dismissTalentReminder);
@@ -123,6 +143,21 @@ export function TalentShell({ children }: { children: ReactNode }) {
     to: string;
     search: { tab: "agency"; view: "requests" | "folder" };
   }[];
+
+  const bellCount = notifications.length + bellItems.length;
+  const manage = buildManageNav(vaultBadge, sharesBadge, bellCount);
+
+  async function markNotificationRead(id: string) {
+    try {
+      await markReadFn({ data: { id, read: true } });
+      queryClient.invalidateQueries({ queryKey: ["talent", "bell-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["talent", "notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
+    } catch {
+      /* non-blocking */
+    }
+  }
+
   // Loader data from /talent route: { profile, link, agency }
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
@@ -259,16 +294,26 @@ export function TalentShell({ children }: { children: ReactNode }) {
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
-              {notifications.length > 0 && <span className="tvp-dot">{notifications.length}</span>}
+              {bellCount > 0 && <span className="tvp-dot">{bellCount}</span>}
             </button>
             {bellOpen && (
               <div className="tvp-notification-panel">
                 <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
                   <div className="tvp-h2">Reminders</div>
+                  <Link
+                    to="/talent/notifications"
+                    className="tvp-link"
+                    onClick={() => setBellOpen(false)}
+                    style={{ fontSize: 12 }}
+                  >
+                    All reminders
+                  </Link>
                 </div>
-                {notifications.length === 0 ? (
+                {bellCount === 0 ? (
                   <p className="tvp-muted" style={{ fontSize: 13, padding: "8px 2px" }}>
-                    You're all caught up.
+                    {bell?.enabled === false
+                      ? "In-app reminders are switched off in Settings → Notifications."
+                      : "You're all caught up."}
                   </p>
                 ) : (
                   notifications.map((n, i) => (
@@ -305,6 +350,48 @@ export function TalentShell({ children }: { children: ReactNode }) {
                     </div>
                   ))
                 )}
+
+                {bellItems.map((n: any) => (
+                  <div key={n.id} style={{ position: "relative" }}>
+                    <Link
+                      to="/talent/notifications"
+                      className="tvp-notification-item"
+                      onClick={() => setBellOpen(false)}
+                    >
+                      <div
+                        className={`tvp-kpi-icon tvp-bg-${n.tone === "purple" ? "purple" : "amber"}`}
+                        style={{ width: 32, height: 32 }}
+                      >
+                        {n.kind === "new_device_signin" ? (
+                          <ShieldCheck className="h-4 w-4" />
+                        ) : (
+                          <Clock className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div style={{ paddingRight: 20 }}>
+                        <strong>{n.title}</strong>
+                        {n.detail && (
+                          <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                            {n.detail}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                    <button
+                      title="Mark as read (kept in All reminders)"
+                      aria-label="Mark as read"
+                      className="tvp-mini-btn"
+                      style={{ position: "absolute", top: 8, right: 6 }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        markNotificationRead(n.id);
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -139,7 +139,11 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: share } = await supabase
-      .from("loved_one_shares").select("id, token").eq("id", data.id).eq("created_by", userId).maybeSingle();
+      .from("loved_one_shares")
+      .select("id, token, talent_id, loved_one_name, loved_one_email, expires_at")
+      .eq("id", data.id)
+      .eq("created_by", userId)
+      .maybeSingle();
     if (!share) throw new Error("Share not found.");
 
     const { generateAccessCode, hashAccessCode } = await import("@/lib/loved-one-access.server");
@@ -153,7 +157,43 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
       })
       .eq("id", share.id).eq("created_by", userId);
     if (error) throw new Error(error.message);
-    return { access_code: accessCode };
+
+    // Tell the Loved One a new code was issued (the code itself is never sent).
+    // Graceful no-op while the sending domain is unverified — the caller is told
+    // honestly whether the email actually went out.
+    let email: { sent: boolean; reason?: string } = { sent: false, reason: "send_failed" };
+    try {
+      const { buildRegeneratedCodeEmail } = await import("@/lib/loved-one-email.server");
+      const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
+      const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
+      const { data: prof } = share.talent_id
+        ? await supabase.from("talent_profiles").select("full_name").eq("id", share.talent_id).maybeSingle()
+        : { data: null as any };
+      const mail = buildRegeneratedCodeEmail({
+        lovedOneName: share.loved_one_name ?? share.loved_one_email,
+        sharerName: prof?.full_name ?? "A TalVault user",
+        link: `${PUBLIC_SITE_URL}/loved-one/${share.token}`,
+        expiresAt: share.expires_at,
+      });
+      const res = await sendInvitationEmail(
+        share.loved_one_email,
+        mail,
+        `loved-one-regen-${share.id}-${Date.now()}`,
+        "loved_one_share",
+      );
+      email = res.sent ? { sent: true } : { sent: false, reason: res.reason };
+      if (res.sent) {
+        await supabase
+          .from("loved_one_shares")
+          .update({ email_sent_at: new Date().toISOString() })
+          .eq("id", share.id)
+          .eq("created_by", userId);
+      }
+    } catch {
+      email = { sent: false, reason: "send_failed" };
+    }
+
+    return { access_code: accessCode, email };
   });
 
 // ---------------- Public (magic link) ----------------

@@ -2050,6 +2050,7 @@ export type Database = {
           email_sent_at: string | null
           id: string
           kind: string
+          read_at: string | null
           target_id: string | null
           target_type: string | null
           title: string
@@ -2066,6 +2067,7 @@ export type Database = {
           email_sent_at?: string | null
           id?: string
           kind: string
+          read_at?: string | null
           target_id?: string | null
           target_type?: string | null
           title: string
@@ -2082,6 +2084,7 @@ export type Database = {
           email_sent_at?: string | null
           id?: string
           kind?: string
+          read_at?: string | null
           target_id?: string | null
           target_type?: string | null
           title?: string

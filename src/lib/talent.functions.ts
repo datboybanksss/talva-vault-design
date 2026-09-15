@@ -60,6 +60,7 @@ export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
     const prefs = (data?.notification_prefs ?? {}) as any;
     return {
       expiryNoticeDays: data?.expiry_notice_days ?? 30,
+      inAppEnabled: prefs.in_app_enabled !== false,
       inApp: { ...DEFAULT_IN_APP, ...(prefs.in_app ?? {}) } as Record<string, boolean>,
       // Email delivery stays off until the sending domain is verified.
       emailEnabled: false,
@@ -68,6 +69,7 @@ export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
 
 const NotificationPrefsInput = z.object({
   expiry_notice_days: z.number().int().min(1).max(365),
+  in_app_enabled: z.boolean().optional(),
   in_app: z.record(z.string(), z.boolean()).optional(),
 });
 
@@ -77,12 +79,102 @@ export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const patch: any = { expiry_notice_days: data.expiry_notice_days };
-    if (data.in_app) {
-      patch.notification_prefs = { in_app: { ...DEFAULT_IN_APP, ...data.in_app }, email: false };
+    if (data.in_app || data.in_app_enabled !== undefined) {
+      patch.notification_prefs = {
+        in_app_enabled: data.in_app_enabled !== false,
+        in_app: { ...DEFAULT_IN_APP, ...(data.in_app ?? {}) },
+        email: false,
+      };
     }
     const { error } = await supabase.from("talent_profiles").update(patch).eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true, expiryNoticeDays: data.expiry_notice_days };
+  });
+
+/** True when the caller has in-app reminders switched on. */
+async function inAppRemindersEnabled(supabase: any, userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("talent_profiles")
+    .select("notification_prefs")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return ((data?.notification_prefs ?? {}) as any).in_app_enabled !== false;
+}
+
+/**
+ * Full reminder history — read and unread, dismissed or not. Nothing is ever
+ * removed from this list, so clearing the bell never loses a reminder.
+ */
+export const listTalentNotifications = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        limit: z.number().int().min(1).max(100).default(20),
+        offset: z.number().int().min(0).default(0),
+        unread_only: z.boolean().default(false),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    let q = supabase
+      .from("talent_notifications")
+      .select("id, kind, title, detail, tone, target_type, target_id, due_at, read_at, dismissed_at, email_sent_at, created_at")
+      .eq("user_id", userId);
+    if (data.unread_only) q = q.is("read_at", null);
+    const { data: rows, error } = await q
+      .order("created_at", { ascending: false })
+      .range(data.offset, data.offset + data.limit - 1);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as any[];
+  });
+
+/** Bell feed: unread reminders plus the unread count, gated by the in-app preference. */
+export const getTalentBellFeed = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const enabled = await inAppRemindersEnabled(supabase, userId);
+    if (!enabled) return { enabled: false, unreadCount: 0, items: [] as any[] };
+    const { data: rows } = await supabase
+      .from("talent_notifications")
+      .select("id, kind, title, detail, tone, target_type, due_at, created_at")
+      .eq("user_id", userId)
+      .is("read_at", null)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    const items = (rows ?? []) as any[];
+    return { enabled: true, unreadCount: items.length, items };
+  });
+
+export const markTalentNotificationRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), read: z.boolean().default(true) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("talent_notifications")
+      .update({ read_at: data.read ? new Date().toISOString() : null })
+      .eq("id", data.id)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const markAllTalentNotificationsRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("talent_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .is("read_at", null);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 /**
@@ -524,30 +616,38 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
 
     // Reminder-engine notifications (Private Vault expiries, share expiries).
     // Shared-folder rows are skipped — they are already listed above.
-    try {
-      const { runTalentReminderScan } = await import("@/lib/talent-reminders.server");
-      await runTalentReminderScan({ userId });
-    } catch (e: any) {
-      console.error("[talent reminder scan]", e?.message);
-    }
-    const { data: notifs } = await supabase
-      .from("talent_notifications")
-      .select("id, kind, title, detail, tone, target_type, due_at, created_at")
-      .eq("user_id", userId)
-      .is("dismissed_at", null)
-      .neq("target_type", "shared_document")
-      .order("due_at", { ascending: true })
-      .limit(50);
-    for (const n of notifs ?? []) {
-      attention.push({
-        key: `notification:${n.id}`,
-        snapshot: Math.floor(new Date(n.created_at as string).getTime() / 1000),
-        type: "reminder",
-        title: n.title as string,
-        detail: (n.detail as string) ?? "",
-        tone: (n.tone === "purple" ? "purple" : "amber") as "amber" | "purple",
-        notificationId: n.id as string,
-      });
+    // The in-app master switch gates both the scan and the feed.
+    const inAppEnabled = await inAppRemindersEnabled(supabase, userId);
+    let unreadNotifications = 0;
+    if (inAppEnabled) {
+      try {
+        const { runTalentReminderScan } = await import("@/lib/talent-reminders.server");
+        await runTalentReminderScan({ userId });
+      } catch (e: any) {
+        console.error("[talent reminder scan]", e?.message);
+      }
+      const { data: notifs } = await supabase
+        .from("talent_notifications")
+        .select("id, kind, title, detail, tone, target_type, due_at, read_at, created_at")
+        .eq("user_id", userId)
+        .is("dismissed_at", null)
+        .neq("target_type", "shared_document")
+        .order("due_at", { ascending: true })
+        .limit(50);
+      for (const n of notifs ?? []) {
+        if (!n.read_at) unreadNotifications += 1;
+        attention.push({
+          key: `notification:${n.id}`,
+          snapshot: Math.floor(new Date(n.created_at as string).getTime() / 1000),
+          type: "reminder",
+          title: n.title as string,
+          detail: (n.detail as string) ?? "",
+          tone: (n.tone === "purple" ? "purple" : "amber") as "amber" | "purple",
+          notificationId: n.id as string,
+        });
+      }
+    } else {
+      attention = [];
     }
 
 
@@ -565,6 +665,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       resubRequests,
       pendingRequests,
       actionRequests: pendingRequests + resubRequests,
+      inAppEnabled,
+      unreadNotifications,
       attention,
     };
   });

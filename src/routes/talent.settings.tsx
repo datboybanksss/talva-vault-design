@@ -56,6 +56,7 @@ function TalentSettings() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [expiryDays, setExpiryDays] = useState("30");
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const [inAppEnabled, setInAppEnabled] = useState(true);
   const [inApp, setInApp] = useState<Record<string, boolean>>({
     doc_expiring: true, share_expiring: true, agency_share: true, ai_review: true,
   });
@@ -64,6 +65,7 @@ function TalentSettings() {
     getTalentNotificationPrefs()
       .then((r: any) => {
         setExpiryDays(String(r?.expiryNoticeDays ?? 30));
+        setInAppEnabled(r?.inAppEnabled !== false);
         if (r?.inApp) setInApp((p) => ({ ...p, ...r.inApp }));
       })
       .catch(() => {});
@@ -77,7 +79,9 @@ function TalentSettings() {
     }
     setSavingPrefs(true);
     try {
-      await updateTalentNotificationPrefs({ data: { expiry_notice_days: n, in_app: inApp } });
+      await updateTalentNotificationPrefs({
+        data: { expiry_notice_days: n, in_app_enabled: inAppEnabled, in_app: inApp },
+      });
       toast.success(`You'll be warned ${n} days before a document expires`);
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save notification settings");
@@ -231,36 +235,78 @@ function TalentSettings() {
             </div>
           </div>
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 18, fontWeight: 800 }}>
-            In-app reminders
+            In-app notifications
           </p>
-          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 2 }}>
-            These drive the “Needs attention” panel on your dashboard. Email delivery is switched off
-            until the TalVault sending domain is verified.
+          <label
+            className="tvp-doc-card"
+            style={{ cursor: "pointer", marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}
+          >
+            <input
+              type="checkbox"
+              checked={inAppEnabled}
+              onChange={(e) => setInAppEnabled(e.target.checked)}
+              style={{ width: 18, height: 18 }}
+            />
+            <div>
+              <strong>Show reminders in TalVault</strong>
+              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                Drives the notification bell, the Dashboard badge and the “Needs attention” panel.
+                Switch this off and no reminders are raised for your account.
+              </div>
+            </div>
+            <span className={`tvp-status tvp-${inAppEnabled ? "green" : "neutral"}`}>
+              {inAppEnabled ? "On" : "Off"}
+            </span>
+          </label>
+
+          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 14 }}>
+            Choose which reminders you want to see.
           </p>
-          <div className="tvp-doc-grid" style={{ marginTop: 12 }}>
-            {IN_APP_CHANNELS.map((c) => (
-              <label
-                key={c.key}
-                className="tvp-doc-card"
-                style={{ cursor: c.live ? "pointer" : "not-allowed", opacity: c.live ? 1 : 0.6 }}
-              >
-                <input
-                  type="checkbox"
-                  checked={c.live ? inApp[c.key] !== false : false}
-                  disabled={!c.live}
-                  onChange={(e) => setInApp((p) => ({ ...p, [c.key]: e.target.checked }))}
-                  style={{ width: 18, height: 18 }}
-                />
-                <div>
-                  <strong>{c.label}</strong>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>{c.hint}</div>
-                </div>
-                <span className={`tvp-status tvp-${c.live ? "green" : "neutral"}`}>
-                  {c.live ? "Active" : "Soon"}
-                </span>
-              </label>
-            ))}
+          <div className="tvp-doc-grid" style={{ marginTop: 10, opacity: inAppEnabled ? 1 : 0.5 }}>
+            {IN_APP_CHANNELS.map((c) => {
+              const usable = c.live && inAppEnabled;
+              return (
+                <label
+                  key={c.key}
+                  className="tvp-doc-card"
+                  style={{ cursor: usable ? "pointer" : "not-allowed", opacity: c.live ? 1 : 0.6 }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={c.live ? inApp[c.key] !== false : false}
+                    disabled={!usable}
+                    onChange={(e) => setInApp((p) => ({ ...p, [c.key]: e.target.checked }))}
+                    style={{ width: 18, height: 18 }}
+                  />
+                  <div>
+                    <strong>{c.label}</strong>
+                    <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>{c.hint}</div>
+                  </div>
+                  <span className={`tvp-status tvp-${c.live ? "green" : "neutral"}`}>
+                    {c.live ? "Active" : "Soon"}
+                  </span>
+                </label>
+              );
+            })}
           </div>
+
+          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 20, fontWeight: 800 }}>
+            Email notifications
+          </p>
+          <label
+            className="tvp-doc-card"
+            style={{ cursor: "not-allowed", opacity: 0.6, marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}
+          >
+            <input type="checkbox" checked={false} disabled style={{ width: 18, height: 18 }} />
+            <div>
+              <strong>Email me the same reminders</strong>
+              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                Not available yet — pending domain verification. Reminders will start arriving by email
+                automatically once the TalVault sending domain is verified.
+              </div>
+            </div>
+            <span className="tvp-status tvp-neutral">Not available yet</span>
+          </label>
         </div>
       )}
     </>

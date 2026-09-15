@@ -51,13 +51,19 @@ function SharingPage() {
   async function onRegen(s: any) {
     if (!confirm("Issue a new access code? The previous code stops working immediately.")) return;
     try {
-      const { access_code } = await regen({ data: { id: s.id } });
+      const res: any = await regen({ data: { id: s.id } });
+      const email = (res?.email ?? { sent: false }) as { sent: boolean; reason?: string };
       setCodeModal({
         link: `${window.location.origin}/loved-one/${s.token}`,
-        code: access_code,
-        email: { sent: false, reason: "regenerated" },
+        code: res.access_code,
+        email,
         recipient: s.loved_one_name ?? s.loved_one_email,
       });
+      if (email.sent) {
+        toast.success("New code issued — we emailed the unchanged link to your Loved One.");
+      } else {
+        toast.warning("New code issued, but no email was sent — copy the link and send it yourself.");
+      }
       qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to regenerate code");
