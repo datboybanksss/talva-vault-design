@@ -76,7 +76,15 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const expiryNoticeDays = (dash as any)?.expiryNoticeDays ?? 30;
   const vaultBadge = ((dash as any)?.privateDocs ?? 0) + ((dash as any)?.sharedDocs ?? 0);
   const sharesBadge = (dash as any)?.activeShares ?? 0;
-  const manage = buildManageNav(vaultBadge, sharesBadge);
+  // Reminder-engine notifications (unread) — surfaced in the bell AND as a
+  // badge on the Dashboard nav item so a pending reminder is visible at a glance.
+  const loadBell = useServerFn(getTalentBellFeed);
+  const markReadFn = useServerFn(markTalentNotificationRead);
+  const { data: bell } = useQuery({
+    queryKey: ["talent", "bell-feed"],
+    queryFn: () => loadBell() as Promise<{ enabled: boolean; unreadCount: number; items: any[] }>,
+  });
+  const bellItems = bell?.enabled ? (bell.items ?? []) : [];
 
   const loadDismissals = useServerFn(listTalentDismissals);
   const dismissFn = useServerFn(dismissTalentReminder);
