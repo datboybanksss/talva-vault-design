@@ -120,12 +120,9 @@ export function BillingReportsPanel({
           </button>
           <button
             className="tvp-primary"
-            onClick={() => {
-              const ok = printReportHtml(buildReportHtml(report, agencyName, fmtMoney));
-              if (!ok) toast.error("Allow pop-ups to export the PDF");
-            }}
+            onClick={() => printHtmlDocument(buildReportHtml(report, agencyName, fmtMoney))}
           >
-            <FileDown className="h-4 w-4" />Export PDF
+            <FileDown className="h-4 w-4" />Print / Save PDF
           </button>
         </div>
       </div>
