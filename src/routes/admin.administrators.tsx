@@ -141,8 +141,21 @@ function AdminsPage() {
           invite_url: `${window.location.origin}/invite/admin/${inv.token}`,
         },
       }).catch(() => ({ sent: false }));
-      if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
-      else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
+      if (res?.sent) {
+        toast.success("Invitation resent · expiry refreshed · logged.");
+      } else {
+        // The expiry refresh always succeeds before the email send is
+        // attempted, so a failed send must not read as a total failure.
+        const newExpiry = inv?.expires_at
+          ? new Date(inv.expires_at).toLocaleDateString("en-GB", {
+              day: "numeric", month: "short", year: "numeric",
+            })
+          : "the new date";
+        toast.warning(
+          `Expiry refreshed to ${newExpiry} · email couldn't be sent (domain verification pending) — copy the link and send it yourself.`,
+          { duration: 9000 },
+        );
+      }
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to resend invitation"),
   });
