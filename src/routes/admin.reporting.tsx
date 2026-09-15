@@ -198,9 +198,18 @@ function ReportingPage() {
             Growth, engagement, financial and retention metrics for the selected period.
           </p>
         </div>
-        <button className="tvp-primary" onClick={exportSnapshot} disabled={!d}>
-          <Download className="h-4 w-4" /> Export snapshot
-        </button>
+        <div className="tvp-actions">
+          <button className="tvp-primary" onClick={exportSnapshot} disabled={!d}>
+            <Download className="h-4 w-4" /> Export snapshot
+          </button>
+          <button
+            className="tvp-secondary"
+            onClick={() => d && printHtmlDocument(buildAdminReportingHtml(d))}
+            disabled={!d}
+          >
+            <FileDown className="h-4 w-4" /> Print / Save PDF
+          </button>
+        </div>
       </div>
 
       <div className="tvp-card" style={{ padding: 16, marginBottom: 18 }}>
