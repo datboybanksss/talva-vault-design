@@ -220,8 +220,13 @@ function AdminsPage() {
   const adminPage = usePagedList(list);
   const invitePage = usePagedList(invitations.data ?? []);
 
+  // `status` is the effective status (a stored "pending" whose expiry has
+  // passed reads as "expired"), so a lapsed invite never counts as pending.
   const pendingInvites = (invitations.data ?? []).filter(
-    (i: any) => (i.stored_status ?? i.status) === "pending",
+    (i: any) => i.status === "pending",
+  );
+  const expiredInvites = (invitations.data ?? []).filter(
+    (i: any) => i.status === "expired",
   );
 
   return (
