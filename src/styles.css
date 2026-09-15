@@ -1370,6 +1370,31 @@
   padding: 16px 22px; border-top: 1px solid var(--line); background: var(--surface-soft);
 }
 
+/* Modals are portalled to <body>, i.e. outside `.tv-app`, so the form-field
+   styling scoped to `.tv-app` never reached them — inputs inside a modal
+   rendered with no visible outline. Repeat the field rules here so every
+   modal form matches the in-page forms. */
+.tvp-modal .tvp-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.tvp-modal .tvp-form-group { display: flex; flex-direction: column; gap: 6px; }
+.tvp-modal .tvp-form-group label { font-size: 12px; font-weight: 900; color: var(--tvp-ink); }
+.tvp-modal .tvp-form-group input,
+.tvp-modal .tvp-form-group select,
+.tvp-modal .tvp-form-group textarea {
+  height: 42px; border: 1px solid var(--tvp-line-strong); border-radius: 9px;
+  padding: 0 12px; background: var(--surface); color: var(--tvp-ink); font-size: 13px;
+  width: 100%;
+}
+.tvp-modal .tvp-form-group textarea { height: 88px; padding-top: 10px; resize: vertical; }
+.tvp-modal .tvp-form-group input:focus,
+.tvp-modal .tvp-form-group select:focus,
+.tvp-modal .tvp-form-group textarea:focus {
+  outline: none; border-color: var(--tvp-teal-2); box-shadow: var(--focus-ring);
+}
+@media (max-width: 720px) {
+  .tvp-modal .tvp-form-grid { grid-template-columns: 1fr; }
+}
+
+
 @media (max-width: 720px) {
   .tvp-modal-backdrop { padding: 12px; align-items: flex-start; }
   .tvp-modal { max-height: calc(100dvh - 24px); display: flex; flex-direction: column; }
