@@ -803,7 +803,7 @@ function QIPage() {
                       placeholder={roster.length ? "Search your roster, or leave blank" : "Leave blank for a client-only document"}
                     />
                     <datalist id="tvp-talent-roster">
-                      {roster.map((t) => <option key={t.id} value={t.displayName} />)}
+                      {roster.map((t: any) => <option key={t.id} value={t.displayName} />)}
                     </datalist>
                     <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
                       {!editor.talent_name.trim()
