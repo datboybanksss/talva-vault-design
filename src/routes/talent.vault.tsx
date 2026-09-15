@@ -423,7 +423,7 @@ function PrivateVault() {
 
                         <div className="tvp-footer-actions" style={{ marginTop: 2 }}>
                           <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
-                          <button title="Remove folder" className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name, true)} aria-label="Remove folder"><Trash2 className="h-4 w-4" /></button>
+                          <button title="Remove folder — hidden, restorable from Settings" className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name, true)} aria-label="Remove folder (restorable)"><Archive className="h-4 w-4" /></button>
                         </div>
                       </div>
                     </div>
