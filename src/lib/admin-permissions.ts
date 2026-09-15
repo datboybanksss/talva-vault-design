@@ -66,3 +66,15 @@ export function grantableAdminPermissions(
 export function canInviteAdministrators(inviterLevel?: string | null): boolean {
   return adminPermissionRank(inviterLevel) >= adminPermissionRank(HIGHEST_ADMIN_PERMISSION);
 }
+
+/** The lowest level allowed to act on behalf of an agency client. */
+export const AGENCY_SUPPORT_PERMISSION: AdminPermissionLevel = "agency_support";
+
+/**
+ * Agency-support actions: resending, revoking, correcting the email on, and
+ * copying the link for an AGENCY invitation. Deliberately excludes suspending
+ * an agency, managing administrators and approving legal copy.
+ */
+export function canSupportAgencies(level?: string | null): boolean {
+  return adminPermissionRank(level) >= adminPermissionRank(AGENCY_SUPPORT_PERMISSION);
+}
