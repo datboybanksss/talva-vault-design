@@ -384,12 +384,57 @@ ${table("Breakdown by client", report.byClient, "Client")}
 </body></html>`;
 }
 
-export function printReportHtml(html: string) {
-  const w = window.open("", "_blank", "width=900,height=1000");
-  if (!w) return false;
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => w.print(), 350);
-  return true;
+/**
+ * Prints an HTML document via a hidden, off-screen iframe.
+ * No pop-up window and no document.write, so there is nothing for a browser
+ * to block and nothing that renders inconsistently across engines.
+ */
+export function printHtmlDocument(html: string) {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  frame.srcdoc = html;
+
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    frame.remove();
+  };
+
+  frame.onload = () => {
+    const win = frame.contentWindow;
+    if (!win) {
+      cleanup();
+      return;
+    }
+    win.addEventListener("afterprint", cleanup);
+    win.focus();
+    win.print();
+    // Fallback for engines that never fire afterprint.
+    setTimeout(cleanup, 60_000);
+  };
+
+  document.body.appendChild(frame);
 }
+
+/** Shared print stylesheet so every printable report looks the same. */
+export const PRINT_DOC_STYLES = `
+  body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#12211f; margin:32px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h2 { font-size:14px; margin:24px 0 8px; text-transform:uppercase; letter-spacing:.04em; color:#0f766e; }
+  .meta { color:#5c6b68; font-size:12px; margin-bottom:20px; }
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .card { border:1px solid #dfe6e4; border-radius:8px; padding:10px 12px; }
+  .card .v { font-size:16px; font-weight:700; }
+  .card .l { font-size:11px; color:#5c6b68; margin-top:2px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid #e6ecea; }
+  th { background:#f2f7f6; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#5c6b68; }
+  td.n, th.n { text-align:right; }
+  tfoot td { font-weight:700; border-top:2px solid #0f766e; }
+  .empty { font-size:12px; color:#5c6b68; }
+  @media print { body { margin:14mm; } }
+`;
+
+export const escapeHtml = esc;
