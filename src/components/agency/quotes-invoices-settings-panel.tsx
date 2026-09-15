@@ -47,6 +47,11 @@ export function QuotesInvoicesSettingsPanel() {
         default_vat_rate_bp: data.default_vat_rate_bp ?? 1500,
         billing_address: data.billing_address ?? "",
         accent_color: data.accent_color ?? "#064E58",
+        bank_name: (data as any).bank_name ?? "",
+        bank_account_holder: (data as any).bank_account_holder ?? "",
+        bank_account_number: (data as any).bank_account_number ?? "",
+        bank_branch_code: (data as any).bank_branch_code ?? "",
+        payment_instructions: (data as any).payment_instructions ?? "",
       });
     }
   }, [data, form]);
@@ -64,6 +69,11 @@ export function QuotesInvoicesSettingsPanel() {
           default_vat_rate_bp: Number(form.default_vat_rate_bp),
           billing_address: form.billing_address?.trim() || null,
           accent_color: form.accent_color || null,
+          bank_name: form.bank_name?.trim() || null,
+          bank_account_holder: form.bank_account_holder?.trim() || null,
+          bank_account_number: form.bank_account_number?.trim() || null,
+          bank_branch_code: form.bank_branch_code?.trim() || null,
+          payment_instructions: form.payment_instructions?.trim() || null,
         },
       }),
     onSuccess: () => {
