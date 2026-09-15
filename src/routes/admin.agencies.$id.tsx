@@ -46,6 +46,7 @@ function AgencyDetail() {
   const unsuspendFn = useServerFn(unsuspendAgency);
   const listAgencyInvFn = useServerFn(listAgencyInvitationsForAgency);
   const listTalentInvFn = useServerFn(listTalentInvitationsForAgency);
+  const whoamiFn = useServerFn(whoami);
   const qc = useQueryClient();
   const [suspendOpen, setSuspendOpen] = useState(false);
 
