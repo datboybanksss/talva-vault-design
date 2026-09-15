@@ -56,6 +56,7 @@ function TalentSettings() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [expiryDays, setExpiryDays] = useState("30");
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const [inAppEnabled, setInAppEnabled] = useState(true);
   const [inApp, setInApp] = useState<Record<string, boolean>>({
     doc_expiring: true, share_expiring: true, agency_share: true, ai_review: true,
   });
@@ -64,6 +65,7 @@ function TalentSettings() {
     getTalentNotificationPrefs()
       .then((r: any) => {
         setExpiryDays(String(r?.expiryNoticeDays ?? 30));
+        setInAppEnabled(r?.inAppEnabled !== false);
         if (r?.inApp) setInApp((p) => ({ ...p, ...r.inApp }));
       })
       .catch(() => {});
