@@ -178,12 +178,16 @@ function PrivateVault() {
 
   async function onDeleteFolder(id: string, name: string, isTop: boolean) {
     const message = isTop
-      ? `Remove "${name}" from your vault? It will be hidden, and you can restore it later from Settings → Manage folders with its documents intact.`
-      : `Delete "${name}"? Only empty subfolders can be deleted.`;
+      ? `Remove "${name}" from your vault? Nothing is deleted — the folder is hidden with its documents intact, and you can restore it later from Settings → Manage folders.`
+      : `Permanently delete "${name}"? This cannot be undone, and only empty subfolders can be deleted.`;
     if (!window.confirm(message)) return;
     try {
       await deleteFolder({ data: { id } });
-      toast.success(isTop ? "Folder removed — restore it any time from Settings." : "Folder deleted.");
+      toast.success(
+        isTop
+          ? "Folder removed — restore it any time from Settings → Manage folders."
+          : "Subfolder permanently deleted.",
+      );
       invalidate();
     } catch (e: any) {
       toast.error(e?.message ?? "Could not delete.");
