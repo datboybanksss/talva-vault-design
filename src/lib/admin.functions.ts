@@ -1373,7 +1373,7 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().email(),
-        permission_level: z.enum(["view_only", "edit"]),
+        permission_level: ADMIN_PERMISSION_ENUM,
         expiry_days: z.number().int().min(1).max(60).default(14),
       })
       .parse(d),
@@ -1467,7 +1467,7 @@ export const updateAdminInvitation = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string(),
-        permission_level: z.enum(["view_only", "edit"]),
+        permission_level: ADMIN_PERMISSION_ENUM,
       })
       .parse(d),
   )
@@ -1754,7 +1754,7 @@ export const updateAdministrator = createServerFn({ method: "POST" })
       .object({
         user_id: z.string().uuid(),
         designation: z.string().trim().max(120).nullable().optional(),
-        permission_level: z.enum(["view_only", "edit"]).optional(),
+        permission_level: ADMIN_PERMISSION_ENUM.optional(),
       })
       .parse(d),
   )
