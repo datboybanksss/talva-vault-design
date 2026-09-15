@@ -6,7 +6,7 @@ import { Download, FileDown, ArrowUp, ArrowDown, TrendingUp } from "lucide-react
 import { toast } from "sonner";
 import { fmtMoney } from "@/lib/billing";
 import {
-  buildReportCsv, buildReportHtml, downloadCsv, printReportHtml, sortBuckets,
+  buildReportCsv, buildReportHtml, downloadCsv, printHtmlDocument, sortBuckets,
   type BillingReport, type BucketSortKey, type ReportBucket,
 } from "@/lib/billing-reports";
 import { BillingSummaryCards } from "./billing-summary-cards";
