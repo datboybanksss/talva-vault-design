@@ -5,6 +5,48 @@ import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Clock, Download, Folder, FileText, AlertTriangle, Lock, Eye, KeyRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { getLovedOneShareByToken, getLovedOneFileUrl, unlockLovedOneShare } from "@/lib/loved-one.functions";
+import { BillingDocument } from "@/components/agency/billing-document";
+
+/** Read-only rendering of a shared quote or invoice — data, not a file. */
+function BillingBlock({
+  record, watermarked, watermark,
+}: { record: any; watermarked: boolean; watermark: string }) {
+  const tiles = Array.from({ length: 18 });
+  return (
+    <div style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 12, marginBottom: 14, overflow: "hidden", position: "relative" }}>
+      <div style={{ position: "relative" }}>
+        <BillingDocument doc={record.doc} lines={record.lines} agency={record.agency} />
+        {watermarked && (
+          <div
+            data-testid="lo-billing-watermark"
+            aria-hidden
+            style={{
+              position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden",
+              display: "grid", gridTemplateColumns: "repeat(3, 1fr)", alignContent: "space-around", gap: 12,
+            }}
+          >
+            {tiles.map((_, i) => (
+              <span
+                key={i}
+                style={{
+                  transform: "rotate(-28deg)", textAlign: "center", fontSize: 12, fontWeight: 700,
+                  color: "rgba(6,78,88,.18)", whiteSpace: "nowrap", overflow: "hidden", userSelect: "none",
+                }}
+              >
+                {watermark}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ padding: "10px 16px", borderTop: "1px solid #E5E7EB", fontSize: 11, color: "#65707A" }}>
+        {watermarked
+          ? "View only — this record is watermarked with your email and the time you opened it."
+          : "Shared with you for your records."}
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/loved-one/$token")({
   ssr: false,
