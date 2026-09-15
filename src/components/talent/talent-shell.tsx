@@ -350,6 +350,48 @@ export function TalentShell({ children }: { children: ReactNode }) {
                     </div>
                   ))
                 )}
+
+                {bellItems.map((n: any) => (
+                  <div key={n.id} style={{ position: "relative" }}>
+                    <Link
+                      to="/talent/notifications"
+                      className="tvp-notification-item"
+                      onClick={() => setBellOpen(false)}
+                    >
+                      <div
+                        className={`tvp-kpi-icon tvp-bg-${n.tone === "purple" ? "purple" : "amber"}`}
+                        style={{ width: 32, height: 32 }}
+                      >
+                        {n.kind === "new_device_signin" ? (
+                          <ShieldCheck className="h-4 w-4" />
+                        ) : (
+                          <Clock className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div style={{ paddingRight: 20 }}>
+                        <strong>{n.title}</strong>
+                        {n.detail && (
+                          <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                            {n.detail}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                    <button
+                      title="Mark as read (kept in All reminders)"
+                      aria-label="Mark as read"
+                      className="tvp-mini-btn"
+                      style={{ position: "absolute", top: 8, right: 6 }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        markNotificationRead(n.id);
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
