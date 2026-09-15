@@ -374,7 +374,7 @@ function ReviewDialog({
 
   return (
     <ModalShell onClose={onClose} maxWidth={720}>
-        <div className="tvp-modal-header">
+        <div className="tvp-modal-head">
           <div>
             <h3 className="tvp-h2">Review: {request.title}</h3>
             <div className="tvp-muted tvp-small">{request.talentName} · {request.folder}</div>
@@ -451,7 +451,7 @@ function ReviewDialog({
           )}
         </div>
 
-        <div className="tvp-modal-footer">
+        <div className="tvp-modal-foot">
           <button className="tvp-secondary" onClick={onClose}>Cancel</button>
           <button
             className="tvp-primary"
