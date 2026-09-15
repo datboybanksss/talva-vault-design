@@ -7,8 +7,12 @@ import { fetchOnboardedTalent, fetchOnboardedTalentLinks } from "@/lib/onboarded
 import {
   HIGHEST_ADMIN_PERMISSION,
   canInviteAdministrators,
+  canSupportAgencies,
   grantableAdminPermissions,
 } from "@/lib/admin-permissions";
+
+/** Every permission level an administrator invitation may carry. */
+const ADMIN_PERMISSION_ENUM = z.enum(["view_only", "agency_support", "edit"]);
 
 
 // -----------------------------------------------------------------------------
