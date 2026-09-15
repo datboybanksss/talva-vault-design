@@ -149,7 +149,7 @@ export function buildInvitationEmail(input: {
   inviteUrl: string;
   expiryDate: string;
   /** Defaults to the agency variant so existing callers are unchanged. */
-  variant?: "agency" | "talent" | "admin";
+  variant?: "agency" | "talent" | "staff" | "admin";
 }) {
   const v = INVITATION_VARIANTS[input.variant ?? "agency"];
   const tokens: InvitationTokens = {

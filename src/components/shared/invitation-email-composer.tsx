@@ -29,7 +29,7 @@ export function InvitationEmailComposer({
   expiryDate,
   tokens,
 }: {
-  variant: "agency" | "talent" | "admin";
+  variant: "agency" | "talent" | "staff" | "admin";
   subject: string;
   setSubject: (v: string) => void;
   body: string;
