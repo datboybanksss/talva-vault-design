@@ -475,7 +475,7 @@ function PrivateVault() {
                     </td>
                     <td>{folderName(d.folder_id)}</td>
                     <td>{d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : "—"}</td>
-                    <td>{new Date(d.created_at).toLocaleDateString()}</td>
+                    <td>{new Date(d.created_at).toLocaleDateString("en-GB")}</td>
                     <td>
                       <div className="tvp-row-actions">
                         <RowActionsMenu
@@ -758,7 +758,7 @@ function SharedDocumentsView() {
                     </td>
                     <td>{d.folder}</td>
                     <td><span className={`tvp-status tvp-${statusTone(d.status)}`}>{d.status.replace(/_/g, " ")}</span></td>
-                    <td>{d.validity_expires_at ? new Date(d.validity_expires_at).toLocaleDateString() : "—"}</td>
+                    <td>{d.validity_expires_at ? new Date(d.validity_expires_at).toLocaleDateString("en-GB") : "—"}</td>
                     <td>
                       <div className="tvp-row-actions">
                         {d.storage_path ? (
@@ -883,7 +883,7 @@ function ManagerRequests() {
                     <strong>{r.title}</strong>
                     <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
                       Folder: {r.folder}
-                      {r.due_date && <> · Due {new Date(r.due_date).toLocaleDateString()}</>}
+                      {r.due_date && <> · Due {new Date(r.due_date).toLocaleDateString("en-GB")}</>}
                     </div>
                     {r.instructions && (
                       <div style={{ fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>{r.instructions}</div>
@@ -966,7 +966,7 @@ function ManagerRequests() {
                     <div className="tvp-history-meta">
                       <span><FolderOpen className="h-3 w-3" /> {r.folder}</span>
                       {r.reviewed_at && (
-                        <span><ClockIcon className="h-3 w-3" /> Reviewed {new Date(r.reviewed_at).toLocaleDateString()}</span>
+                        <span><ClockIcon className="h-3 w-3" /> Reviewed {new Date(r.reviewed_at).toLocaleDateString("en-GB")}</span>
                       )}
                     </div>
                     {r.reason_code && (
