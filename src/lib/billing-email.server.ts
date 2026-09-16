@@ -122,6 +122,14 @@ export async function sendBillingDocEmail(opts: {
     isVatRegistered: boolean;
     vatNumber: string | null;
     accentColor: string | null;
+    /** Banking block; supplied for invoices only, never for quotations. */
+    paymentDetails?: {
+      bankName: string | null;
+      accountHolder: string | null;
+      accountNumber: string | null;
+      branchCode: string | null;
+      instructions: string | null;
+    } | null;
   };
   idempotencyKey: string;
 }): Promise<BillingSendResult> {
