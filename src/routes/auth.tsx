@@ -495,13 +495,8 @@ function AuthPage() {
         </div>
 
         <div>
-          <h1 className="tv-auth-headline">
-            The secure operations console for talent, agencies and loved ones.
-          </h1>
-          <p className="tv-auth-sub">
-            Manage agencies, invitations, audit trails and platform integrity from one
-            branded workspace — with role-based access and full audit history.
-          </p>
+          <h1 className="tv-auth-headline">{hero.headline}</h1>
+          <p className="tv-auth-sub">{hero.sub}</p>
 
           <ul className="tv-auth-points">
             <li className="tv-auth-point">
