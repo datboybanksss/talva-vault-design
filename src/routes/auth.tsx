@@ -516,7 +516,7 @@ function AuthPage() {
               <span className="tv-auth-point-dot">
                 <Users className="h-4 w-4 text-white" />
               </span>
-              Agency &amp; talent invitations, end to end
+              {hero.points[2]}
             </li>
           </ul>
         </div>
