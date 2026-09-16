@@ -78,6 +78,9 @@
   --surface:        #ffffff;
   --surface-soft:   #fffcf8;
   --surface-app:    #fdf9f5;
+  /* Form-field fill — deliberately distinct from --surface so inputs never
+     disappear into the panel/modal they sit on. */
+  --field-bg:       #fbf7f1;
   --surface-income: #f0fafa;
   --on-teal-dim:    #c8dde0;
 
