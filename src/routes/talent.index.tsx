@@ -38,7 +38,7 @@ function TalentDashboard() {
       else await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] }),
-    onError: (e: any, item: { key: string }) => {
+    onError: (e: any, item: { key: string; snapshot: number; notificationId?: string }) => {
       setDismissing((k) => k.filter((x) => x !== item.key));
       toast.error(e?.message ?? "Couldn't dismiss that just now — please try again.");
     },
@@ -132,6 +132,7 @@ function TalentDashboard() {
                   className="tvp-icon-btn"
                   title="Dismiss from this feed"
                   aria-label="Dismiss from this feed"
+                  disabled={dismissing.includes(item.key)}
                   onClick={() => dismissItem(item)}
                 >
                   <X className="h-4 w-4" />
