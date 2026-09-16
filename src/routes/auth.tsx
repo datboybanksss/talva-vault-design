@@ -69,7 +69,7 @@ const PORTAL_HERO: Record<
     points: [
       "Role-based access with row-level security",
       "Full audit log on every administrator action",
-      "Agency & talent invitations, end to end",
+      "{hero.points[2]}",
     ],
   },
   agency: {
@@ -151,6 +151,7 @@ function AuthPage() {
   const [mfaCode, setMfaCode] = useState("");
 
   const portal = useMemo(() => portalFromNext(search.next), [search.next]);
+  const hero = PORTAL_HERO[portal.key];
   // The `denied` param is only a hint from the gate that bounced us here. It is
   // never trusted on its own: we re-check the *current* session before showing
   // the banner, so a stale param from an earlier denial (back button, refresh,
@@ -503,13 +504,13 @@ function AuthPage() {
               <span className="tv-auth-point-dot">
                 <Lock className="h-4 w-4 text-white" />
               </span>
-              Role-based access with row-level security
+              {hero.points[0]}
             </li>
             <li className="tv-auth-point">
               <span className="tv-auth-point-dot">
                 <FileCheck2 className="h-4 w-4 text-white" />
               </span>
-              Full audit log on every administrator action
+              {hero.points[1]}
             </li>
             <li className="tv-auth-point">
               <span className="tv-auth-point-dot">
