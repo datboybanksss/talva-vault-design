@@ -1,4 +1,4 @@
-import { EMAIL_LOGO_WHITE_URL } from "@/lib/brand-email";
+import { emailWhiteBrandHtml } from "@/lib/brand-email";
 
 /**
  * Shown wherever an invitation email could not be delivered because the
@@ -176,7 +176,7 @@ export function buildInvitationEmail(input: {
 <html><body style="margin:0;padding:0;background:#f4f5f7;font-family:'Inter','Helvetica Neue',Arial,sans-serif;color:#1a1f2e;">
   <div style="max-width:600px;margin:24px auto;background:#ffffff;border-radius:12px;overflow:hidden;">
     <div style="background:#064E58;padding:28px 32px;color:#ffffff;">
-      <img src="${EMAIL_LOGO_WHITE_URL}" alt="TalVault" width="150" style="display:block;border:0;height:auto;max-width:150px;" />
+      ${emailWhiteBrandHtml()}
       <h1 style="font-size:22px;font-weight:700;margin:22px 0 6px;">${escapeHtml(subject)}</h1>
       <p style="font-size:14px;opacity:0.95;margin:0;">${escapeHtml(v.strapline)}</p>
     </div>

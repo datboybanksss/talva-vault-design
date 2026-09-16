@@ -92,10 +92,10 @@ export function InvitationEmailComposer({
         <div style={{ maxWidth: 600, margin: "24px auto", background: "#ffffff", borderRadius: 12, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", color: "#1a1f2e" }}>
           <div style={{ background: "#064E58", padding: "28px 32px", color: "#ffffff" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <TalVaultIcon variant="white" style={{ height: 22, width: 22 }} />
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "#356F77", display: "flex", alignItems: "center", justifyContent: "center", opacity: 1 }}>
+                <TalVaultIcon variant="white" style={{ height: 22, width: 22, opacity: 1 }} />
               </div>
-              <TalVaultWordmark variant="white" style={{ height: 18 }} />
+              <TalVaultWordmark variant="white" style={{ height: 18, opacity: 1 }} />
             </div>
             <h1 data-testid="preview-subject" style={{ fontSize: 22, fontWeight: 700, margin: "22px 0 6px" }}>
               {renderedSubject}
