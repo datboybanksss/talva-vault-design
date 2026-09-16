@@ -37,17 +37,24 @@ const searchSchema = z.object({
   reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
 });
 
-function deniedMessage(code: string | undefined, portal: PortalContext): string | null {
+function deniedMessage(
+  code: string | undefined,
+  portal: PortalContext,
+  email: string | null,
+): string | null {
   if (!code) return null;
+  // The denial always describes the account that is still signed in, so name
+  // it whenever we know it.
+  const who = email ? `You're still signed in as ${email}` : "You're signed in";
   switch (code) {
     case "not_talent":
-      return "You're signed in, but this account isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.";
+      return `${who}, but that account isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.`;
     case "not_agency":
-      return "You're signed in, but this account isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.";
+      return `${who}, but that account isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.`;
     case "not_admin":
-      return "You're signed in, but this account doesn't have admin access.";
+      return `${who}, but that account doesn't have admin access.`;
     default:
-      return `You don't have access to the ${portal.workspace} with this account.`;
+      return `${who}, and that account doesn't have access to the ${portal.workspace}.`;
   }
 }
 
@@ -106,11 +113,13 @@ function AuthPage() {
   // the banner, so a stale param from an earlier denial (back button, refresh,
   // shared link, or signing in as a different account) can never linger.
   const [deniedState, setDeniedState] = useState<"checking" | "confirmed">("checking");
+  const [deniedEmail, setDeniedEmail] = useState<string | null>(null);
   const deniedPortal = search.denied ? PORTAL_FOR_DENIED_CODE[search.denied] : undefined;
 
   useEffect(() => {
     if (!search.denied) {
       setDeniedState("checking");
+      setDeniedEmail(null);
       return;
     }
     let mounted = true;
@@ -120,6 +129,12 @@ function AuthPage() {
       const result = deniedPortal ? await checkPortalAccess(deniedPortal) : "granted";
       if (!mounted) return;
       if (result === "denied") {
+        // Name the account the denial applies to: arriving here from the
+        // public site with an old session still active otherwise reads as an
+        // error about the visitor rather than about who is signed in.
+        const { data: sess } = await supabase.auth.getSession();
+        if (!mounted) return;
+        setDeniedEmail(sess.session?.user.email ?? null);
         setDeniedState("confirmed");
         return;
       }
@@ -156,9 +171,9 @@ function AuthPage() {
   const denied = useMemo(
     () =>
       search.denied && deniedState === "confirmed"
-        ? deniedMessage(search.denied, portal)
+        ? deniedMessage(search.denied, portal, deniedEmail)
         : null,
-    [search.denied, deniedState, portal],
+    [search.denied, deniedState, portal, deniedEmail],
   );
 
   // A confirmed denial is not always the end of the road: the account may have
