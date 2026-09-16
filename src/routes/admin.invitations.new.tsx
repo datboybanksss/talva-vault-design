@@ -21,6 +21,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { phoneError } from "@/lib/phone";
 import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
 import {
   DEFAULT_INVITATION_SUBJECT,
@@ -142,6 +143,9 @@ function NewInvitationPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to update draft"),
   });
+
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [phoneSubmitAttempted, setPhoneSubmitAttempted] = useState(false);
 
   const docsQ = useQuery({
     queryKey: ["admin", "compliance", draftId],
@@ -272,11 +276,16 @@ function NewInvitationPage() {
       : businessType === "informal"
         ? !regMobile.trim()
         : true;
+  // Phone validation: never blocks typing, only surfaces on blur or on submit.
+  const phoneValue = businessType === "formal" ? regContact : regMobile;
+  const phoneFormatError = phoneError(phoneValue);
+  const showPhoneError = (phoneTouched || phoneSubmitAttempted) && !!phoneFormatError;
   const canSend =
     !!draftId &&
     detailsComplete &&
     missingSlots.length === 0 &&
     !missingPhone &&
+    !phoneFormatError &&
     !finalizeM.isPending;
 
   const outstanding = [
@@ -564,13 +573,25 @@ function NewInvitationPage() {
             <input
               type="tel"
               placeholder="e.g. +27 82 123 4567"
-              value={businessType === "formal" ? regContact : regMobile}
+              value={phoneValue}
+              aria-invalid={showPhoneError || undefined}
+              onBlur={() => setPhoneTouched(true)}
               onChange={(e) =>
                 businessType === "formal"
                   ? setRegContact(e.target.value)
                   : setRegMobile(e.target.value)
               }
+              style={showPhoneError ? { borderColor: "var(--tvp-red)" } : undefined}
             />
+            {showPhoneError ? (
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tvp-red)" }}>
+                {phoneFormatError}
+              </div>
+            ) : (
+              <div className="tvp-muted" style={{ fontSize: 12 }}>
+                Include the country code, for example +27 82 123 4567.
+              </div>
+            )}
           </div>
 
           <div className="tvp-footer-actions">
@@ -581,7 +602,15 @@ function NewInvitationPage() {
               type="button"
               className="tvp-primary"
               disabled={!canSend}
-              onClick={() => finalizeM.mutate()}
+              onClick={() => {
+                setPhoneSubmitAttempted(true);
+                if (phoneFormatError) {
+                  setPhoneTouched(true);
+                  toast.error(phoneFormatError);
+                  return;
+                }
+                finalizeM.mutate();
+              }}
             >
               {finalizeM.isPending ? "Sending…" : "Create & send invitation"}
             </button>

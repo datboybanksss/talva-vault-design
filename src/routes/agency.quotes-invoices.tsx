@@ -865,8 +865,8 @@ function QIPage() {
                     <h3 className="tvp-h3" style={{ margin: 0 }}>Line items</h3>
                     <button className="tvp-secondary" type="button" data-tour="editor-add-line" onClick={addLine}><Plus className="h-4 w-4" />Add line</button>
                   </div>
-                  <div style={{ border: "1px solid var(--tvp-border, #e5e5e5)", borderRadius: 6, overflow: "hidden" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", background: "#f7f7f5", fontSize: 11, textTransform: "uppercase", color: "#666", fontWeight: 700 }}>
+                  <div style={{ border: "1px solid var(--tvp-line)", borderRadius: 6, overflow: "hidden" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", background: "var(--surface-soft)", fontSize: 11, textTransform: "uppercase", color: "var(--tvp-muted)", fontWeight: 700 }}>
                       <div>Description</div><div style={{ textAlign: "right" }}>Qty</div>
                       <div style={{ textAlign: "right" }}>Unit price (excl.)</div>
                       <div style={{ textAlign: "right" }}>VAT %</div>
@@ -876,7 +876,7 @@ function QIPage() {
                     {editor.lines.map((l, i) => {
                       const line = Math.round((Number(l.quantity) || 0) * (Number(l.unit_price_cents) || 0));
                       return (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", borderTop: "1px solid #eee", alignItems: "center" }}>
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", borderTop: "1px solid var(--tvp-line)", alignItems: "center" }}>
                           <input value={l.description} onChange={(e) => updateLine(i, { description: e.target.value })} placeholder="e.g. Full-day shoot" />
                           <input type="number" min={0} step="0.01" value={l.quantity} onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })} style={{ textAlign: "right" }} />
                           <input type="number" min={0} step="0.01" value={(l.unit_price_cents / 100).toString()} onChange={(e) => updateLine(i, { unit_price_cents: Math.round(Number(e.target.value) * 100) })} style={{ textAlign: "right" }} />
@@ -886,7 +886,7 @@ function QIPage() {
                         </div>
                       );
                     })}
-                    <div data-tour="editor-totals" style={{ padding: "10px 12px", borderTop: "2px solid #e5e5e5", background: "#fafaf7", display: "grid", gridTemplateColumns: "1fr 260px", gap: 8, fontSize: 13 }}>
+                    <div data-tour="editor-totals" style={{ padding: "10px 12px", borderTop: "2px solid var(--tvp-line-strong)", background: "var(--surface-soft)", display: "grid", gridTemplateColumns: "1fr 260px", gap: 8, fontSize: 13 }}>
                       <div className="tvp-muted" style={{ fontSize: 11 }}>
                         Totals calculated from lines. Subtotal is VAT-exclusive; VAT is applied per line.
                       </div>

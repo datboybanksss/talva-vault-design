@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { getTalentDashboard, dismissTalentReminder, dismissTalentNotification } from "@/lib/talent.functions";
 import { Lock, FileStack, Inbox, Clock, Share2, ArrowRight, AlertCircle, Maximize2, Minimize2, X } from "lucide-react";
 
@@ -21,19 +22,32 @@ function TalentDashboard() {
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => load() });
   const [showAllAttention, setShowAllAttention] = useState(false);
+  // Optimistically hide the row the moment it's clicked, and put it back if the
+  // call fails — otherwise a slow round-trip looks like nothing happened and
+  // people click repeatedly.
+  const [dismissing, setDismissing] = useState<string[]>([]);
 
-  const attention = data?.attention ?? [];
+  const attention = (data?.attention ?? []).filter((a) => !dismissing.includes(a.key));
   const visibleAttention = showAllAttention ? attention : attention.slice(0, 3);
 
   const dismissNotifFn = useServerFn(dismissTalentNotification);
 
-  const dismissItem = async (item: { key: string; snapshot: number; notificationId?: string }) => {
-    if (item.notificationId) {
-      await dismissNotifFn({ data: { id: item.notificationId } });
-    } else {
-      await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
-    }
-    await queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
+  const dismissM = useMutation({
+    mutationFn: async (item: { key: string; snapshot: number; notificationId?: string }) => {
+      if (item.notificationId) await dismissNotifFn({ data: { id: item.notificationId } });
+      else await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] }),
+    onError: (e: any, item: { key: string; snapshot: number; notificationId?: string }) => {
+      setDismissing((k) => k.filter((x) => x !== item.key));
+      toast.error(e?.message ?? "Couldn't dismiss that just now — please try again.");
+    },
+  });
+
+  const dismissItem = (item: { key: string; snapshot: number; notificationId?: string }) => {
+    if (dismissing.includes(item.key)) return;
+    setDismissing((k) => [...k, item.key]);
+    dismissM.mutate(item);
   };
 
 
@@ -118,6 +132,7 @@ function TalentDashboard() {
                   className="tvp-icon-btn"
                   title="Dismiss from this feed"
                   aria-label="Dismiss from this feed"
+                  disabled={dismissing.includes(item.key)}
                   onClick={() => dismissItem(item)}
                 >
                   <X className="h-4 w-4" />

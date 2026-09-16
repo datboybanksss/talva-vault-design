@@ -209,11 +209,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </Link>
 
-        <div className="tvp-nav-title">MANAGE</div>
-        <nav className="tvp-nav">{renderNav(manage)}</nav>
+        <div className="tvp-sidebar-scroll">
+          <div className="tvp-nav-title">MANAGE</div>
+          <nav className="tvp-nav">{renderNav(manage)}</nav>
 
-        <div className="tvp-nav-title tvp-settings">SETTINGS</div>
-        <nav className="tvp-nav">{renderNav(settings)}</nav>
+          <div className="tvp-nav-title tvp-settings">SETTINGS</div>
+          <nav className="tvp-nav">{renderNav(settings)}</nav>
+        </div>
 
         <div className="tvp-sidebar-footer">
           <div className="tvp-avatar">{initials || "?"}</div>
