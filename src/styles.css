@@ -1149,12 +1149,17 @@
   color: var(--ink);
   font-family: var(--font-sans);
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  /* minmax(0, …) keeps each column from being floored at its min-content
+     width, which previously let the teal panel's content overhang the
+     column and get clipped at the panel edge. */
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   position: relative;
   overflow: hidden;
 }
-/* Invite activation uses a narrower teal panel (~35%) so the wizard has room. */
-.tv-auth.tv-auth--invite { grid-template-columns: 35fr 65fr; }
+/* Invite activation uses a narrower teal panel (~35%) so the wizard has room.
+   The panel still needs a floor wide enough to lay its copy out. */
+.tv-auth.tv-auth--invite { grid-template-columns: minmax(300px, 35fr) minmax(0, 65fr); }
+.tv-auth > * { min-width: 0; }
 
 .tv-auth::before {
   content: "";
