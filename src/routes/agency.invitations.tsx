@@ -248,39 +248,37 @@ function InvitationsPage() {
                       <span className={`tvp-status tvp-${expiryTone}`}>{expiryLabel}</span>
                     </td>
                     <td>
-                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <RowActionsMenu
-                          actions={[
-                            isOwner && {
-                              key: "email", label: "Edit & send email", icon: Mail,
-                              onSelect: () =>
-                                navigate({
-                                  to: "/agency/invitations/$id/email-preview",
-                                  params: { id: i.id },
-                                  search: { type: i.type as "talent" | "staff" },
-                                }),
+                      <RowActionsMenu
+                        actions={[
+                          isOwner && {
+                            key: "email", label: "Edit & send email", icon: Mail,
+                            onSelect: () =>
+                              navigate({
+                                to: "/agency/invitations/$id/email-preview",
+                                params: { id: i.id },
+                                search: { type: i.type as "talent" | "staff" },
+                              }),
+                          },
+                          {
+                            key: "copy", label: "Copy invite link", icon: Link2,
+                            title: "Copying does not extend expiry",
+                            onSelect: () => copyLink(i),
+                          },
+                          (i.stored_status ?? i.status) === "pending" && isOwner && {
+                            key: "resend", label: "Resend invitation", icon: RefreshCw,
+                            title: "Refreshes expiry and logs a new send",
+                            onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
+                          },
+                          (i.stored_status ?? i.status) === "pending" && isOwner && {
+                            key: "revoke", label: "Revoke invitation", icon: Ban,
+                            destructive: true, separatorBefore: true,
+                            onSelect: () => {
+                              if (confirm(`Revoke invitation to ${i.email}?`))
+                                revokeM.mutate({ id: i.id, type: i.type });
                             },
-                            {
-                              key: "copy", label: "Copy invite link", icon: Link2,
-                              title: "Copying does not extend expiry",
-                              onSelect: () => copyLink(i),
-                            },
-                            (i.stored_status ?? i.status) === "pending" && isOwner && {
-                              key: "resend", label: "Resend invitation", icon: RefreshCw,
-                              title: "Refreshes expiry and logs a new send",
-                              onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
-                            },
-                            (i.stored_status ?? i.status) === "pending" && isOwner && {
-                              key: "revoke", label: "Revoke invitation", icon: Ban,
-                              destructive: true, separatorBefore: true,
-                              onSelect: () => {
-                                if (confirm(`Revoke invitation to ${i.email}?`))
-                                  revokeM.mutate({ id: i.id, type: i.type });
-                              },
-                            },
-                          ]}
-                        />
-                      </div>
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 );
