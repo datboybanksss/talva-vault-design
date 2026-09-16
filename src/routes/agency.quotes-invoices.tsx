@@ -18,7 +18,7 @@ import {
   getBillingDocFull,
   saveAgencyBillingDocFull,
   sendAgencyBillingDoc,
-  markAgencyQuoteSentManually,
+  markAgencyBillingDocSentManually,
   getAgencyBillingSettings,
   listAgencyTalentLinksLite,
 } from "@/lib/agency.functions";
