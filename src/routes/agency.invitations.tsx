@@ -207,7 +207,7 @@ function InvitationsPage() {
                 <th>Sent By</th>
                 <th>Sent</th>
                 <th>Expires</th>
-                <th></th>
+                <th style={{ width: 48 }} />
               </tr>
             </thead>
             <tbody>
