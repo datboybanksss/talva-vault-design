@@ -12,7 +12,7 @@ export function BillingSummaryCards({ report }: { report: BillingReport }) {
       <div className="tvp-card tvp-kpi">
         <div className="tvp-kpi-icon tvp-bg-blue"><Coins className="h-5 w-5" /></div>
         <div>
-          <div className="tvp-kpi-value">{fmtMoney(report.quotedCents, cur)}</div>
+          <div className="tvp-kpi-value" title={fmtMoney(report.quotedCents, cur)}>{fmtMoney(report.quotedCents, cur)}</div>
           <div className="tvp-kpi-label">Total Quoted ({report.period.label})</div>
           <div className="tvp-kpi-sub">
             {report.quotedCount > 0
@@ -25,7 +25,7 @@ export function BillingSummaryCards({ report }: { report: BillingReport }) {
       <div className="tvp-card tvp-kpi">
         <div className="tvp-kpi-icon tvp-bg-purple"><ReceiptText className="h-5 w-5" /></div>
         <div>
-          <div className="tvp-kpi-value">{fmtMoney(report.invoicedCents, cur)}</div>
+          <div className="tvp-kpi-value" title={fmtMoney(report.invoicedCents, cur)}>{fmtMoney(report.invoicedCents, cur)}</div>
           <div className="tvp-kpi-label">Total Invoiced ({report.period.label})</div>
           <div className="tvp-kpi-sub">
             {report.invoicedCount > 0
@@ -38,7 +38,7 @@ export function BillingSummaryCards({ report }: { report: BillingReport }) {
       <div className="tvp-card tvp-kpi">
         <div className="tvp-kpi-icon tvp-bg-green"><Wallet className="h-5 w-5" /></div>
         <div>
-          <div className="tvp-kpi-value">{fmtMoney(report.receivedCents, cur)}</div>
+          <div className="tvp-kpi-value" title={fmtMoney(report.receivedCents, cur)}>{fmtMoney(report.receivedCents, cur)}</div>
           <div className="tvp-kpi-label">Total Received</div>
           <div className="tvp-kpi-sub">
             {report.receivedCents > 0
@@ -51,7 +51,7 @@ export function BillingSummaryCards({ report }: { report: BillingReport }) {
       <div className="tvp-card tvp-kpi">
         <div className="tvp-kpi-icon tvp-bg-amber"><Flag className="h-5 w-5" /></div>
         <div>
-          <div className="tvp-kpi-value">{fmtMoney(report.outstandingCents, cur)}</div>
+          <div className="tvp-kpi-value" title={fmtMoney(report.outstandingCents, cur)}>{fmtMoney(report.outstandingCents, cur)}</div>
           <div className="tvp-kpi-label">Total Outstanding</div>
           <div className="tvp-kpi-sub">
             {report.outstandingCount > 0
