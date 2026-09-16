@@ -27,13 +27,26 @@ function TalentDashboard() {
 
   const dismissNotifFn = useServerFn(dismissTalentNotification);
 
-  const dismissItem = async (item: { key: string; snapshot: number; notificationId?: string }) => {
-    if (item.notificationId) {
-      await dismissNotifFn({ data: { id: item.notificationId } });
-    } else {
-      await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
-    }
-    await queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
+  // Optimistically hide the row the moment it's clicked, and put it back if the
+  // call fails — otherwise a slow round-trip looks like nothing happened and
+  // people click repeatedly.
+  const [dismissing, setDismissing] = useState<string[]>([]);
+  const dismissM = useMutation({
+    mutationFn: async (item: { key: string; snapshot: number; notificationId?: string }) => {
+      if (item.notificationId) await dismissNotifFn({ data: { id: item.notificationId } });
+      else await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] }),
+    onError: (e: any, item) => {
+      setDismissing((k) => k.filter((x) => x !== item.key));
+      toast.error(e?.message ?? "Couldn't dismiss that just now — please try again.");
+    },
+  });
+
+  const dismissItem = (item: { key: string; snapshot: number; notificationId?: string }) => {
+    if (dismissing.includes(item.key)) return;
+    setDismissing((k) => [...k, item.key]);
+    dismissM.mutate(item);
   };
 
 
