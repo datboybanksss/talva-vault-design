@@ -1225,12 +1225,13 @@ function UploadDialog({
                     style={{
                       display: "flex", alignItems: "center", gap: 10,
                       padding: "10px 12px", borderRadius: 8, textAlign: "left",
-                      background: active ? "rgba(37, 99, 235, 0.08)" : "white",
-                      border: `1px solid ${active ? "rgba(37, 99, 235, 0.5)" : "var(--tvp-border, #e5e7eb)"}`,
+                      background: active ? "var(--surface-soft)" : "var(--surface)",
+                      color: "var(--tvp-ink)",
+                      border: `1px solid ${active ? "var(--tvp-teal-2)" : "var(--tvp-line)"}`,
                       cursor: "pointer",
                     }}
                   >
-                    <Icon className="h-4 w-4" style={{ color: active ? "#2563eb" : "var(--tvp-muted)" }} />
+                    <Icon className="h-4 w-4" style={{ color: active ? "var(--tvp-teal-2)" : "var(--tvp-muted)" }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{f.folderName}</div>
                       {meta?.description && (
