@@ -190,7 +190,7 @@ function QIPage() {
   const { data: rows } = useSuspenseQuery(listQO);
   const saveFn = useServerFn(saveAgencyBillingDocFull);
   const sendFn = useServerFn(sendAgencyBillingDoc);
-  const markQuoteSentFn = useServerFn(markAgencyQuoteSentManually);
+  const markSentFn = useServerFn(markAgencyBillingDocSentManually);
   const statusFn = useServerFn(updateAgencyBillingDocStatus);
   const deleteFn = useServerFn(deleteAgencyBillingDoc);
   const shareFn = useServerFn(setBillingDocShared);
