@@ -66,13 +66,28 @@ export const inviteAccountStatus = createServerFn({ method: "POST" })
 
     if (!inv?.email) return { account_exists: false, email: null };
 
-    const { data: profile } = await supabaseAdmin
+    // Exact, case-insensitive match on a registered account only. `%` and `_`
+    // are escaped so an address containing them can never match a second
+    // address, and the result is confirmed against auth.users so a leftover
+    // profile row alone never reads as "you already have an account".
+    const invited = inv.email.trim().toLowerCase();
+    const escaped = invited.replace(/([%_\\])/g, "\\$1");
+    const { data: profiles } = await supabaseAdmin
       .from("profiles")
-      .select("id")
-      .ilike("email", inv.email.trim())
-      .maybeSingle();
+      .select("id, email")
+      .ilike("email", escaped)
+      .limit(5);
 
-    return { account_exists: Boolean(profile), email: inv.email };
+    const match = (profiles ?? []).find(
+      (p) => (p.email ?? "").trim().toLowerCase() === invited,
+    );
+    if (!match) return { account_exists: false, email: inv.email };
+
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(match.id);
+    const exists =
+      (authUser?.user?.email ?? "").trim().toLowerCase() === invited;
+
+    return { account_exists: exists, email: inv.email };
   });
 
 export type PendingInviteForMe = {

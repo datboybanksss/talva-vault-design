@@ -166,18 +166,26 @@ function AuthPage() {
   // link. Surface that invitation so they can accept it here.
   const [pendingInvite, setPendingInvite] = useState<PendingInviteForMe | null>(null);
   const [claimingInvite, setClaimingInvite] = useState(false);
+  // "checked" gates the denial notice: until we know whether an invitation is
+  // waiting, showing "ask your manager to invite you" could contradict it.
+  const [inviteChecked, setInviteChecked] = useState(false);
 
   useEffect(() => {
     if (!denied) {
       setPendingInvite(null);
+      setInviteChecked(false);
       return;
     }
     let mounted = true;
+    setInviteChecked(false);
     void pendingInvitationForMe({ data: {} })
       .then((res) => {
         if (mounted) setPendingInvite(res);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setInviteChecked(true);
+      });
     return () => {
       mounted = false;
     };
@@ -506,7 +514,9 @@ function AuthPage() {
             </div>
           )}
 
-          {denied && !mfaFactorId && (
+          {/* Only when there is genuinely nothing waiting for this account —
+              a pending invitation and "no access" can never both be true. */}
+          {denied && !mfaFactorId && inviteChecked && !pendingInvite && (
             <div className="tv-auth-alert" style={{ marginTop: 18 }}>
               {denied}
               <div style={{ marginTop: 10 }}>
