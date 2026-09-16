@@ -1173,8 +1173,11 @@
   position: relative;
   background: linear-gradient(160deg, var(--sidebar-bg) 0%, var(--sidebar-active) 55%, color-mix(in oklab, var(--sidebar-active) 70%, var(--teal-500)) 100%);
   color: white;
-  padding: 56px 56px 48px;
+  /* Fluid gutters: on the narrow invite column fixed 56px padding left too
+     little room for the copy, pushing it past the panel edge. */
+  padding: clamp(28px, 3.4vw, 56px) clamp(24px, 3.4vw, 56px) clamp(24px, 3vw, 48px);
   display: flex; flex-direction: column; justify-content: space-between;
+  min-width: 0;
   overflow: hidden;
 }
 .tv-auth .tv-auth-hero::after {
