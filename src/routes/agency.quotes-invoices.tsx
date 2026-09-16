@@ -18,6 +18,7 @@ import {
   getBillingDocFull,
   saveAgencyBillingDocFull,
   sendAgencyBillingDoc,
+  markAgencyQuoteSentManually,
   getAgencyBillingSettings,
   listAgencyTalentLinksLite,
 } from "@/lib/agency.functions";
@@ -189,6 +190,7 @@ function QIPage() {
   const { data: rows } = useSuspenseQuery(listQO);
   const saveFn = useServerFn(saveAgencyBillingDocFull);
   const sendFn = useServerFn(sendAgencyBillingDoc);
+  const markQuoteSentFn = useServerFn(markAgencyQuoteSentManually);
   const statusFn = useServerFn(updateAgencyBillingDocStatus);
   const deleteFn = useServerFn(deleteAgencyBillingDoc);
   const shareFn = useServerFn(setBillingDocShared);
@@ -463,6 +465,21 @@ function QIPage() {
       toast.success("Status updated");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
+
+  const markPreviewSent = useMutation({
+    mutationFn: async () => {
+      if (!editor.id) throw new Error("Save the quotation first");
+      return markQuoteSentFn({ data: { id: editor.id } });
+    },
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ["agency", "billing"] });
+      toast.success("Quotation marked as sent manually");
+      setEditor((prev) => ({ ...prev, number: res.number, status: "sent" }));
+      setPreviewOpen(false);
+      setEditorOpen(false);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Could not update the quotation"),
   });
 
   const del = useMutation({
@@ -981,6 +998,7 @@ function QIPage() {
           canSend={
             !!editor.id &&
             editor.recipient_emails.length > 0 &&
+            (editor.kind !== "quote" || (!!settings?.billing_from_verified_at && !!settings?.billing_from_email)) &&
             (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
           }
           sendDisabledReason={
@@ -988,10 +1006,22 @@ function QIPage() {
               ? "Save this draft first before sending."
               : editor.recipient_emails.length === 0
                 ? "Add at least one recipient email address before sending."
+                : editor.kind === "quote" && (!settings?.billing_from_verified_at || !settings?.billing_from_email)
+                  ? "Verify a sending address in Quotes & Invoices Settings before sending."
                 : "This record has already been sent."
+          }
+          canMarkSent={
+            editor.kind === "quote" &&
+            !!editor.id &&
+            (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
+          }
+          markSentDisabledReason={
+            !editor.id ? "Save this draft first." : "This quotation has already been sent."
           }
           onSend={() => send.mutate()}
           sending={send.isPending}
+          onMarkSent={editor.kind === "quote" ? () => markPreviewSent.mutate() : undefined}
+          markingSent={markPreviewSent.isPending}
         />
       )}
     </>

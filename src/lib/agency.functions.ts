@@ -2939,7 +2939,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: doc, error: dErr } = await supabase
       .from("agency_billing_docs")
-      .select("id, kind, number, status, client_name, currency, total_cents, due_date, notes, recipient_emails, recipient_email")
+      .select("id, kind, number, status, client_name, currency, total_cents, issued_at, due_date, notes, recipient_address, recipient_vat_number, recipient_emails, recipient_email")
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .single();
@@ -2957,7 +2957,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
 
     const { data: agency } = await supabase
       .from("agencies")
-      .select("name, billing_from_email, billing_from_verified_at, contact_email")
+      .select("name, billing_from_email, billing_from_name, billing_from_verified_at, contact_email, phone, billing_address, is_vat_registered, vat_number, accent_color")
       .eq("id", agencyId)
       .single();
 
@@ -2974,8 +2974,21 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     const { sendBillingDocEmail, billingFromHeader } = await import("@/lib/billing-email.server");
     const { fmtMoney } = await import("@/lib/billing");
     const senderVerified = !!agency?.billing_from_verified_at && !!agency?.billing_from_email;
-    const from = billingFromHeader(agency?.name, senderVerified, agency?.billing_from_email);
+    if (doc.kind === "quote" && !senderVerified) {
+      throw new Error("Verify your sending address in Quotes & Invoices Settings before sending this quotation");
+    }
+    const senderName = agency?.billing_from_name?.trim() || agency?.name;
+    const from = billingFromHeader(senderName, senderVerified, agency?.billing_from_email);
     const replyTo = senderVerified ? agency!.billing_from_email : agency?.contact_email ?? null;
+
+    const { data: lineRows, error: lineErr } = doc.kind === "quote"
+      ? await supabase
+          .from("agency_billing_doc_lines")
+          .select("id, description, quantity, unit_price_cents, vat_rate_bp, sort_order")
+          .eq("doc_id", doc.id)
+          .order("sort_order", { ascending: true })
+      : { data: [], error: null };
+    if (lineErr) throw new Error(lineErr.message);
 
     const results: Array<{ to: string; sent: boolean; reason?: string }> = [];
     for (const to of recipients) {
@@ -2983,18 +2996,53 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
         to,
         from,
         replyTo,
-        agencyName: agency?.name ?? "TalVault",
+        agencyName: senderName ?? "TalVault",
         kind: doc.kind,
         number,
         clientName: doc.client_name,
         amount: fmtMoney(doc.total_cents ?? 0, doc.currency ?? "ZAR"),
         dueDate: doc.due_date,
         notes: doc.notes,
-        idempotencyKey: `billing-${doc.id}-${to}-${Date.now()}`,
+        issuedAt: doc.issued_at,
+        recipientAddress: doc.recipient_address,
+        recipientVatNumber: doc.recipient_vat_number,
+        currency: doc.currency ?? "ZAR",
+        lines: (lineRows ?? []).map((line: any) => ({
+          id: line.id,
+          description: line.description,
+          quantity: Number(line.quantity),
+          unit_price_cents: Number(line.unit_price_cents),
+          vat_rate_bp: Number(line.vat_rate_bp),
+          sort_order: line.sort_order,
+        })),
+        agency: doc.kind === "quote" ? {
+          billingAddress: agency?.billing_address ?? null,
+          contactEmail: agency?.contact_email ?? null,
+          phone: agency?.phone ?? null,
+          isVatRegistered: !!agency?.is_vat_registered,
+          vatNumber: agency?.vat_number ?? null,
+          accentColor: agency?.accent_color ?? null,
+        } : undefined,
+        idempotencyKey: `billing-${doc.id}-${number}-${to}`,
       });
       results.push({ to, sent: res.sent, ...(res.sent ? {} : { reason: res.reason }) });
     }
     const deliveredTo = results.filter((r) => r.sent).map((r) => r.to);
+    if (doc.kind === "quote" && deliveredTo.length !== recipients.length) {
+      const failed = results.filter((r) => !r.sent);
+      await logAgencyAudit(
+        supabase, agencyId, userId, claims?.email,
+        "send_billing_doc_failed", "agency_billing_doc", data.id,
+        `QUOTE ${number}`,
+        { recipients, delivered: deliveredTo, failed: failed.map((r) => ({ to: r.to, reason: r.reason })), from, reply_to: replyTo },
+      );
+      const reason = failed.some((r) => r.reason === "domain_unverified")
+        ? "The TalVault sending domain is not ready yet"
+        : failed.some((r) => r.reason === "email_not_configured")
+          ? "Email delivery is not configured"
+          : "The email provider could not deliver the quotation";
+      throw new Error(`${reason}. The quotation was not marked as sent; please try again or use Mark as sent if you deliver it outside TalVault.`);
+    }
 
     const { data: updated, error } = await supabase
       .from("agency_billing_docs")
@@ -3019,6 +3067,54 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
       { recipients, delivered: deliveredTo, from, reply_to: replyTo },
     );
     return { ...updated, delivery: results };
+  });
+
+export const markAgencyQuoteSentManually = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: quote, error: quoteError } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, status")
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (quoteError) throw new Error(quoteError.message);
+    if (!quote || quote.kind !== "quote") throw new Error("Quotation not found");
+    if (quote.status !== "draft" && !quote.number.startsWith("DRAFT-")) {
+      throw new Error("This quotation has already been sent");
+    }
+
+    let number = quote.number;
+    if (!number || number.startsWith("DRAFT-")) {
+      const { data: minted, error: mintError } = await supabase.rpc(
+        "mint_billing_doc_number",
+        { _agency_id: agencyId, _kind: "quote" },
+      );
+      if (mintError) throw new Error(mintError.message);
+      number = minted as string;
+    }
+
+    const sentAt = new Date().toISOString();
+    const { data: updated, error } = await supabase
+      .from("agency_billing_docs")
+      .update({ number, status: "sent", sent_at: sentAt })
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("You do not have permission to update this quotation");
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "mark_billing_doc_sent_manually", "agency_billing_doc", data.id,
+      `QUOTE ${number}`,
+      { status: "sent", sent_at: sentAt, email_attempted: false },
+    );
+    return updated;
   });
 
 // ---------------------------------------------------------------------------
