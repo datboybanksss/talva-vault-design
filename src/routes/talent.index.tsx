@@ -22,17 +22,16 @@ function TalentDashboard() {
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => load() });
   const [showAllAttention, setShowAllAttention] = useState(false);
-
-  const attention = data?.attention ?? [];
-  const pending = attention.filter((a) => !dismissing.includes(a.key));
-  const visibleAttention = showAllAttention ? pending : pending.slice(0, 3);
-
-  const dismissNotifFn = useServerFn(dismissTalentNotification);
-
   // Optimistically hide the row the moment it's clicked, and put it back if the
   // call fails — otherwise a slow round-trip looks like nothing happened and
   // people click repeatedly.
   const [dismissing, setDismissing] = useState<string[]>([]);
+
+  const attention = (data?.attention ?? []).filter((a) => !dismissing.includes(a.key));
+  const visibleAttention = showAllAttention ? attention : attention.slice(0, 3);
+
+  const dismissNotifFn = useServerFn(dismissTalentNotification);
+
   const dismissM = useMutation({
     mutationFn: async (item: { key: string; snapshot: number; notificationId?: string }) => {
       if (item.notificationId) await dismissNotifFn({ data: { id: item.notificationId } });
