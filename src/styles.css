@@ -664,7 +664,7 @@
   &.tv-collapsed .tvp-nav-badge,
   &.tv-collapsed .tvp-logout { display: none; }
   &.tv-collapsed .tvp-nav-item { justify-content: center; padding: 0; gap: 0; }
-  &.tv-collapsed .tvp-sidebar-footer { left: 14px; right: 14px; justify-content: center; border-top: 0; }
+  &.tv-collapsed .tvp-sidebar-footer { justify-content: center; border-top: 0; }
 
   & .tvp-main { padding: 26px 32px 56px; min-width: 0; }
   & .tvp-topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
@@ -768,7 +768,11 @@
   & .tvp-kpi.tvp-clickable { width: 100%; cursor: pointer; transition: .15s ease; }
   & .tvp-kpi.tvp-clickable:hover { transform: translateY(-2px); box-shadow: var(--tvp-shadow); }
   & .tvp-kpi-icon { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; font-weight: 900; }
-  & .tvp-kpi-value { font-size: 26px; font-weight: 900; line-height: 1; color: var(--tvp-ink); }
+  & .tvp-kpi-value {
+    font-size: clamp(17px, 1.55vw + 6px, 26px); font-weight: 900; line-height: 1.1; color: var(--tvp-ink);
+    /* Large currency amounts must never spill past the card border. */
+    min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word;
+  }
   & .tvp-kpi-label { font-weight: 900; margin-top: 6px; font-size: 13px; color: var(--tvp-ink); }
   & .tvp-kpi-sub { font-size: 12px; font-weight: 800; margin-top: 8px; color: var(--tvp-green); }
   & .tvp-kpi-sub.tvp-warn { color: var(--tvp-amber); }
@@ -893,7 +897,7 @@
   & .tvp-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
   & .tvp-form-group { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
   & .tvp-form-group label { font-size: 12px; font-weight: 900; color: var(--tvp-ink); }
-  & .tvp-form-group input, & .tvp-form-group select, & .tvp-form-group textarea { height: 42px; border: 1px solid var(--tvp-line-strong); border-radius: 9px; padding: 0 12px; background: var(--surface); color: var(--tvp-ink); font-size: 13px; }
+  & .tvp-form-group input, & .tvp-form-group select, & .tvp-form-group textarea { height: 42px; border: 1px solid var(--tvp-line-strong); border-radius: 9px; padding: 0 12px; background: var(--field-bg); color: var(--tvp-ink); font-size: 13px; }
   & .tvp-form-group textarea { height: 80px; padding-top: 10px; resize: vertical; }
   & .tvp-form-group input:focus, & .tvp-form-group select:focus, & .tvp-form-group textarea:focus { outline: none; border-color: var(--tvp-teal-2); box-shadow: var(--focus-ring); }
   & .tvp-sub-card { border: 1px solid var(--tvp-line); border-radius: 12px; padding: 18px; margin-top: 20px; }
@@ -999,7 +1003,7 @@
 
   /* --- Folder grid (uniform cards, animated collapse) --- */
   & .tvp-folder-tree { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 16px; align-items: start; margin-top: 16px; }
-  & .tvp-folder-card { border: 1px solid var(--tvp-line); border-radius: 16px; background: var(--surface); padding: 6px; display: flex; flex-direction: column; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+  & .tvp-folder-card { border: 1px solid var(--tvp-line); border-radius: 16px; background: var(--surface); padding: 13px; display: flex; flex-direction: column; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
   & .tvp-folder-card:hover { border-color: var(--tvp-line-strong); box-shadow: var(--tvp-shadow-soft); transform: translateY(-1px); }
   & .tvp-folder-card.tvp-open { border-color: var(--tvp-teal-200); box-shadow: var(--tvp-shadow-soft); }
   & .tvp-folder-head { display: grid; grid-template-columns: 40px minmax(0, 1fr) 22px; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 0; background: transparent; border-radius: 12px; cursor: pointer; text-align: left; font: inherit; transition: background .16s ease; }
