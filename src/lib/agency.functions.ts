@@ -2957,7 +2957,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
 
     const { data: agency } = await supabase
       .from("agencies")
-      .select("name, billing_from_email, billing_from_verified_at, contact_email, phone, billing_address, is_vat_registered, vat_number, accent_color")
+      .select("name, billing_from_email, billing_from_name, billing_from_verified_at, contact_email, phone, billing_address, is_vat_registered, vat_number, accent_color")
       .eq("id", agencyId)
       .single();
 
@@ -2977,7 +2977,8 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     if (doc.kind === "quote" && !senderVerified) {
       throw new Error("Verify your sending address in Quotes & Invoices Settings before sending this quotation");
     }
-    const from = billingFromHeader(agency?.name, senderVerified, agency?.billing_from_email);
+    const senderName = agency?.billing_from_name?.trim() || agency?.name;
+    const from = billingFromHeader(senderName, senderVerified, agency?.billing_from_email);
     const replyTo = senderVerified ? agency!.billing_from_email : agency?.contact_email ?? null;
 
     const { data: lineRows, error: lineErr } = doc.kind === "quote"
@@ -2995,7 +2996,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
         to,
         from,
         replyTo,
-        agencyName: agency?.name ?? "TalVault",
+        agencyName: senderName ?? "TalVault",
         kind: doc.kind,
         number,
         clientName: doc.client_name,
