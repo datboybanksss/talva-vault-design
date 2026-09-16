@@ -69,7 +69,7 @@ const PORTAL_HERO: Record<
     points: [
       "Role-based access with row-level security",
       "Full audit log on every administrator action",
-      "{hero.points[2]}",
+      "Agency & talent invitations, end to end",
     ],
   },
   agency: {
