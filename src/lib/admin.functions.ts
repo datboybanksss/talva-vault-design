@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { isValidPhone, normalisePhone, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
 import { mapEffectiveStatus } from "@/lib/invitation-status";
 import { fetchOnboardedTalent, fetchOnboardedTalentLinks } from "@/lib/onboarded-talent";
 
@@ -13,6 +14,50 @@ import {
 
 /** Every permission level an administrator invitation may carry. */
 const ADMIN_PERMISSION_ENUM = z.enum(["view_only", "agency_support", "edit"]);
+
+/**
+ * Turns a field path into a readable label: `registered_contact_number` →
+ * "Registered contact number".
+ */
+function fieldLabel(path: (string | number)[]): string {
+  const raw = path.filter((p) => typeof p === "string").join(" ");
+  if (!raw) return "";
+  const words = raw.replace(/_/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/**
+ * Validates server-function input and converts a ZodError into a single clean,
+ * human-readable sentence. Without this the raw issues array was JSON-stringified
+ * straight into the toast the user sees.
+ */
+export function parseInput<T extends z.ZodTypeAny>(schema: T, d: unknown): z.infer<T> {
+  const result = schema.safeParse(d);
+  if (result.success) return result.data;
+
+  const messages = result.error.issues.map((issue) => {
+    const label = fieldLabel(issue.path as (string | number)[]);
+    if (issue.code === "invalid_string" && (issue as any).validation === "email") {
+      return "Invalid email address";
+    }
+    if (issue.code === "invalid_type" && (issue as any).received === "undefined") {
+      return label ? `${label} is required` : "A required value is missing";
+    }
+    const detail = issue.message.replace(/^String must contain/, "Must contain");
+    return label ? `${label}: ${detail.charAt(0).toLowerCase() + detail.slice(1)}` : detail;
+  });
+
+  const unique = [...new Set(messages)];
+  throw new Error(unique.join(". ") + ".");
+}
+
+/** Optional international phone number, stored in normalised E.164 form. */
+const phoneSchema = z
+  .string()
+  .trim()
+  .transform((v) => normalisePhone(v))
+  .refine((v) => v === "" || isValidPhone(v), { message: PHONE_FORMAT_MESSAGE })
+  .optional();
 
 
 // -----------------------------------------------------------------------------
@@ -182,15 +227,12 @@ export const whoami = createServerFn({ method: "GET" })
 
 export const updateOwnProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         first_name: z.string().trim().max(80).optional().default(""),
         last_name: z.string().trim().max(80).optional().default(""),
         designation: z.string().trim().max(120).optional().default(""),
-      })
-      .parse(d),
-  )
+      }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -254,9 +296,7 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
 
 export const logOwnEmailChangeRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ new_email: z.string().email() }).parse(d),
-  )
+  .inputValidator((d: unknown) => parseInput(z.object({ new_email: z.string().email() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -385,7 +425,7 @@ export const listAgencies = createServerFn({ method: "GET" })
 
 export const getAgencyById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -409,9 +449,7 @@ export const getAgencyById = createServerFn({ method: "GET" })
 
 export const suspendAgency = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string(), reason: z.string().min(3) }).parse(d),
-  )
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string(), reason: z.string().min(3) }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -449,7 +487,7 @@ export const suspendAgency = createServerFn({ method: "POST" })
 
 export const unsuspendAgency = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -479,7 +517,7 @@ export const unsuspendAgency = createServerFn({ method: "POST" })
 
 export const listAgencyInvitationsForAgency = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ agency_id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ agency_id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
@@ -494,7 +532,7 @@ export const listAgencyInvitationsForAgency = createServerFn({ method: "GET" })
 
 export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ agency_id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ agency_id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
@@ -509,7 +547,7 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
 
 export const getInvitationById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
@@ -524,7 +562,7 @@ export const getInvitationById = createServerFn({ method: "GET" })
 
 export const dismissNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
@@ -538,9 +576,7 @@ export const dismissNotification = createServerFn({ method: "POST" })
 
 export const dismissComputedNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ kind: z.string(), snapshot: z.number().int().nonnegative() }).parse(d),
-  )
+  .inputValidator((d: unknown) => parseInput(z.object({ kind: z.string(), snapshot: z.number().int().nonnegative() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
@@ -579,17 +615,14 @@ export const listAgencyInvitations = createServerFn({ method: "GET" })
 // Create as DRAFT — admin must upload compliance docs then call finalize.
 export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         agency_name: z.string().min(1),
         contact_person: z.string().optional(),
         email: z.string().email(),
         business_type: z.enum(["formal", "informal"]),
         expiry_days: z.number().int().min(1).max(60).default(14),
-      })
-      .parse(d),
-  )
+      }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -669,8 +702,7 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
 // Update an existing DRAFT — stays editable until it is finalised.
 export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         id: z.string(),
         agency_name: z.string().min(1).optional(),
@@ -678,11 +710,9 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
         email: z.string().email().optional(),
         business_type: z.enum(["formal", "informal"]).optional(),
         expiry_days: z.number().int().min(1).max(60).optional(),
-        registered_contact_number: z.string().optional(),
-        registered_mobile_number: z.string().optional(),
-      })
-      .parse(d),
-  )
+        registered_contact_number: phoneSchema,
+        registered_mobile_number: phoneSchema,
+      }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -789,16 +819,13 @@ const REQUIRED_FILE_SLOTS: Record<"formal" | "informal", string[]> = {
 
 export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         id: z.string(),
-        registered_contact_number: z.string().optional(),
-        registered_mobile_number: z.string().optional(),
+        registered_contact_number: phoneSchema,
+        registered_mobile_number: phoneSchema,
         expiry_days: z.number().int().min(1).max(60).default(14),
-      })
-      .parse(d),
-  )
+      }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -868,7 +895,7 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
 // ---- Compliance documents ----
 export const listComplianceDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ invitation_id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ invitation_id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
@@ -883,8 +910,7 @@ export const listComplianceDocuments = createServerFn({ method: "GET" })
 
 export const recordComplianceDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         invitation_id: z.string(),
         doc_slot: z.string().min(1),
@@ -892,9 +918,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
         storage_path: z.string().min(1),
         mime_type: z.string().optional(),
         size_bytes: z.number().optional(),
-      })
-      .parse(d),
-  )
+      }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -969,7 +993,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
 
 export const deleteComplianceDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -1001,7 +1025,7 @@ export const deleteComplianceDocument = createServerFn({ method: "POST" })
 // Hard-delete an invitation (and its shell agency if empty). Distinct from revoke.
 export const deleteAgencyInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -1082,9 +1106,7 @@ export const createAgencyInvitation = createAgencyInvitationDraft;
 
 export const resendInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string(), extend_days: z.number().default(14) }).parse(d),
-  )
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string(), extend_days: z.number().default(14) }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanSupportAgencies(supabase, userId);
@@ -1123,7 +1145,7 @@ export const resendInvitation = createServerFn({ method: "POST" })
 
 export const revokeInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanSupportAgencies(supabase, userId);
@@ -1148,9 +1170,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
 
 export const updateInvitationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string(), email: z.string().email() }).parse(d),
-  )
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string(), email: z.string().email() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanSupportAgencies(supabase, userId);
@@ -1187,7 +1207,7 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
 
 export const logCopyLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanSupportAgencies(supabase, userId);
@@ -1213,17 +1233,14 @@ export const logCopyLink = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 export const listAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         limit: z.number().int().min(1).max(100).default(10),
         offset: z.number().int().min(0).default(0),
         search: z.string().default(""),
         actions: z.array(z.string()).optional(),
         excludeActions: z.array(z.string()).optional(),
-      })
-      .parse(d ?? {}),
-  )
+      }), d ?? {}))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
@@ -1301,9 +1318,7 @@ export const listBillingDocs = createServerFn({ method: "GET" })
 
 export const logBillingExport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ scope: z.string(), row_count: z.number() }).parse(d),
-  )
+  .inputValidator((d: unknown) => parseInput(z.object({ scope: z.string(), row_count: z.number() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -1369,15 +1384,12 @@ export const listAdminInvitations = createServerFn({ method: "GET" })
 
 export const inviteAdministrator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         email: z.string().email(),
         permission_level: ADMIN_PERMISSION_ENUM,
         expiry_days: z.number().int().min(1).max(60).default(14),
-      })
-      .parse(d),
-  )
+      }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     // Any administrator at the highest permission level may invite colleagues;
@@ -1463,14 +1475,11 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
  */
 export const updateAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         id: z.string(),
         permission_level: ADMIN_PERMISSION_ENUM,
-      })
-      .parse(d),
-  )
+      }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const editor = await assertCanInviteAdministrator(supabase, userId);
@@ -1522,7 +1531,7 @@ export const updateAdminInvitation = createServerFn({ method: "POST" })
 export const revokeAdminInvitation = createServerFn({ method: "POST" })
 
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertCanInviteAdministrator(supabase, userId);
@@ -1558,9 +1567,7 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
  */
 export const resendAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string(), extend_days: z.number().default(14) }).parse(d),
-  )
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string(), extend_days: z.number().default(14) }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertCanInviteAdministrator(supabase, userId);
@@ -1610,7 +1617,7 @@ export const resendAdminInvitation = createServerFn({ method: "POST" })
  */
 export const deleteAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertCanInviteAdministrator(supabase, userId);
@@ -1804,9 +1811,7 @@ export const listNotifications = createServerFn({ method: "GET" })
 // -----------------------------------------------------------------------------
 export const logMfaEnrolled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ factor_type: z.string().default("totp") }).parse(d),
-  )
+  .inputValidator((d: unknown) => parseInput(z.object({ factor_type: z.string().default("totp") }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -1846,15 +1851,12 @@ export const logMfaDisabled = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 export const updateAdministrator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
+  .inputValidator((d: unknown) => parseInput(z
       .object({
         user_id: z.string().uuid(),
         designation: z.string().trim().max(120).nullable().optional(),
         permission_level: ADMIN_PERMISSION_ENUM.optional(),
-      })
-      .parse(d),
-  )
+      }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertMainAdmin(supabase, userId);
@@ -1936,7 +1938,7 @@ export const updateAdministrator = createServerFn({ method: "POST" })
 // Single administrator invitation, used by the invitation email composer.
 export const getAdminInvitationById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
