@@ -195,6 +195,7 @@ function InvitationsPage() {
         ))}
       </div>
 
+      <div className="tvp-stack">
       <div className="tvp-card">
         <div className="tvp-table-wrap">
           <table className="tvp-table">
