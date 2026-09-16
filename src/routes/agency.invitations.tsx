@@ -682,8 +682,9 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
   const rows = (staff.data ?? []) as any[];
 
   return (
-    <div className="tvp-card" style={{ marginTop: 18 }}>
-      <div className="tvp-panel-head">
+    <div className="tvp-card">
+      {/* Same header inset as other table cards (Quotes & Invoices workspace). */}
+      <div className="tvp-panel-head" style={{ padding: "16px 18px 0", margin: 0 }}>
         <div>
           <h2 className="tvp-h2">Active staff</h2>
           <div className="tvp-subtitle">
