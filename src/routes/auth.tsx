@@ -37,17 +37,24 @@ const searchSchema = z.object({
   reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
 });
 
-function deniedMessage(code: string | undefined, portal: PortalContext): string | null {
+function deniedMessage(
+  code: string | undefined,
+  portal: PortalContext,
+  email: string | null,
+): string | null {
   if (!code) return null;
+  // The denial always describes the account that is still signed in, so name
+  // it whenever we know it.
+  const who = email ? `You're still signed in as ${email}` : "You're signed in";
   switch (code) {
     case "not_talent":
-      return "You're signed in, but this account isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.";
+      return `${who}, but that account isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.`;
     case "not_agency":
-      return "You're signed in, but this account isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.";
+      return `${who}, but that account isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.`;
     case "not_admin":
-      return "You're signed in, but this account doesn't have admin access.";
+      return `${who}, but that account doesn't have admin access.`;
     default:
-      return `You don't have access to the ${portal.workspace} with this account.`;
+      return `${who}, and that account doesn't have access to the ${portal.workspace}.`;
   }
 }
 
