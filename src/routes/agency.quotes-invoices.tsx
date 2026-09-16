@@ -469,17 +469,19 @@ function QIPage() {
 
   const markPreviewSent = useMutation({
     mutationFn: async () => {
-      if (!editor.id) throw new Error("Save the quotation first");
-      return markQuoteSentFn({ data: { id: editor.id } });
+      if (!editor.id) throw new Error("Save the record first");
+      return markSentFn({ data: { id: editor.id } });
     },
     onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
-      toast.success("Quotation marked as sent manually");
+      toast.success(
+        `${editor.kind === "quote" ? "Quotation" : "Invoice"} marked as sent manually`,
+      );
       setEditor((prev) => ({ ...prev, number: res.number, status: "sent" }));
       setPreviewOpen(false);
       setEditorOpen(false);
     },
-    onError: (e: any) => toast.error(e.message ?? "Could not update the quotation"),
+    onError: (e: any) => toast.error(e.message ?? "Could not update this record"),
   });
 
   const del = useMutation({
