@@ -1194,7 +1194,9 @@
     radial-gradient(600px 320px at 10% 90%, rgba(255,255,255,.08), transparent 60%);
   pointer-events: none;
 }
-.tv-auth .tv-auth-hero > * { position: relative; z-index: 1; }
+/* Every block inside the panel stays inside the panel, whatever the copy. */
+.tv-auth .tv-auth-hero > * { position: relative; z-index: 1; max-width: 100%; min-width: 0; }
+.tv-auth .tv-auth-hero * { max-width: 100%; }
 .tv-auth .tv-auth-brand { display: flex; align-items: center; gap: 14px; }
 .tv-auth .tv-auth-mark {
   width: 48px; height: 48px; border-radius: 12px;
