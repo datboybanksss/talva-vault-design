@@ -889,6 +889,38 @@ function inferKind(name: string): "pdf" | "image" | "other" {
 
 function PreviewDialog({ url, name, onClose }: { url: string; name: string; onClose: () => void }) {
   const kind = inferKind(name);
+  // The signed storage URL is cross-origin and our CSP intentionally allows
+  // only 'self' and blob: frames. Fetch the file and frame it as a blob: URL
+  // instead of widening the policy.
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (kind !== "pdf") return;
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    setBlobUrl(null);
+    setLoadError(null);
+
+    (async () => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Could not load the file (${res.status})`);
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+      } catch (err: any) {
+        if (!cancelled) setLoadError(err?.message ?? "Could not load this file for preview.");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url, kind]);
+
   return (
     <div
       onClick={onClose}
@@ -918,7 +950,22 @@ function PreviewDialog({ url, name, onClose }: { url: string; name: string; onCl
         </div>
         <div style={{ flex: 1, background: "#0f172a08", overflow: "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {kind === "pdf" && (
-            <iframe src={url} title={name} style={{ width: "100%", height: "100%", border: 0, background: "white" }} />
+            loadError ? (
+              <div style={{ textAlign: "center", padding: 32 }}>
+                <FileText className="h-10 w-10 mx-auto mb-3 text-[var(--tvp-muted)]" />
+                <h3 className="tvp-h2">Preview unavailable</h3>
+                <p className="tvp-muted" style={{ marginTop: 6, marginBottom: 16 }}>{loadError}</p>
+                <a className="tvp-primary" href={url} target="_blank" rel="noopener" download={name}>
+                  <Download className="h-4 w-4" />Download instead
+                </a>
+              </div>
+            ) : !blobUrl ? (
+              <div className="tvp-muted" style={{ display: "flex", alignItems: "center", gap: 8, padding: 32 }}>
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading preview…
+              </div>
+            ) : (
+              <iframe src={blobUrl} title={name} style={{ width: "100%", height: "100%", border: 0, background: "white" }} />
+            )
           )}
           {kind === "image" && (
             <img src={url} alt={name} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
