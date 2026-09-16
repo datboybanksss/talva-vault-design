@@ -10,6 +10,10 @@ import {
 } from "@/lib/agency.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { BillingSenderCard } from "@/components/agency/billing-sender-card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const ACCENT_PRESETS = [
   { name: "TalVault Teal", value: "#064E58" },
@@ -146,7 +150,7 @@ export function QuotesInvoicesSettingsPanel() {
           </h3>
           <div className="tvp-form-group">
             <label>Default acceptance window (days)</label>
-            <input
+            <Input
               type="number" min={1} max={365}
               value={form.default_quote_acceptance_days}
               onChange={(e) => update("default_quote_acceptance_days", e.target.value)}
@@ -154,7 +158,7 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Reminder cadence (days before expiry)</label>
-            <input
+            <Input
               type="number" min={1} max={365}
               value={form.default_quote_reminder_days}
               onChange={(e) => update("default_quote_reminder_days", e.target.value)}
@@ -168,7 +172,7 @@ export function QuotesInvoicesSettingsPanel() {
           </h3>
           <div className="tvp-form-group">
             <label>Default payment terms (days)</label>
-            <input
+            <Input
               type="number" min={1} max={365}
               value={form.default_invoice_payment_days}
               onChange={(e) => update("default_invoice_payment_days", e.target.value)}
@@ -176,7 +180,7 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Overdue grace period (days)</label>
-            <input
+            <Input
               type="number" min={0} max={365}
               value={form.invoice_overdue_grace_days}
               onChange={(e) => update("invoice_overdue_grace_days", e.target.value)}
@@ -192,18 +196,20 @@ export function QuotesInvoicesSettingsPanel() {
             <FileSpreadsheet className="inline h-4 w-4 mr-1" />VAT / Tax
           </h3>
           <div className="tvp-form-group">
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="is-vat-registered"
                 checked={form.is_vat_registered}
-                onChange={(e) => update("is_vat_registered", e.target.checked)}
+                onCheckedChange={(checked) => update("is_vat_registered", checked === true)}
               />
-              Registered for VAT (show "Tax Invoice")
-            </label>
+              <Label htmlFor="is-vat-registered" className="cursor-pointer text-foreground">
+                Registered for VAT (show "Tax Invoice")
+              </Label>
+            </div>
           </div>
           <div className="tvp-form-group">
             <label>VAT registration number</label>
-            <input
+            <Input
               value={form.vat_number}
               onChange={(e) => update("vat_number", e.target.value)}
               placeholder="e.g. 4123456789"
@@ -212,7 +218,7 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Default VAT rate (%)</label>
-            <input
+            <Input
               type="number" min={0} max={100} step={0.01}
               value={(form.default_vat_rate_bp / 100).toFixed(2)}
               onChange={(e) =>
@@ -231,7 +237,7 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Bank name</label>
-            <input
+            <Input
               value={form.bank_name}
               onChange={(e) => update("bank_name", e.target.value)}
               placeholder="e.g. Standard Bank"
@@ -239,7 +245,7 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Account holder</label>
-            <input
+            <Input
               value={form.bank_account_holder}
               onChange={(e) => update("bank_account_holder", e.target.value)}
               placeholder="Name the account is registered under"
@@ -247,7 +253,7 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Account number</label>
-            <input
+            <Input
               value={form.bank_account_number}
               onChange={(e) => update("bank_account_number", e.target.value)}
               placeholder="e.g. 123456789"
@@ -255,7 +261,7 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Branch code</label>
-            <input
+            <Input
               value={form.bank_branch_code}
               onChange={(e) => update("bank_branch_code", e.target.value)}
               placeholder="e.g. 051001"
@@ -263,7 +269,7 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Other payment instructions</label>
-            <textarea
+            <Textarea
               rows={3}
               value={form.payment_instructions}
               onChange={(e) => update("payment_instructions", e.target.value)}
@@ -278,7 +284,7 @@ export function QuotesInvoicesSettingsPanel() {
           </h3>
           <div className="tvp-form-group">
             <label>Billing address (appears on documents)</label>
-            <textarea
+            <Textarea
               rows={3}
               value={form.billing_address}
               onChange={(e) => update("billing_address", e.target.value)}

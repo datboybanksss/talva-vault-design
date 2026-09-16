@@ -9,6 +9,7 @@ import {
   clearAgencyBillingSender,
 } from "@/lib/agency.functions";
 import { isValidEmail } from "@/components/shared/email-chips-input";
+import { Input } from "@/components/ui/input";
 
 /**
  * Per-agency "send from" address for quotes and invoices. The address is only
@@ -90,7 +91,7 @@ export function BillingSenderCard({
 
       <div className="tvp-form-group">
         <label htmlFor="billing-from-email">Send-from address</label>
-        <input
+        <Input
           id="billing-from-email"
           type="email"
           value={value}
@@ -105,7 +106,7 @@ export function BillingSenderCard({
       </div>
       <div className="tvp-form-group">
         <label htmlFor="billing-from-name">Display name (optional)</label>
-        <input
+        <Input
           id="billing-from-name"
           value={name}
           placeholder="Accounts team"

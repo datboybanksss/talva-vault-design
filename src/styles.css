@@ -903,6 +903,7 @@
   & .tvp-form-group { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
   & .tvp-form-group label { font-size: 12px; font-weight: 900; color: var(--tvp-ink); }
   & .tvp-form-group input, & .tvp-form-group select, & .tvp-form-group textarea { height: 42px; border: 1px solid var(--tvp-line-strong); border-radius: 9px; padding: 0 12px; background: var(--field-bg); color: var(--tvp-ink); font-size: 13px; }
+  & .tvp-form-group input::placeholder, & .tvp-form-group textarea::placeholder { color: var(--tvp-muted); opacity: 1; }
   & .tvp-form-group textarea { height: 80px; padding-top: 10px; resize: vertical; }
   & .tvp-form-group input:focus, & .tvp-form-group select:focus, & .tvp-form-group textarea:focus { outline: none; border-color: var(--tvp-teal-2); box-shadow: var(--focus-ring); }
   & .tvp-sub-card { border: 1px solid var(--tvp-line); border-radius: 12px; padding: 18px; margin-top: 20px; }
