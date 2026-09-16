@@ -3023,7 +3023,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
           vatNumber: agency?.vat_number ?? null,
           accentColor: agency?.accent_color ?? null,
         } : undefined,
-        idempotencyKey: `billing-${doc.id}-${to}-${Date.now()}`,
+        idempotencyKey: `billing-${doc.id}-${number}-${to}`,
       });
       results.push({ to, sent: res.sent, ...(res.sent ? {} : { reason: res.reason }) });
     }

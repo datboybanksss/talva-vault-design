@@ -133,7 +133,9 @@ export async function sendBillingDocEmail(opts: {
       : "";
   const lines = opts.lines ?? [];
   const totals = computeTotals(lines);
-  const accent = opts.agency?.accentColor || "#086a70";
+  const accent = /^#[0-9a-f]{6}$/i.test(opts.agency?.accentColor ?? "")
+    ? opts.agency?.accentColor ?? "#086a70"
+    : "#086a70";
   const detailHtml = lines.length > 0
     ? `<div style="margin:24px 0;border:1px solid #e7e5df;border-radius:6px;overflow:hidden;">
         <div style="padding:16px 18px;border-bottom:3px solid ${esc(accent)};display:flex;justify-content:space-between;gap:16px;">
