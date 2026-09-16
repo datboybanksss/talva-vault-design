@@ -106,6 +106,7 @@ function AuthPage() {
   // the banner, so a stale param from an earlier denial (back button, refresh,
   // shared link, or signing in as a different account) can never linger.
   const [deniedState, setDeniedState] = useState<"checking" | "confirmed">("checking");
+  const [deniedEmail, setDeniedEmail] = useState<string | null>(null);
   const deniedPortal = search.denied ? PORTAL_FOR_DENIED_CODE[search.denied] : undefined;
 
   useEffect(() => {
