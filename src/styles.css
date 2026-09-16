@@ -1145,6 +1145,12 @@
 /* TalVault Auth screen — scoped styles matching admin design language ------- */
 .tv-auth {
   min-height: 100vh;
+  /* The split layout is shared by every auth/onboarding screen (sign in,
+     invite activation, password reset). Pinning it to the viewport width
+     stops a wide child elsewhere on the page from creating a sideways
+     scroll, which is what slid the teal panel's copy out of view. */
+  width: 100%;
+  max-width: 100%;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
