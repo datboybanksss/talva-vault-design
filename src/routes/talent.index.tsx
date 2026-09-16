@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { getTalentDashboard, dismissTalentReminder, dismissTalentNotification } from "@/lib/talent.functions";
 import { Lock, FileStack, Inbox, Clock, Share2, ArrowRight, AlertCircle, Maximize2, Minimize2, X } from "lucide-react";
 
@@ -23,7 +24,8 @@ function TalentDashboard() {
   const [showAllAttention, setShowAllAttention] = useState(false);
 
   const attention = data?.attention ?? [];
-  const visibleAttention = showAllAttention ? attention : attention.slice(0, 3);
+  const pending = attention.filter((a) => !dismissing.includes(a.key));
+  const visibleAttention = showAllAttention ? pending : pending.slice(0, 3);
 
   const dismissNotifFn = useServerFn(dismissTalentNotification);
 
@@ -37,7 +39,7 @@ function TalentDashboard() {
       else await dismissFn({ data: { kind: item.key, snapshot: item.snapshot } });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] }),
-    onError: (e: any, item) => {
+    onError: (e: any, item: { key: string }) => {
       setDismissing((k) => k.filter((x) => x !== item.key));
       toast.error(e?.message ?? "Couldn't dismiss that just now — please try again.");
     },
