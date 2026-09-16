@@ -170,9 +170,9 @@ function AuthPage() {
   const denied = useMemo(
     () =>
       search.denied && deniedState === "confirmed"
-        ? deniedMessage(search.denied, portal)
+        ? deniedMessage(search.denied, portal, deniedEmail)
         : null,
-    [search.denied, deniedState, portal],
+    [search.denied, deniedState, portal, deniedEmail],
   );
 
   // A confirmed denial is not always the end of the road: the account may have
