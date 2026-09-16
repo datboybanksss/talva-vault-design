@@ -514,7 +514,9 @@ function AuthPage() {
             </div>
           )}
 
-          {denied && !mfaFactorId && (
+          {/* Only when there is genuinely nothing waiting for this account —
+              a pending invitation and "no access" can never both be true. */}
+          {denied && !mfaFactorId && inviteChecked && !pendingInvite && (
             <div className="tv-auth-alert" style={{ marginTop: 18 }}>
               {denied}
               <div style={{ marginTop: 10 }}>
