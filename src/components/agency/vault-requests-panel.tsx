@@ -1,4 +1,15 @@
 import { ModalShell } from "@/components/shared/modal-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -252,23 +263,37 @@ function NewRequestDialog({
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
   return (
-    <ModalShell onClose={onClose}>
+    <ModalShell onClose={onClose} labelledBy="new-document-request-title">
         <div className="tvp-modal-head">
-          <h3 className="tvp-h2">New document request</h3>
-          <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+          <h3 className="tvp-h2" id="new-document-request-title">New document request</h3>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+            <X />
+          </Button>
         </div>
         <div className="tvp-modal-body">
-          <div className="tvp-form-grid" style={{ rowGap: 18 }}>
+          <div className="tvp-form-grid">
 
-          <div className="tvp-form-group" data-tour="request-talent"><label>Talent</label>
-            <select value={f.talent_link_id} onChange={e => setF(s => ({ ...s, talent_link_id: e.target.value }))}>
-              {talent.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}
-            </select>
+          <div className="tvp-form-group" data-tour="request-talent">
+            <Label htmlFor="request-talent">Talent</Label>
+            <Select value={f.talent_link_id} onValueChange={(value) => setF(s => ({ ...s, talent_link_id: value }))}>
+              <SelectTrigger id="request-talent" className="tvp-modal-control">
+                <SelectValue placeholder="Select talent" />
+              </SelectTrigger>
+              <SelectContent>
+                {talent.map(t => <SelectItem key={t.id} value={t.id}>{t.displayName}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="tvp-form-group"><label>Folder</label>
-            <select value={f.folder} onChange={e => setF(s => ({ ...s, folder: e.target.value }))}>
-              {folders.map((x: string) => <option key={x} value={x}>{x}</option>)}
-            </select>
+          <div className="tvp-form-group">
+            <Label htmlFor="request-folder">Folder</Label>
+            <Select value={f.folder} onValueChange={(value) => setF(s => ({ ...s, folder: value }))}>
+              <SelectTrigger id="request-folder" className="tvp-modal-control">
+                <SelectValue placeholder="Select folder" />
+              </SelectTrigger>
+              <SelectContent>
+                {folders.map((x: string) => <SelectItem key={x} value={x}>{x}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Retention rule preview */}
@@ -276,16 +301,9 @@ function NewRequestDialog({
             {rulesQ.isLoading ? (
               <div className="tvp-small tvp-muted">Checking retention rule…</div>
             ) : folderRule ? (
-              <div
-                style={{
-                  display: "flex", gap: 10, alignItems: "flex-start",
-                  padding: "10px 12px", borderRadius: "var(--tvp-radius-lg)",
-                  background: "color-mix(in oklab, var(--tvp-teal) 8%, transparent)",
-                  border: "1px solid color-mix(in oklab, var(--tvp-teal) 35%, transparent)",
-                }}
-              >
-                <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--tvp-teal)" }} />
-                <div className="tvp-small" style={{ color: "var(--tvp-ink)" }}>
+              <div className="tvp-modal-callout tvp-modal-callout--retention">
+                <span className="tvp-modal-callout-icon"><ShieldCheck className="h-4 w-4" /></span>
+                <div className="tvp-small">
                   <strong>Retention: {folderRule.retentionYears} {folderRule.retentionYears === 1 ? "year" : "years"}.</strong>{" "}
                   <span className="tvp-muted">
                     Once submitted, this document will be locked and cannot be deleted for {folderRule.retentionYears} {folderRule.retentionYears === 1 ? "year" : "years"}, per your <strong>{f.folder}</strong> folder retention rule
@@ -294,15 +312,8 @@ function NewRequestDialog({
                 </div>
               </div>
             ) : (
-              <div
-                style={{
-                  display: "flex", gap: 10, alignItems: "flex-start",
-                  padding: "10px 12px", borderRadius: "var(--tvp-radius-lg)",
-                  background: "color-mix(in oklab, var(--tvp-muted) 8%, transparent)",
-                  border: "1px solid color-mix(in oklab, var(--tvp-muted) 25%, transparent)",
-                }}
-              >
-                <Info className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "var(--tvp-muted)" }} />
+              <div className="tvp-modal-callout">
+                <span className="tvp-modal-callout-icon"><Info className="h-4 w-4" /></span>
                 <div className="tvp-small tvp-muted">
                   <strong>No retention rule applies to the {f.folder} folder.</strong>{" "}
                   The submitted document won't be auto-locked. Set a rule in Settings → Document Rules to enforce retention.
@@ -311,24 +322,31 @@ function NewRequestDialog({
             )}
           </div>
 
-          <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
-            <label>Title (e.g. "Updated passport scan")</label>
-            <input value={f.title} onChange={e => setF(s => ({ ...s, title: e.target.value }))} />
+          <div className="tvp-form-group">
+            <Label htmlFor="request-title">Title</Label>
+            <Input
+              id="request-title"
+              className="tvp-modal-control"
+              placeholder="e.g. Updated passport scan"
+              value={f.title}
+              onChange={e => setF(s => ({ ...s, title: e.target.value }))}
+            />
           </div>
-          <div className="tvp-form-group"><label>Due date</label>
-            <input type="date" value={f.due_date} onChange={e => setF(s => ({ ...s, due_date: e.target.value }))} />
+          <div className="tvp-form-group">
+            <Label htmlFor="request-due-date">Due date</Label>
+            <Input id="request-due-date" className="tvp-modal-control" type="date" value={f.due_date} onChange={e => setF(s => ({ ...s, due_date: e.target.value }))} />
           </div>
           <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
-            <label>Instructions</label>
-            <textarea rows={3} value={f.instructions} onChange={e => setF(s => ({ ...s, instructions: e.target.value }))} />
+            <Label htmlFor="request-instructions">Instructions</Label>
+            <Textarea id="request-instructions" className="tvp-modal-control" rows={3} value={f.instructions} onChange={e => setF(s => ({ ...s, instructions: e.target.value }))} />
           </div>
           </div>
         </div>
         <div className="tvp-modal-foot">
-          <button className="tvp-secondary" onClick={onClose}>Cancel</button>
-          <button className="tvp-primary" disabled={!f.talent_link_id || !f.title || mut.isPending} onClick={() => mut.mutate()}>
-            <Save className="h-4 w-4" />Create request
-          </button>
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" disabled={!f.talent_link_id || !f.title || mut.isPending} onClick={() => mut.mutate()}>
+            <Save />{mut.isPending ? "Creating…" : "Create request"}
+          </Button>
         </div>
 
     </ModalShell>

@@ -1411,8 +1411,40 @@
 .tvp-modal .tvp-form-group textarea:focus {
   outline: none; border-color: var(--tvp-teal-2); box-shadow: var(--focus-ring);
 }
+.tvp-modal .tvp-modal-control {
+  min-height: 42px;
+  border: 1px solid var(--tvp-line-strong);
+  border-radius: var(--r-sm);
+  background: var(--field-bg);
+  color: var(--tvp-ink);
+}
+.tvp-modal .tvp-modal-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--tvp-line);
+  border-radius: var(--r-sm);
+  background: var(--surface-soft);
+  color: var(--tvp-ink);
+}
+.tvp-modal .tvp-modal-callout--retention {
+  border-color: var(--tvp-teal-200);
+  background: var(--tvp-teal-50);
+}
+.tvp-modal .tvp-modal-callout-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: var(--tvp-teal-100);
+  color: var(--tvp-teal);
+}
 @media (max-width: 720px) {
   .tvp-modal .tvp-form-grid { grid-template-columns: 1fr; }
+  .tvp-modal .tvp-form-group[style*="grid-column"] { grid-column: auto !important; }
 }
 
 
