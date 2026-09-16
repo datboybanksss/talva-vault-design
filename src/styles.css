@@ -1413,7 +1413,7 @@
 }
 .tvp-modal .tvp-modal-control {
   min-height: 42px;
-  border-color: var(--tvp-line-strong);
+  border: 1px solid var(--tvp-line-strong);
   border-radius: var(--r-sm);
   background: var(--field-bg);
   color: var(--tvp-ink);
