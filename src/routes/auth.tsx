@@ -58,6 +58,49 @@ function deniedMessage(
   }
 }
 
+/** Portal-specific hero copy for the teal side-panel. */
+const PORTAL_HERO: Record<
+  PortalContext["key"],
+  { headline: string; sub: string; points: string[] }
+> = {
+  admin: {
+    headline: "The secure operations console for talent, agencies and loved ones.",
+    sub: "Manage agencies, invitations, audit trails and platform integrity from one branded workspace — with role-based access and full audit history.",
+    points: [
+      "Role-based access with row-level security",
+      "Full audit log on every administrator action",
+      "Agency & talent invitations, end to end",
+    ],
+  },
+  agency: {
+    headline: "The branded workspace for your agency's talent and documents.",
+    sub: "Manage your talent roster, shared folders and invitations from one secure workspace — with role-based access and full audit history.",
+    points: [
+      "Role-based access with row-level security",
+      "Shared folders and documents, protected end to end",
+      "Talent invitations, from send to sign-up",
+    ],
+  },
+  talent: {
+    headline: "Your personal vault for the documents that matter.",
+    sub: "Access your talent vault, shared documents and agency invitations from one secure workspace — your records, protected end to end.",
+    points: [
+      "Role-based access with row-level security",
+      "Every document and share, protected end to end",
+      "Invitations from your agency, accepted in moments",
+    ],
+  },
+  "loved-one": {
+    headline: "Secure, private access to the documents shared with you.",
+    sub: "View the records a trusted agency has shared with you from one secure workspace — your access, protected end to end.",
+    points: [
+      "Role-based access with row-level security",
+      "Share links you control, protected end to end",
+      "Read-only access, no setup required",
+    ],
+  },
+};
+
 type PortalContext = {
   key: "admin" | "agency" | "talent" | "loved-one";
   name: string;      // "Admin", "Agency", "Talent", "Loved One"
