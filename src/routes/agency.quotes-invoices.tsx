@@ -1000,7 +1000,8 @@ function QIPage() {
           canSend={
             !!editor.id &&
             editor.recipient_emails.length > 0 &&
-            (editor.kind !== "quote" || (!!settings?.billing_from_verified_at && !!settings?.billing_from_email)) &&
+            !!settings?.billing_from_verified_at &&
+            !!settings?.billing_from_email &&
             (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
           }
           sendDisabledReason={
@@ -1008,21 +1009,20 @@ function QIPage() {
               ? "Save this draft first before sending."
               : editor.recipient_emails.length === 0
                 ? "Add at least one recipient email address before sending."
-                : editor.kind === "quote" && (!settings?.billing_from_verified_at || !settings?.billing_from_email)
+                : (!settings?.billing_from_verified_at || !settings?.billing_from_email)
                   ? "Verify a sending address in Quotes & Invoices Settings before sending."
-                : "This record has already been sent."
+                  : "This record has already been sent."
           }
           canMarkSent={
-            editor.kind === "quote" &&
             !!editor.id &&
             (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
           }
           markSentDisabledReason={
-            !editor.id ? "Save this draft first." : "This quotation has already been sent."
+            !editor.id ? "Save this draft first." : "This record has already been sent."
           }
           onSend={() => send.mutate()}
           sending={send.isPending}
-          onMarkSent={editor.kind === "quote" ? () => markPreviewSent.mutate() : undefined}
+          onMarkSent={() => markPreviewSent.mutate()}
           markingSent={markPreviewSent.isPending}
         />
       )}
