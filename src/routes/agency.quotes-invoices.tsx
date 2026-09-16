@@ -18,6 +18,7 @@ import {
   getBillingDocFull,
   saveAgencyBillingDocFull,
   sendAgencyBillingDoc,
+  markAgencyQuoteSentManually,
   getAgencyBillingSettings,
   listAgencyTalentLinksLite,
 } from "@/lib/agency.functions";
@@ -189,6 +190,7 @@ function QIPage() {
   const { data: rows } = useSuspenseQuery(listQO);
   const saveFn = useServerFn(saveAgencyBillingDocFull);
   const sendFn = useServerFn(sendAgencyBillingDoc);
+  const markQuoteSentFn = useServerFn(markAgencyQuoteSentManually);
   const statusFn = useServerFn(updateAgencyBillingDocStatus);
   const deleteFn = useServerFn(deleteAgencyBillingDoc);
   const shareFn = useServerFn(setBillingDocShared);
@@ -468,12 +470,12 @@ function QIPage() {
   const markPreviewSent = useMutation({
     mutationFn: async () => {
       if (!editor.id) throw new Error("Save the quotation first");
-      return statusFn({ data: { id: editor.id, status: "sent" } });
+      return markQuoteSentFn({ data: { id: editor.id } });
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success("Quotation marked as sent manually");
-      setEditor((prev) => ({ ...prev, status: "sent" }));
+      setEditor((prev) => ({ ...prev, number: res.number, status: "sent" }));
       setPreviewOpen(false);
       setEditorOpen(false);
     },

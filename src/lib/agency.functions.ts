@@ -3069,6 +3069,54 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     return { ...updated, delivery: results };
   });
 
+export const markAgencyQuoteSentManually = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: quote, error: quoteError } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, status")
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (quoteError) throw new Error(quoteError.message);
+    if (!quote || quote.kind !== "quote") throw new Error("Quotation not found");
+    if (quote.status !== "draft" && !quote.number.startsWith("DRAFT-")) {
+      throw new Error("This quotation has already been sent");
+    }
+
+    let number = quote.number;
+    if (!number || number.startsWith("DRAFT-")) {
+      const { data: minted, error: mintError } = await supabase.rpc(
+        "mint_billing_doc_number",
+        { _agency_id: agencyId, _kind: "quote" },
+      );
+      if (mintError) throw new Error(mintError.message);
+      number = minted as string;
+    }
+
+    const sentAt = new Date().toISOString();
+    const { data: updated, error } = await supabase
+      .from("agency_billing_docs")
+      .update({ number, status: "sent", sent_at: sentAt })
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("You do not have permission to update this quotation");
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "mark_billing_doc_sent_manually", "agency_billing_doc", data.id,
+      `QUOTE ${number}`,
+      { status: "sent", sent_at: sentAt, email_attempted: false },
+    );
+    return updated;
+  });
+
 // ---------------------------------------------------------------------------
 // Billing "send from" address — per-agency, verified before use
 // ---------------------------------------------------------------------------
