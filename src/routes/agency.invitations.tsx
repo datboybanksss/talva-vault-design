@@ -298,6 +298,8 @@ function InvitationsPage() {
       </div>
 
       <ActiveStaffCard isOwner={isOwner} />
+      </div>
+
 
       {openForm && (
         <NewInvitationModal
