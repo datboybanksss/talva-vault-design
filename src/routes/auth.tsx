@@ -119,6 +119,7 @@ function AuthPage() {
   useEffect(() => {
     if (!search.denied) {
       setDeniedState("checking");
+      setDeniedEmail(null);
       return;
     }
     let mounted = true;
