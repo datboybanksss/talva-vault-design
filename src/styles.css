@@ -1149,12 +1149,17 @@
   color: var(--ink);
   font-family: var(--font-sans);
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  /* minmax(0, …) keeps each column from being floored at its min-content
+     width, which previously let the teal panel's content overhang the
+     column and get clipped at the panel edge. */
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   position: relative;
   overflow: hidden;
 }
-/* Invite activation uses a narrower teal panel (~35%) so the wizard has room. */
-.tv-auth.tv-auth--invite { grid-template-columns: 35fr 65fr; }
+/* Invite activation uses a narrower teal panel (~35%) so the wizard has room.
+   The panel still needs a floor wide enough to lay its copy out. */
+.tv-auth.tv-auth--invite { grid-template-columns: minmax(300px, 35fr) minmax(0, 65fr); }
+.tv-auth > * { min-width: 0; }
 
 .tv-auth::before {
   content: "";
@@ -1168,8 +1173,11 @@
   position: relative;
   background: linear-gradient(160deg, var(--sidebar-bg) 0%, var(--sidebar-active) 55%, color-mix(in oklab, var(--sidebar-active) 70%, var(--teal-500)) 100%);
   color: white;
-  padding: 56px 56px 48px;
+  /* Fluid gutters: on the narrow invite column fixed 56px padding left too
+     little room for the copy, pushing it past the panel edge. */
+  padding: clamp(28px, 3.4vw, 56px) clamp(24px, 3.4vw, 56px) clamp(24px, 3vw, 48px);
   display: flex; flex-direction: column; justify-content: space-between;
+  min-width: 0;
   overflow: hidden;
 }
 .tv-auth .tv-auth-hero::after {
@@ -1190,11 +1198,15 @@
 }
 .tv-auth .tv-auth-brand-title { font-size: 22px; font-weight: 700; letter-spacing: -.4px; line-height: 1; }
 .tv-auth .tv-auth-brand-sub { font-size: 11px; letter-spacing: 2.5px; color: var(--on-teal-dim); margin-top: 6px; font-weight: 700; }
-.tv-auth .tv-auth-headline { color: var(--on-teal, #ffffff); font-size: var(--t-display-lg); font-weight: 700; line-height: 1.12; letter-spacing: -.6px; max-width: 460px; }
-.tv-auth .tv-auth-sub { color: var(--on-teal-dim); font-size: 14px; line-height: 1.55; max-width: 440px; margin-top: 14px; }
-.tv-auth .tv-auth-points { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; }
-.tv-auth .tv-auth-point { display: flex; align-items: center; gap: 12px; color: var(--on-teal-dim); font-size: 13.5px; font-weight: 700; }
+.tv-auth .tv-auth-headline { color: var(--on-teal, #ffffff); font-size: var(--t-display-lg); font-weight: 700; line-height: 1.12; letter-spacing: -.6px; max-width: 460px; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
+.tv-auth .tv-auth-sub { color: var(--on-teal-dim); font-size: 14px; line-height: 1.55; max-width: 440px; margin-top: 14px; min-width: 0; overflow-wrap: break-word; }
+.tv-auth .tv-auth-points { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; min-width: 0; }
+.tv-auth .tv-auth-point { display: flex; align-items: flex-start; gap: 12px; color: var(--on-teal-dim); font-size: 13.5px; font-weight: 700; min-width: 0; overflow-wrap: break-word; }
+/* The invite layout gives the teal panel only ~35% of the width, so its
+   headline scales with that column rather than the full viewport. */
+.tv-auth.tv-auth--invite .tv-auth-headline { font-size: clamp(26px, 2.6vw, 40px); }
 .tv-auth .tv-auth-point-dot {
+  flex: 0 0 auto;
   width: 28px; height: 28px; border-radius: 8px;
   background: rgba(255,255,255,.14); display: grid; place-items: center;
   border: 1px solid rgba(255,255,255,.16);
