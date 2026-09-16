@@ -1,5 +1,7 @@
 import { sendLovableEmail } from "@lovable.dev/email-js";
 import { PUBLIC_SITE_URL, emailHeaderHtml } from "@/lib/brand-email";
+import type { BillingLine } from "@/lib/billing";
+import { computeTotals, fmtMoney } from "@/lib/billing";
 
 export type BillingSendResult =
   | { sent: true; message_id?: string }
@@ -108,6 +110,19 @@ export async function sendBillingDocEmail(opts: {
   amount: string;
   dueDate: string | null;
   notes: string | null;
+  issuedAt?: string;
+  recipientAddress?: string | null;
+  recipientVatNumber?: string | null;
+  currency?: string;
+  lines?: BillingLine[];
+  agency?: {
+    billingAddress: string | null;
+    contactEmail: string | null;
+    phone: string | null;
+    isVatRegistered: boolean;
+    vatNumber: string | null;
+    accentColor: string | null;
+  };
   idempotencyKey: string;
 }): Promise<BillingSendResult> {
   const label = opts.kind === "quote" ? "Quotation" : "Invoice";
@@ -116,15 +131,52 @@ export async function sendBillingDocEmail(opts: {
     opts.dueDate
       ? `<p><strong>${opts.kind === "quote" ? "Valid until" : "Payment due"}:</strong> ${esc(opts.dueDate)}</p>`
       : "";
+  const lines = opts.lines ?? [];
+  const totals = computeTotals(lines);
+  const accent = opts.agency?.accentColor || "#086a70";
+  const detailHtml = lines.length > 0
+    ? `<div style="margin:24px 0;border:1px solid #e7e5df;border-radius:6px;overflow:hidden;">
+        <div style="padding:16px 18px;border-bottom:3px solid ${esc(accent)};display:flex;justify-content:space-between;gap:16px;">
+          <div><strong style="font-size:18px;">${esc(opts.agencyName)}</strong>${opts.agency?.billingAddress ? `<div style="white-space:pre-line;color:#5b6769;font-size:12px;">${esc(opts.agency.billingAddress)}</div>` : ""}</div>
+          <div style="text-align:right;"><strong>Quotation ${esc(opts.number)}</strong>${opts.issuedAt ? `<div style="font-size:12px;color:#5b6769;">Issued ${esc(opts.issuedAt)}</div>` : ""}</div>
+        </div>
+        <div style="padding:14px 18px;background:#faf9f6;">
+          <strong>Prepared for ${esc(opts.clientName || "Client")}</strong>
+          ${opts.recipientAddress ? `<div style="white-space:pre-line;font-size:12px;color:#5b6769;">${esc(opts.recipientAddress)}</div>` : ""}
+          ${opts.recipientVatNumber ? `<div style="font-size:12px;color:#5b6769;">VAT number: ${esc(opts.recipientVatNumber)}</div>` : ""}
+        </div>
+        <table role="presentation" style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="background:#f2f1ed;color:#465456;">
+            <th style="padding:9px 12px;text-align:left;">Description</th><th style="padding:9px 12px;text-align:right;">Qty</th><th style="padding:9px 12px;text-align:right;">Unit price</th><th style="padding:9px 12px;text-align:right;">VAT</th><th style="padding:9px 12px;text-align:right;">Total</th>
+          </tr></thead>
+          <tbody>${lines.map((line) => {
+            const base = Math.round(line.quantity * line.unit_price_cents);
+            const vat = Math.round(base * line.vat_rate_bp / 10000);
+            return `<tr style="border-top:1px solid #e7e5df;"><td style="padding:10px 12px;">${esc(line.description)}</td><td style="padding:10px 12px;text-align:right;">${line.quantity}</td><td style="padding:10px 12px;text-align:right;">${esc(fmtMoney(line.unit_price_cents, opts.currency))}</td><td style="padding:10px 12px;text-align:right;">${(line.vat_rate_bp / 100).toFixed(2)}%</td><td style="padding:10px 12px;text-align:right;">${esc(fmtMoney(base + vat, opts.currency))}</td></tr>`;
+          }).join("")}</tbody>
+        </table>
+        <div style="padding:14px 18px;border-top:1px solid #e7e5df;text-align:right;">
+          <div>Subtotal: <strong>${esc(fmtMoney(totals.subtotal_cents, opts.currency))}</strong></div>
+          <div>VAT: <strong>${esc(fmtMoney(totals.vat_cents, opts.currency))}</strong></div>
+          <div style="font-size:18px;margin-top:4px;">Total: <strong>${esc(fmtMoney(totals.total_cents, opts.currency))}</strong></div>
+        </div>
+        ${opts.agency?.isVatRegistered && opts.agency.vatNumber ? `<div style="padding:10px 18px;border-top:1px solid #e7e5df;color:#5b6769;font-size:12px;">Agency VAT number: ${esc(opts.agency.vatNumber)}</div>` : ""}
+      </div>`
+    : `<p style="font-size:22px;font-weight:700;margin:16px 0;">${esc(opts.amount)}</p>`;
   const html = shell(
     label,
     `<p>Hello${opts.clientName ? ` ${esc(opts.clientName)}` : ""},</p>
      <p>Please find ${opts.kind === "quote" ? "the quotation" : "the invoice"} <strong>${esc(opts.number)}</strong> from <strong>${esc(opts.agencyName)}</strong> below.</p>
-     <p style="font-size:22px;font-weight:700;margin:16px 0;">${esc(opts.amount)}</p>
+     ${detailHtml}
      ${dueLine}
      ${opts.notes ? `<p style="color:#4a5b5d;">${esc(opts.notes)}</p>` : ""}
      <p style="color:#6b7a7c;font-size:13px;">Reply to this email to reach ${esc(opts.agencyName)} directly.</p>`,
   );
-  const text = `${label} ${opts.number} from ${opts.agencyName}\nAmount: ${opts.amount}${opts.dueDate ? `\nDue: ${opts.dueDate}` : ""}${opts.notes ? `\n\n${opts.notes}` : ""}`;
+  const lineText = lines.map((line) => {
+    const base = Math.round(line.quantity * line.unit_price_cents);
+    const vat = Math.round(base * line.vat_rate_bp / 10000);
+    return `${line.description} — ${line.quantity} × ${fmtMoney(line.unit_price_cents, opts.currency)} — ${fmtMoney(base + vat, opts.currency)}`;
+  }).join("\n");
+  const text = `${label} ${opts.number} from ${opts.agencyName}\n${opts.issuedAt ? `Issued: ${opts.issuedAt}\n` : ""}${opts.dueDate ? `${opts.kind === "quote" ? "Valid until" : "Due"}: ${opts.dueDate}\n` : ""}${lineText ? `\n${lineText}\n\nSubtotal: ${fmtMoney(totals.subtotal_cents, opts.currency)}\nVAT: ${fmtMoney(totals.vat_cents, opts.currency)}\nTotal: ${fmtMoney(totals.total_cents, opts.currency)}` : `Amount: ${opts.amount}`}${opts.notes ? `\n\n${opts.notes}` : ""}\n\nReply to this email to reach ${opts.agencyName} directly.`;
   return send(opts.to, opts.from, opts.replyTo, { subject, html, text }, opts.idempotencyKey);
 }

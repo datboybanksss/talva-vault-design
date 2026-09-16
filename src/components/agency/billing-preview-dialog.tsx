@@ -3,7 +3,7 @@ import { BillingDocument, type BillingDocAgency, type BillingDocRecord } from ".
 import type { BillingLine } from "@/lib/billing";
 
 export function BillingPreviewDialog({
-  open, onClose, doc, lines, agency, canSend, sendDisabledReason, onSend, sending, sendFrom, recipients,
+  open, onClose, doc, lines, agency, canSend, sendDisabledReason, onSend, sending, onMarkSent, markingSent, sendFrom, recipients,
 }: {
   open: boolean;
   onClose: () => void;
@@ -14,6 +14,8 @@ export function BillingPreviewDialog({
   sendDisabledReason?: string;
   onSend?: () => void;
   sending?: boolean;
+  onMarkSent?: () => void;
+  markingSent?: boolean;
   sendFrom?: string | null;
   recipients?: string[];
 }) {
@@ -52,9 +54,19 @@ export function BillingPreviewDialog({
                 className="tvp-primary"
                 onClick={canSend ? onSend : undefined}
                 disabled={!canSend || sending}
-                title={canSend ? "Mark as sent and email the recipients" : (sendDisabledReason ?? "Save this draft first before sending.")}
+                title={canSend ? (doc.kind === "quote" ? "Email this quotation to the recipients" : "Mark as sent and email the recipients") : (sendDisabledReason ?? "Save this draft first before sending.")}
               >
-                <Send className="h-4 w-4" />{sending ? "Sending…" : "Mark as sent"}
+                <Send className="h-4 w-4" />{sending ? "Sending…" : doc.kind === "quote" ? "Send quote" : "Mark as sent"}
+              </button>
+            )}
+            {doc.kind === "quote" && onMarkSent && (
+              <button
+                className="tvp-secondary"
+                onClick={onMarkSent}
+                disabled={!canSend || markingSent || sending}
+                title={canSend ? "Mark as sent without emailing the client" : (sendDisabledReason ?? "Save this draft first.")}
+              >
+                {markingSent ? "Updating…" : "Mark as sent"}
               </button>
             )}
             <button title="Close preview" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
