@@ -1008,6 +1008,14 @@ function QIPage() {
                   ? "Verify a sending address in Quotes & Invoices Settings before sending."
                 : "This record has already been sent."
           }
+          canMarkSent={
+            editor.kind === "quote" &&
+            !!editor.id &&
+            (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
+          }
+          markSentDisabledReason={
+            !editor.id ? "Save this draft first." : "This quotation has already been sent."
+          }
           onSend={() => send.mutate()}
           sending={send.isPending}
           onMarkSent={editor.kind === "quote" ? () => markPreviewSent.mutate() : undefined}

@@ -3,7 +3,7 @@ import { BillingDocument, type BillingDocAgency, type BillingDocRecord } from ".
 import type { BillingLine } from "@/lib/billing";
 
 export function BillingPreviewDialog({
-  open, onClose, doc, lines, agency, canSend, sendDisabledReason, onSend, sending, onMarkSent, markingSent, sendFrom, recipients,
+  open, onClose, doc, lines, agency, canSend, canMarkSent, sendDisabledReason, markSentDisabledReason, onSend, sending, onMarkSent, markingSent, sendFrom, recipients,
 }: {
   open: boolean;
   onClose: () => void;
@@ -11,7 +11,9 @@ export function BillingPreviewDialog({
   lines: BillingLine[];
   agency: BillingDocAgency;
   canSend?: boolean;
+  canMarkSent?: boolean;
   sendDisabledReason?: string;
+  markSentDisabledReason?: string;
   onSend?: () => void;
   sending?: boolean;
   onMarkSent?: () => void;
@@ -63,8 +65,8 @@ export function BillingPreviewDialog({
               <button
                 className="tvp-secondary"
                 onClick={onMarkSent}
-                disabled={!canSend || markingSent || sending}
-                title={canSend ? "Mark as sent without emailing the client" : (sendDisabledReason ?? "Save this draft first.")}
+                disabled={!canMarkSent || markingSent || sending}
+                title={canMarkSent ? "Mark as sent without emailing the client" : (markSentDisabledReason ?? "Save this draft first.")}
               >
                 {markingSent ? "Updating…" : "Mark as sent"}
               </button>

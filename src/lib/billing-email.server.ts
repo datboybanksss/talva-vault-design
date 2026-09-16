@@ -137,7 +137,7 @@ export async function sendBillingDocEmail(opts: {
   const detailHtml = lines.length > 0
     ? `<div style="margin:24px 0;border:1px solid #e7e5df;border-radius:6px;overflow:hidden;">
         <div style="padding:16px 18px;border-bottom:3px solid ${esc(accent)};display:flex;justify-content:space-between;gap:16px;">
-          <div><strong style="font-size:18px;">${esc(opts.agencyName)}</strong>${opts.agency?.billingAddress ? `<div style="white-space:pre-line;color:#5b6769;font-size:12px;">${esc(opts.agency.billingAddress)}</div>` : ""}</div>
+          <div><strong style="font-size:18px;">${esc(opts.agencyName)}</strong>${opts.agency?.billingAddress ? `<div style="white-space:pre-line;color:#5b6769;font-size:12px;">${esc(opts.agency.billingAddress)}</div>` : ""}${opts.agency?.contactEmail ? `<div style="color:#5b6769;font-size:12px;">${esc(opts.agency.contactEmail)}</div>` : ""}${opts.agency?.phone ? `<div style="color:#5b6769;font-size:12px;">${esc(opts.agency.phone)}</div>` : ""}</div>
           <div style="text-align:right;"><strong>Quotation ${esc(opts.number)}</strong>${opts.issuedAt ? `<div style="font-size:12px;color:#5b6769;">Issued ${esc(opts.issuedAt)}</div>` : ""}</div>
         </div>
         <div style="padding:14px 18px;background:#faf9f6;">
