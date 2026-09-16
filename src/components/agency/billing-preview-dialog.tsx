@@ -56,12 +56,13 @@ export function BillingPreviewDialog({
                 className="tvp-primary"
                 onClick={canSend ? onSend : undefined}
                 disabled={!canSend || sending}
-                title={canSend ? (doc.kind === "quote" ? "Email this quotation to the recipients" : "Mark as sent and email the recipients") : (sendDisabledReason ?? "Save this draft first before sending.")}
+                title={canSend ? `Email this ${doc.kind === "quote" ? "quotation" : "invoice"} to the recipients` : (sendDisabledReason ?? "Save this draft first before sending.")}
               >
-                <Send className="h-4 w-4" />{sending ? "Sending…" : doc.kind === "quote" ? "Send quote" : "Mark as sent"}
+                <Send className="h-4 w-4" />
+                {sending ? "Sending…" : doc.kind === "quote" ? "Send quote" : "Send invoice"}
               </button>
             )}
-            {doc.kind === "quote" && onMarkSent && (
+            {onMarkSent && (
               <button
                 className="tvp-secondary"
                 onClick={onMarkSent}

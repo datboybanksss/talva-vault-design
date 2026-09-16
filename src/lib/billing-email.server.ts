@@ -122,6 +122,14 @@ export async function sendBillingDocEmail(opts: {
     isVatRegistered: boolean;
     vatNumber: string | null;
     accentColor: string | null;
+    /** Banking block; supplied for invoices only, never for quotations. */
+    paymentDetails?: {
+      bankName: string | null;
+      accountHolder: string | null;
+      accountNumber: string | null;
+      branchCode: string | null;
+      instructions: string | null;
+    } | null;
   };
   idempotencyKey: string;
 }): Promise<BillingSendResult> {
@@ -136,11 +144,31 @@ export async function sendBillingDocEmail(opts: {
   const accent = /^#[0-9a-f]{6}$/i.test(opts.agency?.accentColor ?? "")
     ? opts.agency?.accentColor ?? "#086a70"
     : "#086a70";
+  // A VAT-registered agency issues a "Tax Invoice"; quotations keep their own heading.
+  const docHeading = opts.kind === "quote"
+    ? "Quotation"
+    : opts.agency?.isVatRegistered ? "Tax Invoice" : "Invoice";
+  const pay = opts.agency?.paymentDetails;
+  const paymentRows = pay
+    ? ([
+        ["Bank", pay.bankName],
+        ["Account holder", pay.accountHolder],
+        ["Account number", pay.accountNumber],
+        ["Branch code", pay.branchCode],
+      ] as const).filter(([, value]) => !!value)
+    : [];
+  const paymentHtml = pay && (paymentRows.length > 0 || pay.instructions)
+    ? `<div style="padding:14px 18px;border-top:1px solid #e7e5df;background:#faf9f6;font-size:12px;color:#33413f;">
+        <strong style="display:block;margin-bottom:6px;">Payment details</strong>
+        ${paymentRows.map(([field, value]) => `<div>${esc(field)}: ${esc(String(value))}</div>`).join("")}
+        ${pay.instructions ? `<div style="margin-top:6px;white-space:pre-line;">${esc(pay.instructions)}</div>` : ""}
+      </div>`
+    : "";
   const detailHtml = lines.length > 0
     ? `<div style="margin:24px 0;border:1px solid #e7e5df;border-radius:6px;overflow:hidden;">
         <div style="padding:16px 18px;border-bottom:3px solid ${esc(accent)};display:flex;justify-content:space-between;gap:16px;">
           <div><strong style="font-size:18px;">${esc(opts.agencyName)}</strong>${opts.agency?.billingAddress ? `<div style="white-space:pre-line;color:#5b6769;font-size:12px;">${esc(opts.agency.billingAddress)}</div>` : ""}${opts.agency?.contactEmail ? `<div style="color:#5b6769;font-size:12px;">${esc(opts.agency.contactEmail)}</div>` : ""}${opts.agency?.phone ? `<div style="color:#5b6769;font-size:12px;">${esc(opts.agency.phone)}</div>` : ""}</div>
-          <div style="text-align:right;"><strong>Quotation ${esc(opts.number)}</strong>${opts.issuedAt ? `<div style="font-size:12px;color:#5b6769;">Issued ${esc(opts.issuedAt)}</div>` : ""}</div>
+          <div style="text-align:right;"><strong>${esc(docHeading)} ${esc(opts.number)}</strong>${opts.issuedAt ? `<div style="font-size:12px;color:#5b6769;">Issued ${esc(opts.issuedAt)}</div>` : ""}${opts.dueDate ? `<div style="font-size:12px;color:#5b6769;">${opts.kind === "quote" ? "Valid until" : "Payment due"} ${esc(opts.dueDate)}</div>` : ""}</div>
         </div>
         <div style="padding:14px 18px;background:#faf9f6;">
           <strong>Prepared for ${esc(opts.clientName || "Client")}</strong>
@@ -163,8 +191,9 @@ export async function sendBillingDocEmail(opts: {
           <div style="font-size:18px;margin-top:4px;">Total: <strong>${esc(fmtMoney(totals.total_cents, opts.currency))}</strong></div>
         </div>
         ${opts.agency?.isVatRegistered && opts.agency.vatNumber ? `<div style="padding:10px 18px;border-top:1px solid #e7e5df;color:#5b6769;font-size:12px;">Agency VAT number: ${esc(opts.agency.vatNumber)}</div>` : ""}
+        ${paymentHtml}
       </div>`
-    : `<p style="font-size:22px;font-weight:700;margin:16px 0;">${esc(opts.amount)}</p>`;
+    : `<p style="font-size:22px;font-weight:700;margin:16px 0;">${esc(opts.amount)}</p>${paymentHtml}`;
   const html = shell(
     label,
     `<p>Hello${opts.clientName ? ` ${esc(opts.clientName)}` : ""},</p>
