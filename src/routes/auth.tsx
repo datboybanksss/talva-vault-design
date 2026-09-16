@@ -120,6 +120,12 @@ function AuthPage() {
       const result = deniedPortal ? await checkPortalAccess(deniedPortal) : "granted";
       if (!mounted) return;
       if (result === "denied") {
+        // Name the account the denial applies to: arriving here from the
+        // public site with an old session still active otherwise reads as an
+        // error about the visitor rather than about who is signed in.
+        const { data: sess } = await supabase.auth.getSession();
+        if (!mounted) return;
+        setDeniedEmail(sess.session?.user.email ?? null);
         setDeniedState("confirmed");
         return;
       }
