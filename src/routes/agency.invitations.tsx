@@ -195,6 +195,7 @@ function InvitationsPage() {
         ))}
       </div>
 
+      <div className="tvp-stack">
       <div className="tvp-card">
         <div className="tvp-table-wrap">
           <table className="tvp-table">
@@ -207,7 +208,7 @@ function InvitationsPage() {
                 <th>Sent By</th>
                 <th>Sent</th>
                 <th>Expires</th>
-                <th></th>
+                <th style={{ width: 48 }} />
               </tr>
             </thead>
             <tbody>
@@ -248,39 +249,37 @@ function InvitationsPage() {
                       <span className={`tvp-status tvp-${expiryTone}`}>{expiryLabel}</span>
                     </td>
                     <td>
-                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <RowActionsMenu
-                          actions={[
-                            isOwner && {
-                              key: "email", label: "Edit & send email", icon: Mail,
-                              onSelect: () =>
-                                navigate({
-                                  to: "/agency/invitations/$id/email-preview",
-                                  params: { id: i.id },
-                                  search: { type: i.type as "talent" | "staff" },
-                                }),
+                      <RowActionsMenu
+                        actions={[
+                          isOwner && {
+                            key: "email", label: "Edit & send email", icon: Mail,
+                            onSelect: () =>
+                              navigate({
+                                to: "/agency/invitations/$id/email-preview",
+                                params: { id: i.id },
+                                search: { type: i.type as "talent" | "staff" },
+                              }),
+                          },
+                          {
+                            key: "copy", label: "Copy invite link", icon: Link2,
+                            title: "Copying does not extend expiry",
+                            onSelect: () => copyLink(i),
+                          },
+                          (i.stored_status ?? i.status) === "pending" && isOwner && {
+                            key: "resend", label: "Resend invitation", icon: RefreshCw,
+                            title: "Refreshes expiry and logs a new send",
+                            onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
+                          },
+                          (i.stored_status ?? i.status) === "pending" && isOwner && {
+                            key: "revoke", label: "Revoke invitation", icon: Ban,
+                            destructive: true, separatorBefore: true,
+                            onSelect: () => {
+                              if (confirm(`Revoke invitation to ${i.email}?`))
+                                revokeM.mutate({ id: i.id, type: i.type });
                             },
-                            {
-                              key: "copy", label: "Copy invite link", icon: Link2,
-                              title: "Copying does not extend expiry",
-                              onSelect: () => copyLink(i),
-                            },
-                            (i.stored_status ?? i.status) === "pending" && isOwner && {
-                              key: "resend", label: "Resend invitation", icon: RefreshCw,
-                              title: "Refreshes expiry and logs a new send",
-                              onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
-                            },
-                            (i.stored_status ?? i.status) === "pending" && isOwner && {
-                              key: "revoke", label: "Revoke invitation", icon: Ban,
-                              destructive: true, separatorBefore: true,
-                              onSelect: () => {
-                                if (confirm(`Revoke invitation to ${i.email}?`))
-                                  revokeM.mutate({ id: i.id, type: i.type });
-                              },
-                            },
-                          ]}
-                        />
-                      </div>
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 );
@@ -299,6 +298,8 @@ function InvitationsPage() {
       </div>
 
       <ActiveStaffCard isOwner={isOwner} />
+      </div>
+
 
       {openForm && (
         <NewInvitationModal
@@ -681,8 +682,9 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
   const rows = (staff.data ?? []) as any[];
 
   return (
-    <div className="tvp-card" style={{ marginTop: 18 }}>
-      <div className="tvp-panel-head">
+    <div className="tvp-card">
+      {/* Same header inset as other table cards (Quotes & Invoices workspace). */}
+      <div className="tvp-panel-head" style={{ padding: "16px 18px 0", margin: 0 }}>
         <div>
           <h2 className="tvp-h2">Active staff</h2>
           <div className="tvp-subtitle">
@@ -701,44 +703,69 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
               <th>Role</th>
               <th>Joined</th>
               <th>Status</th>
+              <th style={{ width: 48 }} />
             </tr>
           </thead>
           <tbody>
-            {staff.isLoading && <tr><td colSpan={5} className="tvp-muted">Loading…</td></tr>}
+            {staff.isLoading && <tr><td colSpan={6} className="tvp-muted">Loading…</td></tr>}
             {!staff.isLoading && rows.length === 0 && (
-              <tr><td colSpan={5} className="tvp-muted">No staff members yet — invite a staff member to get started.</td></tr>
+              <tr><td colSpan={6} className="tvp-muted">No staff members yet — invite a staff member to get started.</td></tr>
             )}
             {rows.map((m) => {
               const editable = isOwner && m.role !== "owner" && !m.isSelf && !m.suspended;
+              const isLead = m.role === "lead";
               return (
                 <tr key={m.id}>
                   <td><strong>{m.name}</strong>{m.isSelf && <span className="tvp-status tvp-neutral" style={{ marginLeft: 6 }}>You</span>}</td>
                   <td>{m.email || "—"}</td>
                   <td>
-                    {editable ? (
-                      <select
-                        className="tvp-select"
-                        value={m.role === "lead" ? "lead" : "staff"}
-                        disabled={changeRole.isPending}
-                        onChange={(e) =>
-                          changeRole.mutate({ member_id: m.id, role: e.target.value as "staff" | "lead" })
-                        }
-                        style={{ minWidth: 190, height: 32, fontSize: 12 }}
-                      >
-                        <option value="staff">Staff manager (view + limited actions)</option>
-                        <option value="lead">Lead manager (full talent operations)</option>
-                      </select>
-                    ) : (
-                      <span className="tvp-status tvp-neutral">
-                        {STAFF_ROLE_LABEL[m.role] ?? m.role}
-                      </span>
-                    )}
+                    <span className="tvp-status tvp-neutral">
+                      {STAFF_ROLE_LABEL[m.role] ?? m.role}
+                    </span>
                   </td>
                   <td>{fmtDate(m.joinedAt)}</td>
                   <td>
                     <span className={`tvp-status tvp-${m.suspended ? "red" : "green"}`}>
                       {m.suspended ? "Suspended" : "Active"}
                     </span>
+                  </td>
+                  <td>
+                    {/* Same shared kebab pattern as the invitations table; the
+                        action set is filtered by role, permissions and state. */}
+                    <RowActionsMenu
+                      actions={[
+                        editable && !isLead && {
+                          key: "make-lead",
+                          label: "Make lead manager",
+                          icon: ShieldCheck,
+                          title: "Full talent operations",
+                          disabled: changeRole.isPending,
+                          onSelect: () => changeRole.mutate({ member_id: m.id, role: "lead" }),
+                        },
+                        editable && isLead && {
+                          key: "make-staff",
+                          label: "Make staff manager",
+                          icon: Settings2,
+                          title: "View and limited actions",
+                          disabled: changeRole.isPending,
+                          onSelect: () => changeRole.mutate({ member_id: m.id, role: "staff" }),
+                        },
+                        !!m.email && {
+                          key: "copy-email",
+                          label: "Copy email address",
+                          icon: Link2,
+                          separatorBefore: editable,
+                          onSelect: async () => {
+                            try {
+                              await navigator.clipboard.writeText(m.email);
+                              toast.success("Email address copied.");
+                            } catch {
+                              toast.error("Copy failed");
+                            }
+                          },
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               );
