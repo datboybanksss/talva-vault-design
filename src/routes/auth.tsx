@@ -401,22 +401,21 @@ function AuthPage() {
   useEffect(() => {
     if (clearedStaleSessionRef.current) return;
     clearedStaleSessionRef.current = true;
-    let mounted = true;
+    let showing = true;
     (async () => {
       const { data: sess } = await supabase.auth.getSession();
-      if (!mounted || !sess.session) return;
+      if (!sess.session) return;
       // Remember who it was: a denial notice needs to name the account even
       // after the session behind it is gone.
-      setDeniedEmail((prev) => prev ?? sess.session?.user.email ?? null);
-      // Local scope: this clears the stored session even when the revoke call
-      // to the auth server cannot be made, so nothing is left to resume from.
-      // Fire the sign-out but never wait on it: it can sit behind the auth
-      // client's internal lock, and the stored session must go regardless.
+      if (showing) setDeniedEmail((prev) => prev ?? sess.session?.user.email ?? null);
+      // The clearing itself is deliberately not gated on the component still
+      // being mounted — React's double-invoked effects would otherwise skip it
+      // and leave the session in place.
       void supabase.auth.signOut({ scope: "local" }).catch(() => {});
       clearStoredSession();
     })();
     return () => {
-      mounted = false;
+      showing = false;
     };
   }, []);
 
