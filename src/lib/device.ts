@@ -25,3 +25,19 @@ export function deviceLabel(ua: string | null | undefined): string {
 export function deviceKey(ua: string | null | undefined): string {
   return deviceLabel(ua).toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
+
+/**
+ * A stable per-browser identifier, used to remember that *this* browser has
+ * already entered its sign-in code for the current session. Never sent
+ * anywhere except TalVault's own server functions.
+ */
+export function browserSessionId(): string {
+  if (typeof window === "undefined") return "server";
+  const KEY = "tv-browser-id";
+  let id = window.localStorage.getItem(KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    window.localStorage.setItem(KEY, id);
+  }
+  return id;
+}

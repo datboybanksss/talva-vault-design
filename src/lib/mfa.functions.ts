@@ -21,15 +21,22 @@ export type MfaStatus = {
   email: string | null;
 };
 
-function sessionIdFrom(claims: Record<string, unknown>): string | null {
-  const sid = claims["session_id"] ?? claims["sid"];
-  return typeof sid === "string" && sid.length > 0 ? sid : null;
-}
+/**
+ * Which "session" a verification belongs to. Supabase access tokens do not
+ * always carry a session id, so the browser supplies its own stable id and the
+ * marker is cleared at the start of every password sign-in. That gives exactly
+ * one code per sign-in, without re-prompting on every page load.
+ */
+const deviceInput = z.object({ device: z.string().trim().min(1).max(100) });
+
+/** A verification never outlives the day it was made. */
+const VERIFICATION_TTL_HOURS = 12;
 
 /** Current two-step state for the signed-in account and this session. */
 export const getMfaStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<MfaStatus> => {
+  .inputValidator((d: unknown) => deviceInput.parse(d))
+  .handler(async ({ data, context }): Promise<MfaStatus> => {
     const { userId, claims } = context as {
       userId: string;
       claims: Record<string, unknown>;
@@ -42,17 +49,16 @@ export const getMfaStatus = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .maybeSingle();
 
-    const sessionId = sessionIdFrom(claims);
-    let sessionVerified = false;
-    if (sessionId) {
-      const { data: verified } = await supabaseAdmin
-        .from("mfa_verified_sessions")
-        .select("session_id")
-        .eq("user_id", userId)
-        .eq("session_id", sessionId)
-        .maybeSingle();
-      sessionVerified = !!verified;
-    }
+    const { data: verified } = await supabaseAdmin
+      .from("mfa_verified_sessions")
+      .select("verified_at")
+      .eq("user_id", userId)
+      .eq("session_id", data.device)
+      .maybeSingle();
+    const sessionVerified =
+      !!verified &&
+      Date.now() - new Date(verified.verified_at).getTime() <
+        VERIFICATION_TTL_HOURS * 3_600_000;
 
     const enrolled = !!settings?.enrolled_at;
     const gate: MfaGateState = !enrolled ? "enrol" : sessionVerified ? "ok" : "challenge";
@@ -209,12 +215,11 @@ export type VerifyCodeResult = { ok: boolean; message: string };
 /** Checks a code, marks the session verified and completes first enrolment. */
 export const verifySignInCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ code: z.string().trim().min(4).max(10) }).parse(d))
+  .inputValidator((d: unknown) =>
+    deviceInput.extend({ code: z.string().trim().min(4).max(10) }).parse(d),
+  )
   .handler(async ({ data, context }): Promise<VerifyCodeResult> => {
-    const { userId, claims } = context as {
-      userId: string;
-      claims: Record<string, unknown>;
-    };
+    const { userId } = context as { userId: string };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { callerIp, throttleMessage } = await import("@/lib/rate-limit.server");
     const { codeMatches, MAX_CODE_ATTEMPTS } = await import("@/lib/mfa.server");
@@ -279,12 +284,12 @@ export const verifySignInCode = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     await supabaseAdmin.from("mfa_codes").update({ consumed_at: now }).eq("id", row.id);
 
-    const sid = claims["session_id"] ?? claims["sid"];
-    if (typeof sid === "string" && sid) {
-      await supabaseAdmin
-        .from("mfa_verified_sessions")
-        .upsert({ user_id: userId, session_id: sid, verified_at: now }, { onConflict: "user_id,session_id" });
-    }
+    await supabaseAdmin
+      .from("mfa_verified_sessions")
+      .upsert(
+        { user_id: userId, session_id: data.device, verified_at: now },
+        { onConflict: "user_id,session_id" },
+      );
 
     await supabaseAdmin.from("mfa_settings").upsert(
       {
@@ -297,4 +302,22 @@ export const verifySignInCode = createServerFn({ method: "POST" })
     );
 
     return { ok: true, message: "Verified." };
+  });
+
+/**
+ * Called immediately after a password is accepted: forgets any earlier
+ * verification for this browser so every sign-in asks for a fresh code.
+ */
+export const beginSignInChallenge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => deviceInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { userId } = context as { userId: string };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("mfa_verified_sessions")
+      .delete()
+      .eq("user_id", userId)
+      .eq("session_id", data.device);
+    return { ok: true as const };
   });
