@@ -52,16 +52,16 @@ function deniedMessage(
   if (!code) return null;
   // The denial always describes the account that is still signed in, so name
   // it whenever we know it.
-  const who = email ? `You're still signed in as ${email}` : "You're signed in";
+  const who = email ? `The account you were signed in as (${email})` : "That account";
   switch (code) {
     case "not_talent":
-      return `${who}, but that account isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.`;
+      return `${who} isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.`;
     case "not_agency":
-      return `${who}, but that account isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.`;
+      return `${who} isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.`;
     case "not_admin":
-      return `${who}, but that account doesn't have admin access.`;
+      return `${who} doesn't have admin access. Sign in with one that does.`;
     default:
-      return `${who}, and that account doesn't have access to the ${portal.workspace}.`;
+      return `${who} doesn't have access to the ${portal.workspace}.`;
   }
 }
 
@@ -361,38 +361,27 @@ function AuthPage() {
     await goNext(true);
   }, [nav, search.next, startCodeChallenge, goNext]);
 
+  // Landing on the sign-in page always means starting from scratch. Any session
+  // still lying around from an earlier visit is cleared here, so email and
+  // password are entered every time and the code step can only ever be reached
+  // by getting the password right first — no resuming, no shortcuts.
+  const clearedStaleSessionRef = useRef(false);
   useEffect(() => {
+    if (clearedStaleSessionRef.current) return;
+    clearedStaleSessionRef.current = true;
     let mounted = true;
-    // A confirmed portal denial: never auto-redirect, it would loop silently
-    // and look like "sign-in does nothing".
-    if (search.denied && deniedState === "confirmed") return;
-    // While the denial is still being re-checked, hold off too.
-    if (search.denied) return;
     (async () => {
       const { data: sess } = await supabase.auth.getSession();
       if (!mounted || !sess.session) return;
-      setEmail((prev) => prev || (sess.session?.user.email ?? ""));
-      const status = await getMfaStatus({ data: { device: browserSessionId() } }).catch(
-        () => null,
-      );
-      if (!mounted || !status) return;
-      if (status.gate === "enrol") {
-        nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
-        return;
-      }
-      if (status.gate === "challenge") {
-        // Already password-authenticated, only the code is missing: resume the
-        // code step rather than making them sign in all over again.
-        if (!codeStage) void startCodeChallenge(true);
-        return;
-      }
-      void goNext();
+      // Remember who it was: a denial notice needs to name the account even
+      // after the session behind it is gone.
+      setDeniedEmail((prev) => prev ?? sess.session?.user.email ?? null);
+      await supabase.auth.signOut();
     })();
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goNext, search.denied, search.next, deniedState, nav, startCodeChallenge]);
+  }, []);
 
 
   const isSignIn = mode === "sign-in";
