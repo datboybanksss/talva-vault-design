@@ -401,7 +401,6 @@ function AuthPage() {
   useEffect(() => {
     if (clearedStaleSessionRef.current) return;
     clearedStaleSessionRef.current = true;
-    console.log("[tv-dbg] clear effect start");
     let showing = true;
     (async () => {
       const { data: sess } = await supabase.auth.getSession();
@@ -414,7 +413,6 @@ function AuthPage() {
       // and leave the session in place.
       void supabase.auth.signOut({ scope: "local" }).catch(() => {});
       clearStoredSession();
-      console.log("[tv-dbg] cleared", Object.keys(window.localStorage).filter((k) => k.startsWith("sb-")));
     })();
     return () => {
       showing = false;
