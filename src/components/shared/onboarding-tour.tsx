@@ -409,19 +409,23 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
 
   // Tooltip placement: beside the spotlight on desktop, pinned to the centre of
   // the viewport when there is no visible target (mobile drawer closed, etc.).
+  // Clamped against the tooltip's real measured size — a fixed height guess used
+  // to push taller tooltips (and their Next button) below the fold, which left
+  // the walkthrough looking frozen with no way forward.
   const pad = 8;
-  const tipStyle: React.CSSProperties = rect
-    ? {
-        top: Math.min(
-          Math.max(rect.top - 8, 12),
-          Math.max(typeof window !== "undefined" ? window.innerHeight - 240 : 400, 12),
-        ),
-        left: Math.min(
-          rect.left + rect.width + 16,
-          Math.max((typeof window !== "undefined" ? window.innerWidth : 1024) - 340, 12),
-        ),
-      }
-    : {};
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 900;
+  const tipW = tipSize.width || 340;
+  const tipH = tipSize.height || 260;
+  let tipStyle: React.CSSProperties = {};
+  if (rect) {
+    const rightOf = rect.left + rect.width + 16;
+    const leftOf = rect.left - tipW - 16;
+    const left =
+      rightOf + tipW + 12 <= vw ? rightOf : leftOf >= 12 ? leftOf : Math.max(12, vw - tipW - 12);
+    const top = Math.min(Math.max(rect.top - 8, 12), Math.max(vh - tipH - 12, 12));
+    tipStyle = { top, left };
+  }
 
   return (
     <div
