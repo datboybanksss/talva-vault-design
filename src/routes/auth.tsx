@@ -44,6 +44,32 @@ const searchSchema = z.object({
   reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
 });
 
+/**
+ * Wipes every trace of a stored session from this browser: the auth client's
+ * own entry and the matching cookie. Belt and braces behind signOut(), so a
+ * lingering session can never be resumed on the sign-in page.
+ */
+function clearStoredSession() {
+  const isAuthKey = (k: string) => k.startsWith("sb-") && k.includes("auth-token");
+  try {
+    Object.keys(window.localStorage)
+      .filter(isAuthKey)
+      .forEach((k) => window.localStorage.removeItem(k));
+    Object.keys(window.sessionStorage)
+      .filter(isAuthKey)
+      .forEach((k) => window.sessionStorage.removeItem(k));
+  } catch {
+    /* storage unavailable — the cookie clear below still runs */
+  }
+  document.cookie
+    .split(";")
+    .map((c) => c.split("=")[0]?.trim() ?? "")
+    .filter(isAuthKey)
+    .forEach((name) => {
+      document.cookie = `${name}=; Max-Age=0; path=/`;
+    });
+}
+
 function deniedMessage(
   code: string | undefined,
   portal: PortalContext,
@@ -378,15 +404,16 @@ function AuthPage() {
     let mounted = true;
     (async () => {
       const { data: sess } = await supabase.auth.getSession();
-      console.log("[tv-debug] stale session on /auth:", !!sess.session);
       if (!mounted || !sess.session) return;
       // Remember who it was: a denial notice needs to name the account even
       // after the session behind it is gone.
       setDeniedEmail((prev) => prev ?? sess.session?.user.email ?? null);
       // Local scope: this clears the stored session even when the revoke call
       // to the auth server cannot be made, so nothing is left to resume from.
-      const out = await supabase.auth.signOut({ scope: "local" }).catch((e) => e);
-      console.log("[tv-debug] signOut result:", JSON.stringify(out));
+      // Fire the sign-out but never wait on it: it can sit behind the auth
+      // client's internal lock, and the stored session must go regardless.
+      void supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      clearStoredSession();
     })();
     return () => {
       mounted = false;
