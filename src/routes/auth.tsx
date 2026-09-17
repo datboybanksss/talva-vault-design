@@ -196,18 +196,21 @@ function AuthPage() {
       const result = deniedPortal ? await checkPortalAccess(deniedPortal) : "granted";
       if (!mounted) return;
       if (result === "denied") {
-        // Name the account the denial applies to: arriving here from the
-        // public site with an old session still active otherwise reads as an
-        // error about the visitor rather than about who is signed in.
+        // Name the account the denial applies to, so the message reads as being
+        // about who was signed in rather than about the visitor.
         const { data: sess } = await supabase.auth.getSession();
         if (!mounted) return;
-        setDeniedEmail(sess.session?.user.email ?? null);
+        setDeniedEmail((prev) => sess.session?.user.email ?? prev);
         setDeniedState("confirmed");
         return;
       }
       if (result === "error") return; // transient: keep checking, show nothing
-      // Access is now granted, or nobody is signed in. Either way the denial no
-      // longer applies — clear it so the normal sign-in / auto-redirect flow runs.
+      // Signing the stale session out is what clears access here, and that must
+      // not erase a refusal we have already shown — otherwise the explanation
+      // vanishes the moment the session goes.
+      if (deniedConfirmedRef.current) return;
+      // Access is granted, or nobody was signed in to begin with: the denial no
+      // longer applies, so drop it and show a plain sign-in form.
       nav({
         to: "/auth",
         search: { next: search.next, reset: search.reset } as never,
