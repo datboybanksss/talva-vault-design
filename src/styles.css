@@ -1528,11 +1528,11 @@
   outline: 2px solid var(--tvp-amber);
   opacity: 1;
   transition:
-    top .28s cubic-bezier(.4, 0, .2, 1),
-    left .28s cubic-bezier(.4, 0, .2, 1),
-    width .28s cubic-bezier(.4, 0, .2, 1),
-    height .28s cubic-bezier(.4, 0, .2, 1),
-    opacity .22s ease;
+    top .18s cubic-bezier(.4, 0, .2, 1),
+    left .18s cubic-bezier(.4, 0, .2, 1),
+    width .18s cubic-bezier(.4, 0, .2, 1),
+    height .18s cubic-bezier(.4, 0, .2, 1),
+    opacity .14s ease;
 }
 .tvp-tour-tip {
   position: absolute; width: min(340px, calc(100vw - 32px));
@@ -1540,8 +1540,8 @@
   box-shadow: 0 24px 60px rgba(12, 22, 28, .28); padding: 16px 18px;
   opacity: 1;
   transition:
-    top .28s cubic-bezier(.4, 0, .2, 1),
-    left .28s cubic-bezier(.4, 0, .2, 1),
+    top .18s cubic-bezier(.4, 0, .2, 1),
+    left .18s cubic-bezier(.4, 0, .2, 1),
     opacity .22s ease;
 }
 .tvp-tour-tip-center {
@@ -1556,7 +1556,7 @@
 .tvp-tour-fading .tvp-tour-tip,
 .tvp-tour-fading .tvp-tour-dim { opacity: 0; }
 .tvp-tour-fading .tvp-tour-spot,
-.tvp-tour-fading .tvp-tour-tip { transition: opacity .2s ease; }
+.tvp-tour-fading .tvp-tour-tip { transition: opacity .13s ease; }
 
 
 @media (prefers-reduced-motion: reduce) {

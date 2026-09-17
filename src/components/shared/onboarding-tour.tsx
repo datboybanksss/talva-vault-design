@@ -53,16 +53,31 @@ async function markSeen(guide: TourGuide) {
   }
 }
 
-function waitForSelector(selector: string, timeoutMs = 1500): Promise<HTMLElement | null> {
+/**
+ * Is the element actually on screen? `offsetParent` is null for anything inside
+ * a `position: fixed` ancestor — the sidebar, the top bar, every modal — so it
+ * cannot be used here: it made the runtime wait out the full timeout on those
+ * steps and then skip both the scroll and the spotlight.
+ */
+function isVisible(el: HTMLElement): boolean {
+  const r = el.getBoundingClientRect();
+  if (r.width <= 0 || r.height <= 0) return false;
+  const cs = window.getComputedStyle(el);
+  return cs.visibility !== "hidden" && cs.display !== "none";
+}
+
+function waitForSelector(selector: string, timeoutMs = 650): Promise<HTMLElement | null> {
   return new Promise((resolve) => {
+    const first = document.querySelector(selector) as HTMLElement | null;
+    if (first && isVisible(first)) return resolve(first); // usually already there
     const started = Date.now();
     const tick = () => {
       const el = document.querySelector(selector) as HTMLElement | null;
-      if (el && el.offsetParent !== null) return resolve(el);
+      if (el && isVisible(el)) return resolve(el);
       if (Date.now() - started > timeoutMs) return resolve(null);
-      window.setTimeout(tick, 60);
+      window.requestAnimationFrame(tick);
     };
-    tick();
+    window.requestAnimationFrame(tick);
   });
 }
 
@@ -72,40 +87,78 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
+/** Height of anything pinned to the top of the window (top bar, sticky header). */
+function stickyTopInset(): number {
+  let inset = 0;
+  const candidates = document.querySelectorAll<HTMLElement>(
+    ".tvp-topbar, [data-sticky-header], header",
+  );
+  candidates.forEach((el) => {
+    const cs = window.getComputedStyle(el);
+    if (cs.position !== "fixed" && cs.position !== "sticky") return;
+    const r = el.getBoundingClientRect();
+    if (r.top > 4 || r.height <= 0 || r.height > window.innerHeight / 2) return;
+    inset = Math.max(inset, r.bottom);
+  });
+  return inset;
+}
+
 /**
- * Smooth-scroll the target to the centre of the viewport and resolve only once
- * the scroll has actually settled (its box stops moving for a few frames), so
- * the measurement that follows is taken against a stable position.
+ * Bring the target into clear view — centred where it fits, and never tucked
+ * under a pinned header or off the bottom — then resolve once the scroll has
+ * settled so the measurement that follows is taken against a stable position.
+ * Already-visible targets return immediately: no scroll, no wait.
  */
-async function scrollIntoViewAndSettle(el: HTMLElement, timeoutMs = 900): Promise<void> {
+async function scrollIntoViewAndSettle(el: HTMLElement, timeoutMs = 500): Promise<void> {
+  const top = stickyTopInset() + 16;
+  const bottom = window.innerHeight - 16;
+  const r = el.getBoundingClientRect();
+  const comfortablyVisible =
+    r.top >= top && r.bottom <= bottom && r.left >= 0 && r.right <= window.innerWidth;
+  if (comfortablyVisible) return;
+
+  const reduced = prefersReducedMotion();
+  const behavior: ScrollBehavior = reduced ? "auto" : "smooth";
+  const fitsInSafeArea = r.height <= bottom - top;
+
   try {
-    el.scrollIntoView({
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-      block: "center",
-      inline: "nearest",
-    });
+    if (fitsInSafeArea) {
+      el.scrollIntoView({ behavior, block: "center", inline: "nearest" });
+    } else {
+      // Taller than the usable window: align its top just below the header.
+      el.scrollIntoView({ behavior, block: "start", inline: "nearest" });
+      window.scrollBy({ top: -top, behavior: "auto" });
+    }
   } catch {
     el.scrollIntoView();
   }
+
+  if (reduced) return;
+
   await new Promise<void>((resolve) => {
     const started = Date.now();
     let lastTop = Number.NaN;
     let lastLeft = Number.NaN;
     let stable = 0;
     const tick = () => {
-      const r = el.getBoundingClientRect();
-      if (Math.abs(r.top - lastTop) < 0.5 && Math.abs(r.left - lastLeft) < 0.5) {
+      const box = el.getBoundingClientRect();
+      if (Math.abs(box.top - lastTop) < 0.5 && Math.abs(box.left - lastLeft) < 0.5) {
         stable += 1;
       } else {
         stable = 0;
       }
-      lastTop = r.top;
-      lastLeft = r.left;
-      if (stable >= 4 || Date.now() - started > timeoutMs) return resolve();
+      lastTop = box.top;
+      lastLeft = box.left;
+      if (stable >= 2 || Date.now() - started > timeoutMs) return resolve();
       window.requestAnimationFrame(tick);
     };
     window.requestAnimationFrame(tick);
   });
+
+  // A centred target can still end up under a pinned header when the page ran
+  // out of scroll room; nudge it clear.
+  const after = el.getBoundingClientRect();
+  if (after.top < top) window.scrollBy({ top: after.top - top, behavior: "auto" });
 }
 
 export function OnboardingTour({ portal }: { portal: Portal }) {
@@ -118,6 +171,12 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   const [rect, setRect] = useState<Rect | null>(null);
   const [ready, setReady] = useState(true);
   const [fading, setFading] = useState(false);
+  /** Real tooltip size, so placement can keep it (and its buttons) on screen. */
+  const [tipSize, setTipSize] = useState<{ width: number; height: number }>({
+    width: 340,
+    height: 260,
+  });
+  const tipRef = useRef<HTMLDivElement | null>(null);
 
   const rectRef = useRef<Rect | null>(null);
   const settlingRef = useRef(false);
@@ -205,46 +264,55 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     if (crossPage) setFading(true);
 
     (async () => {
-      const reduced = prefersReducedMotion();
-      if (step.route) {
-        if (crossPage && !isFirst && !reduced) await sleep(220); // fade-out completes
-        if (cancelled) return;
-        try {
-          await navigate({
-            to: step.route.to as any,
-            search: (step.route.search ?? {}) as any,
-          });
-        } catch {
-          /* route may not accept these search params — carry on */
+      try {
+        const reduced = prefersReducedMotion();
+        if (step.route) {
+          if (crossPage && !isFirst && !reduced) await sleep(140); // fade-out completes
+          if (cancelled) return;
+          try {
+            await navigate({
+              to: step.route.to as any,
+              search: (step.route.search ?? {}) as any,
+            });
+          } catch {
+            /* route may not accept these search params — carry on */
+          }
+          if (cancelled) return;
+          currentRouteRef.current = targetRoute;
+          if (!reduced) await sleep(60); // let the new page paint
         }
-        if (cancelled) return;
-        currentRouteRef.current = targetRoute;
-        if (!reduced) await sleep(120); // let the new page paint
-      }
 
-      const el = await waitForSelector(step.selector);
-      if (cancelled) return;
-      if (el) {
-        await scrollIntoViewAndSettle(el);
+        const el = await waitForSelector(step.selector);
         if (cancelled) return;
-      }
-      settlingRef.current = false;
+        if (el) {
+          await scrollIntoViewAndSettle(el);
+          if (cancelled) return;
+        }
+        settlingRef.current = false;
 
-      if (crossPage) {
-        // Still fully transparent here: snap the rect to its final position
-        // (position transitions are disabled by .tvp-tour-fading), then reveal
-        // on a later frame so opacity is the only thing that animates.
-        setReady(true);
-        measureRef.current?.(true);
-        await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
-        if (cancelled) return;
-        await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
-        if (cancelled) return;
-        setFading(false);
-      } else {
-        // Same page: leave it visible and let the CSS position transition
-        // carry the spotlight across to the new control.
-        setReady(true);
+        if (crossPage) {
+          // Still fully transparent here: snap the rect to its final position
+          // (position transitions are disabled by .tvp-tour-fading), then reveal
+          // on a later frame so opacity is the only thing that animates.
+          setReady(true);
+          measureRef.current?.(true);
+          await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
+          if (cancelled) return;
+          setFading(false);
+        } else {
+          // Same page: leave it visible and let the CSS position transition
+          // carry the spotlight across to the new control.
+          setReady(true);
+        }
+      } finally {
+        // Whatever happened — a navigation that threw, a target that never
+        // appeared, the user clicking Next mid-flight — the walkthrough must
+        // never be left invisible-but-blocking.
+        if (!cancelled) {
+          settlingRef.current = false;
+          setReady(true);
+          setFading(false);
+        }
       }
     })();
 
@@ -261,7 +329,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     if (!open || !step) return;
     if (!ready && !force) return;
     const el = document.querySelector(step.selector) as HTMLElement | null;
-    if (!el || el.offsetParent === null) {
+    if (!el || !isVisible(el)) {
       rectRef.current = null;
       setRect(null);
       return;
@@ -292,6 +360,19 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   useLayoutEffect(() => {
     measure();
   }, [measure]);
+
+  // Keep the measured tooltip size in step with its content.
+  useLayoutEffect(() => {
+    const el = tipRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.height <= 0) return;
+    setTipSize((prev) =>
+      Math.abs(prev.height - r.height) < 1 && Math.abs(prev.width - r.width) < 1
+        ? prev
+        : { width: r.width, height: r.height },
+    );
+  }, [step?.key, idx, guide?.id, rect]);
 
   // Re-measure on resize/scroll, but never while a deliberate scroll-into-view
   // is still settling, and only once per frame — the CSS transition then
@@ -347,19 +428,23 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
 
   // Tooltip placement: beside the spotlight on desktop, pinned to the centre of
   // the viewport when there is no visible target (mobile drawer closed, etc.).
+  // Clamped against the tooltip's real measured size — a fixed height guess used
+  // to push taller tooltips (and their Next button) below the fold, which left
+  // the walkthrough looking frozen with no way forward.
   const pad = 8;
-  const tipStyle: React.CSSProperties = rect
-    ? {
-        top: Math.min(
-          Math.max(rect.top - 8, 12),
-          Math.max(typeof window !== "undefined" ? window.innerHeight - 240 : 400, 12),
-        ),
-        left: Math.min(
-          rect.left + rect.width + 16,
-          Math.max((typeof window !== "undefined" ? window.innerWidth : 1024) - 340, 12),
-        ),
-      }
-    : {};
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 900;
+  const tipW = tipSize.width || 340;
+  const tipH = tipSize.height || 260;
+  let tipStyle: React.CSSProperties = {};
+  if (rect) {
+    const rightOf = rect.left + rect.width + 16;
+    const leftOf = rect.left - tipW - 16;
+    const left =
+      rightOf + tipW + 12 <= vw ? rightOf : leftOf >= 12 ? leftOf : Math.max(12, vw - tipW - 12);
+    const top = Math.min(Math.max(rect.top - 8, 12), Math.max(vh - tipH - 12, 12));
+    tipStyle = { top, left };
+  }
 
   return (
     <div
@@ -382,7 +467,11 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
         <div className="tvp-tour-dim" />
       )}
 
-      <div className={`tvp-tour-tip${rect ? "" : " tvp-tour-tip-center"}`} style={tipStyle}>
+      <div
+        ref={tipRef}
+        className={`tvp-tour-tip${rect ? "" : " tvp-tour-tip-center"}`}
+        style={tipStyle}
+      >
         <div className="tvp-tour-step">
           {guide!.title} · Step {idx + 1} of {steps.length}
         </div>
