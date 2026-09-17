@@ -452,6 +452,49 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, finish]);
 
+  /* --------------------------------------------------- welcome ---------- */
+  if (welcome) {
+    const overview = getOverviewGuide(portal);
+    const startTour = () => {
+      setWelcome(false);
+      setIdx(0);
+      setKeys(null);
+      setGuide(overview);
+    };
+    const declineTour = async () => {
+      setWelcome(false);
+      overviewDoneRef.current = true;
+      const ids = [overview.id, ...getModuleGuides(portal).map((g) => g.id)];
+      seenRef.current = Array.from(new Set([...(seenRef.current ?? []), ...ids]));
+      // Declining means declining for good — the Help menu is the way back in.
+      await markAllSeen(portal);
+    };
+    return (
+      <div className="tvp-tour" role="dialog" aria-modal="true" aria-label="Welcome to TalVault">
+        <div className="tvp-tour-dim" />
+        <div className="tvp-tour-tip tvp-tour-tip-center tvp-tour-welcome">
+          <div className="tvp-tour-step">Welcome to TalVault</div>
+          <div className="tvp-tour-title">Would you like a quick walkthrough?</div>
+          <p className="tvp-tour-body">
+            It takes a couple of minutes and shows you around {overview.title.toLowerCase()} —
+            where things live and what each part is for. You can stop at any point, and you can
+            start it again whenever you like from the help icon in the top bar.
+          </p>
+          <div className="tvp-tour-actions">
+            <button className="tvp-tour-skip" onClick={declineTour}>
+              No thanks
+            </button>
+            <div className="tvp-tour-next">
+              <button className="tvp-primary" onClick={startTour}>
+                Show me around
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!open || !step) return null;
 
   const last = idx === steps.length - 1;
