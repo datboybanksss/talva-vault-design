@@ -66,7 +66,7 @@ function isVisible(el: HTMLElement): boolean {
   return cs.visibility !== "hidden" && cs.display !== "none";
 }
 
-function waitForSelector(selector: string, timeoutMs = 900): Promise<HTMLElement | null> {
+function waitForSelector(selector: string, timeoutMs = 650): Promise<HTMLElement | null> {
   return new Promise((resolve) => {
     const first = document.querySelector(selector) as HTMLElement | null;
     if (first && isVisible(first)) return resolve(first); // usually already there
