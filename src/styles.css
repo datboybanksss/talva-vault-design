@@ -1536,6 +1536,8 @@
 }
 .tvp-tour-tip {
   position: absolute; width: min(340px, calc(100vw - 32px));
+  /* Never taller than the window: the Next button must always be reachable. */
+  max-height: calc(100vh - 24px); overflow-y: auto;
   background: var(--surface); border: 1px solid var(--tvp-line); border-radius: 14px;
   box-shadow: 0 24px 60px rgba(12, 22, 28, .28); padding: 16px 18px;
   opacity: 1;
