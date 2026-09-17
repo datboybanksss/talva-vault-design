@@ -205,8 +205,10 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
         .gte("validity_expires_at", nowIso)
         .lte("validity_expires_at", windowIso),
       supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "overdue"),
-      supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending"),
-      supabase.from("agency_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("kind", "staff").eq("status", "pending"),
+      // "Pending" rows that have sailed past their expiry read as Expired on the
+      // Invitations page, so they must not count as open invitations here either.
+      supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending").gt("expires_at", nowIso),
+      supabase.from("agency_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("kind", "staff").eq("status", "pending").gt("expires_at", nowIso),
     ]);
 
     const needsReview = needsReviewRes.count ?? 0;
@@ -314,8 +316,10 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
     ] = await Promise.all([
       supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
       supabase.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
-      supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending"),
-      supabase.from("agency_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("kind", "staff").eq("status", "pending"),
+      // "Pending" rows that have sailed past their expiry read as Expired on the
+      // Invitations page, so they must not count as open invitations here either.
+      supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending").gt("expires_at", nowIso),
+      supabase.from("agency_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("kind", "staff").eq("status", "pending").gt("expires_at", nowIso),
       supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
       supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "needs_review"),
       supabase

@@ -101,10 +101,15 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     queryKey: ["agency", "dashboard", "metrics"],
     queryFn: () => metricsFn(),
     refetchInterval: 60_000,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
+  // Each badge mirrors exactly what its page lists: the Talent badge counts the
+  // roster itself (invitations live on the Invitations page, not the roster),
+  // and the Invitations badge counts open invitations.
   const badgeCounts: Record<"talent" | "invitations", number> = {
-    talent: (metrics?.activeTalentCount ?? 0) + (metrics?.talentInvitationsPending ?? 0),
+    talent: metrics?.talentCount ?? 0,
     invitations: metrics?.invitationsNeedAction ?? 0,
   };
 
