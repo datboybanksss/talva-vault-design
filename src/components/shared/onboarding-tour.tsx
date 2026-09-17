@@ -258,46 +258,55 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     if (crossPage) setFading(true);
 
     (async () => {
-      const reduced = prefersReducedMotion();
-      if (step.route) {
-        if (crossPage && !isFirst && !reduced) await sleep(220); // fade-out completes
-        if (cancelled) return;
-        try {
-          await navigate({
-            to: step.route.to as any,
-            search: (step.route.search ?? {}) as any,
-          });
-        } catch {
-          /* route may not accept these search params — carry on */
+      try {
+        const reduced = prefersReducedMotion();
+        if (step.route) {
+          if (crossPage && !isFirst && !reduced) await sleep(140); // fade-out completes
+          if (cancelled) return;
+          try {
+            await navigate({
+              to: step.route.to as any,
+              search: (step.route.search ?? {}) as any,
+            });
+          } catch {
+            /* route may not accept these search params — carry on */
+          }
+          if (cancelled) return;
+          currentRouteRef.current = targetRoute;
+          if (!reduced) await sleep(60); // let the new page paint
         }
-        if (cancelled) return;
-        currentRouteRef.current = targetRoute;
-        if (!reduced) await sleep(120); // let the new page paint
-      }
 
-      const el = await waitForSelector(step.selector);
-      if (cancelled) return;
-      if (el) {
-        await scrollIntoViewAndSettle(el);
+        const el = await waitForSelector(step.selector);
         if (cancelled) return;
-      }
-      settlingRef.current = false;
+        if (el) {
+          await scrollIntoViewAndSettle(el);
+          if (cancelled) return;
+        }
+        settlingRef.current = false;
 
-      if (crossPage) {
-        // Still fully transparent here: snap the rect to its final position
-        // (position transitions are disabled by .tvp-tour-fading), then reveal
-        // on a later frame so opacity is the only thing that animates.
-        setReady(true);
-        measureRef.current?.(true);
-        await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
-        if (cancelled) return;
-        await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
-        if (cancelled) return;
-        setFading(false);
-      } else {
-        // Same page: leave it visible and let the CSS position transition
-        // carry the spotlight across to the new control.
-        setReady(true);
+        if (crossPage) {
+          // Still fully transparent here: snap the rect to its final position
+          // (position transitions are disabled by .tvp-tour-fading), then reveal
+          // on a later frame so opacity is the only thing that animates.
+          setReady(true);
+          measureRef.current?.(true);
+          await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
+          if (cancelled) return;
+          setFading(false);
+        } else {
+          // Same page: leave it visible and let the CSS position transition
+          // carry the spotlight across to the new control.
+          setReady(true);
+        }
+      } finally {
+        // Whatever happened — a navigation that threw, a target that never
+        // appeared, the user clicking Next mid-flight — the walkthrough must
+        // never be left invisible-but-blocking.
+        if (!cancelled) {
+          settlingRef.current = false;
+          setReady(true);
+          setFading(false);
+        }
       }
     })();
 
