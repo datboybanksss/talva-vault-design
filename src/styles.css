@@ -1585,7 +1585,11 @@
   padding: 2px 4px; margin: -2px -4px 0 0; font-size: 13px; color: var(--tvp-muted);
 }
 .tvp-tour-close:hover { color: var(--tvp-ink); }
-.tvp-tour-welcome { width: min(460px, calc(100vw - 24px)); }
+/* The first-login welcome sits in the middle of the window, not pinned low. */
+.tvp-tour-welcome {
+  width: min(460px, calc(100vw - 24px));
+  top: 50%; bottom: auto; transform: translate(-50%, -50%);
+}
 .tvp-tour .tvp-primary, .tvp-tour .tvp-secondary {
   display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
   border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer;
