@@ -24,10 +24,12 @@ import {
 
 import { logTalentSignIn } from "@/lib/talent-audit.functions";
 import {
+  beginSignInChallenge,
   getMfaStatus,
   requestSignInCode,
   verifySignInCode,
 } from "@/lib/mfa.functions";
+import { browserSessionId } from "@/lib/device";
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
 function recordSignIn() {
@@ -343,7 +345,10 @@ function AuthPage() {
   // What happens once the password has been accepted: the account's own
   // records decide whether it needs first-time set-up, a code, or nothing.
   const afterPassword = useCallback(async () => {
-    const status = await getMfaStatus();
+    // Every password sign-in earns a fresh code, even on a browser that was
+    // verified earlier today.
+    await beginSignInChallenge({ data: { device: browserSessionId() } }).catch(() => {});
+    const status = await getMfaStatus({ data: { device: browserSessionId() } });
     if (status.gate === "enrol") {
       nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
       return;
@@ -367,7 +372,9 @@ function AuthPage() {
       const { data: sess } = await supabase.auth.getSession();
       if (!mounted || !sess.session) return;
       setEmail((prev) => prev || (sess.session?.user.email ?? ""));
-      const status = await getMfaStatus().catch(() => null);
+      const status = await getMfaStatus({ data: { device: browserSessionId() } }).catch(
+        () => null,
+      );
       if (!mounted || !status) return;
       if (status.gate === "enrol") {
         nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
@@ -442,7 +449,9 @@ function AuthPage() {
     setError(null);
     setBusy(true);
     try {
-      const res = await verifySignInCode({ data: { code: mfaCode.trim() } });
+      const res = await verifySignInCode({
+        data: { code: mfaCode.trim(), device: browserSessionId() },
+      });
       if (!res.ok) {
         setInfo(null);
         setError(res.message);

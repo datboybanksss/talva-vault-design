@@ -128,7 +128,8 @@ export async function checkMfaGate(): Promise<MfaGate> {
   if (!MFA_ENFORCED) return "ok";
   try {
     const { getMfaStatus } = await import("@/lib/mfa.functions");
-    const status = await getMfaStatus();
+    const { browserSessionId } = await import("@/lib/device");
+    const status = await getMfaStatus({ data: { device: browserSessionId() } });
     return status.gate;
   } catch {
     // A transient failure must never lock a legitimate user out of the portal.

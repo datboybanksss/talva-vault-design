@@ -14,6 +14,7 @@ import {
   requestSignInCode,
   verifySignInCode,
 } from "@/lib/mfa.functions";
+import { browserSessionId } from "@/lib/device";
 
 const searchSchema = z.object({ next: z.string().optional() });
 
@@ -78,7 +79,7 @@ function EnrollTwoFactorPage() {
           return;
         }
         setEmail(user.email ?? "");
-        const status = await getMfaStatus();
+        const status = await getMfaStatus({ data: { device: browserSessionId() } });
         if (status.gate === "ok") {
           await goHome();
           return;
@@ -119,7 +120,9 @@ function EnrollTwoFactorPage() {
     setError(null);
     setBusy(true);
     try {
-      const res = await verifySignInCode({ data: { code: code.trim() } });
+      const res = await verifySignInCode({
+        data: { code: code.trim(), device: browserSessionId() },
+      });
       if (!res.ok) {
         setError(res.message);
         return;
