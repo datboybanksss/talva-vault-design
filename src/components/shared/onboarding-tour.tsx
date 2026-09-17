@@ -545,14 +545,25 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
         className={`tvp-tour-tip${rect ? "" : " tvp-tour-tip-center"}`}
         style={tipStyle}
       >
-        <div className="tvp-tour-step">
-          {guide!.title} · Step {idx + 1} of {steps.length}
+        <div className="tvp-tour-head">
+          <div className="tvp-tour-step">
+            {guide!.title} · Step {idx + 1} of {steps.length}
+          </div>
+          <button
+            type="button"
+            className="tvp-tour-close"
+            onClick={finish}
+            aria-label="Skip walkthrough"
+            title="Skip walkthrough"
+          >
+            ✕
+          </button>
         </div>
         <div className="tvp-tour-title">{step.title}</div>
         <p className="tvp-tour-body">{step.body}</p>
         <div className="tvp-tour-actions">
           <button className="tvp-tour-skip" onClick={finish}>
-            Skip tour
+            Skip walkthrough
           </button>
           <div className="tvp-tour-next">
             {idx > 0 && (
