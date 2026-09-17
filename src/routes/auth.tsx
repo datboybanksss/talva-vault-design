@@ -378,13 +378,15 @@ function AuthPage() {
     let mounted = true;
     (async () => {
       const { data: sess } = await supabase.auth.getSession();
+      console.log("[tv-debug] stale session on /auth:", !!sess.session);
       if (!mounted || !sess.session) return;
       // Remember who it was: a denial notice needs to name the account even
       // after the session behind it is gone.
       setDeniedEmail((prev) => prev ?? sess.session?.user.email ?? null);
       // Local scope: this clears the stored session even when the revoke call
       // to the auth server cannot be made, so nothing is left to resume from.
-      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      const out = await supabase.auth.signOut({ scope: "local" }).catch((e) => e);
+      console.log("[tv-debug] signOut result:", JSON.stringify(out));
     })();
     return () => {
       mounted = false;
