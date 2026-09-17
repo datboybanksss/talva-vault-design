@@ -15,6 +15,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getGuide,
+  getModuleGuides,
   getOverviewGuide,
   matchModuleGuides,
   type Portal,
@@ -59,6 +60,29 @@ async function markSeen(guide: TourGuide) {
  * cannot be used here: it made the runtime wait out the full timeout on those
  * steps and then skip both the scroll and the spotlight.
  */
+/** Records that this person has declined the walkthrough entirely. */
+async function markAllSeen(portal: Portal) {
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth?.user?.id;
+    if (!uid) return;
+    const ids = [getOverviewGuide(portal).id, ...getModuleGuides(portal).map((g) => g.id)];
+    const { data } = await supabase
+      .from("profiles")
+      .select("seen_tours")
+      .eq("id", uid)
+      .maybeSingle();
+    const seen: string[] = ((data as any)?.seen_tours as string[] | null) ?? [];
+    const next = Array.from(new Set([...seen, ...ids]));
+    await supabase
+      .from("profiles")
+      .update({ seen_tours: next, has_seen_onboarding: true } as any)
+      .eq("id", uid);
+  } catch {
+    /* non-blocking */
+  }
+}
+
 function isVisible(el: HTMLElement): boolean {
   const r = el.getBoundingClientRect();
   if (r.width <= 0 || r.height <= 0) return false;
@@ -177,6 +201,8 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     height: 260,
   });
   const tipRef = useRef<HTMLDivElement | null>(null);
+  /** First-login choice: start the walkthrough, or skip it for good. */
+  const [welcome, setWelcome] = useState(false);
 
   const rectRef = useRef<Rect | null>(null);
   const settlingRef = useRef(false);
@@ -220,11 +246,8 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
       if (cancelled || !data) return;
       seenRef.current = ((data as any).seen_tours as string[] | null) ?? [];
       overviewDoneRef.current = (data as any).has_seen_onboarding !== false;
-      if (!overviewDoneRef.current) {
-        setIdx(0);
-        setKeys(null);
-        setGuide(getOverviewGuide(portal));
-      }
+      // Never launch straight into the walkthrough on a first login — ask first.
+      if (!overviewDoneRef.current) setWelcome(true);
     })();
     return () => {
       cancelled = true;
@@ -233,7 +256,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
 
   // Auto-play the first unseen module guide for the section being viewed.
   useEffect(() => {
-    if (guide) return;
+    if (guide || welcome) return;
     if (seenRef.current === null || overviewDoneRef.current !== true) return;
     const candidate = matchModuleGuides(portal, pathname).find(
       (g) => !seenRef.current!.includes(g.id) && !autoCheckedRef.current.has(g.id),
@@ -243,7 +266,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     setIdx(0);
     setKeys(null);
     setGuide(candidate);
-  }, [guide, pathname, portal]);
+  }, [guide, welcome, pathname, portal]);
 
   /* --------------------------------------------------- step routing ------ */
   const step = open ? steps[idx] : undefined;
@@ -429,6 +452,49 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, finish]);
 
+  /* --------------------------------------------------- welcome ---------- */
+  if (welcome) {
+    const overview = getOverviewGuide(portal);
+    const startTour = () => {
+      setWelcome(false);
+      setIdx(0);
+      setKeys(null);
+      setGuide(overview);
+    };
+    const declineTour = async () => {
+      setWelcome(false);
+      overviewDoneRef.current = true;
+      const ids = [overview.id, ...getModuleGuides(portal).map((g) => g.id)];
+      seenRef.current = Array.from(new Set([...(seenRef.current ?? []), ...ids]));
+      // Declining means declining for good — the Help menu is the way back in.
+      await markAllSeen(portal);
+    };
+    return (
+      <div className="tvp-tour" role="dialog" aria-modal="true" aria-label="Welcome to TalVault">
+        <div className="tvp-tour-dim" />
+        <div className="tvp-tour-tip tvp-tour-tip-center tvp-tour-welcome">
+          <div className="tvp-tour-step">Welcome to TalVault</div>
+          <div className="tvp-tour-title">Would you like a quick walkthrough?</div>
+          <p className="tvp-tour-body">
+            It takes a couple of minutes and shows you around your workspace — where everything
+            lives and what each part is for. You can stop at any point, and you can start it again
+            whenever you like from the help icon in the top bar.
+          </p>
+          <div className="tvp-tour-actions">
+            <button className="tvp-tour-skip" onClick={declineTour}>
+              No thanks
+            </button>
+            <div className="tvp-tour-next">
+              <button className="tvp-primary" onClick={startTour}>
+                Show me around
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!open || !step) return null;
 
   const last = idx === steps.length - 1;
@@ -479,14 +545,25 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
         className={`tvp-tour-tip${rect ? "" : " tvp-tour-tip-center"}`}
         style={tipStyle}
       >
-        <div className="tvp-tour-step">
-          {guide!.title} · Step {idx + 1} of {steps.length}
+        <div className="tvp-tour-head">
+          <div className="tvp-tour-step">
+            {guide!.title} · Step {idx + 1} of {steps.length}
+          </div>
+          <button
+            type="button"
+            className="tvp-tour-close"
+            onClick={finish}
+            aria-label="Skip walkthrough"
+            title="Skip walkthrough"
+          >
+            ✕
+          </button>
         </div>
         <div className="tvp-tour-title">{step.title}</div>
         <p className="tvp-tour-body">{step.body}</p>
         <div className="tvp-tour-actions">
           <button className="tvp-tour-skip" onClick={finish}>
-            Skip tour
+            Skip walkthrough
           </button>
           <div className="tvp-tour-next">
             {idx > 0 && (

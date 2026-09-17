@@ -1572,11 +1572,24 @@
 .tvp-tour-body { font-size: 13.5px; line-height: 1.55; margin: 8px 0 14px; color: var(--tvp-muted); }
 .tvp-tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .tvp-tour-next { display: flex; gap: 8px; align-items: center; }
+/* Leaving must always be as obvious as carrying on. */
 .tvp-tour-skip {
-  background: transparent; border: 0; padding: 6px 2px; cursor: pointer;
-  font-size: 13px; font-weight: 700; color: var(--tvp-muted);
+  background: var(--surface); border: 1px solid var(--tvp-line-strong);
+  border-radius: 9px; height: 36px; padding: 0 12px; cursor: pointer;
+  font-size: 13px; font-weight: 800; color: var(--tvp-ink);
 }
-.tvp-tour-skip:hover { color: var(--tvp-ink); text-decoration: underline; }
+.tvp-tour-skip:hover { background: var(--tvp-surface-2, var(--surface)); border-color: var(--tvp-teal); }
+.tvp-tour-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.tvp-tour-close {
+  background: transparent; border: 0; cursor: pointer; line-height: 1;
+  padding: 2px 4px; margin: -2px -4px 0 0; font-size: 13px; color: var(--tvp-muted);
+}
+.tvp-tour-close:hover { color: var(--tvp-ink); }
+/* The first-login welcome sits in the middle of the window, not pinned low. */
+.tvp-tour-welcome {
+  width: min(460px, calc(100vw - 24px));
+  top: 50%; bottom: auto; transform: translate(-50%, -50%);
+}
 .tvp-tour .tvp-primary, .tvp-tour .tvp-secondary {
   display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
   border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer;
