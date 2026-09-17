@@ -1,6 +1,6 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PORTAL_FOR_DENIED_CODE, checkPortalAccess, resolvePortalHome } from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
@@ -44,6 +44,32 @@ const searchSchema = z.object({
   reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
 });
 
+/**
+ * Wipes every trace of a stored session from this browser: the auth client's
+ * own entry and the matching cookie. Belt and braces behind signOut(), so a
+ * lingering session can never be resumed on the sign-in page.
+ */
+function clearStoredSession() {
+  const isAuthKey = (k: string) => k.startsWith("sb-") && k.includes("auth-token");
+  try {
+    Object.keys(window.localStorage)
+      .filter(isAuthKey)
+      .forEach((k) => window.localStorage.removeItem(k));
+    Object.keys(window.sessionStorage)
+      .filter(isAuthKey)
+      .forEach((k) => window.sessionStorage.removeItem(k));
+  } catch {
+    /* storage unavailable — the cookie clear below still runs */
+  }
+  document.cookie
+    .split(";")
+    .map((c) => c.split("=")[0]?.trim() ?? "")
+    .filter(isAuthKey)
+    .forEach((name) => {
+      document.cookie = `${name}=; Max-Age=0; path=/`;
+    });
+}
+
 function deniedMessage(
   code: string | undefined,
   portal: PortalContext,
@@ -52,16 +78,16 @@ function deniedMessage(
   if (!code) return null;
   // The denial always describes the account that is still signed in, so name
   // it whenever we know it.
-  const who = email ? `You're still signed in as ${email}` : "You're signed in";
+  const who = email ? `The account you were signed in as (${email})` : "That account";
   switch (code) {
     case "not_talent":
-      return `${who}, but that account isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.`;
+      return `${who} isn't set up as talent yet. Ask your manager to send you a talent invitation, or sign in with a different account.`;
     case "not_agency":
-      return `${who}, but that account isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.`;
+      return `${who} isn't an active member of any agency. Ask your agency owner to invite you, or sign in with a different account.`;
     case "not_admin":
-      return `${who}, but that account doesn't have admin access.`;
+      return `${who} doesn't have admin access. Sign in with one that does.`;
     default:
-      return `${who}, and that account doesn't have access to the ${portal.workspace}.`;
+      return `${who} doesn't have access to the ${portal.workspace}.`;
   }
 }
 
@@ -180,11 +206,13 @@ function AuthPage() {
   // the banner, so a stale param from an earlier denial (back button, refresh,
   // shared link, or signing in as a different account) can never linger.
   const [deniedState, setDeniedState] = useState<"checking" | "confirmed">("checking");
+  const deniedConfirmedRef = useRef(false);
   const [deniedEmail, setDeniedEmail] = useState<string | null>(null);
   const deniedPortal = search.denied ? PORTAL_FOR_DENIED_CODE[search.denied] : undefined;
 
   useEffect(() => {
     if (!search.denied) {
+      deniedConfirmedRef.current = false;
       setDeniedState("checking");
       setDeniedEmail(null);
       return;
@@ -196,18 +224,22 @@ function AuthPage() {
       const result = deniedPortal ? await checkPortalAccess(deniedPortal) : "granted";
       if (!mounted) return;
       if (result === "denied") {
-        // Name the account the denial applies to: arriving here from the
-        // public site with an old session still active otherwise reads as an
-        // error about the visitor rather than about who is signed in.
+        // Name the account the denial applies to, so the message reads as being
+        // about who was signed in rather than about the visitor.
         const { data: sess } = await supabase.auth.getSession();
         if (!mounted) return;
-        setDeniedEmail(sess.session?.user.email ?? null);
+        setDeniedEmail((prev) => sess.session?.user.email ?? prev);
+        deniedConfirmedRef.current = true;
         setDeniedState("confirmed");
         return;
       }
       if (result === "error") return; // transient: keep checking, show nothing
-      // Access is now granted, or nobody is signed in. Either way the denial no
-      // longer applies — clear it so the normal sign-in / auto-redirect flow runs.
+      // Signing the stale session out is what clears access here, and that must
+      // not erase a refusal we have already shown — otherwise the explanation
+      // vanishes the moment the session goes.
+      if (deniedConfirmedRef.current) return;
+      // Access is granted, or nobody was signed in to begin with: the denial no
+      // longer applies, so drop it and show a plain sign-in form.
       nav({
         to: "/auth",
         search: { next: search.next, reset: search.reset } as never,
@@ -361,38 +393,31 @@ function AuthPage() {
     await goNext(true);
   }, [nav, search.next, startCodeChallenge, goNext]);
 
+  // Landing on the sign-in page always means starting from scratch. Any session
+  // still lying around from an earlier visit is cleared here, so email and
+  // password are entered every time and the code step can only ever be reached
+  // by getting the password right first — no resuming, no shortcuts.
+  const clearedStaleSessionRef = useRef(false);
   useEffect(() => {
-    let mounted = true;
-    // A confirmed portal denial: never auto-redirect, it would loop silently
-    // and look like "sign-in does nothing".
-    if (search.denied && deniedState === "confirmed") return;
-    // While the denial is still being re-checked, hold off too.
-    if (search.denied) return;
+    if (clearedStaleSessionRef.current) return;
+    clearedStaleSessionRef.current = true;
+    let showing = true;
     (async () => {
       const { data: sess } = await supabase.auth.getSession();
-      if (!mounted || !sess.session) return;
-      setEmail((prev) => prev || (sess.session?.user.email ?? ""));
-      const status = await getMfaStatus({ data: { device: browserSessionId() } }).catch(
-        () => null,
-      );
-      if (!mounted || !status) return;
-      if (status.gate === "enrol") {
-        nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
-        return;
-      }
-      if (status.gate === "challenge") {
-        // Already password-authenticated, only the code is missing: resume the
-        // code step rather than making them sign in all over again.
-        if (!codeStage) void startCodeChallenge(true);
-        return;
-      }
-      void goNext();
+      if (!sess.session) return;
+      // Remember who it was: a denial notice needs to name the account even
+      // after the session behind it is gone.
+      if (showing) setDeniedEmail((prev) => prev ?? sess.session?.user.email ?? null);
+      // The clearing itself is deliberately not gated on the component still
+      // being mounted — React's double-invoked effects would otherwise skip it
+      // and leave the session in place.
+      void supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      clearStoredSession();
     })();
     return () => {
-      mounted = false;
+      showing = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goNext, search.denied, search.next, deniedState, nav, startCodeChallenge]);
+  }, []);
 
 
   const isSignIn = mode === "sign-in";
