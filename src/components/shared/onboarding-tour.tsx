@@ -171,6 +171,12 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   const [rect, setRect] = useState<Rect | null>(null);
   const [ready, setReady] = useState(true);
   const [fading, setFading] = useState(false);
+  /** Real tooltip size, so placement can keep it (and its buttons) on screen. */
+  const [tipSize, setTipSize] = useState<{ width: number; height: number }>({
+    width: 340,
+    height: 260,
+  });
+  const tipRef = useRef<HTMLDivElement | null>(null);
 
   const rectRef = useRef<Rect | null>(null);
   const settlingRef = useRef(false);
@@ -355,6 +361,19 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     measure();
   }, [measure]);
 
+  // Keep the measured tooltip size in step with its content.
+  useLayoutEffect(() => {
+    const el = tipRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.height <= 0) return;
+    setTipSize((prev) =>
+      Math.abs(prev.height - r.height) < 1 && Math.abs(prev.width - r.width) < 1
+        ? prev
+        : { width: r.width, height: r.height },
+    );
+  }, [step?.key, idx, guide?.id, rect]);
+
   // Re-measure on resize/scroll, but never while a deliberate scroll-into-view
   // is still settling, and only once per frame — the CSS transition then
   // carries the spotlight/tooltip to the new position smoothly.
@@ -448,7 +467,11 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
         <div className="tvp-tour-dim" />
       )}
 
-      <div className={`tvp-tour-tip${rect ? "" : " tvp-tour-tip-center"}`} style={tipStyle}>
+      <div
+        ref={tipRef}
+        className={`tvp-tour-tip${rect ? "" : " tvp-tour-tip-center"}`}
+        style={tipStyle}
+      >
         <div className="tvp-tour-step">
           {guide!.title} · Step {idx + 1} of {steps.length}
         </div>
