@@ -53,16 +53,31 @@ async function markSeen(guide: TourGuide) {
   }
 }
 
-function waitForSelector(selector: string, timeoutMs = 1500): Promise<HTMLElement | null> {
+/**
+ * Is the element actually on screen? `offsetParent` is null for anything inside
+ * a `position: fixed` ancestor — the sidebar, the top bar, every modal — so it
+ * cannot be used here: it made the runtime wait out the full timeout on those
+ * steps and then skip both the scroll and the spotlight.
+ */
+function isVisible(el: HTMLElement): boolean {
+  const r = el.getBoundingClientRect();
+  if (r.width <= 0 || r.height <= 0) return false;
+  const cs = window.getComputedStyle(el);
+  return cs.visibility !== "hidden" && cs.display !== "none";
+}
+
+function waitForSelector(selector: string, timeoutMs = 1200): Promise<HTMLElement | null> {
   return new Promise((resolve) => {
+    const first = document.querySelector(selector) as HTMLElement | null;
+    if (first && isVisible(first)) return resolve(first); // usually already there
     const started = Date.now();
     const tick = () => {
       const el = document.querySelector(selector) as HTMLElement | null;
-      if (el && el.offsetParent !== null) return resolve(el);
+      if (el && isVisible(el)) return resolve(el);
       if (Date.now() - started > timeoutMs) return resolve(null);
-      window.setTimeout(tick, 60);
+      window.requestAnimationFrame(tick);
     };
-    tick();
+    window.requestAnimationFrame(tick);
   });
 }
 
@@ -72,40 +87,78 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
+/** Height of anything pinned to the top of the window (top bar, sticky header). */
+function stickyTopInset(): number {
+  let inset = 0;
+  const candidates = document.querySelectorAll<HTMLElement>(
+    ".tvp-topbar, [data-sticky-header], header",
+  );
+  candidates.forEach((el) => {
+    const cs = window.getComputedStyle(el);
+    if (cs.position !== "fixed" && cs.position !== "sticky") return;
+    const r = el.getBoundingClientRect();
+    if (r.top > 4 || r.height <= 0 || r.height > window.innerHeight / 2) return;
+    inset = Math.max(inset, r.bottom);
+  });
+  return inset;
+}
+
 /**
- * Smooth-scroll the target to the centre of the viewport and resolve only once
- * the scroll has actually settled (its box stops moving for a few frames), so
- * the measurement that follows is taken against a stable position.
+ * Bring the target into clear view — centred where it fits, and never tucked
+ * under a pinned header or off the bottom — then resolve once the scroll has
+ * settled so the measurement that follows is taken against a stable position.
+ * Already-visible targets return immediately: no scroll, no wait.
  */
-async function scrollIntoViewAndSettle(el: HTMLElement, timeoutMs = 900): Promise<void> {
+async function scrollIntoViewAndSettle(el: HTMLElement, timeoutMs = 500): Promise<void> {
+  const top = stickyTopInset() + 16;
+  const bottom = window.innerHeight - 16;
+  const r = el.getBoundingClientRect();
+  const comfortablyVisible =
+    r.top >= top && r.bottom <= bottom && r.left >= 0 && r.right <= window.innerWidth;
+  if (comfortablyVisible) return;
+
+  const reduced = prefersReducedMotion();
+  const behavior: ScrollBehavior = reduced ? "auto" : "smooth";
+  const fitsInSafeArea = r.height <= bottom - top;
+
   try {
-    el.scrollIntoView({
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-      block: "center",
-      inline: "nearest",
-    });
+    if (fitsInSafeArea) {
+      el.scrollIntoView({ behavior, block: "center", inline: "nearest" });
+    } else {
+      // Taller than the usable window: align its top just below the header.
+      el.scrollIntoView({ behavior, block: "start", inline: "nearest" });
+      window.scrollBy({ top: -top, behavior: "auto" });
+    }
   } catch {
     el.scrollIntoView();
   }
+
+  if (reduced) return;
+
   await new Promise<void>((resolve) => {
     const started = Date.now();
     let lastTop = Number.NaN;
     let lastLeft = Number.NaN;
     let stable = 0;
     const tick = () => {
-      const r = el.getBoundingClientRect();
-      if (Math.abs(r.top - lastTop) < 0.5 && Math.abs(r.left - lastLeft) < 0.5) {
+      const box = el.getBoundingClientRect();
+      if (Math.abs(box.top - lastTop) < 0.5 && Math.abs(box.left - lastLeft) < 0.5) {
         stable += 1;
       } else {
         stable = 0;
       }
-      lastTop = r.top;
-      lastLeft = r.left;
-      if (stable >= 4 || Date.now() - started > timeoutMs) return resolve();
+      lastTop = box.top;
+      lastLeft = box.left;
+      if (stable >= 2 || Date.now() - started > timeoutMs) return resolve();
       window.requestAnimationFrame(tick);
     };
     window.requestAnimationFrame(tick);
   });
+
+  // A centred target can still end up under a pinned header when the page ran
+  // out of scroll room; nudge it clear.
+  const after = el.getBoundingClientRect();
+  if (after.top < top) window.scrollBy({ top: after.top - top, behavior: "auto" });
 }
 
 export function OnboardingTour({ portal }: { portal: Portal }) {
