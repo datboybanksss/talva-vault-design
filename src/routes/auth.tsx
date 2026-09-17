@@ -1,6 +1,6 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PORTAL_FOR_DENIED_CODE, checkPortalAccess, resolvePortalHome } from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
