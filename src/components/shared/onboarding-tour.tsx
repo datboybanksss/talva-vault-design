@@ -323,7 +323,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     if (!open || !step) return;
     if (!ready && !force) return;
     const el = document.querySelector(step.selector) as HTMLElement | null;
-    if (!el || el.offsetParent === null) {
+    if (!el || !isVisible(el)) {
       rectRef.current = null;
       setRect(null);
       return;
