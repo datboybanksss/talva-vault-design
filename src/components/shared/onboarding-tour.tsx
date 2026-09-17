@@ -476,9 +476,9 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
           <div className="tvp-tour-step">Welcome to TalVault</div>
           <div className="tvp-tour-title">Would you like a quick walkthrough?</div>
           <p className="tvp-tour-body">
-            It takes a couple of minutes and shows you around {overview.title.toLowerCase()} —
-            where things live and what each part is for. You can stop at any point, and you can
-            start it again whenever you like from the help icon in the top bar.
+            It takes a couple of minutes and shows you around your workspace — where everything
+            lives and what each part is for. You can stop at any point, and you can start it again
+            whenever you like from the help icon in the top bar.
           </p>
           <div className="tvp-tour-actions">
             <button className="tvp-tour-skip" onClick={declineTour}>
