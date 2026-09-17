@@ -99,30 +99,39 @@ export async function resolvePortalHome(): Promise<string | null> {
   return null;
 }
 
+/**
+ * Nobody picks a portal in TalVault. If someone lands on a workspace their
+ * account doesn't belong to, we quietly move them to the one it does — and
+ * only fall back to the sign-in screen when the account has no workspace.
+ */
+export async function resolveDeniedDestination(
+  key: PortalKey,
+  href: string,
+): Promise<{ to: string; search?: Record<string, string> }> {
+  const home = await resolvePortalHome();
+  if (home && home !== PORTAL_HOME[key]) return { to: home };
+  return { to: "/auth", search: { next: href, denied: DENIED_CODE[key] } };
+}
+
 export type MfaGate = "ok" | "enrol" | "challenge";
 
-/**
- * TEMPORARY (testing): two-factor enforcement is switched off. Set this back to
- * true to restore mandatory 2FA on every portal.
- */
-export const MFA_ENFORCED = false;
+/** Two-step sign-in is mandatory for every account, with no exemptions. */
+export const MFA_ENFORCED = true;
 
 /**
- * Two-factor authentication is mandatory for every account on every portal.
- * Returns what the gate must do before letting the user in:
- *  - "enrol"     → no verified TOTP factor yet
- *  - "challenge" → factor exists but this session is still AAL1
+ * Two-step sign-in state for the current session, resolved server-side from
+ * real records:
+ *  - "enrol"     → the account has never completed the code step
+ *  - "challenge" → enrolled, but this session hasn't entered a code yet
  */
 export async function checkMfaGate(): Promise<MfaGate> {
   if (!MFA_ENFORCED) return "ok";
-  const { data: factors, error } = await supabase.auth.mfa.listFactors();
-  if (error) return "ok"; // transient failure must not lock anyone out
-  const all = ((factors as unknown as { all?: { factor_type: string; status: string }[] })?.all) ?? [];
-  const verified =
-    (factors?.totp ?? []).some((f) => f.status === "verified") ||
-    all.some((f) => f.factor_type === "totp" && f.status === "verified");
-  if (!verified) return "enrol";
-  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return "challenge";
-  return "ok";
+  try {
+    const { getMfaStatus } = await import("@/lib/mfa.functions");
+    const status = await getMfaStatus();
+    return status.gate;
+  } catch {
+    // A transient failure must never lock a legitimate user out of the portal.
+    return "ok";
+  }
 }

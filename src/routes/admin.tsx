@@ -1,7 +1,7 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { supabase } from "@/integrations/supabase/client";
-import { checkMfaGate, checkPortalAccess } from "@/lib/portal-access";
+import { checkMfaGate, checkPortalAccess, resolveDeniedDestination } from "@/lib/portal-access";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -18,15 +18,18 @@ export const Route = createFileRoute("/admin")({
   }),
   beforeLoad: async ({ location }) => {
     const access = await checkPortalAccess("admin");
+    if (access === "denied") {
+      // Wrong workspace for this account: send them to their own rather than
+      // to an error screen.
+      const dest = await resolveDeniedDestination("admin", location.href);
+      throw redirect({ to: dest.to as never, search: (dest.search ?? {}) as never });
+    }
     if (access !== "granted") {
       throw redirect({
         to: "/auth",
-        // Only a settled "denied" earns the banner. A signed-out visitor or a
-        // check that could not complete just gets the plain sign-in screen.
-        search:
-          access === "denied"
-            ? { next: location.href, denied: "not_admin" }
-            : { next: location.href },
+        // A signed-out visitor, or a check that could not complete, just gets
+        // the plain sign-in screen.
+        search: { next: location.href },
       });
     }
     const { data: userRes } = await supabase.auth.getUser();

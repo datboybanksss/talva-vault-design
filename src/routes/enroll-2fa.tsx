@@ -1,13 +1,19 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Smartphone, ShieldCheck, KeyRound, Copy, Check } from "lucide-react";
+import { Mail, ShieldCheck, KeyRound } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { logMfaEnrolled } from "@/lib/admin.functions";
 import { friendlyAuthError } from "@/lib/password";
 import { resolvePortalHome } from "@/lib/portal-access";
+import {
+  getMfaStatus,
+  markMfaExplainerSeen,
+  requestSignInCode,
+  verifySignInCode,
+} from "@/lib/mfa.functions";
 
 const searchSchema = z.object({ next: z.string().optional() });
 
@@ -16,11 +22,11 @@ export const Route = createFileRoute("/enroll-2fa")({
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Set up two-factor authentication · TalVault" },
+      { title: "Set up two-step sign-in · TalVault" },
       {
         name: "description",
         content:
-          "Two-factor authentication is required on every TalVault account. Scan the code with your authenticator app to finish setting it up.",
+          "Two-step sign-in is required on every TalVault account. We email you a short code each time you sign in.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -47,56 +53,20 @@ function EnrollTwoFactorPage() {
   const [email, setEmail] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [pendingFactorId, setPendingFactorId] = useState<string | null>(null);
-  const [qrSvg, setQrSvg] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
+  /** "explainer" is only ever shown once per account. */
+  const [step, setStep] = useState<"explainer" | "code">("explainer");
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const startedRef = useRef(false);
 
   const goHome = async () => {
     const dest = safeNext(search.next) ?? (await resolvePortalHome());
     navigate({ to: (dest ?? "/auth") as never, replace: true });
   };
 
-  const startedRef = useRef(false);
-
-  const beginEnroll = async () => {
-    const { data: factors } = await supabase.auth.mfa.listFactors();
-    const allFactors = ((factors as any)?.all ?? []) as any[];
-    const verified = allFactors.find(
-      (f: any) => f.factor_type === "totp" && f.status === "verified",
-    );
-    if (verified) {
-      await goHome();
-      return;
-    }
-
-    // Clear abandoned unverified factors, otherwise enrol() fails with
-    // "a factor with this friendly name already exists".
-    for (const f of allFactors) {
-      if (f.status !== "verified") {
-        await supabase.auth.mfa.unenroll({ factorId: f.id });
-      }
-    }
-    const { data: sess } = await supabase.auth.getSession();
-    const user = sess.session?.user;
-    const { data, error } = await supabase.auth.mfa.enroll({
-      factorType: "totp",
-      issuer: "TalVault",
-      friendlyName: `TalVault (${user?.email ?? user?.id ?? "account"})`,
-    });
-    if (error) throw error;
-    setPendingFactorId(data.id);
-    setQrSvg((data.totp as any)?.qr_code ?? null);
-    setSecret((data.totp as any)?.secret ?? null);
-    setCode("");
-  };
-
   useEffect(() => {
-    // Guard against React StrictMode double-invoke: two parallel runs would
-    // unenrol each other's fresh factor, leaving a stale id that fails
-    // challenge with "Factor not found".
     if (startedRef.current) return;
     startedRef.current = true;
     (async () => {
@@ -108,7 +78,13 @@ function EnrollTwoFactorPage() {
           return;
         }
         setEmail(user.email ?? "");
-        await beginEnroll();
+        const status = await getMfaStatus();
+        if (status.gate === "ok") {
+          await goHome();
+          return;
+        }
+        // Someone who has already read the explainer goes straight to the code.
+        if (status.explainerSeen) setStep("code");
       } catch (e) {
         setError(friendlyAuthError(e));
       } finally {
@@ -118,40 +94,43 @@ function EnrollTwoFactorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const sendCode = async (firstTime: boolean) => {
+    setError(null);
+    setSending(true);
+    try {
+      if (firstTime) await markMfaExplainerSeen().catch(() => {});
+      const res = await requestSignInCode();
+      if (!res.ok) {
+        setError(res.message);
+        if (firstTime) setStep("code");
+        return;
+      }
+      setSentTo(res.destination);
+      setStep("code");
+    } catch (e) {
+      setError(friendlyAuthError(e));
+    } finally {
+      setSending(false);
+    }
+  };
 
   const verify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pendingFactorId) return;
     setError(null);
     setBusy(true);
     try {
-      const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({
-        factorId: pendingFactorId,
-      });
-      if (cErr) {
-        // The pending factor vanished (stale tab, duplicate enrol). Rebuild a
-        // fresh QR code instead of showing a confusing "Factor not found".
-        if ((cErr as any)?.code === "mfa_factor_not_found" || (cErr as any)?.status === 404) {
-          await beginEnroll();
-          setError("That setup code expired. Scan the new QR code and try again.");
-          return;
-        }
-        throw cErr;
+      const res = await verifySignInCode({ data: { code: code.trim() } });
+      if (!res.ok) {
+        setError(res.message);
+        return;
       }
-
-      const { error: vErr } = await supabase.auth.mfa.verify({
-        factorId: pendingFactorId,
-        challengeId: ch.id,
-        code: code.trim(),
-      });
-      if (vErr) throw vErr;
       // Audit entry is admin-scoped; harmless (and expected) to fail for others.
       try {
-        await logMfaEnrolled({ data: { factor_type: "totp" } });
+        await logMfaEnrolled({ data: { factor_type: "email_code" } });
       } catch {
         /* not an administrator — no admin audit entry */
       }
-      toast.success("Two-factor authentication enabled.");
+      toast.success("Two-step sign-in is now set up.");
       await goHome();
     } catch (err) {
       setError(friendlyAuthError(err));
@@ -163,17 +142,6 @@ function EnrollTwoFactorPage() {
   const signOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
-  };
-
-  const copySecret = async () => {
-    if (!secret) return;
-    try {
-      await navigator.clipboard.writeText(secret);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Couldn't copy the key. Select and copy it manually.");
-    }
   };
 
   return (
@@ -190,33 +158,31 @@ function EnrollTwoFactorPage() {
         </div>
 
         <div>
-          <h1 className="tv-auth-headline">
-            One more step before your workspace opens.
-          </h1>
+          <h1 className="tv-auth-headline">One more step before your workspace opens.</h1>
           <p className="tv-auth-sub">
-            TalVault holds sensitive personal and financial records, so every
-            account is protected by two-factor authentication. It takes about a
-            minute to set up and you'll only need your phone at sign-in.
+            TalVault holds sensitive personal and financial records, so a password
+            on its own isn't enough. From now on we'll also email you a short code
+            when you sign in. It takes under a minute to set up.
           </p>
 
           <ul className="tv-auth-points">
             <li className="tv-auth-point">
               <span className="tv-auth-point-dot">
-                <Smartphone className="h-4 w-4 text-white" />
+                <Mail className="h-4 w-4 text-white" />
               </span>
-              Install an authenticator app on your phone
-            </li>
-            <li className="tv-auth-point">
-              <span className="tv-auth-point-dot">
-                <ShieldCheck className="h-4 w-4 text-white" />
-              </span>
-              Scan the code shown here to pair it
+              We email a 6-digit code to your own address
             </li>
             <li className="tv-auth-point">
               <span className="tv-auth-point-dot">
                 <KeyRound className="h-4 w-4 text-white" />
               </span>
-              Enter the 6-digit code to confirm
+              You type it in to finish signing in
+            </li>
+            <li className="tv-auth-point">
+              <span className="tv-auth-point-dot">
+                <ShieldCheck className="h-4 w-4 text-white" />
+              </span>
+              Nobody can get in with your password alone
             </li>
           </ul>
         </div>
@@ -227,96 +193,67 @@ function EnrollTwoFactorPage() {
       <section className="tv-auth-panel">
         <div className="tv-auth-card">
           <div className="tv-auth-eyebrow">Security setup</div>
-          <h2 className="tv-auth-title">Set up two-factor authentication</h2>
+          <h2 className="tv-auth-title">
+            {step === "explainer" ? "Set up two-step sign-in" : "Enter your sign-in code"}
+          </h2>
           <p className="tv-auth-tag">
             {email
-              ? `Signed in as ${email}. You can't open your workspace until this is enabled.`
-              : "You can't open your workspace until this is enabled."}
+              ? `Signed in as ${email}. You can't open your workspace until this is set up.`
+              : "You can't open your workspace until this is set up."}
           </p>
 
           {loading ? (
             <div className="tv-auth-hint" style={{ marginTop: 22 }}>
-              Preparing your setup code…
+              Checking your account…
+            </div>
+          ) : step === "explainer" ? (
+            <div style={{ marginTop: 20 }}>
+              <div className="tv-auth-hint">
+                <strong>What is this?</strong> Two-step sign-in means your password
+                is only half of what's needed to open your account. The other half
+                is a short number we send you at the moment you sign in.
+              </div>
+              <div className="tv-auth-hint" style={{ marginTop: 12 }}>
+                <strong>Why do we require it?</strong> Your vault holds identity
+                documents, contracts and financial records. If someone ever learned
+                your password, this second step still keeps them out.
+              </div>
+              <div className="tv-auth-hint" style={{ marginTop: 12 }}>
+                <strong>How does it work?</strong> Each time you sign in we email a
+                6-digit code to{" "}
+                <strong>{email || "your email address"}</strong>. You type it into
+                the box on the sign-in page. The code lasts 10 minutes and works
+                once. There's nothing to install and nothing to remember.
+              </div>
+
+              {error && <div className="tv-auth-alert">{error}</div>}
+
+              <button
+                type="button"
+                className="tv-auth-submit"
+                onClick={() => sendCode(true)}
+                disabled={sending}
+              >
+                {sending ? "Sending your code…" : "Email me a code to get started"}
+              </button>
+
+              <div className="tv-auth-switch">
+                Not your account?{" "}
+                <button type="button" className="tv-auth-link" onClick={signOut} disabled={sending}>
+                  Sign out
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={verify} style={{ marginTop: 20 }} noValidate>
               <div className="tv-auth-hint">
-                Open your authenticator app (Google Authenticator, Authy,
-                1Password or similar), choose “add account”, then scan this code.
+                {sentTo
+                  ? `We've emailed a 6-digit code to ${sentTo}. It expires in 10 minutes and can only be used once.`
+                  : "Enter the 6-digit code we emailed you. It expires in 10 minutes and can only be used once."}
               </div>
 
-              {qrSvg && (
-                <div
-                  style={{
-                    marginTop: 14,
-                    display: "flex",
-                    justifyContent: "center",
-                    background: "var(--surface-soft)",
-                    border: "1px solid var(--line)",
-                    borderRadius: 16,
-                    padding: 16,
-                  }}
-                >
-                  <img
-                    src={qrSvg}
-                    alt="Two-factor authentication QR code"
-                    width={188}
-                    height={188}
-                    style={{
-                      display: "block",
-                      background: "#fff",
-                      borderRadius: 10,
-                      padding: 8,
-                    }}
-                  />
-                </div>
-              )}
-
-              {secret && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 12px",
-                    border: "1px solid var(--line)",
-                    borderRadius: 12,
-                  }}
-                >
-                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
-                    <div className="tv-auth-hint" style={{ marginTop: 0 }}>
-                      Can't scan? Enter this key manually
-                    </div>
-                    <code
-                      style={{
-                        display: "block",
-                        marginTop: 4,
-                        fontSize: 12.5,
-                        letterSpacing: ".08em",
-                        wordBreak: "break-all",
-                        color: "var(--ink)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {secret}
-                    </code>
-                  </div>
-                  <button
-                    type="button"
-                    className="tvp-secondary"
-                    onClick={copySecret}
-                    aria-label="Copy setup key"
-                    style={{ flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: 6 }}
-                  >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-              )}
-
               <div className="tv-auth-field">
-                <label htmlFor="mfa-enroll-code">Authentication code</label>
+                <label htmlFor="mfa-enroll-code">Sign-in code</label>
                 <input
                   id="mfa-enroll-code"
                   inputMode="numeric"
@@ -329,7 +266,7 @@ function EnrollTwoFactorPage() {
                   autoFocus
                 />
                 <div className="tv-auth-hint">
-                  The code changes every 30 seconds — enter the one showing now.
+                  Can't see it? Check your junk or spam folder.
                 </div>
               </div>
 
@@ -338,19 +275,21 @@ function EnrollTwoFactorPage() {
               <button
                 type="submit"
                 className="tv-auth-submit"
-                disabled={busy || code.length !== 6 || !pendingFactorId}
+                disabled={busy || code.length !== 6}
               >
-                {busy ? "Verifying…" : "Verify & enable 2FA"}
+                {busy ? "Verifying…" : "Verify & finish set-up"}
               </button>
 
-              <div className="tv-auth-switch">
-                Not your account?{" "}
+              <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
                 <button
                   type="button"
                   className="tv-auth-link"
-                  onClick={signOut}
-                  disabled={busy}
+                  onClick={() => sendCode(false)}
+                  disabled={sending || busy}
                 >
+                  {sending ? "Sending…" : "Send a new code"}
+                </button>
+                <button type="button" className="tv-auth-link" onClick={signOut} disabled={busy}>
                   Sign out
                 </button>
               </div>
