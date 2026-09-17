@@ -252,10 +252,17 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     if (!step) return;
     let cancelled = false;
     const isFirst = rectRef.current === null;
-    const targetRoute = step.route?.to ?? null;
-    // A step is "cross-page" when it navigates somewhere different from where
-    // the previous step left us (or when it is the very first step). Steps that
-    // stay on the same page must not fade at all — the spotlight simply glides.
+    // A destination is the page *and* the tab within it: switching tabs swaps
+    // the whole panel, so it has to be treated as a move to a new area rather
+    // than a spotlight glide across unchanged content.
+    const targetRoute = step.route
+      ? `${step.route.to}?${JSON.stringify(
+          Object.entries(step.route.search ?? {}).sort(([a], [b]) => a.localeCompare(b)),
+        )}`
+      : null;
+    // A step is "cross-page" when it moves somewhere different from where the
+    // previous step left us (or when it is the very first step). Steps that stay
+    // put must not fade at all — the spotlight simply glides.
     const crossPage =
       isFirst || (targetRoute !== null && targetRoute !== currentRouteRef.current);
 
