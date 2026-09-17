@@ -382,7 +382,9 @@ function AuthPage() {
       // Remember who it was: a denial notice needs to name the account even
       // after the session behind it is gone.
       setDeniedEmail((prev) => prev ?? sess.session?.user.email ?? null);
-      await supabase.auth.signOut();
+      // Local scope: this clears the stored session even when the revoke call
+      // to the auth server cannot be made, so nothing is left to resume from.
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
     })();
     return () => {
       mounted = false;
