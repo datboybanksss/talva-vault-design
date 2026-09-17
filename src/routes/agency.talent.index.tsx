@@ -2,7 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Plus, Tags } from "lucide-react";
+import { Download, Plus, Tags, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { listAgencyTalent, updateTalentLinkTalentType } from "@/lib/agency.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
@@ -274,36 +283,55 @@ function TalentPage() {
       </div>
 
       {typeEditor && (
-        <ModalShell onClose={() => setTypeEditor(null)} maxWidth={420}>
-          <h2 className="tvp-h2" style={{ margin: 0 }}>Change talent type</h2>
-          <p className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-            New folders for the chosen type are added to {typeEditor.displayName}'s shared folder.
-            Folders from the previous type are kept and flagged for review — nothing is deleted.
-          </p>
-          <div className="tvp-form-group">
-            <label htmlFor="talent-type">Talent type</label>
-            <select
-              id="talent-type"
-              value={typeDraft}
-              onChange={(e) => setTypeDraft(e.target.value)}
+        <ModalShell
+          onClose={() => setTypeEditor(null)}
+          maxWidth={460}
+          labelledBy="change-talent-type-title"
+        >
+          <div className="tvp-modal-head">
+            <h3 className="tvp-h2" id="change-talent-type-title">Change talent type</h3>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setTypeEditor(null)}
+              aria-label="Close"
             >
-              <option value="">Select a type…</option>
-              {talentTypesFrom(catalogue).map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+              <X />
+            </Button>
           </div>
-          <div className="flex gap-2 mt-2 justify-end">
-            <button className="tvp-secondary" onClick={() => setTypeEditor(null)}>Cancel</button>
-            <button
-              className="tvp-primary"
+          <div className="tvp-modal-body">
+            <p className="tvp-small tvp-muted" style={{ marginTop: 0 }}>
+              New folders for the chosen type are added to {typeEditor.displayName}'s shared folder.
+              Folders from the previous type are kept and flagged for review — nothing is deleted.
+            </p>
+            <div className="tvp-form-group">
+              <Label htmlFor="talent-type">Talent type</Label>
+              <Select value={typeDraft} onValueChange={setTypeDraft}>
+                <SelectTrigger id="talent-type" className="tvp-modal-control">
+                  <SelectValue placeholder="Select a type…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {talentTypesFrom(catalogue).map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="tvp-modal-foot">
+            <Button type="button" variant="outline" onClick={() => setTypeEditor(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
               disabled={!typeDraft || updateType.isPending}
               onClick={() =>
                 updateType.mutate({ talent_link_id: typeEditor.id, talent_type: typeDraft })
               }
             >
               Save
-            </button>
+            </Button>
           </div>
         </ModalShell>
       )}
