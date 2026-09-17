@@ -18,6 +18,7 @@ export async function sendInvitationEmail(
     | "talent_invitation"
     | "admin_invitation"
     | "talent_reminder"
+    | "sign_in_code"
     | "loved_one_share" = "agency_invitation",
 ): Promise<SendResult> {
   const apiKey = process.env["LOVABLE_API_KEY"];

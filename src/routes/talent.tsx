@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { TalentShell } from "@/components/talent/talent-shell";
-import { checkMfaGate, checkPortalAccess } from "@/lib/portal-access";
+import { checkMfaGate, checkPortalAccess, resolveDeniedDestination } from "@/lib/portal-access";
 import { getTalentContext } from "@/lib/talent.functions";
 
 export const Route = createFileRoute("/talent")({
@@ -18,13 +18,18 @@ export const Route = createFileRoute("/talent")({
   }),
   beforeLoad: async ({ location }) => {
     const access = await checkPortalAccess("talent");
+    if (access === "denied") {
+      // Wrong workspace for this account: send them to their own rather than
+      // to an error screen.
+      const dest = await resolveDeniedDestination("talent", location.href);
+      throw redirect({ to: dest.to as never, search: (dest.search ?? {}) as never });
+    }
     if (access !== "granted") {
       throw redirect({
         to: "/auth",
-        search:
-          access === "denied"
-            ? { next: location.href, denied: "not_talent" }
-            : { next: location.href },
+        // A signed-out visitor, or a check that could not complete, just gets
+        // the plain sign-in screen.
+        search: { next: location.href },
       });
     }
     const mfa = await checkMfaGate();

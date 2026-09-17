@@ -23,6 +23,13 @@ import {
 } from "@/lib/invite-claim.functions";
 
 import { logTalentSignIn } from "@/lib/talent-audit.functions";
+import {
+  beginSignInChallenge,
+  getMfaStatus,
+  requestSignInCode,
+  verifySignInCode,
+} from "@/lib/mfa.functions";
+import { browserSessionId } from "@/lib/device";
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
 function recordSignIn() {
@@ -63,6 +70,16 @@ const PORTAL_HERO: Record<
   PortalContext["key"],
   { headline: string; sub: string; points: string[] }
 > = {
+  platform: {
+    headline: "One secure home for the documents that matter.",
+    sub:
+      "Sign in once and TalVault takes you to your own workspace — agency, talent or platform — with everything protected end to end.",
+    points: [
+      "Role-based access with row-level security",
+      "Every document and share, protected end to end",
+      "A one-time code by email on every sign-in",
+    ],
+  },
   admin: {
     headline: "The secure operations console for talent, agencies and loved ones.",
     sub: "Manage agencies, invitations, audit trails and platform integrity from one branded workspace — with role-based access and full audit history.",
@@ -102,7 +119,7 @@ const PORTAL_HERO: Record<
 };
 
 type PortalContext = {
-  key: "admin" | "agency" | "talent" | "loved-one";
+  key: "platform" | "admin" | "agency" | "talent" | "loved-one";
   name: string;      // "Admin", "Agency", "Talent", "Loved One"
   workspace: string; // "admin portal", "agency workspace", ...
   home: string;      // default landing route
@@ -110,6 +127,10 @@ type PortalContext = {
 
 function portalFromNext(next?: string): PortalContext {
   const path = next && next.startsWith("/") && !next.startsWith("//") ? next : "";
+  // No destination in the URL: this is the single front-door sign-in page.
+  // Where the account lands is resolved from its own records after sign-in.
+  if (!path)
+    return { key: "platform", name: "TalVault", workspace: "workspace", home: "/" };
   if (path.startsWith("/agency"))
     return { key: "agency", name: "Agency", workspace: "agency workspace", home: "/agency" };
   if (path.startsWith("/talent"))
@@ -146,9 +167,11 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  // MFA challenge state (after successful password sign-in on an MFA-enrolled account)
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  // Two-step sign-in state: after the password is accepted we ask for the
+  // one-time code emailed to the account's own address.
+  const [codeStage, setCodeStage] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
+  const [resending, setResending] = useState(false);
 
   const portal = useMemo(() => portalFromNext(search.next), [search.next]);
   const hero = PORTAL_HERO[portal.key];
@@ -306,6 +329,38 @@ function AuthPage() {
   );
 
 
+  // Sends (or resends) the one-time code and shows the code step.
+  const startCodeChallenge = useCallback(async (silent = false) => {
+    setCodeStage(true);
+    const res = await requestSignInCode();
+    if (res.ok) {
+      setError(null);
+      setInfo(res.message);
+    } else if (!silent) {
+      setInfo(null);
+      setError(res.message);
+    }
+  }, []);
+
+  // What happens once the password has been accepted: the account's own
+  // records decide whether it needs first-time set-up, a code, or nothing.
+  const afterPassword = useCallback(async () => {
+    // Every password sign-in earns a fresh code, even on a browser that was
+    // verified earlier today.
+    await beginSignInChallenge({ data: { device: browserSessionId() } }).catch(() => {});
+    const status = await getMfaStatus({ data: { device: browserSessionId() } });
+    if (status.gate === "enrol") {
+      nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
+      return;
+    }
+    if (status.gate === "challenge") {
+      await startCodeChallenge();
+      return;
+    }
+    recordSignIn();
+    await goNext(true);
+  }, [nav, search.next, startCodeChallenge, goNext]);
+
   useEffect(() => {
     let mounted = true;
     // A confirmed portal denial: never auto-redirect, it would loop silently
@@ -313,40 +368,31 @@ function AuthPage() {
     if (search.denied && deniedState === "confirmed") return;
     // While the denial is still being re-checked, hold off too.
     if (search.denied) return;
-    // Only auto-redirect to next when we already have an AAL2 session (or the
-    // account has no verified MFA factor). Otherwise we'd bypass the challenge.
     (async () => {
       const { data: sess } = await supabase.auth.getSession();
       if (!mounted || !sess.session) return;
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") {
-        // Already password-authenticated, only the second factor is missing:
-        // resume the challenge instead of making them sign in all over again.
-        const { data: factors } = await supabase.auth.mfa.listFactors();
-        const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
-        if (mounted && totp) {
-          setEmail(sess.session.user.email ?? "");
-          setMfaFactorId(totp.id);
-          setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
-        }
+      setEmail((prev) => prev || (sess.session?.user.email ?? ""));
+      const status = await getMfaStatus({ data: { device: browserSessionId() } }).catch(
+        () => null,
+      );
+      if (!mounted || !status) return;
+      if (status.gate === "enrol") {
+        nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
+        return;
+      }
+      if (status.gate === "challenge") {
+        // Already password-authenticated, only the code is missing: resume the
+        // code step rather than making them sign in all over again.
+        if (!codeStage) void startCodeChallenge(true);
         return;
       }
       void goNext();
-
     })();
-    const { data: sub } = supabase.auth.onAuthStateChange(async (evt, session) => {
-      if (!session) return;
-      if (evt === "MFA_CHALLENGE_VERIFIED" || evt === "SIGNED_IN" || evt === "TOKEN_REFRESHED") {
-        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") return;
-        void goNext();
-      }
-    });
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
     };
-  }, [goNext, search.denied, deniedState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goNext, search.denied, search.next, deniedState, nav, startCodeChallenge]);
 
 
   const isSignIn = mode === "sign-in";
@@ -374,30 +420,9 @@ function AuthPage() {
       if (isSignIn) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // Check if this account requires an MFA challenge.
-        const { data: aal, error: aalErr } =
-          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aalErr) throw aalErr;
-        if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") {
-          const { data: factors, error: fErr } = await supabase.auth.mfa.listFactors();
-          if (fErr) throw fErr;
-          const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
-          if (!totp) {
-            // No verified factor but AAL2 required — safest is to sign out.
-            await supabase.auth.signOut();
-            throw new Error("Two-factor authentication is required but no factor is configured.");
-          }
-          setMfaFactorId(totp.id);
-          setMfaCode("");
-          setInfo("Enter the 6-digit code from your authenticator app to finish signing in.");
-        } else {
-          recordSignIn();
-          if (search.denied) {
-            // The auto-redirect effect is disabled while `denied` is present, so
-            // navigate explicitly (and drop the stale denial from the URL).
-            void goNext(true);
-          }
-        }
+        // Two-step sign-in is mandatory: never land anyone in a portal on a
+        // password alone.
+        await afterPassword();
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -421,27 +446,20 @@ function AuthPage() {
 
   const verifyMfa = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mfaFactorId) return;
     setError(null);
     setBusy(true);
     try {
-      const { data: challenge, error: cErr } = await supabase.auth.mfa.challenge({
-        factorId: mfaFactorId,
+      const res = await verifySignInCode({
+        data: { code: mfaCode.trim(), device: browserSessionId() },
       });
-      if (cErr) throw cErr;
-      const { error: vErr } = await supabase.auth.mfa.verify({
-        factorId: mfaFactorId,
-        challengeId: challenge.id,
-        code: mfaCode.trim(),
-      });
-      if (vErr) throw vErr;
-      // Don't rely on onAuthStateChange to move us on: that subscription is
-      // suppressed while `denied` is in the URL, and supabase-js does not
-      // always emit an event the listener sees. Navigate explicitly — this is
-      // what left users stuck on "Verified — redirecting…".
+      if (!res.ok) {
+        setInfo(null);
+        setError(res.message);
+        return;
+      }
       recordSignIn();
       setInfo("Verified — signing you in…");
-      setMfaFactorId(null);
+      setCodeStage(false);
       setMfaCode("");
       await goNext(true);
     } catch (err) {
@@ -451,15 +469,23 @@ function AuthPage() {
     }
   };
 
+  const resendCode = async () => {
+    setResending(true);
+    try {
+      await startCodeChallenge();
+    } finally {
+      setResending(false);
+    }
+  };
 
   const cancelMfa = async () => {
-    // If the user bails out of the MFA challenge, drop the aal1 session so
-    // nothing else in the app runs as a half-authenticated user.
+    // If the user bails out of the code step, drop the half-authenticated
+    // session so nothing else in the app runs as a partly signed-in user.
     setBusy(true);
     try {
       await supabase.auth.signOut();
     } finally {
-      setMfaFactorId(null);
+      setCodeStage(false);
       setMfaCode("");
       setError(null);
       setInfo(null);
@@ -529,22 +555,24 @@ function AuthPage() {
           <div className="tv-auth-eyebrow">{isSignIn ? "Welcome back" : "Get started"}</div>
           <h2 className="tv-auth-title">
             {isSignIn
-              ? `Sign in to TalVault ${portal.name}`
+              ? portal.key === "platform"
+                ? "Sign in to TalVault"
+                : `Sign in to TalVault ${portal.name}`
               : `Create your ${portal.key === "admin" ? "admin" : portal.name.toLowerCase()} account`}
           </h2>
           <p className="tv-auth-tag">
             {isSignIn
-              ? "Use your work email or continue with Google."
+              ? "Use your work email or continue with Google. We'll take you to your own workspace."
               : `Set up your credentials to access the ${portal.workspace}.`}
           </p>
 
-          {search.reset === "1" && !mfaFactorId && (
+          {search.reset === "1" && !codeStage && (
             <div className="tv-auth-alert tv-info" style={{ marginTop: 18 }}>
               Your password has been updated. Sign in with your new password.
             </div>
           )}
 
-          {denied && !mfaFactorId && pendingInvite && (
+          {denied && !codeStage && pendingInvite && (
             <div className="tv-auth-alert tv-info" style={{ marginTop: 18 }}>
               You have a pending{" "}
               {pendingInvite.kind === "agency"
@@ -570,7 +598,7 @@ function AuthPage() {
 
           {/* Only when there is genuinely nothing waiting for this account —
               a pending invitation and "no access" can never both be true. */}
-          {denied && !mfaFactorId && inviteChecked && !pendingInvite && (
+          {denied && !codeStage && inviteChecked && !pendingInvite && (
             <div className="tv-auth-alert" style={{ marginTop: 18 }}>
               {denied}
               <div style={{ marginTop: 10 }}>
@@ -596,7 +624,7 @@ function AuthPage() {
 
 
 
-          {!mfaFactorId && (
+          {!codeStage && (
             <>
               <div style={{ marginTop: 22 }}>
                 <button
@@ -613,15 +641,15 @@ function AuthPage() {
             </>
           )}
 
-          {mfaFactorId ? (
+          {codeStage ? (
             <form onSubmit={verifyMfa} noValidate>
               <div className="tv-auth-hint" style={{ marginTop: 8 }}>
-                Two-factor authentication is enabled on this account. Enter the
-                current 6-digit code from your authenticator app to finish
-                signing in.
+                For your security we've emailed you a 6-digit code. Enter it
+                below to finish signing in. It expires in 10 minutes and can
+                only be used once.
               </div>
               <div className="tv-auth-field">
-                <label htmlFor="mfa-code">Authentication code</label>
+                <label htmlFor="mfa-code">Sign-in code</label>
                 <input
                   id="mfa-code"
                   inputMode="numeric"
@@ -645,7 +673,15 @@ function AuthPage() {
               >
                 {busy ? "Verifying…" : "Verify & sign in"}
               </button>
-              <div className="tv-auth-switch">
+              <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
+                <button
+                  className="tv-auth-link"
+                  type="button"
+                  onClick={resendCode}
+                  disabled={busy || resending}
+                >
+                  {resending ? "Sending…" : "Send a new code"}
+                </button>
                 <button
                   className="tv-auth-link"
                   type="button"
@@ -756,7 +792,7 @@ function AuthPage() {
           </form>
           )}
 
-          {!mfaFactorId && (
+          {!codeStage && (
           <div className="tv-auth-switch">
             {isSignIn ? (
               <>

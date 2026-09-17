@@ -1816,6 +1816,96 @@ export type Database = {
           },
         ]
       }
+      mfa_codes: {
+        Row: {
+          attempts: number
+          channel: string
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          destination: string
+          expires_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          channel?: string
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          destination: string
+          expires_at: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          destination?: string
+          expires_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mfa_settings: {
+        Row: {
+          channel: string
+          created_at: string
+          enrolled_at: string | null
+          explainer_seen_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          enrolled_at?: string | null
+          explainer_seen_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          enrolled_at?: string | null
+          explainer_seen_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mfa_verified_sessions: {
+        Row: {
+          created_at: string
+          session_id: string
+          updated_at: string
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          created_at?: string
+          session_id: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          created_at?: string
+          session_id?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
