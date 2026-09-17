@@ -180,11 +180,13 @@ function AuthPage() {
   // the banner, so a stale param from an earlier denial (back button, refresh,
   // shared link, or signing in as a different account) can never linger.
   const [deniedState, setDeniedState] = useState<"checking" | "confirmed">("checking");
+  const deniedConfirmedRef = useRef(false);
   const [deniedEmail, setDeniedEmail] = useState<string | null>(null);
   const deniedPortal = search.denied ? PORTAL_FOR_DENIED_CODE[search.denied] : undefined;
 
   useEffect(() => {
     if (!search.denied) {
+      deniedConfirmedRef.current = false;
       setDeniedState("checking");
       setDeniedEmail(null);
       return;
@@ -201,6 +203,7 @@ function AuthPage() {
         const { data: sess } = await supabase.auth.getSession();
         if (!mounted) return;
         setDeniedEmail((prev) => sess.session?.user.email ?? prev);
+        deniedConfirmedRef.current = true;
         setDeniedState("confirmed");
         return;
       }
