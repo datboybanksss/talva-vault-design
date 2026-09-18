@@ -762,6 +762,17 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
+    if (data.type === "talent") {
+      // Reopened invitation — put the roster row back to "Invited".
+      await supabase
+        .from("agency_talent_links")
+        .update({ status: "invited", updated_at: new Date().toISOString() })
+        .eq("agency_id", agencyId)
+        .eq("talent_invitation_id", data.id)
+        .in("status", ["expired", "revoked"]);
+    }
+
+
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       `resend_${data.type}_invitation`, `${data.type}_invitation`, data.id, cur?.email,
       { new_expires_at: expires_at });
