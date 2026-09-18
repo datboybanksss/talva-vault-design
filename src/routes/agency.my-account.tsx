@@ -9,8 +9,6 @@ import {
   updateOwnAgencyProfile,
   logOwnAgencyEmailChangeRequest,
   logOwnAgencyPasswordChange,
-  logOwnAgencyMfaEnrolled,
-  logOwnAgencyMfaDisabled,
 } from "@/lib/agency.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/password";
