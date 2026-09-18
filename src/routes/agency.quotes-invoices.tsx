@@ -821,7 +821,7 @@ function QIPage() {
                     <label htmlFor="editor-talent">Talent</label>
                     <Select
                       value={editor.talent_name.trim() ? editor.talent_name : NO_TALENT}
-                      onValueChange={(v) => setEditor({ ...editor, talent_name: v === NO_TALENT ? "" : v })}
+                      onValueChange={(v: string) => setEditor({ ...editor, talent_name: v === NO_TALENT ? "" : v })}
                     >
                       <SelectTrigger id="editor-talent">
                         <SelectValue placeholder="No talent (client-only)" />
