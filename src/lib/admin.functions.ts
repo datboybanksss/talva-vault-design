@@ -612,6 +612,80 @@ export const listAgencyInvitations = createServerFn({ method: "GET" })
     return mapEffectiveStatus(data);
   });
 
+/**
+ * Server-paged agency invitations.
+ *
+ * The full list is never fetched: the status tab, the search box and the batch
+ * window are all applied in the database, and the tab counts come back as
+ * counts rather than rows. "Expired" is derived (a pending invitation whose
+ * expiry has passed), so it is expressed here as a date filter.
+ */
+export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
+        status: z.string().default("all"),
+        search: z.string().default(""),
+        limit: z.number().int().min(1).max(100).default(10),
+        offset: z.number().int().min(0).default(0),
+      }),
+      d,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const nowIso = new Date().toISOString();
+
+    const applyFilters = (q: any, status: string) => {
+      let out = q;
+      if (status === "expired") {
+        out = out.eq("status", "pending").lt("expires_at", nowIso);
+      } else if (status === "pending") {
+        out = out.eq("status", "pending").gte("expires_at", nowIso);
+      } else if (status !== "all") {
+        out = out.eq("status", status);
+      }
+      const term = data.search.trim();
+      if (term) {
+        const like = `%${term.replace(/[%,()]/g, "")}%`;
+        out = out.or(
+          `agency_name.ilike.${like},email.ilike.${like},contact_person.ilike.${like}`,
+        );
+      }
+      return out;
+    };
+
+    const tabs = ["all", "draft", "pending", "accepted", "expired", "declined", "revoked"];
+    const countResults = await Promise.all(
+      tabs.map((t) =>
+        applyFilters(
+          supabase.from("agency_invitations").select("id", { count: "exact", head: true }),
+          t,
+        ),
+      ),
+    );
+    const counts: Record<string, number> = {};
+    tabs.forEach((t, i) => {
+      counts[t] = countResults[i]?.count ?? 0;
+    });
+
+    const { data: rows, error, count } = await applyFilters(
+      supabase.from("agency_invitations").select("*", { count: "exact" }),
+      data.status,
+    )
+      .order("created_at", { ascending: false })
+      .range(data.offset, data.offset + data.limit - 1);
+    if (error) throw new Error(error.message);
+
+    return {
+      rows: mapEffectiveStatus(rows),
+      total: count ?? 0,
+      counts,
+    };
+  });
+
 // Create as DRAFT — admin must upload compliance docs then call finalize.
 export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
