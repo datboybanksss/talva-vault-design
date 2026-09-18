@@ -145,6 +145,24 @@ function EnrollTwoFactorPage() {
     }
   };
 
+  /** TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch. */
+  const skipVerification = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await bypassSignInVerification({ data: { device: browserSessionId() } });
+      if (!res.ok) {
+        setError(res.message);
+        return;
+      }
+      await goHome();
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
