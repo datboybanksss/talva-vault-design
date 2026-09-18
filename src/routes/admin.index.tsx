@@ -127,14 +127,11 @@ function AdminDashboard() {
             <div className="tvp-kpi-label">Total Talent Onboarded</div>
           </div>
         </div>
-        <div className="tvp-card tvp-kpi" title="Aggregate count only. Admin never previews Talent Private Vault contents.">
+        <div className="tvp-card tvp-kpi">
           <div className="tvp-kpi-icon tvp-bg-blue"><FileText className="h-5 w-5" /></div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalDocuments ?? "—"}</div>
             <div className="tvp-kpi-label">Total Documents Uploaded</div>
-            <div className="tvp-kpi-sub tvp-info tvp-with-icon">
-              <Lock className="h-3 w-3" /> Aggregate only · vault contents never exposed
-            </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
