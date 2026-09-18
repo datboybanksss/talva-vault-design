@@ -355,7 +355,7 @@ export function ClientsPanel() {
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
-            <button type="button" className="tvp-btn" onClick={() => setForm(null)}>
+            <button type="button" className="tvp-secondary" onClick={() => setForm(null)}>
               Cancel
             </button>
             <button
@@ -380,7 +380,7 @@ export function ClientsPanel() {
             issued to them are untouched and keep the details exactly as they were sent.
           </p>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
-            <button type="button" className="tvp-btn" onClick={() => setConfirmRemove(null)}>
+            <button type="button" className="tvp-secondary" onClick={() => setConfirmRemove(null)}>
               Cancel
             </button>
             <button
