@@ -449,17 +449,10 @@ function AuthPage() {
         // password alone.
         await afterPassword();
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}${portal.home}`,
-            data: { display_name: displayName || email.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-        setInfo(
-          "Account created. If email confirmation is required, check your inbox before signing in.",
+        // Accounts are only ever created from an invitation link, on the exact
+        // address the invitation was sent to. There is no open sign-up.
+        setError(
+          "Accounts are created from an invitation only. Open the invitation link sent to your email address, or ask your agency or administrator to invite you.",
         );
       }
     } catch (err) {
