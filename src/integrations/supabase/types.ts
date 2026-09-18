@@ -425,6 +425,7 @@ export type Database = {
           accepted_at: string | null
           agency_id: string
           allow_partial_payment: boolean
+          client_id: string | null
           client_name: string | null
           contract_document_id: string | null
           converted_from_quote_id: string | null
@@ -442,6 +443,7 @@ export type Database = {
           paid_at: string | null
           payment_terms_days: number | null
           recipient_address: string | null
+          recipient_contact_person: string | null
           recipient_email: string | null
           recipient_emails: string[]
           recipient_vat_number: string | null
@@ -460,6 +462,7 @@ export type Database = {
           accepted_at?: string | null
           agency_id: string
           allow_partial_payment?: boolean
+          client_id?: string | null
           client_name?: string | null
           contract_document_id?: string | null
           converted_from_quote_id?: string | null
@@ -477,6 +480,7 @@ export type Database = {
           paid_at?: string | null
           payment_terms_days?: number | null
           recipient_address?: string | null
+          recipient_contact_person?: string | null
           recipient_email?: string | null
           recipient_emails?: string[]
           recipient_vat_number?: string | null
@@ -495,6 +499,7 @@ export type Database = {
           accepted_at?: string | null
           agency_id?: string
           allow_partial_payment?: boolean
+          client_id?: string | null
           client_name?: string | null
           contract_document_id?: string | null
           converted_from_quote_id?: string | null
@@ -512,6 +517,7 @@ export type Database = {
           paid_at?: string | null
           payment_terms_days?: number | null
           recipient_address?: string | null
+          recipient_contact_person?: string | null
           recipient_email?: string | null
           recipient_emails?: string[]
           recipient_vat_number?: string | null
@@ -534,6 +540,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agency_billing_docs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agency_billing_docs_contract_document_id_fkey"
             columns: ["contract_document_id"]
             isOneToOne: false
@@ -545,6 +558,68 @@ export type Database = {
             columns: ["converted_from_quote_id"]
             isOneToOne: false
             referencedRelation: "agency_billing_docs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_clients: {
+        Row: {
+          address: string | null
+          agency_id: string
+          archived_at: string | null
+          city: string | null
+          contact_person: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          emails: string[]
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          agency_id: string
+          archived_at?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          emails?: string[]
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          agency_id?: string
+          archived_at?: string | null
+          city?: string | null
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          emails?: string[]
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_clients_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
         ]
