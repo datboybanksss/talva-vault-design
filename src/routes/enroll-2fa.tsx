@@ -304,6 +304,28 @@ function EnrollTwoFactorPage() {
                 {busy ? "Verifying…" : "Verify & finish set-up"}
               </button>
 
+              {/* TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch */}
+              {MFA_CODE_BYPASS_FOR_TESTING && (
+                <button
+                  type="button"
+                  onClick={skipVerification}
+                  disabled={busy}
+                  style={{
+                    marginTop: 10,
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: "2px dashed hsl(var(--muted-foreground))",
+                    borderRadius: 10,
+                    background: "transparent",
+                    color: "hsl(var(--muted-foreground))",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  TESTING ONLY · Skip verification
+                </button>
+              )}
+
               <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
                 <button
                   type="button"
