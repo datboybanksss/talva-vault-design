@@ -501,9 +501,24 @@ function AuthPage() {
         return;
       }
       recordSignIn();
-      setCodeStage(false);
       setMfaCode("");
-      await goNext(true);
+      // A full page load, not a client-side navigation: leaving the sign-in
+      // screen mounted lets its "clear any stale session" effect run again
+      // behind the portal gate, which is what bounced people straight back
+      // here. Reloading at the destination re-reads the session from scratch.
+      const explicit =
+        search.next && search.next.startsWith("/") && !search.next.startsWith("//")
+          ? search.next
+          : null;
+      const dest = explicit ?? (await resolvePortalHome());
+      if (!dest) {
+        setCodeStage(false);
+        setInfo(
+          "You're signed in, but this account isn't linked to a workspace yet. Ask your agency owner or manager to send you an invitation.",
+        );
+        return;
+      }
+      window.location.assign(dest);
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
