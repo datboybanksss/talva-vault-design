@@ -43,8 +43,7 @@ function MyAccountPage() {
   });
 
   const logPwFn = useServerFn(logOwnAgencyPasswordChange);
-  const logMfaEnrolledFn = useServerFn(logOwnAgencyMfaEnrolled);
-  const logMfaDisabledFn = useServerFn(logOwnAgencyMfaDisabled);
+
 
   return (
     <>
