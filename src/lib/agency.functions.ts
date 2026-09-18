@@ -372,6 +372,43 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
   });
 
 
+// Roster rows created at invite time stay "invited" until the invitation is
+// accepted. Lapsed or revoked invitations are reflected on the roster here so
+// an entry is never orphaned as "Invited" forever. Mutates rows in place.
+async function syncInvitedTalentLinks(supabase: any, agencyId: string, rows: any[]) {
+  const invited = rows.filter((r) => r.status === "invited" && r.talent_invitation_id);
+  if (!invited.length) return;
+  const { data: invs } = await supabase
+    .from("talent_invitations")
+    .select("id, status, expires_at")
+    .in("id", invited.map((r) => r.talent_invitation_id));
+  const byId = new Map<string, any>((invs ?? []).map((i: any) => [i.id, i]));
+  const now = Date.now();
+  const updates: Array<{ id: string; status: string }> = [];
+  for (const row of invited) {
+    const inv = byId.get(row.talent_invitation_id);
+    if (!inv) continue;
+    let next: string | null = null;
+    if (inv.status === "revoked" || inv.status === "declined") next = "revoked";
+    else if (inv.status === "expired" || (inv.status === "pending" && new Date(inv.expires_at).getTime() < now)) next = "expired";
+    if (next) {
+      row.status = next;
+      updates.push({ id: row.id, status: next });
+    }
+  }
+  if (!updates.length) return;
+  const nowIso = new Date().toISOString();
+  await Promise.all(
+    updates.map((u) =>
+      supabase
+        .from("agency_talent_links")
+        .update({ status: u.status, updated_at: nowIso })
+        .eq("id", u.id)
+        .eq("agency_id", agencyId),
+    ),
+  );
+}
+
 // -----------------------------------------------------------------------------
 // Talent links (with manager profile + shared doc count) scoped to agency.
 // -----------------------------------------------------------------------------
