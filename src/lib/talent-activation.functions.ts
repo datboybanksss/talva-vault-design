@@ -120,7 +120,7 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
     if (new Date(inv.expires_at).getTime() < Date.now())
       return { ok: false, code: "expired", message: "This invitation has expired. Contact your Manager for a fresh invite." };
     if (data.email.trim().toLowerCase() !== inv.email.trim().toLowerCase())
-      return { ok: false, code: "email_mismatch", message: "Email must match the address the invitation was sent to." };
+      return { ok: false, code: "email_mismatch", message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact your Manager.` };
 
     // handle_new_user() -> accept_talent_invitation() provisions the talent
     // profile, the agency_talent_links row, the shared folders and marks the
