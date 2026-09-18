@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle, Trash2, FileEdit } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  listAgencyInvitations,
+  listAgencyInvitationsPaged,
   resendInvitation,
   revokeInvitation,
   updateInvitationEmail,
@@ -18,7 +18,7 @@ import {
   DEFAULT_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
-import { usePagedList } from "@/lib/pagination";
+import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
@@ -56,7 +56,7 @@ function daysBetween(iso: string) {
 }
 
 function InvitationsPage() {
-  const listFn = useServerFn(listAgencyInvitations);
+  const listFn = useServerFn(listAgencyInvitationsPaged);
   const resendFn = useServerFn(resendInvitation);
   const sendAgencyEmailFn = useServerFn(sendAgencyInvitationEmail);
   const revokeFn = useServerFn(revokeInvitation);
@@ -66,9 +66,21 @@ function InvitationsPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
 
-  const invites = useQuery({
-    queryKey: ["admin", "invitations"],
-    queryFn: () => listFn(),
+  // Filters live above the query so the database does the filtering, the
+  // counting and the windowing — the full invitation list is never fetched.
+  const { email: emailParam } = Route.useSearch();
+  const [tab, setTab] = useState<string>("all");
+  const [search, setSearch] = useState(emailParam ?? "");
+
+  const invites = useInfiniteQuery({
+    queryKey: ["admin", "invitations", tab, search],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      listFn({ data: { status: tab, search, limit: PAGE_SIZE, offset: pageParam as number } }),
+    getNextPageParam: (lastPage: any, allPages: any[]) => {
+      const loaded = allPages.reduce((n, p: any) => n + (p.rows?.length ?? 0), 0);
+      return loaded < (lastPage?.total ?? 0) ? loaded : undefined;
+    },
   });
 
   const resendM = useMutation({
@@ -122,9 +134,6 @@ function InvitationsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
   });
 
-  const { email: emailParam } = Route.useSearch();
-  const [tab, setTab] = useState<string>("all");
-  const [search, setSearch] = useState(emailParam ?? "");
   const [editing, setEditing] = useState<any | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -135,7 +144,9 @@ function InvitationsPage() {
   useEffect(() => {
     if (!emailParam || !invites.data) return;
     setSearch(emailParam);
-    const match = invites.data.find(
+    const match = (invites.data.pages ?? [])
+      .flatMap((p: any) => p.rows ?? [])
+      .find(
       (i: any) => (i.email ?? "").toLowerCase() === emailParam.toLowerCase(),
     );
     if (!match) return;
@@ -148,33 +159,11 @@ function InvitationsPage() {
     return () => { clearTimeout(t); clearTimeout(clear); };
   }, [emailParam, invites.data]);
 
-  const list = useMemo(() => invites.data ?? [], [invites.data]);
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {
-      all: list.length,
-      draft: 0, pending: 0, accepted: 0, expired: 0, declined: 0, revoked: 0,
-    };
-    for (const i of list) c[i.status] = (c[i.status] ?? 0) + 1;
-    return c;
-  }, [list]);
-
-  const filteredRows = useMemo(() => {
-    return list.filter((i: any) => {
-      if (tab !== "all" && i.status !== tab) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (
-          !(i.agency_name ?? "").toLowerCase().includes(q) &&
-          !(i.email ?? "").toLowerCase().includes(q) &&
-          !(i.contact_person ?? "").toLowerCase().includes(q)
-        ) return false;
-      }
-      return true;
-    });
-  }, [list, tab, search]);
-
-  const page = usePagedList(filteredRows, { resetKey: `${tab}|${search}` });
-  const visible = page.visible;
+  const pages = invites.data?.pages ?? [];
+  const visible = useMemo(() => pages.flatMap((p: any) => p.rows ?? []), [pages]);
+  // Tab counts are counted in the database, not derived from loaded rows.
+  const counts: Record<string, number> = (pages[0] as any)?.counts ?? {};
+  const total = (pages[0] as any)?.total ?? 0;
 
   const filtersActive = tab !== "all" || !!search;
   const resetFilters = () => { setTab("all"); setSearch(""); };
@@ -394,10 +383,11 @@ function InvitationsPage() {
               <LoadMoreRow
                 colSpan={7}
                 noun="invitations"
-                shown={page.shown}
-                total={page.total}
-                hasMore={page.hasMore}
-                onLoadMore={page.loadMore}
+                shown={visible.length}
+                total={total}
+                hasMore={!!invites.hasNextPage}
+                loading={invites.isFetchingNextPage}
+                onLoadMore={() => invites.fetchNextPage()}
               />
             </tbody>
           </table>
