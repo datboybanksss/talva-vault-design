@@ -661,6 +661,21 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
+    // Place the talent on the roster straight away with an "Invited" status.
+    // accept_talent_invitation() converts this same row to "active" later.
+    const { error: linkErr } = await supabase
+      .from("agency_talent_links")
+      .insert({
+        agency_id: agencyId,
+        talent_invitation_id: inv.id,
+        display_name: data.talent_name,
+        status: "invited",
+        manager_user_id: data.manager_user_id ?? null,
+        talent_type: data.talent_type ?? null,
+      });
+    if (linkErr) throw new Error(linkErr.message);
+
+
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       "create_talent_invitation", "talent_invitation", inv.id, data.talent_name,
       {
