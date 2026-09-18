@@ -1885,7 +1885,7 @@ export const listNotifications = createServerFn({ method: "GET" })
 // -----------------------------------------------------------------------------
 export const logMfaEnrolled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ factor_type: z.string().default("totp") }), d))
+  .inputValidator((d: unknown) => parseInput(z.object({ factor_type: z.string().default("email_code") }), d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
