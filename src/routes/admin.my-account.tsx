@@ -10,8 +10,6 @@ import {
   updateOwnProfile,
   logOwnEmailChangeRequest,
   logOwnPasswordChange,
-  logMfaEnrolled,
-  logMfaDisabled,
 } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/password";
