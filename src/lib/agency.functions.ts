@@ -2827,6 +2827,9 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
         recipient_vat_number: z.string().max(64).nullable(),
         recipient_email: z.string().max(200).nullable(),
         recipient_emails: z.array(z.string().trim().email().max(200)).max(20).optional(),
+        client_id: z.string().uuid().nullable().optional(),
+        recipient_contact_person: z.string().max(200).nullable().optional(),
+        save_client: z.boolean().optional(),
 
         acceptance_window_days: z.number().int().min(1).max(365).nullable(),
         payment_terms_days: z.number().int().min(1).max(365).nullable(),
