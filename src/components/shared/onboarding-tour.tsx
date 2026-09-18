@@ -254,19 +254,10 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     };
   }, [portal]);
 
-  // Auto-play the first unseen module guide for the section being viewed.
-  useEffect(() => {
-    if (guide || welcome) return;
-    if (seenRef.current === null || overviewDoneRef.current !== true) return;
-    const candidate = matchModuleGuides(portal, pathname).find(
-      (g) => !seenRef.current!.includes(g.id) && !autoCheckedRef.current.has(g.id),
-    );
-    if (!candidate) return;
-    autoCheckedRef.current.add(candidate.id);
-    setIdx(0);
-    setKeys(null);
-    setGuide(candidate);
-  }, [guide, welcome, pathname, portal]);
+  // Module guides NEVER auto-play. The welcome card on a first login is the one
+  // and only thing that appears unasked; once it has been answered — declined or
+  // completed — every guide is opt-in through the Help menu, on every page.
+  // Do not reintroduce a per-section auto-launch here.
 
   /* --------------------------------------------------- step routing ------ */
   const step = open ? steps[idx] : undefined;
