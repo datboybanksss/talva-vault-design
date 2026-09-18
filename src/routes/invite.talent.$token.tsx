@@ -5,7 +5,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ShieldCheck, Lock, FolderLock, Sparkles, Users, Check, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/password-input";
-import { TwoFactorCard } from "@/components/account/two-factor-card";
 import { LegalDocumentView } from "@/components/shared/legal-document-view";
 import { getCurrentLegalDocument } from "@/lib/legal.functions";
 import {
@@ -269,7 +268,7 @@ function Wizard({
           busy={activate.isPending} error={error}
         />
       )}
-      {step === 4 && <Step4 email={invite.email} onDone={onDone} />}
+      {step === 4 && <Step4 email={invite.email} />}
     </>
   );
 }
@@ -496,7 +495,8 @@ function Step3({
   );
 }
 
-function Step4({ email, onDone }: { email: string; onDone: () => void }) {
+function Step4({ email }: { email: string }) {
+  const nav = useNavigate();
   return (
     <>
       <h2 className="tv-auth-title">Secure your vault with two-step sign-in</h2>
@@ -506,18 +506,19 @@ function Step4({ email, onDone }: { email: string; onDone: () => void }) {
         <strong>{email}</strong>. You type it in to finish signing in. There's
         nothing to install — just check your inbox.
       </p>
-      <div className="tv-app tv-app-embed" style={{ marginTop: 8 }}>
-        <TwoFactorCard contextLabel="talent" />
+      <div className="tv-auth-hint" style={{ marginTop: 12 }}>
+        Two-step sign-in is required on every TalVault account, so this is the
+        last step before your vault opens.
       </div>
 
       <button
         type="button"
         className="tv-auth-submit"
-        onClick={onDone}
+        onClick={() => nav({ to: "/enroll-2fa" })}
         style={{ marginTop: 20, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
       >
         <Check className="h-4 w-4" />
-        <span>Go to my vault</span>
+        <span>Set up two-step sign-in</span>
       </button>
     </>
   );
