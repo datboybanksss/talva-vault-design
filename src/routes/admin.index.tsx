@@ -107,10 +107,7 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalAgencies ?? "—"}</div>
             <div className="tvp-kpi-label">Total Agencies</div>
-            <div
-              className="tvp-kpi-sub"
-              style={{ color: (counts.accepted ?? 0) > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
-            >
+            <div className={`tvp-kpi-sub${(counts.accepted ?? 0) > 0 ? "" : " tvp-neutral"}`}>
               {counts.accepted} accepted · {counts.incomplete + counts.invited} in progress
             </div>
           </div>
@@ -120,10 +117,7 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{counts.invited}</div>
             <div className="tvp-kpi-label">Open Agency Invites</div>
-            <div
-              className="tvp-kpi-sub"
-              style={{ color: counts.invited > 0 ? "var(--tvp-amber)" : "var(--tvp-green)" }}
-            >
+            <div className={`tvp-kpi-sub${counts.invited > 0 ? " tvp-warn" : ""}`}>
               {counts.invited > 0 ? "Awaiting acceptance" : "All caught up"}
             </div>
           </div>
@@ -133,11 +127,10 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalTalent ?? "—"}</div>
             <div className="tvp-kpi-label">Total Talent Onboarded</div>
-            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Talent currently active across all agencies</div>
+            <div className="tvp-kpi-sub tvp-neutral">Talent currently active across all agencies</div>
             <div
-              className="tvp-kpi-sub"
+              className="tvp-kpi-sub tvp-brand"
               title="North star metric: % of live agency–talent relationships where both sides were active in the last 30 days — the talent signed in or worked on their vault, and the agency acted on that specific talent (viewed their shared vault, filed or uploaded a document, raised a document request, or actioned their invitation). See the Reporting tab for the live figure and trend."
-              style={{ color: "var(--tvp-teal)", display: "inline-flex", alignItems: "center", gap: 4, marginTop: 2 }}
             >
               North star: two-sided engagement, last 30 days →
             </div>
@@ -148,23 +141,17 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalDocuments ?? "—"}</div>
             <div className="tvp-kpi-label">Total Documents Uploaded</div>
-            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-blue)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <div className="tvp-kpi-sub tvp-info tvp-with-icon">
               <Lock className="h-3 w-3" /> Aggregate only · vault contents never exposed
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="tvp-grid tvp-kpi-grid">
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-green"><Heart className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-purple"><Heart className="h-5 w-5" /></div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.activeShares ?? "—"}</div>
             <div className="tvp-kpi-label">Active Shares</div>
-            <div
-              className="tvp-kpi-sub"
-              style={{ color: (metrics.data?.activeShares ?? 0) > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
-            >
+            <div className={`tvp-kpi-sub${(metrics.data?.activeShares ?? 0) > 0 ? "" : " tvp-neutral"}`}>
               Across all Talent
             </div>
           </div>
@@ -174,15 +161,13 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{counts.suspended}</div>
             <div className="tvp-kpi-label">Suspended Agencies</div>
-            <div
-              className="tvp-kpi-sub"
-              style={{ color: counts.suspended > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}
-            >
+            <div className={`tvp-kpi-sub${counts.suspended > 0 ? " tvp-danger" : ""}`}>
               {counts.suspended > 0 ? "Read-only / export rules apply" : "None suspended"}
             </div>
           </div>
         </div>
       </div>
+
 
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
