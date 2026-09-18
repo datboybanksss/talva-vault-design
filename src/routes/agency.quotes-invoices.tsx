@@ -574,7 +574,7 @@ function QIPage() {
         </div>
       </div>
 
-      <div className="tvp-subtabs" data-tour="billing-subtabs" style={{ maxWidth: 320 }}>
+      <div className="tvp-subtabs" data-tour="billing-subtabs">
         <button className={`tvp-subtab${view === "overview" ? " tvp-active" : ""}`} onClick={() => setView("overview")}>Overview</button>
         <button className={`tvp-subtab${view === "reports" ? " tvp-active" : ""}`} onClick={() => setView("reports")}>Reports</button>
       </div>
