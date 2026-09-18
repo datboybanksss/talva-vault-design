@@ -401,11 +401,13 @@ function AuthPage() {
   // password are entered every time and the code step can only ever be reached
   // by getting the password right first — no resuming, no shortcuts.
   const clearedStaleSessionRef = useRef(false);
+  /** Resolves once the leftover session has actually gone. */
+  const clearingRef = useRef<Promise<void> | null>(null);
   useEffect(() => {
     if (clearedStaleSessionRef.current) return;
     clearedStaleSessionRef.current = true;
     let showing = true;
-    (async () => {
+    clearingRef.current = (async () => {
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session) return;
       // Remember who it was: a denial notice needs to name the account even
@@ -414,7 +416,7 @@ function AuthPage() {
       // The clearing itself is deliberately not gated on the component still
       // being mounted — React's double-invoked effects would otherwise skip it
       // and leave the session in place.
-      void supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
       clearStoredSession();
     })();
     return () => {
@@ -446,6 +448,10 @@ function AuthPage() {
     setBusy(true);
     try {
       if (isSignIn) {
+        // Wait for the leftover-session clean-up to finish first. If it lands
+        // after the new sign-in it wipes the fresh session, and the portal
+        // gate then bounces straight back here.
+        await clearingRef.current?.catch(() => {});
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         // Two-step sign-in is mandatory: never land anyone in a portal on a
