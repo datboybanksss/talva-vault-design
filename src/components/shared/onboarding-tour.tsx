@@ -4,9 +4,9 @@
  * Two layers, both rendered by this component:
  *  - the portal overview tour (one step per top-level section), gated by
  *    profiles.has_seen_onboarding;
- *  - named module guides that walk a workflow inside one section, may
- *    navigate between pages and tabs, and are gated individually by
- *    profiles.seen_tours.
+ *  - named module guides that walk a workflow inside one section and may
+ *    navigate between pages and tabs. These are opt-in only: they are started
+ *    from the Help menu and never launch by themselves.
  *
  * Guide content lives in src/lib/tours — this file only plays it.
  */
@@ -17,7 +17,6 @@ import {
   getGuide,
   getModuleGuides,
   getOverviewGuide,
-  matchModuleGuides,
   type Portal,
   type TourGuide,
   type TourStep,
@@ -210,7 +209,6 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   const measureRef = useRef<((force?: boolean) => void) | null>(null);
   const seenRef = useRef<string[] | null>(null);
   const overviewDoneRef = useRef<boolean | null>(null);
-  const autoCheckedRef = useRef<Set<string>>(new Set());
 
   const allSteps = guide?.steps ?? [];
   const steps: TourStep[] = keys ? allSteps.filter((s) => keys.includes(s.key)) : allSteps;
@@ -254,19 +252,10 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     };
   }, [portal]);
 
-  // Auto-play the first unseen module guide for the section being viewed.
-  useEffect(() => {
-    if (guide || welcome) return;
-    if (seenRef.current === null || overviewDoneRef.current !== true) return;
-    const candidate = matchModuleGuides(portal, pathname).find(
-      (g) => !seenRef.current!.includes(g.id) && !autoCheckedRef.current.has(g.id),
-    );
-    if (!candidate) return;
-    autoCheckedRef.current.add(candidate.id);
-    setIdx(0);
-    setKeys(null);
-    setGuide(candidate);
-  }, [guide, welcome, pathname, portal]);
+  // Module guides NEVER auto-play. The welcome card on a first login is the one
+  // and only thing that appears unasked; once it has been answered — declined or
+  // completed — every guide is opt-in through the Help menu, on every page.
+  // Do not reintroduce a per-section auto-launch here.
 
   /* --------------------------------------------------- step routing ------ */
   const step = open ? steps[idx] : undefined;
