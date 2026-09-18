@@ -814,22 +814,32 @@ function QIPage() {
                     <input value={editor.client_name} onChange={(e) => setEditor({ ...editor, client_name: e.target.value })} />
                   </div>
                   <div className="tvp-form-group">
-                    <label>Talent</label>
-                    <input
-                      list="tvp-talent-roster"
-                      value={editor.talent_name}
-                      onChange={(e) => setEditor({ ...editor, talent_name: e.target.value })}
-                      placeholder={roster.length ? "Search your roster, or leave blank" : "Leave blank for a client-only document"}
-                    />
-                    <datalist id="tvp-talent-roster">
-                      {roster.map((t: any) => <option key={t.id} value={t.displayName} />)}
-                    </datalist>
+                    <label htmlFor="editor-talent">Talent</label>
+                    <Select
+                      value={editor.talent_name.trim() ? editor.talent_name : NO_TALENT}
+                      onValueChange={(v) => setEditor({ ...editor, talent_name: v === NO_TALENT ? "" : v })}
+                    >
+                      <SelectTrigger id="editor-talent">
+                        <SelectValue placeholder="No talent (client-only)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_TALENT}>No talent (client-only)</SelectItem>
+                        {roster.map((t: any) => (
+                          <SelectItem key={t.id} value={t.displayName}>{t.displayName}</SelectItem>
+                        ))}
+                        {editor.talent_name.trim() && !rosterNames.has(editor.talent_name.trim().toLowerCase()) && (
+                          <SelectItem value={editor.talent_name}>
+                            {editor.talent_name} (no longer on your roster)
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
                     <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
                       {!editor.talent_name.trim()
-                        ? "Leave blank for a client-only document with no talent attached."
+                        ? "Choose a roster member, or leave as client-only with no talent attached."
                         : rosterNames.has(editor.talent_name.trim().toLowerCase())
                           ? "Matched to your roster — sharing will reach this talent."
-                          : "Not on your roster — sharing won't reach a talent until the name matches one exactly."}
+                          : "No longer on your roster — sharing won't reach this talent."}
                     </div>
                   </div>
                   <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
