@@ -782,6 +782,10 @@
   & .tvp-kpi-sub { font-size: 12px; font-weight: 800; margin-top: 8px; color: var(--tvp-green); }
   & .tvp-kpi-sub.tvp-warn { color: var(--tvp-amber); }
   & .tvp-kpi-sub.tvp-info { color: var(--tvp-blue); }
+  & .tvp-kpi-sub.tvp-neutral { color: var(--tvp-muted); }
+  & .tvp-kpi-sub.tvp-danger { color: var(--tvp-red); }
+  & .tvp-kpi-sub.tvp-brand { color: var(--tvp-teal); }
+  & .tvp-kpi-sub.tvp-with-icon { display: inline-flex; align-items: center; gap: 4px; }
 
   & .tvp-bg-teal   { background: var(--tvp-teal-100);  color: var(--tvp-teal);  }
   & .tvp-bg-green  { background: var(--tvp-green-bg);  color: var(--tvp-green); }
