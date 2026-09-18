@@ -10,7 +10,6 @@ import {
   Heart,
   Ban,
   RefreshCw,
-  Lock,
 } from "lucide-react";
 import {
   getDashboardMetrics,
