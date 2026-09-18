@@ -2877,6 +2877,8 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       allow_partial_payment: data.allow_partial_payment,
       recipient_address: data.recipient_address,
       recipient_vat_number: data.recipient_vat_number,
+      client_id: data.client_id ?? null,
+      recipient_contact_person: data.recipient_contact_person ?? null,
       recipient_email: data.recipient_email ?? data.recipient_emails?.[0] ?? null,
       recipient_emails: Array.from(
         new Set((data.recipient_emails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean)),
