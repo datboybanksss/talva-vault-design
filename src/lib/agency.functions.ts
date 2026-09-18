@@ -420,12 +420,13 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
 
     const { data: links, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status, talent_type, manager_user_id, next_action, created_at, updated_at")
+      .select("id, display_name, status, talent_type, manager_user_id, next_action, created_at, updated_at, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
     const rows = links ?? [];
+    await syncInvitedTalentLinks(supabase, agencyId, rows);
     const managerIds = Array.from(
       new Set(rows.map((r: any) => r.manager_user_id).filter(Boolean)),
     );
