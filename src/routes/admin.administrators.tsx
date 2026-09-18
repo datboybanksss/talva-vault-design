@@ -564,6 +564,14 @@ function AdminsPage() {
                     </td>
                   </tr>
                 ))}
+                <LoadMoreRow
+                  colSpan={6}
+                  noun="invitations"
+                  shown={invitePage.shown}
+                  total={invitePage.total}
+                  hasMore={invitePage.hasMore}
+                  onLoadMore={invitePage.loadMore}
+                />
               </tbody>
             </table>
           </div>
