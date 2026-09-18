@@ -846,7 +846,7 @@
   & .tvp-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 16px; }
   & .tvp-tab { height: 42px; border: 1px solid var(--tvp-line); border-radius: 11px; background: var(--surface); padding: 0 14px; display: flex; align-items: center; gap: 8px; font-weight: 900; color: var(--tvp-text); font-size: 13px; }
  & .tvp-tab.tvp-active { border-color: var(--tvp-teal-2); box-shadow: inset 0 -3px 0 var(--tvp-teal); color: var(--tvp-ink); }
- & .tvp-subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 16px; padding: 5px; background: var(--tvp-teal-50); border: 1px solid var(--tvp-line); border-radius: 12px; }
+ & .tvp-subtabs { display: inline-flex; gap: 6px; flex-wrap: wrap; width: fit-content; margin: 0 0 16px; padding: 5px; background: var(--tvp-teal-50); border: 1px solid var(--tvp-line); border-radius: 12px; }
  & .tvp-subtab { height: 38px; border: 1px solid transparent; border-radius: 9px; background: transparent; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--tvp-muted); font-size: 13px; }
  & .tvp-subtab.tvp-active { background: var(--surface); border-color: var(--tvp-teal-2); color: var(--tvp-teal); font-weight: 900; box-shadow: inset 0 -3px 0 var(--tvp-teal); }
  & .tvp-subtab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--tvp-amber); color: var(--on-teal); font-size: 11px; font-weight: 900; }
