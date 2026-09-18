@@ -372,6 +372,43 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
   });
 
 
+// Roster rows created at invite time stay "invited" until the invitation is
+// accepted. Lapsed or revoked invitations are reflected on the roster here so
+// an entry is never orphaned as "Invited" forever. Mutates rows in place.
+async function syncInvitedTalentLinks(supabase: any, agencyId: string, rows: any[]) {
+  const invited = rows.filter((r) => r.status === "invited" && r.talent_invitation_id);
+  if (!invited.length) return;
+  const { data: invs } = await supabase
+    .from("talent_invitations")
+    .select("id, status, expires_at")
+    .in("id", invited.map((r) => r.talent_invitation_id));
+  const byId = new Map<string, any>((invs ?? []).map((i: any) => [i.id, i]));
+  const now = Date.now();
+  const updates: Array<{ id: string; status: string }> = [];
+  for (const row of invited) {
+    const inv = byId.get(row.talent_invitation_id);
+    if (!inv) continue;
+    let next: string | null = null;
+    if (inv.status === "revoked" || inv.status === "declined") next = "revoked";
+    else if (inv.status === "expired" || (inv.status === "pending" && new Date(inv.expires_at).getTime() < now)) next = "expired";
+    if (next) {
+      row.status = next;
+      updates.push({ id: row.id, status: next });
+    }
+  }
+  if (!updates.length) return;
+  const nowIso = new Date().toISOString();
+  await Promise.all(
+    updates.map((u) =>
+      supabase
+        .from("agency_talent_links")
+        .update({ status: u.status, updated_at: nowIso })
+        .eq("id", u.id)
+        .eq("agency_id", agencyId),
+    ),
+  );
+}
+
 // -----------------------------------------------------------------------------
 // Talent links (with manager profile + shared doc count) scoped to agency.
 // -----------------------------------------------------------------------------
@@ -383,12 +420,13 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
 
     const { data: links, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status, talent_type, manager_user_id, next_action, created_at, updated_at")
+      .select("id, display_name, status, talent_type, manager_user_id, next_action, created_at, updated_at, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
     const rows = links ?? [];
+    await syncInvitedTalentLinks(supabase, agencyId, rows);
     const managerIds = Array.from(
       new Set(rows.map((r: any) => r.manager_user_id).filter(Boolean)),
     );
@@ -661,6 +699,21 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
+    // Place the talent on the roster straight away with an "Invited" status.
+    // accept_talent_invitation() converts this same row to "active" later.
+    const { error: linkErr } = await supabase
+      .from("agency_talent_links")
+      .insert({
+        agency_id: agencyId,
+        talent_invitation_id: inv.id,
+        display_name: data.talent_name,
+        status: "invited",
+        manager_user_id: data.manager_user_id ?? null,
+        talent_type: data.talent_type ?? null,
+      });
+    if (linkErr) throw new Error(linkErr.message);
+
+
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       "create_talent_invitation", "talent_invitation", inv.id, data.talent_name,
       {
@@ -747,6 +800,17 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
+    if (data.type === "talent") {
+      // Reopened invitation — put the roster row back to "Invited".
+      await supabase
+        .from("agency_talent_links")
+        .update({ status: "invited", updated_at: new Date().toISOString() })
+        .eq("agency_id", agencyId)
+        .eq("talent_invitation_id", data.id)
+        .in("status", ["expired", "revoked"]);
+    }
+
+
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       `resend_${data.type}_invitation`, `${data.type}_invitation`, data.id, cur?.email,
       { new_expires_at: expires_at });
@@ -766,6 +830,17 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
     const { data: inv, error } = await supabase
       .from(table).update({ status: "revoked" }).eq("id", data.id).select().single();
     if (error) throw new Error(error.message);
+
+    if (data.type === "talent") {
+      // Keep the roster entry in step with the revoked invitation.
+      await supabase
+        .from("agency_talent_links")
+        .update({ status: "revoked", updated_at: new Date().toISOString() })
+        .eq("agency_id", agencyId)
+        .eq("talent_invitation_id", data.id)
+        .in("status", ["invited", "expired"]);
+    }
+
 
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       `revoke_${data.type}_invitation`, `${data.type}_invitation`, data.id, inv?.email);
@@ -1011,11 +1086,13 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status")
+      .select("id, display_name, status, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("display_name", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []).map((r: any) => ({
+    const rows = data ?? [];
+    await syncInvitedTalentLinks(supabase, agencyId, rows);
+    return rows.map((r: any) => ({
       id: r.id as string,
       displayName: r.display_name as string,
       status: r.status as string,
