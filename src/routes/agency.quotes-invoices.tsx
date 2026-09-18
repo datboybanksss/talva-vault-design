@@ -26,6 +26,7 @@ import type { BillingLine } from "@/lib/billing";
 import { computeTotals, emptyLine, fmtMoney } from "@/lib/billing";
 import { BillingPreviewDialog } from "@/components/agency/billing-preview-dialog";
 import { EmailChipsInput } from "@/components/shared/email-chips-input";
+import { useAgencyClients, type AgencyClient } from "@/components/agency/clients-panel";
 import { BillingSummaryCards } from "@/components/agency/billing-summary-cards";
 import { BillingPeriodSelector, type PeriodState } from "@/components/agency/billing-period-selector";
 import { BillingReportsPanel } from "@/components/agency/billing-reports-panel";
@@ -147,7 +148,10 @@ type EditorState = {
   kind: "quote" | "invoice";
   number: string;
   description: string;
+  client_id: string | null;
   client_name: string;
+  recipient_contact_person: string;
+  save_client: boolean;
   talent_name: string;
   issued_at: string;
   due_date: string;
@@ -169,7 +173,10 @@ function emptyEditor(kind: "quote" | "invoice", defaultVatBp = 1500, defaultAcce
     kind,
     number: "",
     description: "",
+    client_id: null,
     client_name: "",
+    recipient_contact_person: "",
+    save_client: false,
     talent_name: "",
     issued_at: new Date().toISOString().slice(0, 10),
     due_date: "",
@@ -359,7 +366,10 @@ function QIPage() {
         kind: full.doc.kind,
         number: full.doc.number,
         description: full.doc.description ?? "",
+        client_id: (full.doc.client_id as string | null) ?? null,
         client_name: full.doc.client_name ?? "",
+        recipient_contact_person: full.doc.recipient_contact_person ?? "",
+        save_client: false,
         talent_name: full.doc.talent_name ?? "",
         issued_at: full.doc.issued_at,
         due_date: full.doc.due_date ?? "",
@@ -403,7 +413,10 @@ function QIPage() {
           id: editor.id,
           kind: editor.kind,
           number: editor.number.trim() || undefined,
+          client_id: editor.client_id,
           client_name: editor.client_name.trim() || null,
+          recipient_contact_person: editor.recipient_contact_person.trim() || null,
+          save_client: editor.save_client && !editor.client_id,
           talent_name: editor.talent_name.trim() || null,
           description: editor.description.trim() || null,
           issued_at: editor.issued_at,
@@ -994,6 +1007,7 @@ function QIPage() {
             kind: editor.kind,
             number: editor.number || `DRAFT-${(editor.id ?? "NEW").slice(0, 6).toUpperCase()}`,
             client_name: editor.client_name || null,
+            recipient_contact_person: editor.recipient_contact_person || null,
             recipient_address: editor.recipient_address || null,
             recipient_vat_number: editor.recipient_vat_number || null,
             recipient_email: editor.recipient_emails[0] ?? null,

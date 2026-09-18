@@ -10,8 +10,9 @@ import {
   documentRulesMeQO,
 } from "@/components/agency/document-rules-panel";
 import { QuotesInvoicesSettingsPanel } from "@/components/agency/quotes-invoices-settings-panel";
+import { ClientsPanel } from "@/components/agency/clients-panel";
 
-const tabSchema = z.enum(["profile", "folders", "document-rules", "quotes-invoices"]).catch("profile");
+const tabSchema = z.enum(["profile", "folders", "document-rules", "quotes-invoices", "clients"]).catch("profile");
 
 const searchSchema = z.object({
   tab: tabSchema.optional(),
@@ -43,11 +44,12 @@ export const Route = createFileRoute("/agency/settings")({
   component: AgencySettingsPage,
 });
 
-const TABS: { key: "profile" | "folders" | "document-rules" | "quotes-invoices"; label: string }[] = [
+const TABS: { key: "profile" | "folders" | "document-rules" | "quotes-invoices" | "clients"; label: string }[] = [
   { key: "profile", label: "Profile" },
   { key: "folders", label: "Manage Folders" },
   { key: "document-rules", label: "Document Rules" },
   { key: "quotes-invoices", label: "Quotes & Invoices" },
+  { key: "clients", label: "Clients" },
 ];
 
 function AgencySettingsPage() {
@@ -59,7 +61,7 @@ function AgencySettingsPage() {
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Agency Profile</h1>
-          <div className="tvp-subtitle">Profile, folders, retention rules, and billing defaults.</div>
+          <div className="tvp-subtitle">Profile, folders, retention rules, clients, and billing defaults.</div>
         </div>
       </div>
 
@@ -84,6 +86,7 @@ function AgencySettingsPage() {
           {tab === "folders" && <ManageFoldersPanel />}
           {tab === "document-rules" && <DocumentRulesPanel />}
           {tab === "quotes-invoices" && <QuotesInvoicesSettingsPanel />}
+          {tab === "clients" && <ClientsPanel />}
         </Suspense>
       </div>
     </>
