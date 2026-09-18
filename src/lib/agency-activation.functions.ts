@@ -112,7 +112,7 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
     if (new Date(inv.expires_at).getTime() < Date.now())
       return { ok: false, code: "expired", message: "This invitation has expired. Contact your administrator for a fresh invite." };
     if (data.email.trim().toLowerCase() !== inv.email.trim().toLowerCase())
-      return { ok: false, code: "email_mismatch", message: "Email must match the address the invitation was sent to." };
+      return { ok: false, code: "email_mismatch", message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact your agency administrator.` };
 
     // Create the auth user. handle_new_user() trigger will provision profile,
     // agency (for owner onboarding) or membership (for staff) and mark the

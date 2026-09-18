@@ -188,7 +188,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
         return {
           ok: false,
           code: "email_mismatch",
-          message: "This invitation was sent to a different email address.",
+          message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact your agency or administrator.`,
           invited_email: inv.email,
           signed_in_email: signedInEmail,
         };
@@ -252,7 +252,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
         return {
           ok: false,
           code: "email_mismatch",
-          message: "This invitation was sent to a different email address.",
+          message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact your agency or administrator.`,
           invited_email: inv.email,
           signed_in_email: signedInEmail,
         };
@@ -293,7 +293,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "email_mismatch",
-        message: "This invitation was sent to a different email address.",
+        message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact your agency or administrator.`,
         invited_email: inv.email,
         signed_in_email: signedInEmail,
       };
