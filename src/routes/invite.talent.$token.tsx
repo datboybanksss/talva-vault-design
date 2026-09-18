@@ -269,7 +269,7 @@ function Wizard({
           busy={activate.isPending} error={error}
         />
       )}
-      {step === 4 && <Step4 email={invite.email} onDone={onDone} />}
+      {step === 4 && <Step4 email={invite.email} />}
     </>
   );
 }
