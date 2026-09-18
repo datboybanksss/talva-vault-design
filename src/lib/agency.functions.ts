@@ -1086,11 +1086,13 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status")
+      .select("id, display_name, status, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("display_name", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []).map((r: any) => ({
+    const rows = data ?? [];
+    await syncInvitedTalentLinks(supabase, agencyId, rows);
+    return rows.map((r: any) => ({
       id: r.id as string,
       displayName: r.display_name as string,
       status: r.status as string,
