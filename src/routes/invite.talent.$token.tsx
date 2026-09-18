@@ -5,7 +5,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ShieldCheck, Lock, FolderLock, Sparkles, Users, Check, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/password-input";
-import { TwoFactorCard } from "@/components/account/two-factor-card";
 import { LegalDocumentView } from "@/components/shared/legal-document-view";
 import { getCurrentLegalDocument } from "@/lib/legal.functions";
 import {
