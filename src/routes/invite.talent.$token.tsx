@@ -497,16 +497,17 @@ function Step3({
 }
 
 function Step4({ email, onDone }: { email: string; onDone: () => void }) {
-  const noop = async () => undefined;
   return (
     <>
-      <h2 className="tv-auth-title">Secure your vault with 2FA</h2>
+      <h2 className="tv-auth-title">Secure your vault with two-step sign-in</h2>
       <p className="tv-auth-tag">
-        Two-factor authentication adds a second check when you sign in, so your documents stay safe even if
-        someone learns your password. You can set this up now or later from Settings.
+        A password on its own isn't enough to protect your documents. So each
+        time you sign in, after your password we'll email a short 6-digit code to{" "}
+        <strong>{email}</strong>. You type it in to finish signing in. There's
+        nothing to install — just check your inbox.
       </p>
       <div className="tv-app tv-app-embed" style={{ marginTop: 8 }}>
-        <TwoFactorCard email={email} logEnrolled={noop} logDisabled={noop} contextLabel="talent" />
+        <TwoFactorCard contextLabel="talent" />
       </div>
 
       <button
