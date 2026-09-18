@@ -30,6 +30,9 @@ import {
   verifySignInCode,
 } from "@/lib/mfa.functions";
 import { browserSessionId } from "@/lib/device";
+// TESTING ONLY — remove before launch
+import { MFA_CODE_BYPASS_FOR_TESTING } from "@/lib/mfa-bypass";
+import { bypassSignInVerification } from "@/lib/mfa.functions";
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
 function recordSignIn() {
@@ -487,6 +490,27 @@ function AuthPage() {
     }
   };
 
+  /** TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch. */
+  const skipVerification = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await bypassSignInVerification({ data: { device: browserSessionId() } });
+      if (!res.ok) {
+        setError(res.message);
+        return;
+      }
+      recordSignIn();
+      setCodeStage(false);
+      setMfaCode("");
+      await goNext(true);
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const resendCode = async () => {
     setResending(true);
     try {
@@ -691,6 +715,27 @@ function AuthPage() {
               >
                 {busy ? "Verifying…" : "Verify & sign in"}
               </button>
+              {/* TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch */}
+              {MFA_CODE_BYPASS_FOR_TESTING && (
+                <button
+                  type="button"
+                  onClick={skipVerification}
+                  disabled={busy}
+                  style={{
+                    marginTop: 10,
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: "2px dashed hsl(var(--muted-foreground))",
+                    borderRadius: 10,
+                    background: "transparent",
+                    color: "hsl(var(--muted-foreground))",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  TESTING ONLY · Skip verification
+                </button>
+              )}
               <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
                 <button
                   className="tv-auth-link"

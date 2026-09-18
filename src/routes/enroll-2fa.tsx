@@ -9,12 +9,15 @@ import { logMfaEnrolled } from "@/lib/admin.functions";
 import { friendlyAuthError } from "@/lib/password";
 import { resolvePortalHome } from "@/lib/portal-access";
 import {
+  bypassSignInVerification,
   getMfaStatus,
   markMfaExplainerSeen,
   requestSignInCode,
   verifySignInCode,
 } from "@/lib/mfa.functions";
 import { browserSessionId } from "@/lib/device";
+// TESTING ONLY — remove before launch
+import { MFA_CODE_BYPASS_FOR_TESTING } from "@/lib/mfa-bypass";
 
 const searchSchema = z.object({ next: z.string().optional() });
 
@@ -134,6 +137,24 @@ function EnrollTwoFactorPage() {
         /* not an administrator — no admin audit entry */
       }
       toast.success("Two-step sign-in is now set up.");
+      await goHome();
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch. */
+  const skipVerification = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await bypassSignInVerification({ data: { device: browserSessionId() } });
+      if (!res.ok) {
+        setError(res.message);
+        return;
+      }
       await goHome();
     } catch (err) {
       setError(friendlyAuthError(err));
@@ -282,6 +303,28 @@ function EnrollTwoFactorPage() {
               >
                 {busy ? "Verifying…" : "Verify & finish set-up"}
               </button>
+
+              {/* TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch */}
+              {MFA_CODE_BYPASS_FOR_TESTING && (
+                <button
+                  type="button"
+                  onClick={skipVerification}
+                  disabled={busy}
+                  style={{
+                    marginTop: 10,
+                    width: "100%",
+                    padding: "10px 12px",
+                    border: "2px dashed hsl(var(--muted-foreground))",
+                    borderRadius: 10,
+                    background: "transparent",
+                    color: "hsl(var(--muted-foreground))",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  TESTING ONLY · Skip verification
+                </button>
+              )}
 
               <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
                 <button
