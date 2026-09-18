@@ -793,6 +793,17 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
       .from(table).update({ status: "revoked" }).eq("id", data.id).select().single();
     if (error) throw new Error(error.message);
 
+    if (data.type === "talent") {
+      // Keep the roster entry in step with the revoked invitation.
+      await supabase
+        .from("agency_talent_links")
+        .update({ status: "revoked", updated_at: new Date().toISOString() })
+        .eq("agency_id", agencyId)
+        .eq("talent_invitation_id", data.id)
+        .in("status", ["invited", "expired"]);
+    }
+
+
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       `revoke_${data.type}_invitation`, `${data.type}_invitation`, data.id, inv?.email);
     return inv;
