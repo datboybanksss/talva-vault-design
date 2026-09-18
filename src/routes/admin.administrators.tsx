@@ -371,15 +371,7 @@ function AdminsPage() {
                     hasMore={adminPage.hasMore}
                     onLoadMore={adminPage.loadMore}
                   />
-                  <LoadMoreRow
-                  colSpan={5}
-                  noun="invitations"
-                  shown={invitePage.shown}
-                  total={invitePage.total}
-                  hasMore={invitePage.hasMore}
-                  onLoadMore={invitePage.loadMore}
-                />
-              </tbody>
+                </tbody>
               </table>
             </div>
           </div>
