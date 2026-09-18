@@ -2490,7 +2490,7 @@ export const logOwnAgencyPasswordChange = createServerFn({ method: "POST" })
 export const logOwnAgencyMfaEnrolled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ factor_type: z.string().default("totp") }).parse(d),
+    z.object({ factor_type: z.string().default("email_code") }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;

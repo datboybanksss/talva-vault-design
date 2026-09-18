@@ -10,8 +10,6 @@ import {
   updateOwnProfile,
   logOwnEmailChangeRequest,
   logOwnPasswordChange,
-  logMfaEnrolled,
-  logMfaDisabled,
 } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/password";
@@ -35,8 +33,7 @@ function MyAccountPage() {
   });
 
   const logPwFn = useServerFn(logOwnPasswordChange);
-  const logMfaEnrolledFn = useServerFn(logMfaEnrolled);
-  const logMfaDisabledFn = useServerFn(logMfaDisabled);
+
 
   return (
     <div className="tvp-settings-tight">
@@ -63,13 +60,7 @@ function MyAccountPage() {
             logPasswordChange={() => logPwFn()}
           />
           <div className="tvp-account-full">
-            <TwoFactorCard
-              email={me.data.email}
-              required={!!me.data.isMainAdmin || me.data.permissionLevel === "edit"}
-              logEnrolled={(payload) => logMfaEnrolledFn({ data: payload })}
-              logDisabled={() => logMfaDisabledFn()}
-              contextLabel="administrator"
-            />
+            <TwoFactorCard contextLabel="administrator" />
           </div>
         </div>
       )}

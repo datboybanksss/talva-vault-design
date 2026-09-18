@@ -1,351 +1,84 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { Smartphone } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { PasswordInput } from "@/components/password-input";
-import { friendlyAuthError } from "@/lib/password";
+import { Link } from "@tanstack/react-router";
+import { MailCheck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getMfaStatus } from "@/lib/mfa.functions";
+import { browserSessionId } from "@/lib/device";
 import { SectionHeader } from "./section-header";
 
+/**
+ * Two-step sign-in card shown on profile/account settings pages.
+ *
+ * The second factor is an emailed one-time code, set up at first sign-in via
+ * /enroll-2fa. There's no authenticator app, QR code or secret to scan, and the
+ * step is required on every TalVault account — so this card simply reports the
+ * current state and explains the flow in plain language.
+ */
 export function TwoFactorCard({
-  email,
-  required = false,
-  logEnrolled,
-  logDisabled,
-  contextLabel = "administrator",
+  contextLabel = "account",
 }: {
-  email: string;
-  required?: boolean;
-  logEnrolled: (payload: { factor_type: string }) => Promise<unknown>;
-  logDisabled: () => Promise<unknown>;
   contextLabel?: string;
 }) {
-  const [loading, setLoading] = useState(true);
-  const [enrolled, setEnrolled] = useState(false);
-  const [enrolling, setEnrolling] = useState(false);
-  const [pendingFactorId, setPendingFactorId] = useState<string | null>(null);
-  const [qrSvg, setQrSvg] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-  const [disabling, setDisabling] = useState(false);
-  const [disablePw, setDisablePw] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const getStatus = useServerFn(getMfaStatus);
 
-  const refresh = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.mfa.listFactors();
-      if (error) throw error;
-      const verified = (data?.totp ?? []).find((f) => f.status === "verified");
-      setEnrolled(!!verified);
-      for (const f of data?.totp ?? []) {
-        if (f.status !== "verified" && f.id !== pendingFactorId) {
-          await supabase.auth.mfa.unenroll({ factorId: f.id });
-        }
-      }
-    } catch (e) {
-      setError(friendlyAuthError(e));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const status = useQuery({
+    queryKey: ["mfa", "status", browserSessionId()],
+    queryFn: () => getStatus({ data: { device: browserSessionId() } }),
+  });
+
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (typeof status.data?.email === "string") setEmail(status.data.email);
+  }, [status.data?.email]);
 
-  const startEnroll = async () => {
-    setError(null);
-    setInfo(null);
-    setBusy(true);
-    try {
-      const { data: list } = await supabase.auth.mfa.listFactors();
-      // Use `all` — `list.totp` is filtered to verified factors only, so
-      // abandoned unverified enrolls would linger and cause "factor with
-      // this friendly name already exists" on the next attempt.
-      const allFactors = (list as any)?.all ?? [];
-      for (const f of allFactors) {
-        if (f.factor_type === "totp" && f.status !== "verified") {
-          await supabase.auth.mfa.unenroll({ factorId: f.id });
-        }
-      }
-      const { data, error } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        // Displayed as the account name in Google Authenticator / Authy /
-        // 1Password. `friendlyName` is only Supabase's internal label.
-        issuer: "TalVault",
-        friendlyName: `TalVault (${email})`,
-      });
-      if (error) throw error;
-      setPendingFactorId(data.id);
-      setQrSvg((data.totp as any)?.qr_code ?? null);
-      setSecret((data.totp as any)?.secret ?? null);
-      setEnrolling(true);
-      setCode("");
-    } catch (e) {
-      setError(friendlyAuthError(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const cancelEnroll = async () => {
-    if (pendingFactorId) {
-      try {
-        await supabase.auth.mfa.unenroll({ factorId: pendingFactorId });
-      } catch { /* ignore */ }
-    }
-    setEnrolling(false);
-    setPendingFactorId(null);
-    setQrSvg(null);
-    setSecret(null);
-    setCode("");
-    setError(null);
-  };
-
-  const verifyEnroll = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pendingFactorId) return;
-    setError(null);
-    setBusy(true);
-    try {
-      const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({
-        factorId: pendingFactorId,
-      });
-      if (cErr) throw cErr;
-      const { error: vErr } = await supabase.auth.mfa.verify({
-        factorId: pendingFactorId,
-        challengeId: ch.id,
-        code: code.trim(),
-      });
-      if (vErr) throw vErr;
-      await logEnrolled({ factor_type: "totp" });
-      toast.success("Two-factor authentication enabled.");
-      setEnrolling(false);
-      setPendingFactorId(null);
-      setQrSvg(null);
-      setSecret(null);
-      setCode("");
-      await refresh();
-    } catch (err) {
-      setError(friendlyAuthError(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const startDisable = () => {
-    setDisabling(true);
-    setDisablePw("");
-    setError(null);
-  };
-
-  const cancelDisable = () => {
-    setDisabling(false);
-    setDisablePw("");
-    setError(null);
-  };
-
-  const confirmDisable = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setBusy(true);
-    try {
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email,
-        password: disablePw,
-      });
-      if (signInErr) throw new Error("Password is incorrect.");
-      const { data: list, error: lErr } = await supabase.auth.mfa.listFactors();
-      if (lErr) throw lErr;
-      for (const f of list?.totp ?? []) {
-        await supabase.auth.mfa.unenroll({ factorId: f.id });
-      }
-      await logDisabled();
-      toast.success("Two-factor authentication disabled.");
-      setDisabling(false);
-      setDisablePw("");
-      await refresh();
-    } catch (err) {
-      setError(friendlyAuthError(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const enrolled = !!status.data?.enrolled;
 
   return (
     <div className="tvp-card">
       <SectionHeader
-        icon={<Smartphone className="h-4 w-4" />}
+        icon={<MailCheck className="h-4 w-4" />}
         tone="purple"
-        title="Two-factor authentication"
-        subtitle={
-          required
-            ? `Required for your ${contextLabel} role — a 6-digit code from your authenticator app is needed on every sign-in.`
-            : "A 6-digit code from your authenticator app is needed on every sign-in."
-        }
+        title="Two-step sign-in"
+        subtitle="A short code is emailed to you each time you sign in."
       />
 
-      {loading ? (
-        <div className="tvp-muted" style={{ marginTop: 8 }}>Loading…</div>
-      ) : enrolled && !disabling ? (
-        <div style={{ marginTop: 8 }}>
+      <div style={{ marginTop: 10 }}>
+        {status.isLoading ? (
+          <div className="tvp-muted">Checking your account…</div>
+        ) : enrolled ? (
           <div className="tv-form-alert tv-form-alert-info">
-            2FA is <strong>enabled</strong> on this account. You'll be prompted for a
-            code from your authenticator app when you sign in.
-            {required && (
-              <> Two-factor authentication is required for your role and cannot be disabled.</>
-            )}
-          </div>
-          {!required && (
-            <div style={{ marginTop: 10 }}>
-              <button
-                type="button"
-                className="tvp-secondary"
-                onClick={startDisable}
-                disabled={busy}
-              >
-                Disable 2FA
-              </button>
+            Two-step sign-in is <strong>enabled</strong> on this{" "}
+            {contextLabel} account. After your password is accepted we email a
+            6-digit code
+            {email ? (
+              <>
+                {" "}
+                to <strong>{email}</strong>
+              </>
+            ) : null}
+            . Type it in to finish signing in. The code expires in 10 minutes
+            and works once — there's nothing to install and nothing to remember.
+            <div style={{ marginTop: 6 }}>
+              Two-step sign-in is required for every TalVault account and can't
+              be turned off.
             </div>
-          )}
-        </div>
-      ) : disabling ? (
-        <form onSubmit={confirmDisable} style={{ marginTop: 8 }} noValidate>
+          </div>
+        ) : (
           <div className="tv-form-alert tv-form-alert-info">
-            Confirm your password to disable two-factor authentication.
+            Two-step sign-in isn't set up on this account yet. The next time you
+            sign in you'll be emailed a 6-digit code to enter after your
+            password — there's nothing to install.
           </div>
-          <div className="tv-auth-field" style={{ marginTop: 10 }}>
-            <label htmlFor="mfa-disable-pw">Current password</label>
-            <PasswordInput
-              id="mfa-disable-pw"
-              value={disablePw}
-              onChange={setDisablePw}
-              autoComplete="current-password"
-              placeholder="Your current password"
-              minLength={1}
-            />
-          </div>
-          {error && <div className="tv-form-alert tv-form-alert-error">{error}</div>}
-          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-            <button type="submit" className="tvp-danger" disabled={busy || !disablePw}>
-              {busy ? "Disabling…" : "Disable 2FA"}
-            </button>
-            <button
-              type="button"
-              className="tvp-secondary"
-              onClick={cancelDisable}
-              disabled={busy}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : enrolling ? (
-        <form onSubmit={verifyEnroll} style={{ marginTop: 8 }} noValidate>
-          <div className="tvp-muted" style={{ fontSize: 12 }}>
-            Scan the QR code below with an authenticator app (Google Authenticator,
-            Authy, 1Password, etc.), then enter the 6-digit code it displays.
-          </div>
-          {qrSvg && (
-            <div
-              style={{
-                marginTop: 10,
-                background: "white",
-                padding: 12,
-                borderRadius: 12,
-                width: "fit-content",
-              }}
-            >
-              <img
-                src={qrSvg}
-                alt="Two-factor authentication QR code"
-                width={192}
-                height={192}
-                style={{ display: "block" }}
-              />
-            </div>
-          )}
-          {secret && (
-            <div className="tv-auth-hint" style={{ marginTop: 6 }}>
-              Can't scan? Enter this key manually:{" "}
-              <code
-                style={{
-                  background: "var(--tvp-surface-soft)",
-                  padding: "2px 6px",
-                  borderRadius: 6,
-                  fontSize: 12,
-                }}
-              >
-                {secret}
-              </code>
-            </div>
-          )}
-          <div className="tv-auth-field">
-            <label htmlFor="mfa-enroll-code">Enter code from app</label>
-            <input
-              id="mfa-enroll-code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              value={code}
-              onChange={(e) =>
-                setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-              }
-              placeholder="123456"
-            />
-          </div>
-          {error && <div className="tv-form-alert tv-form-alert-error">{error}</div>}
-          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-            <button
-              type="submit"
-              className="tvp-primary"
-              disabled={busy || code.length !== 6}
-            >
-              {busy ? "Verifying…" : "Verify & enable 2FA"}
-            </button>
-            <button
-              type="button"
-              className="tvp-secondary"
-              onClick={cancelEnroll}
-              disabled={busy}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div style={{ marginTop: 8 }}>
-          <div className="tvp-muted" style={{ fontSize: 13 }}>
-            You'll need a free authenticator app on your phone — for example{" "}
-            <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong>,
-            or <strong>Authy</strong> (available on the App Store and Google Play).
-            After installing, tap <em>Enable 2FA</em> below, scan the QR code with the
-            app, then enter the 6-digit code it shows to finish setup.
-          </div>
-          {error && (
-            <div className="tv-form-alert tv-form-alert-error" style={{ marginTop: 10 }}>
-              {error}
-            </div>
-          )}
-          <div style={{ marginTop: 12 }}>
-            <button
-              type="button"
-              className="tvp-primary"
-              onClick={startEnroll}
-              disabled={busy}
-            >
-              {busy ? "Preparing…" : "Enable 2FA"}
-            </button>
-          </div>
-        </div>
-      )}
-      {info && !enrolling && !disabling && (
-        <div className="tv-form-alert tv-form-alert-info" style={{ marginTop: 10 }}>
-          {info}
+        )}
+      </div>
+
+      {!status.isLoading && !enrolled && (
+        <div style={{ marginTop: 10 }}>
+          <Link to="/enroll-2fa" className="tvp-primary">
+            Set it up now
+          </Link>
         </div>
       )}
     </div>

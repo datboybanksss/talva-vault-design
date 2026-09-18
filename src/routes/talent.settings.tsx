@@ -9,8 +9,6 @@ import { TwoFactorCard } from "@/components/account/two-factor-card";
 import { SecurityLogPanel } from "@/components/talent/security-log-panel";
 import {
   logTalentPasswordChange,
-  logTalentMfaEnrolled,
-  logTalentMfaDisabled,
 } from "@/lib/talent-audit.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 
@@ -172,12 +170,7 @@ function TalentSettings() {
             email={ctx?.profile?.email ?? ""}
             logPasswordChange={() => logTalentPasswordChange()}
           />
-          <TwoFactorCard
-            email={ctx?.profile?.email ?? ""}
-            logEnrolled={(payload) => logTalentMfaEnrolled({ data: payload })}
-            logDisabled={() => logTalentMfaDisabled()}
-            contextLabel="talent"
-          />
+          <TwoFactorCard contextLabel="talent" />
         </div>
       )}
 
