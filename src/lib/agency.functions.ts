@@ -2940,6 +2940,39 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       .insert(insertLines);
     if (lErr) throw new Error(lErr.message);
 
+    // "Save this client for next time" on a manually typed recipient: create the
+    // client record and link this document to it, so the next quote or invoice
+    // can pick them from the list.
+    if (data.save_client && !data.client_id && (data.client_name ?? "").trim()) {
+      const emails = payload.recipient_emails as string[];
+      const { data: created } = await supabase
+        .from("agency_clients")
+        .insert({
+          agency_id: agencyId,
+          name: (data.client_name ?? "").trim(),
+          contact_person: data.recipient_contact_person?.trim() || null,
+          emails,
+          address: data.recipient_address,
+          vat_number: data.recipient_vat_number,
+          created_by: userId,
+        })
+        .select("id")
+        .maybeSingle();
+      if (created?.id) {
+        await supabase
+          .from("agency_billing_docs")
+          .update({ client_id: created.id })
+          .eq("id", docId)
+          .eq("agency_id", agencyId);
+        await logAgencyAudit(
+          supabase, agencyId, userId, claims?.email,
+          "create_agency_client", "agency_client", created.id,
+          (data.client_name ?? "").trim(), { from: "billing_editor" },
+        );
+      }
+    }
+
+
     await logAgencyAudit(
       supabase, agencyId, userId, claims?.email,
       data.id ? "update_billing_doc" : "create_billing_doc",
