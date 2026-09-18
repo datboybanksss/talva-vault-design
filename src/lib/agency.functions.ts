@@ -3906,3 +3906,132 @@ export const getStaffInvitationByIdMine = createServerFn({ method: "GET" })
       .from("agencies").select("name").eq("id", agencyId).maybeSingle();
     return { ...inv, agency_name: agency?.name ?? null };
   });
+
+// -----------------------------------------------------------------------------
+// Saved clients — reusable recipient details for quotes and invoices
+// -----------------------------------------------------------------------------
+
+function normaliseEmails(emails: string[] | undefined): string[] {
+  return Array.from(
+    new Set((emails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean)),
+  );
+}
+
+export const listAgencyClients = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase
+      .from("agency_clients")
+      .select(
+        "id, name, contact_person, emails, phone, address, vat_number, city, country, notes, created_at, updated_at",
+      )
+      .eq("agency_id", agencyId)
+      .is("archived_at", null)
+      .order("name", { ascending: true });
+    if (error) throw new Error(error.message);
+    return { clients: data ?? [] };
+  });
+
+export const saveAgencyClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        name: z.string().trim().min(1, "Client name is required").max(200),
+        contact_person: z.string().trim().max(200).nullable().optional(),
+        emails: z
+          .array(z.string().trim().email("Enter a valid email address").max(200))
+          .max(20, "You can save up to 20 email addresses per client")
+          .default([]),
+        phone: z.string().trim().max(40).nullable().optional(),
+        address: z.string().trim().max(500).nullable().optional(),
+        vat_number: z.string().trim().max(64).nullable().optional(),
+        city: z.string().trim().max(120).nullable().optional(),
+        country: z.string().trim().max(120).nullable().optional(),
+        notes: z.string().trim().max(2000).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const payload = {
+      agency_id: agencyId,
+      name: data.name,
+      contact_person: data.contact_person?.trim() || null,
+      emails: normaliseEmails(data.emails),
+      phone: data.phone?.trim() || null,
+      address: data.address?.trim() || null,
+      vat_number: data.vat_number?.trim() || null,
+      city: data.city?.trim() || null,
+      country: data.country?.trim() || null,
+      notes: data.notes?.trim() || null,
+    };
+
+    let clientId: string;
+    if (data.id) {
+      const { data: r, error } = await supabase
+        .from("agency_clients")
+        .update(payload)
+        .eq("id", data.id)
+        .eq("agency_id", agencyId)
+        .select("id")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!r) throw new Error("That client could not be found on your agency.");
+      clientId = r.id;
+    } else {
+      const { data: r, error } = await supabase
+        .from("agency_clients")
+        .insert({ ...payload, created_by: userId })
+        .select("id")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!r) throw new Error("Could not save this client. Please try again.");
+      clientId = r.id;
+    }
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      data.id ? "update_agency_client" : "create_agency_client",
+      "agency_client", clientId, data.name, {},
+    );
+
+    return { id: clientId };
+  });
+
+export const removeAgencyClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: existing } = await supabase
+      .from("agency_clients")
+      .select("id, name")
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (!existing) throw new Error("That client could not be found on your agency.");
+
+    // Archive rather than delete: quotes and invoices already issued keep their
+    // link and the details exactly as they were sent.
+    const { error } = await supabase
+      .from("agency_clients")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("agency_id", agencyId);
+    if (error) throw new Error(error.message);
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "remove_agency_client", "agency_client", data.id, existing.name, {},
+    );
+
+    return { ok: true };
+  });
