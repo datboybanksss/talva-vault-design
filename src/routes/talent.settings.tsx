@@ -170,12 +170,7 @@ function TalentSettings() {
             email={ctx?.profile?.email ?? ""}
             logPasswordChange={() => logTalentPasswordChange()}
           />
-          <TwoFactorCard
-            email={ctx?.profile?.email ?? ""}
-            logEnrolled={(payload) => logTalentMfaEnrolled({ data: payload })}
-            logDisabled={() => logTalentMfaDisabled()}
-            contextLabel="talent"
-          />
+          <TwoFactorCard contextLabel="talent" />
         </div>
       )}
 
