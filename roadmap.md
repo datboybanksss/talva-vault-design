@@ -7,3 +7,4 @@
 - [x] Make Talent activation step 4 (two-step sign-in) mandatory, no skip.
 - [x] Show a Coming soon state on the Talent Budget & Income page.
 - [ ] Agency client management for quotes & invoices (plan pending approval).
+- [ ] Warm up the Talent Vault folder grid, tabs and filter row visually.
