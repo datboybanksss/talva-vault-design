@@ -125,13 +125,6 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalTalent ?? "—"}</div>
             <div className="tvp-kpi-label">Total Talent Onboarded</div>
-            <div className="tvp-kpi-sub tvp-neutral">Talent currently active across all agencies</div>
-            <div
-              className="tvp-kpi-sub tvp-brand"
-              title="North star metric: % of live agency–talent relationships where both sides were active in the last 30 days — the talent signed in or worked on their vault, and the agency acted on that specific talent (viewed their shared vault, filed or uploaded a document, raised a document request, or actioned their invitation). See the Reporting tab for the live figure and trend."
-            >
-              North star: two-sided engagement, last 30 days →
-            </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi" title="Aggregate count only. Admin never previews Talent Private Vault contents.">
