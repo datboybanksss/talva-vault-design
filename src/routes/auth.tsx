@@ -811,39 +811,12 @@ function AuthPage() {
           )}
 
           {!codeStage && (
-          <div className="tv-auth-switch">
-            {isSignIn ? (
-              <>
-                No account yet?{" "}
-                <button
-                  className="tv-auth-link"
-                  onClick={() => {
-                    setError(null);
-                    setInfo(null);
-                    setMode("sign-up");
-                  }}
-                  type="button"
-                >
-                  Create one
-                </button>
-              </>
-            ) : (
-              <>
-                Already have one?{" "}
-                <button
-                  className="tv-auth-link"
-                  onClick={() => {
-                    setError(null);
-                    setInfo(null);
-                    setMode("sign-in");
-                  }}
-                  type="button"
-                >
-                  Sign in
-                </button>
-              </>
-            )}
-          </div>
+            <div className="tv-auth-switch">
+              No account yet? TalVault accounts are created from an invitation
+              only, on the exact email address it was sent to. Open the link in
+              your invitation email, or ask your agency or administrator to
+              invite you.
+            </div>
           )}
 
           <div className="tv-auth-back">
