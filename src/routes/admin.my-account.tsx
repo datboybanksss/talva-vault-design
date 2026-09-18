@@ -60,13 +60,7 @@ function MyAccountPage() {
             logPasswordChange={() => logPwFn()}
           />
           <div className="tvp-account-full">
-            <TwoFactorCard
-              email={me.data.email}
-              required={!!me.data.isMainAdmin || me.data.permissionLevel === "edit"}
-              logEnrolled={(payload) => logMfaEnrolledFn({ data: payload })}
-              logDisabled={() => logMfaDisabledFn()}
-              contextLabel="administrator"
-            />
+            <TwoFactorCard contextLabel="administrator" />
           </div>
         </div>
       )}
