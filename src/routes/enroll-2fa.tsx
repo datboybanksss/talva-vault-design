@@ -9,12 +9,15 @@ import { logMfaEnrolled } from "@/lib/admin.functions";
 import { friendlyAuthError } from "@/lib/password";
 import { resolvePortalHome } from "@/lib/portal-access";
 import {
+  bypassSignInVerification,
   getMfaStatus,
   markMfaExplainerSeen,
   requestSignInCode,
   verifySignInCode,
 } from "@/lib/mfa.functions";
 import { browserSessionId } from "@/lib/device";
+// TESTING ONLY — remove before launch
+import { MFA_CODE_BYPASS_FOR_TESTING } from "@/lib/mfa-bypass";
 
 const searchSchema = z.object({ next: z.string().optional() });
 
