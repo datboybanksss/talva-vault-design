@@ -33,6 +33,10 @@ import { buildBillingReport, resolvePeriod } from "@/lib/billing-reports";
 
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Radix Select cannot hold an empty string value, so "no talent" uses a sentinel.
+const NO_TALENT = "__none__";
 
 type Row = {
   id: string;
