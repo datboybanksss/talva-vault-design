@@ -33,8 +33,7 @@ function MyAccountPage() {
   });
 
   const logPwFn = useServerFn(logOwnPasswordChange);
-  const logMfaEnrolledFn = useServerFn(logMfaEnrolled);
-  const logMfaDisabledFn = useServerFn(logMfaDisabled);
+
 
   return (
     <div className="tvp-settings-tight">
