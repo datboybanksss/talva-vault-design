@@ -896,6 +896,22 @@ function QIPage() {
                       onChange={(e) => setEditor({ ...editor, recipient_contact_person: e.target.value })}
                     />
                   </div>
+                  {!editor.client_id && editor.client_name.trim() !== "" && (
+                    <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}>
+                        <input
+                          type="checkbox"
+                          checked={editor.save_client}
+                          onChange={(e) => setEditor({ ...editor, save_client: e.target.checked })}
+                        />
+                        Save this client for next time
+                      </label>
+                      <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
+                        Keeps their name, contact person, address, VAT number and email addresses in
+                        Settings › Clients so you don't retype them.
+                      </div>
+                    </div>
+                  )}
                   <div className="tvp-form-group">
                     <label htmlFor="editor-talent">Talent</label>
                     <Select
