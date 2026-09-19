@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -38,6 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // Radix Select cannot hold an empty string value, so "no talent" uses a sentinel.
 const NO_TALENT = "__none__";
+const ONE_OFF_CLIENT = "__one_off__";
 
 type Row = {
   id: string;
@@ -216,6 +217,9 @@ function QIPage() {
 
   // Talent field is bound to the real roster so "Share with linked talent"
   // and the talent's own Budget & Income view always resolve.
+  const { data: clientsData } = useAgencyClients();
+  const savedClients: AgencyClient[] = clientsData?.clients ?? [];
+
   const rosterFn = useServerFn(listAgencyTalentLinksLite);
   const { data: rosterData } = useQuery({
     queryKey: ["agency", "talent-links-lite"],
