@@ -54,24 +54,29 @@ export function useInviteAccountGate({
       if (session) {
         const email = session.user.email ?? "";
         if (!alive) return;
-        setSignedInEmail(email);
         const matches =
           invitedEmail != null &&
           email.trim().toLowerCase() === invitedEmail.trim().toLowerCase();
         if (!matches) {
+          // Somebody else's session is lingering in this browser. The
+          // invitation link is the journey that should open, so clear the
+          // stale session quietly and carry on as a signed-out visitor.
+          await supabase.auth.signOut();
+          if (!alive) return;
+          setSignedInEmail(null);
+        } else {
+          setSignedInEmail(email);
+          setState("claiming");
+          const res = await claimInvitation({ data: { token, kind } });
+          if (!alive) return;
+          if (res.ok) {
+            nav({ to: res.dest as string, replace: true });
+            return;
+          }
+          setError(res.message);
           setState("wrong-account");
           return;
         }
-        setState("claiming");
-        const res = await claimInvitation({ data: { token, kind } });
-        if (!alive) return;
-        if (res.ok) {
-          nav({ to: res.dest as string, replace: true });
-          return;
-        }
-        setError(res.message);
-        setState("wrong-account");
-        return;
       }
 
       if (!invitedEmail) {
