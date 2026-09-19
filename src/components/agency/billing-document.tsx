@@ -30,6 +30,7 @@ export type BillingDocRecord = {
   kind: "quote" | "invoice";
   number: string;
   client_name: string | null;
+  recipient_contact_person?: string | null;
   recipient_address: string | null;
   recipient_vat_number: string | null;
   recipient_email: string | null;
@@ -198,6 +199,9 @@ export function BillingDocument({
             {doc.kind === "quote" ? "Prepared for" : "Bill to"}
           </div>
           <div style={{ fontWeight: 700 }}>{doc.client_name || "—"}</div>
+          {doc.recipient_contact_person && (
+            <div style={{ marginTop: 2 }}>Attn: {doc.recipient_contact_person}</div>
+          )}
           {doc.recipient_address && (
             <div style={{ whiteSpace: "pre-line", fontSize: 12, color: "#555" }}>
               {doc.recipient_address}
