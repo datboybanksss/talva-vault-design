@@ -826,9 +826,71 @@ function QIPage() {
                     <label>Reference / description</label>
                     <input value={editor.description} onChange={(e) => setEditor({ ...editor, description: e.target.value })} placeholder="e.g. Brand campaign — Autumn 2026" maxLength={200} />
                   </div>
+                  <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
+                    <label htmlFor="editor-saved-client">Saved client</label>
+                    <Select
+                      value={editor.client_id ?? ONE_OFF_CLIENT}
+                      onValueChange={(v: string) => {
+                        if (v === ONE_OFF_CLIENT) {
+                          setEditor({ ...editor, client_id: null });
+                          return;
+                        }
+                        const c = savedClients.find((x) => x.id === v);
+                        if (!c) return;
+                        setEditor({
+                          ...editor,
+                          client_id: c.id,
+                          client_name: c.name,
+                          recipient_contact_person: c.contact_person ?? "",
+                          recipient_address: c.address ?? editor.recipient_address,
+                          recipient_vat_number: c.vat_number ?? editor.recipient_vat_number,
+                          recipient_emails: (c.emails ?? []).slice(0, 20),
+                          save_client: false,
+                        });
+                      }}
+                    >
+                      <SelectTrigger id="editor-saved-client">
+                        <SelectValue placeholder="One-off client (enter manually)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ONE_OFF_CLIENT}>One-off client (enter manually)</SelectItem>
+                        {savedClients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                            {c.contact_person ? ` — ${c.contact_person}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {savedClients.length === 0 ? (
+                      <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
+                        You haven't saved any clients yet. Add them once in{" "}
+                        <Link to="/agency/settings" search={{ tab: "clients" }}>Settings › Clients</Link>{" "}
+                        and they'll be a click away here — or just type the details below for a one-off client.
+                      </div>
+                    ) : (
+                      <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
+                        Choosing a saved client fills in their name, contact person, address, VAT number and
+                        email addresses. Manage them in{" "}
+                        <Link to="/agency/settings" search={{ tab: "clients" }}>Settings › Clients</Link>.
+                      </div>
+                    )}
+                  </div>
                   <div className="tvp-form-group" data-tour="editor-client">
                     <label>Client / recipient name</label>
-                    <input value={editor.client_name} onChange={(e) => setEditor({ ...editor, client_name: e.target.value })} />
+                    <input
+                      value={editor.client_name}
+                      onChange={(e) => setEditor({ ...editor, client_name: e.target.value, client_id: null })}
+                    />
+                  </div>
+                  <div className="tvp-form-group">
+                    <label>Contact person</label>
+                    <input
+                      value={editor.recipient_contact_person}
+                      maxLength={200}
+                      placeholder="Who the document is addressed to"
+                      onChange={(e) => setEditor({ ...editor, recipient_contact_person: e.target.value })}
+                    />
                   </div>
                   <div className="tvp-form-group">
                     <label htmlFor="editor-talent">Talent</label>
