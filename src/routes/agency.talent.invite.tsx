@@ -419,13 +419,6 @@ function InviteTalent() {
           </div>
 
           <div>
-            <div className="tvp-card tvp-panel">
-              <h3 className="tvp-h3">Invitation checklist</h3>
-              <div className="tvp-checklist-row">{detailsValid ? "✓" : "○"} Talent details</div>
-              <div className="tvp-checklist-row">{managerId ? "✓" : "○"} Manager assigned</div>
-              <div className="tvp-checklist-row">{activeFolders.length > 0 ? "✓" : "○"} Folders chosen</div>
-              <div className="tvp-checklist-row">{sendMut.isSuccess ? "✓" : "○"} Sent</div>
-            </div>
             <div className="tvp-help-note">
               The talent must register with the same email used in the invitation.
             </div>
