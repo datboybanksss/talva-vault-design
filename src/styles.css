@@ -1593,6 +1593,7 @@
 .tvp-tour-welcome {
   width: min(460px, calc(100vw - 24px));
   top: 50%; bottom: auto; transform: translate(-50%, -50%);
+  padding: 0; overflow: hidden; border-color: transparent;
 }
 .tvp-tour .tvp-primary, .tvp-tour .tvp-secondary {
   display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
@@ -1600,6 +1601,54 @@
 }
 .tvp-tour .tvp-primary { background: var(--tvp-teal); color: var(--on-teal); border: 0; }
 .tvp-tour .tvp-secondary { background: var(--surface); color: var(--tvp-ink); border: 1px solid var(--tvp-line-strong); }
+
+/* First-login welcome card — visual polish pass ---------------------------- */
+.tvp-tour-welcome-hero {
+  position: relative;
+  padding: 28px 24px 24px;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(115% 120% at 12% 0%, color-mix(in oklab, var(--tvp-teal-2) 72%, transparent) 0%, transparent 60%),
+    linear-gradient(135deg, var(--teal-800) 0%, var(--tvp-teal) 58%, var(--teal-600) 100%);
+}
+.tvp-tour-welcome-badge {
+  width: 62px; height: 62px; border-radius: 18px;
+  display: grid; place-items: center;
+  background: color-mix(in oklab, white 16%, transparent);
+  border: 1px solid color-mix(in oklab, white 34%, transparent);
+  box-shadow: 0 10px 26px rgba(4, 38, 44, .30);
+}
+.tvp-tour-welcome-icon { width: 34px; height: 34px; }
+.tvp-tour-welcome-body { padding: 22px 24px 24px; }
+.tvp-tour-welcome .tvp-tour-step { margin-top: 0; }
+.tvp-tour-welcome .tvp-tour-title { font-size: 19px; margin-top: 4px; }
+.tvp-tour-welcome .tvp-tour-body { font-size: 14px; line-height: 1.62; margin: 10px 0 18px; }
+.tvp-tour-welcome .tvp-tour-actions { gap: 12px; }
+.tvp-tour-welcome .tvp-tour-next { margin-left: auto; }
+.tvp-tour-welcome-cta {
+  height: 44px !important; padding: 0 22px !important;
+  font-size: 14px !important; border-radius: 11px !important;
+  box-shadow: 0 10px 22px color-mix(in oklab, var(--tvp-teal) 42%, transparent);
+  transition: filter .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.tvp-tour-welcome-cta:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 14px 28px color-mix(in oklab, var(--tvp-teal) 50%, transparent);
+  transform: translateY(-1px);
+}
+
+/* Subtle entrance — dim + scale/fade-in, respecting reduced motion. */
+@keyframes tvp-welcome-dim-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tvp-welcome-pop {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.tvp-tour-welcome-in .tvp-tour-dim { animation: tvp-welcome-dim-in .22s ease both; }
+.tvp-tour-welcome-in .tvp-tour-welcome { animation: tvp-welcome-pop .26s cubic-bezier(.2, .8, .2, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .tvp-tour-welcome-in .tvp-tour-dim,
+  .tvp-tour-welcome-in .tvp-tour-welcome { animation: none; }
+}
 
 @media (max-width: 720px) {
   .tvp-tour-tip {
