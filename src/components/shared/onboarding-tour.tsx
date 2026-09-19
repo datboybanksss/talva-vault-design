@@ -460,24 +460,36 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
       await markAllSeen(portal);
     };
     return (
-      <div className="tvp-tour" role="dialog" aria-modal="true" aria-label="Welcome to TalVault">
+      <div
+        className="tvp-tour tvp-tour-welcome-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Welcome to TalVault"
+      >
         <div className="tvp-tour-dim" />
         <div className="tvp-tour-tip tvp-tour-tip-center tvp-tour-welcome">
-          <div className="tvp-tour-step">Welcome to TalVault</div>
-          <div className="tvp-tour-title">Would you like a quick walkthrough?</div>
-          <p className="tvp-tour-body">
-            It takes a couple of minutes and shows you around your workspace — where everything
-            lives and what each part is for. You can stop at any point, and you can start it again
-            whenever you like from the help icon in the top bar.
-          </p>
-          <div className="tvp-tour-actions">
-            <button className="tvp-tour-skip" onClick={declineTour}>
-              No thanks
-            </button>
-            <div className="tvp-tour-next">
-              <button className="tvp-primary" onClick={startTour}>
-                Show me around
+          <div className="tvp-tour-welcome-hero">
+            <div className="tvp-tour-welcome-badge">
+              <TalVaultIcon variant="white" className="tvp-tour-welcome-icon" />
+            </div>
+          </div>
+          <div className="tvp-tour-welcome-body">
+            <div className="tvp-tour-step">Welcome to TalVault</div>
+            <div className="tvp-tour-title">Would you like a quick walkthrough?</div>
+            <p className="tvp-tour-body">
+              It takes a couple of minutes and shows you around your workspace — where everything
+              lives and what each part is for. You can stop at any point, and you can start it again
+              whenever you like from the help icon in the top bar.
+            </p>
+            <div className="tvp-tour-actions">
+              <button className="tvp-tour-skip" onClick={declineTour}>
+                No thanks
               </button>
+              <div className="tvp-tour-next">
+                <button className="tvp-primary tvp-tour-welcome-cta" onClick={startTour}>
+                  Show me around
+                </button>
+              </div>
             </div>
           </div>
         </div>
