@@ -8,3 +8,4 @@
 - [x] Show a Coming soon state on the Talent Budget & Income page.
 - [x] Agency client management for quotes & invoices.
 - [ ] Warm up the Talent Vault folder grid, tabs and filter row visually.
+- [ ] Redesign the Agency Talent Roster as a responsive, data-backed card grid.
