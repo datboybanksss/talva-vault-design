@@ -9,3 +9,4 @@
 - [x] Agency client management for quotes & invoices.
 - [ ] Warm up the Talent Vault folder grid, tabs and filter row visually.
 - [ ] Redesign the Agency Talent Roster as a responsive, data-backed card grid.
+- [ ] Redesign the Agency Clients list as a responsive, data-backed card grid with persisted payment-tracking note dismissal.
