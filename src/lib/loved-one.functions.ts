@@ -391,25 +391,30 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
       };
     }
 
-    const folderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
+    const owner = share.created_by as string | null;
+    const scopeFolderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
     const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
 
-    const [folders, docsInFolders, singleDocs] = await Promise.all([
-      folderIds.length
-        ? supabaseAdmin.from("talent_private_folders").select("id, name").in("id", folderIds)
-        : Promise.resolve({ data: [] as any[] }),
-      folderIds.length
+    // Every lookup below is owner-scoped, so a share row pointing at someone
+    // else's folder or document can never surface their names or metadata.
+    const { folders: sharedFolders, folderIds } = await resolveShareFolders(scopeFolderIds, owner);
+
+    const [docsInFolders, singleDocs] = await Promise.all([
+      folderIds.length && owner
         ? supabaseAdmin.from("talent_private_documents")
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
-            .in("folder_id", folderIds as string[])
+            .in("folder_id", folderIds)
+            .eq("user_id", owner)
         : Promise.resolve({ data: [] as any[] }),
-      docIds.length
+      docIds.length && owner
         ? supabaseAdmin.from("talent_private_documents")
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
             .in("id", docIds)
+            .eq("user_id", owner)
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
+    const folders = { data: sharedFolders };
     const dedup = new Map<string, any>();
     for (const d of docsInFolders.data ?? []) dedup.set(d.id, d);
     for (const d of singleDocs.data ?? []) dedup.set(d.id, d);
