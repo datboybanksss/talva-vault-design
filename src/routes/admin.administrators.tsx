@@ -244,10 +244,13 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
   });
 
+  const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState<any | null>(null);
+
   const removeAdminMut = useMutation({
     mutationFn: (input: { user_id: string }) => removeAdminFn({ data: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
+      setConfirmRemoveAdmin(null);
       toast.success("Administrator removed.");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to remove administrator"),
