@@ -130,6 +130,28 @@ async function getCallerAgency(supabase: any, userId: string) {
   return { agencyId: data.agency_id as string, role: data.role as string };
 }
 
+/**
+ * Offboarding lockdown. Once a talent relationship has ended (or lapsed), both
+ * sides keep view + download access to what was already shared, but every
+ * management action is refused. The database enforces this too via RLS; this
+ * helper exists so the UI gets a readable message instead of a policy error.
+ */
+async function assertLinkNotEnded(supabase: any, talentLinkId: string | null | undefined) {
+  if (!talentLinkId) return;
+  const { data, error } = await supabase
+    .from("agency_talent_links")
+    .select("status")
+    .eq("id", talentLinkId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (data && ["ended", "revoked", "expired"].includes(data.status)) {
+    throw new Error(
+      "RELATIONSHIP_ENDED: this talent relationship has ended — shared documents are view and download only. Reactivate the relationship to make changes.",
+    );
+  }
+}
+
+
 // -----------------------------------------------------------------------------
 // whoami — agency variant. Returns caller identity + agency context.
 // -----------------------------------------------------------------------------
