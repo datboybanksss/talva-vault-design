@@ -511,7 +511,10 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
     if (!doc || !doc.storage_path) throw new Error("Document not found.");
     if (doc.user_id !== share.created_by) throw new Error("Not authorised.");
 
-    const folderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
+    const { folderIds } = await resolveShareFolders(
+      (share.scope as any)?.private_folder_ids ?? [],
+      share.created_by as string | null,
+    );
     const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
     const inScope = docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
     if (!inScope) throw new Error("This document isn't in the share scope.");
