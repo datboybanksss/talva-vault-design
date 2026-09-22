@@ -14,7 +14,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog, Mail } from "lucide-react";
+import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog, Mail, Trash2 } from "lucide-react";
+import { ModalShell } from "@/components/shared/modal-shell";
 import { toast } from "sonner";
 import {
   agencyWhoami,
