@@ -4156,6 +4156,12 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
         city: z.string().trim().max(120).nullable().optional(),
         country: z.string().trim().max(120).nullable().optional(),
         notes: z.string().trim().max(2000).nullable().optional(),
+        client_type: z.string().trim().max(80).nullable().optional(),
+        contact_title: z.string().trim().max(120).nullable().optional(),
+        payment_terms_days: z.number().int().min(0).max(365).nullable().optional(),
+        trading_name: z.string().trim().max(200).nullable().optional(),
+        company_registration_number: z.string().trim().max(80).nullable().optional(),
+        relationship_manager_user_id: z.string().uuid().nullable().optional(),
       })
       .parse(d),
   )
@@ -4174,6 +4180,12 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
       city: data.city?.trim() || null,
       country: data.country?.trim() || null,
       notes: data.notes?.trim() || null,
+      client_type: data.client_type?.trim() || null,
+      contact_title: data.contact_title?.trim() || null,
+      payment_terms_days: data.payment_terms_days ?? null,
+      trading_name: data.trading_name?.trim() || null,
+      company_registration_number: data.company_registration_number?.trim() || null,
+      relationship_manager_user_id: data.relationship_manager_user_id ?? null,
     };
 
     let clientId: string;
