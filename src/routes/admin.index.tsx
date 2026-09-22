@@ -1,3 +1,5 @@
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -60,6 +62,9 @@ function AdminDashboard() {
     const list = agencies.data ?? [];
     return filter === "all" ? list : list.filter((a: any) => a.status === filter);
   }, [agencies.data, filter]);
+
+  // Rule of 10: the overview table caps at a batch with "Load more".
+  const agencyPage = usePagedList<any>(visible, { resetKey: filter });
 
   const counts = metrics.data?.statusCounts ?? {
     incomplete: 0, invited: 0, accepted: 0, expired: 0, declined: 0, suspended: 0,
@@ -194,7 +199,7 @@ function AdminDashboard() {
                   No agencies on the platform yet. Use <Link to="/admin/invitations/new" className="tvp-link">Invite an agency</Link> to bring the first one on board.
                 </td></tr>
               )}
-              {visible.map((r: any) => (
+              {agencyPage.visible.map((r: any) => (
                 <tr key={r.id}>
                   <td>
                     <Link to="/admin/agencies/$id" params={{ id: r.id }} className="text-ink">
