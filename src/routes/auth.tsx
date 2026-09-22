@@ -699,7 +699,6 @@ function AuthPage() {
               >
                 {busy ? "Verifying…" : "Verify & sign in"}
               </button>
-              {/* TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch */}
               <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
                 <button
                   className="tv-auth-link"

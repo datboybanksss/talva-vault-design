@@ -285,7 +285,6 @@ function EnrollTwoFactorPage() {
                 {busy ? "Verifying…" : "Verify & finish set-up"}
               </button>
 
-              {/* TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch */}
               <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
                 <button
                   type="button"
