@@ -420,7 +420,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
 
     const { data: links, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status, talent_type, manager_user_id, next_action, created_at, updated_at, talent_invitation_id")
+      .select("id, display_name, status, talent_type, manager_user_id, talent_user_id, next_action, created_at, updated_at, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -429,6 +429,13 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     await syncInvitedTalentLinks(supabase, agencyId, rows);
     const managerIds = Array.from(
       new Set(rows.map((r: any) => r.manager_user_id).filter(Boolean)),
+    );
+    const profileIds = Array.from(
+      new Set(
+        rows
+          .flatMap((r: any) => [r.manager_user_id, r.talent_user_id])
+          .filter(Boolean),
+      ),
     );
     const linkIds = rows.map((r: any) => r.id);
 
@@ -450,7 +457,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       for (let from = 0; ; from += page) {
         const { data, error: docErr } = await supabase
           .from("talent_shared_documents")
-          .select("talent_link_id, created_at, validity_expires_at")
+          .select("talent_link_id, created_at, validity_expires_at, status")
           .eq("agency_id", agencyId)
           .order("created_at", { ascending: false })
           .range(from, from + page - 1);
@@ -462,34 +469,41 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       return out;
     };
 
-    const [managersRes, docRows] = await Promise.all([
-      managerIds.length
+    const [profilesRes, docRows] = await Promise.all([
+      profileIds.length
         ? supabase
             .from("profiles")
-            .select("id, display_name, first_name, last_name, email")
-            .in("id", managerIds)
+            .select("id, display_name, first_name, last_name, email, avatar_url")
+            .in("id", profileIds)
         : Promise.resolve({ data: [] as any[] }),
       linkIds.length ? fetchAgencyDocRows() : Promise.resolve([] as any[]),
     ]);
 
     const managerMap = new Map<string, string>();
-    for (const p of (managersRes as any).data ?? []) {
+    const avatarMap = new Map<string, string | null>();
+    for (const p of (profilesRes as any).data ?? []) {
       const label =
         (p.display_name as string) ||
         [p.first_name, p.last_name].filter(Boolean).join(" ") ||
         (p.email as string) ||
         "Unassigned";
       managerMap.set(p.id as string, label);
+      avatarMap.set(p.id as string, (p.avatar_url as string) ?? null);
     }
 
     const docCount = new Map<string, number>();
     const expiringCount = new Map<string, number>();
+    const awaitingCount = new Map<string, number>();
     const lastDocAt = new Map<string, string>();
     for (const d of docRows as any[]) {
       const k = d.talent_link_id as string;
       if (!k) continue;
       docCount.set(k, (docCount.get(k) ?? 0) + 1);
       if (!lastDocAt.has(k)) lastDocAt.set(k, d.created_at as string);
+      // "Awaiting" = documents still waiting on a person to confirm filing.
+      if (d.status === "needs_review" || d.status === "ai_suggested") {
+        awaitingCount.set(k, (awaitingCount.get(k) ?? 0) + 1);
+      }
       const exp = d.validity_expires_at as string | null;
       if (exp && exp >= nowIso && exp <= in30dIso) {
         expiringCount.set(k, (expiringCount.get(k) ?? 0) + 1);
@@ -503,10 +517,12 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       displayName: r.display_name as string,
       status: r.status as string,
       talentType: (r.talent_type as string) ?? null,
+      avatarUrl: r.talent_user_id ? avatarMap.get(r.talent_user_id) ?? null : null,
       managerUserId: (r.manager_user_id as string) ?? null,
       managerName: r.manager_user_id ? managerMap.get(r.manager_user_id) ?? "Unassigned" : "Unassigned",
       nextAction: (r.next_action as string) ?? null,
       docCount: docCount.get(r.id) ?? 0,
+      awaitingCount: awaitingCount.get(r.id) ?? 0,
       expiringDocsCount: expiringCount.get(r.id) ?? 0,
       lastDocumentAt: lastDocAt.get(r.id) ?? null,
       createdAt: r.created_at as string,
