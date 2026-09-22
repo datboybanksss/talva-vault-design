@@ -538,32 +538,32 @@ function VaultPage() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12, marginTop: 12, alignItems: "start" }}>
+              <div className="tvp-entity-grid tvp-entity-grid-compact" style={{ marginTop: 12 }}>
                 {talentLinks.map((l) => {
                   const stats = summaryByTalent.get(l.id);
                   const totalDocsForTalent = stats?.docCount ?? 0;
                   const folderTotal = stats?.folderCount ?? 0;
                   return (
-                    <button
+                    <EntityCard
                       key={l.id}
-                      type="button"
-                      className="tvp-folder-card"
-                      style={{ padding: 14, alignItems: "flex-start", textAlign: "left", cursor: "pointer" }}
+                      compact
+                      name={l.displayName}
+                      photoUrl={l.avatarUrl}
+                      subtitle={l.talentType ?? "Talent type not set"}
+                      meta={`${folderTotal} ${folderTotal === 1 ? "folder" : "folders"} · ${totalDocsForTalent} ${totalDocsForTalent === 1 ? "document" : "documents"}`}
+                      ariaLabel={`Open ${l.displayName}'s folders`}
                       onClick={() => pickTalent(l.id)}
-                    >
-                      <strong style={{ fontSize: 14 }}>{l.displayName}</strong>
-                      <span className="tvp-muted" style={{ fontSize: 12, marginTop: 4 }}>
-                        {folderTotal} {folderTotal === 1 ? "folder" : "folders"} · {totalDocsForTalent} {totalDocsForTalent === 1 ? "document" : "documents"}
-                      </span>
-                      <span style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                        {l.status !== "active" && (
-                          <span className="tvp-status tvp-amber" style={{ textTransform: "capitalize" }}>{l.status}</span>
-                        )}
-                        {(stats?.reviewCount ?? 0) > 0 && (
-                          <span className="tvp-status tvp-purple">{stats?.reviewCount} to review</span>
-                        )}
-                      </span>
-                    </button>
+                      pills={
+                        <>
+                          <span className={`tvp-status tvp-${TALENT_LINK_STATUS_TONE[l.status] ?? "neutral"}`}>
+                            {TALENT_LINK_STATUS_LABEL[l.status] ?? l.status}
+                          </span>
+                          {(stats?.reviewCount ?? 0) > 0 && (
+                            <span className="tvp-status tvp-purple">{stats?.reviewCount} to review</span>
+                          )}
+                        </>
+                      }
+                    />
                   );
                 })}
               </div>
