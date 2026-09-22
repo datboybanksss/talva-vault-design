@@ -1888,17 +1888,17 @@ a.tvp-entity-card:focus-visible { outline: 2px solid var(--tvp-teal-2); outline-
 
 .tvp-entity-stats {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
-  border-top: 1px solid var(--line-200); padding-top: 13px; margin-top: 2px;
+  border-top: 1px solid var(--line-200); padding-top: 13px; margin-top: 4px;
 }
-.tvp-entity-stat { min-width: 0; }
+.tvp-entity-stat { min-width: 0; text-align: center; }
 .tvp-entity-stat-value { display: block; font-size: 19px; font-weight: 900; color: var(--tvp-ink); line-height: 1.1; }
 .tvp-entity-stat-value.tvp-entity-stat-red { color: var(--tvp-red); }
 .tvp-entity-stat-value.tvp-entity-stat-amber { color: var(--tvp-amber); }
 .tvp-entity-stat-value.tvp-entity-stat-green { color: var(--tvp-green); }
 .tvp-entity-stat-label {
-  display: block; margin-top: 4px; font-size: 10px; font-weight: 800;
-  letter-spacing: .45px; text-transform: uppercase; color: var(--tvp-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: block; margin-top: 5px; font-size: 10px; font-weight: 800;
+  letter-spacing: .4px; text-transform: uppercase; color: var(--tvp-muted);
+  line-height: 1.3; text-align: center; word-break: break-word; overflow-wrap: anywhere;
 }
 
 /* Talent roster uses a raised segmented control rather than badge-style tabs. */
