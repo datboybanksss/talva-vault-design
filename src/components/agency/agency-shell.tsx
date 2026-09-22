@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics, dismissAgencyReminder } from "@/lib/agency.functions";
+import { PortalFooter } from "@/components/shared/portal-footer";
 
 type NavItem = {
   to: string;
@@ -371,6 +372,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
         </div>
         {children}
+        <PortalFooter />
       </main>
       <OnboardingTour portal="agency" />
     </div>

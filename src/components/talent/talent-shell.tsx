@@ -16,6 +16,7 @@ import {
   markTalentNotificationRead,
 } from "@/lib/talent.functions";
 import {
+import { PortalFooter } from "@/components/shared/portal-footer";
   ChevronLeft,
   LayoutGrid,
   Lock,
@@ -406,6 +407,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
         {children}
+        <PortalFooter />
       </main>
       <OnboardingTour portal="talent" />
     </div>
