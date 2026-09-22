@@ -25,6 +25,8 @@ import {
 import { useFolderCatalogue, useFolderNames, type CatalogueCategory } from "@/lib/folder-catalogue";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { EntityCard } from "@/components/shared/entity-card";
+import { TALENT_LINK_STATUS_LABEL, TALENT_LINK_STATUS_TONE } from "@/lib/status-labels";
 
 type VaultDoc = {
   id: string;
@@ -42,7 +44,13 @@ type VaultDoc = {
   currentVersionId: string | null;
   pendingReview?: boolean;
 };
-type TalentLinkLite = { id: string; displayName: string; status: string };
+type TalentLinkLite = {
+  id: string;
+  displayName: string;
+  status: string;
+  talentType: string | null;
+  avatarUrl: string | null;
+};
 type TalentSummary = {
   talentLinkId: string;
   docCount: number;
