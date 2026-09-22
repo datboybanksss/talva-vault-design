@@ -68,6 +68,7 @@ type TalentRow = {
   talentType: string | null;
   avatarUrl: string | null;
   managerName: string;
+  managerUserId: string | null;
   nextAction: string | null;
   docCount: number;
   awaitingCount: number;
@@ -112,6 +113,27 @@ function TalentPage() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not update talent type"),
   });
+  // Manager assignment (post-acceptance roster action)
+  const [managerEditor, setManagerEditor] = useState<TalentRow | null>(null);
+  const [managerDraft, setManagerDraft] = useState("unassigned");
+  const staffFn = useServerFn(listAgencyStaff);
+  const staff = useQuery({
+    queryKey: ["agency", "staff"],
+    queryFn: () => staffFn(),
+    enabled: !!managerEditor,
+  });
+  const setManagerFn = useServerFn(setTalentManager);
+  const saveManager = useMutation({
+    mutationFn: (input: { talent_link_id: string; manager_user_id: string | null }) =>
+      setManagerFn({ data: input }),
+    onSuccess: (_res: any, input) => {
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+      toast.success(input.manager_user_id ? "Manager assigned" : "Manager cleared");
+      setManagerEditor(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Could not update the manager"),
+  });
+
   const listFn = useServerFn(listAgencyTalent);
   const talent = useQuery({ queryKey: ["agency", "talent"], queryFn: () => listFn() });
 
