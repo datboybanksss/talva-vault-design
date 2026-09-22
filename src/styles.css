@@ -50,13 +50,13 @@
   --amber-050:   #fdf2e4;
 
   /* Deterministic entity-avatar rotation: muted solids with one clear text role. */
-  --avatar-teal:   #287c78;
-  --avatar-purple: #72568f;
-  --avatar-blue:   #416f9d;
-  --avatar-amber:  #9a692f;
-  --avatar-green:  #477c5d;
-  --avatar-maroon: #8a4c58;
-  --avatar-foreground: #ffffff;
+  --avatar-teal:   oklch(0.55 0.08 190);
+  --avatar-purple: oklch(0.52 0.1 305);
+  --avatar-blue:   oklch(0.53 0.09 250);
+  --avatar-amber:  oklch(0.56 0.1 70);
+  --avatar-green:  oklch(0.55 0.08 150);
+  --avatar-maroon: oklch(0.52 0.09 10);
+  --avatar-foreground: oklch(1 0 0);
 
   --st-incomplete-bg:#ede9fe; --st-incomplete-fg:#6d28d9;
   --st-invited-bg:   #dbeafe; --st-invited-fg:   #1d4ed8;
