@@ -13,6 +13,8 @@ import {
   resendAdminInvitation,
   deleteAdminInvitation,
   updateAdministrator,
+  setAdministratorSuspended,
+  removeAdministrator,
   updateAdminInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
@@ -68,6 +70,8 @@ function AdminsPage() {
   const resendFn = useServerFn(resendAdminInvitation);
   const deleteInviteFn = useServerFn(deleteAdminInvitation);
   const updateAdminFn = useServerFn(updateAdministrator);
+  const suspendAdminFn = useServerFn(setAdministratorSuspended);
+  const removeAdminFn = useServerFn(removeAdministrator);
   const sendAdminEmailFn = useServerFn(sendAdminInvitationEmail);
   const qc = useQueryClient();
 
