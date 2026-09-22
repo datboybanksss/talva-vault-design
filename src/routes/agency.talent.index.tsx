@@ -322,7 +322,7 @@ function TalentPage() {
                   name={r.displayName}
                   avatarSeed={r.id}
                   photoUrl={r.avatarUrl}
-                  subtitle={r.talentType ?? "Talent type not set"}
+                  subtitle={`${r.talentType ?? "Talent type not set"} · Manager: ${r.managerName || "Unassigned"}`}
                   pills={
                     <>
                       <span className={`tvp-status tvp-${STATUS_TONE[r.status] ?? "neutral"}`}>
@@ -351,6 +351,19 @@ function TalentPage() {
                             setTypeDraft(r.talentType ?? "");
                           },
                         },
+                        ...(["ended", "expired", "revoked"].includes(r.status)
+                          ? []
+                          : [
+                              {
+                                key: "manager",
+                                label: r.managerUserId ? "Change manager" : "Assign manager",
+                                icon: UserCog,
+                                onSelect: () => {
+                                  setManagerEditor(r);
+                                  setManagerDraft(r.managerUserId ?? "unassigned");
+                                },
+                              },
+                            ]),
                       ]}
                     />
                   }
