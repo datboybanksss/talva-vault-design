@@ -57,6 +57,33 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
       throw new Error("Select at least one folder or a document to share.");
     }
 
+    // Ownership gate: every folder/document must belong to the caller. The
+    // RLS-scoped client only ever returns the caller's own rows, so a count
+    // mismatch means at least one id isn't theirs.
+    if (folderIds.length) {
+      const { data: owned, error: fErr } = await supabase
+        .from("talent_private_folders")
+        .select("id")
+        .in("id", folderIds)
+        .eq("user_id", userId)
+        .is("removed_at", null);
+      if (fErr) throw new Error(fErr.message);
+      if ((owned?.length ?? 0) !== new Set(folderIds).size) {
+        throw new Error("One or more selected folders aren't available in your vault.");
+      }
+    }
+    if (docIds.length) {
+      const { data: owned, error: dErr } = await supabase
+        .from("talent_private_documents")
+        .select("id")
+        .in("id", docIds)
+        .eq("user_id", userId);
+      if (dErr) throw new Error(dErr.message);
+      if ((owned?.length ?? 0) !== new Set(docIds).size) {
+        throw new Error("One or more selected documents aren't available in your vault.");
+      }
+    }
+
     const { generateAccessCode, hashAccessCode } = await import("@/lib/loved-one-access.server");
 
     // Insert first so we have the DB-generated token to salt the code hash with.
@@ -227,6 +254,36 @@ async function loadShareByToken(token: string) {
 }
 
 /**
+ * Resolves a share's folder scope to the folders the recipient may actually
+ * see: owner-scoped, not soft-removed, and expanded to include nested
+ * subfolders of each shared folder.
+ */
+export async function resolveShareFolders(scopeFolderIds: string[], owner: string | null) {
+  if (!owner || scopeFolderIds.length === 0) return { folders: [] as any[], folderIds: [] as string[] };
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: all } = await supabaseAdmin
+    .from("talent_private_folders")
+    .select("id, name, parent_id")
+    .eq("user_id", owner)
+    .is("removed_at", null);
+  const rows = all ?? [];
+  const byId = new Map(rows.map((f: any) => [f.id, f]));
+  const kept = new Map<string, any>();
+  const queue = scopeFolderIds.filter((id) => byId.has(id));
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (kept.has(id)) continue;
+    kept.set(id, byId.get(id));
+    for (const f of rows) if (f.parent_id === id) queue.push(f.id);
+  }
+  return {
+    folders: Array.from(kept.values()).map((f: any) => ({ id: f.id, name: f.name })),
+    folderIds: Array.from(kept.keys()),
+  };
+}
+
+
+/**
  * Billing shares expose exactly the set the talent themselves can see — the
  * quotes and invoices their Manager has shared with them. Nothing else in the
  * agency's books is reachable through a Loved One link.
@@ -364,25 +421,30 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
       };
     }
 
-    const folderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
+    const owner = share.created_by as string | null;
+    const scopeFolderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
     const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
 
-    const [folders, docsInFolders, singleDocs] = await Promise.all([
-      folderIds.length
-        ? supabaseAdmin.from("talent_private_folders").select("id, name").in("id", folderIds)
-        : Promise.resolve({ data: [] as any[] }),
-      folderIds.length
+    // Every lookup below is owner-scoped, so a share row pointing at someone
+    // else's folder or document can never surface their names or metadata.
+    const { folders: sharedFolders, folderIds } = await resolveShareFolders(scopeFolderIds, owner);
+
+    const [docsInFolders, singleDocs] = await Promise.all([
+      folderIds.length && owner
         ? supabaseAdmin.from("talent_private_documents")
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
-            .in("folder_id", folderIds as string[])
+            .in("folder_id", folderIds)
+            .eq("user_id", owner)
         : Promise.resolve({ data: [] as any[] }),
-      docIds.length
+      docIds.length && owner
         ? supabaseAdmin.from("talent_private_documents")
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
             .in("id", docIds)
+            .eq("user_id", owner)
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
+    const folders = { data: sharedFolders };
     const dedup = new Map<string, any>();
     for (const d of docsInFolders.data ?? []) dedup.set(d.id, d);
     for (const d of singleDocs.data ?? []) dedup.set(d.id, d);
@@ -449,7 +511,10 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
     if (!doc || !doc.storage_path) throw new Error("Document not found.");
     if (doc.user_id !== share.created_by) throw new Error("Not authorised.");
 
-    const folderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
+    const { folderIds } = await resolveShareFolders(
+      (share.scope as any)?.private_folder_ids ?? [],
+      share.created_by as string | null,
+    );
     const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
     const inScope = docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
     if (!inScope) throw new Error("This document isn't in the share scope.");
