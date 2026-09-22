@@ -51,7 +51,11 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
         if (!doc || !doc.storage_path) return new Response("Not found", { status: 404 });
         if (doc.user_id !== share.created_by) return new Response("Forbidden", { status: 403 });
 
-        const folderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
+        const { resolveShareFolders } = await import("@/lib/loved-one.functions");
+        const { folderIds } = await resolveShareFolders(
+          (share.scope as any)?.private_folder_ids ?? [],
+          share.created_by as string | null,
+        );
         const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
         const inScope = docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
         if (!inScope) return new Response("Forbidden", { status: 403 });
