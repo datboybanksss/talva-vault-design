@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.sweep_overdue_invoices() TO authenticated, service_role;
