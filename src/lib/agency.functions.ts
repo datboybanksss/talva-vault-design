@@ -282,6 +282,21 @@ export const dismissAgencyReminder = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Which one-time notices this user has already dismissed (per user, persisted). */
+export const listAgencyDismissedNotices = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { data, error } = await supabase
+      .from("agency_notification_dismissals")
+      .select("kind")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { kinds: (data ?? []).map((d: any) => d.kind as string) };
+  });
+
+
+
 
 // -----------------------------------------------------------------------------
 // Dashboard metrics — real counts scoped to caller's agency.
