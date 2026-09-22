@@ -811,6 +811,39 @@ function AdminsPage() {
           </div>
         </ModalShell>
       )}
+
+      {confirmRemoveAdmin && (
+        <ModalShell
+          onClose={() => setConfirmRemoveAdmin(null)}
+          maxWidth={460}
+          labelledBy="admin-remove-title"
+        >
+          <h2 className="tvp-h2" id="admin-remove-title">
+            Remove {confirmRemoveAdmin.display_name || confirmRemoveAdmin.email}?
+          </h2>
+          <p className="tvp-muted" style={{ marginTop: 8 }}>
+            Their administrator access ends on their next page. Their account and everything they
+            did stays exactly as it is, and the removal is recorded in the audit log.
+          </p>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
+            <button
+              type="button"
+              className="tvp-secondary"
+              onClick={() => setConfirmRemoveAdmin(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="tvp-danger"
+              onClick={() => removeAdminMut.mutate({ user_id: confirmRemoveAdmin.user_id })}
+              disabled={removeAdminMut.isPending}
+            >
+              {removeAdminMut.isPending ? "Removing…" : "Remove administrator"}
+            </button>
+          </div>
+        </ModalShell>
+      )}
     </>
 
   );
