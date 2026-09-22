@@ -556,6 +556,7 @@ function VaultPage() {
                       key={l.id}
                       compact
                       name={l.displayName}
+                      avatarSeed={l.id}
                       photoUrl={l.avatarUrl}
                       subtitle={l.talentType ?? "Talent type not set"}
                       meta={`${folderTotal} ${folderTotal === 1 ? "folder" : "folders"} · ${totalDocsForTalent} ${totalDocsForTalent === 1 ? "document" : "documents"}`}

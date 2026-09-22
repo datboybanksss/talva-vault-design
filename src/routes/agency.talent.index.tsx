@@ -203,14 +203,17 @@ function TalentPage() {
         </div>
       </div>
 
-      <div className="tvp-tabs">
+      <div className="tvp-tabs tvp-roster-tabs" role="tablist" aria-label="Roster status">
         {TAB_GROUPS.map((t) => (
           <button
             key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
             className={`tvp-tab${tab === t.key ? " tvp-active" : ""}`}
             onClick={() => setTab(t.key)}
           >
-            {t.label} <span className="tvp-status tvp-neutral">{counts.get(t.key) ?? 0}</span>
+            {t.label} ({counts.get(t.key) ?? 0})
           </button>
         ))}
       </div>
@@ -290,18 +293,23 @@ function TalentPage() {
                 <EntityCard
                   key={r.id}
                   name={r.displayName}
+                  avatarSeed={r.id}
                   photoUrl={r.avatarUrl}
                   subtitle={r.talentType ?? "Talent type not set"}
-                  meta={`${r.status === "invited" ? "Invited" : "Joined"} ${fmtDate(r.createdAt)} · Lead: ${r.managerName}`}
                   pills={
-                    <span className={`tvp-status tvp-${STATUS_TONE[r.status] ?? "neutral"}`}>
-                      {STATUS_LABEL[r.status] ?? r.status}
-                    </span>
+                    <>
+                      <span className={`tvp-status tvp-${STATUS_TONE[r.status] ?? "neutral"}`}>
+                        {STATUS_LABEL[r.status] ?? r.status}
+                      </span>
+                      <span className="tvp-entity-since">
+                        {r.status === "invited" ? "Invited" : "Since"} {fmtDate(r.createdAt)}
+                      </span>
+                    </>
                   }
                   stats={[
                     { label: "Documents", value: r.docCount },
                     { label: "Awaiting", value: r.awaitingCount, tone: r.awaitingCount > 0 ? "amber" : undefined },
-                    { label: "Expiring", value: r.expiringDocsCount, tone: r.expiringDocsCount > 0 ? "red" : undefined },
+                    { label: "Expiring", value: r.expiringDocsCount, tone: r.expiringDocsCount > 0 ? "amber" : undefined },
                   ]}
                   actions={
                     <RowActionsMenu
