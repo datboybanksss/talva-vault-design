@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Plus, Tags, Users as UsersIcon, X } from "lucide-react";
+import { Download, Plus, Tags, UserCog, Users as UsersIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,7 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { listAgencyTalent, updateTalentLinkTalentType } from "@/lib/agency.functions";
+import {
+  listAgencyStaff,
+  listAgencyTalent,
+  setTalentManager,
+  updateTalentLinkTalentType,
+} from "@/lib/agency.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { ModalShell } from "@/components/shared/modal-shell";
