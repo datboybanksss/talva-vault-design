@@ -216,6 +216,14 @@ function AdminDashboard() {
                   <td>{new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</td>
                 </tr>
               ))}
+              <LoadMoreRow
+                colSpan={5}
+                noun="agencies"
+                shown={agencyPage.shown}
+                total={agencyPage.total}
+                hasMore={agencyPage.hasMore}
+                onLoadMore={agencyPage.loadMore}
+              />
             </tbody>
           </table>
         </div>
