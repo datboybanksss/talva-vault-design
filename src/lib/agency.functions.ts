@@ -3948,6 +3948,87 @@ function normaliseEmails(emails: string[] | undefined): string[] {
   );
 }
 
+const CLIENT_COLUMNS =
+  "id, name, trading_name, client_type, contact_person, contact_title, emails, phone, address, vat_number, company_registration_number, payment_terms_days, relationship_manager_user_id, city, country, notes, created_at, updated_at";
+
+type ClientRollup = {
+  docCount: number;
+  invoicedCents: number;
+  paidCents: number;
+  outstandingCents: number;
+  overdueCents: number;
+  overdueCount: number;
+};
+
+function emptyRollup(): ClientRollup {
+  return {
+    docCount: 0,
+    invoicedCents: 0,
+    paidCents: 0,
+    outstandingCents: 0,
+    overdueCents: 0,
+    overdueCount: 0,
+  };
+}
+
+/**
+ * Money rolled up per client from live quotes and invoices.
+ * Paid comes from recorded payments; an invoice marked paid without payment
+ * rows still counts as settled in full so legacy records read honestly.
+ */
+async function loadClientRollups(supabase: any, agencyId: string) {
+  const { data: docs, error } = await supabase
+    .from("agency_billing_docs")
+    .select("id, client_id, kind, status, total_cents, due_date, paid_at")
+    .eq("agency_id", agencyId)
+    .not("client_id", "is", null);
+  if (error) throw new Error(error.message);
+  const rows = docs ?? [];
+
+  const invoiceIds = rows
+    .filter((d: any) => d.kind === "invoice")
+    .map((d: any) => d.id as string);
+  const paidByDoc = new Map<string, number>();
+  for (let i = 0; i < invoiceIds.length; i += 200) {
+    const slice = invoiceIds.slice(i, i + 200);
+    if (!slice.length) break;
+    const { data: pays, error: payErr } = await supabase
+      .from("agency_invoice_payments")
+      .select("doc_id, amount_cents")
+      .eq("agency_id", agencyId)
+      .in("doc_id", slice);
+    if (payErr) throw new Error(payErr.message);
+    for (const p of pays ?? []) {
+      const k = p.doc_id as string;
+      paidByDoc.set(k, (paidByDoc.get(k) ?? 0) + Number(p.amount_cents ?? 0));
+    }
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const byClient = new Map<string, ClientRollup>();
+  for (const d of rows) {
+    const key = d.client_id as string;
+    const agg = byClient.get(key) ?? emptyRollup();
+    agg.docCount += 1;
+
+    if (d.kind === "invoice" && d.status !== "cancelled") {
+      const total = Number(d.total_cents ?? 0);
+      const recorded = paidByDoc.get(d.id as string) ?? 0;
+      const paid = Math.min(total, Math.max(recorded, d.status === "paid" ? total : 0));
+      const remaining = Math.max(0, total - paid);
+      agg.invoicedCents += total;
+      agg.paidCents += paid;
+      agg.outstandingCents += remaining;
+      if (remaining > 0 && d.due_date && (d.due_date as string) < today) {
+        agg.overdueCents += remaining;
+        agg.overdueCount += 1;
+      }
+    }
+    byClient.set(key, agg);
+  }
+  return byClient;
+}
+
 export const listAgencyClients = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -3955,14 +4036,106 @@ export const listAgencyClients = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_clients")
-      .select(
-        "id, name, contact_person, emails, phone, address, vat_number, city, country, notes, created_at, updated_at",
-      )
+      .select(CLIENT_COLUMNS)
       .eq("agency_id", agencyId)
       .is("archived_at", null)
       .order("name", { ascending: true });
     if (error) throw new Error(error.message);
-    return { clients: data ?? [] };
+    const clients = data ?? [];
+
+    const rollups = await loadClientRollups(supabase, agencyId);
+
+    const managerIds = Array.from(
+      new Set(clients.map((c: any) => c.relationship_manager_user_id).filter(Boolean)),
+    );
+    const managerNames = new Map<string, string>();
+    if (managerIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, display_name, first_name, last_name, email")
+        .in("id", managerIds);
+      for (const p of profs ?? []) {
+        managerNames.set(
+          p.id as string,
+          (p.display_name as string) ||
+            [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+            (p.email as string) ||
+            "Team member",
+        );
+      }
+    }
+
+    return {
+      clients: clients.map((c: any) => ({
+        ...c,
+        relationship_manager_name: c.relationship_manager_user_id
+          ? managerNames.get(c.relationship_manager_user_id) ?? null
+          : null,
+        stats: rollups.get(c.id as string) ?? emptyRollup(),
+      })),
+    };
+  });
+
+/** One client plus their quote and invoice history, for the detail panel. */
+export const getAgencyClientDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: client, error } = await supabase
+      .from("agency_clients")
+      .select(CLIENT_COLUMNS)
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!client) throw new Error("That client could not be found on your agency.");
+
+    const { data: docs, error: docErr } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, status, total_cents, currency, issued_at, due_date, description")
+      .eq("agency_id", agencyId)
+      .eq("client_id", data.id)
+      .order("issued_at", { ascending: false });
+    if (docErr) throw new Error(docErr.message);
+
+    let managerName: string | null = null;
+    if (client.relationship_manager_user_id) {
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("display_name, first_name, last_name, email")
+        .eq("id", client.relationship_manager_user_id)
+        .maybeSingle();
+      managerName = p
+        ? (p.display_name as string) ||
+          [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+          (p.email as string) ||
+          null
+        : null;
+    }
+
+    const rollups = await loadClientRollups(supabase, agencyId);
+
+    return {
+      client: {
+        ...client,
+        relationship_manager_name: managerName,
+        stats: rollups.get(client.id as string) ?? emptyRollup(),
+      },
+      documents: (docs ?? []).map((d: any) => ({
+        id: d.id as string,
+        kind: d.kind as string,
+        number: d.number as string,
+        status: d.status as string,
+        totalCents: Number(d.total_cents ?? 0),
+        currency: (d.currency as string) ?? "ZAR",
+        issuedAt: d.issued_at as string,
+        dueDate: (d.due_date as string) ?? null,
+        description: (d.description as string) ?? null,
+      })),
+    };
   });
 
 export const saveAgencyClient = createServerFn({ method: "POST" })
