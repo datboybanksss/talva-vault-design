@@ -434,6 +434,71 @@ function TalentPage() {
           </div>
         </ModalShell>
       )}
+
+      {managerEditor && (
+        <ModalShell
+          onClose={() => setManagerEditor(null)}
+          maxWidth={460}
+          labelledBy="assign-manager-title"
+        >
+          <div className="tvp-modal-head">
+            <h3 className="tvp-h2" id="assign-manager-title">
+              {managerEditor.managerUserId ? "Change manager" : "Assign manager"}
+            </h3>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setManagerEditor(null)}
+              aria-label="Close"
+            >
+              <X />
+            </Button>
+          </div>
+          <div className="tvp-modal-body">
+            <p className="tvp-small tvp-muted" style={{ marginTop: 0 }}>
+              Choose who on your team looks after {managerEditor.displayName}. Only active team
+              members can be chosen.
+            </p>
+            <div className="tvp-form-group">
+              <Label htmlFor="talent-manager">Manager</Label>
+              <Select value={managerDraft} onValueChange={setManagerDraft}>
+                <SelectTrigger id="talent-manager" className="tvp-modal-control">
+                  <SelectValue placeholder="Select a team member…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {(staff.data ?? []).map((m: any) => (
+                    <SelectItem key={m.userId} value={m.userId}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {staff.isLoading && (
+                <p className="tvp-small tvp-muted">Loading your team…</p>
+              )}
+            </div>
+          </div>
+          <div className="tvp-modal-foot">
+            <Button type="button" variant="outline" onClick={() => setManagerEditor(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={saveManager.isPending}
+              onClick={() =>
+                saveManager.mutate({
+                  talent_link_id: managerEditor.id,
+                  manager_user_id: managerDraft === "unassigned" ? null : managerDraft,
+                })
+              }
+            >
+              Save
+            </Button>
+          </div>
+        </ModalShell>
+      )}
     </>
   );
 }
