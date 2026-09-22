@@ -102,9 +102,12 @@ export function DocumentRulesPanel() {
       <div className="tvp-callout">
         <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
         <div>
-          <strong>How retention works.</strong> While a rule is active, matching documents cannot be
-          deleted by anyone in the agency. After the retention period expires, delete works normally.
-          Retention is measured from the document's upload date.
+          <strong>How retention works.</strong> Each document is stamped with the retention period in
+          force when it was uploaded, measured from its upload date, and cannot be deleted by anyone in
+          the agency until that period elapses. Changing a rule applies to documents uploaded from then
+          on; it never shortens a period already stamped on an existing document, and deleting a rule
+          does not release documents already locked. A longer period can be applied at any time and
+          will extend existing locks.
         </div>
       </div>
 
