@@ -65,9 +65,8 @@ const listQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/quotes-invoices")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    doc: typeof search.doc === "string" && search.doc.trim() ? search.doc.trim() : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { doc?: string } =>
+    typeof search.doc === "string" && search.doc.trim() ? { doc: search.doc.trim() } : {},
   head: () => ({
     meta: [
       { title: "Quotes & Invoices · TalVault" },
