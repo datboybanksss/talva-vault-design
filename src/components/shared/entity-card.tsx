@@ -9,12 +9,12 @@
 import type { ReactNode } from "react";
 
 const AVATAR_PALETTE = [
-  { bg: "var(--tvp-teal-100)", fg: "var(--tvp-teal)" },
-  { bg: "var(--tvp-purple-bg)", fg: "var(--tvp-purple)" },
-  { bg: "var(--tvp-blue-bg)", fg: "var(--tvp-blue)" },
-  { bg: "var(--tvp-amber-bg)", fg: "var(--tvp-amber)" },
-  { bg: "var(--tvp-green-bg)", fg: "var(--tvp-green)" },
-  { bg: "var(--tvp-neutral-bg)", fg: "var(--tvp-ink)" },
+  { bg: "var(--avatar-teal)", fg: "var(--avatar-foreground)" },
+  { bg: "var(--avatar-purple)", fg: "var(--avatar-foreground)" },
+  { bg: "var(--avatar-blue)", fg: "var(--avatar-foreground)" },
+  { bg: "var(--avatar-amber)", fg: "var(--avatar-foreground)" },
+  { bg: "var(--avatar-green)", fg: "var(--avatar-foreground)" },
+  { bg: "var(--avatar-maroon)", fg: "var(--avatar-foreground)" },
 ];
 
 export function initialsOf(name: string): string {
@@ -36,14 +36,16 @@ export function avatarColours(seed: string) {
 
 export function EntityAvatar({
   name,
+  seed,
   photoUrl,
   size = "md",
 }: {
   name: string;
+  seed?: string;
   photoUrl?: string | null;
   size?: "sm" | "md" | "lg";
 }) {
-  const colours = avatarColours(name);
+  const colours = avatarColours(seed ?? name);
   const sizeClass =
     size === "sm" ? " tvp-entity-avatar-sm" : size === "lg" ? " tvp-entity-avatar-lg" : "";
   return (
@@ -65,6 +67,7 @@ export type EntityStat = {
 
 export type EntityCardProps = {
   name: string;
+  avatarSeed?: string;
   photoUrl?: string | null;
   subtitle?: string | null;
   meta?: string | null;
@@ -78,6 +81,7 @@ export type EntityCardProps = {
 
 export function EntityCard({
   name,
+  avatarSeed,
   photoUrl,
   subtitle,
   meta,
@@ -93,7 +97,7 @@ export function EntityCard({
   const body = (
     <>
       <div className="tvp-entity-head">
-        <EntityAvatar name={name} photoUrl={photoUrl} size={compact ? "sm" : "md"} />
+        <EntityAvatar name={name} seed={avatarSeed} photoUrl={photoUrl} size={compact ? "sm" : "md"} />
         <div className="tvp-entity-identity">
           <p className="tvp-entity-name">{name}</p>
           {subtitle ? <p className="tvp-entity-sub">{subtitle}</p> : null}

@@ -49,6 +49,15 @@
   --amber-600:   #d97706;
   --amber-050:   #fdf2e4;
 
+  /* Deterministic entity-avatar rotation: muted solids with one clear text role. */
+  --avatar-teal:   oklch(0.55 0.08 190);
+  --avatar-purple: oklch(0.52 0.1 305);
+  --avatar-blue:   oklch(0.53 0.09 250);
+  --avatar-amber:  oklch(0.56 0.1 70);
+  --avatar-green:  oklch(0.55 0.08 150);
+  --avatar-maroon: oklch(0.52 0.09 10);
+  --avatar-foreground: oklch(1 0 0);
+
   --st-incomplete-bg:#ede9fe; --st-incomplete-fg:#6d28d9;
   --st-invited-bg:   #dbeafe; --st-invited-fg:   #1d4ed8;
   --st-accepted-bg:  #d1fae5; --st-accepted-fg:  #047857;
@@ -1826,7 +1835,7 @@
 
 /* --- Shared entity cards (talent roster, vault talent picker, clients) --- */
 .tvp-entity-grid {
-  display: grid; gap: 16px; align-items: start;
+  display: grid; gap: 22px; align-items: start;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .tvp-entity-grid.tvp-entity-grid-compact {
@@ -1836,10 +1845,11 @@
 @media (max-width: 720px) { .tvp-entity-grid { grid-template-columns: 1fr; } }
 
 .tvp-entity-card {
-  display: flex; flex-direction: column; gap: 12px; width: 100%;
-  padding: 16px; text-align: left; font: inherit;
-  border: 1px solid var(--tvp-line); border-radius: 16px;
+  display: flex; flex-direction: column; gap: 10px; width: 100%;
+  padding: 20px; text-align: left; font: inherit;
+  border: 1px solid var(--line-200); border-radius: var(--r-card);
   background: var(--surface); color: var(--tvp-ink);
+  box-shadow: var(--sh-sm);
   transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
 button.tvp-entity-card { cursor: pointer; }
@@ -1851,41 +1861,63 @@ button.tvp-entity-card:focus-visible,
 a.tvp-entity-card:focus-visible { outline: 2px solid var(--tvp-teal-2); outline-offset: 2px; }
 .tvp-entity-card.tvp-entity-card-compact { padding: 13px; gap: 10px; }
 
-.tvp-entity-head { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.tvp-entity-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .tvp-entity-identity { min-width: 0; flex: 1; }
 .tvp-entity-name {
-  margin: 0; font-size: 14.5px; font-weight: 900; letter-spacing: -.2px; color: var(--tvp-ink);
+  margin: 0; font-size: 15.5px; font-weight: 900; letter-spacing: 0; line-height: 1.25; color: var(--tvp-ink);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .tvp-entity-sub {
-  margin: 3px 0 0; font-size: 12px; color: var(--tvp-muted); font-weight: 600;
+  margin: 3px 0 0; font-size: 13px; line-height: 1.35; color: var(--tvp-muted); font-weight: 600;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .tvp-entity-meta { margin: 6px 0 0; font-size: 11.5px; color: var(--tvp-muted); }
-.tvp-entity-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.tvp-entity-pills { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 0; min-height: 24px; }
+.tvp-entity-since { font-size: 12.5px; line-height: 1.4; color: var(--tvp-muted); font-weight: 600; }
 
 .tvp-entity-avatar {
-  width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto;
+  width: 48px; height: 48px; border-radius: 50%; flex: 0 0 auto;
   display: grid; place-items: center; overflow: hidden;
-  font-size: 14px; font-weight: 900; letter-spacing: .3px;
+  font-size: 14px; font-weight: 900; letter-spacing: 0;
 }
 .tvp-entity-avatar.tvp-entity-avatar-sm { width: 36px; height: 36px; font-size: 12.5px; }
 .tvp-entity-avatar.tvp-entity-avatar-lg { width: 60px; height: 60px; font-size: 19px; }
 .tvp-entity-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .tvp-entity-stats {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
-  border-top: 1px solid var(--tvp-line); padding-top: 12px; margin-top: auto;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+  border-top: 1px solid var(--line-200); padding-top: 13px; margin-top: 2px;
 }
 .tvp-entity-stat { min-width: 0; }
-.tvp-entity-stat-value { display: block; font-size: 16px; font-weight: 900; color: var(--tvp-ink); line-height: 1.1; }
+.tvp-entity-stat-value { display: block; font-size: 19px; font-weight: 900; color: var(--tvp-ink); line-height: 1.1; }
 .tvp-entity-stat-value.tvp-entity-stat-red { color: var(--tvp-red); }
 .tvp-entity-stat-value.tvp-entity-stat-amber { color: var(--tvp-amber); }
 .tvp-entity-stat-value.tvp-entity-stat-green { color: var(--tvp-green); }
 .tvp-entity-stat-label {
-  display: block; margin-top: 2px; font-size: 10px; font-weight: 900;
-  letter-spacing: .8px; text-transform: uppercase; color: var(--tvp-muted);
+  display: block; margin-top: 4px; font-size: 10px; font-weight: 800;
+  letter-spacing: .45px; text-transform: uppercase; color: var(--tvp-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Talent roster uses a raised segmented control rather than badge-style tabs. */
+.tvp-portal .tvp-roster-tabs {
+  display: inline-flex; width: fit-content; gap: 4px; padding: 4px;
+  margin: 18px 0 18px; border: 1px solid var(--line-200);
+  border-radius: var(--r-md); background: var(--surface-soft);
+}
+.tvp-portal .tvp-roster-tabs .tvp-tab {
+  height: 36px; padding: 0 13px; border: 1px solid transparent;
+  border-radius: 11px; background: transparent; box-shadow: none;
+  color: var(--tvp-muted); font-size: 13px; font-weight: 800;
+}
+.tvp-portal .tvp-roster-tabs .tvp-tab:hover { color: var(--tvp-ink); }
+.tvp-portal .tvp-roster-tabs .tvp-tab.tvp-active {
+  border-color: var(--line-200); background: var(--surface); color: var(--tvp-ink);
+  box-shadow: var(--sh-sm); transform: none;
+}
+@media (max-width: 560px) {
+  .tvp-portal .tvp-roster-tabs { display: flex; width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  .tvp-portal .tvp-roster-tabs .tvp-tab { flex: 0 0 auto; }
 }
 
 /* Client detail panel */
