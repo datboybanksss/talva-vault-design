@@ -839,7 +839,18 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
     const expires_at = new Date(Date.now() + data.extend_days * 86400000).toISOString();
 
-    const { data: cur } = await supabase.from(table).select("send_count, email").eq("id", data.id).single();
+    const { data: cur } = await supabase
+      .from(table)
+      .select("send_count, email, status")
+      .eq("id", data.id)
+      .single();
+    // Resend reopens an invitation that is still genuinely open. It must never
+    // revive one that was revoked, declined or already accepted.
+    if (cur?.status !== "pending") {
+      throw new Error(
+        `This invitation is ${cur?.status ?? "unavailable"} and can no longer be resent. Send a new invitation instead.`,
+      );
+    }
     const { data: inv, error } = await supabase
       .from(table)
       .update({
@@ -3955,6 +3966,47 @@ export const updateAgencyStaffRole = createServerFn({ method: "POST" })
       { from: member.role, to: data.role },
     );
     return updated;
+  });
+
+/**
+ * Owner-only: remove a staff member from the agency. Their membership row goes,
+ * which immediately removes their agency portal access on the next navigation.
+ * The owner cannot be removed and cannot remove themselves.
+ */
+export const removeAgencyStaffMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ member_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: member, error: readErr } = await supabase
+      .from("agency_members")
+      .select("id, user_id, role")
+      .eq("id", data.member_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!member) throw new Error("Staff member not found for your agency.");
+    if (member.role === "owner") throw new Error("The agency owner cannot be removed.");
+    if (member.user_id === userId) throw new Error("You cannot remove yourself.");
+
+    const { data: removed, error } = await supabase
+      .from("agency_members")
+      .delete()
+      .eq("id", member.id)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!removed) throw new Error("Removal failed — you may not have permission.");
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "remove_staff_member", "agency_member", member.id, member.user_id,
+      { role: member.role },
+    );
+    return { ok: true };
   });
 
 /** Staff invitation detail, for the shared email preview/compose screen. */
