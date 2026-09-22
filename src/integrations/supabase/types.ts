@@ -568,7 +568,10 @@ export type Database = {
           agency_id: string
           archived_at: string | null
           city: string | null
+          client_type: string | null
+          company_registration_number: string | null
           contact_person: string | null
+          contact_title: string | null
           country: string | null
           created_at: string
           created_by: string | null
@@ -576,7 +579,10 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          payment_terms_days: number | null
           phone: string | null
+          relationship_manager_user_id: string | null
+          trading_name: string | null
           updated_at: string
           vat_number: string | null
         }
@@ -585,7 +591,10 @@ export type Database = {
           agency_id: string
           archived_at?: string | null
           city?: string | null
+          client_type?: string | null
+          company_registration_number?: string | null
           contact_person?: string | null
+          contact_title?: string | null
           country?: string | null
           created_at?: string
           created_by?: string | null
@@ -593,7 +602,10 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          payment_terms_days?: number | null
           phone?: string | null
+          relationship_manager_user_id?: string | null
+          trading_name?: string | null
           updated_at?: string
           vat_number?: string | null
         }
@@ -602,7 +614,10 @@ export type Database = {
           agency_id?: string
           archived_at?: string | null
           city?: string | null
+          client_type?: string | null
+          company_registration_number?: string | null
           contact_person?: string | null
+          contact_title?: string | null
           country?: string | null
           created_at?: string
           created_by?: string | null
@@ -610,7 +625,10 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          payment_terms_days?: number | null
           phone?: string | null
+          relationship_manager_user_id?: string | null
+          trading_name?: string | null
           updated_at?: string
           vat_number?: string | null
         }

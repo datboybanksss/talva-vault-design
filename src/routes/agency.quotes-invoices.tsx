@@ -65,6 +65,8 @@ const listQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/quotes-invoices")({
+  validateSearch: (search: Record<string, unknown>): { doc?: string } =>
+    typeof search.doc === "string" && search.doc.trim() ? { doc: search.doc.trim() } : {},
   head: () => ({
     meta: [
       { title: "Quotes & Invoices · TalVault" },
@@ -240,7 +242,8 @@ function QIPage() {
   const [chipFilter, setChipFilter] = useState<ChipKey | "all">("all");
   const [talentFilter, setTalentFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("newest");
-  const [search, setSearch] = useState("");
+  const { doc: docParam } = Route.useSearch();
+  const [search, setSearch] = useState(docParam ?? "");
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState>(emptyEditor("invoice"));

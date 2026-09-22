@@ -282,6 +282,21 @@ export const dismissAgencyReminder = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Which one-time notices this user has already dismissed (per user, persisted). */
+export const listAgencyDismissedNotices = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { data, error } = await supabase
+      .from("agency_notification_dismissals")
+      .select("kind")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { kinds: (data ?? []).map((d: any) => d.kind as string) };
+  });
+
+
+
 
 // -----------------------------------------------------------------------------
 // Dashboard metrics — real counts scoped to caller's agency.
@@ -420,7 +435,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
 
     const { data: links, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status, talent_type, manager_user_id, next_action, created_at, updated_at, talent_invitation_id")
+      .select("id, display_name, status, talent_type, manager_user_id, talent_user_id, next_action, created_at, updated_at, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -429,6 +444,13 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     await syncInvitedTalentLinks(supabase, agencyId, rows);
     const managerIds = Array.from(
       new Set(rows.map((r: any) => r.manager_user_id).filter(Boolean)),
+    );
+    const profileIds = Array.from(
+      new Set(
+        rows
+          .flatMap((r: any) => [r.manager_user_id, r.talent_user_id])
+          .filter(Boolean),
+      ),
     );
     const linkIds = rows.map((r: any) => r.id);
 
@@ -450,7 +472,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       for (let from = 0; ; from += page) {
         const { data, error: docErr } = await supabase
           .from("talent_shared_documents")
-          .select("talent_link_id, created_at, validity_expires_at")
+          .select("talent_link_id, created_at, validity_expires_at, status")
           .eq("agency_id", agencyId)
           .order("created_at", { ascending: false })
           .range(from, from + page - 1);
@@ -462,34 +484,41 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       return out;
     };
 
-    const [managersRes, docRows] = await Promise.all([
-      managerIds.length
+    const [profilesRes, docRows] = await Promise.all([
+      profileIds.length
         ? supabase
             .from("profiles")
-            .select("id, display_name, first_name, last_name, email")
-            .in("id", managerIds)
+            .select("id, display_name, first_name, last_name, email, avatar_url")
+            .in("id", profileIds)
         : Promise.resolve({ data: [] as any[] }),
       linkIds.length ? fetchAgencyDocRows() : Promise.resolve([] as any[]),
     ]);
 
     const managerMap = new Map<string, string>();
-    for (const p of (managersRes as any).data ?? []) {
+    const avatarMap = new Map<string, string | null>();
+    for (const p of (profilesRes as any).data ?? []) {
       const label =
         (p.display_name as string) ||
         [p.first_name, p.last_name].filter(Boolean).join(" ") ||
         (p.email as string) ||
         "Unassigned";
       managerMap.set(p.id as string, label);
+      avatarMap.set(p.id as string, (p.avatar_url as string) ?? null);
     }
 
     const docCount = new Map<string, number>();
     const expiringCount = new Map<string, number>();
+    const awaitingCount = new Map<string, number>();
     const lastDocAt = new Map<string, string>();
     for (const d of docRows as any[]) {
       const k = d.talent_link_id as string;
       if (!k) continue;
       docCount.set(k, (docCount.get(k) ?? 0) + 1);
       if (!lastDocAt.has(k)) lastDocAt.set(k, d.created_at as string);
+      // "Awaiting" = documents still waiting on a person to confirm filing.
+      if (d.status === "needs_review" || d.status === "ai_suggested") {
+        awaitingCount.set(k, (awaitingCount.get(k) ?? 0) + 1);
+      }
       const exp = d.validity_expires_at as string | null;
       if (exp && exp >= nowIso && exp <= in30dIso) {
         expiringCount.set(k, (expiringCount.get(k) ?? 0) + 1);
@@ -503,10 +532,12 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       displayName: r.display_name as string,
       status: r.status as string,
       talentType: (r.talent_type as string) ?? null,
+      avatarUrl: r.talent_user_id ? avatarMap.get(r.talent_user_id) ?? null : null,
       managerUserId: (r.manager_user_id as string) ?? null,
       managerName: r.manager_user_id ? managerMap.get(r.manager_user_id) ?? "Unassigned" : "Unassigned",
       nextAction: (r.next_action as string) ?? null,
       docCount: docCount.get(r.id) ?? 0,
+      awaitingCount: awaitingCount.get(r.id) ?? 0,
       expiringDocsCount: expiringCount.get(r.id) ?? 0,
       lastDocumentAt: lastDocAt.get(r.id) ?? null,
       createdAt: r.created_at as string,
@@ -1086,16 +1117,31 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status, talent_invitation_id")
+      .select("id, display_name, status, talent_type, talent_user_id, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("display_name", { ascending: true });
     if (error) throw new Error(error.message);
     const rows = data ?? [];
     await syncInvitedTalentLinks(supabase, agencyId, rows);
+
+    const talentUserIds = Array.from(
+      new Set(rows.map((r: any) => r.talent_user_id).filter(Boolean)),
+    );
+    const avatarMap = new Map<string, string | null>();
+    if (talentUserIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, avatar_url")
+        .in("id", talentUserIds);
+      for (const p of profs ?? []) avatarMap.set(p.id as string, (p.avatar_url as string) ?? null);
+    }
+
     return rows.map((r: any) => ({
       id: r.id as string,
       displayName: r.display_name as string,
       status: r.status as string,
+      talentType: (r.talent_type as string) ?? null,
+      avatarUrl: r.talent_user_id ? avatarMap.get(r.talent_user_id) ?? null : null,
     }));
   });
 
@@ -3917,6 +3963,87 @@ function normaliseEmails(emails: string[] | undefined): string[] {
   );
 }
 
+const CLIENT_COLUMNS =
+  "id, name, trading_name, client_type, contact_person, contact_title, emails, phone, address, vat_number, company_registration_number, payment_terms_days, relationship_manager_user_id, city, country, notes, created_at, updated_at";
+
+type ClientRollup = {
+  docCount: number;
+  invoicedCents: number;
+  paidCents: number;
+  outstandingCents: number;
+  overdueCents: number;
+  overdueCount: number;
+};
+
+function emptyRollup(): ClientRollup {
+  return {
+    docCount: 0,
+    invoicedCents: 0,
+    paidCents: 0,
+    outstandingCents: 0,
+    overdueCents: 0,
+    overdueCount: 0,
+  };
+}
+
+/**
+ * Money rolled up per client from live quotes and invoices.
+ * Paid comes from recorded payments; an invoice marked paid without payment
+ * rows still counts as settled in full so legacy records read honestly.
+ */
+async function loadClientRollups(supabase: any, agencyId: string) {
+  const { data: docs, error } = await supabase
+    .from("agency_billing_docs")
+    .select("id, client_id, kind, status, total_cents, due_date, paid_at")
+    .eq("agency_id", agencyId)
+    .not("client_id", "is", null);
+  if (error) throw new Error(error.message);
+  const rows = docs ?? [];
+
+  const invoiceIds = rows
+    .filter((d: any) => d.kind === "invoice")
+    .map((d: any) => d.id as string);
+  const paidByDoc = new Map<string, number>();
+  for (let i = 0; i < invoiceIds.length; i += 200) {
+    const slice = invoiceIds.slice(i, i + 200);
+    if (!slice.length) break;
+    const { data: pays, error: payErr } = await supabase
+      .from("agency_invoice_payments")
+      .select("doc_id, amount_cents")
+      .eq("agency_id", agencyId)
+      .in("doc_id", slice);
+    if (payErr) throw new Error(payErr.message);
+    for (const p of pays ?? []) {
+      const k = p.doc_id as string;
+      paidByDoc.set(k, (paidByDoc.get(k) ?? 0) + Number(p.amount_cents ?? 0));
+    }
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const byClient = new Map<string, ClientRollup>();
+  for (const d of rows) {
+    const key = d.client_id as string;
+    const agg = byClient.get(key) ?? emptyRollup();
+    agg.docCount += 1;
+
+    if (d.kind === "invoice" && d.status !== "cancelled") {
+      const total = Number(d.total_cents ?? 0);
+      const recorded = paidByDoc.get(d.id as string) ?? 0;
+      const paid = Math.min(total, Math.max(recorded, d.status === "paid" ? total : 0));
+      const remaining = Math.max(0, total - paid);
+      agg.invoicedCents += total;
+      agg.paidCents += paid;
+      agg.outstandingCents += remaining;
+      if (remaining > 0 && d.due_date && (d.due_date as string) < today) {
+        agg.overdueCents += remaining;
+        agg.overdueCount += 1;
+      }
+    }
+    byClient.set(key, agg);
+  }
+  return byClient;
+}
+
 export const listAgencyClients = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -3924,14 +4051,106 @@ export const listAgencyClients = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_clients")
-      .select(
-        "id, name, contact_person, emails, phone, address, vat_number, city, country, notes, created_at, updated_at",
-      )
+      .select(CLIENT_COLUMNS)
       .eq("agency_id", agencyId)
       .is("archived_at", null)
       .order("name", { ascending: true });
     if (error) throw new Error(error.message);
-    return { clients: data ?? [] };
+    const clients = data ?? [];
+
+    const rollups = await loadClientRollups(supabase, agencyId);
+
+    const managerIds = Array.from(
+      new Set(clients.map((c: any) => c.relationship_manager_user_id).filter(Boolean)),
+    );
+    const managerNames = new Map<string, string>();
+    if (managerIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, display_name, first_name, last_name, email")
+        .in("id", managerIds);
+      for (const p of profs ?? []) {
+        managerNames.set(
+          p.id as string,
+          (p.display_name as string) ||
+            [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+            (p.email as string) ||
+            "Team member",
+        );
+      }
+    }
+
+    return {
+      clients: clients.map((c: any) => ({
+        ...c,
+        relationship_manager_name: c.relationship_manager_user_id
+          ? managerNames.get(c.relationship_manager_user_id) ?? null
+          : null,
+        stats: rollups.get(c.id as string) ?? emptyRollup(),
+      })),
+    };
+  });
+
+/** One client plus their quote and invoice history, for the detail panel. */
+export const getAgencyClientDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: client, error } = await supabase
+      .from("agency_clients")
+      .select(CLIENT_COLUMNS)
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!client) throw new Error("That client could not be found on your agency.");
+
+    const { data: docs, error: docErr } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, status, total_cents, currency, issued_at, due_date, description")
+      .eq("agency_id", agencyId)
+      .eq("client_id", data.id)
+      .order("issued_at", { ascending: false });
+    if (docErr) throw new Error(docErr.message);
+
+    let managerName: string | null = null;
+    if (client.relationship_manager_user_id) {
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("display_name, first_name, last_name, email")
+        .eq("id", client.relationship_manager_user_id)
+        .maybeSingle();
+      managerName = p
+        ? (p.display_name as string) ||
+          [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+          (p.email as string) ||
+          null
+        : null;
+    }
+
+    const rollups = await loadClientRollups(supabase, agencyId);
+
+    return {
+      client: {
+        ...client,
+        relationship_manager_name: managerName,
+        stats: rollups.get(client.id as string) ?? emptyRollup(),
+      },
+      documents: (docs ?? []).map((d: any) => ({
+        id: d.id as string,
+        kind: d.kind as string,
+        number: d.number as string,
+        status: d.status as string,
+        totalCents: Number(d.total_cents ?? 0),
+        currency: (d.currency as string) ?? "ZAR",
+        issuedAt: d.issued_at as string,
+        dueDate: (d.due_date as string) ?? null,
+        description: (d.description as string) ?? null,
+      })),
+    };
   });
 
 export const saveAgencyClient = createServerFn({ method: "POST" })
@@ -3952,6 +4171,12 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
         city: z.string().trim().max(120).nullable().optional(),
         country: z.string().trim().max(120).nullable().optional(),
         notes: z.string().trim().max(2000).nullable().optional(),
+        client_type: z.string().trim().max(80).nullable().optional(),
+        contact_title: z.string().trim().max(120).nullable().optional(),
+        payment_terms_days: z.number().int().min(0).max(365).nullable().optional(),
+        trading_name: z.string().trim().max(200).nullable().optional(),
+        company_registration_number: z.string().trim().max(80).nullable().optional(),
+        relationship_manager_user_id: z.string().uuid().nullable().optional(),
       })
       .parse(d),
   )
@@ -3970,6 +4195,12 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
       city: data.city?.trim() || null,
       country: data.country?.trim() || null,
       notes: data.notes?.trim() || null,
+      client_type: data.client_type?.trim() || null,
+      contact_title: data.contact_title?.trim() || null,
+      payment_terms_days: data.payment_terms_days ?? null,
+      trading_name: data.trading_name?.trim() || null,
+      company_registration_number: data.company_registration_number?.trim() || null,
+      relationship_manager_user_id: data.relationship_manager_user_id ?? null,
     };
 
     let clientId: string;
