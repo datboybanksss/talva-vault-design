@@ -371,7 +371,11 @@ function AdminsPage() {
                         >
                           {adminPermission(a.permission_level)?.label ?? "—"}
                         </span>
-
+                        {a.suspended && (
+                          <span className="tvp-status tvp-red" style={{ marginLeft: 6 }}>
+                            Suspended
+                          </span>
+                        )}
                       </td>
                       <td>
                         {new Date(a.created_at).toLocaleDateString("en-GB", {
@@ -380,14 +384,41 @@ function AdminsPage() {
                       </td>
                       <td>
                         {isMain && (
-                          <button
-                            className="tvp-mini-btn"
-                            onClick={() => setEditAdmin(a)}
-                            title="Edit designation & permission level"
-                            aria-label="Edit administrator"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
+                          <RowActionsMenu
+                            label={`Actions for ${a.display_name || a.email}`}
+                            actions={[
+                              {
+                                key: "edit",
+                                label: "Edit designation & access",
+                                icon: Pencil,
+                                onSelect: () => setEditAdmin(a),
+                              },
+                              !a.is_main_admin && a.user_id !== me.data?.userId && {
+                                key: "suspend",
+                                label: a.suspended ? "Restore access" : "Suspend access",
+                                icon: Ban,
+                                separatorBefore: true,
+                                destructive: !a.suspended,
+                                disabled: suspendAdminMut.isPending,
+                                title: a.suspended
+                                  ? "Returns full console access"
+                                  : "Blocks the console from their next page",
+                                onSelect: () =>
+                                  suspendAdminMut.mutate({
+                                    user_id: a.user_id,
+                                    suspended: !a.suspended,
+                                  }),
+                              },
+                              !a.is_main_admin && a.user_id !== me.data?.userId && {
+                                key: "remove",
+                                label: "Remove administrator",
+                                icon: Trash2,
+                                destructive: true,
+                                disabled: removeAdminMut.isPending,
+                                onSelect: () => setConfirmRemoveAdmin(a),
+                              },
+                            ]}
+                          />
                         )}
                       </td>
                     </tr>
