@@ -14,7 +14,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog, Mail } from "lucide-react";
+import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog, Mail, Trash2 } from "lucide-react";
+import { ModalShell } from "@/components/shared/modal-shell";
 import { toast } from "sonner";
 import {
   agencyWhoami,
@@ -27,6 +28,7 @@ import {
   listAgencyFolderTemplates,
   listAgencyStaffRoster,
   updateAgencyStaffRole,
+  removeAgencyStaffMember,
 } from "@/lib/agency.functions";
 
 
@@ -664,6 +666,8 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
   const qc = useQueryClient();
   const rosterFn = useServerFn(listAgencyStaffRoster);
   const roleFn = useServerFn(updateAgencyStaffRole);
+  const removeStaffFn = useServerFn(removeAgencyStaffMember);
+  const [confirmRemove, setConfirmRemove] = useState<any | null>(null);
 
   const staff = useQuery({
     queryKey: ["agency", "staff-roster"],
@@ -677,6 +681,16 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
       toast.success("Role updated and logged.");
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to update role"),
+  });
+
+  const removeStaff = useMutation({
+    mutationFn: (v: { member_id: string }) => removeStaffFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "staff-roster"] });
+      setConfirmRemove(null);
+      toast.success("Staff member removed and logged.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to remove staff member"),
   });
 
   const rows = (staff.data ?? []) as any[];
@@ -750,6 +764,16 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
                           disabled: changeRole.isPending,
                           onSelect: () => changeRole.mutate({ member_id: m.id, role: "staff" }),
                         },
+                        isOwner && m.role !== "owner" && !m.isSelf && {
+                          key: "remove",
+                          label: "Remove from agency",
+                          icon: Trash2,
+                          destructive: true,
+                          separatorBefore: true,
+                          title: "Ends their access to this agency",
+                          disabled: removeStaff.isPending,
+                          onSelect: () => setConfirmRemove(m),
+                        },
                         !!m.email && {
                           key: "copy-email",
                           label: "Copy email address",
@@ -773,6 +797,35 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
           </tbody>
         </table>
       </div>
+
+      {confirmRemove && (
+        <ModalShell
+          onClose={() => setConfirmRemove(null)}
+          maxWidth={460}
+          labelledBy="staff-remove-title"
+        >
+          <h2 className="tvp-h2" id="staff-remove-title">
+            Remove {confirmRemove.name} from your agency?
+          </h2>
+          <p className="tvp-muted" style={{ marginTop: 8 }}>
+            They lose access to this agency's workspace on their next page. Everything they filed or
+            recorded stays exactly where it is, and the removal is written to your activity log.
+          </p>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
+            <button type="button" className="tvp-secondary" onClick={() => setConfirmRemove(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="tvp-danger"
+              onClick={() => removeStaff.mutate({ member_id: confirmRemove.id })}
+              disabled={removeStaff.isPending}
+            >
+              {removeStaff.isPending ? "Removing…" : "Remove staff member"}
+            </button>
+          </div>
+        </ModalShell>
+      )}
     </div>
   );
 }

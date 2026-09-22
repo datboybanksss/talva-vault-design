@@ -31,8 +31,6 @@ import {
 } from "@/lib/mfa.functions";
 import { browserSessionId } from "@/lib/device";
 // TESTING ONLY — remove before launch
-import { MFA_CODE_BYPASS_FOR_TESTING } from "@/lib/mfa-bypass";
-import { bypassSignInVerification } from "@/lib/mfa.functions";
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
 function recordSignIn() {
@@ -496,41 +494,6 @@ function AuthPage() {
     }
   };
 
-  /** TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch. */
-  const skipVerification = async () => {
-    setError(null);
-    setBusy(true);
-    try {
-      const res = await bypassSignInVerification({ data: { device: browserSessionId() } });
-      if (!res.ok) {
-        setError(res.message);
-        return;
-      }
-      recordSignIn();
-      setMfaCode("");
-      // A full page load, not a client-side navigation: leaving the sign-in
-      // screen mounted lets its "clear any stale session" effect run again
-      // behind the portal gate, which is what bounced people straight back
-      // here. Reloading at the destination re-reads the session from scratch.
-      const explicit =
-        search.next && search.next.startsWith("/") && !search.next.startsWith("//")
-          ? search.next
-          : null;
-      const dest = explicit ?? (await resolvePortalHome());
-      if (!dest) {
-        setCodeStage(false);
-        setInfo(
-          "You're signed in, but this account isn't linked to a workspace yet. Ask your agency owner or manager to send you an invitation.",
-        );
-        return;
-      }
-      window.location.assign(dest);
-    } catch (err) {
-      setError(friendlyAuthError(err));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const resendCode = async () => {
     setResending(true);
@@ -736,27 +699,6 @@ function AuthPage() {
               >
                 {busy ? "Verifying…" : "Verify & sign in"}
               </button>
-              {/* TESTING ONLY — remove with MFA_CODE_BYPASS_FOR_TESTING before launch */}
-              {MFA_CODE_BYPASS_FOR_TESTING && (
-                <button
-                  type="button"
-                  onClick={skipVerification}
-                  disabled={busy}
-                  style={{
-                    marginTop: 10,
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "2px dashed hsl(var(--muted-foreground))",
-                    borderRadius: 10,
-                    background: "transparent",
-                    color: "hsl(var(--muted-foreground))",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  TESTING ONLY · Skip verification
-                </button>
-              )}
               <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
                 <button
                   className="tv-auth-link"

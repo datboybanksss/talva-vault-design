@@ -12,6 +12,8 @@ import {
   dismissAgencyReminder,
 } from "@/lib/agency.functions";
 import { ModalShell } from "@/components/shared/modal-shell";
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreBar } from "@/components/shared/load-more";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { EmailChipsInput } from "@/components/shared/email-chips-input";
 import { SectionHeader } from "@/components/account/section-header";
@@ -173,6 +175,9 @@ export function ClientsPanel() {
     );
   }, [clients, search]);
 
+  // Rule of 10: the grid caps at a batch, with "Load more" below it.
+  const page = usePagedList(filtered, { resetKey: search });
+
   const save = useMutation({
     mutationFn: async () => {
       if (!form) return null;
@@ -299,7 +304,7 @@ export function ClientsPanel() {
         ) : (
           <>
             <div className="tvp-entity-grid">
-              {filtered.map((c) => {
+              {page.visible.map((c) => {
                 const s = c.stats;
                 const outstandingLabel = (s?.overdueCents ?? 0) > 0 ? "Overdue" : "Outstanding";
                 const outstandingValue =
@@ -352,6 +357,14 @@ export function ClientsPanel() {
                 );
               })}
             </div>
+
+            <LoadMoreBar
+              noun="clients"
+              shown={page.shown}
+              total={page.total}
+              hasMore={page.hasMore}
+              onLoadMore={page.loadMore}
+            />
 
             {!noteDismissed && (
               <div

@@ -26,6 +26,46 @@ export const listMyLovedOneShares = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+
+/**
+ * Immutable record of a recipient actually reaching something. Written with the
+ * service key (the recipient has no account), read back by the talent who
+ * created the share through their own permissions.
+ */
+async function logShareAccess(
+  shareId: string,
+  event: "opened" | "view" | "download",
+  extra: { documentId?: string | null; documentName?: string | null } = {},
+) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("loved_one_share_access_events").insert({
+      share_id: shareId,
+      event,
+      document_id: extra.documentId ?? null,
+      document_name: extra.documentName ?? null,
+    });
+  } catch {
+    // Access logging must never block the recipient's access.
+  }
+}
+
+/** Access history for one of the caller's own shares. */
+export const listLovedOneShareAccess = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ share_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("loved_one_share_access_events")
+      .select("id, event, document_name, created_at")
+      .eq("share_id", data.share_id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
 const CreateShareInput = z.object({
   loved_one_name: z.string().trim().min(1).max(120),
   loved_one_email: z.string().trim().email().max(200),
@@ -458,6 +498,7 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
       last_viewed_at: new Date().toISOString(),
       view_count: (counter?.view_count ?? 0) + 1,
     }).eq("id", share.id);
+    await logShareAccess(share.id as string, "opened");
 
     return {
       status: "ok" as const,
@@ -518,6 +559,11 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
     const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
     const inScope = docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
     if (!inScope) throw new Error("This document isn't in the share scope.");
+
+    await logShareAccess(share.id as string, data.mode, {
+      documentId: doc.id as string,
+      documentName: doc.name as string,
+    });
 
     const params = new URLSearchParams({
       token: data.token,

@@ -13,6 +13,8 @@ import {
   resendAdminInvitation,
   deleteAdminInvitation,
   updateAdministrator,
+  setAdministratorSuspended,
+  removeAdministrator,
   updateAdminInvitation,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
@@ -68,6 +70,8 @@ function AdminsPage() {
   const resendFn = useServerFn(resendAdminInvitation);
   const deleteInviteFn = useServerFn(deleteAdminInvitation);
   const updateAdminFn = useServerFn(updateAdministrator);
+  const suspendAdminFn = useServerFn(setAdministratorSuspended);
+  const removeAdminFn = useServerFn(removeAdministrator);
   const sendAdminEmailFn = useServerFn(sendAdminInvitationEmail);
   const qc = useQueryClient();
 
@@ -226,6 +230,34 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
   });
 
+  const suspendAdminMut = useMutation({
+    mutationFn: (input: { user_id: string; suspended: boolean; reason?: string | null }) =>
+      suspendAdminFn({ data: input }),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
+      toast.success(
+        v.suspended
+          ? "Administrator suspended — console access ends on their next page."
+          : "Administrator access restored.",
+      );
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
+  });
+
+  const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState<any | null>(null);
+
+  const removeAdminMut = useMutation({
+    mutationFn: (input: { user_id: string }) => removeAdminFn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
+      setConfirmRemoveAdmin(null);
+      toast.success("Administrator removed.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to remove administrator"),
+  });
+
+
+
   const list = useMemo(() => admins.data ?? [], [admins.data]);
   const stats = useMemo(() => {
     return {
@@ -342,7 +374,11 @@ function AdminsPage() {
                         >
                           {adminPermission(a.permission_level)?.label ?? "—"}
                         </span>
-
+                        {a.suspended && (
+                          <span className="tvp-status tvp-red" style={{ marginLeft: 6 }}>
+                            Suspended
+                          </span>
+                        )}
                       </td>
                       <td>
                         {new Date(a.created_at).toLocaleDateString("en-GB", {
@@ -351,14 +387,41 @@ function AdminsPage() {
                       </td>
                       <td>
                         {isMain && (
-                          <button
-                            className="tvp-mini-btn"
-                            onClick={() => setEditAdmin(a)}
-                            title="Edit designation & permission level"
-                            aria-label="Edit administrator"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
+                          <RowActionsMenu
+                            label={`Actions for ${a.display_name || a.email}`}
+                            actions={[
+                              {
+                                key: "edit",
+                                label: "Edit designation & access",
+                                icon: Pencil,
+                                onSelect: () => setEditAdmin(a),
+                              },
+                              !a.is_main_admin && a.user_id !== me.data?.userId && {
+                                key: "suspend",
+                                label: a.suspended ? "Restore access" : "Suspend access",
+                                icon: Ban,
+                                separatorBefore: true,
+                                destructive: !a.suspended,
+                                disabled: suspendAdminMut.isPending,
+                                title: a.suspended
+                                  ? "Returns full console access"
+                                  : "Blocks the console from their next page",
+                                onSelect: () =>
+                                  suspendAdminMut.mutate({
+                                    user_id: a.user_id,
+                                    suspended: !a.suspended,
+                                  }),
+                              },
+                              !a.is_main_admin && a.user_id !== me.data?.userId && {
+                                key: "remove",
+                                label: "Remove administrator",
+                                icon: Trash2,
+                                destructive: true,
+                                disabled: removeAdminMut.isPending,
+                                onSelect: () => setConfirmRemoveAdmin(a),
+                              },
+                            ]}
+                          />
                         )}
                       </td>
                     </tr>
@@ -744,6 +807,39 @@ function AdminsPage() {
               }
             >
               {updateInviteMut.isPending ? "Saving…" : "Save access level"}
+            </button>
+          </div>
+        </ModalShell>
+      )}
+
+      {confirmRemoveAdmin && (
+        <ModalShell
+          onClose={() => setConfirmRemoveAdmin(null)}
+          maxWidth={460}
+          labelledBy="admin-remove-title"
+        >
+          <h2 className="tvp-h2" id="admin-remove-title">
+            Remove {confirmRemoveAdmin.display_name || confirmRemoveAdmin.email}?
+          </h2>
+          <p className="tvp-muted" style={{ marginTop: 8 }}>
+            Their administrator access ends on their next page. Their account and everything they
+            did stays exactly as it is, and the removal is recorded in the audit log.
+          </p>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
+            <button
+              type="button"
+              className="tvp-secondary"
+              onClick={() => setConfirmRemoveAdmin(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="tvp-danger"
+              onClick={() => removeAdminMut.mutate({ user_id: confirmRemoveAdmin.user_id })}
+              disabled={removeAdminMut.isPending}
+            >
+              {removeAdminMut.isPending ? "Removing…" : "Remove administrator"}
             </button>
           </div>
         </ModalShell>

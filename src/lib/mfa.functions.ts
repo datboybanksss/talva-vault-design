@@ -305,38 +305,6 @@ export const verifySignInCode = createServerFn({ method: "POST" })
   });
 
 /**
- * TEMPORARY — TESTING ONLY. REMOVE BEFORE LAUNCH (see @/lib/mfa-bypass).
- *
- * Marks this session verified without a code, so QA can get in while emails
- * cannot be delivered. Refuses outright when the flag is off. None of the real
- * code issuing, hashing, expiry or rate-limiting logic is touched.
- */
-export const bypassSignInVerification = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => deviceInput.parse(d))
-  .handler(async ({ data, context }): Promise<VerifyCodeResult> => {
-    const { MFA_CODE_BYPASS_FOR_TESTING } = await import("@/lib/mfa-bypass");
-    if (!MFA_CODE_BYPASS_FOR_TESTING) {
-      return { ok: false, message: "Enter the code we emailed you." };
-    }
-    const { userId } = context as { userId: string };
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const now = new Date().toISOString();
-
-    await supabaseAdmin
-      .from("mfa_verified_sessions")
-      .upsert(
-        { user_id: userId, session_id: data.device, verified_at: now },
-        { onConflict: "user_id,session_id" },
-      );
-    await supabaseAdmin.from("mfa_settings").upsert(
-      { user_id: userId, channel: "email", enrolled_at: now, explainer_seen_at: now },
-      { onConflict: "user_id" },
-    );
-    return { ok: true, message: "Verification skipped (testing only)." };
-  });
-
-/**
  * Called immediately after a password is accepted: forgets any earlier
  * verification for this browser so every sign-in asks for a fresh code.
  */

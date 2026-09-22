@@ -839,7 +839,18 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
     const expires_at = new Date(Date.now() + data.extend_days * 86400000).toISOString();
 
-    const { data: cur } = await supabase.from(table).select("send_count, email").eq("id", data.id).single();
+    const { data: cur } = await supabase
+      .from(table)
+      .select("send_count, email, status")
+      .eq("id", data.id)
+      .single();
+    // Resend reopens an invitation that is still genuinely open. It must never
+    // revive one that was revoked, declined or already accepted.
+    if (cur?.status !== "pending") {
+      throw new Error(
+        `This invitation is ${cur?.status ?? "unavailable"} and can no longer be resent. Send a new invitation instead.`,
+      );
+    }
     const { data: inv, error } = await supabase
       .from(table)
       .update({
@@ -1897,6 +1908,11 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+    // Invoices fall overdue with the calendar, not only when a payment is
+    // recorded. The hourly sweep keeps this true in the background; running it
+    // here means the list a person is looking at is never stale.
+    await supabase.rpc("sweep_overdue_invoices");
+
     const { data, error } = await supabase
       .from("agency_billing_docs")
       .select("id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, currency, total_cents, status, notes, shared_with_talent, converted_from_quote_id, description, allow_partial_payment, created_at, updated_at")
@@ -1949,6 +1965,28 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
 
     let row;
     if (data.id) {
+      // Once issued, a quote or invoice is a financial record: only notes,
+      // status, description and sharing may still change.
+      const { data: existing } = await supabase
+        .from("agency_billing_docs")
+        .select("status, number, total_cents, currency, issued_at, due_date, kind")
+        .eq("id", data.id).eq("agency_id", agencyId)
+        .maybeSingle();
+      if (existing && existing.status !== "draft") {
+        const changed =
+          payload.number !== existing.number ||
+          payload.total_cents !== existing.total_cents ||
+          payload.currency !== existing.currency ||
+          payload.issued_at !== existing.issued_at ||
+          (payload.due_date ?? null) !== (existing.due_date ?? null) ||
+          payload.kind !== existing.kind;
+        if (changed) {
+          throw new Error(
+            `${existing.kind === "invoice" ? "Invoice" : "Quotation"} ${existing.number} has already been issued. Its number, amounts, currency and dates can no longer be changed — cancel it and raise a new one instead.`,
+          );
+        }
+      }
+
       const { data: r, error } = await supabase
         .from("agency_billing_docs")
         .update(payload)
@@ -1999,6 +2037,19 @@ export const deleteAgencyBillingDoc = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+
+    // Payment history is never silently lost: remove the payments first, or
+    // cancel the invoice rather than deleting it.
+    const { count: paymentCount } = await supabase
+      .from("agency_invoice_payments")
+      .select("id", { count: "exact", head: true })
+      .eq("doc_id", data.id);
+    if ((paymentCount ?? 0) > 0) {
+      throw new Error(
+        `This invoice has ${paymentCount} recorded payment${paymentCount === 1 ? "" : "s"}. Remove the payments first, or mark the invoice cancelled instead of deleting it.`,
+      );
+    }
+
     const { data: row, error } = await supabase
       .from("agency_billing_docs")
       .delete()
@@ -3955,6 +4006,47 @@ export const updateAgencyStaffRole = createServerFn({ method: "POST" })
       { from: member.role, to: data.role },
     );
     return updated;
+  });
+
+/**
+ * Owner-only: remove a staff member from the agency. Their membership row goes,
+ * which immediately removes their agency portal access on the next navigation.
+ * The owner cannot be removed and cannot remove themselves.
+ */
+export const removeAgencyStaffMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ member_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertAgencyOwner(supabase, userId, agencyId);
+
+    const { data: member, error: readErr } = await supabase
+      .from("agency_members")
+      .select("id, user_id, role")
+      .eq("id", data.member_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!member) throw new Error("Staff member not found for your agency.");
+    if (member.role === "owner") throw new Error("The agency owner cannot be removed.");
+    if (member.user_id === userId) throw new Error("You cannot remove yourself.");
+
+    const { data: removed, error } = await supabase
+      .from("agency_members")
+      .delete()
+      .eq("id", member.id)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!removed) throw new Error("Removal failed — you may not have permission.");
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      "remove_staff_member", "agency_member", member.id, member.user_id,
+      { role: member.role },
+    );
+    return { ok: true };
   });
 
 /** Staff invitation detail, for the shared email preview/compose screen. */

@@ -1189,9 +1189,19 @@ export const resendInvitation = createServerFn({ method: "POST" })
     ).toISOString();
     const { data: current } = await supabase
       .from("agency_invitations")
-      .select("send_count, agency_name")
+      .select("send_count, agency_name, status")
       .eq("id", data.id)
       .single();
+    // Resend reopens an invitation that is genuinely still open. It must never
+    // resurrect a revoked, declined or accepted one, nor push an unfinalised
+    // draft live without the compliance checks that Finalise performs.
+    if (current?.status !== "pending") {
+      throw new Error(
+        current?.status === "draft"
+          ? "This invitation is still a draft. Finalise it (which checks the required documents) before it can be sent."
+          : `This invitation is ${current?.status ?? "unavailable"} and can no longer be resent. Create a new invitation instead.`,
+      );
+    }
     const { data: inv, error } = await supabase
       .from("agency_invitations")
       .update({
@@ -1419,7 +1429,7 @@ export const listAdministrators = createServerFn({ method: "GET" })
     await assertAdmin(supabase, userId);
     const { data: roles, error } = await supabase
       .from("user_roles")
-      .select("user_id, role, is_main_admin, permission_level, created_at")
+      .select("user_id, role, is_main_admin, permission_level, created_at, suspended, suspended_at, suspended_reason")
       .eq("role", "admin");
     if (error) throw new Error(error.message);
     const ids = (roles ?? []).map((r: any) => r.user_id);
@@ -1436,6 +1446,9 @@ export const listAdministrators = createServerFn({ method: "GET" })
       designation: (profMap.get(r.user_id) as any)?.designation ?? "",
       is_main_admin: r.is_main_admin,
       permission_level: r.permission_level as "view_only" | "agency_support" | "edit",
+      suspended: !!r.suspended,
+      suspended_at: r.suspended_at ?? null,
+      suspended_reason: r.suspended_reason ?? null,
       created_at: r.created_at,
     }));
   });
@@ -2006,6 +2019,106 @@ export const updateAdministrator = createServerFn({ method: "POST" })
     }
 
     return { ok: true, changes };
+  });
+
+// -----------------------------------------------------------------------------
+// Main-admin only: suspend / restore / remove an administrator.
+// A suspended administrator stops satisfying has_role('admin'), so every portal
+// gate, server function and RLS policy refuses them from their next navigation.
+// -----------------------------------------------------------------------------
+export const setAdministratorSuspended = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => parseInput(z
+      .object({
+        user_id: z.string().uuid(),
+        suspended: z.boolean(),
+        reason: z.string().trim().max(400).nullable().optional(),
+      }), d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertMainAdmin(supabase, userId);
+
+    if (data.user_id === userId) {
+      throw new Error("You cannot suspend your own administrator account.");
+    }
+
+    const { data: target, error: tErr } = await supabase
+      .from("user_roles")
+      .select("user_id, is_main_admin, permission_level, suspended")
+      .eq("user_id", data.user_id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (tErr) throw new Error(tErr.message);
+    if (!target) throw new Error("That user is not an administrator.");
+    if (target.is_main_admin) {
+      throw new Error("The Main Administrator cannot be suspended.");
+    }
+
+    const { data: prof } = await supabase
+      .from("profiles").select("email, display_name").eq("id", data.user_id).maybeSingle();
+
+    const { error: uErr } = await supabase
+      .from("user_roles")
+      .update({
+        suspended: data.suspended,
+        suspended_at: data.suspended ? new Date().toISOString() : null,
+        suspended_by: data.suspended ? userId : null,
+        suspended_reason: data.suspended ? (data.reason ?? null) : null,
+      })
+      .eq("user_id", data.user_id)
+      .eq("role", "admin");
+    if (uErr) throw new Error(uErr.message);
+
+    await logAudit(
+      supabase, userId, claims?.email,
+      data.suspended ? "suspend_administrator" : "restore_administrator",
+      "user", data.user_id,
+      (prof?.display_name as string) || (prof?.email as string) || data.user_id,
+      { reason: data.reason ?? null, permission_level: target.permission_level },
+    );
+    return { ok: true, suspended: data.suspended };
+  });
+
+export const removeAdministrator = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => parseInput(z.object({ user_id: z.string().uuid() }), d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertMainAdmin(supabase, userId);
+
+    if (data.user_id === userId) {
+      throw new Error("You cannot remove your own administrator access.");
+    }
+
+    const { data: target, error: tErr } = await supabase
+      .from("user_roles")
+      .select("user_id, is_main_admin, permission_level")
+      .eq("user_id", data.user_id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (tErr) throw new Error(tErr.message);
+    if (!target) throw new Error("That user is not an administrator.");
+    if (target.is_main_admin) {
+      throw new Error("The Main Administrator cannot be removed.");
+    }
+
+    const { data: prof } = await supabase
+      .from("profiles").select("email, display_name").eq("id", data.user_id).maybeSingle();
+
+    const { error: dErr } = await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.user_id)
+      .eq("role", "admin");
+    if (dErr) throw new Error(dErr.message);
+
+    await logAudit(
+      supabase, userId, claims?.email,
+      "remove_administrator", "user", data.user_id,
+      (prof?.display_name as string) || (prof?.email as string) || data.user_id,
+      { permission_level: target.permission_level },
+    );
+    return { ok: true };
   });
 
 

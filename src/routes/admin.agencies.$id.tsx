@@ -1,3 +1,5 @@
+import { usePagedList } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useSessionReady } from "@/hooks/use-session-ready";
 import { ArrowLeft, Ban, RotateCcw, Send, Users } from "lucide-react";
@@ -64,6 +66,9 @@ function AgencyDetail() {
     queryKey: ["admin", "agency", id, "talent-invitations"],
     queryFn: () => listTalentInvFn({ data: { agency_id: id } }),
   });
+  // Rule of 10: both invitation tables cap at a batch with "Load more".
+  const agencyInvPage = usePagedList<any>((agencyInv.data ?? []) as any[]);
+  const talentInvPage = usePagedList<any>((talentInv.data ?? []) as any[]);
   // Suspending or reinstating an agency needs full edit rights; anything less
   // is shown the control disabled rather than a server-side "Forbidden".
   const me = useQuery({
@@ -197,7 +202,7 @@ function AgencyDetail() {
                 {!agencyInv.isLoading && (agencyInv.data ?? []).length === 0 && (
                   <tr><td colSpan={6} className="tvp-muted">No team invitations from this agency yet — colleagues they invite will appear here.</td></tr>
                 )}
-                {(agencyInv.data ?? []).map((i: any) => (
+                {agencyInvPage.visible.map((i: any) => (
                   <tr key={i.id}>
                     <td>{i.email}</td>
                     <td>{i.contact_person ?? "—"}</td>
@@ -207,6 +212,14 @@ function AgencyDetail() {
                     <td>{i.send_count}</td>
                   </tr>
                 ))}
+                <LoadMoreRow
+                  colSpan={6}
+                  noun="invitations"
+                  shown={agencyInvPage.shown}
+                  total={agencyInvPage.total}
+                  hasMore={agencyInvPage.hasMore}
+                  onLoadMore={agencyInvPage.loadMore}
+                />
               </tbody>
             </table>
           </div>
@@ -237,7 +250,7 @@ function AgencyDetail() {
                 {!talentInv.isLoading && (talentInv.data ?? []).length === 0 && (
                   <tr><td colSpan={6} className="tvp-muted">This agency hasn't invited any talent yet — invitations they send will show up here.</td></tr>
                 )}
-                {(talentInv.data ?? []).map((i: any) => (
+                {talentInvPage.visible.map((i: any) => (
                   <tr key={i.id}>
                     <td>{i.talent_name ?? "—"}</td>
                     <td>{i.email}</td>
@@ -247,6 +260,14 @@ function AgencyDetail() {
                     <td>{i.send_count}</td>
                   </tr>
                 ))}
+                <LoadMoreRow
+                  colSpan={6}
+                  noun="talent invitations"
+                  shown={talentInvPage.shown}
+                  total={talentInvPage.total}
+                  hasMore={talentInvPage.hasMore}
+                  onLoadMore={talentInvPage.loadMore}
+                />
               </tbody>
             </table>
           </div>
