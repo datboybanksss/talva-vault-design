@@ -57,6 +57,33 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
       throw new Error("Select at least one folder or a document to share.");
     }
 
+    // Ownership gate: every folder/document must belong to the caller. The
+    // RLS-scoped client only ever returns the caller's own rows, so a count
+    // mismatch means at least one id isn't theirs.
+    if (folderIds.length) {
+      const { data: owned, error: fErr } = await supabase
+        .from("talent_private_folders")
+        .select("id")
+        .in("id", folderIds)
+        .eq("user_id", userId)
+        .is("removed_at", null);
+      if (fErr) throw new Error(fErr.message);
+      if ((owned?.length ?? 0) !== new Set(folderIds).size) {
+        throw new Error("One or more selected folders aren't available in your vault.");
+      }
+    }
+    if (docIds.length) {
+      const { data: owned, error: dErr } = await supabase
+        .from("talent_private_documents")
+        .select("id")
+        .in("id", docIds)
+        .eq("user_id", userId);
+      if (dErr) throw new Error(dErr.message);
+      if ((owned?.length ?? 0) !== new Set(docIds).size) {
+        throw new Error("One or more selected documents aren't available in your vault.");
+      }
+    }
+
     const { generateAccessCode, hashAccessCode } = await import("@/lib/loved-one-access.server");
 
     // Insert first so we have the DB-generated token to salt the code hash with.
