@@ -4383,3 +4383,69 @@ export const removeAgencyClient = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+/* ------------------------------------------------------------------ */
+/* Manager assignment — post-acceptance roster action                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Set, change or clear the manager on a talent link. Any active member of the
+ * caller's agency may reassign; the chosen manager must be an active member of
+ * the same agency (picked from the staff roster, never free text).
+ */
+export const setTalentManager = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        talent_link_id: z.string().uuid(),
+        manager_user_id: z.string().uuid().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+
+    const { data: link, error: readErr } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name, manager_user_id, status")
+      .eq("id", data.talent_link_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!link) throw new Error("That talent could not be found on your roster.");
+    if (["ended", "revoked", "expired"].includes(link.status)) {
+      throw new Error("This talent relationship has ended — a manager can no longer be assigned.");
+    }
+
+    if (data.manager_user_id) {
+      const { data: member, error: memErr } = await supabase
+        .from("agency_members")
+        .select("user_id")
+        .eq("agency_id", agencyId)
+        .eq("user_id", data.manager_user_id)
+        .eq("suspended", false)
+        .maybeSingle();
+      if (memErr) throw new Error(memErr.message);
+      if (!member) throw new Error("Choose a manager from your own team.");
+    }
+
+    const { data: updated, error } = await supabase
+      .from("agency_talent_links")
+      .update({ manager_user_id: data.manager_user_id })
+      .eq("id", link.id)
+      .eq("agency_id", agencyId)
+      .select("id, manager_user_id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("The manager could not be updated — you may not have permission.");
+
+    await logAgencyAudit(
+      supabase, agencyId, userId, claims?.email,
+      data.manager_user_id ? "assign_talent_manager" : "clear_talent_manager",
+      "talent_link", link.id, link.display_name,
+      { from: link.manager_user_id ?? null, to: data.manager_user_id ?? null },
+    );
+    return updated;
+  });
