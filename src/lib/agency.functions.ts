@@ -1414,11 +1414,12 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, agency_id, name, storage_path, folder, locked_until")
+      .select("id, agency_id, talent_link_id, name, storage_path, folder, locked_until")
       .eq("id", data.id)
       .single();
     if (error) throw new Error(error.message);
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
+    await assertLinkNotEnded(supabase, row.talent_link_id);
 
     if (row.locked_until && new Date(row.locked_until) > new Date()) {
       throw new Error(
@@ -2416,6 +2417,7 @@ export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertLinkNotEnded(supabase, data.talent_link_id);
     const { data: row, error } = await supabase
       .from("agency_document_requests")
       .insert({
@@ -2452,10 +2454,11 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
 
     const { data: req, error: rErr } = await supabase
       .from("agency_document_requests")
-      .select("id, title, current_document_id")
+      .select("id, title, current_document_id, talent_link_id")
       .eq("id", data.id).eq("agency_id", agencyId).maybeSingle();
     if (rErr) throw new Error(rErr.message);
     if (!req) throw new Error("Request not found");
+    await assertLinkNotEnded(supabase, req.talent_link_id);
 
     const { data: updated, error } = await supabase
       .from("agency_document_requests")
