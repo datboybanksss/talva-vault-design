@@ -15,8 +15,8 @@ import {
   getTalentBellFeed,
   markTalentNotificationRead,
 } from "@/lib/talent.functions";
-import {
 import { PortalFooter } from "@/components/shared/portal-footer";
+import {
   ChevronLeft,
   LayoutGrid,
   Lock,
