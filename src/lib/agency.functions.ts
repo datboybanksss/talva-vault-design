@@ -1102,16 +1102,31 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status, talent_invitation_id")
+      .select("id, display_name, status, talent_type, talent_user_id, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("display_name", { ascending: true });
     if (error) throw new Error(error.message);
     const rows = data ?? [];
     await syncInvitedTalentLinks(supabase, agencyId, rows);
+
+    const talentUserIds = Array.from(
+      new Set(rows.map((r: any) => r.talent_user_id).filter(Boolean)),
+    );
+    const avatarMap = new Map<string, string | null>();
+    if (talentUserIds.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, avatar_url")
+        .in("id", talentUserIds);
+      for (const p of profs ?? []) avatarMap.set(p.id as string, (p.avatar_url as string) ?? null);
+    }
+
     return rows.map((r: any) => ({
       id: r.id as string,
       displayName: r.display_name as string,
       status: r.status as string,
+      talentType: (r.talent_type as string) ?? null,
+      avatarUrl: r.talent_user_id ? avatarMap.get(r.talent_user_id) ?? null : null,
     }));
   });
 
