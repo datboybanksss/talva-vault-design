@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import {
   agencyWhoami,
-  listAgencyStaff,
   listAgencyTalent,
   listAgencyFolderSettings,
   createTalentInvitationMine,
@@ -37,25 +36,25 @@ export const Route = createFileRoute("/agency/talent/invite")({
   component: InviteTalent,
 });
 
+/**
+ * Two panels only. Manager assignment is deliberately NOT part of inviting —
+ * it is a post-acceptance action from the talent roster.
+ */
 const steps = [
   { num: 1, title: "Talent details", sub: "Create basic profile" },
-  { num: 2, title: "Manager", sub: "Assign internal owner" },
-  { num: 3, title: "Shared folder", sub: "Choose professional folders" },
-  { num: 4, title: "Review & send", sub: "Send invite" },
+  { num: 2, title: "Shared folder", sub: "Choose professional folders" },
 ];
 
 function InviteTalent() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const whoamiFn = useServerFn(agencyWhoami);
-  const staffFn = useServerFn(listAgencyStaff);
   const rosterFn = useServerFn(listAgencyTalent);
   const folderSettingsFn = useServerFn(listAgencyFolderSettings);
   const createFn = useServerFn(createTalentInvitationMine);
   const sendEmailFn = useServerFn(sendTalentInvitationEmail);
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
-  const staff = useQuery({ queryKey: ["agency", "staff"], queryFn: () => staffFn() });
   const roster = useQuery({ queryKey: ["agency", "talent"], queryFn: () => rosterFn() });
   const folderSettings = useQuery({
     queryKey: ["agency", "folder-settings"],
@@ -102,13 +101,6 @@ function InviteTalent() {
   const [email, setEmail] = useState("");
   const [talentType, setTalentType] = useState("");
   const [expiryDays, setExpiryDays] = useState(14);
-  const [managerId, setManagerId] = useState("");
-
-  const staffList = useMemo(() => (staff.data ?? []) as Array<{ userId: string; name: string; role: string }>, [staff.data]);
-  const managerName = useMemo(
-    () => staffList.find((s) => s.userId === managerId)?.name ?? "Not assigned yet",
-    [staffList, managerId],
-  );
 
   const customSelection = selected ?? defaultFolders;
 
@@ -145,7 +137,6 @@ function InviteTalent() {
           expiry_days: expiryDays,
           folder_mode: folderMode,
           folder_selection: activeFolders.map((name, i) => ({ name, sort_order: i })),
-          manager_user_id: managerId || null,
           talent_type: talentType || null,
         },
       }),
@@ -264,29 +255,6 @@ function InviteTalent() {
             )}
             {step === 2 && (
               <div className="tvp-sub-card" style={{ marginTop: 0 }}>
-                <h3 className="tvp-h3">Assign agency manager</h3>
-                <p className="tvp-muted">The manager is the internal owner of this talent relationship.</p>
-                <div className="tvp-form-group">
-                  <label>Manager</label>
-                  <select value={managerId} onChange={(e) => setManagerId(e.target.value)}>
-                    <option value="">Not assigned yet</option>
-                    {staffList.map((s) => (
-                      <option key={s.userId} value={s.userId}>
-                        {s.name}{s.role === "owner" ? " (owner)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {staff.isLoading && <div className="tvp-small tvp-muted">Loading your team…</div>}
-                {!staff.isLoading && staffList.length === 0 && (
-                  <div className="tvp-small tvp-muted">
-                    No team members yet — invite a colleague from Invitations, or leave this unassigned for now.
-                  </div>
-                )}
-              </div>
-            )}
-            {step === 3 && (
-              <div className="tvp-sub-card" style={{ marginTop: 0 }}>
                 <h3 className="tvp-h3">Roster shared folder setup</h3>
                 <div
                   className="tvp-ai-box"
@@ -337,6 +305,14 @@ function InviteTalent() {
                   </button>
                 </div>
 
+                <div className="tvp-ai-box" style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="tvp-small">
+                    The talent's Private Vault stays private — nothing you configure here grants
+                    access to it. You can assign an agency manager from the roster once they accept.
+                  </div>
+                </div>
+
                 {folderMode === "custom" && (
                   <div className="tvp-rule-grid" style={{ marginTop: 16 }}>
                     {allFolders.map((f) => {
@@ -363,41 +339,9 @@ function InviteTalent() {
                 )}
               </div>
             )}
-            {step === 4 && (
-              <div className="tvp-sub-card" style={{ marginTop: 0 }}>
-                <h3 className="tvp-h3">Review & send</h3>
-                <div className="tvp-review-grid" style={{ marginTop: 14 }}>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent</span><strong>{fullName.trim() || "—"}</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Email</span><strong>{email.trim() || "—"}</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Talent type</span><strong>{talentType || "Not specified"}</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Manager</span><strong>{managerName}</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Invitation expiry</span><strong>{expiryDays} days</strong></div>
-                  <div className="tvp-review-item"><span className="tvp-muted tvp-small">Folders</span><strong>{activeFolders.length} enabled{folderMode === "standard" ? " (standard set)" : " (custom)"}</strong></div>
-                </div>
-                <div className="tvp-ai-box" style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <Lock className="h-4 w-4 mt-0.5 shrink-0" />
-                  <div className="tvp-small">
-                    The talent's Private Vault stays private — nothing you configure here grants access to it.
-                  </div>
-                </div>
-                <div className="tvp-ai-box" style={{ marginTop: 16 }}>
-                  <strong><Sparkles className="inline h-4 w-4 mr-1" />What happens next</strong>
-                  <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
-                    The talent receives a secure invitation link. Their shared folders are created
-                    when they accept. Sending is recorded in your activity log.
-                  </p>
-                </div>
-                {!isOwner && (
-                  <div className="tvp-small tvp-muted" style={{ marginTop: 10 }}>
-                    Only the agency owner can send talent invitations.
-                  </div>
-                )}
-              </div>
-            )}
-
             <div className="tvp-footer-actions">
               {step > 1 && <button className="tvp-secondary" onClick={() => setStep(step - 1)}>Back</button>}
-              {step < 4 ? (
+              {step < 2 ? (
                 <button
                   className="tvp-primary"
                   disabled={!canContinue}
