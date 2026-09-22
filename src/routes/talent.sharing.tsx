@@ -28,6 +28,7 @@ function SharingPage() {
   const load = useServerFn(listMyLovedOneShares);
   const revoke = useServerFn(revokeLovedOneShare);
   const regen = useServerFn(regenerateAccessCode);
+  const [historyShare, setHistoryShare] = useState<any | null>(null);
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [prefill, setPrefill] = useState<{ name: string; email: string; relationship: string } | null>(null);
@@ -199,6 +200,11 @@ function SharingPage() {
                                   setShowModal(true);
                                 },
                               },
+                              {
+                                key: "history", label: "Access history", icon: History,
+                                title: "Every time they opened or downloaded something",
+                                onSelect: () => setHistoryShare(s),
+                              },
                               !revoked && {
                                 key: "revoke", label: "Revoke access", icon: Ban,
                                 destructive: true, separatorBefore: true,
@@ -235,6 +241,10 @@ function SharingPage() {
             qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
           }}
         />
+      )}
+
+      {historyShare && (
+        <ShareAccessHistoryModal share={historyShare} onClose={() => setHistoryShare(null)} />
       )}
 
       {codeModal && <AccessCodeModal fresh={codeModal} onClose={() => setCodeModal(null)} />}
