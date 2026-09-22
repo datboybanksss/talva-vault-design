@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions }
 import { useServerFn } from "@tanstack/react-start";
 import {
   Plus, Trash2, Pencil, X, Save, ArrowRightLeft, Link2, Eye, Send,
-  FileText, CheckCircle2, AlertCircle, Search, Wallet,
+  FileText, CheckCircle2, AlertCircle, Search, Wallet, Lock,
 } from "lucide-react";
 import { InvoicePaymentsDialog } from "@/components/agency/invoice-payments-dialog";
 import { toast } from "sonner";
@@ -410,6 +410,9 @@ function QIPage() {
   }, [settings]);
 
   const editorTotals = useMemo(() => computeTotals(editor.lines), [editor.lines]);
+
+  /** Issued documents are financial records — the money no longer moves. */
+  const financialsLocked = !!editor.id && editor.status !== "draft";
 
   const save = useMutation({
     mutationFn: async () => {
