@@ -5,8 +5,9 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Share2, Key, Ban, Copy, Clock, Eye, Plus, Info, X, Lock, Download, RefreshCw, Mail, FileText, Send, Receipt } from "lucide-react";
+import { Share2, Key, Ban, Copy, Clock, Eye, Plus, Info, X, Lock, Download, RefreshCw, Mail, FileText, Send, Receipt, History } from "lucide-react";
 import {
+  listLovedOneShareAccess,
   listMyLovedOneShares,
   createLovedOneShare,
   revokeLovedOneShare,
@@ -512,5 +513,77 @@ function ChoiceChip({ active, onClick, label, icon }: { active: boolean; onClick
     >
       {icon}{label}
     </button>
+  );
+}
+
+const ACCESS_EVENT_LABEL: Record<string, string> = {
+  opened: "Opened the share",
+  view: "Viewed a document",
+  download: "Downloaded a document",
+};
+
+/** Real access history for one share: who reached what, and exactly when. */
+function ShareAccessHistoryModal({ share, onClose }: { share: any; onClose: () => void }) {
+  const loadHistory = useServerFn(listLovedOneShareAccess);
+  const { data, isLoading } = useQuery({
+    queryKey: ["talent", "share-access", share.id],
+    queryFn: () => loadHistory({ data: { share_id: share.id } }) as Promise<any[]>,
+  });
+  const rows = data ?? [];
+
+  return (
+    <ModalShell onClose={onClose} maxWidth={560} labelledBy="share-history-title">
+      <h2 className="tvp-h2" id="share-history-title">
+        Access history — {share.loved_one_name ?? share.loved_one_email}
+      </h2>
+      <p className="tvp-muted" style={{ marginTop: 6, fontSize: 13 }}>
+        Every time this person opened the share, or viewed or downloaded one of your documents.
+      </p>
+
+      <div style={{ marginTop: 16, maxHeight: 340, overflowY: "auto" }}>
+        {isLoading && <div className="tvp-muted">Loading…</div>}
+        {!isLoading && rows.length === 0 && (
+          <div className="tvp-muted" style={{ padding: "18px 0" }}>
+            They haven't opened anything yet.
+          </div>
+        )}
+        {rows.map((r) => (
+          <div
+            key={r.id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              padding: "10px 0",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <div>
+              <strong style={{ fontSize: 13 }}>{ACCESS_EVENT_LABEL[r.event] ?? r.event}</strong>
+              {r.document_name && (
+                <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                  {r.document_name}
+                </div>
+              )}
+            </div>
+            <div className="tvp-muted" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+              {new Date(r.created_at).toLocaleString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
+        <button type="button" className="tvp-secondary" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </ModalShell>
   );
 }
