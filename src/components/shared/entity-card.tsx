@@ -103,7 +103,7 @@ export function EntityCard({
           {subtitle ? <p className="tvp-entity-sub">{subtitle}</p> : null}
           {meta ? <p className="tvp-entity-meta">{meta}</p> : null}
         </div>
-        {actions ? <div onClick={(e) => e.stopPropagation()}>{actions}</div> : null}
+        {actions ? <div className="tvp-entity-actions" onClick={(e) => e.stopPropagation()}>{actions}</div> : null}
       </div>
       {pills ? <div className="tvp-entity-pills">{pills}</div> : null}
       {stats && stats.length > 0 ? (
