@@ -230,6 +230,31 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
   });
 
+  const suspendAdminMut = useMutation({
+    mutationFn: (input: { user_id: string; suspended: boolean; reason?: string | null }) =>
+      suspendAdminFn({ data: input }),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
+      toast.success(
+        v.suspended
+          ? "Administrator suspended — console access ends on their next page."
+          : "Administrator access restored.",
+      );
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
+  });
+
+  const removeAdminMut = useMutation({
+    mutationFn: (input: { user_id: string }) => removeAdminFn({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
+      toast.success("Administrator removed.");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to remove administrator"),
+  });
+
+
+
   const list = useMemo(() => admins.data ?? [], [admins.data]);
   const stats = useMemo(() => {
     return {
