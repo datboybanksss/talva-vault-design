@@ -26,6 +26,7 @@ import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
 import { Route as TalentNotificationsRouteImport } from './routes/talent.notifications'
 import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
 import { Route as LovedOneTokenRouteImport } from './routes/loved-one.$token'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
 import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
@@ -146,6 +147,11 @@ const TalentBudgetRoute = TalentBudgetRouteImport.update({
 const LovedOneTokenRoute = LovedOneTokenRouteImport.update({
   id: '/loved-one/$token',
   path: '/loved-one/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -363,6 +369,7 @@ export interface FileRoutesByFullPath {
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/notifications': typeof TalentNotificationsRoute
@@ -412,6 +419,7 @@ export interface FileRoutesByTo {
   '/agency/quotes-invoices': typeof AgencyQuotesInvoicesRoute
   '/agency/settings': typeof AgencySettingsRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/notifications': typeof TalentNotificationsRoute
@@ -468,6 +476,7 @@ export interface FileRoutesById {
   '/agency/settings': typeof AgencySettingsRoute
   '/agency/talent': typeof AgencyTalentRouteWithChildren
   '/invite/$token': typeof InviteTokenRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
   '/loved-one/$token': typeof LovedOneTokenRoute
   '/talent/budget': typeof TalentBudgetRoute
   '/talent/notifications': typeof TalentNotificationsRoute
@@ -525,6 +534,7 @@ export interface FileRouteTypes {
     | '/agency/settings'
     | '/agency/talent'
     | '/invite/$token'
+    | '/legal/privacy'
     | '/loved-one/$token'
     | '/talent/budget'
     | '/talent/notifications'
@@ -574,6 +584,7 @@ export interface FileRouteTypes {
     | '/agency/quotes-invoices'
     | '/agency/settings'
     | '/invite/$token'
+    | '/legal/privacy'
     | '/loved-one/$token'
     | '/talent/budget'
     | '/talent/notifications'
@@ -629,6 +640,7 @@ export interface FileRouteTypes {
     | '/agency/settings'
     | '/agency/talent'
     | '/invite/$token'
+    | '/legal/privacy'
     | '/loved-one/$token'
     | '/talent/budget'
     | '/talent/notifications'
@@ -667,6 +679,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   TalentRoute: typeof TalentRouteWithChildren
   InviteTokenRoute: typeof InviteTokenRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicLovedOneFileRoute: typeof ApiPublicLovedOneFileRoute
@@ -796,6 +809,13 @@ declare module '@tanstack/react-router' {
       path: '/loved-one/$token'
       fullPath: '/loved-one/$token'
       preLoaderRoute: typeof LovedOneTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -1209,6 +1229,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   TalentRoute: TalentRouteWithChildren,
   InviteTokenRoute: InviteTokenRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicLovedOneFileRoute: ApiPublicLovedOneFileRoute,

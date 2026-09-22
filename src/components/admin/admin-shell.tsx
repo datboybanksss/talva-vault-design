@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { whoami, listNotifications, dismissNotification, dismissComputedNotification } from "@/lib/admin.functions";
+import { PortalFooter } from "@/components/shared/portal-footer";
 
 type NavItem = {
   to: string;
@@ -349,6 +350,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
         {children}
+        <PortalFooter />
       </main>
       <OnboardingTour portal="admin" />
     </div>
