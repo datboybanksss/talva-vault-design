@@ -817,6 +817,16 @@ function QIPage() {
               <div className="tvp-muted" style={{ padding: 32, textAlign: "center" }}>Loading…</div>
             ) : (
               <>
+                {financialsLocked && (
+                  <div className="tvp-ai-box" style={{ marginBottom: 14, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="tvp-small">
+                      {editor.number} has already been issued, so its number, amounts, dates and
+                      line items are fixed. You can still update the notes, sharing and status —
+                      to change the money, cancel this one and raise a new {editor.kind}.
+                    </div>
+                  </div>
+                )}
                 <div className="tvp-rule-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div className="tvp-form-group">
                     <label>Type</label>
@@ -827,7 +837,7 @@ function QIPage() {
                   </div>
                   <div className="tvp-form-group">
                     <label>Number {!editor.number && <span className="tvp-muted" style={{ fontSize: 11 }}>(auto on send)</span>}</label>
-                    <input value={editor.number} onChange={(e) => setEditor({ ...editor, number: e.target.value })} placeholder={editor.kind === "quote" ? "QT-2026-0001" : "INV-2026-0001"} />
+                    <input value={editor.number} disabled={financialsLocked} onChange={(e) => setEditor({ ...editor, number: e.target.value })} placeholder={editor.kind === "quote" ? "QT-2026-0001" : "INV-2026-0001"} />
                   </div>
                   <div className="tvp-form-group" data-tour="editor-ref" style={{ gridColumn: "1 / -1" }}>
                     <label>Reference / description</label>
@@ -961,15 +971,15 @@ function QIPage() {
                   </div>
                   <div className="tvp-form-group">
                     <label>Issued</label>
-                    <input type="date" value={editor.issued_at} onChange={(e) => setEditor({ ...editor, issued_at: e.target.value })} />
+                    <input type="date" disabled={financialsLocked} value={editor.issued_at} onChange={(e) => setEditor({ ...editor, issued_at: e.target.value })} />
                   </div>
                   <div className="tvp-form-group">
                     <label>{editor.kind === "quote" ? "Valid until" : "Due"}</label>
-                    <input type="date" value={editor.due_date} onChange={(e) => setEditor({ ...editor, due_date: e.target.value })} />
+                    <input type="date" disabled={financialsLocked} value={editor.due_date} onChange={(e) => setEditor({ ...editor, due_date: e.target.value })} />
                   </div>
                   <div className="tvp-form-group">
                     <label>Currency</label>
-                    <input value={editor.currency} maxLength={3} onChange={(e) => setEditor({ ...editor, currency: e.target.value.toUpperCase() })} />
+                    <input value={editor.currency} maxLength={3} disabled={financialsLocked} onChange={(e) => setEditor({ ...editor, currency: e.target.value.toUpperCase() })} />
                   </div>
                   {editor.kind === "quote" ? (
                     <div className="tvp-form-group">
@@ -994,7 +1004,7 @@ function QIPage() {
                 <div style={{ marginTop: 20 }}>
                   <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
                     <h3 className="tvp-h3" style={{ margin: 0 }}>Line items</h3>
-                    <button className="tvp-secondary" type="button" data-tour="editor-add-line" onClick={addLine}><Plus className="h-4 w-4" />Add line</button>
+                    <button className="tvp-secondary" type="button" data-tour="editor-add-line" disabled={financialsLocked} onClick={addLine}><Plus className="h-4 w-4" />Add line</button>
                   </div>
                   <div style={{ border: "1px solid var(--tvp-line)", borderRadius: 6, overflow: "hidden" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", background: "var(--surface-soft)", fontSize: 11, textTransform: "uppercase", color: "var(--tvp-muted)", fontWeight: 700 }}>
@@ -1008,12 +1018,12 @@ function QIPage() {
                       const line = Math.round((Number(l.quantity) || 0) * (Number(l.unit_price_cents) || 0));
                       return (
                         <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", borderTop: "1px solid var(--tvp-line)", alignItems: "center" }}>
-                          <input value={l.description} onChange={(e) => updateLine(i, { description: e.target.value })} placeholder="e.g. Full-day shoot" />
-                          <input type="number" min={0} step="0.01" value={l.quantity} onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })} style={{ textAlign: "right" }} />
-                          <input type="number" min={0} step="0.01" value={(l.unit_price_cents / 100).toString()} onChange={(e) => updateLine(i, { unit_price_cents: Math.round(Number(e.target.value) * 100) })} style={{ textAlign: "right" }} />
-                          <input type="number" min={0} max={100} step="0.01" value={(l.vat_rate_bp / 100).toString()} onChange={(e) => updateLine(i, { vat_rate_bp: Math.round(Number(e.target.value) * 100) })} style={{ textAlign: "right" }} />
+                          <input value={l.description} disabled={financialsLocked} onChange={(e) => updateLine(i, { description: e.target.value })} placeholder="e.g. Full-day shoot" />
+                          <input type="number" min={0} step="0.01" disabled={financialsLocked} value={l.quantity} onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })} style={{ textAlign: "right" }} />
+                          <input type="number" min={0} step="0.01" disabled={financialsLocked} value={(l.unit_price_cents / 100).toString()} onChange={(e) => updateLine(i, { unit_price_cents: Math.round(Number(e.target.value) * 100) })} style={{ textAlign: "right" }} />
+                          <input type="number" min={0} max={100} step="0.01" disabled={financialsLocked} value={(l.vat_rate_bp / 100).toString()} onChange={(e) => updateLine(i, { vat_rate_bp: Math.round(Number(e.target.value) * 100) })} style={{ textAlign: "right" }} />
                           <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtMoney(line, editor.currency)}</div>
-                          <button className="tvp-mini-btn" type="button" onClick={() => removeLine(i)} disabled={editor.lines.length === 1} title="Remove line"><Trash2 className="h-4 w-4" /></button>
+                          <button className="tvp-mini-btn" type="button" onClick={() => removeLine(i)} disabled={financialsLocked || editor.lines.length === 1} title="Remove line"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       );
                     })}
