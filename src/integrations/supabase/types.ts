@@ -2540,6 +2540,8 @@ export type Database = {
           locked_until: string | null
           name: string
           pending_review: boolean
+          retention_stamped_at: string | null
+          retention_years_at_upload: number | null
           revoked_at: string | null
           status: Database["public"]["Enums"]["shared_document_status"]
           storage_path: string | null
@@ -2565,6 +2567,8 @@ export type Database = {
           locked_until?: string | null
           name: string
           pending_review?: boolean
+          retention_stamped_at?: string | null
+          retention_years_at_upload?: number | null
           revoked_at?: string | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
@@ -2590,6 +2594,8 @@ export type Database = {
           locked_until?: string | null
           name?: string
           pending_review?: boolean
+          retention_stamped_at?: string | null
+          retention_years_at_upload?: number | null
           revoked_at?: string | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
@@ -2924,6 +2930,10 @@ export type Database = {
         Args: { _bucket: string; _subject: string }
         Returns: undefined
       }
+      resolve_document_retention_years: {
+        Args: { _doc_id: string }
+        Returns: number
+      }
       rollback_folder_rename_batch: {
         Args: { _batch_id: string }
         Returns: number
@@ -2944,6 +2954,10 @@ export type Database = {
       seed_talent_default_folders: {
         Args: { _user_id: string }
         Returns: undefined
+      }
+      talent_link_is_ended: {
+        Args: { _talent_link_id: string }
+        Returns: boolean
       }
       tv_map_legacy_folder: { Args: { _name: string }; Returns: string }
     }

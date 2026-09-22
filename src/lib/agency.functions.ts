@@ -130,6 +130,28 @@ async function getCallerAgency(supabase: any, userId: string) {
   return { agencyId: data.agency_id as string, role: data.role as string };
 }
 
+/**
+ * Offboarding lockdown. Once a talent relationship has ended (or lapsed), both
+ * sides keep view + download access to what was already shared, but every
+ * management action is refused. The database enforces this too via RLS; this
+ * helper exists so the UI gets a readable message instead of a policy error.
+ */
+async function assertLinkNotEnded(supabase: any, talentLinkId: string | null | undefined) {
+  if (!talentLinkId) return;
+  const { data, error } = await supabase
+    .from("agency_talent_links")
+    .select("status")
+    .eq("id", talentLinkId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (data && ["ended", "revoked", "expired"].includes(data.status)) {
+    throw new Error(
+      "RELATIONSHIP_ENDED: this talent relationship has ended — shared documents are view and download only. Reactivate the relationship to make changes.",
+    );
+  }
+}
+
+
 // -----------------------------------------------------------------------------
 // whoami — agency variant. Returns caller identity + agency context.
 // -----------------------------------------------------------------------------
@@ -1392,11 +1414,12 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, agency_id, name, storage_path, folder, locked_until")
+      .select("id, agency_id, talent_link_id, name, storage_path, folder, locked_until")
       .eq("id", data.id)
       .single();
     if (error) throw new Error(error.message);
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
+    await assertLinkNotEnded(supabase, row.talent_link_id);
 
     if (row.locked_until && new Date(row.locked_until) > new Date()) {
       throw new Error(
@@ -2394,6 +2417,7 @@ export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+    await assertLinkNotEnded(supabase, data.talent_link_id);
     const { data: row, error } = await supabase
       .from("agency_document_requests")
       .insert({
@@ -2430,10 +2454,11 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
 
     const { data: req, error: rErr } = await supabase
       .from("agency_document_requests")
-      .select("id, title, current_document_id")
+      .select("id, title, current_document_id, talent_link_id")
       .eq("id", data.id).eq("agency_id", agencyId).maybeSingle();
     if (rErr) throw new Error(rErr.message);
     if (!req) throw new Error("Request not found");
+    await assertLinkNotEnded(supabase, req.talent_link_id);
 
     const { data: updated, error } = await supabase
       .from("agency_document_requests")
