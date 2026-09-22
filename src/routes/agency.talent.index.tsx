@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Plus, Tags, Users as UsersIcon, X } from "lucide-react";
+import { Download, Plus, Tags, UserCog, Users as UsersIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,7 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { listAgencyTalent, updateTalentLinkTalentType } from "@/lib/agency.functions";
+import {
+  listAgencyStaff,
+  listAgencyTalent,
+  setTalentManager,
+  updateTalentLinkTalentType,
+} from "@/lib/agency.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { ModalShell } from "@/components/shared/modal-shell";
@@ -63,6 +68,7 @@ type TalentRow = {
   talentType: string | null;
   avatarUrl: string | null;
   managerName: string;
+  managerUserId: string | null;
   nextAction: string | null;
   docCount: number;
   awaitingCount: number;
@@ -107,6 +113,27 @@ function TalentPage() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not update talent type"),
   });
+  // Manager assignment (post-acceptance roster action)
+  const [managerEditor, setManagerEditor] = useState<TalentRow | null>(null);
+  const [managerDraft, setManagerDraft] = useState("unassigned");
+  const staffFn = useServerFn(listAgencyStaff);
+  const staff = useQuery({
+    queryKey: ["agency", "staff"],
+    queryFn: () => staffFn(),
+    enabled: !!managerEditor,
+  });
+  const setManagerFn = useServerFn(setTalentManager);
+  const saveManager = useMutation({
+    mutationFn: (input: { talent_link_id: string; manager_user_id: string | null }) =>
+      setManagerFn({ data: input }),
+    onSuccess: (_res: any, input) => {
+      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
+      toast.success(input.manager_user_id ? "Manager assigned" : "Manager cleared");
+      setManagerEditor(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Could not update the manager"),
+  });
+
   const listFn = useServerFn(listAgencyTalent);
   const talent = useQuery({ queryKey: ["agency", "talent"], queryFn: () => listFn() });
 
@@ -295,7 +322,7 @@ function TalentPage() {
                   name={r.displayName}
                   avatarSeed={r.id}
                   photoUrl={r.avatarUrl}
-                  subtitle={r.talentType ?? "Talent type not set"}
+                  subtitle={`${r.talentType ?? "Talent type not set"} · Manager: ${r.managerName || "Unassigned"}`}
                   pills={
                     <>
                       <span className={`tvp-status tvp-${STATUS_TONE[r.status] ?? "neutral"}`}>
@@ -324,6 +351,19 @@ function TalentPage() {
                             setTypeDraft(r.talentType ?? "");
                           },
                         },
+                        ...(["ended", "expired", "revoked"].includes(r.status)
+                          ? []
+                          : [
+                              {
+                                key: "manager",
+                                label: r.managerUserId ? "Change manager" : "Assign manager",
+                                icon: UserCog,
+                                onSelect: () => {
+                                  setManagerEditor(r);
+                                  setManagerDraft(r.managerUserId ?? "unassigned");
+                                },
+                              },
+                            ]),
                       ]}
                     />
                   }
@@ -387,6 +427,71 @@ function TalentPage() {
               disabled={!typeDraft || updateType.isPending}
               onClick={() =>
                 updateType.mutate({ talent_link_id: typeEditor.id, talent_type: typeDraft })
+              }
+            >
+              Save
+            </Button>
+          </div>
+        </ModalShell>
+      )}
+
+      {managerEditor && (
+        <ModalShell
+          onClose={() => setManagerEditor(null)}
+          maxWidth={460}
+          labelledBy="assign-manager-title"
+        >
+          <div className="tvp-modal-head">
+            <h3 className="tvp-h2" id="assign-manager-title">
+              {managerEditor.managerUserId ? "Change manager" : "Assign manager"}
+            </h3>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setManagerEditor(null)}
+              aria-label="Close"
+            >
+              <X />
+            </Button>
+          </div>
+          <div className="tvp-modal-body">
+            <p className="tvp-small tvp-muted" style={{ marginTop: 0 }}>
+              Choose who on your team looks after {managerEditor.displayName}. Only active team
+              members can be chosen.
+            </p>
+            <div className="tvp-form-group">
+              <Label htmlFor="talent-manager">Manager</Label>
+              <Select value={managerDraft} onValueChange={setManagerDraft}>
+                <SelectTrigger id="talent-manager" className="tvp-modal-control">
+                  <SelectValue placeholder="Select a team member…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {(staff.data ?? []).map((m: any) => (
+                    <SelectItem key={m.userId} value={m.userId}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {staff.isLoading && (
+                <p className="tvp-small tvp-muted">Loading your team…</p>
+              )}
+            </div>
+          </div>
+          <div className="tvp-modal-foot">
+            <Button type="button" variant="outline" onClick={() => setManagerEditor(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={saveManager.isPending}
+              onClick={() =>
+                saveManager.mutate({
+                  talent_link_id: managerEditor.id,
+                  manager_user_id: managerDraft === "unassigned" ? null : managerDraft,
+                })
               }
             >
               Save
