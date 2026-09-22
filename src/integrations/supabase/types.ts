@@ -1829,6 +1829,54 @@ export type Database = {
         }
         Relationships: []
       }
+      loved_one_share_access_events: {
+        Row: {
+          created_at: string
+          document_id: string | null
+          document_name: string | null
+          event: string
+          id: string
+          ip: string | null
+          share_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_id?: string | null
+          document_name?: string | null
+          event: string
+          id?: string
+          ip?: string | null
+          share_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: string | null
+          document_name?: string | null
+          event?: string
+          id?: string
+          ip?: string | null
+          share_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loved_one_share_access_events_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "admin_loved_one_shares_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loved_one_share_access_events_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "loved_one_shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loved_one_shares: {
         Row: {
           access_code_hash: string | null
@@ -2702,6 +2750,10 @@ export type Database = {
           is_main_admin: boolean
           permission_level: Database["public"]["Enums"]["admin_permission_level"]
           role: Database["public"]["Enums"]["app_role"]
+          suspended: boolean
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
           user_id: string
         }
         Insert: {
@@ -2710,6 +2762,10 @@ export type Database = {
           is_main_admin?: boolean
           permission_level?: Database["public"]["Enums"]["admin_permission_level"]
           role: Database["public"]["Enums"]["app_role"]
+          suspended?: boolean
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           user_id: string
         }
         Update: {
@@ -2718,6 +2774,10 @@ export type Database = {
           is_main_admin?: boolean
           permission_level?: Database["public"]["Enums"]["admin_permission_level"]
           role?: Database["public"]["Enums"]["app_role"]
+          suspended?: boolean
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           user_id?: string
         }
         Relationships: []
@@ -2955,6 +3015,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      sweep_overdue_invoices: { Args: never; Returns: number }
       talent_link_is_ended: {
         Args: { _talent_link_id: string }
         Returns: boolean
