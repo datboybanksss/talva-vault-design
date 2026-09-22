@@ -1908,6 +1908,11 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+    // Invoices fall overdue with the calendar, not only when a payment is
+    // recorded. The hourly sweep keeps this true in the background; running it
+    // here means the list a person is looking at is never stale.
+    await supabase.rpc("sweep_overdue_invoices");
+
     const { data, error } = await supabase
       .from("agency_billing_docs")
       .select("id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, currency, total_cents, status, notes, shared_with_talent, converted_from_quote_id, description, allow_partial_payment, created_at, updated_at")
@@ -1960,6 +1965,28 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
 
     let row;
     if (data.id) {
+      // Once issued, a quote or invoice is a financial record: only notes,
+      // status, description and sharing may still change.
+      const { data: existing } = await supabase
+        .from("agency_billing_docs")
+        .select("status, number, total_cents, currency, issued_at, due_date, kind")
+        .eq("id", data.id).eq("agency_id", agencyId)
+        .maybeSingle();
+      if (existing && existing.status !== "draft") {
+        const changed =
+          payload.number !== existing.number ||
+          payload.total_cents !== existing.total_cents ||
+          payload.currency !== existing.currency ||
+          payload.issued_at !== existing.issued_at ||
+          (payload.due_date ?? null) !== (existing.due_date ?? null) ||
+          payload.kind !== existing.kind;
+        if (changed) {
+          throw new Error(
+            `${existing.kind === "invoice" ? "Invoice" : "Quotation"} ${existing.number} has already been issued. Its number, amounts, currency and dates can no longer be changed — cancel it and raise a new one instead.`,
+          );
+        }
+      }
+
       const { data: r, error } = await supabase
         .from("agency_billing_docs")
         .update(payload)
@@ -2010,6 +2037,19 @@ export const deleteAgencyBillingDoc = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
+
+    // Payment history is never silently lost: remove the payments first, or
+    // cancel the invoice rather than deleting it.
+    const { count: paymentCount } = await supabase
+      .from("agency_invoice_payments")
+      .select("id", { count: "exact", head: true })
+      .eq("doc_id", data.id);
+    if ((paymentCount ?? 0) > 0) {
+      throw new Error(
+        `This invoice has ${paymentCount} recorded payment${paymentCount === 1 ? "" : "s"}. Remove the payments first, or mark the invoice cancelled instead of deleting it.`,
+      );
+    }
+
     const { data: row, error } = await supabase
       .from("agency_billing_docs")
       .delete()
