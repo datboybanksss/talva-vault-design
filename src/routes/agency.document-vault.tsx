@@ -417,29 +417,25 @@ function VaultPage() {
         </div>
       </div>
 
-      {tab !== "Requests" && (
+      {/* Only rendered when something is genuinely expiring — no reassurance
+          panel when the list is empty. */}
+      {tab !== "Requests" && expiring.length > 0 && (
       <div className="tvp-card" style={{ marginBottom: 10, padding: "10px 14px" }}>
         <h2 className="tvp-h2" style={{ marginBottom: 4 }}>Expiring soon</h2>
-        {expiring.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13, margin: 0 }}>
-            Nothing expires in the next 180 days — your roster is fully up to date.
-          </p>
-        ) : (
-          <div className="tvp-list" style={{ marginTop: 6 }}>
-            {expiring.map((d) => (
-              <div key={d.id} className="tvp-list-item">
-                <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
-                <div>
-                  <strong>{d.talentName} · {d.name}</strong>
-                  <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
-                </div>
-                <span className={`tvp-status tvp-${(daysUntil(d.validityExpiresAt) ?? 0) <= 60 ? "amber" : "blue"}`}>
-                  {daysUntil(d.validityExpiresAt)} days
-                </span>
+        <div className="tvp-list" style={{ marginTop: 6 }}>
+          {expiring.map((d) => (
+            <div key={d.id} className="tvp-list-item">
+              <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
+              <div>
+                <strong>{d.talentName} · {d.name}</strong>
+                <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
               </div>
-            ))}
-          </div>
-        )}
+              <span className={`tvp-status tvp-${(daysUntil(d.validityExpiresAt) ?? 0) <= 60 ? "amber" : "blue"}`}>
+                {daysUntil(d.validityExpiresAt)} days
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
       )}
 
