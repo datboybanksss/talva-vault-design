@@ -254,6 +254,36 @@ async function loadShareByToken(token: string) {
 }
 
 /**
+ * Resolves a share's folder scope to the folders the recipient may actually
+ * see: owner-scoped, not soft-removed, and expanded to include nested
+ * subfolders of each shared folder.
+ */
+export async function resolveShareFolders(scopeFolderIds: string[], owner: string | null) {
+  if (!owner || scopeFolderIds.length === 0) return { folders: [] as any[], folderIds: [] as string[] };
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: all } = await supabaseAdmin
+    .from("talent_private_folders")
+    .select("id, name, parent_id")
+    .eq("user_id", owner)
+    .is("removed_at", null);
+  const rows = all ?? [];
+  const byId = new Map(rows.map((f: any) => [f.id, f]));
+  const kept = new Map<string, any>();
+  const queue = scopeFolderIds.filter((id) => byId.has(id));
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (kept.has(id)) continue;
+    kept.set(id, byId.get(id));
+    for (const f of rows) if (f.parent_id === id) queue.push(f.id);
+  }
+  return {
+    folders: Array.from(kept.values()).map((f: any) => ({ id: f.id, name: f.name })),
+    folderIds: Array.from(kept.keys()),
+  };
+}
+
+
+/**
  * Billing shares expose exactly the set the talent themselves can see — the
  * quotes and invoices their Manager has shared with them. Nothing else in the
  * agency's books is reachable through a Loved One link.
