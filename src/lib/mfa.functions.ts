@@ -60,6 +60,19 @@ export const getMfaStatus = createServerFn({ method: "POST" })
       Date.now() - new Date(verified.verified_at).getTime() <
         VERIFICATION_TTL_HOURS * 3_600_000;
 
+    const email = typeof claims["email"] === "string" ? (claims["email"] as string) : null;
+
+    // TESTING ONLY — remove before launch. Server-side allowlist of test
+    // accounts that skip the emailed code. Empty/unset secret = no bypass.
+    const bypassList = (process.env["MFA_TEST_BYPASS_EMAILS"] ?? "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    if (email && bypassList.includes(email.toLowerCase())) {
+      console.warn("mfa_test_bypass_used", { userId });
+      return { enrolled: true, explainerSeen: true, sessionVerified: true, gate: "ok", email };
+    }
+
     const enrolled = !!settings?.enrolled_at;
     const gate: MfaGateState = !enrolled ? "enrol" : sessionVerified ? "ok" : "challenge";
 
@@ -68,7 +81,7 @@ export const getMfaStatus = createServerFn({ method: "POST" })
       explainerSeen: !!settings?.explainer_seen_at,
       sessionVerified,
       gate,
-      email: typeof claims["email"] === "string" ? (claims["email"] as string) : null,
+      email,
     };
   });
 
