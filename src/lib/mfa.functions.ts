@@ -68,7 +68,9 @@ export const getMfaStatus = createServerFn({ method: "POST" })
       .split(",")
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean);
-    if (email && bypassList.includes(email.toLowerCase())) {
+    // TESTING ONLY — set to false before launch. Skips 2FA for every account.
+    const MFA_TEST_BYPASS_ALL = true;
+    if (MFA_TEST_BYPASS_ALL || (email && bypassList.includes(email.toLowerCase()))) {
       console.warn("mfa_test_bypass_used", { userId });
       return { enrolled: true, explainerSeen: true, sessionVerified: true, gate: "ok", email };
     }
