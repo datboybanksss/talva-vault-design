@@ -21,11 +21,22 @@ import {
 import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { useQuery } from "@tanstack/react-query";
+import { UserPlus } from "lucide-react";
+import { listIndependentTalentInvitations } from "@/lib/independent-talent.functions";
+import { useTalentInvitationActions } from "@/components/admin/talent-invitation-actions";
 
 export const Route = createFileRoute("/admin/invitations/")({
-  validateSearch: (raw: Record<string, unknown>): { email?: string } =>
-    typeof raw.email === "string" && raw.email ? { email: raw.email } : {},
-  head: () => ({ meta: [{ title: "Agency Invitations · TalVault Admin" }] }),
+  validateSearch: (raw: Record<string, unknown>): { email?: string; type?: "agency" | "talent" } => ({
+    ...(typeof raw.email === "string" && raw.email ? { email: raw.email } : {}),
+    ...(raw.type === "agency" || raw.type === "talent" ? { type: raw.type } : {}),
+  }),
+  head: () => ({
+    meta: [
+      { title: "Invitations · TalVault Admin" },
+      { name: "description", content: "Agency and talent invitations in one list, with status, expiry and actions." },
+    ],
+  }),
   component: InvitationsPage,
 });
 
@@ -68,8 +79,12 @@ function InvitationsPage() {
 
   // Filters live above the query so the database does the filtering, the
   // counting and the windowing — the full invitation list is never fetched.
-  const { email: emailParam } = Route.useSearch();
+  const { email: emailParam, type: typeParam } = Route.useSearch();
   const [tab, setTab] = useState<string>("all");
+  const [type, setType] = useState<"all" | "agency" | "talent">(typeParam ?? "all");
+  const listTalentFn = useServerFn(listIndependentTalentInvitations);
+  const talentQ = useQuery({ queryKey: ["admin", "talent-invitations"], queryFn: () => listTalentFn() });
+  const talentActions = useTalentInvitationActions();
   const [search, setSearch] = useState(emailParam ?? "");
 
   const invites = useInfiniteQuery({
@@ -162,11 +177,38 @@ function InvitationsPage() {
   const pages = invites.data?.pages ?? [];
   const visible = useMemo(() => pages.flatMap((p: any) => p.rows ?? []), [pages]);
   // Tab counts are counted in the database, not derived from loaded rows.
-  const counts: Record<string, number> = (pages[0] as any)?.counts ?? {};
+  const agencyCounts: Record<string, number> = (pages[0] as any)?.counts ?? {};
   const total = (pages[0] as any)?.total ?? 0;
 
-  const filtersActive = tab !== "all" || !!search;
-  const resetFilters = () => { setTab("all"); setSearch(""); };
+  // Admin-sent talent invitations are few, so they are filtered here; the
+  // agency list stays filtered and paged by the database.
+  const talentAll: any[] = talentQ.data ?? [];
+  const talentCounts = useMemo(() => {
+    const c: Record<string, number> = { all: talentAll.length };
+    for (const t of talentAll) c[t.status] = (c[t.status] ?? 0) + 1;
+    return c;
+  }, [talentAll]);
+  const counts: Record<string, number> = useMemo(() => {
+    const keys = new Set([...Object.keys(agencyCounts), ...Object.keys(talentCounts)]);
+    const out: Record<string, number> = {};
+    for (const k of keys) {
+      out[k] = (type !== "talent" ? agencyCounts[k] ?? 0 : 0) + (type !== "agency" ? talentCounts[k] ?? 0 : 0);
+    }
+    return out;
+  }, [agencyCounts, talentCounts, type]);
+  const talentVisible = useMemo(() => {
+    if (type === "agency") return [];
+    const q = search.trim().toLowerCase();
+    return talentAll.filter(
+      (t) =>
+        (tab === "all" || t.status === tab) &&
+        (!q || `${t.talent_name} ${t.email}`.toLowerCase().includes(q)),
+    );
+  }, [talentAll, type, tab, search]);
+  const agencyRows = type === "talent" ? [] : visible;
+
+  const filtersActive = tab !== "all" || !!search || type !== "all";
+  const resetFilters = () => { setTab("all"); setSearch(""); setType("all"); };
 
   const copyLink = async (inv: any) => {
     const url = `${window.location.origin}/invite/${inv.token}`;
@@ -184,14 +226,17 @@ function InvitationsPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <h1 className="tvp-h1">Agency Invitations</h1>
+          <h1 className="tvp-h1">Invitations</h1>
           <div className="tvp-subtitle">
             Unique link per recipient. Copy never extends expiry. All actions are audit logged.
           </div>
         </div>
         <div className="tvp-actions" data-tour="admin-invite-actions">
           <Link to="/admin/invitations/new" className="tvp-primary">
-            <Send className="h-4 w-4" />New Invitation
+            <Send className="h-4 w-4" />Invite an agency
+          </Link>
+          <Link to="/admin/invitations/talent/new" className="tvp-primary">
+            <UserPlus className="h-4 w-4" />Invite talent
           </Link>
         </div>
       </div>
@@ -262,6 +307,17 @@ function InvitationsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <select
+            aria-label="Type"
+            data-tour="admin-invite-type"
+            value={type}
+            onChange={(e) => setType(e.target.value as "all" | "agency" | "talent")}
+            style={{ maxWidth: 160 }}
+          >
+            <option value="all">All types</option>
+            <option value="agency">Agency</option>
+            <option value="talent">Talent</option>
+          </select>
           {filtersActive && (
             <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
           )}
@@ -270,7 +326,8 @@ function InvitationsPage() {
           <table className="tvp-table" data-tour="admin-invite-table">
             <thead>
               <tr>
-                <th>Agency</th>
+                <th>Type</th>
+                <th>Name</th>
                 <th>Email</th>
                 <th>Status</th>
                 <th>Sent</th>
@@ -281,14 +338,51 @@ function InvitationsPage() {
             </thead>
             <tbody>
               {invites.isLoading && (
-                <tr><td colSpan={7} className="tvp-muted">Loading…</td></tr>
+                <tr><td colSpan={8} className="tvp-muted">Loading…</td></tr>
               )}
-              {!invites.isLoading && visible.length === 0 && (
-                <tr><td colSpan={7} className="tvp-muted">
-                  No agency invitations yet — the first one takes about a minute. <Link to="/admin/invitations/new" className="tvp-link">Send one →</Link>
+              {!invites.isLoading && agencyRows.length === 0 && talentVisible.length === 0 && (
+                <tr><td colSpan={8} className="tvp-muted">
+                  No invitations match.{" "}
+                  <Link to="/admin/invitations/new" className="tvp-link">Invite an agency</Link>
+                  {" · "}
+                  <Link to="/admin/invitations/talent/new" className="tvp-link">Invite talent</Link>
                 </td></tr>
               )}
-              {visible.map((i: any) => {
+              {talentVisible.map((t: any) => {
+                const dLeft = daysBetween(t.expires_at);
+                const isOpen = t.status === "pending";
+                return (
+                  <tr key={`talent-${t.id}`}>
+                    <td><span className="tvp-status tvp-neutral">Talent</span></td>
+                    <td>
+                      <Link to="/admin/invitations/talent/$id" params={{ id: t.id }} className="text-ink">
+                        <strong>{t.talent_name}</strong>
+                      </Link>
+                      <br />
+                      <span className="tvp-muted">Documents {t.doc_count}/2</span>
+                    </td>
+                    <td>{t.email}</td>
+                    <td>
+                      <span className={`tvp-status tvp-${statusTone[t.status] ?? "neutral"}`}>
+                        {statusLabel[t.status] ?? t.status}
+                      </span>
+                    </td>
+                    <td>{t.last_sent_at ? fmtDate(t.last_sent_at) : "—"}</td>
+                    <td>
+                      <span className={`tvp-status tvp-${isOpen && dLeft <= 3 ? "amber" : "neutral"}`}>
+                        {isOpen ? `${dLeft} day${dLeft === 1 ? "" : "s"}` : "—"}
+                      </span>
+                    </td>
+                    <td>{t.send_count ?? 0}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <RowActionsMenu actions={talentActions(t)} />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {agencyRows.map((i: any) => {
                 const dLeft = daysBetween(i.expires_at);
                 const isOpen = (i.stored_status ?? i.status) === "pending";
                 const expiryTone =
@@ -310,6 +404,7 @@ function InvitationsPage() {
                     ref={(el) => { rowRefs.current[i.id] = el; }}
                     className={highlightId === i.id ? "tvp-row-flash" : undefined}
                   >
+                    <td><span className="tvp-status tvp-neutral">Agency</span></td>
                     <td>
                       <strong>{i.agency_name}</strong>
                       {i.contact_person && (
@@ -380,15 +475,15 @@ function InvitationsPage() {
                   </tr>
                 );
               })}
-              <LoadMoreRow
-                colSpan={7}
-                noun="invitations"
+              {type !== "talent" && <LoadMoreRow
+                colSpan={8}
+                noun="agency invitations"
                 shown={visible.length}
                 total={total}
                 hasMore={!!invites.hasNextPage}
                 loading={invites.isFetchingNextPage}
                 onLoadMore={() => invites.fetchNextPage()}
-              />
+              />}
             </tbody>
           </table>
         </div>
