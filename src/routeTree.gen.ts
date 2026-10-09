@@ -39,6 +39,7 @@ import { Route as AgencyDocumentVaultRouteImport } from './routes/agency.documen
 import { Route as AgencyDocumentRulesRouteImport } from './routes/agency.document-rules'
 import { Route as AgencyDocumentRequestsRouteImport } from './routes/agency.document-requests'
 import { Route as AgencyActivityRouteImport } from './routes/agency.activity'
+import { Route as AdminTermsAcceptancesRouteImport } from './routes/admin.terms-acceptances'
 import { Route as AdminReportingRouteImport } from './routes/admin.reporting'
 import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
 import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
@@ -217,6 +218,11 @@ const AgencyActivityRoute = AgencyActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AgencyRoute,
 } as any)
+const AdminTermsAcceptancesRoute = AdminTermsAcceptancesRouteImport.update({
+  id: '/terms-acceptances',
+  path: '/terms-acceptances',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminReportingRoute = AdminReportingRouteImport.update({
   id: '/reporting',
   path: '/reporting',
@@ -378,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/admin/reporting': typeof AdminReportingRoute
+  '/admin/terms-acceptances': typeof AdminTermsAcceptancesRoute
   '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
@@ -432,6 +439,7 @@ export interface FileRoutesByTo {
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/admin/reporting': typeof AdminReportingRoute
+  '/admin/terms-acceptances': typeof AdminTermsAcceptancesRoute
   '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
@@ -491,6 +499,7 @@ export interface FileRoutesById {
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/admin/reporting': typeof AdminReportingRoute
+  '/admin/terms-acceptances': typeof AdminTermsAcceptancesRoute
   '/agency/activity': typeof AgencyActivityRoute
   '/agency/document-requests': typeof AgencyDocumentRequestsRoute
   '/agency/document-rules': typeof AgencyDocumentRulesRoute
@@ -552,6 +561,7 @@ export interface FileRouteTypes {
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/admin/reporting'
+    | '/admin/terms-acceptances'
     | '/agency/activity'
     | '/agency/document-requests'
     | '/agency/document-rules'
@@ -606,6 +616,7 @@ export interface FileRouteTypes {
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/admin/reporting'
+    | '/admin/terms-acceptances'
     | '/agency/activity'
     | '/agency/document-requests'
     | '/agency/document-rules'
@@ -664,6 +675,7 @@ export interface FileRouteTypes {
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/admin/reporting'
+    | '/admin/terms-acceptances'
     | '/agency/activity'
     | '/agency/document-requests'
     | '/agency/document-rules'
@@ -940,6 +952,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyActivityRouteImport
       parentRoute: typeof AgencyRoute
     }
+    '/admin/terms-acceptances': {
+      id: '/admin/terms-acceptances'
+      path: '/terms-acceptances'
+      fullPath: '/admin/terms-acceptances'
+      preLoaderRoute: typeof AdminTermsAcceptancesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/reporting': {
       id: '/admin/reporting'
       path: '/reporting'
@@ -1186,6 +1205,7 @@ interface AdminRouteChildren {
   AdminMyAccountRoute: typeof AdminMyAccountRoute
   AdminQuotesInvoicesRoute: typeof AdminQuotesInvoicesRoute
   AdminReportingRoute: typeof AdminReportingRoute
+  AdminTermsAcceptancesRoute: typeof AdminTermsAcceptancesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -1198,6 +1218,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMyAccountRoute: AdminMyAccountRoute,
   AdminQuotesInvoicesRoute: AdminQuotesInvoicesRoute,
   AdminReportingRoute: AdminReportingRoute,
+  AdminTermsAcceptancesRoute: AdminTermsAcceptancesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

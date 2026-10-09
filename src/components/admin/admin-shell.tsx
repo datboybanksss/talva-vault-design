@@ -63,6 +63,7 @@ const manage: NavItem[] = [
     icon: <FileText />,
   },
   { to: "/admin/audit", label: "Audit & Support Log", icon: <ScrollText /> },
+  { to: "/admin/terms-acceptances", label: <>Terms<br />acceptances</>, icon: <FileText /> },
 ];
 
 const settings: NavItem[] = [
