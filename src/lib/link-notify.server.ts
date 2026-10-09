@@ -11,10 +11,22 @@ import { SHARE_TERM_PLURAL } from "@/lib/terms";
 async function loadLink(linkId: string) {
   const { data: link } = await supabaseAdmin
     .from("agency_talent_links")
-    .select("id, agency_id, talent_user_id, display_name, request_expires_at, requested_at, ended_at")
+    .select("id, agency_id, talent_user_id, talent_invitation_id, display_name, request_expires_at, requested_at, ended_at")
     .eq("id", linkId)
     .maybeSingle();
   if (!link) return null;
+  // Before acceptance the agency-visible row carries no talent; the target and
+  // the live expiry come from the private record and the invitation.
+  if (!link.talent_user_id || !link.request_expires_at) {
+    const [{ data: priv }, { data: inv }] = await Promise.all([
+      (supabaseAdmin as any).from("talent_invite_private").select("talent_user_id, kind").eq("link_id", linkId).maybeSingle(),
+      link.talent_invitation_id
+        ? supabaseAdmin.from("talent_invitations").select("expires_at").eq("id", link.talent_invitation_id).maybeSingle()
+        : Promise.resolve({ data: null as any }),
+    ]);
+    if (!link.talent_user_id && priv?.kind === "link_request") (link as any).talent_user_id = priv.talent_user_id;
+    if (!link.request_expires_at && inv?.expires_at) (link as any).request_expires_at = inv.expires_at;
+  }
   const [{ data: agency }, { data: talent }] = await Promise.all([
     supabaseAdmin.from("agencies").select("name, contact_email").eq("id", link.agency_id).maybeSingle(),
     link.talent_user_id
@@ -32,7 +44,7 @@ async function loadLink(linkId: string) {
 
 const first = (n: string) => n.split(" ")[0] || n;
 
-/** E5 — the bell row is written by request_talent_link() itself. */
+/** E5 — the bell row is written by attach_talent_invite_private() itself. */
 export async function emailLinkRequest(linkId: string) {
   const ctx = await loadLink(linkId);
   if (!ctx?.talentEmail) return { sent: false };

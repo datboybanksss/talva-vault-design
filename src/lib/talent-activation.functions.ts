@@ -76,16 +76,14 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
       agencyName = agency?.name ?? "your Talent Manager";
     }
 
-    let linkRequest = false;
+    // Connection requests show the same page as any invitation (the agency can
+    // open copied links). Inert invitations can never be accepted.
     if (inv.kind === "agency") {
-      const { data: lr } = await supabaseAdmin
-        .from("agency_talent_links")
-        .select("id")
-        .eq("talent_invitation_id", inv.id)
-        .eq("request_kind", "link_request")
-        .limit(1);
-      linkRequest = (lr ?? []).length > 0;
+      const { data: priv } = await (supabaseAdmin as any)
+        .from("talent_invite_private").select("kind").eq("invitation_id", inv.id).maybeSingle();
+      if (priv?.kind === "inert") return { ok: false, reason: "not_found" };
     }
+    const linkRequest = false;
 
     return {
       ok: true,
@@ -156,6 +154,12 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
 
     if (!inv)
       return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
+    if (inv.kind === "agency") {
+      const { data: priv } = await (supabaseAdmin as any)
+        .from("talent_invite_private").select("kind").eq("invitation_id", inv.id).maybeSingle();
+      if (priv?.kind === "inert")
+        return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
+    }
     if (inv.status === "accepted")
       return { ok: false, code: "already_accepted", message: "This invitation has already been accepted. Please sign in instead." };
     if (inv.status === "revoked")

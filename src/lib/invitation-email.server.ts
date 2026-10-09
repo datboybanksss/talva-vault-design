@@ -65,3 +65,22 @@ export async function sendInvitationEmail(
     };
   }
 }
+
+/**
+ * For an invitation that must never be delivered (inert): report the outcome a
+ * real invitation send would most likely have had right now, so the agency sees
+ * the same result. Mirrors the latest real agency talent invitation.
+ */
+export async function simulatedInvitationSend(): Promise<SendResult> {
+  if (!process.env["LOVABLE_API_KEY"]) return { sent: false, reason: "email_not_configured" };
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: inert } = await (supabaseAdmin as any).from("talent_invite_private").select("invitation_id").eq("kind", "inert");
+  const skip = new Set(((inert ?? []) as any[]).map((r) => r.invitation_id));
+  const { data: recent } = await supabaseAdmin
+    .from("talent_invitations")
+    .select("id, email_sent_at")
+    .order("created_at", { ascending: false })
+    .limit(25);
+  const last = ((recent ?? []) as any[]).find((r) => !skip.has(r.id));
+  return last?.email_sent_at ? { sent: true } : { sent: false, reason: "domain_unverified" };
+}

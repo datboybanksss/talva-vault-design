@@ -118,16 +118,23 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
     if (!writable) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended.");
 
     // A connection request to an existing account goes out as the request
-    // email (E5), never as a new-account invitation.
-    const { data: linkReq } = await supabase
-      .from("agency_talent_links")
-      .select("id")
-      .eq("talent_invitation_id", inv.id)
-      .eq("request_kind", "link_request")
+    // email (E5); an inert invitation is never sent. Either way the agency sees
+    // the same result shape and audit entry as a normal invitation.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: priv } = await (supabaseAdmin as any)
+      .from("talent_invite_private")
+      .select("kind, link_id")
+      .eq("invitation_id", inv.id)
       .maybeSingle();
-    if (linkReq) {
-      const { emailLinkRequest } = await import("@/lib/link-notify.server");
-      const r: any = await emailLinkRequest(linkReq.id).catch(() => ({ sent: false }));
+    if (priv) {
+      let r: any;
+      if (priv.kind === "link_request" && priv.link_id) {
+        const { emailLinkRequest } = await import("@/lib/link-notify.server");
+        r = await emailLinkRequest(priv.link_id).catch(() => ({ sent: false, reason: "send_failed" }));
+      } else {
+        const { simulatedInvitationSend } = await import("@/lib/invitation-email.server");
+        r = await simulatedInvitationSend();
+      }
       await supabase.from("agency_audit_log").insert({
         agency_id: inv.agency_id,
         actor_id: userId,
@@ -136,9 +143,12 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
         target_type: "talent_invitation",
         target_id: inv.id,
         target_label: inv.email,
-        detail: { reason: r.sent ? null : r.reason ?? null },
+        detail: { subject: data.subject, reason: r.sent ? null : r.reason ?? "send_failed" },
       });
-      return r.sent ? r : { sent: false, reason: r.reason ?? "send_failed" };
+      if (r.sent) {
+        await supabase.from("talent_invitations").update({ email_sent_at: new Date().toISOString() }).eq("id", inv.id);
+      }
+      return r.sent ? { sent: true as const } : { sent: false as const, reason: r.reason ?? "send_failed" };
     }
 
     const { data: agency } = await supabase

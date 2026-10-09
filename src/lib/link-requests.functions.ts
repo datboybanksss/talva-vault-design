@@ -6,32 +6,14 @@ import { z } from "zod";
 export const listMyLinkRequests = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
-    const { data: links, error } = await supabase
-      .from("agency_talent_links")
-      .select("id, agency_id, status, requested_at, request_expires_at")
-      .eq("talent_user_id", userId)
-      .eq("request_kind", "link_request")
-      .eq("status", "invited")
-      .order("requested_at", { ascending: false });
+    const { supabase } = context as any;
+    const { data, error } = await supabase.rpc("my_link_requests");
     if (error) throw new Error("We couldn't load your requests. Please try again.");
-    const rows = (links ?? []) as any[];
-    const open = rows.filter(
-      (r) => !r.request_expires_at || new Date(r.request_expires_at).getTime() > Date.now(),
-    );
-    if (!open.length) return [];
-    // Talent cannot read agencies directly; only names for their own requests.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: ags } = await supabaseAdmin
-      .from("agencies")
-      .select("id, name")
-      .in("id", Array.from(new Set(open.map((r) => r.agency_id))));
-    const names = new Map((ags ?? []).map((a: any) => [a.id, a.name as string]));
-    return open.map((r) => ({
-      id: r.id as string,
-      agencyName: names.get(r.agency_id) ?? "An agency",
+    return ((data ?? []) as any[]).map((r) => ({
+      id: r.link_id as string,
+      agencyName: (r.agency_name as string) ?? "An agency",
       requestedAt: (r.requested_at as string) ?? null,
-      expiresAt: (r.request_expires_at as string) ?? null,
+      expiresAt: (r.expires_at as string) ?? null,
     }));
   });
 
@@ -51,7 +33,11 @@ export const respondToLinkRequest = createServerFn({ method: "POST" })
       if (/REQUEST_CLOSED/.test(error.message)) throw new Error("This request is no longer open.");
       throw new Error("We couldn't record your answer. Please try again.");
     }
-    const { emailLinkResponse } = await import("@/lib/link-notify.server");
-    await emailLinkResponse(data.id, data.accept).catch(() => undefined);
+    // Only an acceptance is ever reported to the agency; a decline stays
+    // invisible so the agency cannot tell an existing account was involved.
+    if (data.accept) {
+      const { emailLinkResponse } = await import("@/lib/link-notify.server");
+      await emailLinkResponse(data.id, true).catch(() => undefined);
+    }
     return { ok: true };
   });
