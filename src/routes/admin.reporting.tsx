@@ -328,7 +328,7 @@ function ReportingPage() {
             <Card
               label={`Agencies whose talent use ${SHARE_RECIPIENT_TERM} sharing`}
               value={String(d.engagement.agenciesWithShare)}
-              sub={`${d.engagement.sharesCreated} ${SHARE_RECIPIENT_TERM} share${d.engagement.sharesCreated === 1 ? "" : "s"} created in period`}
+              sub={`${d.engagement.sharesCreated} new ${SHARE_RECIPIENT_TERM} share${d.engagement.sharesCreated === 1 ? "" : "s"} in period`}
               metric="shares"
               onDrill={onDrill}
             />
