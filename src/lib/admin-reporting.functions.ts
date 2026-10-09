@@ -120,7 +120,10 @@ async function northStarPairs(
     .neq("status", "revoked")
     .lte("created_at", period.toIso);
   if (linkErr) throw new Error(linkErr.message);
-  const live = (links ?? []) as any[];
+  // Inert invitations (can never be accepted) are not real relationships.
+  const { data: inert } = await admin.from("talent_invite_private").select("invitation_id").eq("kind", "inert");
+  const inertIds = new Set(((inert ?? []) as any[]).map((r) => r.invitation_id));
+  const live = ((links ?? []) as any[]).filter((l) => !l.talent_invitation_id || !inertIds.has(l.talent_invitation_id));
   if (live.length === 0) return [];
 
   const byId = new Map<string, NorthStarPair>();
