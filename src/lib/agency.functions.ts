@@ -127,7 +127,41 @@ async function getCallerAgency(supabase: any, userId: string) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: not an agency member");
+  // After a suspended agency's read-only window, staff have no access at all.
+  const { data: canRead } = await supabase.rpc("is_agency_member", {
+    _user_id: userId,
+    _agency_id: data.agency_id,
+  });
+  if (!canRead) throw new Error("Forbidden: your agency's TalVault access has ended.");
   return { agencyId: data.agency_id as string, role: data.role as string };
+}
+
+export const AGENCY_READ_ONLY_MESSAGE =
+  "AGENCY_READ_ONLY: your agency's TalVault access has ended. Existing documents are view and download only.";
+
+/** Throws when the agency is suspended (read-only). Server twin of agency_is_writable(). */
+async function assertAgencyWritable(supabase: any, agencyId: string) {
+  const { data, error } = await supabase.rpc("agency_is_writable", { _agency_id: agencyId });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error(AGENCY_READ_ONLY_MESSAGE);
+}
+
+/** End of the read-only window when the agency is suspended; null while writable. */
+async function getAgencyReadOnlyUntil(supabase: any, agencyId: string): Promise<string | null> {
+  const { data } = await supabase.rpc("agency_read_only_until", { _agency_id: agencyId });
+  return (data as string | null) ?? null;
+}
+
+function agencyReadOnlyNotice(untilIso: string) {
+  const date = new Date(untilIso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return `Your agency's TalVault access has ended. You can view and download existing documents until ${date}.`;
+}
+
+/** Caller's agency for any write path: membership + read window + not suspended. */
+async function getWritableCallerAgency(supabase: any, userId: string) {
+  const res = await getCallerAgency(supabase, userId);
+  await assertAgencyWritable(supabase, res.agencyId);
+  return res;
 }
 
 /**
@@ -176,6 +210,7 @@ export const agencyWhoami = createServerFn({ method: "GET" })
       .maybeSingle();
 
     let agency: { id: string; name: string } | null = null;
+    let readOnlyUntil: string | null = null;
     if (memberRow?.agency_id) {
       const { data: ag } = await supabase
         .from("agencies")
@@ -183,6 +218,7 @@ export const agencyWhoami = createServerFn({ method: "GET" })
         .eq("id", memberRow.agency_id)
         .maybeSingle();
       if (ag) agency = { id: ag.id as string, name: ag.name as string };
+      readOnlyUntil = await getAgencyReadOnlyUntil(supabase, memberRow.agency_id);
     }
 
     return {
@@ -195,6 +231,9 @@ export const agencyWhoami = createServerFn({ method: "GET" })
       role: (memberRow?.role as string) ?? null,
       agency,
       isAgencyMember: !!memberRow,
+      /** Set while the agency is suspended: staff are view/download only until this date. */
+      readOnlyUntil,
+      readOnlyNotice: readOnlyUntil ? agencyReadOnlyNotice(readOnlyUntil) : null,
     };
   });
 
@@ -255,6 +294,16 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
             : "/agency/invitations";
 
     const computed: any[] = [];
+    // Read-only notice for a suspended (offboarded) agency. Not dismissable.
+    const readOnlyUntil = await getAgencyReadOnlyUntil(supabase, agencyId);
+    if (readOnlyUntil) {
+      computed.push({
+        id: "agency_read_only",
+        tone: "red",
+        title: "Your agency's TalVault access has ended",
+        detail: agencyReadOnlyNotice(readOnlyUntil),
+      });
+    }
     if (total > 0) {
       computed.push({
         id: "attention_summary",
@@ -755,7 +804,7 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     // The agency always gets the same neutral reply, whether or not this email
@@ -881,7 +930,7 @@ export const cancelLinkRequest = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const { error } = await supabase.rpc("cancel_link_request", { _link_id: data.id });
     if (error) {
@@ -911,7 +960,7 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     // Fetch agency name (needed for NOT NULL agency_name column)
@@ -992,7 +1041,7 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
     const expires_at = new Date(Date.now() + data.extend_days * 86400000).toISOString();
@@ -1053,7 +1102,7 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
     const linkReq = data.type === "talent" ? await findLinkRequestForInvitation(supabase, agencyId, data.id) : null;
@@ -1428,7 +1477,7 @@ export const endTalentRelationship = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { data: link, error: fetchErr } = await supabase
@@ -1466,7 +1515,7 @@ export const reactivateTalentRelationship = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { data: link, error: fetchErr } = await supabase
@@ -1510,7 +1559,7 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     // Storage path must live under this agency's folder (defense in depth; storage RLS also enforces).
     if (!data.storage_path.startsWith(`${agencyId}/`)) {
@@ -1606,7 +1655,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
@@ -1701,7 +1750,7 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const payload: Record<string, unknown> = {
@@ -1741,7 +1790,7 @@ export const deleteAgencyRetentionRule = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const { data: row, error } = await supabase
       .from("agency_retention_rules").delete()
@@ -1795,7 +1844,7 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     if (!data.storage_path.startsWith(`${agencyId}/`)) {
       throw new Error("Invalid storage path for this agency.");
@@ -1955,7 +2004,7 @@ export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     let templateId = data.id;
@@ -2011,7 +2060,7 @@ export const deleteAgencyFolderTemplate = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { data: row, error } = await supabase
@@ -2031,7 +2080,7 @@ export const applyAgencyFolderTemplate = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ template_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { data: tmpl, error: tErr } = await supabase
@@ -2129,7 +2178,7 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const payload: any = {
       agency_id: agencyId,
@@ -2204,7 +2253,7 @@ export const updateAgencyBillingDocStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: row, error } = await supabase
       .from("agency_billing_docs")
       .update({ status: data.status })
@@ -2222,7 +2271,7 @@ export const deleteAgencyBillingDoc = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     // Payment history is never silently lost: remove the payments first, or
     // cancel the invoice rather than deleting it.
@@ -2255,7 +2304,7 @@ export const setBillingDocShared = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: row, error } = await supabase
       .from("agency_billing_docs")
       .update({ shared_with_talent: data.shared })
@@ -2280,7 +2329,7 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: quote, error: qErr } = await supabase
       .from("agency_billing_docs")
@@ -2514,7 +2563,7 @@ export const updateAgencyContractMeta = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { id, ...rest } = data;
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
@@ -2539,7 +2588,7 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: contract, error: cErr } = await supabase
       .from("talent_shared_documents")
@@ -2655,7 +2704,7 @@ export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertLinkNotEnded(supabase, data.talent_link_id);
     const { data: row, error } = await supabase
       .from("agency_document_requests")
@@ -2685,7 +2734,7 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     if (data.outcome === "resubmission_required" && !data.reason_code) {
       throw new Error("A reason code is required when requesting resubmission.");
@@ -2856,7 +2905,7 @@ export const updateMyAgencyProfile = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
       .update({
@@ -2889,7 +2938,7 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
       .update({
@@ -2936,7 +2985,7 @@ export const updateAgencyNotificationSettings = createServerFn({ method: "POST" 
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
       .update({ expiry_notice_days: data.expiry_notice_days })
@@ -3007,7 +3056,7 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
       .update(data)
@@ -3030,7 +3079,7 @@ export const updateAgencyLogoPath = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     // TVA-SEC-004: a logo is rendered in quotes/invoices, so only accept files
     // whose bytes really are a raster image (never SVG — it can carry script).
@@ -3150,7 +3199,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     let subtotal = 0;
     let vat = 0;
@@ -3367,7 +3416,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: doc, error: dErr } = await supabase
       .from("agency_billing_docs")
       .select("id, kind, number, status, client_name, currency, total_cents, issued_at, due_date, notes, recipient_address, recipient_vat_number, recipient_emails, recipient_email")
@@ -3517,7 +3566,7 @@ export const markAgencyBillingDocSentManually = createServerFn({ method: "POST" 
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: billingDoc, error: docError } = await supabase
       .from("agency_billing_docs")
       .select("id, kind, number, status")
@@ -3604,7 +3653,7 @@ export const setAgencyBillingSender = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const email = data.email.trim().toLowerCase();
@@ -3621,7 +3670,7 @@ export const resendAgencyBillingSenderVerification = createServerFn({ method: "P
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { data: agency } = await supabase
@@ -3646,7 +3695,7 @@ export const clearAgencyBillingSender = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const { error } = await supabase
       .from("agencies")
@@ -3701,7 +3750,7 @@ export const upsertAgencyFolderSetting = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const patch: Record<string, unknown> = {};
@@ -3742,7 +3791,7 @@ export const resetAgencyFolderSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { error } = await supabase
@@ -3857,7 +3906,7 @@ export const upsertAgencySubfolderSetting = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { data: existing } = await supabase
@@ -3906,7 +3955,7 @@ export const deleteAgencySubfolderSetting = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { error } = await supabase
@@ -3933,7 +3982,7 @@ export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: link, error: linkErr } = await supabase
       .from("agency_talent_links")
@@ -4022,7 +4071,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: doc, error: dErr } = await supabase
       .from("agency_billing_docs")
@@ -4085,7 +4134,7 @@ export const deleteInvoicePayment = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: row, error } = await supabase
       .from("agency_invoice_payments")
       .delete()
@@ -4167,7 +4216,7 @@ export const updateAgencyStaffRole = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { data: member, error: readErr } = await supabase
@@ -4208,7 +4257,7 @@ export const removeAgencyStaffMember = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ member_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const { data: member, error: readErr } = await supabase
@@ -4489,7 +4538,7 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const payload = {
       agency_id: agencyId,
@@ -4547,7 +4596,7 @@ export const removeAgencyClient = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: existing } = await supabase
       .from("agency_clients")
@@ -4595,7 +4644,7 @@ export const setTalentManager = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: link, error: readErr } = await supabase
       .from("agency_talent_links")
@@ -4648,7 +4697,7 @@ export const linkBillingDocToTalent = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: link } = await supabase
       .from("agency_talent_links")
       .select("id, display_name")
