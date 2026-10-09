@@ -1,3 +1,28 @@
+-- Terms & Conditions acceptance proof: document hash, server-side acceptance stamp,
+-- append-only acceptances, and locking of accepted document versions.
+-- Already applied to the live database. Every statement is idempotent
+-- (IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF EXISTS), and the backfill only
+-- touches rows whose hash is still null, so re-running is a no-op.
+--
+-- ROLLBACK (manual, superuser — the append-only trigger must go first):
+--   DROP TRIGGER legal_acceptances_no_update_delete ON public.legal_acceptances;
+--   DROP TRIGGER legal_acceptances_no_truncate ON public.legal_acceptances;
+--   DROP TRIGGER legal_acceptances_stamp ON public.legal_acceptances;
+--   DROP TRIGGER legal_documents_guard ON public.legal_documents;
+--   DROP FUNCTION public.legal_acceptances_append_only(), public.legal_acceptances_stamp(), public.legal_documents_guard();
+--   DROP POLICY "Acceptances are append-only (no update)" ON public.legal_acceptances;
+--   DROP POLICY "Acceptances are append-only (no delete)" ON public.legal_acceptances;
+--   GRANT UPDATE, DELETE, TRUNCATE ON public.legal_acceptances TO service_role;
+--   ALTER TABLE public.legal_acceptances DROP CONSTRAINT legal_acceptances_document_id_fkey;
+--   ALTER TABLE public.legal_acceptances ADD CONSTRAINT legal_acceptances_document_id_fkey
+--     FOREIGN KEY (document_id) REFERENCES public.legal_documents(id) ON DELETE SET NULL;
+--   ALTER TABLE public.legal_acceptances ADD CONSTRAINT legal_acceptances_user_id_fkey
+--     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+--   ALTER TABLE public.legal_acceptances DROP COLUMN body_sha256, DROP COLUMN hash_retrospective,
+--     DROP COLUMN user_email, DROP COLUMN user_full_name, DROP COLUMN user_role, DROP COLUMN agency_id,
+--     DROP COLUMN acceptance_method, DROP COLUMN proof_ref;
+--   ALTER TABLE public.legal_documents DROP COLUMN body_sha256;
+
 -- 1. Document hash
 ALTER TABLE public.legal_documents ADD COLUMN IF NOT EXISTS body_sha256 text;
 
