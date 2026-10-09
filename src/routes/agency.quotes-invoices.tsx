@@ -80,7 +80,7 @@ export const Route = createFileRoute("/agency/quotes-invoices")({
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Quotes & Invoices</h1>
-      <p className="tvp-muted">Failed to load: {error.message}</p>
+      <p className="tvp-muted">Failed to load: {(error as Error)?.message}</p>
     </div>
   ),
   notFoundComponent: () => <div>Not found</div>,
