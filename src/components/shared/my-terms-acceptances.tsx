@@ -61,7 +61,7 @@ export function MyTermsAcceptances({ portal }: { portal: TermsPortal }) {
             {text.data && <LegalDocumentView body={text.data.body} maxHeight={480} />}
             {text.error && <p className="tvp-muted">{(text.error as Error).message}</p>}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-              <button className="tvp-btn" onClick={() => setOpenId(null)}>Close</button>
+              <button className="tvp-secondary" onClick={() => setOpenId(null)}>Close</button>
             </div>
           </div>
         </ModalShell>

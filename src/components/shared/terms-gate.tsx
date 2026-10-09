@@ -56,7 +56,7 @@ export function TermsGate({ portal, children }: { portal: TermsPortal; children:
         </label>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
           <button
-            className="tvp-btn"
+            className="tvp-secondary"
             onClick={async () => {
               await supabase.auth.signOut();
               window.location.href = "/auth";
