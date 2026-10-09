@@ -8,6 +8,16 @@
 - [x] Show a Coming soon state on the Talent Budget & Income page.
 - [x] Agency client management for quotes & invoices.
 - [ ] Warm up the Talent Vault folder grid, tabs and filter row visually.
-- [ ] Redesign the Agency Talent Roster as a responsive, data-backed card grid.
-- [ ] Redesign the Agency Clients list as a responsive, data-backed card grid with persisted payment-tracking note dismissal.
-- [ ] Add the live-data Client detail panel linked from each Agency client card.
+
+## Independent talent (invite-only) — approved plan rev 2
+- [ ] Close self-sign-up (backend setting + remove sign-up mode on /auth)
+- [ ] Migration: independent invites, link requests, originator, cut-off, billing link
+- [ ] Admin: invite independent talent (draft, 2 docs, gate, send)
+- [ ] Activation: date of birth + under-18 block; independent branch
+- [ ] Agency: neutral invite-or-request; cancel request; link-response bell
+- [ ] Talent: Requests view (accept/decline); zero-agency portal; Q&I per link
+- [ ] Talent-originated revoke; sharing gap (no emailed codes); {SHARE_TERM} constant
+- [ ] Admin dashboard wording/splits; invitations Type filter; reporting split
+- [ ] Emails E1–E8 builders
+- [ ] Tours for new screens
+- [ ] Blocked on decisions: share term, link-request mode, 2FA bypass removal timing, Q&I default retention
