@@ -115,6 +115,30 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(roleErr.message);
     if (!isOwner) throw new Error("Forbidden: only agency owners may send talent invitations.");
 
+    // A connection request to an existing account goes out as the request
+    // email (E5), never as a new-account invitation.
+    const { data: linkReq } = await supabase
+      .from("agency_talent_links")
+      .select("id")
+      .eq("talent_invitation_id", inv.id)
+      .eq("request_kind", "link_request")
+      .maybeSingle();
+    if (linkReq) {
+      const { emailLinkRequest } = await import("@/lib/link-notify.server");
+      const r: any = await emailLinkRequest(linkReq.id).catch(() => ({ sent: false }));
+      await supabase.from("agency_audit_log").insert({
+        agency_id: inv.agency_id,
+        actor_id: userId,
+        actor_email: claims?.email ?? null,
+        action: r.sent ? "talent_invitation_email_sent" : "talent_invitation_email_send_failed",
+        target_type: "talent_invitation",
+        target_id: inv.id,
+        target_label: inv.email,
+        detail: { reason: r.sent ? null : r.reason ?? null },
+      });
+      return r.sent ? r : { sent: false, reason: r.reason ?? "send_failed" };
+    }
+
     const { data: agency } = await supabase
       .from("agencies")
       .select("name")
