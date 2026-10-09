@@ -9,7 +9,7 @@
 - [x] Agency client management for quotes & invoices.
 - [ ] Warm up the Talent Vault folder grid, tabs and filter row visually.
 
-- [ ] Fix spacing/layout of Agency Quotes & Invoices settings cards (UI only)
+- [x] Fix spacing/layout of Agency Quotes & Invoices settings cards (UI only)
 
 ## Independent talent (invite-only) — PAUSED by product owner, awaiting decisions
 - [ ] Close self-sign-up (backend setting + remove sign-up mode on /auth)
