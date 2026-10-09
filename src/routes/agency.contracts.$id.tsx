@@ -27,7 +27,7 @@ export const Route = createFileRoute("/agency/contracts/$id")({
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Contract</h1>
-      <p className="tvp-muted">Failed to load: {error.message}</p>
+      <p className="tvp-muted">Failed to load: {(error as Error)?.message}</p>
       <Link to="/agency/document-vault" className="tvp-link">← Back to Roster Shared Folder</Link>
     </div>
   ),

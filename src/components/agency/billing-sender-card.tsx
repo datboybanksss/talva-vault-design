@@ -65,19 +65,19 @@ export function BillingSenderCard({
 
   return (
     <div className="tvp-card tvp-panel">
-      <h3 className="tvp-h3">
-        <AtSign className="inline h-4 w-4 mr-1" />Sending address
+      <h3 className="tvp-h3 tvp-qi-head">
+        <AtSign aria-hidden />Sending address
       </h3>
-      <div className="tvp-muted" style={{ fontSize: 12, marginBottom: 10 }}>
+      <p className="tvp-qi-desc">
         Quotes and invoices go out from TalVault's verified mail domain. Once your own address is
         confirmed, it is shown as your agency and set as the reply-to, so client replies come
         straight to you.
-      </div>
+      </p>
 
       {email && (
         <div
           style={{
-            display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+            display: "flex", alignItems: "center", gap: 8, marginTop: 14,
             padding: "8px 10px", borderRadius: "var(--r-sm, 6px)",
             background: verified ? "var(--tvp-green-bg, #e8f5ec)" : "var(--tvp-amber-bg, #fdf3e2)",
             color: verified ? "var(--tvp-green, #1d7a45)" : "var(--tvp-amber, #a1620a)",
@@ -114,7 +114,7 @@ export function BillingSenderCard({
         />
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div className="tvp-qi-actions">
         <button className="tvp-primary" disabled={!canSave || save.isPending} onClick={() => save.mutate()}>
           <Save className="h-4 w-4" />
           {save.isPending ? "Sending…" : email && !dirty ? "Saved" : "Save & verify"}
@@ -132,7 +132,7 @@ export function BillingSenderCard({
       </div>
 
       {pending && pendingUntil && (
-        <div className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+        <div className="tvp-qi-help">
           Verification link expires {new Date(pendingUntil).toLocaleString("en-ZA")}. Until then,
           replies go to your agency contact address.
         </div>

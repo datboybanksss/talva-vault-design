@@ -136,7 +136,7 @@ export function QuotesInvoicesSettingsPanel() {
         </div>
       </div>
 
-      <div className="tvp-rule-grid" style={{ marginTop: 14 }}>
+      <div className="tvp-qi-grid">
         <BillingSenderCard
           email={(data as any)?.billing_from_email ?? null}
           displayName={(data as any)?.billing_from_name ?? null}
@@ -145,8 +145,8 @@ export function QuotesInvoicesSettingsPanel() {
         />
 
         <div className="tvp-card tvp-panel">
-          <h3 className="tvp-h3">
-            <Clock className="inline h-4 w-4 mr-1" />Quote Acceptance
+          <h3 className="tvp-h3 tvp-qi-head">
+            <Clock aria-hidden />Quote acceptance
           </h3>
           <div className="tvp-form-group">
             <label>Default acceptance window (days)</label>
@@ -167,8 +167,8 @@ export function QuotesInvoicesSettingsPanel() {
         </div>
 
         <div className="tvp-card tvp-panel">
-          <h3 className="tvp-h3">
-            <Receipt className="inline h-4 w-4 mr-1" />Invoice Payment
+          <h3 className="tvp-h3 tvp-qi-head">
+            <Receipt aria-hidden />Invoice payment
           </h3>
           <div className="tvp-form-group">
             <label>Default payment terms (days)</label>
@@ -185,15 +185,15 @@ export function QuotesInvoicesSettingsPanel() {
               value={form.invoice_overdue_grace_days}
               onChange={(e) => update("invoice_overdue_grace_days", e.target.value)}
             />
-            <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
+            <div className="tvp-qi-help">
               Automatic overdue-marking is not enabled — mark manually via the Status dropdown.
             </div>
           </div>
         </div>
 
         <div className="tvp-card tvp-panel">
-          <h3 className="tvp-h3">
-            <FileSpreadsheet className="inline h-4 w-4 mr-1" />VAT / Tax
+          <h3 className="tvp-h3 tvp-qi-head">
+            <FileSpreadsheet aria-hidden />VAT / Tax
           </h3>
           <div className="tvp-form-group">
             <div className="flex items-center gap-2">
@@ -229,12 +229,12 @@ export function QuotesInvoicesSettingsPanel() {
         </div>
 
         <div className="tvp-card tvp-panel">
-          <h3 className="tvp-h3">
-            <Landmark className="inline h-4 w-4 mr-1" />Banking details
+          <h3 className="tvp-h3 tvp-qi-head">
+            <Landmark aria-hidden />Banking details
           </h3>
-          <div className="tvp-muted" style={{ fontSize: 11, marginBottom: 10 }}>
+          <p className="tvp-qi-desc">
             All optional. Shown together in a "Payment details" block on invoices only — never on quotations.
-          </div>
+          </p>
           <div className="tvp-form-group">
             <label>Bank name</label>
             <Input
@@ -279,8 +279,8 @@ export function QuotesInvoicesSettingsPanel() {
         </div>
 
         <div className="tvp-card tvp-panel">
-          <h3 className="tvp-h3">
-            <ImageIcon className="inline h-4 w-4 mr-1" />Branding
+          <h3 className="tvp-h3 tvp-qi-head">
+            <ImageIcon aria-hidden />Branding
           </h3>
           <div className="tvp-form-group">
             <label>Billing address (appears on documents)</label>
@@ -293,18 +293,15 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label>Agency logo</label>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <div className="tvp-qi-inline">
               {data?.logo_url ? (
                 <img
                   src={data.logo_url}
-                  alt="Logo"
-                  style={{
-                    maxHeight: 60, maxWidth: 160, background: "#f7f7f5",
-                    padding: 6, borderRadius: 4, border: "1px solid #eee",
-                  }}
+                  alt="Agency logo"
+                  className="tvp-qi-logo"
                 />
               ) : (
-                <div className="tvp-muted" style={{ fontSize: 12 }}>No logo uploaded</div>
+                <span className="tvp-muted tvp-small">No logo uploaded</span>
               )}
               <input
                 ref={fileRef}
@@ -330,35 +327,35 @@ export function QuotesInvoicesSettingsPanel() {
                 </button>
               )}
             </div>
-            <div className="tvp-muted" style={{ fontSize: 11, marginTop: 6 }}>
+            <div className="tvp-qi-help">
               PNG, JPG, SVG or WEBP. Max 2 MB. Displayed at the top-left of every document.
             </div>
           </div>
           <div className="tvp-form-group">
-            <label>
-              <Palette className="inline h-3 w-3 mr-1" />Accent color
+            <label className="tvp-qi-head">
+              <Palette aria-hidden />Accent colour
             </label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div className="tvp-qi-inline">
               {ACCENT_PRESETS.map((p) => (
                 <button
                   key={p.value}
                   type="button"
                   title={p.name}
+                  aria-label={p.name}
+                  aria-pressed={form.accent_color === p.value}
+                  className="tvp-qi-swatch"
                   onClick={() => update("accent_color", p.value)}
-                  style={{
-                    width: 28, height: 28, borderRadius: "50%", background: p.value,
-                    border: form.accent_color === p.value ? "3px solid #111" : "1px solid #ddd",
-                    cursor: "pointer",
-                  }}
+                  style={{ background: p.value }}
                 />
               ))}
               <input
                 type="color"
                 value={form.accent_color || "#064E58"}
                 onChange={(e) => update("accent_color", e.target.value)}
-                style={{ width: 32, height: 32, border: "1px solid #ddd", borderRadius: 4, cursor: "pointer" }}
+                aria-label="Custom accent colour"
+                className="tvp-qi-colour"
               />
-              <span className="tvp-muted" style={{ fontSize: 12 }}>{form.accent_color}</span>
+              <span className="tvp-small">{form.accent_color}</span>
             </div>
           </div>
         </div>
