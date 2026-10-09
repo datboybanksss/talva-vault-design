@@ -110,7 +110,7 @@ export async function notifyRelationshipEnded(linkId: string) {
       target_type: "agency_link",
       target_id: linkId,
     },
-    { onConflict: "dedupe_key", ignoreDuplicates: true },
+    { onConflict: "user_id,dedupe_key", ignoreDuplicates: true },
   );
   if (!ctx.talentEmail) return { sent: false };
   const mail = buildNoticeEmail({
