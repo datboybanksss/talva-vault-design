@@ -246,7 +246,6 @@ function QIPage() {
       toast.success("Linked to talent.");
       setLinkingId(null);
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
-      qc.invalidateQueries({ queryKey: ["agency-billing"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "We couldn't link this document."),
   });
