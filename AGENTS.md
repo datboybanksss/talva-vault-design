@@ -22,5 +22,6 @@ and the `dark` variant is registered. Adding it later = one `.dark { ... }` toke
 block plus a toggle. See the note at the top of `src/styles.css`.
 
 ## Technical decisions
+- All displayed sharing terminology imports the constants in src/lib/terms.ts; legacy identifiers and URLs remain unchanged. Why: consistent sentence case without breaking existing shares.
 - Database change history lives only in `supabase/migrations`; a change applied through another tool is copied there as a guarded, no-op-if-present file with rollback SQL in a comment. Why: one history, never re-applied on the live database.
 - Agency connection requests to existing accounts are stored as an ordinary `talent_invitations` row linked from the `agency_talent_links` row (`request_kind = 'link_request'`). Why: the agency sees an identical invitation either way, so account existence is never revealed.
