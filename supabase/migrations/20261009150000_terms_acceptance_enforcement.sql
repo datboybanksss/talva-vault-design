@@ -1,3 +1,17 @@
+-- Terms acceptance enforced in the database (defence in depth behind the
+-- server-function checks). Talent and agency staff without an acceptance of
+-- the current Terms for their role cannot INSERT/UPDATE/DELETE portal rows or
+-- portal storage files. Admins are exempt. Reads are unchanged.
+-- Guarded: CREATE OR REPLACE + IF NOT EXISTS checks, so re-running is a no-op.
+--
+-- ROLLBACK (run manually if ever needed):
+--   DO $$ DECLARE r record; BEGIN
+--     FOR r IN SELECT schemaname, tablename, policyname FROM pg_policies
+--       WHERE policyname LIKE 'Terms not accepted%'
+--     LOOP EXECUTE format('DROP POLICY %I ON %I.%I', r.policyname, r.schemaname, r.tablename); END LOOP; END $$;
+--   DROP FUNCTION IF EXISTS public.terms_write_allowed(uuid);
+--   DROP FUNCTION IF EXISTS public.has_accepted_current_terms(uuid, text);
+
 CREATE OR REPLACE FUNCTION public.has_accepted_current_terms(_user_id uuid, _doc_type text)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
 AS $$
