@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { isValidPhone, normalisePhone, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
 import { mapEffectiveStatus } from "@/lib/invitation-status";
-import { fetchOnboardedTalent, fetchOnboardedTalentLinks } from "@/lib/onboarded-talent";
+import { fetchOnboardedTalentLinks, fetchTalentSplit } from "@/lib/onboarded-talent";
 
 import {
   HIGHEST_ADMIN_PERMISSION,

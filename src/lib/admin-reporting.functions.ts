@@ -2,7 +2,7 @@ import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { fetchOnboardedTalent } from "@/lib/onboarded-talent";
+import { fetchOnboardedTalent, fetchTalentSplit } from "@/lib/onboarded-talent";
 
 // Mirrors the canonical actions in talent-activity.server.ts; kept local so this
 // client-reachable module never pulls a server-only file into the browser graph.
@@ -248,11 +248,13 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .maybeSingle();
     const trackingSince: string | null = firstActivity?.created_at ?? null;
 
-    const [rowsNow, rowsPrior, talentNow, talentPrior] = await Promise.all([
+    const [rowsNow, rowsPrior, talentNow, talentPrior, talentSplit] = await Promise.all([
       activityRows(admin, period.fromIso, period.toIso),
       activityRows(admin, prior.fromIso, prior.toIso),
       onboardedTalent(admin, period.toIso),
       onboardedTalent(admin, prior.toIso),
+      // Same split as the Admin Overview dashboard.
+      fetchTalentSplit(admin, period.toIso),
     ]);
 
     const talentIds = new Set(talentNow.map((t) => t.talent_user_id));
@@ -431,6 +433,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       engagement: {
         activeTalent: now.any.size,
         totalTalent: talentIds.size,
+        talentSplit,
         agenciesWithShare,
         sharesCreated: (sharesInPeriod ?? []).length,
         documentsUploaded: (sharedDocs ?? 0) + (privateDocs ?? 0),
