@@ -8,6 +8,13 @@
       "when": 1791533476529,
       "tag": "0000_independent_talent_link_requests_originator",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791536083411,
+      "tag": "0001_link_requests_as_invites_and_hardening",
+      "breakpoints": true
     }
   ]
 }
