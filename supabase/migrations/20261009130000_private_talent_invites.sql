@@ -1,3 +1,26 @@
+-- Agency T&C s6.3: a connection request to an existing account (or an invitation
+-- that can never be accepted, e.g. to agency staff or an admin) must look exactly
+-- like a new-talent invitation to the agency until the talent accepts. The real
+-- target lives in talent_invite_private, which agency members cannot read.
+-- Already applied to the live database; every statement is idempotent
+-- (IF NOT EXISTS / CREATE OR REPLACE / DROP POLICY IF EXISTS / GRANT / REVOKE),
+-- so re-running is a no-op.
+--
+-- ROLLBACK (manual):
+--   GRANT EXECUTE ON FUNCTION public.request_talent_link(uuid,text,text,text,integer),
+--     public.resend_link_request(uuid,timestamptz), public.cancel_link_request(uuid) TO authenticated;
+--   Restore respond_link_request and accept_talent_invitation from
+--     20261009090000_link_requests_as_invites_and_hardening.sql / 20261009120000_agency_suspension_read_only.sql.
+--   DROP FUNCTION public.attach_talent_invite_private(uuid,uuid,text), public.reopen_talent_invite_private(uuid),
+--     public.close_talent_invite_private(uuid), public.my_link_requests();
+--   DROP TABLE public.talent_invite_private;
+--   (Pending link requests created after this change have talent_user_id NULL on agency_talent_links;
+--    copy talent_user_id/talent_profile_id back from talent_invite_private and set request_kind='link_request'
+--    before dropping the table.)
+
+-- Private record behind agency talent invitations that target an existing account
+-- (connection request) or that must never be accepted (inert). Agency members
+-- cannot read it; admins can read it; only server code (service role) writes it.
 CREATE TABLE IF NOT EXISTS public.talent_invite_private (
   invitation_id uuid PRIMARY KEY REFERENCES public.talent_invitations(id) ON DELETE CASCADE,
   link_id uuid REFERENCES public.agency_talent_links(id) ON DELETE CASCADE,
@@ -24,6 +47,7 @@ DROP POLICY IF EXISTS "Admins read private invite records" ON public.talent_invi
 CREATE POLICY "Admins read private invite records" ON public.talent_invite_private
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'::app_role));
 
+-- Server-only: decide what a just-created agency talent invitation really is.
 CREATE OR REPLACE FUNCTION public.attach_talent_invite_private(_invitation_id uuid, _actor uuid, _actor_email text)
 RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE inv RECORD; lnk uuid; prof RECORD; ag_name text; why text;
@@ -73,6 +97,7 @@ BEGIN
   RETURN 'requested:' || lnk::text;
 END; $$;
 
+-- Server-only: resend reopened an invitation; returns the link id if a connection request email should go out.
 CREATE OR REPLACE FUNCTION public.reopen_talent_invite_private(_invitation_id uuid)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE p RECORD;
@@ -84,6 +109,7 @@ BEGIN
   RETURN p.link_id;
 END; $$;
 
+-- Server-only: the agency revoked an invitation; returns the link id if the talent should hear it was withdrawn.
 CREATE OR REPLACE FUNCTION public.close_talent_invite_private(_invitation_id uuid)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE p RECORD;
@@ -96,6 +122,7 @@ BEGIN
   RETURN p.link_id;
 END; $$;
 
+-- Talent: their own open connection requests, with the agency name.
 CREATE OR REPLACE FUNCTION public.my_link_requests()
 RETURNS TABLE(link_id uuid, agency_name text, requested_at timestamptz, expires_at timestamptz)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
@@ -108,6 +135,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
    ORDER BY p.requested_at DESC
 $$;
 
+-- Talent: accept or decline. Nothing about the request is visible to the agency until acceptance.
 CREATE OR REPLACE FUNCTION public.respond_link_request(_link_id uuid, _accept boolean)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE p RECORD; inv RECORD; selected text[];
@@ -136,6 +164,7 @@ BEGIN
   RETURN p.agency_id;
 END; $$;
 
+-- Signup acceptance must never consume a connection request or an inert invitation.
 CREATE OR REPLACE FUNCTION public.accept_talent_invitation(_invitation_id uuid, _user_id uuid, _email text)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE inv RECORD; new_link_id uuid; new_profile_id uuid; selected text[];
@@ -183,6 +212,8 @@ GRANT EXECUTE ON FUNCTION public.respond_link_request(uuid, boolean) TO authenti
 REVOKE ALL ON FUNCTION public.accept_talent_invitation(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_talent_invitation(uuid, uuid, text) TO service_role;
 
+-- The old agency-callable request functions answered differently for existing
+-- accounts; agencies can no longer call them.
 REVOKE EXECUTE ON FUNCTION public.request_talent_link(uuid, text, text, text, integer) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.resend_link_request(uuid, timestamptz) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.cancel_link_request(uuid) FROM PUBLIC, anon, authenticated;
