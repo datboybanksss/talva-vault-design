@@ -29,6 +29,7 @@ import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics, dismissAgencyReminder } from "@/lib/agency.functions";
 import { PortalFooter } from "@/components/shared/portal-footer";
+import { AgencyReadOnlyContext, useHideWriteControls } from "@/components/agency/agency-read-only";
 
 type NavItem = {
   to: string;
@@ -109,6 +110,15 @@ export function AgencyShell({ children }: { children: ReactNode }) {
   // Each badge mirrors exactly what its page lists: the Talent badge counts the
   // roster itself (invitations live on the Invitations page, not the roster),
   // and the Invitations badge counts open invitations.
+  // Suspended agency: view and download only, until the date the database sets.
+  const readOnly =
+    me?.readOnlyUntil && me.readOnlyNotice ? { until: me.readOnlyUntil, notice: me.readOnlyNotice } : null;
+  const contentRef = useRef<HTMLDivElement>(null);
+  useHideWriteControls(contentRef, !!readOnly);
+  const readOnlyDate = readOnly
+    ? new Date(readOnly.until).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : null;
+
   const badgeCounts: Record<"talent" | "invitations", number> = {
     talent: metrics?.talentCount ?? 0,
     invitations: metrics?.invitationsNeedAction ?? 0,
@@ -274,6 +284,12 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           </button>
           
 
+          {readOnly && (
+            <span className="tvp-read-only-label" role="status" title={readOnly.notice}>
+              <ShieldCheck className="h-4 w-4" />
+              Read-only until {readOnlyDate}
+            </span>
+          )}
           <ThemeToggle />
           <HelpMenu portal="agency" />
           <div className="tvp-notification-wrap">
@@ -371,7 +387,9 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           </Link>
 
         </div>
-        {children}
+        <AgencyReadOnlyContext.Provider value={readOnly}>
+          <div ref={contentRef}>{children}</div>
+        </AgencyReadOnlyContext.Provider>
         <PortalFooter />
       </main>
       <OnboardingTour portal="agency" />

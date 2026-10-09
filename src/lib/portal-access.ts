@@ -46,7 +46,14 @@ async function runCheck(key: PortalKey, userId: string): Promise<AccessResult> {
       .limit(1)
       .maybeSingle();
     if (error) return "error";
-    return data ? "granted" : "denied";
+    if (!data) return "denied";
+    // A suspended agency's staff lose all access once the read-only window ends.
+    const { data: canRead, error: rErr } = await supabase.rpc("is_agency_member", {
+      _user_id: userId,
+      _agency_id: data.agency_id,
+    });
+    if (rErr) return "error";
+    return canRead ? "granted" : "denied";
   }
 
   const { data, error } = await supabase

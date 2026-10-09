@@ -31,9 +31,6 @@ export function useHideWriteControls(root: RefObject<HTMLElement | null>, readOn
         const label = b.getAttribute("aria-label") || b.getAttribute("title") || b.textContent;
         const hide = readOnly && isWriteLabel(label);
         b.classList.toggle("tvp-ro-hidden", hide);
-        if (hide) b.setAttribute("aria-hidden", "true");
-        else if (b.classList.contains("tvp-ro-was")) b.removeAttribute("aria-hidden");
-        if (hide) b.classList.add("tvp-ro-was");
       });
     };
     sweep();

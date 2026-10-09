@@ -1,6 +1,7 @@
 import { MoreVertical } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { isWriteLabel, useAgencyReadOnly } from "@/components/agency/agency-read-only";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,8 +55,11 @@ export function RowActionsMenu({
   align?: "start" | "end" | "center";
   className?: string;
 }) {
+  // Suspended agency: only view/download-type actions remain.
+  const readOnly = useAgencyReadOnly();
   const items = actions.filter(
-    (a): a is RowAction => Boolean(a) && !(a as RowAction).hidden,
+    (a): a is RowAction =>
+      Boolean(a) && !(a as RowAction).hidden && !(readOnly && isWriteLabel((a as RowAction).label)),
   );
   if (items.length === 0) return null;
 
