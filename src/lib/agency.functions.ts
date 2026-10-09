@@ -268,6 +268,36 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       });
     }
 
+    // Link-request responses from the last 14 days (accepted / declined / expired).
+    const sinceIso = new Date(Date.now() - 14 * 86400000).toISOString();
+    const { data: responses } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name, status, responded_at, declined_at, request_expires_at, updated_at")
+      .eq("agency_id", agencyId)
+      .eq("request_kind", "link_request")
+      .or(`responded_at.gte.${sinceIso},and(status.eq.expired,updated_at.gte.${sinceIso})`);
+    for (const r of (responses ?? []) as any[]) {
+      const accepted = r.status !== "revoked" && r.status !== "expired";
+      const declined = !!r.declined_at;
+      computed.push({
+        id: `link_response:${r.id}`,
+        key: `link_response:${r.id}`,
+        snapshot: 1,
+        tone: accepted ? "green" : "amber",
+        title: accepted
+          ? `${r.display_name} accepted your connection request`
+          : declined
+            ? `${r.display_name} declined your connection request`
+            : `Your connection request to ${r.display_name} expired`,
+        detail: accepted
+          ? "Their shared folders are ready in your roster."
+          : declined
+            ? "No access has been granted. You can send a new request after 30 days."
+            : "No access has been granted. You can send a new request.",
+        to: "/agency/talent",
+      });
+    }
+
     const { data: dis } = await supabase
       .from("agency_notification_dismissals")
       .select("kind, snapshot")
@@ -1354,6 +1384,10 @@ export const endTalentRelationship = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    // E7 + bell to the talent (best effort while the sending domain is unverified).
+    const { notifyRelationshipEnded } = await import("@/lib/link-notify.server");
+    await notifyRelationshipEnded(data.id).catch(() => undefined);
 
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       "end_talent_relationship", "agency_talent_link", data.id, link.display_name,
