@@ -3178,6 +3178,10 @@ export type Database = {
         Returns: number
       }
       expire_link_requests: { Args: never; Returns: number }
+      has_accepted_current_terms: {
+        Args: { _doc_type: string; _user_id: string }
+        Returns: boolean
+      }
       has_agency_role: {
         Args: { _agency_id: string; _role: string; _user_id: string }
         Returns: boolean
@@ -3309,6 +3313,7 @@ export type Database = {
       }
       talent_link_read_until: { Args: { _link_id: string }; Returns: string }
       talent_post_end_access_years: { Args: never; Returns: number }
+      terms_write_allowed: { Args: { _user_id: string }; Returns: boolean }
       tv_map_legacy_folder: { Args: { _name: string }; Returns: string }
     }
     Enums: {
