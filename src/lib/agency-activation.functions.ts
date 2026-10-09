@@ -145,6 +145,7 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
         userId: created.user.id,
         docType: "agency",
         version: data.terms_version,
+        method: "activation",
       });
     } catch (e: any) {
       await supabaseAdmin.auth.admin.deleteUser(created.user.id).catch(() => undefined);
