@@ -584,7 +584,8 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       displayName: r.display_name as string,
       status: r.status as string,
       talentType: (r.talent_type as string) ?? null,
-      avatarUrl: r.talent_user_id ? avatarMap.get(r.talent_user_id) ?? null : null,
+      // Nothing from the talent's own profile is shown before they accept.
+      avatarUrl: r.talent_user_id && r.status !== "invited" ? avatarMap.get(r.talent_user_id) ?? null : null,
       managerUserId: (r.manager_user_id as string) ?? null,
       managerName: r.manager_user_id ? managerMap.get(r.manager_user_id) ?? "Unassigned" : "Unassigned",
       nextAction: (r.next_action as string) ?? null,
@@ -1289,7 +1290,8 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
       displayName: r.display_name as string,
       status: r.status as string,
       talentType: (r.talent_type as string) ?? null,
-      avatarUrl: r.talent_user_id ? avatarMap.get(r.talent_user_id) ?? null : null,
+      // Nothing from the talent's own profile is shown before they accept.
+      avatarUrl: r.talent_user_id && r.status !== "invited" ? avatarMap.get(r.talent_user_id) ?? null : null,
     }));
   });
 
