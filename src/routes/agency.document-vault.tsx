@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_PLURAL } from "@/lib/terms";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -144,7 +145,7 @@ function allowedFoldersFrom(categories: CatalogueCategory[]): FolderMeta[] {
   }));
 }
 const BLOCKED_FOLDERS: FolderMeta[] = [
-  { key: "family", label: "Family / Loved Ones", description: "Talent's personal contacts", icon: UsersIcon },
+  { key: "family", label: `Family / ${SHARE_RECIPIENT_TERM_PLURAL}`, description: "Talent's personal contacts", icon: UsersIcon },
   { key: "medical", label: "Medical / Insurance", description: "Health records, insurance", icon: HeartPulse },
   { key: "finance", label: "Personal Finance", description: "Bank statements, taxes", icon: Landmark },
 ];

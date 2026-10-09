@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -52,9 +53,13 @@ export const Route = createFileRoute("/loved-one/$token")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Loved-One Access · TalVault" },
+      { title: `${SHARE_RECIPIENT_TERM_CAPITALISED} access · TalVault` },
       { name: "robots", content: "noindex" },
-      { name: "description", content: "Time-bound access to documents shared with you via TalVault." },
+      { property: "og:title", content: `${SHARE_RECIPIENT_TERM_CAPITALISED} access · TalVault` },
+      { property: "og:description", content: `Secure, time-limited access to documents shared with you as a ${SHARE_RECIPIENT_TERM} via TalVault.` },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "description", content: `Secure, time-limited access to documents shared with you as a ${SHARE_RECIPIENT_TERM} via TalVault.` },
     ],
   }),
   component: LovedOnePage,
@@ -428,7 +433,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <TalVaultWordmark variant="teal" style={{ height: 16 }} />
-            <div style={{ fontSize: 11, color: "#65707A" }}>Loved-One Access</div>
+            <div style={{ fontSize: 11, color: "#65707A" }}>{SHARE_RECIPIENT_TERM_CAPITALISED} access</div>
           </div>
         </div>
         {children}

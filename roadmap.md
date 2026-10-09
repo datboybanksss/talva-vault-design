@@ -1,5 +1,9 @@
 # Roadmap
 
+## Trusted contact rename
+- [x] Rename visible terminology centrally without changing internal names or stored/legal text.
+- [x] Audit legal and stored occurrences; verify remaining source hits and automatic validation.
+
 - [x] Give invoice emails the same full inline document content as quotations.
 - [x] Require a verified sender and preserve invoice status on failed or partial delivery.
 - [x] Add a separate manual Mark as sent action that mints a final invoice number.
@@ -22,7 +26,7 @@
 - [ ] Admin dashboard wording/splits; invitations Type filter; reporting split
 - [ ] Emails E1–E8 builders
 - [ ] Tours for new screens
-- [ ] Blocked on decisions: share term, link-request mode, 2FA bypass removal timing, Q&I default retention
+- [ ] Blocked on decisions: link-request mode, 2FA bypass removal timing, Q&I default retention
 
 ## Independent talent QA fixes (Oct 2026)
 - [x] Invitations page Invite Talent uses neutral server reply

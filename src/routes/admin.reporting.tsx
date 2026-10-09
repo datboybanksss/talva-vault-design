@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM } from "@/lib/terms";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -153,7 +154,7 @@ function ReportingPage() {
       ["Invite-to-acceptance rate", `${d.growth.acceptanceRate}%`, `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations`],
       ["Median time to accept (days)", d.growth.medianDaysToAccept ?? "No acceptances", `${d.growth.acceptedInPeriod} accepted in period`],
       ["Talent active in period", d.engagement.activeTalent, `of ${d.engagement.totalTalent} onboarded talent`],
-      ["Agencies with an active talent share", d.engagement.agenciesWithShare, `${d.engagement.sharesCreated} shares created`],
+      [`Agencies with an active ${SHARE_RECIPIENT_TERM} share`, d.engagement.agenciesWithShare, `${d.engagement.sharesCreated} ${SHARE_RECIPIENT_TERM} shares created`],
       ["Documents uploaded", d.engagement.documentsUploaded, `${d.engagement.sharedDocuments} shared, ${d.engagement.privateDocuments} private`],
       ["Quotes generated", d.financials.quotesCount, zar(d.financials.quotesValueCents)],
       ["Invoices generated", d.financials.invoicesCount, zar(d.financials.invoicesValueCents)],
@@ -324,9 +325,9 @@ function ReportingPage() {
               onDrill={onDrill}
             />
             <Card
-              label="Agencies with an active talent share"
+              label={`Agencies with an active ${SHARE_RECIPIENT_TERM} share`}
               value={String(d.engagement.agenciesWithShare)}
-              sub={`${d.engagement.sharesCreated} share${d.engagement.sharesCreated === 1 ? "" : "s"} created in period`}
+              sub={`${d.engagement.sharesCreated} ${SHARE_RECIPIENT_TERM} share${d.engagement.sharesCreated === 1 ? "" : "s"} created in period`}
               metric="shares"
               onDrill={onDrill}
             />

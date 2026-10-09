@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_PLURAL } from "@/lib/terms";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -85,13 +86,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Secure document vault and operations workspace for talent, managers and loved ones.",
+          `Secure document vault and operations workspace for talent, managers and ${SHARE_RECIPIENT_TERM_PLURAL}.`,
       },
       { property: "og:title", content: "TalVault" },
       {
         property: "og:description",
         content:
-          "Secure document vault and operations workspace for talent, managers and loved ones.",
+          `Secure document vault and operations workspace for talent, managers and ${SHARE_RECIPIENT_TERM_PLURAL}.`,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

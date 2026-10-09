@@ -1,18 +1,12 @@
-/**
- * Product vocabulary that is still awaiting a final decision.
- *
- * The replacement for "Loved One" has not been chosen yet. Every screen,
- * email and tour reads these constants, so the final choice is a one-line
- * change here. Candidates under review: "Trusted contact", "Secure share",
- * "Shared access".
- *
- * Internal names (loved_one_shares table, loved_one role, /loved-one/$token)
- * deliberately stay as they are.
- */
-export const SHARE_TERM = "Loved One share";
-export const SHARE_TERM_PLURAL = "Loved One shares";
-export const SHARE_RECIPIENT_TERM = "Loved One";
-export const SHARE_RECIPIENT_TERM_PLURAL = "Loved Ones";
+/** Central display vocabulary; legacy database names and share URLs stay unchanged. */
+export const SHARE_TERM = "trusted contact";
+export const SHARE_TERM_PLURAL = "trusted contacts";
+export const SHARE_TERM_CAPITALISED = "Trusted contact";
+export const SHARE_TERM_PLURAL_CAPITALISED = "Trusted contacts";
+export const SHARE_RECIPIENT_TERM = SHARE_TERM;
+export const SHARE_RECIPIENT_TERM_PLURAL = SHARE_TERM_PLURAL;
+export const SHARE_RECIPIENT_TERM_CAPITALISED = SHARE_TERM_CAPITALISED;
+export const SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED = SHARE_TERM_PLURAL_CAPITALISED;
 
 /** Relationship options offered when a talent creates a share. */
 export const SHARE_RELATIONSHIP_OPTIONS = [

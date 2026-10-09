@@ -42,7 +42,7 @@ export async function emailLinkRequest(linkId: string) {
     heading: `A connection request from ${ctx.agencyName}`,
     paragraphs: [
       `Hi ${first(ctx.talentName)},`,
-      `Connecting creates a shared folder between you and ${ctx.agencyName}. They will see only what is placed in that shared folder. They will never see your Private Vault, your ${SHARE_TERM_PLURAL} or any other agency.`,
+      `Connecting creates a shared folder between you and ${ctx.agencyName}. They will see only what is placed in that shared folder. They will never see your Private Vault, documents shared with your ${SHARE_TERM_PLURAL}, or any other agency's shared folder.`,
       `You can accept or decline in TalVault.${ctx.link.request_expires_at ? ` The request expires on ${fmtLongDate(ctx.link.request_expires_at)}.` : ""}`,
     ],
     ctaLabel: "Review request",

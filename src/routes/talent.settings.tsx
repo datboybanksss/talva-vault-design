@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Info, Save } from "lucide-react";
@@ -24,7 +25,7 @@ type Mode = "profile" | "account" | "security" | "folders" | "relationship" | "n
 
 const IN_APP_CHANNELS: { key: string; label: string; hint: string; live: boolean }[] = [
   { key: "doc_expiring", label: "Document expiring", hint: "Private Vault and Agency Shared Folder documents approaching their expiry date.", live: true },
-  { key: "share_expiring", label: "Loved One access expiring", hint: "A magic-link share you created is about to lapse.", live: true },
+  { key: "share_expiring", label: `${SHARE_RECIPIENT_TERM_CAPITALISED} access expiring`, hint: "A magic-link share you created is about to lapse.", live: true },
   { key: "agency_share", label: "Agency shares a document", hint: "Arrives with the shared-folder event stream.", live: false },
   { key: "ai_review", label: "AI suggestions need review", hint: "Arrives when AI filing runs server-side.", live: false },
 ];

@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_PLURAL } from "@/lib/terms";
 import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -216,7 +217,7 @@ function TalentDashboard() {
             <div style={{ minWidth: 0 }}>
               <h2 className="tvp-h2">Sharing</h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-                Share documents securely with a Loved One via a magic link.
+                Share documents securely with a {SHARE_RECIPIENT_TERM} via a magic link.
               </p>
             </div>
           </div>
@@ -224,7 +225,7 @@ function TalentDashboard() {
           <div style={{ display: "flex", alignItems: "center", gap: 26, flexShrink: 0 }}>
             <div>
               <div className="tvp-kpi-value">{data?.activeShares ?? 0}</div>
-              <div className="tvp-kpi-label">Active shares</div>
+              <div className="tvp-kpi-label">Active {SHARE_RECIPIENT_TERM_PLURAL}</div>
             </div>
             <Link to="/talent/sharing">
               <button className="tvp-secondary">
