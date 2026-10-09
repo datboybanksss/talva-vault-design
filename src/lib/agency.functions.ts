@@ -324,7 +324,8 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       .select("id, display_name, status, responded_at, declined_at, request_expires_at, updated_at")
       .eq("agency_id", agencyId)
       .eq("request_kind", "link_request")
-      .or(`responded_at.gte.${sinceIso},and(status.eq.expired,updated_at.gte.${sinceIso})`);
+      .is("declined_at", null)
+      .gte("responded_at", sinceIso);
     for (const r of (responses ?? []) as any[]) {
       const accepted = r.status !== "revoked" && r.status !== "expired";
       const declined = !!r.declined_at;
@@ -915,29 +916,6 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     return NEUTRAL;
   });
 
-export const cancelLinkRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
-    const { agencyId } = await getWritableCallerAgency(supabase, userId);
-    await assertAgencyOwner(supabase, userId, agencyId);
-    const { error } = await supabase.rpc("cancel_link_request", { _link_id: data.id });
-    if (error) {
-      throw new Error(
-        /REQUEST_CLOSED/.test(error.message)
-          ? "This request is no longer open."
-          : "We couldn't cancel this request. Please try again.",
-      );
-    }
-    const { emailLinkCancelled } = await import("@/lib/link-notify.server");
-    await emailLinkCancelled(data.id).catch(() => undefined);
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "cancel_link_request", "agency_talent_link", data.id, null as any);
-    return { ok: true };
-  });
-
-
 export const createStaffInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -981,18 +959,6 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
       { email: data.email, role: data.role, expires_at });
     return inv;
   });
-
-/** The connection-request roster row behind a talent invitation, if any. */
-async function findLinkRequestForInvitation(supabase: any, agencyId: string, invitationId: string) {
-  const { data } = await supabase
-    .from("agency_talent_links")
-    .select("id, status")
-    .eq("agency_id", agencyId)
-    .eq("talent_invitation_id", invitationId)
-    .eq("request_kind", "link_request")
-    .maybeSingle();
-  return (data as { id: string; status: string } | null) ?? null;
-}
 
 /**
  * Resolve the roster link a quote/invoice belongs to. An explicit id wins
@@ -1061,14 +1027,7 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const linkReq = data.type === "talent" ? await findLinkRequestForInvitation(supabase, agencyId, data.id) : null;
-    if (linkReq) {
-      // Connection request to an existing account: reopen it and re-send E5.
-      const { error: rErr } = await supabase.rpc("resend_link_request", { _link_id: linkReq.id, _expires_at: expires_at });
-      if (rErr) throw new Error("We couldn't resend this invitation. Please try again.");
-      const { emailLinkRequest } = await import("@/lib/link-notify.server");
-      await emailLinkRequest(linkReq.id).catch(() => undefined);
-    } else if (data.type === "talent") {
+    if (data.type === "talent") {
       // Reopened invitation — put the roster row back to "Invited".
       await supabase
         .from("agency_talent_links")
@@ -1076,6 +1035,10 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
         .eq("agency_id", agencyId)
         .eq("talent_invitation_id", data.id)
         .in("status", ["expired", "revoked"]);
+      // A connection request to an existing account reopens the talent's bell
+      // entry too; the agency-visible result is identical either way.
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await (supabaseAdmin as any).rpc("reopen_talent_invite_private", { _invitation_id: data.id });
     }
 
 
@@ -1095,21 +1058,6 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
-    const linkReq = data.type === "talent" ? await findLinkRequestForInvitation(supabase, agencyId, data.id) : null;
-    if (linkReq) {
-      // Connection request: revoking it cancels the request (also marks the
-      // invitation row revoked) and closes the talent's bell entry.
-      const { error: cErr } = await supabase.rpc("cancel_link_request", { _link_id: linkReq.id });
-      if (cErr) {
-        throw new Error(/REQUEST_CLOSED/.test(cErr.message) ? "This invitation is no longer open." : "We couldn't revoke this invitation. Please try again.");
-      }
-      const { emailLinkCancelled } = await import("@/lib/link-notify.server");
-      await emailLinkCancelled(linkReq.id).catch(() => undefined);
-      const { data: invRow } = await supabase.from(table).select().eq("id", data.id).maybeSingle();
-      await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-        "revoke_talent_invitation", "talent_invitation", data.id, invRow?.email);
-      return invRow;
-    }
     const { data: inv, error } = await supabase
       .from(table).update({ status: "revoked" }).eq("id", data.id).select().single();
     if (error) throw new Error(error.message);
@@ -1122,6 +1070,12 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
         .eq("agency_id", agencyId)
         .eq("talent_invitation_id", data.id)
         .in("status", ["invited", "expired"]);
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: closedLink } = await (supabaseAdmin as any).rpc("close_talent_invite_private", { _invitation_id: data.id });
+      if (closedLink) {
+        const { emailLinkCancelled } = await import("@/lib/link-notify.server");
+        await emailLinkCancelled(closedLink as string).catch(() => undefined);
+      }
     }
 
 
