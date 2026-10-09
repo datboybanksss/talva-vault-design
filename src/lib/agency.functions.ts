@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
 
@@ -133,6 +134,7 @@ async function getCallerAgency(supabase: any, userId: string) {
     _agency_id: data.agency_id,
   });
   if (!canRead) throw new Error("Forbidden: your agency's TalVault access has ended.");
+  await assertTermsAccepted(supabase, userId, "agency");
   return { agencyId: data.agency_id as string, role: data.role as string };
 }
 

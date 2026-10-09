@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
 const BUCKET = "talent-private-documents";
@@ -12,7 +13,7 @@ async function ensureTalentProfile(supabase: any, userId: string) {
 }
 
 export const listMyLovedOneShares = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data, error } = await supabase
@@ -52,7 +53,7 @@ async function logShareAccess(
 
 /** Access history for one of the caller's own shares. */
 export const listLovedOneShareAccess = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((i: unknown) => z.object({ share_id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
@@ -80,7 +81,7 @@ const CreateShareInput = z.object({
 });
 
 export const createLovedOneShare = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((i: unknown) => CreateShareInput.parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -196,7 +197,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
   });
 
 export const revokeLovedOneShare = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -211,7 +212,7 @@ export const revokeLovedOneShare = createServerFn({ method: "POST" })
 
 /** Mints a brand-new access code for an existing share (old one stops working). */
 export const regenerateAccessCode = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;

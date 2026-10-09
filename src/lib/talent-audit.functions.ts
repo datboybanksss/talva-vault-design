@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
 function extractRequestMeta(): { ip_address: string | null; user_agent: string | null } {
@@ -151,7 +152,7 @@ async function notifyNewDevice(
 }
 
 export const listTalentAuditLog = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((d: unknown) =>
     z
       .object({

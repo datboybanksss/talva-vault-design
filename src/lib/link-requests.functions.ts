@@ -1,10 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
 /** Talent side: connection requests from agencies, to accept or decline. */
 export const listMyLinkRequests = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase } = context as any;
     const { data, error } = await supabase.rpc("my_link_requests");
@@ -18,7 +19,7 @@ export const listMyLinkRequests = createServerFn({ method: "GET" })
   });
 
 export const respondToLinkRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), accept: z.boolean() }).parse(d),
   )

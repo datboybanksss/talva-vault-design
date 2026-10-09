@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
 /**
@@ -63,7 +64,7 @@ const DEFAULT_IN_APP = {
  * in-app reminder toggles consumed by the reminder engine.
  */
 export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data } = await supabase
@@ -88,7 +89,7 @@ const NotificationPrefsInput = z.object({
 });
 
 export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => NotificationPrefsInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -120,7 +121,7 @@ async function inAppRemindersEnabled(supabase: any, userId: string): Promise<boo
  * removed from this list, so clearing the bell never loses a reminder.
  */
 export const listTalentNotifications = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -146,7 +147,7 @@ export const listTalentNotifications = createServerFn({ method: "GET" })
 
 /** Bell feed: unread reminders plus the unread count, gated by the in-app preference. */
 export const getTalentBellFeed = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const enabled = await inAppRemindersEnabled(supabase, userId);
@@ -163,7 +164,7 @@ export const getTalentBellFeed = createServerFn({ method: "GET" })
   });
 
 export const markTalentNotificationRead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), read: z.boolean().default(true) }).parse(d),
   )
@@ -179,7 +180,7 @@ export const markTalentNotificationRead = createServerFn({ method: "POST" })
   });
 
 export const markAllTalentNotificationsRead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { error } = await supabase
@@ -197,14 +198,14 @@ export const markAllTalentNotificationsRead = createServerFn({ method: "POST" })
  * for the next scheduled pass.
  */
 export const runMyReminderScan = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { runTalentReminderScan } = await import("@/lib/talent-reminders.server");
     return runTalentReminderScan({ userId: context.userId });
   });
 
 export const dismissTalentNotification = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -225,7 +226,7 @@ const UpdateProfileInput = z.object({
 });
 
 export const updateTalentProfile = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => UpdateProfileInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -253,7 +254,7 @@ export const updateTalentProfile = createServerFn({ method: "POST" })
  * belonging to the caller's active link.
  */
 export const getRosterSharedContents = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
@@ -299,7 +300,7 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
 const DownloadInput = z.object({ document_id: z.string().uuid() });
 
 export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => DownloadInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -351,7 +352,7 @@ async function getCallerLink(supabase: any, userId: string) {
  * Requests sent to the caller by their Manager, plus recent history.
  */
 export const listTalentDocumentRequests = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const link = await getCallerLink(supabase, userId);
@@ -393,7 +394,7 @@ const RequestUploadInput = z.object({
  * Storage path is scoped to the caller's link so admin bucket ops stay auditable.
  */
 export const createTalentRequestUploadUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => RequestUploadInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -432,7 +433,7 @@ const SubmitRequestInput = z.object({
  * shared document and mark the request submitted (agency reviews next).
  */
 export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => SubmitRequestInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -507,7 +508,7 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
 // Dashboard KPIs
 // -----------------------------------------------------------------------------
 export const getTalentDashboard = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
@@ -694,7 +695,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
 // Bell reminder dismissals (per-user, re-surface when the underlying count changes)
 // -----------------------------------------------------------------------------
 export const listTalentDismissals = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { data } = await supabase
@@ -705,7 +706,7 @@ export const listTalentDismissals = createServerFn({ method: "GET" })
   });
 
 export const dismissTalentReminder = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((d: unknown) =>
     z.object({ kind: z.string().min(1).max(60), snapshot: z.number().int().nonnegative() }).parse(d),
   )
@@ -735,7 +736,7 @@ export const dismissTalentReminder = createServerFn({ method: "POST" })
  * client is used strictly after the caller's own link has been resolved.
  */
 export const listTalentBillingDocuments = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
