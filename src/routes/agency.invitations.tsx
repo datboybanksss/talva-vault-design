@@ -310,17 +310,15 @@ function InvitationsPage() {
           onSubmit={async (payload) => {
             try {
               if (openForm === "talent") {
-                const inv: any = await createTalent({ data: payload as any });
-                const res: any = await sendTalentInvitationEmail({
-                  data: {
-                    id: inv.id,
-                    subject: DEFAULT_TALENT_INVITATION_SUBJECT,
-                    body: DEFAULT_TALENT_INVITATION_BODY,
-                    invite_url: `${window.location.origin}/invite/talent/${inv.token}`,
-                  },
-                }).catch(() => ({ sent: false }));
-                if (res?.sent) toast.success("Talent invitation sent.");
-                else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
+                // The server sends the email itself and always replies with the
+                // same neutral message, whether or not the person has an account.
+                const res: any = await createTalent({ data: payload as any });
+                toast.success(
+                  res?.message ??
+                    "If this person is on TalVault they'll receive a request to connect; otherwise they'll receive an invitation.",
+                  { duration: 9000 },
+                );
+                qc.invalidateQueries({ queryKey: ["agency", "talent"] });
               } else {
                 const inv: any = await createStaff({ data: payload as any });
                 const res: any = await sendStaffInvitationEmail({
