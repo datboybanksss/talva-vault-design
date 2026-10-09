@@ -1,4 +1,4 @@
-import { SHARE_TERM, SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
+import { SHARE_TERM } from "@/lib/terms";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import {
   useTalentInvitationActions,
@@ -186,7 +186,7 @@ function AdminDashboard() {
             <div className="tvp-kpi-value">{metrics.data?.activeShares ?? "—"}</div>
             <div className="tvp-kpi-label">Active {SHARE_TERM} shares</div>
             <div className={`tvp-kpi-sub${(metrics.data?.activeShares ?? 0) > 0 ? "" : " tvp-neutral"}`}>
-              {SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED} across all talent
+              Shares currently open
             </div>
           </div>
         </div>

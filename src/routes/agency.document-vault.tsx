@@ -145,7 +145,7 @@ function allowedFoldersFrom(categories: CatalogueCategory[]): FolderMeta[] {
   }));
 }
 const BLOCKED_FOLDERS: FolderMeta[] = [
-  { key: "family", label: `Family / ${SHARE_RECIPIENT_TERM_PLURAL}`, description: "Talent's personal contacts", icon: UsersIcon },
+  { key: "family", label: "Family / Personal contacts", description: "Talent's personal contacts", icon: UsersIcon },
   { key: "medical", label: "Medical / Insurance", description: "Health records, insurance", icon: HeartPulse },
   { key: "finance", label: "Personal Finance", description: "Bank statements, taxes", icon: Landmark },
 ];

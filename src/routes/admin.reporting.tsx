@@ -155,7 +155,7 @@ function ReportingPage() {
       ["Median time to accept (days)", d.growth.medianDaysToAccept ?? "No acceptances", `${d.growth.acceptedInPeriod} accepted in period`],
       ["Talent active in period", d.engagement.activeTalent, `of ${d.engagement.totalTalent} onboarded talent`],
       ["Talent onboarded", d.engagement.talentSplit.total, `${d.engagement.talentSplit.agencyLinked} agency-linked · ${d.engagement.talentSplit.independent} independent`],
-      [`Agencies with an active ${SHARE_RECIPIENT_TERM} share`, d.engagement.agenciesWithShare, `${d.engagement.sharesCreated} ${SHARE_RECIPIENT_TERM} shares created`],
+      [`Agencies whose talent use ${SHARE_RECIPIENT_TERM} sharing`, d.engagement.agenciesWithShare, `${d.engagement.sharesCreated} new ${SHARE_RECIPIENT_TERM} shares`],
       ["Documents uploaded", d.engagement.documentsUploaded, `${d.engagement.sharedDocuments} shared, ${d.engagement.privateDocuments} private`],
       ["Quotes generated", d.financials.quotesCount, zar(d.financials.quotesValueCents)],
       ["Invoices generated", d.financials.invoicesCount, zar(d.financials.invoicesValueCents)],
@@ -326,7 +326,7 @@ function ReportingPage() {
               onDrill={onDrill}
             />
             <Card
-              label={`Agencies with an active ${SHARE_RECIPIENT_TERM} share`}
+              label={`Agencies whose talent use ${SHARE_RECIPIENT_TERM} sharing`}
               value={String(d.engagement.agenciesWithShare)}
               sub={`${d.engagement.sharesCreated} ${SHARE_RECIPIENT_TERM} share${d.engagement.sharesCreated === 1 ? "" : "s"} created in period`}
               metric="shares"
