@@ -446,11 +446,11 @@ export const deleteIndependentTalentDraft = createServerFn({ method: "POST" })
     await assertAdminCanEdit(supabase, userId);
     const { data: inv } = await supabase
       .from("independent_talent_invitations")
-      .select("id, status, talent_name")
+      .select("id, status, talent_name, expires_at")
       .eq("id", data.id)
       .maybeSingle();
     if (!inv) throw new Error("Invitation not found.");
-    if (!["draft", "revoked", "expired"].includes(effectiveStatus(inv as any)) && inv.status !== "draft") {
+    if (!["draft", "revoked", "expired"].includes(effectiveStatus(inv))) {
       throw new Error("Only drafts and closed invitations can be deleted.");
     }
     const { data: docs } = await supabase
