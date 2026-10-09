@@ -73,7 +73,9 @@ export type InvitationVariant = {
   footerBrand: string;
 };
 
-export const INVITATION_VARIANTS: Record<"agency" | "talent" | "staff" | "admin", InvitationVariant> = {
+export type InvitationVariantKey = "agency" | "talent" | "independent" | "staff" | "admin";
+
+export const INVITATION_VARIANTS: Record<InvitationVariantKey, InvitationVariant> = {
   agency: {
     strapline: "Secure document vault for talent agencies and their people.",
     ctaLabel: "Accept invitation",
@@ -82,8 +84,14 @@ export const INVITATION_VARIANTS: Record<"agency" | "talent" | "staff" | "admin"
   },
   talent: {
     strapline: "Your private vault for personal and professional documents.",
-    ctaLabel: "Set up my vault",
+    ctaLabel: "Set up my TalVault",
     expiryHelp: "If the link expires, contact your Manager for a fresh invite.",
+    footerBrand: "TalVault",
+  },
+  independent: {
+    strapline: "A private, invite-only vault for your important documents.",
+    ctaLabel: "Set up my TalVault",
+    expiryHelp: "If the link expires, contact the TalVault team for a fresh invite.",
     footerBrand: "TalVault",
   },
   staff: {
@@ -160,7 +168,7 @@ export function buildInvitationEmail(input: {
   inviteUrl: string;
   expiryDate: string;
   /** Defaults to the agency variant so existing callers are unchanged. */
-  variant?: "agency" | "talent" | "staff" | "admin";
+  variant?: InvitationVariantKey;
 }) {
   const v = INVITATION_VARIANTS[input.variant ?? "agency"];
   const tokens: InvitationTokens = {
