@@ -62,6 +62,8 @@ import { Route as AdminAgenciesIdRouteImport } from './routes/admin.agencies.$id
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksTalentRemindersRouteImport } from './routes/api/public/hooks/talent-reminders'
 import { Route as AgencyInvitationsIdEmailPreviewRouteImport } from './routes/agency.invitations.$id.email-preview'
+import { Route as AdminInvitationsTalentNewRouteImport } from './routes/admin.invitations.talent.new'
+import { Route as AdminInvitationsTalentIdRouteImport } from './routes/admin.invitations.talent.$id'
 import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
 import { Route as AdminAdministratorsIdEmailPreviewRouteImport } from './routes/admin.administrators.$id.email-preview'
 
@@ -334,6 +336,18 @@ const AgencyInvitationsIdEmailPreviewRoute =
     path: '/$id/email-preview',
     getParentRoute: () => AgencyInvitationsRoute,
   } as any)
+const AdminInvitationsTalentNewRoute =
+  AdminInvitationsTalentNewRouteImport.update({
+    id: '/talent/new',
+    path: '/talent/new',
+    getParentRoute: () => AdminInvitationsRoute,
+  } as any)
+const AdminInvitationsTalentIdRoute =
+  AdminInvitationsTalentIdRouteImport.update({
+    id: '/talent/$id',
+    path: '/talent/$id',
+    getParentRoute: () => AdminInvitationsRoute,
+  } as any)
 const AdminInvitationsIdEmailPreviewRoute =
   AdminInvitationsIdEmailPreviewRouteImport.update({
     id: '/$id/email-preview',
@@ -400,6 +414,8 @@ export interface FileRoutesByFullPath {
   '/agency/talent/': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/admin/invitations/talent/$id': typeof AdminInvitationsTalentIdRoute
+  '/admin/invitations/talent/new': typeof AdminInvitationsTalentNewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -451,6 +467,8 @@ export interface FileRoutesByTo {
   '/agency/talent': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/admin/invitations/talent/$id': typeof AdminInvitationsTalentIdRoute
+  '/admin/invitations/talent/new': typeof AdminInvitationsTalentNewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -509,6 +527,8 @@ export interface FileRoutesById {
   '/agency/talent/': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
+  '/admin/invitations/talent/$id': typeof AdminInvitationsTalentIdRoute
+  '/admin/invitations/talent/new': typeof AdminInvitationsTalentNewRoute
   '/agency/invitations/$id/email-preview': typeof AgencyInvitationsIdEmailPreviewRoute
   '/api/public/hooks/talent-reminders': typeof ApiPublicHooksTalentRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -568,6 +588,8 @@ export interface FileRouteTypes {
     | '/agency/talent/'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
+    | '/admin/invitations/talent/$id'
+    | '/admin/invitations/talent/new'
     | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
     | '/lovable/email/queue/process'
@@ -619,6 +641,8 @@ export interface FileRouteTypes {
     | '/agency/talent'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
+    | '/admin/invitations/talent/$id'
+    | '/admin/invitations/talent/new'
     | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
     | '/lovable/email/queue/process'
@@ -676,6 +700,8 @@ export interface FileRouteTypes {
     | '/agency/talent/'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
+    | '/admin/invitations/talent/$id'
+    | '/admin/invitations/talent/new'
     | '/agency/invitations/$id/email-preview'
     | '/api/public/hooks/talent-reminders'
     | '/lovable/email/queue/process'
@@ -1075,6 +1101,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyInvitationsIdEmailPreviewRouteImport
       parentRoute: typeof AgencyInvitationsRoute
     }
+    '/admin/invitations/talent/new': {
+      id: '/admin/invitations/talent/new'
+      path: '/talent/new'
+      fullPath: '/admin/invitations/talent/new'
+      preLoaderRoute: typeof AdminInvitationsTalentNewRouteImport
+      parentRoute: typeof AdminInvitationsRoute
+    }
+    '/admin/invitations/talent/$id': {
+      id: '/admin/invitations/talent/$id'
+      path: '/talent/$id'
+      fullPath: '/admin/invitations/talent/$id'
+      preLoaderRoute: typeof AdminInvitationsTalentIdRouteImport
+      parentRoute: typeof AdminInvitationsRoute
+    }
     '/admin/invitations/$id/email-preview': {
       id: '/admin/invitations/$id/email-preview'
       path: '/$id/email-preview'
@@ -1122,12 +1162,16 @@ interface AdminInvitationsRouteChildren {
   AdminInvitationsNewRoute: typeof AdminInvitationsNewRoute
   AdminInvitationsIndexRoute: typeof AdminInvitationsIndexRoute
   AdminInvitationsIdEmailPreviewRoute: typeof AdminInvitationsIdEmailPreviewRoute
+  AdminInvitationsTalentIdRoute: typeof AdminInvitationsTalentIdRoute
+  AdminInvitationsTalentNewRoute: typeof AdminInvitationsTalentNewRoute
 }
 
 const AdminInvitationsRouteChildren: AdminInvitationsRouteChildren = {
   AdminInvitationsNewRoute: AdminInvitationsNewRoute,
   AdminInvitationsIndexRoute: AdminInvitationsIndexRoute,
   AdminInvitationsIdEmailPreviewRoute: AdminInvitationsIdEmailPreviewRoute,
+  AdminInvitationsTalentIdRoute: AdminInvitationsTalentIdRoute,
+  AdminInvitationsTalentNewRoute: AdminInvitationsTalentNewRoute,
 }
 
 const AdminInvitationsRouteWithChildren =
