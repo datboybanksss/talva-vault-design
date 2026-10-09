@@ -21,6 +21,7 @@ import {
   markAgencyBillingDocSentManually,
   getAgencyBillingSettings,
   listAgencyTalentLinksLite,
+  linkBillingDocToTalent,
 } from "@/lib/agency.functions";
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, emptyLine, fmtMoney } from "@/lib/billing";
@@ -46,6 +47,7 @@ type Row = {
   number: string;
   client_name: string | null;
   talent_name: string | null;
+  talent_link_id?: string | null;
   issued_at: string;
   due_date: string | null;
   paid_at: string | null;
@@ -236,6 +238,18 @@ function QIPage() {
     [roster],
   );
 
+  const linkFn = useServerFn(linkBillingDocToTalent);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+  const linkDoc = useMutation({
+    mutationFn: (v: { doc_id: string; talent_link_id: string }) => linkFn({ data: v }),
+    onSuccess: () => {
+      toast.success("Linked to talent.");
+      setLinkingId(null);
+      qc.invalidateQueries({ queryKey: ["agency", "billing"] });
+      qc.invalidateQueries({ queryKey: ["agency-billing"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "We couldn't link this document."),
+  });
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentsDocId, setPaymentsDocId] = useState<string | null>(null);
@@ -745,7 +759,29 @@ function QIPage() {
                       {r.kind === "quote" ? "Quote" : "Invoice"}
                     </span>
                   </td>
-                  <td>{r.talent_name ?? "—"}</td>
+                  <td>
+                    {r.talent_name ?? "—"}
+                    {!r.talent_link_id && (
+                      <div style={{ marginTop: 4, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                        <span className="tvp-status tvp-amber" title="Not linked to a talent on your roster, so the talent may not see it">Not linked</span>
+                        {linkingId === r.id ? (
+                          <select className="tvp-select" style={{ height: 28, fontSize: 12 }} defaultValue=""
+                            disabled={linkDoc.isPending}
+                            onChange={(e) => e.target.value && linkDoc.mutate({ doc_id: r.id, talent_link_id: e.target.value })}
+                            onBlur={() => !linkDoc.isPending && setLinkingId(null)} autoFocus>
+                            <option value="" disabled>Choose talent…</option>
+                            {roster.map((t: any) => (
+                              <option key={t.id} value={t.id}>{t.displayName}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <button type="button" className="tvp-link" style={{ fontSize: 12 }} onClick={() => setLinkingId(r.id)}>
+                            Link to talent
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td>{r.client_name ?? "—"}</td>
                   <td>
                     <select className={`tvp-select tvp-status-select tvp-${STATUS_TONE[r.status]}`}

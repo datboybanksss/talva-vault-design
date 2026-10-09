@@ -4,6 +4,7 @@ import { HelpMenu } from "@/components/shared/help-menu";
 import { type ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useRouterState, useNavigate, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { UserPlus } from "lucide-react";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -52,6 +53,7 @@ const buildManageNav = (vaultBadge: number, sharesBadge: number, reminderBadge: 
   { to: "/talent/vault", label: "Vault", icon: <Lock />, badge: vaultBadge },
   { to: "/talent/sharing", label: <>Shared<br />Access</>, icon: <Share2 />, badge: sharesBadge },
   { to: "/talent/budget", label: <>Budget &<br />Income</>, icon: <Wallet /> },
+  { to: "/talent/requests", label: "Requests", icon: <UserPlus /> },
 ];
 
 const settings: NavItem[] = [
