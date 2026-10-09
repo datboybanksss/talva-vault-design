@@ -273,7 +273,7 @@ export const listTermsNotAccepted = createServerFn({ method: "POST" })
         if (accepted.has(`${t.user_id}:${talentDoc.id}`)) continue;
         const p: any = maps.prof.get(t.user_id);
         out.push({
-          user_id: t.user_id,
+          user_id: t.user_id as string,
           name: t.full_name ?? p?.display_name ?? null,
           email: p?.email ?? null,
           role: "talent",
