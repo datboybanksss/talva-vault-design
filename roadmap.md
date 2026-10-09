@@ -1,5 +1,9 @@
 # Roadmap
 
+## Trusted contact rename
+- [ ] Rename visible terminology centrally without changing internal names or stored/legal text.
+- [ ] Audit legal and stored occurrences; verify remaining source hits and type safety.
+
 - [x] Give invoice emails the same full inline document content as quotations.
 - [x] Require a verified sender and preserve invoice status on failed or partial delivery.
 - [x] Add a separate manual Mark as sent action that mints a final invoice number.
