@@ -693,6 +693,14 @@ function SharedDocumentsView() {
           </div>
           <span className="tvp-lock-note"><Lock className="h-3 w-3" /> Folder structure locked by Manager</span>
         </div>
+        {data.read_until && (
+          <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 12 }}>
+            This connection has ended. You can view and download these items, read-only, for 10 years from the date the relationship ended — until{" "}
+            {new Date(data.read_until).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}.
+          </p>
+        )}
+        <div style={{ display: "none" }}>
+        </div>
         {folders.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13 }}>Your Manager hasn't provisioned any shared folders yet.</p>
         ) : (
