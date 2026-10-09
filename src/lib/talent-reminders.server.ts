@@ -14,6 +14,7 @@ type Prefs = {
 };
 
 const DAY = 86400_000;
+const ACCESS_WARNING_DAYS = 30;
 
 function fmt(v: string) {
   return new Date(v).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
@@ -48,6 +49,8 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
   if (error) throw new Error(error.message);
 
   const pending: Pending[] = [];
+  const { data: yearsRow } = await supabaseAdmin.rpc("talent_post_end_access_years");
+  const postEndYears = (yearsRow as number | null) ?? 0;
   const emailByUser = new Map<string, string | null>();
 
   for (const p of profiles ?? []) {
@@ -117,6 +120,34 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
             due_at: due,
           });
         }
+      }
+    }
+
+    // 4. Read-only access to an ended agency connection ends in 30 days.
+    {
+      const { data: links } = await supabaseAdmin
+        .from("agency_talent_links")
+        .select("id, agency_id")
+        .eq("talent_user_id", userId)
+        .in("status", ["ended", "revoked", "expired", "active", "read_only", "needs_review"]);
+      for (const l of links ?? []) {
+        const { data: until } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: l.id });
+        if (!until) continue;
+        const ms = new Date(until as string).getTime() - Date.now();
+        if (ms <= 0 || ms > ACCESS_WARNING_DAYS * DAY) continue;
+        const { data: ag } = await supabaseAdmin.from("agencies").select("name").eq("id", l.agency_id).maybeSingle();
+        const due = until as string;
+        pending.push({
+          user_id: userId,
+          kind: "access_ending",
+          dedupe_key: `access_ending:${l.id}:${due.slice(0, 10)}`,
+          title: `Read-only access to ${ag?.name ?? "an agency"}'s items ends on ${fmt(due)}`,
+          detail: `Access lasts ${postEndYears} years from the date the relationship ended. Download anything you want to keep before then.`,
+          tone: "amber",
+          target_type: "agency_link",
+          target_id: l.id as string,
+          due_at: due,
+        });
       }
     }
 

@@ -103,7 +103,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "agency" } },
         selector: '[data-tour="talent-vault-body"]',
         title: "Step 5 — the Agency Shared Folder works the same way",
-        body: "Switch to Agency Shared Folder and repeat: open the folder, upload, confirm. The difference is the extra Status and Expires columns — a document your Manager hasn't checked yet reads \"Pending review\" until they confirm it. Anything filed here is what your agency uses for compliance.",
+        body: "Switch to Agency Shared Folder and repeat: open the folder, upload, confirm. The difference is the extra Status and Expires columns — a document your Manager hasn't checked yet reads \"Pending review\" until they confirm it. Anything filed here is what your agency uses for compliance. If a connection ends, its items stay here read-only — view and download only — for 10 years from the date the relationship ended.",
         optional: true,
       },
       {
