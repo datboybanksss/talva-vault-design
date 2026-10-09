@@ -3179,10 +3179,13 @@ export type Database = {
         Args: { _link_id: string; _originator: string; _years: number }
         Returns: boolean
       }
+      talent_link_closed_at: { Args: { _link_id: string }; Returns: string }
       talent_link_is_ended: {
         Args: { _talent_link_id: string }
         Returns: boolean
       }
+      talent_link_read_until: { Args: { _link_id: string }; Returns: string }
+      talent_post_end_access_years: { Args: never; Returns: number }
       tv_map_legacy_folder: { Args: { _name: string }; Returns: string }
     }
     Enums: {
