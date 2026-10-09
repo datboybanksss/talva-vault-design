@@ -154,6 +154,7 @@ function ReportingPage() {
       ["Invite-to-acceptance rate", `${d.growth.acceptanceRate}%`, `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations`],
       ["Median time to accept (days)", d.growth.medianDaysToAccept ?? "No acceptances", `${d.growth.acceptedInPeriod} accepted in period`],
       ["Talent active in period", d.engagement.activeTalent, `of ${d.engagement.totalTalent} onboarded talent`],
+      ["Talent onboarded", d.engagement.talentSplit.total, `${d.engagement.talentSplit.agencyLinked} agency-linked · ${d.engagement.talentSplit.independent} independent`],
       [`Agencies with an active ${SHARE_RECIPIENT_TERM} share`, d.engagement.agenciesWithShare, `${d.engagement.sharesCreated} ${SHARE_RECIPIENT_TERM} shares created`],
       ["Documents uploaded", d.engagement.documentsUploaded, `${d.engagement.sharedDocuments} shared, ${d.engagement.privateDocuments} private`],
       ["Quotes generated", d.financials.quotesCount, zar(d.financials.quotesValueCents)],
@@ -319,7 +320,7 @@ function ReportingPage() {
             <Card
               label="Talent active in period"
               value={`${d.engagement.activeTalent} / ${d.engagement.totalTalent}`}
-              sub={`${pctOf(d.engagement.activeTalent, d.engagement.totalTalent)}% of onboarded talent`}
+              sub={`${pctOf(d.engagement.activeTalent, d.engagement.totalTalent)}% of onboarded talent · ${d.engagement.talentSplit.agencyLinked} agency-linked · ${d.engagement.talentSplit.independent} independent`}
               note={trackingNote}
               metric="active_talent"
               onDrill={onDrill}

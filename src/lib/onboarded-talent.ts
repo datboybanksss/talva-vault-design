@@ -80,3 +80,42 @@ export async function fetchOnboardedTalent(
 export async function countOnboardedTalent(client: any, toIso?: string): Promise<number> {
   return (await fetchOnboardedTalent(client, toIso)).length;
 }
+
+export type TalentSplit = { agencyLinked: number; independent: number; total: number };
+
+/**
+ * Single definition of the agency-linked / independent split, shared by the
+ * Admin Overview dashboard and the Admin Reporting page.
+ *
+ *  - live talent = a talent profile that is neither a test record nor
+ *    soft-deleted (created on or before `toIso` when given)
+ *  - agency-linked = live talent with at least one `active` agency link
+ *  - independent = live talent with no active agency link
+ *
+ * Link status is the current status, so period figures are "as of today" for
+ * the talent who existed by the end of the period.
+ */
+export async function fetchTalentSplit(client: any, toIso?: string): Promise<TalentSplit> {
+  let pq = client
+    .from("talent_profiles")
+    .select("user_id")
+    .eq("is_test", false)
+    .is("deleted_at", null)
+    .not("user_id", "is", null);
+  if (toIso) pq = pq.lte("created_at", toIso);
+  const [{ data: profiles, error: pErr }, { data: links, error: lErr }] = await Promise.all([
+    pq,
+    client
+      .from("agency_talent_links")
+      .select("talent_user_id")
+      .eq("status", "active")
+      .not("talent_user_id", "is", null),
+  ]);
+  if (pErr) throw new Error(pErr.message);
+  if (lErr) throw new Error(lErr.message);
+  const linked = new Set((links ?? []).map((l: any) => l.talent_user_id));
+  const people = new Set((profiles ?? []).map((p: any) => p.user_id as string));
+  let agencyLinked = 0;
+  for (const id of people) if (linked.has(id)) agencyLinked += 1;
+  return { agencyLinked, independent: people.size - agencyLinked, total: people.size };
+}
