@@ -807,47 +807,19 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
-    // The agency always gets the same neutral reply, whether or not this email
-    // already belongs to a TalVault account. The server picks the path.
+    // The agency always gets the same neutral reply and the same rows, whether
+    // or not this email already belongs to a TalVault account. Which kind of
+    // invitation it really is lives in talent_invite_private, which agency
+    // members cannot read (Agency T&C §6.3).
     const NEUTRAL = {
       ok: true as const,
       message:
         "If this person is on TalVault they'll receive a request to connect; otherwise they'll receive an invitation.",
     };
 
-    const { data: outcome, error: rpcErr } = await supabase.rpc("request_talent_link", {
-      _agency_id: agencyId,
-      _email: data.email.trim(),
-      // The agency's own typed name — never the talent's profile name — so the
-      // request looks exactly like a new-talent invitation until accepted.
-      _display_name: data.talent_name.trim(),
-      _talent_type: data.talent_type ?? null,
-      _expiry_days: data.expiry_days,
-    });
-    if (rpcErr) throw new Error("We couldn't process this invitation. Please try again.");
-    const result = String(outcome ?? "");
-
-    if (result.startsWith("requested:")) {
-      const linkId = result.slice("requested:".length);
-      const { emailLinkRequest } = await import("@/lib/link-notify.server");
-      const sent = await emailLinkRequest(linkId).catch(() => ({ sent: false }));
-      await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-        "request_talent_link", "agency_talent_link", linkId, data.talent_name,
-        { email_sent: sent.sent });
-      return NEUTRAL;
-    }
-    if (result !== "no_account") {
-      // already_linked / cooldown / other_account (agency member or admin):
-      // nothing is created; the reply stays neutral.
-      await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-        "talent_invite_not_created", "talent_invitation", null as any, data.talent_name,
-        { reason: result });
-      return NEUTRAL;
-    }
-
     const expires_at = new Date(Date.now() + data.expiry_days * 86400000).toISOString();
 
-    // Normalize sort_order across the selection
+    // Normalise sort_order across the selection
     const selection = data.folder_selection.map((f, i) => ({
       name: f.name,
       sort_order: f.sort_order ?? i,
@@ -872,7 +844,6 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     if (error) throw new Error("We couldn't create the invitation. Please try again.");
 
     // Place the talent on the roster straight away with an "Invited" status.
-    // accept_talent_invitation() converts this same row to "active" later.
     const { error: linkErr } = await supabase
       .from("agency_talent_links")
       .insert({
@@ -885,32 +856,51 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
       });
     if (linkErr) throw new Error("We couldn't add this talent to your roster. Please try again.");
 
-    // E4 — sent server-side so the reply stays identical on both paths.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: outcome, error: attachErr } = await (supabaseAdmin as any).rpc("attach_talent_invite_private", {
+      _invitation_id: inv.id,
+      _actor: userId,
+      _actor_email: claims?.email ?? null,
+    });
+    if (attachErr) throw new Error("We couldn't create the invitation. Please try again.");
+    const result = String(outcome ?? "");
+
     let emailSent = false;
     try {
-      const { buildInvitationEmail, DEFAULT_TALENT_INVITATION_BODY, DEFAULT_TALENT_INVITATION_SUBJECT } =
-        await import("@/lib/invitation-email");
-      const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
-      const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
-      const { fmtLongDate } = await import("@/lib/notice-email");
-      const { data: ag } = await supabase.from("agencies").select("name").eq("id", agencyId).maybeSingle();
-      const mail = buildInvitationEmail({
-        variant: "talent",
-        subject: DEFAULT_TALENT_INVITATION_SUBJECT,
-        body: DEFAULT_TALENT_INVITATION_BODY,
-        agencyName: ag?.name ?? null,
-        talentName: data.talent_name.split(" ")[0],
-        recipientEmail: data.email,
-        inviteUrl: `${PUBLIC_SITE_URL}/invite/talent/${inv.token}`,
-        expiryDate: fmtLongDate(expires_at),
-      });
-      const r = await sendInvitationEmail(data.email, mail, `talent-invite-${inv.id}`, "talent_invitation");
-      emailSent = r.sent;
-      if (r.sent) {
-        await supabase.from("talent_invitations").update({ email_sent_at: new Date().toISOString() }).eq("id", inv.id);
+      if (result.startsWith("requested:")) {
+        // Existing talent account: the connection request email (E5).
+        const { emailLinkRequest } = await import("@/lib/link-notify.server");
+        emailSent = (await emailLinkRequest(result.slice("requested:".length))).sent;
+      } else if (result === "inert") {
+        // Never sent and never acceptable; the outcome mirrors a real send.
+        const { simulatedInvitationSend } = await import("@/lib/invitation-email.server");
+        emailSent = (await simulatedInvitationSend()).sent;
+      } else {
+        // E4 — new person.
+        const { buildInvitationEmail, DEFAULT_TALENT_INVITATION_BODY, DEFAULT_TALENT_INVITATION_SUBJECT } =
+          await import("@/lib/invitation-email");
+        const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
+        const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
+        const { fmtLongDate } = await import("@/lib/notice-email");
+        const { data: ag } = await supabase.from("agencies").select("name").eq("id", agencyId).maybeSingle();
+        const mail = buildInvitationEmail({
+          variant: "talent",
+          subject: DEFAULT_TALENT_INVITATION_SUBJECT,
+          body: DEFAULT_TALENT_INVITATION_BODY,
+          agencyName: ag?.name ?? null,
+          talentName: data.talent_name.split(" ")[0],
+          recipientEmail: data.email,
+          inviteUrl: `${PUBLIC_SITE_URL}/invite/talent/${inv.token}`,
+          expiryDate: fmtLongDate(expires_at),
+        });
+        const r = await sendInvitationEmail(data.email, mail, `talent-invite-${inv.id}`, "talent_invitation");
+        emailSent = r.sent;
       }
     } catch {
       emailSent = false;
+    }
+    if (emailSent) {
+      await supabase.from("talent_invitations").update({ email_sent_at: new Date().toISOString() }).eq("id", inv.id);
     }
 
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
