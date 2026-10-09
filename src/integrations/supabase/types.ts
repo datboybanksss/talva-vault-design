@@ -451,6 +451,7 @@ export type Database = {
           shared_with_talent: boolean
           status: Database["public"]["Enums"]["doc_status"]
           subtotal_cents: number
+          talent_link_id: string | null
           talent_name: string | null
           total_cents: number
           updated_at: string
@@ -488,6 +489,7 @@ export type Database = {
           shared_with_talent?: boolean
           status?: Database["public"]["Enums"]["doc_status"]
           subtotal_cents?: number
+          talent_link_id?: string | null
           talent_name?: string | null
           total_cents?: number
           updated_at?: string
@@ -525,6 +527,7 @@ export type Database = {
           shared_with_talent?: boolean
           status?: Database["public"]["Enums"]["doc_status"]
           subtotal_cents?: number
+          talent_link_id?: string | null
           talent_name?: string | null
           total_cents?: number
           updated_at?: string
@@ -558,6 +561,13 @@ export type Database = {
             columns: ["converted_from_quote_id"]
             isOneToOne: false
             referencedRelation: "agency_billing_docs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_billing_docs_talent_link_id_fkey"
+            columns: ["talent_link_id"]
+            isOneToOne: false
+            referencedRelation: "agency_talent_links"
             referencedColumns: ["id"]
           },
         ]
@@ -1375,13 +1385,19 @@ export type Database = {
       agency_talent_links: {
         Row: {
           agency_id: string
+          cancelled_at: string | null
           created_at: string
+          declined_at: string | null
           display_name: string
           ended_at: string | null
           ended_by: string | null
           id: string
           manager_user_id: string | null
           next_action: string | null
+          request_expires_at: string | null
+          request_kind: string
+          requested_at: string | null
+          responded_at: string | null
           status: Database["public"]["Enums"]["agency_talent_link_status"]
           talent_invitation_id: string | null
           talent_profile_id: string | null
@@ -1391,13 +1407,19 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          cancelled_at?: string | null
           created_at?: string
+          declined_at?: string | null
           display_name: string
           ended_at?: string | null
           ended_by?: string | null
           id?: string
           manager_user_id?: string | null
           next_action?: string | null
+          request_expires_at?: string | null
+          request_kind?: string
+          requested_at?: string | null
+          responded_at?: string | null
           status?: Database["public"]["Enums"]["agency_talent_link_status"]
           talent_invitation_id?: string | null
           talent_profile_id?: string | null
@@ -1407,13 +1429,19 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          cancelled_at?: string | null
           created_at?: string
+          declined_at?: string | null
           display_name?: string
           ended_at?: string | null
           ended_by?: string | null
           id?: string
           manager_user_id?: string | null
           next_action?: string | null
+          request_expires_at?: string | null
+          request_kind?: string
+          requested_at?: string | null
+          responded_at?: string | null
           status?: Database["public"]["Enums"]["agency_talent_link_status"]
           talent_invitation_id?: string | null
           talent_profile_id?: string | null
@@ -1715,6 +1743,66 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
+      }
+      independent_talent_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_user_id: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string
+          email_sent_at: string | null
+          expires_at: string
+          id: string
+          invited_by: string | null
+          last_sent_at: string | null
+          reminder_sent_at: string | null
+          send_count: number
+          status: Database["public"]["Enums"]["invitation_status"]
+          talent_name: string
+          talent_type: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email: string
+          email_sent_at?: string | null
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          last_sent_at?: string | null
+          reminder_sent_at?: string | null
+          send_count?: number
+          status?: Database["public"]["Enums"]["invitation_status"]
+          talent_name: string
+          talent_type?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string
+          email_sent_at?: string | null
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          last_sent_at?: string | null
+          reminder_sent_at?: string | null
+          send_count?: number
+          status?: Database["public"]["Enums"]["invitation_status"]
+          talent_name?: string
+          talent_type?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       legal_acceptances: {
         Row: {
@@ -2194,6 +2282,50 @@ export type Database = {
         }
         Relationships: []
       }
+      talent_invitation_documents: {
+        Row: {
+          created_at: string
+          doc_slot: string
+          file_name: string
+          id: string
+          invitation_id: string
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          doc_slot: string
+          file_name: string
+          id?: string
+          invitation_id: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          doc_slot?: string
+          file_name?: string
+          id?: string
+          invitation_id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_invitation_documents_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "independent_talent_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_invitations: {
         Row: {
           accepted_at: string | null
@@ -2587,6 +2719,7 @@ export type Database = {
           id: string
           locked_until: string | null
           name: string
+          originator: string
           pending_review: boolean
           retention_stamped_at: string | null
           retention_years_at_upload: number | null
@@ -2614,6 +2747,7 @@ export type Database = {
           id?: string
           locked_until?: string | null
           name: string
+          originator?: string
           pending_review?: boolean
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
@@ -2641,6 +2775,7 @@ export type Database = {
           id?: string
           locked_until?: string | null
           name?: string
+          originator?: string
           pending_review?: boolean
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
@@ -2869,6 +3004,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_independent_talent_invitation: {
+        Args: { _email: string; _invitation_id: string; _user_id: string }
+        Returns: string
+      }
       accept_talent_invitation: {
         Args: { _email: string; _invitation_id: string; _user_id: string }
         Returns: string
@@ -2900,6 +3039,7 @@ export type Database = {
         Returns: boolean
       }
       can_admin_edit: { Args: { _user_id: string }; Returns: boolean }
+      cancel_link_request: { Args: { _link_id: string }; Returns: string }
       compute_document_locked_until: {
         Args: { _doc_id: string }
         Returns: string
@@ -2928,6 +3068,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      expire_link_requests: { Args: never; Returns: number }
       has_agency_role: {
         Args: { _agency_id: string; _role: string; _user_id: string }
         Returns: boolean
@@ -2986,6 +3127,10 @@ export type Database = {
         Args: { _new_talent_type: string; _talent_link_id: string }
         Returns: number
       }
+      request_talent_link: {
+        Args: { _agency_id: string; _email: string; _talent_type?: string }
+        Returns: string
+      }
       reset_rate_limit: {
         Args: { _bucket: string; _subject: string }
         Returns: undefined
@@ -2993,6 +3138,10 @@ export type Database = {
       resolve_document_retention_years: {
         Args: { _doc_id: string }
         Returns: number
+      }
+      respond_link_request: {
+        Args: { _accept: boolean; _link_id: string }
+        Returns: string
       }
       rollback_folder_rename_batch: {
         Args: { _batch_id: string }
@@ -3016,6 +3165,15 @@ export type Database = {
         Returns: undefined
       }
       sweep_overdue_invoices: { Args: never; Returns: number }
+      talent_can_read_shared_doc: {
+        Args: {
+          _link_id: string
+          _originator: string
+          _user_id: string
+          _years: number
+        }
+        Returns: boolean
+      }
       talent_link_is_ended: {
         Args: { _talent_link_id: string }
         Returns: boolean
