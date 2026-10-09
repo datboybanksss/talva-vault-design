@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 // Server-only reminder engine. Detects documents crossing their reminder /
 // expiry threshold, materialises in-app notifications, and then attempts an
 // email for each newly created reminder through the shared Lovable email
@@ -135,8 +136,8 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
           user_id: userId,
           kind: "share_expiring",
           dedupe_key: `share_expiring:${s.id}:${due.slice(0, 10)}`,
-          title: `Shared access for ${s.loved_one_name ?? s.loved_one_email} ${daysPhrase(due)}`,
-          detail: `Sharing · expires ${fmt(due)}`,
+          title: `${SHARE_RECIPIENT_TERM_CAPITALISED} access for ${s.loved_one_name ?? s.loved_one_email} ${daysPhrase(due)}`,
+          detail: `${SHARE_RECIPIENT_TERM_CAPITALISED} sharing · expires ${fmt(due)}`,
           tone: "purple",
           target_type: "loved_one_share",
           target_id: s.id as string,

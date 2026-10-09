@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { emailHeaderHtml } from "@/lib/brand-email";
 
 /**
@@ -38,7 +39,7 @@ export function buildShareEmail(input: {
   const html = `<!doctype html>
 <html><body style="margin:0;padding:24px;background:#F5F5F1;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1F2933;">
   <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">
-    ${emailHeaderHtml("Secure sharing")}
+    ${emailHeaderHtml(`${SHARE_RECIPIENT_TERM_CAPITALISED} sharing`)}
     <div style="padding:24px;">
       <p style="margin:0 0 12px;">Hi ${escapeHtml(input.lovedOneName)},</p>
       <p style="margin:0 0 18px;line-height:1.55;">
@@ -97,7 +98,7 @@ export function buildRegeneratedCodeEmail(input: {
   const html = `<!doctype html>
 <html><body style="margin:0;padding:24px;background:#F5F5F1;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1F2933;">
   <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">
-    ${emailHeaderHtml("Secure sharing")}
+    ${emailHeaderHtml(`${SHARE_RECIPIENT_TERM_CAPITALISED} sharing`)}
     <div style="padding:24px;">
       <p style="margin:0 0 12px;">Hi ${escapeHtml(input.lovedOneName)},</p>
       <p style="margin:0 0 18px;line-height:1.55;">
@@ -149,7 +150,7 @@ export async function sendShareEmail(to: string, mail: { subject: string; html: 
   });
   if (!res.ok) {
     const body = await res.text();
-    console.error(`Loved-One share email failed [${res.status}]: ${body}`);
+    console.error(`${SHARE_RECIPIENT_TERM_CAPITALISED} share email failed [${res.status}]: ${body}`);
     return { sent: false as const, reason: "send_failed" as const, detail: body };
   }
   return { sent: true as const };

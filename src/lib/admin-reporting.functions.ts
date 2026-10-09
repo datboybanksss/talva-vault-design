@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -616,7 +617,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         if (error) throw new Error(error.message);
         return {
           total: count ?? 0,
-          columns: ["Recipient", "Email", "Kind", "Permission", "Active", "Created"],
+          columns: [SHARE_RECIPIENT_TERM_CAPITALISED, "Email", "Kind", "Permission", "Active", "Created"],
           rows: (rows ?? []).map((r: any) => [
             r.loved_one_name ?? "—", r.loved_one_email, r.share_kind, r.permission,
             r.is_active ? "Yes" : "No", r.created_at,

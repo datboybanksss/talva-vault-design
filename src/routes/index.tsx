@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_PLURAL } from "@/lib/terms";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 /**
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Sign in to TalVault — the secure home for talent documents, agency operations and trusted contacts.",
+          `Sign in to TalVault — the secure home for talent documents, agency operations and ${SHARE_RECIPIENT_TERM_PLURAL}.`,
       },
       { property: "og:title", content: "Sign in · TalVault" },
       {
