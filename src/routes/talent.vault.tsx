@@ -699,8 +699,6 @@ function SharedDocumentsView() {
             {new Date(data.read_until).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}.
           </p>
         )}
-        <div style={{ display: "none" }}>
-        </div>
         {folders.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13 }}>Your Manager hasn't provisioned any shared folders yet.</p>
         ) : (
