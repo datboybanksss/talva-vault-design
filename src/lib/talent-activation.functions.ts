@@ -47,7 +47,7 @@ export type ResolvedTalentInvitation =
       talent_name: string | null;
       expires_at: string;
     }
-  | { ok: false; reason: "not_found" | "expired" | "accepted" | "revoked" | "throttled" };
+  | { ok: false; reason: "not_found" | "invalid" | "expired" | "accepted" | "revoked" | "throttled" };
 
 export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
   .inputValidator((v) => resolveInput.parse(v))
@@ -81,7 +81,7 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
     if (inv.kind === "agency") {
       const { data: priv } = await (supabaseAdmin as any)
         .from("talent_invite_private").select("kind").eq("invitation_id", inv.id).maybeSingle();
-      if (priv?.kind === "inert") return { ok: false, reason: "not_found" };
+      if (priv?.kind === "inert") return { ok: false, reason: "invalid" };
     }
     const linkRequest = false;
 

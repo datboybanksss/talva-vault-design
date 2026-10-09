@@ -134,6 +134,7 @@ function terminalTitle(reason: Reason): string {
     case "accepted": return "Invitation already accepted";
     case "revoked": return "Invitation revoked";
     case "throttled": return "Too many attempts";
+    case "invalid": return "This invitation is no longer valid";
     default: return "Invitation not found";
   }
 }
@@ -143,6 +144,7 @@ function terminalBody(reason: Reason): string {
     case "accepted": return "This invitation has already been used. Sign in to your account instead.";
     case "revoked": return "This invitation has been withdrawn. Contact the person who invited you for a new one.";
     case "throttled": return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact the person who invited you.";
+    case "invalid": return "Contact the person who invited you if you think this is a mistake.";
     default: return "The link you followed doesn't match any active invitation. Double-check the URL or contact the person who invited you.";
   }
 }
