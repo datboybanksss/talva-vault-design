@@ -200,7 +200,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/sharing" },
         selector: '[data-tour="share-permission"]',
         title: "Step 4 — what can they do?",
-        body: "\"View only (watermarked)\" opens documents in a viewer stamped with their email and the time, and downloads are blocked on the server, not just hidden. Pick \"View & download\" only when they genuinely need their own copy — for example an advisor filing a claim.",
+        body: "\"View only (watermarked)\" opens documents in a viewer stamped with their email and the time, and downloads are blocked on the server, not just hidden. Pick \"View & download\" only when they genuinely need their own copy — for example an adviser filing a claim.",
         optional: true,
       },
       {

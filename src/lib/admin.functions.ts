@@ -161,6 +161,12 @@ function assertGrantablePermission(inviterLevel: string, requested: string) {
 }
 
 
+/** Agency talent invitations that can never be accepted; excluded from admin counts. */
+async function inertInvitationIds(supabase: any): Promise<Set<string>> {
+  const { data } = await supabase.from("talent_invite_private").select("invitation_id").eq("kind", "inert");
+  return new Set(((data ?? []) as any[]).map((r) => r.invitation_id as string));
+}
+
 async function logAudit(
   supabase: any,
   userId: string,
@@ -342,11 +348,15 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
         .select("id", { count: "exact", head: true })
         .eq("status", "pending")
         .gt("expires_at", nowIso),
-      supabase
-        .from("agency_talent_links")
-        .select("id", { count: "exact", head: true })
-        .eq("request_kind", "link_request")
-        .eq("status", "invited"),
+      // Open connection requests live in the private record (agencies can't
+      // see them); inert invitations are not requests.
+      (supabase as any)
+        .from("talent_invite_private")
+        .select("invitation_id, talent_invitations!inner(status, expires_at)", { count: "exact", head: true })
+        .eq("kind", "link_request")
+        .eq("state", "pending")
+        .eq("talent_invitations.status", "pending")
+        .gt("talent_invitations.expires_at", nowIso),
     ]);
 
 
@@ -559,7 +569,9 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
       .eq("agency_id", data.agency_id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return mapEffectiveStatus(rows);
+    // Inert invitations (to staff/admin accounts etc.) are not real invitations.
+    const inert = await inertInvitationIds(supabase);
+    return mapEffectiveStatus((rows ?? []).filter((r: any) => !inert.has(r.id)));
   });
 
 export const getInvitationById = createServerFn({ method: "GET" })
@@ -1329,6 +1341,32 @@ export const logCopyLink = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Admin copied an independent talent invite link — logged like agency invite copies. */
+export const logTalentInviteCopyLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdmin(supabase, userId);
+    const { data: inv } = await supabase
+      .from("independent_talent_invitations")
+      .select("talent_name, email")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!inv) throw new Error("Invitation not found");
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "copy_talent_invitation_link",
+      "talent_invitation",
+      data.id,
+      inv.talent_name ?? inv.email,
+      { email: inv.email },
+    );
+    return { ok: true };
+  });
+
 // -----------------------------------------------------------------------------
 // Audit log
 // -----------------------------------------------------------------------------
@@ -1874,12 +1912,19 @@ export const listNotifications = createServerFn({ method: "GET" })
         "Onboarding or document review outstanding.",
         "/admin/agencies",
       );
-    if ((talentPending.count ?? 0) > 0)
+    // Inert invitations are not real invitations.
+    const { count: inertPending } = await (supabase as any)
+      .from("talent_invite_private")
+      .select("invitation_id, talent_invitations!inner(status)", { count: "exact", head: true })
+      .eq("kind", "inert")
+      .eq("talent_invitations.status", "pending");
+    const realTalentPending = Math.max(0, (talentPending.count ?? 0) - (inertPending ?? 0));
+    if (realTalentPending > 0)
       push(
         "talent_invite_pending",
-        talentPending.count ?? 0,
+        realTalentPending,
         "blue",
-        `${talentPending.count} Talent invite${talentPending.count === 1 ? "" : "s"} pending`,
+        `${realTalentPending} Talent invite${realTalentPending === 1 ? "" : "s"} pending`,
         "From agency-level Talent invites.",
         "/admin/agencies",
       );

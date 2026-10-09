@@ -267,6 +267,12 @@ export const claimInvitation = createServerFn({ method: "POST" })
 
       // A connection request to an existing account is never accepted here —
       // the talent reviews it (accept or decline) in their portal.
+      const { data: priv } = await (supabaseAdmin as any)
+        .from("talent_invite_private").select("kind").eq("invitation_id", inv.id).maybeSingle();
+      if (priv?.kind === "inert")
+        return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
+      if (priv?.kind === "link_request" && inv.status === "pending")
+        return { ok: true, kind: data.kind, dest: "/talent/requests", already_linked: false };
       if (existingLink?.request_kind === "link_request")
         return { ok: true, kind: data.kind, dest: "/talent/requests", already_linked: false };
 

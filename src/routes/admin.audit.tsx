@@ -21,6 +21,8 @@ const actionArea: Record<string, { area: string; tone: string; severity: string;
   revoke_invitation: { area: "Invitations", tone: "blue", severity: "Medium", sevTone: "amber" },
   update_invitation_email: { area: "Invitations", tone: "blue", severity: "Medium", sevTone: "amber" },
   copy_invitation_link: { area: "Invitations", tone: "blue", severity: "Low", sevTone: "green" },
+  copy_talent_invitation_link: { area: "Invitations", tone: "blue", severity: "Low", sevTone: "green" },
+  agency_talent_invite_inert: { area: "Invitations", tone: "blue", severity: "Medium", sevTone: "amber" },
   view_quotes_invoices: { area: "Reporting", tone: "purple", severity: "Low", sevTone: "green" },
   export_quotes_invoices: { area: "Reporting", tone: "purple", severity: "Medium", sevTone: "amber" },
   approve_legal_copy: { area: "Legal & Copy", tone: "teal", severity: "Medium", sevTone: "amber" },

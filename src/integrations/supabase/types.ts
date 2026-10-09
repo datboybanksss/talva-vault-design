@@ -2397,6 +2397,69 @@ export type Database = {
           },
         ]
       }
+      talent_invite_private: {
+        Row: {
+          agency_id: string
+          cancelled_at: string | null
+          created_at: string
+          declined_at: string | null
+          invitation_id: string
+          kind: string
+          link_id: string | null
+          reason: string | null
+          requested_at: string
+          responded_at: string | null
+          state: string
+          talent_profile_id: string | null
+          talent_user_id: string | null
+        }
+        Insert: {
+          agency_id: string
+          cancelled_at?: string | null
+          created_at?: string
+          declined_at?: string | null
+          invitation_id: string
+          kind: string
+          link_id?: string | null
+          reason?: string | null
+          requested_at?: string
+          responded_at?: string | null
+          state?: string
+          talent_profile_id?: string | null
+          talent_user_id?: string | null
+        }
+        Update: {
+          agency_id?: string
+          cancelled_at?: string | null
+          created_at?: string
+          declined_at?: string | null
+          invitation_id?: string
+          kind?: string
+          link_id?: string | null
+          reason?: string | null
+          requested_at?: string
+          responded_at?: string | null
+          state?: string
+          talent_profile_id?: string | null
+          talent_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_invite_private_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: true
+            referencedRelation: "talent_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_invite_private_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "agency_talent_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_notification_dismissals: {
         Row: {
           dismissed_at: string
@@ -3041,6 +3104,10 @@ export type Database = {
           talent_link_id: string
         }[]
       }
+      attach_talent_invite_private: {
+        Args: { _actor: string; _actor_email: string; _invitation_id: string }
+        Returns: string
+      }
       can_access_talent_folder: {
         Args: {
           _restricted: boolean
@@ -3051,6 +3118,10 @@ export type Database = {
       }
       can_admin_edit: { Args: { _user_id: string }; Returns: boolean }
       cancel_link_request: { Args: { _link_id: string }; Returns: string }
+      close_talent_invite_private: {
+        Args: { _invitation_id: string }
+        Returns: string
+      }
       compute_document_locked_until: {
         Args: { _doc_id: string }
         Returns: string
@@ -3113,6 +3184,15 @@ export type Database = {
         }
         Returns: number
       }
+      my_link_requests: {
+        Args: never
+        Returns: {
+          agency_name: string
+          expires_at: string
+          link_id: string
+          requested_at: string
+        }[]
+      }
       post_end_read_only_years: { Args: never; Returns: number }
       provision_talent_folders: {
         Args: {
@@ -3138,6 +3218,10 @@ export type Database = {
       reconcile_talent_type_folders: {
         Args: { _new_talent_type: string; _talent_link_id: string }
         Returns: number
+      }
+      reopen_talent_invite_private: {
+        Args: { _invitation_id: string }
+        Returns: string
       }
       request_talent_link: {
         Args: {

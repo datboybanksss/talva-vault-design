@@ -410,7 +410,7 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
           <div className="tvp-form-grid">
             <div className="tvp-form-group" data-tour="share-recipient"><label>{SHARE_RECIPIENT_TERM_CAPITALISED} name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah Mokoena" /></div>
             <div className="tvp-form-group"><label>Email (link is sent here)</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com" /></div>
-            <div className="tvp-form-group"><label>Relationship</label><input value={rel} onChange={(e) => setRel(e.target.value)} placeholder="Spouse, Sibling, Advisor…" /></div>
+            <div className="tvp-form-group"><label>Relationship</label><input value={rel} onChange={(e) => setRel(e.target.value)} placeholder="Spouse, Sibling, Adviser…" /></div>
             <div className="tvp-form-group"><label>Access duration (days)</label><input type="number" min={1} max={365} value={days} onChange={(e) => setDays(Number(e.target.value))} /></div>
           </div>
 
