@@ -1,3 +1,26 @@
+-- Link requests as invitations, function hardening, talent-item locks cleared
+-- Recorded here from the Drizzle folder so all history lives in supabase/migrations.
+-- These statements were ALREADY APPLIED to the live database. The guard below makes
+-- this file a no-op wherever the objects already exist, so it can never re-apply
+-- or duplicate anything; on a fresh database it applies the change once.
+--
+-- ROLLBACK (run manually, only if this change must be undone):
+--   DROP FUNCTION IF EXISTS public.resend_link_request(uuid, timestamptz);
+--   DROP FUNCTION IF EXISTS public.request_talent_link(uuid, text, text, text, integer);
+--   -- recreate request_talent_link(uuid, text, text), respond_link_request, cancel_link_request,
+--   -- accept_talent_invitation and tsd_protect_retention_lock from the previous migration bodies;
+--   CREATE OR REPLACE FUNCTION public.talent_can_read_shared_doc(_link_id uuid, _originator text, _years integer, _user_id uuid) ...;
+--   ALTER POLICY "Agency or talent read shared docs" ON public.talent_shared_documents USING (... talent_can_read_shared_doc(talent_link_id, originator, retention_years_at_upload, auth.uid()));
+--   DROP FUNCTION IF EXISTS public.talent_can_read_shared_doc(uuid, text, integer);
+--   -- cleared retention stamps on talent-originated documents are not restored (they were never meant to apply).
+
+DO $guard$
+BEGIN
+  IF to_regprocedure('public.resend_link_request(uuid, timestamptz)') IS NOT NULL THEN
+    RAISE NOTICE 'already applied, skipping';
+    RETURN;
+  END IF;
+  EXECUTE $mig$
 -- 1. Link requests carry an ordinary talent invitation row (token, agency-typed name)
 DROP FUNCTION IF EXISTS public.request_talent_link(uuid, text, text);
 
@@ -215,3 +238,6 @@ UPDATE public.talent_shared_documents
    SET locked_until = NULL, retention_years_at_upload = NULL, retention_stamped_at = NULL
  WHERE originator = 'talent'
    AND (locked_until IS NOT NULL OR retention_years_at_upload IS NOT NULL OR retention_stamped_at IS NOT NULL);
+$mig$;
+END
+$guard$;
