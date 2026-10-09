@@ -41,6 +41,8 @@ export type ResolvedTalentInvitation =
       ok: true;
       agency_name: string;
       independent: boolean;
+      /** an agency's request to connect with someone who already has an account */
+      link_request: boolean;
       email: string;
       talent_name: string | null;
       expires_at: string;
@@ -74,10 +76,22 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
       agencyName = agency?.name ?? "your Talent Manager";
     }
 
+    let linkRequest = false;
+    if (inv.kind === "agency") {
+      const { data: lr } = await supabaseAdmin
+        .from("agency_talent_links")
+        .select("id")
+        .eq("talent_invitation_id", inv.id)
+        .eq("request_kind", "link_request")
+        .limit(1);
+      linkRequest = (lr ?? []).length > 0;
+    }
+
     return {
       ok: true,
       agency_name: agencyName,
       independent: inv.kind === "independent",
+      link_request: linkRequest,
       email: inv.email,
       talent_name: inv.talent_name,
       expires_at: inv.expires_at,

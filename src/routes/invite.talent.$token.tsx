@@ -106,6 +106,13 @@ function InviteBody({
         state={gate.state}
         signedInEmail={gate.signedInEmail}
         error={gate.error}
+        {...(invite.link_request
+          ? {
+              existingTitle: "You already have a TalVault account — sign in to review this request",
+              existingBody: `${invite.agency_name} would like to connect with your TalVault. Sign in to accept or decline. Nothing is shared until you accept.`,
+              nextOverride: "/talent/requests",
+            }
+          : {})}
         onUseDifferentAccount={async () => {
           await supabase.auth.signOut();
           window.location.reload();
