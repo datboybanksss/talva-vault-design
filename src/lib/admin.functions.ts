@@ -324,16 +324,29 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
 
     // Counts use head-only exact counts so the dashboard never streams whole
     // tables back just to call .length on them.
-    const [agencies, talentRows, docs, shares] = await Promise.all([
+    const nowIso = new Date().toISOString();
+    const [agencies, talentSplit, docs, shares, talentInvites, linkRequests] = await Promise.all([
       supabase.from("agencies").select("id, status"),
       // Shared definition with the Reporting page — see src/lib/onboarded-talent.ts.
-      fetchOnboardedTalent(supabase),
+      fetchTalentSplit(supabase),
       supabase.from("agency_documents").select("shared_folder_count, private_vault_count"),
       supabase
         // Admins read share metadata through the token-free admin view.
         .from("admin_loved_one_shares_view")
         .select("id", { count: "exact", head: true })
         .eq("is_currently_active", true),
+      // Admin-sent (independent) talent invitations only — agency-sent talent
+      // invites are not counted here.
+      supabase
+        .from("independent_talent_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .gt("expires_at", nowIso),
+      supabase
+        .from("agency_talent_links")
+        .select("id", { count: "exact", head: true })
+        .eq("request_kind", "link_request")
+        .eq("status", "invited"),
     ]);
 
 
@@ -350,7 +363,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     }
 
     const totalAgencies = agencies.data?.length ?? 0;
-    const totalTalent = talentRows.length;
+    const totalTalent = talentSplit.total;
     const totalDocs =
       (docs.data ?? []).reduce(
         (sum: number, d: any) =>
@@ -363,6 +376,10 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
       totalAgencies,
       statusCounts,
       totalTalent,
+      agencyLinkedTalent: talentSplit.agencyLinked,
+      independentTalent: talentSplit.independent,
+      openTalentInvites: talentInvites.count ?? 0,
+      pendingLinkRequests: linkRequests.count ?? 0,
       totalDocuments: totalDocs,
       activeShares,
       suspendedAgencies: statusCounts.suspended,
