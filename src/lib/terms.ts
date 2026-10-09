@@ -1,0 +1,49 @@
+/**
+ * Product vocabulary that is still awaiting a final decision.
+ *
+ * The replacement for "Loved One" has not been chosen yet. Every screen,
+ * email and tour reads these constants, so the final choice is a one-line
+ * change here. Candidates under review: "Trusted contact", "Secure share",
+ * "Shared access".
+ *
+ * Internal names (loved_one_shares table, loved_one role, /loved-one/$token)
+ * deliberately stay as they are.
+ */
+export const SHARE_TERM = "Loved One share";
+export const SHARE_TERM_PLURAL = "Loved One shares";
+export const SHARE_RECIPIENT_TERM = "Loved One";
+export const SHARE_RECIPIENT_TERM_PLURAL = "Loved Ones";
+
+/** Relationship options offered when a talent creates a share. */
+export const SHARE_RELATIONSHIP_OPTIONS = [
+  "Family",
+  "Partner",
+  "Banker",
+  "Financial adviser",
+  "Accountant",
+  "Legal adviser",
+  "School or university",
+  "Other",
+] as const;
+
+/**
+ * Future-tier hook. Every talent is on the standard tier today; nothing reads
+ * this beyond passing it through, so tiers can be introduced later without
+ * reshaping the talent context.
+ */
+export type TalentTier = "standard";
+export const DEFAULT_TALENT_TIER: TalentTier = "standard";
+
+/** Minimum age for activating a TalVault account. */
+export const MINIMUM_TALENT_AGE = 18;
+
+export function ageOn(dobIso: string, at = new Date()): number {
+  const d = new Date(dobIso + (dobIso.length === 10 ? "T00:00:00Z" : ""));
+  let age = at.getUTCFullYear() - d.getUTCFullYear();
+  const m = at.getUTCMonth() - d.getUTCMonth();
+  if (m < 0 || (m === 0 && at.getUTCDate() < d.getUTCDate())) age -= 1;
+  return age;
+}
+
+export const UNDER_AGE_MESSAGE =
+  "TalVault is for adults (18 and over) at this stage. Please contact the person who invited you.";
