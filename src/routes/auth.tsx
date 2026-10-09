@@ -186,10 +186,8 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const nav = useNavigate();
   const search = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -423,44 +421,23 @@ function AuthPage() {
   }, []);
 
 
-  const isSignIn = mode === "sign-in";
-
-  const strength = useMemo(() => scorePassword(password), [password]);
-  const req = useMemo(() => checkRequirements(password), [password]);
-
-  const validateSignUp = (): string | null => validateNewPassword(password);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setInfo(null);
 
-    if (!isSignIn) {
-      const v = validateSignUp();
-      if (v) {
-        setError(v);
-        return;
-      }
-    }
-
     setBusy(true);
     try {
-      if (isSignIn) {
-        // Wait for the leftover-session clean-up to finish first. If it lands
-        // after the new sign-in it wipes the fresh session, and the portal
-        // gate then bounces straight back here.
+      {
+        // Accounts are only ever created from an invitation link; this screen
+        // signs existing accounts in. Wait for the leftover-session clean-up
+        // first, otherwise it can wipe the fresh session.
         await clearingRef.current?.catch(() => {});
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         // Two-step sign-in is mandatory: never land anyone in a portal on a
         // password alone.
         await afterPassword();
-      } else {
-        // Accounts are only ever created from an invitation link, on the exact
-        // address the invitation was sent to. There is no open sign-up.
-        setError(
-          "Accounts are created from an invitation only. Open the invitation link sent to your email address, or ask your agency or administrator to invite you.",
-        );
       }
     } catch (err) {
       setError(friendlyAuthError(err));
@@ -578,18 +555,12 @@ function AuthPage() {
 
       <section className="tv-auth-panel">
         <div className="tv-auth-card">
-          <div className="tv-auth-eyebrow">{isSignIn ? "Welcome back" : "Get started"}</div>
+          <div className="tv-auth-eyebrow">Welcome back</div>
           <h2 className="tv-auth-title">
-            {isSignIn
-              ? portal.key === "platform"
-                ? "Sign in to TalVault"
-                : `Sign in to TalVault ${portal.name}`
-              : `Create your ${portal.key === "admin" ? "admin" : portal.name.toLowerCase()} account`}
+            {portal.key === "platform" ? "Sign in to TalVault" : `Sign in to TalVault ${portal.name}`}
           </h2>
           <p className="tv-auth-tag">
-            {isSignIn
-              ? "Use your work email or continue with Google. We'll take you to your own workspace."
-              : `Set up your credentials to access the ${portal.workspace}.`}
+            Use your work email or continue with Google. We'll take you to your own workspace.
           </p>
 
           {search.reset === "1" && !codeStage && (
@@ -720,17 +691,6 @@ function AuthPage() {
             </form>
           ) : (
           <form onSubmit={submit} noValidate>
-            {!isSignIn && (
-              <div className="tv-auth-field">
-                <label htmlFor="displayName">Display name</label>
-                <input
-                  id="displayName"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="e.g. Israel Noko"
-                />
-              </div>
-            )}
             <div className="tv-auth-field">
               <label htmlFor="email">Email</label>
               <input
@@ -746,7 +706,7 @@ function AuthPage() {
             <div className="tv-auth-field">
               <div className="tv-auth-label-row">
                 <label htmlFor="password">Password</label>
-                {isSignIn && (
+                {(
                   <Link
                     to="/forgot-password"
                     search={{ next: sanitizeNext(search.next) }}
@@ -760,60 +720,17 @@ function AuthPage() {
                 id="password"
                 value={password}
                 onChange={setPassword}
-                autoComplete={isSignIn ? "current-password" : "new-password"}
-                placeholder={isSignIn ? "Your password" : `At least ${MIN_PW_LENGTH} characters`}
-                minLength={isSignIn ? 1 : MIN_PW_LENGTH}
+                autoComplete="current-password"
+                placeholder="Your password"
+                minLength={1}
               />
-              {!isSignIn && (
-                <>
-                  <div className="tv-auth-hint">{PW_POLICY_HINT}</div>
-                  {password.length > 0 && (
-                    <>
-                      <ul className="tv-auth-reqs" aria-live="polite">
-                        <li className={req.length ? "ok" : ""}>
-                          {req.length ? "✓" : "•"} At least {MIN_PW_LENGTH} characters
-                        </li>
-                        <li className={req.upper ? "ok" : ""}>
-                          {req.upper ? "✓" : "•"} An uppercase letter
-                        </li>
-                        <li className={req.lower ? "ok" : ""}>
-                          {req.lower ? "✓" : "•"} A lowercase letter
-                        </li>
-                        <li className={req.number ? "ok" : ""}>
-                          {req.number ? "✓" : "•"} A number
-                        </li>
-                        <li className={req.special ? "ok" : ""}>
-                          {req.special ? "✓" : "•"} A special character
-                        </li>
-                      </ul>
-                      <div className="tv-auth-strength" aria-live="polite">
-                        <div className="tv-auth-strength-bar">
-                          <div
-                            className="tv-auth-strength-fill"
-                            style={{
-                              width: `${strength.pct}%`,
-                              background: strength.color,
-                            }}
-                          />
-                        </div>
-                        <div className="tv-auth-strength-row">
-                          <span className="tv-auth-strength-label">Strength</span>
-                          <span className={`tv-auth-strength-value ${strength.tier}`}>
-                            {strength.label}
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
             </div>
 
             {error && <div className="tv-auth-alert">{error}</div>}
             {info && <div className="tv-auth-alert tv-info">{info}</div>}
 
             <button type="submit" className="tv-auth-submit" disabled={busy}>
-              {busy ? "Please wait…" : isSignIn ? "Sign in" : "Create account"}
+              {busy ? "Please wait…" : "Sign in"}
             </button>
           </form>
           )}
