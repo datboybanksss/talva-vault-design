@@ -15,6 +15,7 @@ import { friendlyAuthError } from "@/lib/password";
 import { SectionHeader } from "@/components/account/section-header";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
+import { MyTermsAcceptances } from "@/components/shared/my-terms-acceptances";
 
 export const Route = createFileRoute("/agency/my-account")({
   ssr: false,
@@ -71,6 +72,9 @@ function MyAccountPage() {
           />
           <div className="tvp-account-full">
             <TwoFactorCard contextLabel="agency" />
+          </div>
+          <div className="tvp-account-full">
+            <MyTermsAcceptances portal="agency" />
           </div>
         </div>
       )}

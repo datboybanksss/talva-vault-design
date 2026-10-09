@@ -7,6 +7,7 @@ import { updateTalentProfile, getTalentNotificationPrefs, updateTalentNotificati
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
+import { MyTermsAcceptances } from "@/components/shared/my-terms-acceptances";
 import { SecurityLogPanel } from "@/components/talent/security-log-panel";
 import {
   logTalentPasswordChange,
@@ -172,6 +173,9 @@ function TalentSettings() {
             logPasswordChange={() => logTalentPasswordChange()}
           />
           <TwoFactorCard contextLabel="talent" />
+          <div className="tvp-account-full">
+            <MyTermsAcceptances portal="talent" />
+          </div>
         </div>
       )}
 

@@ -17,6 +17,7 @@ import {
   getTalentBellFeed,
   markTalentNotificationRead,
 } from "@/lib/talent.functions";
+import { TermsGate } from "@/components/shared/terms-gate";
 import { PortalFooter } from "@/components/shared/portal-footer";
 import {
   ChevronLeft,
@@ -409,7 +410,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
             {initials}
           </Link>
         </div>
-        {children}
+        <TermsGate portal="talent">{children}</TermsGate>
         <PortalFooter />
       </main>
       <OnboardingTour portal="talent" />
