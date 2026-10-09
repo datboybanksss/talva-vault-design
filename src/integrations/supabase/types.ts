@@ -3012,6 +3012,17 @@ export type Database = {
         Args: { _email: string; _invitation_id: string; _user_id: string }
         Returns: string
       }
+      agency_is_writable: { Args: { _agency_id: string }; Returns: boolean }
+      agency_read_only_until: { Args: { _agency_id: string }; Returns: string }
+      agency_staff_can_read: { Args: { _agency_id: string }; Returns: boolean }
+      agency_staff_can_write: {
+        Args: { _agency_id: string; _user_id: string }
+        Returns: boolean
+      }
+      agency_staff_write_blocked: {
+        Args: { _agency_id: string; _user_id: string }
+        Returns: boolean
+      }
       agency_vault_folder_counts: {
         Args: { _agency_id: string; _talent_link_id: string }
         Returns: {
@@ -3102,6 +3113,7 @@ export type Database = {
         }
         Returns: number
       }
+      post_end_read_only_years: { Args: never; Returns: number }
       provision_talent_folders: {
         Args: {
           _agency_id: string

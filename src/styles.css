@@ -724,6 +724,13 @@
     text-decoration: none; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease;
   }
   & a.tvp-user-dot:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(8,106,112,.22); }
+  /* Suspended agency: persistent read-only label in the shell header. */
+  & .tvp-read-only-label {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+    border-radius: 999px; background: var(--tvp-red-bg); color: var(--tvp-red);
+    font-size: 12px; font-weight: 800; white-space: nowrap; cursor: default;
+  }
+  & .tvp-ro-hidden { display: none !important; }
   & .tvp-search-top { width: 240px; height: 42px; border: 1px solid var(--tvp-line-strong); background: var(--surface); border-radius: 12px; padding: 0 14px; font-size: 13px; color: var(--tvp-ink); }
   & .tvp-search-top:focus { outline: none; border-color: var(--tvp-teal-2); box-shadow: var(--focus-ring); }
 

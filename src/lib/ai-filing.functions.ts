@@ -51,6 +51,15 @@ async function callerAgencyId(supabase: any, userId: string) {
   return data.agency_id as string;
 }
 
+/** Filing changes are writes: refused while the agency is suspended (read-only). */
+async function writableAgencyId(supabase: any, userId: string) {
+  const agencyId = await callerAgencyId(supabase, userId);
+  const { data: ok, error } = await supabase.rpc("agency_is_writable", { _agency_id: agencyId });
+  if (error) throw new Error(error.message);
+  if (!ok) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended. Existing documents are view and download only.");
+  return agencyId;
+}
+
 // -----------------------------------------------------------------------------
 // getFilingCatalog
 // -----------------------------------------------------------------------------
@@ -114,7 +123,7 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
           "This stays in your Private Vault. Your Manager cannot see it unless you share it to the Agency Shared Folder.";
       }
     } else {
-      const agencyId = await callerAgencyId(supabase, userId);
+      const agencyId = await writableAgencyId(supabase, userId);
       const { data: doc, error } = await supabase
         .from("talent_shared_documents")
         .select("id, agency_id, talent_link_id, name, folder")
@@ -185,7 +194,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    const agencyId = await callerAgencyId(supabase, userId);
+    const agencyId = await writableAgencyId(supabase, userId);
     const { data: doc } = await supabase
       .from("talent_shared_documents")
       .select("id, agency_id, name, talent_link_id, folder")
@@ -264,7 +273,7 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    const agencyId = await callerAgencyId(supabase, userId);
+    const agencyId = await writableAgencyId(supabase, userId);
     const { data: doc } = await supabase
       .from("talent_shared_documents")
       .select("id, agency_id, name")
