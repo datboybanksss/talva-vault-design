@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
 import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics, dismissAgencyReminder } from "@/lib/agency.functions";
+import { TermsGate } from "@/components/shared/terms-gate";
 import { PortalFooter } from "@/components/shared/portal-footer";
 import { AgencyReadOnlyContext, useHideWriteControls } from "@/components/agency/agency-read-only";
 
@@ -388,7 +389,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
         </div>
         <AgencyReadOnlyContext.Provider value={readOnly}>
-          <div ref={contentRef}>{children}</div>
+          <div ref={contentRef}><TermsGate portal="agency">{children}</TermsGate></div>
         </AgencyReadOnlyContext.Provider>
         <PortalFooter />
       </main>

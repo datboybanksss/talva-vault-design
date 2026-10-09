@@ -1,6 +1,7 @@
 import { getRequest } from "@tanstack/react-start/server";
 
 export type LegalDocType = "agency" | "talent";
+export type AcceptanceMethod = "activation" | "reacceptance";
 
 function requestMeta(): { ip_address: string | null; user_agent: string | null } {
   try {
@@ -18,39 +19,53 @@ function requestMeta(): { ip_address: string | null; user_agent: string | null }
 }
 
 /**
- * Writes the Terms & Conditions acceptance for a freshly activated account.
- * Throws when the acceptance cannot be recorded so the caller can roll the
- * activation back — an account must never exist without an acceptance row.
+ * Appends a Terms & Conditions acceptance. IP and user agent come from the
+ * request; the database trigger stamps everything else (hash, time, identity,
+ * role, agency, proof reference) so nothing is taken from the browser.
+ * Records are append-only — accepting the same version twice is a no-op.
+ * Throws when the acceptance cannot be recorded so callers can roll back.
  */
 export async function recordLegalAcceptance(args: {
   userId: string;
   docType: LegalDocType;
-  version: string;
-}): Promise<void> {
+  version?: string;
+  documentId?: string;
+  method: AcceptanceMethod;
+}): Promise<{ proof_ref: string | null }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const { data: doc } = await supabaseAdmin
-    .from("legal_documents")
-    .select("id, version")
-    .eq("doc_type", args.docType)
-    .eq("version", args.version)
-    .maybeSingle();
-
+  let q = supabaseAdmin.from("legal_documents").select("id, doc_type, version").eq("doc_type", args.docType);
+  q = args.documentId ? q.eq("id", args.documentId) : q.eq("version", args.version ?? "");
+  const { data: doc } = await q.maybeSingle();
   if (!doc) throw new Error(`Unknown ${args.docType} Terms & Conditions version.`);
 
   const meta = requestMeta();
-  const { error } = await supabaseAdmin.from("legal_acceptances").upsert(
-    {
+  const { data, error } = await supabaseAdmin
+    .from("legal_acceptances")
+    .insert({
       user_id: args.userId,
       document_id: doc.id,
-      doc_type: args.docType,
+      doc_type: doc.doc_type,
       version: doc.version,
-      accepted_at: new Date().toISOString(),
+      acceptance_method: args.method,
       ip_address: meta.ip_address,
       user_agent: meta.user_agent,
-    },
-    { onConflict: "user_id,doc_type,version" },
-  );
+    })
+    .select("proof_ref")
+    .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if ((error as any).code === "23505") {
+      const { data: existing } = await supabaseAdmin
+        .from("legal_acceptances")
+        .select("proof_ref")
+        .eq("user_id", args.userId)
+        .eq("doc_type", doc.doc_type)
+        .eq("version", doc.version)
+        .maybeSingle();
+      return { proof_ref: existing?.proof_ref ?? null };
+    }
+    throw new Error(error.message);
+  }
+  return { proof_ref: data?.proof_ref ?? null };
 }

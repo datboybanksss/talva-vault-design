@@ -1806,36 +1806,60 @@ export type Database = {
       }
       legal_acceptances: {
         Row: {
+          acceptance_method: string | null
           accepted_at: string
+          agency_id: string | null
+          body_sha256: string | null
           created_at: string
           doc_type: string
           document_id: string | null
+          hash_retrospective: boolean
           id: string
           ip_address: string | null
+          proof_ref: string | null
           user_agent: string | null
+          user_email: string | null
+          user_full_name: string | null
           user_id: string
+          user_role: string | null
           version: string
         }
         Insert: {
+          acceptance_method?: string | null
           accepted_at?: string
+          agency_id?: string | null
+          body_sha256?: string | null
           created_at?: string
           doc_type: string
           document_id?: string | null
+          hash_retrospective?: boolean
           id?: string
           ip_address?: string | null
+          proof_ref?: string | null
           user_agent?: string | null
+          user_email?: string | null
+          user_full_name?: string | null
           user_id: string
+          user_role?: string | null
           version: string
         }
         Update: {
+          acceptance_method?: string | null
           accepted_at?: string
+          agency_id?: string | null
+          body_sha256?: string | null
           created_at?: string
           doc_type?: string
           document_id?: string | null
+          hash_retrospective?: boolean
           id?: string
           ip_address?: string | null
+          proof_ref?: string | null
           user_agent?: string | null
+          user_email?: string | null
+          user_full_name?: string | null
           user_id?: string
+          user_role?: string | null
           version?: string
         }
         Relationships: [
@@ -1884,6 +1908,7 @@ export type Database = {
       legal_documents: {
         Row: {
           body: string
+          body_sha256: string
           created_at: string
           doc_type: string
           effective_at: string
@@ -1895,6 +1920,7 @@ export type Database = {
         }
         Insert: {
           body: string
+          body_sha256: string
           created_at?: string
           doc_type: string
           effective_at?: string
@@ -1906,6 +1932,7 @@ export type Database = {
         }
         Update: {
           body?: string
+          body_sha256?: string
           created_at?: string
           doc_type?: string
           effective_at?: string

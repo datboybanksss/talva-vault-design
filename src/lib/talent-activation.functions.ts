@@ -201,7 +201,9 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
     // is rolled back so no vault is activated without an acceptance record.
     try {
       const { recordLegalAcceptance } = await import("@/lib/legal-acceptance.server");
-      await recordLegalAcceptance({ userId, docType: "talent", version: data.terms_version });
+      // Name first, so the acceptance stamp captures the name just entered.
+      await supabaseAdmin.from("talent_profiles").update({ full_name: data.full_name }).eq("user_id", userId);
+      await recordLegalAcceptance({ userId, docType: "talent", version: data.terms_version, method: "activation" });
     } catch (e: any) {
       await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => undefined);
       return {
