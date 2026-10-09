@@ -1,10 +1,8 @@
 import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { sendTalentInvitationEmail, sendStaffInvitationEmail } from "@/lib/invitation-email.functions";
+import { sendStaffInvitationEmail } from "@/lib/invitation-email.functions";
 import {
-  DEFAULT_TALENT_INVITATION_SUBJECT,
-  DEFAULT_TALENT_INVITATION_BODY,
   DEFAULT_STAFF_INVITATION_SUBJECT,
   DEFAULT_STAFF_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
