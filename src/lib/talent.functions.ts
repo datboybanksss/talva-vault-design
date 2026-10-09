@@ -37,6 +37,20 @@ export const getTalentContext = createServerFn({ method: "GET" })
     return { profile, link, agency };
   });
 
+/**
+ * When an ended (or offboarded-agency) link stops being readable. null = still
+ * open. The fixed post-end window lives only in the database.
+ */
+async function linkReadUntil(linkId: string): Promise<string | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: linkId });
+  if (error) throw new Error(error.message);
+  return (data as string | null) ?? null;
+}
+
+const READ_ONLY_MESSAGE =
+  "This connection has ended. Items from this agency are view and download only.";
+
 const DEFAULT_IN_APP = {
   agency_share: true,
   doc_expiring: true,
@@ -251,7 +265,9 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
       .limit(1)
       .maybeSingle();
 
-    if (!link) return { link: null, folders: [], documents: [] };
+    if (!link) return { link: null, folders: [], documents: [], read_until: null as string | null };
+    const readUntil = await linkReadUntil(link.id);
+    const expired = !!readUntil && new Date(readUntil).getTime() <= Date.now();
 
     // Docs — talent-side SELECT policy already scopes by link
     const { data: docs, error: dErr } = await supabase
@@ -274,8 +290,9 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
 
     return {
       link: { id: link.id, agency_id: link.agency_id, status: link.status },
-      folders: folders ?? [],
+      folders: expired ? [] : folders ?? [],
       documents: docs ?? [],
+      read_until: readUntil,
     };
   });
 
@@ -382,6 +399,7 @@ export const createTalentRequestUploadUrl = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const link = await getCallerLink(supabase, userId);
     if (!link) throw new Error("No active roster link.");
+    if (await linkReadUntil(link.id)) throw new Error(READ_ONLY_MESSAGE);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: req } = await supabaseAdmin
@@ -420,6 +438,7 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const link = await getCallerLink(supabase, userId);
     if (!link) throw new Error("No active roster link.");
+    if (await linkReadUntil(link.id)) throw new Error(READ_ONLY_MESSAGE);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: req } = await supabaseAdmin
@@ -726,7 +745,13 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
       .eq("talent_user_id", userId)
       .neq("status", "invited")
       .order("created_at", { ascending: true });
-    const myLinks = (links ?? []) as Array<{ id: string; agency_id: string; display_name: string; status: string }>;
+    // Ended links stay readable only until their fixed post-end cut-off.
+    const myLinks: Array<{ id: string; agency_id: string; display_name: string; status: string; read_until: string | null }> = [];
+    for (const l of (links ?? []) as Array<{ id: string; agency_id: string; display_name: string; status: string }>) {
+      const readUntil = await linkReadUntil(l.id);
+      if (readUntil && new Date(readUntil).getTime() <= Date.now()) continue;
+      myLinks.push({ ...l, read_until: readUntil });
+    }
     const link = myLinks[0] ?? null;
 
     if (!link) return { link: null, documents: [] as any[], unshared_count: 0 };
@@ -772,7 +797,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
     }
 
     return {
-      link: { id: link.id, display_name: link.display_name },
+      link: { id: link.id, display_name: link.display_name, read_until: link.read_until },
       unshared_count: unsharedCount ?? 0,
       documents: rows.map((r) => ({
         ...r,

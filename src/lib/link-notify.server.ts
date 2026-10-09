@@ -98,6 +98,11 @@ export async function emailLinkCancelled(linkId: string) {
 export async function notifyRelationshipEnded(linkId: string) {
   const ctx = await loadLink(linkId);
   if (!ctx?.link.talent_user_id) return { sent: false };
+  const [{ data: years }, { data: readUntil }] = await Promise.all([
+    supabaseAdmin.rpc("talent_post_end_access_years"),
+    supabaseAdmin.rpc("talent_link_read_until", { _link_id: linkId }),
+  ]);
+  const until = (readUntil as string | null) ?? ctx.link.ended_at ?? new Date().toISOString();
   await supabaseAdmin.from("talent_notifications").upsert(
     {
       user_id: ctx.link.talent_user_id,
@@ -105,7 +110,7 @@ export async function notifyRelationshipEnded(linkId: string) {
       dedupe_key: `relationship_ended:${linkId}:${ctx.link.ended_at ?? ""}`,
       title: `Your connection with ${ctx.agencyName} has ended`,
       detail:
-        "Items they shared stay viewable, read-only, until each item's retention period ends. Anything you added yourself stays yours.",
+        `Items they shared stay viewable, read-only, for ${years} years from the date the connection ended (until ${fmtLongDate(until)}). Anything you added yourself stays yours.`,
       tone: "amber",
       target_type: "agency_link",
       target_id: linkId,
@@ -118,7 +123,7 @@ export async function notifyRelationshipEnded(linkId: string) {
     heading: "What happens to your documents",
     paragraphs: [
       `Hi ${first(ctx.talentName)},`,
-      `${ctx.agencyName} has ended the connection. Documents and quotes/invoices they shared with you stay viewable, read-only, until each item's retention period ends (shown next to each item).`,
+      `${ctx.agencyName} has ended the connection. Documents and quotes/invoices they shared with you stay viewable and downloadable, read-only, for ${years} years from the date the connection ended — until ${fmtLongDate(until)}.`,
       "Anything you added yourself stays yours, with no time limit, and you can remove it whenever you like. Your Private Vault is unaffected.",
     ],
     ctaLabel: "View shared items",
