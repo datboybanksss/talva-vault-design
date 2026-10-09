@@ -161,6 +161,12 @@ function assertGrantablePermission(inviterLevel: string, requested: string) {
 }
 
 
+/** Agency talent invitations that can never be accepted; excluded from admin counts. */
+async function inertInvitationIds(supabase: any): Promise<Set<string>> {
+  const { data } = await supabase.from("talent_invite_private").select("invitation_id").eq("kind", "inert");
+  return new Set(((data ?? []) as any[]).map((r) => r.invitation_id as string));
+}
+
 async function logAudit(
   supabase: any,
   userId: string,
@@ -342,11 +348,15 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
         .select("id", { count: "exact", head: true })
         .eq("status", "pending")
         .gt("expires_at", nowIso),
-      supabase
-        .from("agency_talent_links")
-        .select("id", { count: "exact", head: true })
-        .eq("request_kind", "link_request")
-        .eq("status", "invited"),
+      // Open connection requests live in the private record (agencies can't
+      // see them); inert invitations are not requests.
+      (supabase as any)
+        .from("talent_invite_private")
+        .select("invitation_id, talent_invitations!inner(status, expires_at)", { count: "exact", head: true })
+        .eq("kind", "link_request")
+        .eq("state", "pending")
+        .eq("talent_invitations.status", "pending")
+        .gt("talent_invitations.expires_at", nowIso),
     ]);
 
 
@@ -559,7 +569,9 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
       .eq("agency_id", data.agency_id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return mapEffectiveStatus(rows);
+    // Inert invitations (to staff/admin accounts etc.) are not real invitations.
+    const inert = await inertInvitationIds(supabase);
+    return mapEffectiveStatus((rows ?? []).filter((r: any) => !inert.has(r.id)));
   });
 
 export const getInvitationById = createServerFn({ method: "GET" })
