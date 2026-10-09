@@ -18,6 +18,7 @@ import {
   deleteIndependentTalentDraft,
 } from "@/lib/independent-talent.functions";
 import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
+import { logTalentInviteCopyLink } from "@/lib/admin.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
 import { DOCUMENT_ACCEPT, preflightUpload } from "@/lib/file-validation";
@@ -59,6 +60,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
   const resendFn = useServerFn(resendIndependentTalentInvitation);
   const revokeFn = useServerFn(revokeIndependentTalentInvitation);
   const deleteDraftFn = useServerFn(deleteIndependentTalentDraft);
+  const logCopyFn = useServerFn(logTalentInviteCopyLink);
 
   const [draftId, setDraftId] = useState(initialId ?? "");
   const [name, setName] = useState("");
@@ -219,6 +221,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
+      await logCopyFn({ data: { id: draftId } }).catch(() => undefined);
       toast.success("Link copied. Copy does not extend expiry.");
     } catch {
       toast.error("Copy failed");

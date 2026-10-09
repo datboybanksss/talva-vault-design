@@ -10,6 +10,7 @@ import {
   revokeIndependentTalentInvitation,
 } from "@/lib/independent-talent.functions";
 import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
+import { logTalentInviteCopyLink } from "@/lib/admin.functions";
 
 export const TALENT_INVITE_STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -35,6 +36,7 @@ export function useTalentInvitationActions() {
   const getFn = useServerFn(getIndependentTalentInvitation);
   const resendFn = useServerFn(resendIndependentTalentInvitation);
   const revokeFn = useServerFn(revokeIndependentTalentInvitation);
+  const logCopyFn = useServerFn(logTalentInviteCopyLink);
 
   const resendM = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
@@ -59,6 +61,7 @@ export function useTalentInvitationActions() {
       const res: any = await getFn({ data: { id } });
       if (!res?.invite_url) throw new Error("This invitation has no live link.");
       await navigator.clipboard.writeText(res.invite_url);
+      await logCopyFn({ data: { id } }).catch(() => undefined);
       toast.success("Link copied. Copy does not extend expiry.");
     } catch (e: any) {
       toast.error(e?.message ?? "Copy failed");
