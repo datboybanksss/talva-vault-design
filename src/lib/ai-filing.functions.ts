@@ -12,6 +12,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
 const ScopeEnum = z.enum(["talent", "agency"]);
@@ -48,6 +49,7 @@ async function callerAgencyId(supabase: any, userId: string) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: not an agency member");
+  await assertTermsAccepted(supabase, userId, "agency");
   return data.agency_id as string;
 }
 

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
 const BUCKET = "talent-private-documents";
@@ -8,7 +9,7 @@ const BUCKET = "talent-private-documents";
  * List the caller's private folder tree + documents.
  */
 export const listPrivateVault = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
@@ -42,7 +43,7 @@ const CreateFolderInput = z.object({
 });
 
 export const createPrivateFolder = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => CreateFolderInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -82,7 +83,7 @@ const DeleteFolderInput = z.object({ id: z.string().uuid() });
  * Subfolders are hard-deleted, but only when they hold no documents and no children.
  */
 export const deletePrivateFolder = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => DeleteFolderInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -145,7 +146,7 @@ const CreateUploadUrlInput = z.object({
  * insert the document row (client uploads to the signed URL).
  */
 export const createPrivateUploadUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => CreateUploadUrlInput.parse(input))
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
@@ -184,7 +185,7 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
  * stored object and the row with it.
  */
 export const finalisePrivateUpload = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) =>
     z.object({ document_id: z.string().uuid() }).parse(input),
   )
@@ -234,7 +235,7 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
 const DocIdInput = z.object({ id: z.string().uuid() });
 
 export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => DocIdInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -255,7 +256,7 @@ export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
   });
 
 export const deletePrivateDocument = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => DocIdInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -290,7 +291,7 @@ const MoveDocInput = z.object({
 });
 
 export const movePrivateDocument = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => MoveDocInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -313,7 +314,7 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
  * routine — nothing about the taxonomy lives in app code.
  */
 export const listTalentVaultCatalogue = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase } = context;
     const [cats, subs] = await Promise.all([
@@ -340,7 +341,7 @@ const RestoreDefaultInput = z.object({ name: z.string().trim().min(1).max(120) }
  * database catalogue.
  */
 export const restoreDefaultFolder = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTalentTermsAccepted])
   .inputValidator((input: unknown) => RestoreDefaultInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
