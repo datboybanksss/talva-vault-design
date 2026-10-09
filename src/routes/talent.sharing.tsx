@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_PLURAL, SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
 import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
 import { ModalShell } from "@/components/shared/modal-shell";
 import { createFileRoute } from "@tanstack/react-router";
@@ -19,7 +20,7 @@ import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/talent/sharing")({
-  head: () => ({ meta: [{ title: "Shared Access · TalVault Talent" }] }),
+  head: () => ({ meta: [{ title: `${SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED} · TalVault Talent` }, { name: "description", content: `Manage secure, time-limited sharing with your ${SHARE_RECIPIENT_TERM_PLURAL}.` }, { property: "og:title", content: `${SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED} · TalVault Talent` }, { property: "og:description", content: `Manage secure, time-limited sharing with your ${SHARE_RECIPIENT_TERM_PLURAL}.` }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SharingPage,
 });
 
@@ -62,7 +63,7 @@ function SharingPage() {
         recipient: s.loved_one_name ?? s.loved_one_email,
       });
       if (email.sent) {
-        toast.success("New code issued — we emailed the unchanged link to your Loved One.");
+        toast.success(`New code issued — we emailed the unchanged link to your ${SHARE_RECIPIENT_TERM}.`);
       } else {
         toast.warning("New code issued, but no email was sent — copy the link and send it yourself.");
       }
@@ -84,14 +85,14 @@ function SharingPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <h1 className="tvp-h1">Shared Access</h1>
+          <h1 className="tvp-h1">{SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED}</h1>
           <div className="tvp-subtitle">
-            Share private documents with a Loved One via a time-bound magic link plus a one-time access code.
+            Share private documents with a {SHARE_RECIPIENT_TERM} via a time-bound magic link plus a one-time access code.
           </div>
         </div>
         <div className="tvp-actions" data-tour="talent-share-new">
           <button className="tvp-primary" onClick={() => { setPrefill(null); setShowModal(true); }}>
-            <Share2 className="h-4 w-4" /> New share
+            <Share2 className="h-4 w-4" /> Add a {SHARE_RECIPIENT_TERM}
           </button>
         </div>
       </div>
@@ -103,7 +104,7 @@ function SharingPage() {
         <div>
           <strong>Two-factor by design.</strong>{" "}
           <span className="tvp-muted">
-            The link goes to your Loved One by email; the access code never does. Give them the code yourself
+            The link goes to your {SHARE_RECIPIENT_TERM} by email; the access code never does. Give them the code yourself
             (call or message) so an intercepted inbox alone can't open your documents.
           </span>
         </div>
@@ -119,8 +120,8 @@ function SharingPage() {
             <div className="tvp-kpi-icon tvp-bg-blue" style={{ width: 46, height: 46, margin: "0 auto 10px" }}>
               <Share2 className="h-5 w-5" />
             </div>
-            <strong>No shares yet</strong>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Create your first share to get started.</p>
+            <strong>No {SHARE_RECIPIENT_TERM_PLURAL} yet</strong>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Share with a {SHARE_RECIPIENT_TERM} to get started.</p>
           </div>
         ) : (
           <div className="tvp-table-wrap">
@@ -314,7 +315,7 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
             <Mail className="h-3.5 w-3.5" style={{ flex: "0 0 auto", marginTop: 2 }} />
             <span>
               {fresh.email.sent
-                ? "Notification email sent to your Loved One (link only, no code)."
+                ? `Notification email sent to your ${SHARE_RECIPIENT_TERM} (link only, no code).`
                 : fresh.email.reason === "email_not_configured" ||
                     fresh.email.reason === "domain_unverified"
                   ? EMAIL_FALLBACK_NOTICE
@@ -402,12 +403,12 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
   return (
     <ModalShell onClose={onClose} maxWidth={680}>
         <div className="tvp-modal-head">
-          <h2 className="tvp-h2"><Plus className="h-5 w-5" /> New share</h2>
+          <h2 className="tvp-h2"><Plus className="h-5 w-5" /> Share with a {SHARE_RECIPIENT_TERM}</h2>
           <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
         <div className="tvp-modal-body">
           <div className="tvp-form-grid">
-            <div className="tvp-form-group" data-tour="share-recipient"><label>Loved One name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah Mokoena" /></div>
+            <div className="tvp-form-group" data-tour="share-recipient"><label>{SHARE_RECIPIENT_TERM_CAPITALISED} name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sarah Mokoena" /></div>
             <div className="tvp-form-group"><label>Email (link is sent here)</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@email.com" /></div>
             <div className="tvp-form-group"><label>Relationship</label><input value={rel} onChange={(e) => setRel(e.target.value)} placeholder="Spouse, Sibling, Advisor…" /></div>
             <div className="tvp-form-group"><label>Access duration (days)</label><input type="number" min={1} max={365} value={days} onChange={(e) => setDays(Number(e.target.value))} /></div>
@@ -485,7 +486,7 @@ function NewShareModal({ onClose, onCreated, prefill }: { onClose: () => void; o
 
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13 }}>
             <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
-            Email the link to {name.trim() || "your Loved One"} (the access code is never emailed)
+            Email the link to {name.trim() || `your ${SHARE_RECIPIENT_TERM}`} (the access code is never emailed)
           </label>
         </div>
         <div className="tvp-modal-foot">

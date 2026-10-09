@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -17,7 +18,7 @@ function sanitizeNext(next?: string): string {
 function portalName(next: string): string {
   if (next.startsWith("/agency")) return "Agency";
   if (next.startsWith("/talent")) return "Talent";
-  if (next.startsWith("/loved-one")) return "Loved One";
+  if (next.startsWith("/loved-one")) return SHARE_RECIPIENT_TERM_CAPITALISED;
   return "Admin";
 }
 

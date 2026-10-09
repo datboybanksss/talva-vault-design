@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_PLURAL, SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -574,16 +575,16 @@ function BrandingPanel() {
         <h1 className="tv-auth-headline">Activate your Talent vault</h1>
         <p className="tv-auth-sub">
           Set up your account and enter a secure workspace with a Private Vault, Agency Shared Folder and
-          Loved One sharing.
+          sharing with {SHARE_RECIPIENT_TERM_PLURAL}.
         </p>
         <ul className="tv-auth-points">
           <li className="tv-auth-point"><span className="tv-auth-point-dot"><Lock className="h-4 w-4 text-white" /></span>Private Vault</li>
           <li className="tv-auth-point"><span className="tv-auth-point-dot"><FolderLock className="h-4 w-4 text-white" /></span>Agency Shared Folder</li>
           <li className="tv-auth-point"><span className="tv-auth-point-dot"><Sparkles className="h-4 w-4 text-white" /></span>AI review</li>
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><Users className="h-4 w-4 text-white" /></span>Loved One access</li>
+          <li className="tv-auth-point"><span className="tv-auth-point-dot"><Users className="h-4 w-4 text-white" /></span>{SHARE_RECIPIENT_TERM_CAPITALISED} access</li>
         </ul>
       </div>
-      <div className="tv-auth-footnote">Private Vault · Shared Folder · AI review · Loved One access</div>
+      <div className="tv-auth-footnote">Private Vault · Shared Folder · AI review · {SHARE_RECIPIENT_TERM_CAPITALISED} access</div>
     </aside>
   );
 }

@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -144,7 +145,7 @@ function AdminDashboard() {
             <div className="tvp-kpi-value">{metrics.data?.activeShares ?? "—"}</div>
             <div className="tvp-kpi-label">Active Shares</div>
             <div className={`tvp-kpi-sub${(metrics.data?.activeShares ?? 0) > 0 ? "" : " tvp-neutral"}`}>
-              Across all Talent
+              {SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED} across all talent
             </div>
           </div>
         </div>

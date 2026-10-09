@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_PLURAL } from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -108,7 +109,7 @@ const PORTAL_HERO: Record<
     ],
   },
   admin: {
-    headline: "The secure operations console for talent, agencies and loved ones.",
+    headline: `The secure operations console for talent, agencies and ${SHARE_RECIPIENT_TERM_PLURAL}.`,
     sub: "Manage agencies, invitations, audit trails and platform integrity from one branded workspace — with role-based access and full audit history.",
     points: [
       "Role-based access with row-level security",
@@ -147,7 +148,7 @@ const PORTAL_HERO: Record<
 
 type PortalContext = {
   key: "platform" | "admin" | "agency" | "talent" | "loved-one";
-  name: string;      // "Admin", "Agency", "Talent", "Loved One"
+  name: string;      // Display label for the selected portal
   workspace: string; // "admin portal", "agency workspace", ...
   home: string;      // default landing route
 };
@@ -163,7 +164,7 @@ function portalFromNext(next?: string): PortalContext {
   if (path.startsWith("/talent"))
     return { key: "talent", name: "Talent", workspace: "talent workspace", home: "/talent" };
   if (path.startsWith("/loved-one"))
-    return { key: "loved-one", name: "Loved One", workspace: "loved-one workspace", home: "/loved-one" };
+    return { key: "loved-one", name: SHARE_RECIPIENT_TERM_CAPITALISED, workspace: `${SHARE_RECIPIENT_TERM} workspace`, home: "/loved-one" };
   return { key: "admin", name: "Admin", workspace: "admin portal", home: "/admin" };
 }
 

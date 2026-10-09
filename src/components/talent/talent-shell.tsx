@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { HelpMenu } from "@/components/shared/help-menu";
@@ -51,7 +52,7 @@ const buildManageNav = (vaultBadge: number, sharesBadge: number, reminderBadge: 
     ...(reminderBadge > 0 ? { badge: reminderBadge } : {}),
   },
   { to: "/talent/vault", label: "Vault", icon: <Lock />, badge: vaultBadge },
-  { to: "/talent/sharing", label: <>Shared<br />Access</>, icon: <Share2 />, badge: sharesBadge },
+  { to: "/talent/sharing", label: SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED, icon: <Share2 />, badge: sharesBadge },
   { to: "/talent/budget", label: <>Budget &<br />Income</>, icon: <Wallet /> },
   { to: "/talent/requests", label: "Requests", icon: <UserPlus /> },
 ];

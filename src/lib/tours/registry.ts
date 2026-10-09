@@ -1,3 +1,4 @@
+import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
 import type { TourGuide } from "./types";
 
 /**
@@ -35,8 +36,8 @@ export const GUIDES: TourGuide[] = [
       {
         key: "sharing",
         selector: '[data-tour="/talent/sharing"]',
-        title: "Shared Access",
-        body: "Give a loved one time-limited access to specific documents. They get a secure link; you give them the access code separately.",
+        title: SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED,
+        body: `Give a ${SHARE_RECIPIENT_TERM} time-limited access to specific documents. They get a secure link; you give them the access code separately.`,
       },
       {
         key: "budget",
@@ -167,7 +168,7 @@ export const GUIDES: TourGuide[] = [
     id: "talent.sharing",
     portal: "talent",
     kind: "module",
-    title: "Sharing with a loved one",
+    title: `Sharing with a ${SHARE_RECIPIENT_TERM}`,
     description: "Create one secure share, field by field, then hand over the code safely.",
     match: ["/talent/sharing"],
     steps: [
@@ -176,14 +177,14 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/sharing" },
         selector: '[data-tour="talent-share-new"]',
         title: "Step 1 — start the share",
-        body: "On Shared Access, click the new share button. Nothing is shared until you finish this form deliberately — there is no automatic sharing anywhere in TalVault.",
+        body: `On ${SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED}, click "Add a ${SHARE_RECIPIENT_TERM}". Nothing is shared until you finish this form deliberately — there is no automatic sharing anywhere in TalVault.`,
       },
       {
         key: "recipient",
         route: { to: "/talent/sharing" },
         selector: '[data-tour="share-recipient"]',
         title: "Step 2 — who it's for, and for how long",
-        body: "Fill the four fields at the top in order. Loved One name: \"Sarah Mokoena\". Email (link is sent here): \"sarah@example.com\". Relationship: \"Spouse\". Access duration (days): 14 — the share stops working on its own after that, you don't have to remember to close it.",
+        body: `Fill the four fields at the top in order. ${SHARE_RECIPIENT_TERM_CAPITALISED} name: "Sarah Mokoena". Email (link is sent here): "sarah@example.com". Relationship: "Spouse". Access duration (days): 14 — the share stops working on its own after that, you don't have to remember to close it.`,
         optional: true,
       },
       {
