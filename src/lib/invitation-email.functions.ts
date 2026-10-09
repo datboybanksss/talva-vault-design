@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertTermsAccepted } from "@/lib/terms-guard";
 
 const sendInput = z.object({
   id: z.string().uuid(),
@@ -116,6 +117,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
     if (!isOwner) throw new Error("Forbidden: only agency owners may send talent invitations.");
     const { data: writable } = await supabase.rpc("agency_is_writable", { _agency_id: inv.agency_id });
     if (!writable) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended.");
+    await assertTermsAccepted(supabase, userId, "agency");
 
     // A connection request to an existing account goes out as the request
     // email (E5); an inert invitation is never sent. Either way the agency sees
@@ -311,6 +313,7 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
     if (!isOwner) throw new Error("Forbidden: only agency owners may send staff invitations.");
     const { data: writable } = await supabase.rpc("agency_is_writable", { _agency_id: inv.agency_id });
     if (!writable) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended.");
+    await assertTermsAccepted(supabase, userId, "agency");
 
     const { buildInvitationEmail } = await import("@/lib/invitation-email");
     const { sendInvitationEmail } = await import("@/lib/invitation-email.server");

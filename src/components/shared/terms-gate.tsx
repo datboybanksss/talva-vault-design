@@ -32,7 +32,8 @@ export function TermsGate({ portal, children }: { portal: TermsPortal; children:
     try {
       const res = await acceptFn({ data: { portal, document_id: doc.id } });
       toast.success(res.proof_ref ? `Thank you. Your proof reference is ${res.proof_ref}.` : "Thank you.");
-      await qc.invalidateQueries({ queryKey: ["terms-status", portal] });
+      // Everything refused before acceptance (bell, counts, pages) reloads now.
+      await qc.invalidateQueries();
     } catch (e: any) {
       toast.error(e?.message ?? "We couldn't record your acceptance. Please try again.");
     } finally {
