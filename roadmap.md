@@ -37,3 +37,8 @@
 - [x] Function exposure hardened
 - [x] Q&I talent link on save, fallback reader, Link to talent action
 - [x] Framework versions pinned to >=14 days old; root error typed
+
+## 10-year post-end access (Oct 2026)
+- [x] DB cut-off = 10 years from relationship end or agency suspension; talent-added items unlimited
+- [x] Q&I reader, request uploads, copy (E7, bell, 30-day warning, vault, tour)
+- [ ] Agency users' 10-year read-only after offboarding — report only, awaiting decision
