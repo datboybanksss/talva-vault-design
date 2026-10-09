@@ -23,14 +23,25 @@ export const DEFAULT_INVITATION_BODY = [
   "Click the button below to accept your invitation and finish setting up your agency account. You'll create your own password on the next screen — we never send passwords by email.",
 ].join("\n");
 
-export const DEFAULT_TALENT_INVITATION_SUBJECT = "Your TalVault is ready to set up";
+export const DEFAULT_TALENT_INVITATION_SUBJECT = "{{agency_name}} has invited you to TalVault";
 
 export const DEFAULT_TALENT_INVITATION_BODY = [
   "Hi {{talent_name}},",
   "",
-  "{{agency_name}} has invited you to set up your Talent Vault on TalVault — a private space for your own documents, plus a shared folder your Manager can see.",
+  "{{agency_name}} uses TalVault to share documents with the talent they represent. You'll get your own Private Vault that only you can see, plus a shared folder with {{agency_name}}.",
   "",
-  "Click the button below to accept your invitation and create your account. You'll choose your own password on the next screen — we never send passwords by email.",
+  "Setting up takes about five minutes: choose a password, accept the terms, confirm your details and verify your sign-in with a code we email you. We never send passwords by email.",
+].join("\n");
+
+/** Admin → independent talent (no agency). TalVault is the sender. */
+export const DEFAULT_INDEPENDENT_TALENT_INVITATION_SUBJECT = "You're invited to set up your TalVault";
+
+export const DEFAULT_INDEPENDENT_TALENT_INVITATION_BODY = [
+  "Welcome to TalVault, {{talent_name}}",
+  "",
+  "TalVault is a secure, invite-only vault where talent keep contracts, ID, tax and career documents in one protected place. You've been invited by the TalVault team.",
+  "",
+  "Setting up takes about five minutes: choose a password, accept the terms, confirm your details and verify your sign-in with a code we email you. We never send passwords by email.",
 ].join("\n");
 
 export const DEFAULT_STAFF_INVITATION_SUBJECT = "Join {{agency_name}} on TalVault";
@@ -62,7 +73,9 @@ export type InvitationVariant = {
   footerBrand: string;
 };
 
-export const INVITATION_VARIANTS: Record<"agency" | "talent" | "staff" | "admin", InvitationVariant> = {
+export type InvitationVariantKey = "agency" | "talent" | "independent" | "staff" | "admin";
+
+export const INVITATION_VARIANTS: Record<InvitationVariantKey, InvitationVariant> = {
   agency: {
     strapline: "Secure document vault for talent agencies and their people.",
     ctaLabel: "Accept invitation",
@@ -71,8 +84,14 @@ export const INVITATION_VARIANTS: Record<"agency" | "talent" | "staff" | "admin"
   },
   talent: {
     strapline: "Your private vault for personal and professional documents.",
-    ctaLabel: "Set up my vault",
+    ctaLabel: "Set up my TalVault",
     expiryHelp: "If the link expires, contact your Manager for a fresh invite.",
+    footerBrand: "TalVault",
+  },
+  independent: {
+    strapline: "A private, invite-only vault for your important documents.",
+    ctaLabel: "Set up my TalVault",
+    expiryHelp: "If the link expires, contact the TalVault team for a fresh invite.",
     footerBrand: "TalVault",
   },
   staff: {
@@ -149,7 +168,7 @@ export function buildInvitationEmail(input: {
   inviteUrl: string;
   expiryDate: string;
   /** Defaults to the agency variant so existing callers are unchanged. */
-  variant?: "agency" | "talent" | "staff" | "admin";
+  variant?: InvitationVariantKey;
 }) {
   const v = INVITATION_VARIANTS[input.variant ?? "agency"];
   const tokens: InvitationTokens = {

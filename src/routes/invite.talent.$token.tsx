@@ -1,3 +1,4 @@
+import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -72,7 +73,7 @@ function TalentInvitePage() {
           ) : inviteQ.isLoading ? (
             <div className="tv-auth-tag">Loading your invitation…</div>
           ) : !resolved ? (
-            <TerminalError title="Something went wrong" body="We couldn't load this invitation. Please try again or contact your Manager." />
+            <TerminalError title="Something went wrong" body="We couldn't load this invitation. Please try again or contact the person who invited you." />
           ) : resolved.ok === false ? (
             <TerminalError title={terminalTitle(resolved.reason)} body={terminalBody(resolved.reason)} />
           ) : null}
@@ -130,11 +131,11 @@ function terminalTitle(reason: Reason): string {
 }
 function terminalBody(reason: Reason): string {
   switch (reason) {
-    case "expired": return "Contact your Manager to receive a fresh invitation link.";
+    case "expired": return "Contact the person who invited you to receive a fresh invitation link.";
     case "accepted": return "This invitation has already been used. Sign in to your account instead.";
-    case "revoked": return "This invitation has been withdrawn. Contact your Manager for a new one.";
-    case "throttled": return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact your Manager.";
-    default: return "The link you followed doesn't match any active invitation. Double-check the URL or contact your Manager.";
+    case "revoked": return "This invitation has been withdrawn. Contact the person who invited you for a new one.";
+    case "throttled": return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact the person who invited you.";
+    default: return "The link you followed doesn't match any active invitation. Double-check the URL or contact the person who invited you.";
   }
 }
 
@@ -195,7 +196,7 @@ function Wizard({
           email: invite.email,
           full_name: fullName.trim(),
           id_number: idNumber.trim() || undefined,
-          date_of_birth: dob || undefined,
+          date_of_birth: dob,
           tax_number: taxNumber.trim() || undefined,
           is_provisional_taxpayer: provisional,
           phone_number: phone.trim() || undefined,
@@ -224,6 +225,14 @@ function Wizard({
     if (step === 2) {
       if (fullName.trim().length < 2) {
         setError("Please enter your full name (min 2 characters).");
+        return;
+      }
+      if (!dob) {
+        setError("Please enter your date of birth.");
+        return;
+      }
+      if (ageOn(dob) < MINIMUM_TALENT_AGE) {
+        setError(UNDER_AGE_MESSAGE);
         return;
       }
     }
@@ -325,7 +334,7 @@ function Step1({
           marginTop: 8,
         }}
       >
-        Email must match the invite. You must register with the same email address your Manager sent the invitation to.
+        Email must match the invite. You must register with the same email address the invitation was sent to.
       </div>
       <button type="button" className="tv-auth-submit" onClick={onContinue}>
         Continue
@@ -350,7 +359,7 @@ function Step2({
     <>
       <h2 className="tv-auth-title">Confirm your details</h2>
       <p className="tv-auth-tag">
-        These details stay in your Private Vault. Your Manager cannot see them unless you share a document.
+        These details stay in your Private Vault. No agency can see them unless you share a document.
       </p>
       <div className="tv-auth-field">
         <label htmlFor="full-name">Full name</label>
@@ -361,7 +370,7 @@ function Step2({
         <input id="id-number" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="e.g. 9001015800086" />
       </div>
       <div className="tv-auth-field">
-        <label htmlFor="dob">Date of birth</label>
+        <label htmlFor="dob">Date of birth (you must be 18 or over)</label>
         <input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
       </div>
       <div className="tv-auth-field">

@@ -23,12 +23,6 @@ import {
   listAgencyFolderSettings,
   createTalentInvitationMine,
 } from "@/lib/agency.functions";
-import { sendTalentInvitationEmail } from "@/lib/invitation-email.functions";
-import {
-  DEFAULT_TALENT_INVITATION_SUBJECT,
-  DEFAULT_TALENT_INVITATION_BODY,
-  EMAIL_FALLBACK_NOTICE,
-} from "@/lib/invitation-email";
 
 
 export const Route = createFileRoute("/agency/talent/invite")({
@@ -52,7 +46,6 @@ function InviteTalent() {
   const rosterFn = useServerFn(listAgencyTalent);
   const folderSettingsFn = useServerFn(listAgencyFolderSettings);
   const createFn = useServerFn(createTalentInvitationMine);
-  const sendEmailFn = useServerFn(sendTalentInvitationEmail);
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
   const roster = useQuery({ queryKey: ["agency", "talent"], queryFn: () => rosterFn() });
@@ -140,39 +133,16 @@ function InviteTalent() {
           talent_type: talentType || null,
         },
       }),
-    onSuccess: async (inv: any) => {
+    onSuccess: async (res: any) => {
       qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
       qc.invalidateQueries({ queryKey: ["agency", "talent"] });
-
-      // Actually send the invitation email. A delivery failure must not lose
-      // the invitation — it already exists and the link can be copied.
-      let sent = false;
-      let reason: string | undefined;
-      try {
-        const res: any = await sendEmailFn({
-          data: {
-            id: inv.id,
-            subject: DEFAULT_TALENT_INVITATION_SUBJECT,
-            body: DEFAULT_TALENT_INVITATION_BODY,
-            invite_url: `${window.location.origin}/invite/talent/${inv.token}`,
-          },
-        });
-        sent = !!res?.sent;
-        reason = res?.reason;
-      } catch (e: any) {
-        reason = e?.message;
-      }
-
-      if (sent) {
-        toast.success("Invitation sent. The link expires on the date you set.");
-      } else {
-        toast.warning(
-          reason === "domain_unverified" || reason === "email_not_configured"
-            ? EMAIL_FALLBACK_NOTICE
-            : "Invitation created, but the email could not be sent. Copy the link and send it yourself for now.",
-          { duration: 9000 },
-        );
-      }
+      // Deliberately the same reply whether or not this person already has a
+      // TalVault account.
+      toast.success(
+        res?.message ??
+          "If this person is on TalVault they'll receive a request to connect; otherwise they'll receive an invitation.",
+        { duration: 9000 },
+      );
       navigate({ to: "/agency/invitations" });
     },
     onError: (e: any) => toast.error(e?.message ?? "The invitation could not be sent."),

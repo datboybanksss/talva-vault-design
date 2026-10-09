@@ -19,7 +19,12 @@ export async function sendInvitationEmail(
     | "admin_invitation"
     | "talent_reminder"
     | "sign_in_code"
-    | "loved_one_share" = "agency_invitation",
+    | "loved_one_share"
+    | "independent_talent_invitation"
+    | "invitation_notice"
+    | "link_request"
+    | "link_response"
+    | "relationship_ended" = "agency_invitation",
 ): Promise<SendResult> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) return { sent: false, reason: "email_not_configured" };

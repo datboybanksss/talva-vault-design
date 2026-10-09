@@ -1,6 +1,34 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { validateNewPassword } from "@/lib/password";
+import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
+
+type LoadedInvite = {
+  kind: "agency" | "independent";
+  id: string;
+  agency_id: string | null;
+  email: string;
+  talent_name: string | null;
+  status: string;
+  expires_at: string;
+};
+
+/** Talent invitation tokens live in two tables: agency invites and admin (independent) invites. */
+async function loadTalentInvite(supabaseAdmin: any, token: string): Promise<LoadedInvite | null> {
+  const { data: inv } = await supabaseAdmin
+    .from("talent_invitations")
+    .select("id, agency_id, talent_name, email, status, expires_at")
+    .eq("token", token)
+    .maybeSingle();
+  if (inv) return { kind: "agency", ...inv };
+  const { data: ind } = await supabaseAdmin
+    .from("independent_talent_invitations")
+    .select("id, talent_name, email, status, expires_at")
+    .eq("token", token)
+    .maybeSingle();
+  if (ind) return { kind: "independent", agency_id: null, ...ind };
+  return null;
+}
 
 // Public server functions used by the /invite/talent/$token Talent Activation
 // wizard. No auth middleware — the caller is unauthenticated. Access is gated
@@ -12,6 +40,7 @@ export type ResolvedTalentInvitation =
   | {
       ok: true;
       agency_name: string;
+      independent: boolean;
       email: string;
       talent_name: string | null;
       expires_at: string;
@@ -26,11 +55,7 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
     if (!guard.allowed) return { ok: false, reason: "throttled" };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: inv } = await supabaseAdmin
-      .from("talent_invitations")
-      .select("agency_id, talent_name, email, status, expires_at")
-      .eq("token", data.token)
-      .maybeSingle();
+    const inv = await loadTalentInvite(supabaseAdmin, data.token);
 
     if (!inv) return { ok: false, reason: "not_found" };
     if (inv.status === "accepted") return { ok: false, reason: "accepted" };
@@ -39,15 +64,20 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
     if (new Date(inv.expires_at).getTime() < Date.now())
       return { ok: false, reason: "expired" };
 
-    const { data: agency } = await supabaseAdmin
-      .from("agencies")
-      .select("name")
-      .eq("id", inv.agency_id)
-      .maybeSingle();
+    let agencyName = "the TalVault team";
+    if (inv.agency_id) {
+      const { data: agency } = await supabaseAdmin
+        .from("agencies")
+        .select("name")
+        .eq("id", inv.agency_id)
+        .maybeSingle();
+      agencyName = agency?.name ?? "your Talent Manager";
+    }
 
     return {
       ok: true,
-      agency_name: agency?.name ?? "your Talent Manager",
+      agency_name: agencyName,
+      independent: inv.kind === "independent",
       email: inv.email,
       talent_name: inv.talent_name,
       expires_at: inv.expires_at,
@@ -59,7 +89,7 @@ const activateInput = z.object({
   email: z.string().email().max(255),
   full_name: z.string().trim().min(2).max(120),
   id_number: z.string().trim().max(40).optional().or(z.literal("")),
-  date_of_birth: z.string().trim().max(20).optional().or(z.literal("")),
+  date_of_birth: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter your date of birth."),
   tax_number: z.string().trim().max(40).optional().or(z.literal("")),
   is_provisional_taxpayer: z.boolean().optional(),
   phone_number: z.string().trim().max(40).optional().or(z.literal("")),
@@ -79,6 +109,7 @@ export type TalentActivationResult =
         | "revoked"
         | "email_mismatch"
         | "weak_password"
+        | "under_age"
         | "account_exists"
         | "throttled"
         | "unknown";
@@ -98,29 +129,29 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
     if (!guard.allowed)
       return { ok: false, code: "throttled", message: throttleMessage(guard) };
 
+    // Checked before any account exists, so an under-18 never gets one.
+    if (ageOn(data.date_of_birth) < MINIMUM_TALENT_AGE)
+      return { ok: false, code: "under_age", message: UNDER_AGE_MESSAGE };
+
     const pwErr = validateNewPassword(data.password);
     if (pwErr) return { ok: false, code: "weak_password", message: pwErr };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: inv, error: invErr } = await supabaseAdmin
-      .from("talent_invitations")
-      .select("id, agency_id, email, status, expires_at")
-      .eq("token", data.token)
-      .maybeSingle();
+    const inv = await loadTalentInvite(supabaseAdmin, data.token);
 
-    if (invErr || !inv)
+    if (!inv)
       return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
     if (inv.status === "accepted")
       return { ok: false, code: "already_accepted", message: "This invitation has already been accepted. Please sign in instead." };
     if (inv.status === "revoked")
-      return { ok: false, code: "revoked", message: "This invitation has been revoked. Contact your Manager for a new one." };
+      return { ok: false, code: "revoked", message: "This invitation has been revoked. Contact the person who invited you for a new one." };
     if (inv.status !== "pending")
       return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
     if (new Date(inv.expires_at).getTime() < Date.now())
-      return { ok: false, code: "expired", message: "This invitation has expired. Contact your Manager for a fresh invite." };
+      return { ok: false, code: "expired", message: "This invitation has expired. Contact the person who invited you for a fresh invite." };
     if (data.email.trim().toLowerCase() !== inv.email.trim().toLowerCase())
-      return { ok: false, code: "email_mismatch", message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact your Manager.` };
+      return { ok: false, code: "email_mismatch", message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact the person who invited you.` };
 
     // handle_new_user() -> accept_talent_invitation() provisions the talent
     // profile, the agency_talent_links row, the shared folders and marks the
@@ -138,7 +169,8 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
         return {
           ok: false,
           code: "account_exists",
-          message: "An account already exists for this email. Please sign in instead.",
+          message:
+            "This email is already used for a TalVault account. Please sign in instead, or ask the person who invited you to use another address.",
         };
       }
       return { ok: false, code: "unknown", message: msg };
@@ -168,7 +200,7 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       .update({
         full_name: data.full_name,
         id_number: nz(data.id_number),
-        date_of_birth: nz(data.date_of_birth),
+        date_of_birth: data.date_of_birth,
         tax_number: nz(data.tax_number),
         is_provisional_taxpayer: data.is_provisional_taxpayer ?? false,
         phone_number: nz(data.phone_number),
@@ -187,7 +219,7 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
 
     // Belt-and-braces alongside the trigger.
     await supabaseAdmin
-      .from("talent_invitations")
+      .from(inv.kind === "agency" ? "talent_invitations" : "independent_talent_invitations")
       .update({ status: "accepted", accepted_at: new Date().toISOString() })
       .eq("id", inv.id)
       .eq("status", "pending");
