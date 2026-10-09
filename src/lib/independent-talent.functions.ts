@@ -423,6 +423,9 @@ export const revokeIndependentTalentInvitation = createServerFn({ method: "POST"
     if (!inv) throw new Error("Invitation not found.");
     if (inv.status !== "pending") throw new Error(`Only a pending invitation can be revoked (this one is ${inv.status}).`);
     await supabase.from("independent_talent_invitations").update({ status: "revoked" }).eq("id", data.id);
+    // Gap 1: the ID and proof-of-talent files are deleted on revoke.
+    const { purgeIndependentInviteDocuments } = await import("@/lib/independent-invite-purge.server");
+    await purgeIndependentInviteDocuments(data.id, "revoked", { id: userId, email: claims?.email ?? null });
 
     // E3 (revoked). Best effort — the domain may still be unverified.
     const { buildNoticeEmail } = await import("@/lib/notice-email");

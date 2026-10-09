@@ -59,7 +59,10 @@ export const Route = createFileRoute("/api/public/hooks/talent-reminders")({
         const { runTalentReminderScan } = await import("@/lib/talent-reminders.server");
         try {
           const result = await runTalentReminderScan();
-          return new Response(JSON.stringify({ ok: true, ...result }), {
+          // Same daily run: delete documents held for closed independent invites.
+          const { purgeClosedIndependentInviteDocuments } = await import("@/lib/independent-invite-purge.server");
+          const purged = await purgeClosedIndependentInviteDocuments();
+          return new Response(JSON.stringify({ ok: true, ...result, purged_invites: purged.invitations }), {
             headers: { "Content-Type": "application/json" },
           });
         } catch (e: any) {

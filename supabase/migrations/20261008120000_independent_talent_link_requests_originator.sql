@@ -1,3 +1,44 @@
+-- Independent talent (invite-only): invitations, link requests, originator, billing link
+-- Recorded here from the Drizzle folder so all history lives in supabase/migrations.
+-- These statements were ALREADY APPLIED to the live database. The guard below makes
+-- this file a no-op wherever the objects already exist, so it can never re-apply
+-- or duplicate anything; on a fresh database it applies the change once.
+--
+-- ROLLBACK (run manually, in this order, only if this change must be undone):
+--   SELECT cron.unschedule('expire-link-requests');
+--   DROP POLICY IF EXISTS "Talent removes own originated docs" ON public.talent_shared_documents;
+--   -- restore the previous bodies of the "Agency or talent read shared docs",
+--   -- "Agency updates shared docs" and "Agency deletes shared docs" policies and of
+--   -- tsd_after_insert_refresh_lock, enforce_retention_lock_delete,
+--   -- retention_rule_refresh_docs and handle_new_user from migration 20260922184906.
+--   DROP FUNCTION IF EXISTS public.talent_can_read_shared_doc(uuid, text, integer);
+--   DROP FUNCTION IF EXISTS public.expire_link_requests();
+--   DROP FUNCTION IF EXISTS public.cancel_link_request(uuid);
+--   DROP FUNCTION IF EXISTS public.respond_link_request(uuid, boolean);
+--   DROP FUNCTION IF EXISTS public.request_talent_link(uuid, text, text, text, integer);
+--   DROP TRIGGER IF EXISTS agency_talent_links_guard_insert ON public.agency_talent_links;
+--   DROP FUNCTION IF EXISTS public.guard_talent_link_insert();
+--   DROP FUNCTION IF EXISTS public.accept_independent_talent_invitation(uuid, uuid, text);
+--   ALTER TABLE public.agency_billing_docs DROP COLUMN IF EXISTS talent_link_id;
+--   ALTER TABLE public.talent_shared_documents DROP CONSTRAINT IF EXISTS talent_shared_documents_originator_chk,
+--     DROP COLUMN IF EXISTS originator;
+--   DROP INDEX IF EXISTS public.agency_talent_links_open_request_uq;
+--   ALTER TABLE public.agency_talent_links DROP CONSTRAINT IF EXISTS agency_talent_links_request_kind_chk,
+--     DROP COLUMN IF EXISTS request_kind, DROP COLUMN IF EXISTS requested_at, DROP COLUMN IF EXISTS request_expires_at,
+--     DROP COLUMN IF EXISTS responded_at, DROP COLUMN IF EXISTS declined_at, DROP COLUMN IF EXISTS cancelled_at;
+--   DROP POLICY IF EXISTS "Admins read talent invite files" ON storage.objects;
+--   DROP POLICY IF EXISTS "Admins upload talent invite files" ON storage.objects;
+--   DROP POLICY IF EXISTS "Admins delete talent invite files" ON storage.objects;
+--   DROP TABLE IF EXISTS public.talent_invitation_documents;
+--   DROP TABLE IF EXISTS public.independent_talent_invitations;
+
+DO $guard$
+BEGIN
+  IF to_regclass('public.independent_talent_invitations') IS NOT NULL THEN
+    RAISE NOTICE 'already applied, skipping';
+    RETURN;
+  END IF;
+  EXECUTE $mig$
 CREATE TABLE public.independent_talent_invitations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   talent_name text NOT NULL,
@@ -373,3 +414,6 @@ UPDATE public.agency_billing_docs d SET talent_link_id = m.link_id
   ) m
  WHERE d.id = m.doc_id AND d.talent_link_id IS NULL;
 CREATE INDEX IF NOT EXISTS agency_billing_docs_talent_link_idx ON public.agency_billing_docs (talent_link_id);
+$mig$;
+END
+$guard$;

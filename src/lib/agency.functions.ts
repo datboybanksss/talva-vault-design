@@ -584,7 +584,8 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       displayName: r.display_name as string,
       status: r.status as string,
       talentType: (r.talent_type as string) ?? null,
-      avatarUrl: r.talent_user_id ? avatarMap.get(r.talent_user_id) ?? null : null,
+      // Nothing from the talent's own profile is shown before they accept.
+      avatarUrl: r.talent_user_id && r.status !== "invited" ? avatarMap.get(r.talent_user_id) ?? null : null,
       managerUserId: (r.manager_user_id as string) ?? null,
       managerName: r.manager_user_id ? managerMap.get(r.manager_user_id) ?? "Unassigned" : "Unassigned",
       nextAction: (r.next_action as string) ?? null,
@@ -768,7 +769,11 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     const { data: outcome, error: rpcErr } = await supabase.rpc("request_talent_link", {
       _agency_id: agencyId,
       _email: data.email.trim(),
+      // The agency's own typed name — never the talent's profile name — so the
+      // request looks exactly like a new-talent invitation until accepted.
+      _display_name: data.talent_name.trim(),
       _talent_type: data.talent_type ?? null,
+      _expiry_days: data.expiry_days,
     });
     if (rpcErr) throw new Error("We couldn't process this invitation. Please try again.");
     const result = String(outcome ?? "");
@@ -938,6 +943,44 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
     return inv;
   });
 
+/** The connection-request roster row behind a talent invitation, if any. */
+async function findLinkRequestForInvitation(supabase: any, agencyId: string, invitationId: string) {
+  const { data } = await supabase
+    .from("agency_talent_links")
+    .select("id, status")
+    .eq("agency_id", agencyId)
+    .eq("talent_invitation_id", invitationId)
+    .eq("request_kind", "link_request")
+    .maybeSingle();
+  return (data as { id: string; status: string } | null) ?? null;
+}
+
+/**
+ * Resolve the roster link a quote/invoice belongs to. An explicit id wins
+ * (checked against the caller's agency); otherwise the talent name must match
+ * exactly one roster entry, so an ambiguous name stays unlinked.
+ */
+async function resolveBillingTalentLink(
+  supabase: any,
+  agencyId: string,
+  talentName: string | null | undefined,
+  explicitId?: string | null,
+): Promise<string | null> {
+  if (explicitId) {
+    const { data } = await supabase
+      .from("agency_talent_links").select("id").eq("id", explicitId).eq("agency_id", agencyId).maybeSingle();
+    return (data?.id as string) ?? null;
+  }
+  const name = (talentName ?? "").trim().toLowerCase();
+  if (!name) return null;
+  const { data } = await supabase
+    .from("agency_talent_links")
+    .select("id, display_name")
+    .eq("agency_id", agencyId);
+  const rows = (data ?? []).filter((r: any) => (r.display_name ?? "").trim().toLowerCase() === name);
+  return rows.length === 1 ? (rows[0].id as string) : null;
+}
+
 export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -979,7 +1022,14 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    if (data.type === "talent") {
+    const linkReq = data.type === "talent" ? await findLinkRequestForInvitation(supabase, agencyId, data.id) : null;
+    if (linkReq) {
+      // Connection request to an existing account: reopen it and re-send E5.
+      const { error: rErr } = await supabase.rpc("resend_link_request", { _link_id: linkReq.id, _expires_at: expires_at });
+      if (rErr) throw new Error("We couldn't resend this invitation. Please try again.");
+      const { emailLinkRequest } = await import("@/lib/link-notify.server");
+      await emailLinkRequest(linkReq.id).catch(() => undefined);
+    } else if (data.type === "talent") {
       // Reopened invitation — put the roster row back to "Invited".
       await supabase
         .from("agency_talent_links")
@@ -1006,6 +1056,21 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
+    const linkReq = data.type === "talent" ? await findLinkRequestForInvitation(supabase, agencyId, data.id) : null;
+    if (linkReq) {
+      // Connection request: revoking it cancels the request (also marks the
+      // invitation row revoked) and closes the talent's bell entry.
+      const { error: cErr } = await supabase.rpc("cancel_link_request", { _link_id: linkReq.id });
+      if (cErr) {
+        throw new Error(/REQUEST_CLOSED/.test(cErr.message) ? "This invitation is no longer open." : "We couldn't revoke this invitation. Please try again.");
+      }
+      const { emailLinkCancelled } = await import("@/lib/link-notify.server");
+      await emailLinkCancelled(linkReq.id).catch(() => undefined);
+      const { data: invRow } = await supabase.from(table).select().eq("id", data.id).maybeSingle();
+      await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+        "revoke_talent_invitation", "talent_invitation", data.id, invRow?.email);
+      return invRow;
+    }
     const { data: inv, error } = await supabase
       .from(table).update({ status: "revoked" }).eq("id", data.id).select().single();
     if (error) throw new Error(error.message);
@@ -1289,7 +1354,8 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
       displayName: r.display_name as string,
       status: r.status as string,
       talentType: (r.talent_type as string) ?? null,
-      avatarUrl: r.talent_user_id ? avatarMap.get(r.talent_user_id) ?? null : null,
+      // Nothing from the talent's own profile is shown before they accept.
+      avatarUrl: r.talent_user_id && r.status !== "invited" ? avatarMap.get(r.talent_user_id) ?? null : null,
     }));
   });
 
@@ -2034,7 +2100,7 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
 
     const { data, error } = await supabase
       .from("agency_billing_docs")
-      .select("id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, currency, total_cents, status, notes, shared_with_talent, converted_from_quote_id, description, allow_partial_payment, created_at, updated_at")
+      .select("id, kind, number, client_name, talent_name, talent_link_id, issued_at, due_date, paid_at, currency, total_cents, status, notes, shared_with_talent, converted_from_quote_id, description, allow_partial_payment, created_at, updated_at")
       .eq("agency_id", agencyId)
       .order("issued_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -2080,6 +2146,7 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
       shared_with_talent: data.shared_with_talent ?? false,
       description: data.description ?? null,
       allow_partial_payment: data.allow_partial_payment ?? false,
+      talent_link_id: await resolveBillingTalentLink(supabase, agencyId, data.talent_name),
     };
 
     let row;
@@ -2241,6 +2308,7 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
         number: data.invoice_number,
         client_name: quote.client_name,
         talent_name: quote.talent_name,
+        talent_link_id: quote.talent_link_id ?? (await resolveBillingTalentLink(supabase, agencyId, quote.talent_name)),
         issued_at: data.issued_at ?? today,
         due_date: data.due_date ?? null,
         currency: quote.currency,
@@ -2496,6 +2564,7 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
         number: data.number,
         client_name: contract.contract_client_name ?? null,
         talent_name: talentName,
+        talent_link_id: contract.talent_link_id ?? null,
         issued_at: data.issued_at ?? today,
         due_date: data.due_date ?? null,
         currency: contract.contract_currency ?? "ZAR",
@@ -3071,6 +3140,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
         client_id: z.string().uuid().nullable().optional(),
         recipient_contact_person: z.string().max(200).nullable().optional(),
         save_client: z.boolean().optional(),
+        talent_link_id: z.string().uuid().nullable().optional(),
 
         acceptance_window_days: z.number().int().min(1).max(365).nullable(),
         payment_terms_days: z.number().int().min(1).max(365).nullable(),
@@ -3127,6 +3197,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
 
       acceptance_window_days: data.acceptance_window_days,
       payment_terms_days: data.payment_terms_days,
+      talent_link_id: await resolveBillingTalentLink(supabase, agencyId, data.talent_name, data.talent_link_id ?? null),
       subtotal_cents: subtotal,
       vat_cents: vat,
       vat_rate_bp: primaryRate,
@@ -4567,4 +4638,38 @@ export const setTalentManager = createServerFn({ method: "POST" })
       { from: link.manager_user_id ?? null, to: data.manager_user_id ?? null },
     );
     return updated;
+  });
+
+/** Attach an unlinked quote/invoice to a talent on the caller's own roster. */
+export const linkBillingDocToTalent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ doc_id: z.string().uuid(), talent_link_id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: link } = await supabase
+      .from("agency_talent_links")
+      .select("id, display_name")
+      .eq("id", data.talent_link_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (!link) throw new Error("Choose a talent from your own roster.");
+    const { data: doc } = await supabase
+      .from("agency_billing_docs")
+      .select("id, kind, number, talent_name, talent_link_id")
+      .eq("id", data.doc_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (!doc) throw new Error("Quote or invoice not found.");
+    const patch: Record<string, unknown> = { talent_link_id: link.id };
+    if (!doc.talent_name) patch.talent_name = link.display_name;
+    const { error } = await supabase
+      .from("agency_billing_docs").update(patch).eq("id", doc.id).eq("agency_id", agencyId);
+    if (error) throw new Error("We couldn't link this document. Please try again.");
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+      "link_billing_doc_to_talent", "agency_billing_doc", doc.id, `${String(doc.kind).toUpperCase()} ${doc.number}`,
+      { talent_link_id: link.id, talent: link.display_name, previous_link: doc.talent_link_id ?? null });
+    return { ok: true };
   });

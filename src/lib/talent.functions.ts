@@ -720,39 +720,43 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
 
-    const { data: link } = await supabase
+    const { data: links } = await supabase
       .from("agency_talent_links")
       .select("id, agency_id, display_name, status")
       .eq("talent_user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .neq("status", "invited")
+      .order("created_at", { ascending: true });
+    const myLinks = (links ?? []) as Array<{ id: string; agency_id: string; display_name: string; status: string }>;
+    const link = myLinks[0] ?? null;
 
     if (!link) return { link: null, documents: [] as any[], unshared_count: 0 };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const COLS =
+      "id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, sent_at, accepted_at, currency, total_cents, status, description";
 
-    const { data: docs, error } = await supabaseAdmin
-      .from("agency_billing_docs")
-      .select(
-        "id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, sent_at, accepted_at, currency, total_cents, status, description",
-      )
-      .eq("agency_id", link.agency_id)
-      .eq("shared_with_talent", true)
-      .ilike("talent_name", link.display_name)
-      .order("issued_at", { ascending: false });
-    if (error) throw new Error(error.message);
-
+    // Documents linked to one of the caller's own links, plus — until older
+    // documents are linked — the previous name match, scoped per link to that
+    // link's own agency and only where no talent link is set.
+    const fetchFor = async (shared: boolean) => {
+      const out = new Map<string, any>();
+      const linkIds = myLinks.map((l) => l.id);
+      const { data: direct } = await supabaseAdmin
+        .from("agency_billing_docs").select(COLS)
+        .in("talent_link_id", linkIds).eq("shared_with_talent", shared);
+      for (const d of direct ?? []) out.set(d.id, d);
+      for (const l of myLinks) {
+        const { data: legacy } = await supabaseAdmin
+          .from("agency_billing_docs").select(COLS)
+          .eq("agency_id", l.agency_id).is("talent_link_id", null)
+          .eq("shared_with_talent", shared).ilike("talent_name", l.display_name);
+        for (const d of legacy ?? []) out.set(d.id, d);
+      }
+      return Array.from(out.values()).sort((x, y) => String(y.issued_at).localeCompare(String(x.issued_at)));
+    };
+    const docs = await fetchFor(true);
+    const unsharedCount = (await fetchFor(false)).length;
     const rows = docs ?? [];
-
-    // Count-only signal: the talent can see that unshared billing activity
-    // exists in their name, without any amounts or client names.
-    const { count: unsharedCount } = await supabaseAdmin
-      .from("agency_billing_docs")
-      .select("id", { count: "exact", head: true })
-      .eq("agency_id", link.agency_id)
-      .eq("shared_with_talent", false)
-      .ilike("talent_name", link.display_name);
 
     // Amounts actually received, so partially paid invoices read honestly.
     const ids = rows.filter((r) => r.kind === "invoice").map((r) => r.id);

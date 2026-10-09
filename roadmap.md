@@ -23,3 +23,13 @@
 - [ ] Emails E1–E8 builders
 - [ ] Tours for new screens
 - [ ] Blocked on decisions: share term, link-request mode, 2FA bypass removal timing, Q&I default retention
+
+## Independent talent QA fixes (Oct 2026)
+- [x] Invitations page Invite Talent uses neutral server reply
+- [x] Link requests look like invitations (typed name, token, revoke/resend, status sync, /talent/requests)
+- [x] Migration history moved to supabase/migrations; drizzle removed
+- [x] Purge independent invite documents on revoke/expiry
+- [x] Clear locks on talent-originated items
+- [x] Function exposure hardened
+- [x] Q&I talent link on save, fallback reader, Link to talent action
+- [x] Framework versions pinned to >=14 days old; root error typed

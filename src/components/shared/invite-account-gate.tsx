@@ -107,7 +107,13 @@ export function InviteAccountGatePanel({
   signedInEmail,
   error,
   onUseDifferentAccount,
+  existingTitle,
+  existingBody,
+  nextOverride,
 }: {
+  existingTitle?: string;
+  existingBody?: string;
+  nextOverride?: string;
   eyebrow: string;
   token: string;
   kind: InviteKind;
@@ -120,8 +126,8 @@ export function InviteAccountGatePanel({
   const loginSearch = {
     invite: token,
     invite_kind: kind,
-    next: INVITE_PORTAL_HOME[kind],
-  } as const;
+    next: nextOverride ?? INVITE_PORTAL_HOME[kind],
+  };
 
   if (state === "checking" || state === "claiming") {
     return (
@@ -162,11 +168,11 @@ export function InviteAccountGatePanel({
   return (
     <>
       <div className="tv-auth-eyebrow">{eyebrow}</div>
-      <h2 className="tv-auth-title">You already have a TalVault account</h2>
+      <h2 className="tv-auth-title">{existingTitle ?? "You already have a TalVault account"}</h2>
       <p className="tv-auth-tag">
-        {invitedEmail
+        {existingBody ?? (invitedEmail
           ? `An account already exists for ${invitedEmail}. Log in and we'll add this invitation to it automatically — there's nothing else to set up.`
-          : "An account already exists for this address. Log in and we'll add this invitation to it automatically."}
+          : "An account already exists for this address. Log in and we'll add this invitation to it automatically.")}
       </p>
       <div style={{ marginTop: 24, display: "grid", gap: 12 }}>
         <Link to="/auth" search={loginSearch} className="tv-auth-submit" style={{ textAlign: "center" }}>

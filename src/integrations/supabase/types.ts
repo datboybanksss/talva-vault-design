@@ -3128,7 +3128,17 @@ export type Database = {
         Returns: number
       }
       request_talent_link: {
-        Args: { _agency_id: string; _email: string; _talent_type?: string }
+        Args: {
+          _agency_id: string
+          _display_name: string
+          _email: string
+          _expiry_days?: number
+          _talent_type?: string
+        }
+        Returns: string
+      }
+      resend_link_request: {
+        Args: { _expires_at: string; _link_id: string }
         Returns: string
       }
       reset_rate_limit: {
@@ -3166,12 +3176,7 @@ export type Database = {
       }
       sweep_overdue_invoices: { Args: never; Returns: number }
       talent_can_read_shared_doc: {
-        Args: {
-          _link_id: string
-          _originator: string
-          _user_id: string
-          _years: number
-        }
+        Args: { _link_id: string; _originator: string; _years: number }
         Returns: boolean
       }
       talent_link_is_ended: {

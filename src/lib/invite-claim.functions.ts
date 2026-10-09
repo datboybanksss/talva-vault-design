@@ -261,9 +261,14 @@ export const claimInvitation = createServerFn({ method: "POST" })
 
       const { data: existingLink } = await supabaseAdmin
         .from("agency_talent_links")
-        .select("id")
+        .select("id, request_kind, status")
         .eq("talent_invitation_id", inv.id)
         .maybeSingle();
+
+      // A connection request to an existing account is never accepted here —
+      // the talent reviews it (accept or decline) in their portal.
+      if (existingLink?.request_kind === "link_request")
+        return { ok: true, kind: data.kind, dest: "/talent/requests", already_linked: false };
 
       if (inv.status === "accepted" || existingLink)
         return { ok: true, kind: data.kind, dest, already_linked: true };
