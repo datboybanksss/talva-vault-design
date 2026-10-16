@@ -15,7 +15,6 @@ import {
   verifySignInCode,
 } from "@/lib/mfa.functions";
 import { browserSessionId } from "@/lib/device";
-// TESTING ONLY — remove before launch
 
 const searchSchema = z.object({ next: z.string().optional() });
 
