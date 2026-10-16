@@ -9,93 +9,68 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TalentRouteImport } from './routes/talent'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as Enroll2faRouteImport } from './routes/enroll-2fa'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AgencyRouteImport } from './routes/agency'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TalentIndexRouteImport } from './routes/talent.index'
-import { Route as AgencyIndexRouteImport } from './routes/agency.index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AgencyRouteImport } from './routes/agency'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as Enroll2faRouteImport } from './routes/enroll-2fa'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as TalentRouteImport } from './routes/talent'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as TalentVaultRouteImport } from './routes/talent.vault'
-import { Route as TalentSharingRouteImport } from './routes/talent.sharing'
-import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
-import { Route as TalentRequestsRouteImport } from './routes/talent.requests'
-import { Route as TalentNotificationsRouteImport } from './routes/talent.notifications'
-import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
-import { Route as LovedOneTokenRouteImport } from './routes/loved-one.$token'
-import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
-import { Route as InviteTokenRouteImport } from './routes/invite.$token'
-import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
-import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
-import { Route as AgencyQuotesInvoicesRouteImport } from './routes/agency.quotes-invoices'
-import { Route as AgencyMyAccountRouteImport } from './routes/agency.my-account'
-import { Route as AgencyInvitationsRouteImport } from './routes/agency.invitations'
-import { Route as AgencyFolderTemplatesRouteImport } from './routes/agency.folder-templates'
-import { Route as AgencyDocumentVaultRouteImport } from './routes/agency.document-vault'
-import { Route as AgencyDocumentRulesRouteImport } from './routes/agency.document-rules'
-import { Route as AgencyDocumentRequestsRouteImport } from './routes/agency.document-requests'
-import { Route as AgencyActivityRouteImport } from './routes/agency.activity'
-import { Route as AdminTermsAcceptancesRouteImport } from './routes/admin.terms-acceptances'
-import { Route as AdminReportingRouteImport } from './routes/admin.reporting'
-import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
-import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
-import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
-import { Route as AdminEnroll2faRouteImport } from './routes/admin.enroll-2fa'
-import { Route as AdminAuditRouteImport } from './routes/admin.audit'
-import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
 import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
-import { Route as AgencyTalentIndexRouteImport } from './routes/agency.talent.index'
-import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invitations.index'
+import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminEnroll2faRouteImport } from './routes/admin.enroll-2fa'
+import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
+import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
+import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
+import { Route as AdminReportingRouteImport } from './routes/admin.reporting'
+import { Route as AdminTermsAcceptancesRouteImport } from './routes/admin.terms-acceptances'
+import { Route as AgencyIndexRouteImport } from './routes/agency.index'
+import { Route as AgencyActivityRouteImport } from './routes/agency.activity'
+import { Route as AgencyDocumentRequestsRouteImport } from './routes/agency.document-requests'
+import { Route as AgencyDocumentRulesRouteImport } from './routes/agency.document-rules'
+import { Route as AgencyDocumentVaultRouteImport } from './routes/agency.document-vault'
+import { Route as AgencyFolderTemplatesRouteImport } from './routes/agency.folder-templates'
+import { Route as AgencyInvitationsRouteImport } from './routes/agency.invitations'
+import { Route as AgencyMyAccountRouteImport } from './routes/agency.my-account'
+import { Route as AgencyQuotesInvoicesRouteImport } from './routes/agency.quotes-invoices'
+import { Route as AgencySettingsRouteImport } from './routes/agency.settings'
+import { Route as AgencyTalentRouteImport } from './routes/agency.talent'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LovedOneTokenRouteImport } from './routes/loved-one.$token'
+import { Route as TalentIndexRouteImport } from './routes/talent.index'
+import { Route as TalentBudgetRouteImport } from './routes/talent.budget'
+import { Route as TalentNotificationsRouteImport } from './routes/talent.notifications'
+import { Route as TalentRequestsRouteImport } from './routes/talent.requests'
+import { Route as TalentSettingsRouteImport } from './routes/talent.settings'
+import { Route as TalentSharingRouteImport } from './routes/talent.sharing'
+import { Route as TalentVaultRouteImport } from './routes/talent.vault'
 import { Route as AdminAgenciesIndexRouteImport } from './routes/admin.agencies.index'
-import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
-import { Route as InviteAdminTokenRouteImport } from './routes/invite.admin.$token'
-import { Route as ApiPublicVerifyBillingSenderRouteImport } from './routes/api/public/verify-billing-sender'
-import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/loved-one-file'
-import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
-import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
-import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
-import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
 import { Route as AdminAgenciesIdRouteImport } from './routes/admin.agencies.$id'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
-import { Route as ApiPublicHooksTalentRemindersRouteImport } from './routes/api/public/hooks/talent-reminders'
-import { Route as AgencyInvitationsIdEmailPreviewRouteImport } from './routes/agency.invitations.$id.email-preview'
-import { Route as AdminInvitationsTalentNewRouteImport } from './routes/admin.invitations.talent.new'
-import { Route as AdminInvitationsTalentIdRouteImport } from './routes/admin.invitations.talent.$id'
-import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
+import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invitations.index'
+import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
+import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
+import { Route as AgencyTalentIndexRouteImport } from './routes/agency.talent.index'
+import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/loved-one-file'
+import { Route as ApiPublicVerifyBillingSenderRouteImport } from './routes/api/public/verify-billing-sender'
+import { Route as InviteAdminTokenRouteImport } from './routes/invite.admin.$token'
+import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
 import { Route as AdminAdministratorsIdEmailPreviewRouteImport } from './routes/admin.administrators.$id.email-preview'
+import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
+import { Route as AdminInvitationsTalentIdRouteImport } from './routes/admin.invitations.talent.$id'
+import { Route as AdminInvitationsTalentNewRouteImport } from './routes/admin.invitations.talent.new'
+import { Route as AgencyInvitationsIdEmailPreviewRouteImport } from './routes/agency.invitations.$id.email-preview'
+import { Route as ApiPublicHooksTalentRemindersRouteImport } from './routes/api/public/hooks/talent-reminders'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
-const TalentRoute = TalentRouteImport.update({
-  id: '/talent',
-  path: '/talent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Enroll2faRoute = Enroll2faRouteImport.update({
-  id: '/enroll-2fa',
-  path: '/enroll-2fa',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgencyRoute = AgencyRouteImport.update({
-  id: '/agency',
-  path: '/agency',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -103,159 +78,39 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AgencyRoute = AgencyRouteImport.update({
+  id: '/agency',
+  path: '/agency',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TalentIndexRoute = TalentIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => TalentRoute,
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AgencyIndexRoute = AgencyIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AgencyRoute,
+const Enroll2faRoute = Enroll2faRouteImport.update({
+  id: '/enroll-2fa',
+  path: '/enroll-2fa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TalentRoute = TalentRouteImport.update({
+  id: '/talent',
+  path: '/talent',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const TalentVaultRoute = TalentVaultRouteImport.update({
-  id: '/vault',
-  path: '/vault',
-  getParentRoute: () => TalentRoute,
-} as any)
-const TalentSharingRoute = TalentSharingRouteImport.update({
-  id: '/sharing',
-  path: '/sharing',
-  getParentRoute: () => TalentRoute,
-} as any)
-const TalentSettingsRoute = TalentSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => TalentRoute,
-} as any)
-const TalentRequestsRoute = TalentRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
-  getParentRoute: () => TalentRoute,
-} as any)
-const TalentNotificationsRoute = TalentNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => TalentRoute,
-} as any)
-const TalentBudgetRoute = TalentBudgetRouteImport.update({
-  id: '/budget',
-  path: '/budget',
-  getParentRoute: () => TalentRoute,
-} as any)
-const LovedOneTokenRoute = LovedOneTokenRouteImport.update({
-  id: '/loved-one/$token',
-  path: '/loved-one/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
-  id: '/legal/privacy',
-  path: '/legal/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InviteTokenRoute = InviteTokenRouteImport.update({
-  id: '/invite/$token',
-  path: '/invite/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgencyTalentRoute = AgencyTalentRouteImport.update({
-  id: '/talent',
-  path: '/talent',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencySettingsRoute = AgencySettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyQuotesInvoicesRoute = AgencyQuotesInvoicesRouteImport.update({
-  id: '/quotes-invoices',
-  path: '/quotes-invoices',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyMyAccountRoute = AgencyMyAccountRouteImport.update({
-  id: '/my-account',
-  path: '/my-account',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyInvitationsRoute = AgencyInvitationsRouteImport.update({
-  id: '/invitations',
-  path: '/invitations',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyFolderTemplatesRoute = AgencyFolderTemplatesRouteImport.update({
-  id: '/folder-templates',
-  path: '/folder-templates',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyDocumentVaultRoute = AgencyDocumentVaultRouteImport.update({
-  id: '/document-vault',
-  path: '/document-vault',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyDocumentRulesRoute = AgencyDocumentRulesRouteImport.update({
-  id: '/document-rules',
-  path: '/document-rules',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyDocumentRequestsRoute = AgencyDocumentRequestsRouteImport.update({
-  id: '/document-requests',
-  path: '/document-requests',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyActivityRoute = AgencyActivityRouteImport.update({
-  id: '/activity',
-  path: '/activity',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AdminTermsAcceptancesRoute = AdminTermsAcceptancesRouteImport.update({
-  id: '/terms-acceptances',
-  path: '/terms-acceptances',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminReportingRoute = AdminReportingRouteImport.update({
-  id: '/reporting',
-  path: '/reporting',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminQuotesInvoicesRoute = AdminQuotesInvoicesRouteImport.update({
-  id: '/quotes-invoices',
-  path: '/quotes-invoices',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminMyAccountRoute = AdminMyAccountRouteImport.update({
-  id: '/my-account',
-  path: '/my-account',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminInvitationsRoute = AdminInvitationsRouteImport.update({
-  id: '/invitations',
-  path: '/invitations',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEnroll2faRoute = AdminEnroll2faRouteImport.update({
-  id: '/enroll-2fa',
-  path: '/enroll-2fa',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAuditRoute = AdminAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAgenciesRoute = AdminAgenciesRouteImport.update({
-  id: '/agencies',
-  path: '/agencies',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdministratorsRoute = AdminAdministratorsRouteImport.update({
@@ -263,29 +118,194 @@ const AdminAdministratorsRoute = AdminAdministratorsRouteImport.update({
   path: '/administrators',
   getParentRoute: () => AdminRoute,
 } as any)
-const AgencyTalentIndexRoute = AgencyTalentIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AgencyTalentRoute,
+const AdminAgenciesRoute = AdminAgenciesRouteImport.update({
+  id: '/agencies',
+  path: '/agencies',
+  getParentRoute: () => AdminRoute,
 } as any)
-const AdminInvitationsIndexRoute = AdminInvitationsIndexRouteImport.update({
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEnroll2faRoute = AdminEnroll2faRouteImport.update({
+  id: '/enroll-2fa',
+  path: '/enroll-2fa',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInvitationsRoute = AdminInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMyAccountRoute = AdminMyAccountRouteImport.update({
+  id: '/my-account',
+  path: '/my-account',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminQuotesInvoicesRoute = AdminQuotesInvoicesRouteImport.update({
+  id: '/quotes-invoices',
+  path: '/quotes-invoices',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReportingRoute = AdminReportingRouteImport.update({
+  id: '/reporting',
+  path: '/reporting',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTermsAcceptancesRoute = AdminTermsAcceptancesRouteImport.update({
+  id: '/terms-acceptances',
+  path: '/terms-acceptances',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AgencyIndexRoute = AgencyIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminInvitationsRoute,
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyActivityRoute = AgencyActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyDocumentRequestsRoute = AgencyDocumentRequestsRouteImport.update({
+  id: '/document-requests',
+  path: '/document-requests',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyDocumentRulesRoute = AgencyDocumentRulesRouteImport.update({
+  id: '/document-rules',
+  path: '/document-rules',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyDocumentVaultRoute = AgencyDocumentVaultRouteImport.update({
+  id: '/document-vault',
+  path: '/document-vault',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyFolderTemplatesRoute = AgencyFolderTemplatesRouteImport.update({
+  id: '/folder-templates',
+  path: '/folder-templates',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyInvitationsRoute = AgencyInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyMyAccountRoute = AgencyMyAccountRouteImport.update({
+  id: '/my-account',
+  path: '/my-account',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyQuotesInvoicesRoute = AgencyQuotesInvoicesRouteImport.update({
+  id: '/quotes-invoices',
+  path: '/quotes-invoices',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencySettingsRoute = AgencySettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyTalentRoute = AgencyTalentRouteImport.update({
+  id: '/talent',
+  path: '/talent',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovedOneTokenRoute = LovedOneTokenRouteImport.update({
+  id: '/loved-one/$token',
+  path: '/loved-one/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TalentIndexRoute = TalentIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentBudgetRoute = TalentBudgetRouteImport.update({
+  id: '/budget',
+  path: '/budget',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentNotificationsRoute = TalentNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentRequestsRoute = TalentRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentSettingsRoute = TalentSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentSharingRoute = TalentSharingRouteImport.update({
+  id: '/sharing',
+  path: '/sharing',
+  getParentRoute: () => TalentRoute,
+} as any)
+const TalentVaultRoute = TalentVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => TalentRoute,
 } as any)
 const AdminAgenciesIndexRoute = AdminAgenciesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminAgenciesRoute,
 } as any)
-const InviteTalentTokenRoute = InviteTalentTokenRouteImport.update({
-  id: '/invite/talent/$token',
-  path: '/invite/talent/$token',
+const AdminAgenciesIdRoute = AdminAgenciesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminAgenciesRoute,
+} as any)
+const AdminInvitationsIndexRoute = AdminInvitationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminInvitationsRoute,
+} as any)
+const AdminInvitationsNewRoute = AdminInvitationsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminInvitationsRoute,
+} as any)
+const AgencyContractsIdRoute = AgencyContractsIdRouteImport.update({
+  id: '/contracts/$id',
+  path: '/contracts/$id',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyTalentIndexRoute = AgencyTalentIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgencyTalentRoute,
+} as any)
+const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
+  getParentRoute: () => AgencyTalentRoute,
+} as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InviteAdminTokenRoute = InviteAdminTokenRouteImport.update({
-  id: '/invite/admin/$token',
-  path: '/invite/admin/$token',
+const ApiPublicLovedOneFileRoute = ApiPublicLovedOneFileRouteImport.update({
+  id: '/api/public/loved-one-file',
+  path: '/api/public/loved-one-file',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicVerifyBillingSenderRoute =
@@ -294,58 +314,26 @@ const ApiPublicVerifyBillingSenderRoute =
     path: '/api/public/verify-billing-sender',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicLovedOneFileRoute = ApiPublicLovedOneFileRouteImport.update({
-  id: '/api/public/loved-one-file',
-  path: '/api/public/loved-one-file',
+const InviteAdminTokenRoute = InviteAdminTokenRouteImport.update({
+  id: '/invite/admin/$token',
+  path: '/invite/admin/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
-  id: '/api/public/health',
-  path: '/api/public/health',
+const InviteTalentTokenRoute = InviteTalentTokenRouteImport.update({
+  id: '/invite/talent/$token',
+  path: '/invite/talent/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
-  id: '/invite',
-  path: '/invite',
-  getParentRoute: () => AgencyTalentRoute,
-} as any)
-const AgencyContractsIdRoute = AgencyContractsIdRouteImport.update({
-  id: '/contracts/$id',
-  path: '/contracts/$id',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AdminInvitationsNewRoute = AdminInvitationsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AdminInvitationsRoute,
-} as any)
-const AdminAgenciesIdRoute = AdminAgenciesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AdminAgenciesRoute,
-} as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksTalentRemindersRoute =
-  ApiPublicHooksTalentRemindersRouteImport.update({
-    id: '/api/public/hooks/talent-reminders',
-    path: '/api/public/hooks/talent-reminders',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AgencyInvitationsIdEmailPreviewRoute =
-  AgencyInvitationsIdEmailPreviewRouteImport.update({
+const AdminAdministratorsIdEmailPreviewRoute =
+  AdminAdministratorsIdEmailPreviewRouteImport.update({
     id: '/$id/email-preview',
     path: '/$id/email-preview',
-    getParentRoute: () => AgencyInvitationsRoute,
+    getParentRoute: () => AdminAdministratorsRoute,
   } as any)
-const AdminInvitationsTalentNewRoute =
-  AdminInvitationsTalentNewRouteImport.update({
-    id: '/talent/new',
-    path: '/talent/new',
+const AdminInvitationsIdEmailPreviewRoute =
+  AdminInvitationsIdEmailPreviewRouteImport.update({
+    id: '/$id/email-preview',
+    path: '/$id/email-preview',
     getParentRoute: () => AdminInvitationsRoute,
   } as any)
 const AdminInvitationsTalentIdRoute =
@@ -354,17 +342,29 @@ const AdminInvitationsTalentIdRoute =
     path: '/talent/$id',
     getParentRoute: () => AdminInvitationsRoute,
   } as any)
-const AdminInvitationsIdEmailPreviewRoute =
-  AdminInvitationsIdEmailPreviewRouteImport.update({
-    id: '/$id/email-preview',
-    path: '/$id/email-preview',
+const AdminInvitationsTalentNewRoute =
+  AdminInvitationsTalentNewRouteImport.update({
+    id: '/talent/new',
+    path: '/talent/new',
     getParentRoute: () => AdminInvitationsRoute,
   } as any)
-const AdminAdministratorsIdEmailPreviewRoute =
-  AdminAdministratorsIdEmailPreviewRouteImport.update({
+const AgencyInvitationsIdEmailPreviewRoute =
+  AgencyInvitationsIdEmailPreviewRouteImport.update({
     id: '/$id/email-preview',
     path: '/$id/email-preview',
-    getParentRoute: () => AdminAdministratorsRoute,
+    getParentRoute: () => AgencyInvitationsRoute,
+  } as any)
+const ApiPublicHooksTalentRemindersRoute =
+  ApiPublicHooksTalentRemindersRouteImport.update({
+    id: '/api/public/hooks/talent-reminders',
+    path: '/api/public/hooks/talent-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -742,46 +742,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/talent': {
-      id: '/talent'
-      path: '/talent'
-      fullPath: '/talent'
-      preLoaderRoute: typeof TalentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/enroll-2fa': {
-      id: '/enroll-2fa'
-      path: '/enroll-2fa'
-      fullPath: '/enroll-2fa'
-      preLoaderRoute: typeof Enroll2faRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agency': {
-      id: '/agency'
-      path: '/agency'
-      fullPath: '/agency'
-      preLoaderRoute: typeof AgencyRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -791,221 +756,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/agency': {
+      id: '/agency'
+      path: '/agency'
+      fullPath: '/agency'
+      preLoaderRoute: typeof AgencyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/talent/': {
-      id: '/talent/'
-      path: '/'
-      fullPath: '/talent/'
-      preLoaderRoute: typeof TalentIndexRouteImport
-      parentRoute: typeof TalentRoute
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/agency/': {
-      id: '/agency/'
-      path: '/'
-      fullPath: '/agency/'
-      preLoaderRoute: typeof AgencyIndexRouteImport
-      parentRoute: typeof AgencyRoute
+    '/enroll-2fa': {
+      id: '/enroll-2fa'
+      path: '/enroll-2fa'
+      fullPath: '/enroll-2fa'
+      preLoaderRoute: typeof Enroll2faRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/talent': {
+      id: '/talent'
+      path: '/talent'
+      fullPath: '/talent'
+      preLoaderRoute: typeof TalentRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/talent/vault': {
-      id: '/talent/vault'
-      path: '/vault'
-      fullPath: '/talent/vault'
-      preLoaderRoute: typeof TalentVaultRouteImport
-      parentRoute: typeof TalentRoute
-    }
-    '/talent/sharing': {
-      id: '/talent/sharing'
-      path: '/sharing'
-      fullPath: '/talent/sharing'
-      preLoaderRoute: typeof TalentSharingRouteImport
-      parentRoute: typeof TalentRoute
-    }
-    '/talent/settings': {
-      id: '/talent/settings'
-      path: '/settings'
-      fullPath: '/talent/settings'
-      preLoaderRoute: typeof TalentSettingsRouteImport
-      parentRoute: typeof TalentRoute
-    }
-    '/talent/requests': {
-      id: '/talent/requests'
-      path: '/requests'
-      fullPath: '/talent/requests'
-      preLoaderRoute: typeof TalentRequestsRouteImport
-      parentRoute: typeof TalentRoute
-    }
-    '/talent/notifications': {
-      id: '/talent/notifications'
-      path: '/notifications'
-      fullPath: '/talent/notifications'
-      preLoaderRoute: typeof TalentNotificationsRouteImport
-      parentRoute: typeof TalentRoute
-    }
-    '/talent/budget': {
-      id: '/talent/budget'
-      path: '/budget'
-      fullPath: '/talent/budget'
-      preLoaderRoute: typeof TalentBudgetRouteImport
-      parentRoute: typeof TalentRoute
-    }
-    '/loved-one/$token': {
-      id: '/loved-one/$token'
-      path: '/loved-one/$token'
-      fullPath: '/loved-one/$token'
-      preLoaderRoute: typeof LovedOneTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/legal/privacy': {
-      id: '/legal/privacy'
-      path: '/legal/privacy'
-      fullPath: '/legal/privacy'
-      preLoaderRoute: typeof LegalPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/invite/$token': {
-      id: '/invite/$token'
-      path: '/invite/$token'
-      fullPath: '/invite/$token'
-      preLoaderRoute: typeof InviteTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agency/talent': {
-      id: '/agency/talent'
-      path: '/talent'
-      fullPath: '/agency/talent'
-      preLoaderRoute: typeof AgencyTalentRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/settings': {
-      id: '/agency/settings'
-      path: '/settings'
-      fullPath: '/agency/settings'
-      preLoaderRoute: typeof AgencySettingsRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/quotes-invoices': {
-      id: '/agency/quotes-invoices'
-      path: '/quotes-invoices'
-      fullPath: '/agency/quotes-invoices'
-      preLoaderRoute: typeof AgencyQuotesInvoicesRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/my-account': {
-      id: '/agency/my-account'
-      path: '/my-account'
-      fullPath: '/agency/my-account'
-      preLoaderRoute: typeof AgencyMyAccountRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/invitations': {
-      id: '/agency/invitations'
-      path: '/invitations'
-      fullPath: '/agency/invitations'
-      preLoaderRoute: typeof AgencyInvitationsRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/folder-templates': {
-      id: '/agency/folder-templates'
-      path: '/folder-templates'
-      fullPath: '/agency/folder-templates'
-      preLoaderRoute: typeof AgencyFolderTemplatesRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/document-vault': {
-      id: '/agency/document-vault'
-      path: '/document-vault'
-      fullPath: '/agency/document-vault'
-      preLoaderRoute: typeof AgencyDocumentVaultRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/document-rules': {
-      id: '/agency/document-rules'
-      path: '/document-rules'
-      fullPath: '/agency/document-rules'
-      preLoaderRoute: typeof AgencyDocumentRulesRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/document-requests': {
-      id: '/agency/document-requests'
-      path: '/document-requests'
-      fullPath: '/agency/document-requests'
-      preLoaderRoute: typeof AgencyDocumentRequestsRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/activity': {
-      id: '/agency/activity'
-      path: '/activity'
-      fullPath: '/agency/activity'
-      preLoaderRoute: typeof AgencyActivityRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/admin/terms-acceptances': {
-      id: '/admin/terms-acceptances'
-      path: '/terms-acceptances'
-      fullPath: '/admin/terms-acceptances'
-      preLoaderRoute: typeof AdminTermsAcceptancesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/reporting': {
-      id: '/admin/reporting'
-      path: '/reporting'
-      fullPath: '/admin/reporting'
-      preLoaderRoute: typeof AdminReportingRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/quotes-invoices': {
-      id: '/admin/quotes-invoices'
-      path: '/quotes-invoices'
-      fullPath: '/admin/quotes-invoices'
-      preLoaderRoute: typeof AdminQuotesInvoicesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/my-account': {
-      id: '/admin/my-account'
-      path: '/my-account'
-      fullPath: '/admin/my-account'
-      preLoaderRoute: typeof AdminMyAccountRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/invitations': {
-      id: '/admin/invitations'
-      path: '/invitations'
-      fullPath: '/admin/invitations'
-      preLoaderRoute: typeof AdminInvitationsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/enroll-2fa': {
-      id: '/admin/enroll-2fa'
-      path: '/enroll-2fa'
-      fullPath: '/admin/enroll-2fa'
-      preLoaderRoute: typeof AdminEnroll2faRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/audit': {
-      id: '/admin/audit'
-      path: '/audit'
-      fullPath: '/admin/audit'
-      preLoaderRoute: typeof AdminAuditRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/agencies': {
-      id: '/admin/agencies'
-      path: '/agencies'
-      fullPath: '/admin/agencies'
-      preLoaderRoute: typeof AdminAgenciesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/administrators': {
@@ -1015,19 +812,208 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdministratorsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/agency/talent/': {
-      id: '/agency/talent/'
-      path: '/'
-      fullPath: '/agency/talent/'
-      preLoaderRoute: typeof AgencyTalentIndexRouteImport
-      parentRoute: typeof AgencyTalentRoute
+    '/admin/agencies': {
+      id: '/admin/agencies'
+      path: '/agencies'
+      fullPath: '/admin/agencies'
+      preLoaderRoute: typeof AdminAgenciesRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/admin/invitations/': {
-      id: '/admin/invitations/'
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/enroll-2fa': {
+      id: '/admin/enroll-2fa'
+      path: '/enroll-2fa'
+      fullPath: '/admin/enroll-2fa'
+      preLoaderRoute: typeof AdminEnroll2faRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/invitations': {
+      id: '/admin/invitations'
+      path: '/invitations'
+      fullPath: '/admin/invitations'
+      preLoaderRoute: typeof AdminInvitationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/my-account': {
+      id: '/admin/my-account'
+      path: '/my-account'
+      fullPath: '/admin/my-account'
+      preLoaderRoute: typeof AdminMyAccountRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/quotes-invoices': {
+      id: '/admin/quotes-invoices'
+      path: '/quotes-invoices'
+      fullPath: '/admin/quotes-invoices'
+      preLoaderRoute: typeof AdminQuotesInvoicesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reporting': {
+      id: '/admin/reporting'
+      path: '/reporting'
+      fullPath: '/admin/reporting'
+      preLoaderRoute: typeof AdminReportingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/terms-acceptances': {
+      id: '/admin/terms-acceptances'
+      path: '/terms-acceptances'
+      fullPath: '/admin/terms-acceptances'
+      preLoaderRoute: typeof AdminTermsAcceptancesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/agency/': {
+      id: '/agency/'
       path: '/'
-      fullPath: '/admin/invitations/'
-      preLoaderRoute: typeof AdminInvitationsIndexRouteImport
-      parentRoute: typeof AdminInvitationsRoute
+      fullPath: '/agency/'
+      preLoaderRoute: typeof AgencyIndexRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/activity': {
+      id: '/agency/activity'
+      path: '/activity'
+      fullPath: '/agency/activity'
+      preLoaderRoute: typeof AgencyActivityRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/document-requests': {
+      id: '/agency/document-requests'
+      path: '/document-requests'
+      fullPath: '/agency/document-requests'
+      preLoaderRoute: typeof AgencyDocumentRequestsRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/document-rules': {
+      id: '/agency/document-rules'
+      path: '/document-rules'
+      fullPath: '/agency/document-rules'
+      preLoaderRoute: typeof AgencyDocumentRulesRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/document-vault': {
+      id: '/agency/document-vault'
+      path: '/document-vault'
+      fullPath: '/agency/document-vault'
+      preLoaderRoute: typeof AgencyDocumentVaultRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/folder-templates': {
+      id: '/agency/folder-templates'
+      path: '/folder-templates'
+      fullPath: '/agency/folder-templates'
+      preLoaderRoute: typeof AgencyFolderTemplatesRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/invitations': {
+      id: '/agency/invitations'
+      path: '/invitations'
+      fullPath: '/agency/invitations'
+      preLoaderRoute: typeof AgencyInvitationsRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/my-account': {
+      id: '/agency/my-account'
+      path: '/my-account'
+      fullPath: '/agency/my-account'
+      preLoaderRoute: typeof AgencyMyAccountRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/quotes-invoices': {
+      id: '/agency/quotes-invoices'
+      path: '/quotes-invoices'
+      fullPath: '/agency/quotes-invoices'
+      preLoaderRoute: typeof AgencyQuotesInvoicesRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/settings': {
+      id: '/agency/settings'
+      path: '/settings'
+      fullPath: '/agency/settings'
+      preLoaderRoute: typeof AgencySettingsRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/talent': {
+      id: '/agency/talent'
+      path: '/talent'
+      fullPath: '/agency/talent'
+      preLoaderRoute: typeof AgencyTalentRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loved-one/$token': {
+      id: '/loved-one/$token'
+      path: '/loved-one/$token'
+      fullPath: '/loved-one/$token'
+      preLoaderRoute: typeof LovedOneTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/talent/': {
+      id: '/talent/'
+      path: '/'
+      fullPath: '/talent/'
+      preLoaderRoute: typeof TalentIndexRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/budget': {
+      id: '/talent/budget'
+      path: '/budget'
+      fullPath: '/talent/budget'
+      preLoaderRoute: typeof TalentBudgetRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/notifications': {
+      id: '/talent/notifications'
+      path: '/notifications'
+      fullPath: '/talent/notifications'
+      preLoaderRoute: typeof TalentNotificationsRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/requests': {
+      id: '/talent/requests'
+      path: '/requests'
+      fullPath: '/talent/requests'
+      preLoaderRoute: typeof TalentRequestsRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/settings': {
+      id: '/talent/settings'
+      path: '/settings'
+      fullPath: '/talent/settings'
+      preLoaderRoute: typeof TalentSettingsRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/sharing': {
+      id: '/talent/sharing'
+      path: '/sharing'
+      fullPath: '/talent/sharing'
+      preLoaderRoute: typeof TalentSharingRouteImport
+      parentRoute: typeof TalentRoute
+    }
+    '/talent/vault': {
+      id: '/talent/vault'
+      path: '/vault'
+      fullPath: '/talent/vault'
+      preLoaderRoute: typeof TalentVaultRouteImport
+      parentRoute: typeof TalentRoute
     }
     '/admin/agencies/': {
       id: '/admin/agencies/'
@@ -1036,25 +1022,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAgenciesIndexRouteImport
       parentRoute: typeof AdminAgenciesRoute
     }
-    '/invite/talent/$token': {
-      id: '/invite/talent/$token'
-      path: '/invite/talent/$token'
-      fullPath: '/invite/talent/$token'
-      preLoaderRoute: typeof InviteTalentTokenRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/agencies/$id': {
+      id: '/admin/agencies/$id'
+      path: '/$id'
+      fullPath: '/admin/agencies/$id'
+      preLoaderRoute: typeof AdminAgenciesIdRouteImport
+      parentRoute: typeof AdminAgenciesRoute
     }
-    '/invite/admin/$token': {
-      id: '/invite/admin/$token'
-      path: '/invite/admin/$token'
-      fullPath: '/invite/admin/$token'
-      preLoaderRoute: typeof InviteAdminTokenRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/invitations/': {
+      id: '/admin/invitations/'
+      path: '/'
+      fullPath: '/admin/invitations/'
+      preLoaderRoute: typeof AdminInvitationsIndexRouteImport
+      parentRoute: typeof AdminInvitationsRoute
     }
-    '/api/public/verify-billing-sender': {
-      id: '/api/public/verify-billing-sender'
-      path: '/api/public/verify-billing-sender'
-      fullPath: '/api/public/verify-billing-sender'
-      preLoaderRoute: typeof ApiPublicVerifyBillingSenderRouteImport
+    '/admin/invitations/new': {
+      id: '/admin/invitations/new'
+      path: '/new'
+      fullPath: '/admin/invitations/new'
+      preLoaderRoute: typeof AdminInvitationsNewRouteImport
+      parentRoute: typeof AdminInvitationsRoute
+    }
+    '/agency/contracts/$id': {
+      id: '/agency/contracts/$id'
+      path: '/contracts/$id'
+      fullPath: '/agency/contracts/$id'
+      preLoaderRoute: typeof AgencyContractsIdRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/talent/': {
+      id: '/agency/talent/'
+      path: '/'
+      fullPath: '/agency/talent/'
+      preLoaderRoute: typeof AgencyTalentIndexRouteImport
+      parentRoute: typeof AgencyTalentRoute
+    }
+    '/agency/talent/invite': {
+      id: '/agency/talent/invite'
+      path: '/invite'
+      fullPath: '/agency/talent/invite'
+      preLoaderRoute: typeof AgencyTalentInviteRouteImport
+      parentRoute: typeof AgencyTalentRoute
+    }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/loved-one-file': {
@@ -1064,67 +1078,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLovedOneFileRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/health': {
-      id: '/api/public/health'
-      path: '/api/public/health'
-      fullPath: '/api/public/health'
-      preLoaderRoute: typeof ApiPublicHealthRouteImport
+    '/api/public/verify-billing-sender': {
+      id: '/api/public/verify-billing-sender'
+      path: '/api/public/verify-billing-sender'
+      fullPath: '/api/public/verify-billing-sender'
+      preLoaderRoute: typeof ApiPublicVerifyBillingSenderRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agency/talent/invite': {
-      id: '/agency/talent/invite'
-      path: '/invite'
-      fullPath: '/agency/talent/invite'
-      preLoaderRoute: typeof AgencyTalentInviteRouteImport
-      parentRoute: typeof AgencyTalentRoute
-    }
-    '/agency/contracts/$id': {
-      id: '/agency/contracts/$id'
-      path: '/contracts/$id'
-      fullPath: '/agency/contracts/$id'
-      preLoaderRoute: typeof AgencyContractsIdRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/admin/invitations/new': {
-      id: '/admin/invitations/new'
-      path: '/new'
-      fullPath: '/admin/invitations/new'
-      preLoaderRoute: typeof AdminInvitationsNewRouteImport
-      parentRoute: typeof AdminInvitationsRoute
-    }
-    '/admin/agencies/$id': {
-      id: '/admin/agencies/$id'
-      path: '/$id'
-      fullPath: '/admin/agencies/$id'
-      preLoaderRoute: typeof AdminAgenciesIdRouteImport
-      parentRoute: typeof AdminAgenciesRoute
-    }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+    '/invite/admin/$token': {
+      id: '/invite/admin/$token'
+      path: '/invite/admin/$token'
+      fullPath: '/invite/admin/$token'
+      preLoaderRoute: typeof InviteAdminTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/talent-reminders': {
-      id: '/api/public/hooks/talent-reminders'
-      path: '/api/public/hooks/talent-reminders'
-      fullPath: '/api/public/hooks/talent-reminders'
-      preLoaderRoute: typeof ApiPublicHooksTalentRemindersRouteImport
+    '/invite/talent/$token': {
+      id: '/invite/talent/$token'
+      path: '/invite/talent/$token'
+      fullPath: '/invite/talent/$token'
+      preLoaderRoute: typeof InviteTalentTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agency/invitations/$id/email-preview': {
-      id: '/agency/invitations/$id/email-preview'
+    '/admin/administrators/$id/email-preview': {
+      id: '/admin/administrators/$id/email-preview'
       path: '/$id/email-preview'
-      fullPath: '/agency/invitations/$id/email-preview'
-      preLoaderRoute: typeof AgencyInvitationsIdEmailPreviewRouteImport
-      parentRoute: typeof AgencyInvitationsRoute
+      fullPath: '/admin/administrators/$id/email-preview'
+      preLoaderRoute: typeof AdminAdministratorsIdEmailPreviewRouteImport
+      parentRoute: typeof AdminAdministratorsRoute
     }
-    '/admin/invitations/talent/new': {
-      id: '/admin/invitations/talent/new'
-      path: '/talent/new'
-      fullPath: '/admin/invitations/talent/new'
-      preLoaderRoute: typeof AdminInvitationsTalentNewRouteImport
+    '/admin/invitations/$id/email-preview': {
+      id: '/admin/invitations/$id/email-preview'
+      path: '/$id/email-preview'
+      fullPath: '/admin/invitations/$id/email-preview'
+      preLoaderRoute: typeof AdminInvitationsIdEmailPreviewRouteImport
       parentRoute: typeof AdminInvitationsRoute
     }
     '/admin/invitations/talent/$id': {
@@ -1134,19 +1120,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInvitationsTalentIdRouteImport
       parentRoute: typeof AdminInvitationsRoute
     }
-    '/admin/invitations/$id/email-preview': {
-      id: '/admin/invitations/$id/email-preview'
-      path: '/$id/email-preview'
-      fullPath: '/admin/invitations/$id/email-preview'
-      preLoaderRoute: typeof AdminInvitationsIdEmailPreviewRouteImport
+    '/admin/invitations/talent/new': {
+      id: '/admin/invitations/talent/new'
+      path: '/talent/new'
+      fullPath: '/admin/invitations/talent/new'
+      preLoaderRoute: typeof AdminInvitationsTalentNewRouteImport
       parentRoute: typeof AdminInvitationsRoute
     }
-    '/admin/administrators/$id/email-preview': {
-      id: '/admin/administrators/$id/email-preview'
+    '/agency/invitations/$id/email-preview': {
+      id: '/agency/invitations/$id/email-preview'
       path: '/$id/email-preview'
-      fullPath: '/admin/administrators/$id/email-preview'
-      preLoaderRoute: typeof AdminAdministratorsIdEmailPreviewRouteImport
-      parentRoute: typeof AdminAdministratorsRoute
+      fullPath: '/agency/invitations/$id/email-preview'
+      preLoaderRoute: typeof AgencyInvitationsIdEmailPreviewRouteImport
+      parentRoute: typeof AgencyInvitationsRoute
+    }
+    '/api/public/hooks/talent-reminders': {
+      id: '/api/public/hooks/talent-reminders'
+      path: '/api/public/hooks/talent-reminders'
+      fullPath: '/api/public/hooks/talent-reminders'
+      preLoaderRoute: typeof ApiPublicHooksTalentRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
