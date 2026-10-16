@@ -354,30 +354,8 @@ function Step2({
           placeholder="e.g. Compliance Officer"
         />
       </div>
-      <div className="tv-auth-hint" style={{ marginTop: 14 }}>
-        All administrator actions are audit logged, and this log can be reviewed at any time.
-      </div>
       {error && <div className="tv-auth-alert">{error}</div>}
-      <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
-        <button
-          type="button"
-          className="tv-auth-google"
-          onClick={onBack}
-          disabled={busy}
-          style={{ width: "auto", flex: "0 0 auto", padding: "0 18px", height: 46 }}
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
-        <button
-          type="button"
-          className="tv-auth-submit"
-          onClick={onContinue}
-          disabled={busy}
-          style={{ flex: 1, marginTop: 0, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-        >
-          {busy ? "Setting up your account…" : (<><Check className="h-4 w-4" /><span>Complete setup</span></>)}
-        </button>
-      </div>
+      <StepButtons onBack={onBack} onContinue={onContinue} />
     </>
   );
 }
