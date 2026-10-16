@@ -39,7 +39,8 @@ const resolveInput = z.object({ token: z.string().min(10).max(200) });
 export type ResolvedTalentInvitation =
   | {
       ok: true;
-      agency_name: string;
+      /** null for independent talent, or when the agency record is unavailable */
+      agency_name: string | null;
       independent: boolean;
       /** an agency's request to connect with someone who already has an account */
       link_request: boolean;
@@ -66,14 +67,14 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
     if (new Date(inv.expires_at).getTime() < Date.now())
       return { ok: false, reason: "expired" };
 
-    let agencyName = "the TalVault team";
+    let agencyName: string | null = null;
     if (inv.agency_id) {
       const { data: agency } = await supabaseAdmin
         .from("agencies")
         .select("name")
         .eq("id", inv.agency_id)
         .maybeSingle();
-      agencyName = agency?.name ?? "your Talent Manager";
+      agencyName = agency?.name?.trim() || null;
     }
 
     // Connection requests show the same page as any invitation (the agency can
