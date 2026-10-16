@@ -483,8 +483,14 @@ function Step4({
       </p>
       {legal ? (
         <>
-          <div className="tv-auth-hint" style={{ marginTop: 10 }}>
-            {legal.title} · Version {legal.version}
+          <p style={{ margin: "12px 0 0", fontWeight: 650, fontSize: 15 }}>
+            TalVault Terms &amp; Conditions (Summary)
+          </p>
+          <div className="tv-auth-hint" style={{ marginTop: 4 }}>
+            {formatTermsVersion(legal.version)} ·{" "}
+            <a href="/legal/terms/agency" target="_blank" rel="noopener noreferrer" className="tv-auth-link">
+              Read the full terms
+            </a>
           </div>
           <LegalDocumentView body={legal.body} />
         </>
@@ -507,14 +513,12 @@ function Step4({
       >
         <input
           type="checkbox"
+          required
           checked={terms}
           onChange={(e) => setTerms(e.target.checked)}
           style={{ marginTop: 3, width: 16, height: 16 }}
         />
-        <span>
-          I accept the TalVault Terms &amp; Conditions
-          {legal ? ` (${legal.version})` : ""}.
-        </span>
+        <span>I have read and accept the TalVault Terms &amp; Conditions</span>
       </label>
       {!terms && (
         <div className="tv-auth-hint" style={{ marginTop: 8 }}>

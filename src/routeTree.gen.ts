@@ -60,6 +60,7 @@ import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/l
 import { Route as ApiPublicVerifyBillingSenderRouteImport } from './routes/api/public/verify-billing-sender'
 import { Route as InviteAdminTokenRouteImport } from './routes/invite.admin.$token'
 import { Route as InviteTalentTokenRouteImport } from './routes/invite.talent.$token'
+import { Route as LegalTermsTypeRouteImport } from './routes/legal.terms.$type'
 import { Route as AdminAdministratorsIdEmailPreviewRouteImport } from './routes/admin.administrators.$id.email-preview'
 import { Route as AdminInvitationsIdEmailPreviewRouteImport } from './routes/admin.invitations.$id.email-preview'
 import { Route as AdminInvitationsTalentIdRouteImport } from './routes/admin.invitations.talent.$id'
@@ -324,6 +325,11 @@ const InviteTalentTokenRoute = InviteTalentTokenRouteImport.update({
   path: '/invite/talent/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalTermsTypeRoute = LegalTermsTypeRouteImport.update({
+  id: '/legal/terms/$type',
+  path: '/legal/terms/$type',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAdministratorsIdEmailPreviewRoute =
   AdminAdministratorsIdEmailPreviewRouteImport.update({
     id: '/$id/email-preview',
@@ -416,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/api/public/verify-billing-sender': typeof ApiPublicVerifyBillingSenderRoute
   '/invite/admin/$token': typeof InviteAdminTokenRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
+  '/legal/terms/$type': typeof LegalTermsTypeRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/agency/talent/': typeof AgencyTalentIndexRoute
@@ -470,6 +477,7 @@ export interface FileRoutesByTo {
   '/api/public/verify-billing-sender': typeof ApiPublicVerifyBillingSenderRoute
   '/invite/admin/$token': typeof InviteAdminTokenRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
+  '/legal/terms/$type': typeof LegalTermsTypeRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
   '/agency/talent': typeof AgencyTalentIndexRoute
@@ -531,6 +539,7 @@ export interface FileRoutesById {
   '/api/public/verify-billing-sender': typeof ApiPublicVerifyBillingSenderRoute
   '/invite/admin/$token': typeof InviteAdminTokenRoute
   '/invite/talent/$token': typeof InviteTalentTokenRoute
+  '/legal/terms/$type': typeof LegalTermsTypeRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
   '/agency/talent/': typeof AgencyTalentIndexRoute
@@ -593,6 +602,7 @@ export interface FileRouteTypes {
     | '/api/public/verify-billing-sender'
     | '/invite/admin/$token'
     | '/invite/talent/$token'
+    | '/legal/terms/$type'
     | '/admin/agencies/'
     | '/admin/invitations/'
     | '/agency/talent/'
@@ -647,6 +657,7 @@ export interface FileRouteTypes {
     | '/api/public/verify-billing-sender'
     | '/invite/admin/$token'
     | '/invite/talent/$token'
+    | '/legal/terms/$type'
     | '/admin/agencies'
     | '/admin/invitations'
     | '/agency/talent'
@@ -707,6 +718,7 @@ export interface FileRouteTypes {
     | '/api/public/verify-billing-sender'
     | '/invite/admin/$token'
     | '/invite/talent/$token'
+    | '/legal/terms/$type'
     | '/admin/agencies/'
     | '/admin/invitations/'
     | '/agency/talent/'
@@ -736,6 +748,7 @@ export interface RootRouteChildren {
   ApiPublicVerifyBillingSenderRoute: typeof ApiPublicVerifyBillingSenderRoute
   InviteAdminTokenRoute: typeof InviteAdminTokenRoute
   InviteTalentTokenRoute: typeof InviteTalentTokenRoute
+  LegalTermsTypeRoute: typeof LegalTermsTypeRoute
   ApiPublicHooksTalentRemindersRoute: typeof ApiPublicHooksTalentRemindersRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
@@ -1099,6 +1112,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTalentTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/terms/$type': {
+      id: '/legal/terms/$type'
+      path: '/legal/terms/$type'
+      fullPath: '/legal/terms/$type'
+      preLoaderRoute: typeof LegalTermsTypeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/administrators/$id/email-preview': {
       id: '/admin/administrators/$id/email-preview'
       path: '/$id/email-preview'
@@ -1322,6 +1342,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicVerifyBillingSenderRoute: ApiPublicVerifyBillingSenderRoute,
   InviteAdminTokenRoute: InviteAdminTokenRoute,
   InviteTalentTokenRoute: InviteTalentTokenRoute,
+  LegalTermsTypeRoute: LegalTermsTypeRoute,
   ApiPublicHooksTalentRemindersRoute: ApiPublicHooksTalentRemindersRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
