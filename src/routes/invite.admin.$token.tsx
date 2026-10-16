@@ -361,7 +361,7 @@ function Step2({
 }
 
 function Step3({
-  password, setPassword, confirmPw, setConfirmPw, strength, req, onBack, onContinue, error,
+  password, setPassword, confirmPw, setConfirmPw, strength, req, onBack, onContinue, busy, error,
 }: any) {
   return (
     <>
