@@ -433,7 +433,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <TalVaultWordmark variant="teal" style={{ height: 16 }} />
-            <div style={{ fontSize: 11, color: "#65707A" }}>{SHARE_RECIPIENT_TERM_CAPITALISED} access</div>
+            <div style={{ fontSize: 11, color: "#65707A", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>{SHARE_RECIPIENT_TERM_CAPITALISED} access</div>
           </div>
         </div>
         {children}
