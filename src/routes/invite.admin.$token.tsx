@@ -136,7 +136,7 @@ function TerminalError({ title, body }: { title: string; body: string }) {
 
 /* --------------------------------- Wizard --------------------------------- */
 
-type StepKey = 1 | 2 | 3 | 4;
+type StepKey = 1 | 2 | 3;
 
 function Wizard({
   invite,
@@ -152,7 +152,6 @@ function Wizard({
   const [designation, setDesignation] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
-  const [terms, setTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const strength = useMemo(() => scorePassword(password), [password]);
@@ -167,7 +166,6 @@ function Wizard({
           display_name: displayName.trim(),
           designation: designation.trim() || undefined,
           password,
-          terms_accepted: true as const,
         },
       }),
     onSuccess: async (res) => {
@@ -202,21 +200,18 @@ function Wizard({
       const v = validateNewPassword(password);
       if (v) { setError(v); return; }
       if (password !== confirmPw) { setError("Passwords do not match."); return; }
+      activate.mutate();
+      return;
     }
-    setStep((s) => (s < 4 ? ((s + 1) as StepKey) : s));
+    setStep((s) => (s < 3 ? ((s + 1) as StepKey) : s));
   };
   const goBack = () => { setError(null); setStep((s) => (s > 1 ? ((s - 1) as StepKey) : s)); };
 
-  const submit = () => {
-    setError(null);
-    if (!terms) { setError("You must accept the Terms & Conditions to continue."); return; }
-    activate.mutate();
-  };
 
   return (
     <>
       <ProgressBar step={step} />
-      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>Administrator Activation · Step {step} of 4</div>
+      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>Administrator Activation · Step {step} of 3</div>
 
       {step === 1 && <Step1 invite={invite} onContinue={goNext} />}
       {step === 2 && (
@@ -240,15 +235,6 @@ function Wizard({
           req={req}
           onBack={goBack}
           onContinue={goNext}
-          error={error}
-        />
-      )}
-      {step === 4 && (
-        <Step4
-          terms={terms}
-          setTerms={setTerms}
-          onBack={goBack}
-          onSubmit={submit}
           busy={activate.isPending}
           error={error}
         />
@@ -260,7 +246,7 @@ function Wizard({
 function ProgressBar({ step }: { step: number }) {
   return (
     <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-      {[1, 2, 3, 4].map((n) => (
+      {[1, 2, 3].map((n) => (
         <div
           key={n}
           style={{
@@ -368,8 +354,30 @@ function Step2({
           placeholder="e.g. Compliance Officer"
         />
       </div>
+      <div className="tv-auth-hint" style={{ marginTop: 14 }}>
+        All administrator actions are audit logged, and this log can be reviewed at any time.
+      </div>
       {error && <div className="tv-auth-alert">{error}</div>}
-      <StepButtons onBack={onBack} onContinue={onContinue} />
+      <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
+        <button
+          type="button"
+          className="tv-auth-google"
+          onClick={onBack}
+          disabled={busy}
+          style={{ width: "auto", flex: "0 0 auto", padding: "0 18px", height: 46 }}
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <button
+          type="button"
+          className="tv-auth-submit"
+          onClick={onContinue}
+          disabled={busy}
+          style={{ flex: 1, marginTop: 0, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+        >
+          {busy ? "Setting up your account…" : (<><Check className="h-4 w-4" /><span>Complete setup</span></>)}
+        </button>
+      </div>
     </>
   );
 }
@@ -424,63 +432,10 @@ function Step3({
           minLength={MIN_PW_LENGTH}
         />
       </div>
-      {error && <div className="tv-auth-alert">{error}</div>}
-      <StepButtons onBack={onBack} onContinue={onContinue} />
-    </>
-  );
-}
-
-function Step4({
-  terms, setTerms, onBack, onSubmit, busy, error,
-}: {
-  terms: boolean; setTerms: (v: boolean) => void;
-  onBack: () => void; onSubmit: () => void; busy: boolean; error: string | null;
-}) {
-  return (
-    <>
-      <h2 className="tv-auth-title">Terms &amp; Conditions</h2>
-      <p className="tv-auth-tag">
-        Please review and accept our terms to complete your administrator setup.
-      </p>
-      <div
-        style={{
-          marginTop: 12,
-          padding: 14,
-          borderRadius: "var(--radius)",
-          border: "1px solid var(--line)",
-          maxHeight: 200,
-          overflowY: "auto",
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: "var(--muted-fg)",
-          background: "var(--surface-soft)",
-        }}
-      >
-        <p><strong>TalVault Administrator Terms of Service (Summary)</strong></p>
-        <p>As a TalVault administrator you agree to access agency and talent data only for legitimate platform administration, to respect the permission level assigned to your account, and to keep your credentials confidential.</p>
-        <p>You acknowledge that all administrator actions are audit logged and that this log is reviewable at any time.</p>
+      <div className="tv-auth-hint" style={{ marginTop: 14 }}>
+        All administrator actions are audit logged, and this log can be reviewed at any time.
       </div>
-      <label
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "flex-start",
-          marginTop: 16,
-          cursor: "pointer",
-          fontSize: 14,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={terms}
-          onChange={(e) => setTerms(e.target.checked)}
-          style={{ marginTop: 3, width: 16, height: 16 }}
-        />
-        <span>
-          I have read and accept the <a href="/legal/terms" target="_blank" rel="noreferrer" className="tv-auth-link">Terms &amp; Conditions</a> and <a href="/legal/privacy" target="_blank" rel="noreferrer" className="tv-auth-link">Privacy Policy</a>.
-        </span>
-      </label>
-      {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
+      {error && <div className="tv-auth-alert">{error}</div>}
       <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
         <button
           type="button"
@@ -494,18 +449,11 @@ function Step4({
         <button
           type="button"
           className="tv-auth-submit"
-          onClick={onSubmit}
-          disabled={!terms || busy}
+          onClick={onContinue}
+          disabled={busy}
           style={{ flex: 1, marginTop: 0, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
         >
-          {busy ? (
-            "Setting up your account…"
-          ) : (
-            <>
-              <Check className="h-4 w-4" />
-              <span>Complete setup</span>
-            </>
-          )}
+          {busy ? "Setting up your account…" : (<><Check className="h-4 w-4" /><span>Complete setup</span></>)}
         </button>
       </div>
     </>
