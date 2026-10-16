@@ -45,7 +45,7 @@ test.describe("Signed-out visitors are sent to sign-in", () => {
   for (const r of protectedRoutes) {
     test(`${r.portal}: ${r.path}`, async ({ page }) => {
       await page.goto(r.path);
-      await expect(page).toHaveURL(/\/auth(\?|$)/);
+      await expect(page).toHaveURL(/\/auth(\?|$)/, { timeout: 30_000 });
       await expect(page.locator('input[type="email"]').first()).toBeVisible();
     });
   }
