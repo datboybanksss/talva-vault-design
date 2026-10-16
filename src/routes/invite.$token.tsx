@@ -27,6 +27,7 @@ import {
   useInviteAccountGate,
 } from "@/components/shared/invite-account-gate";
 import { LegalDocumentView } from "@/components/shared/legal-document-view";
+import { formatTermsVersion } from "@/lib/terms-version";
 import {
   getCurrentLegalDocument,
   type CurrentLegalDocument,
