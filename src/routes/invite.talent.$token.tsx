@@ -1,4 +1,4 @@
-import { SHARE_RECIPIENT_TERM_PLURAL, SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
+import { SHARE_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -8,7 +8,8 @@ import { ShieldCheck, Lock, FolderLock, Sparkles, Users, Check, ArrowLeft } from
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/password-input";
 import { LegalDocumentView } from "@/components/shared/legal-document-view";
-import { getCurrentLegalDocument } from "@/lib/legal.functions";
+import { getCurrentLegalDocument, type CurrentLegalDocument } from "@/lib/legal.functions";
+import { formatTermsVersion } from "@/lib/terms-version";
 import {
   MIN_PW_LENGTH,
   PW_POLICY_HINT,
@@ -110,7 +111,7 @@ function InviteBody({
         {...(invite.link_request
           ? {
               existingTitle: "You already have a TalVault account — sign in to review this request",
-              existingBody: `${invite.agency_name} would like to connect with your TalVault. Sign in to accept or decline. Nothing is shared until you accept.`,
+              existingBody: `${invite.agency_name ?? "An agency"} would like to connect with your TalVault. Sign in to accept or decline. Nothing is shared until you accept.`,
               nextOverride: "/talent/requests",
             }
           : {})}
@@ -164,7 +165,8 @@ function TerminalError({ title, body }: { title: string; body: string }) {
 
 /* --------------------------------- Wizard --------------------------------- */
 
-type StepKey = 1 | 2 | 3 | 4;
+const TALENT_STEP_COUNT = 5;
+type StepKey = 1 | 2 | 3 | 4 | 5;
 
 function Wizard({
   invite,
@@ -225,7 +227,7 @@ function Wizard({
         setError(friendlyAuthError(error));
         return;
       }
-      setStep(4);
+      setStep(5);
     },
     onError: (e: any) => setError(e?.message ?? "Activation failed."),
   });
@@ -250,19 +252,21 @@ function Wizard({
       const v = validateNewPassword(password);
       if (v) { setError(v); return; }
       if (password !== confirmPw) { setError("Passwords do not match."); return; }
+    }
+    if (step === 4) {
       if (!legal) { setError("The Terms & Conditions are still loading. Please try again in a moment."); return; }
       if (!terms) { setError("You must accept the Terms & Conditions to continue."); return; }
       activate.mutate();
       return;
     }
-    setStep((s) => (s < 4 ? ((s + 1) as StepKey) : s));
+    setStep((s) => (s < TALENT_STEP_COUNT ? ((s + 1) as StepKey) : s));
   };
   const goBack = () => { setError(null); setStep((s) => (s > 1 ? ((s - 1) as StepKey) : s)); };
 
   return (
     <>
       <ProgressBar step={step} />
-      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>Talent Activation · Step {step} of 4</div>
+      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>Talent Activation · Step {step} of {TALENT_STEP_COUNT}</div>
 
       {step === 1 && <Step1 invite={invite} onContinue={goNext} />}
       {step === 2 && (
@@ -281,13 +285,18 @@ function Wizard({
           password={password} setPassword={setPassword}
           confirmPw={confirmPw} setConfirmPw={setConfirmPw}
           strength={strength} req={req}
+          onBack={goBack} onContinue={goNext} error={error}
+        />
+      )}
+      {step === 4 && (
+        <TermsStep
           terms={terms} setTerms={setTerms}
           legal={legal} legalLoading={legalQ.isLoading}
           onBack={goBack} onContinue={goNext}
           busy={activate.isPending} error={error}
         />
       )}
-      {step === 4 && <Step4 email={invite.email} />}
+      {step === 5 && <TwoFactorStep />}
     </>
   );
 }
@@ -295,7 +304,7 @@ function Wizard({
 function ProgressBar({ step }: { step: number }) {
   return (
     <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-      {[1, 2, 3, 4].map((n) => (
+      {Array.from({ length: TALENT_STEP_COUNT }, (_, i) => i + 1).map((n) => (
         <div
           key={n}
           style={{
@@ -320,7 +329,11 @@ function Step1({
     <>
       <h2 className="tv-auth-title">Accept Talent Invite</h2>
       <p className="tv-auth-tag">
-        You've been invited by <strong>{invite.agency_name}</strong>.
+        {invite.agency_name ? (
+          <>You've been invited by <strong>{invite.agency_name}</strong>.</>
+        ) : (
+          <>You've been invited to TalVault.</>
+        )}
       </p>
       <div className="tv-auth-field" style={{ marginTop: 20 }}>
         <label htmlFor="invited-email">Email address used for invite</label>
@@ -407,7 +420,7 @@ function Step2({
 }
 
 function Step3({
-  password, setPassword, confirmPw, setConfirmPw, strength, req, terms, setTerms, onBack, onContinue, busy, error, legal, legalLoading,
+  password, setPassword, confirmPw, setConfirmPw, strength, req, onBack, onContinue, error,
 }: any) {
   return (
     <>
@@ -456,39 +469,53 @@ function Step3({
           minLength={MIN_PW_LENGTH}
         />
       </div>
-      <div style={{ marginTop: 18 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 650, margin: 0 }}>Terms &amp; Conditions</h3>
-        {legal ? (
-          <>
-            <div className="tv-auth-hint" style={{ marginTop: 6 }}>
-              {legal.title} · Version {legal.version}
-            </div>
-            <LegalDocumentView body={legal.body} />
-          </>
-        ) : (
-          <div className="tv-auth-hint" style={{ marginTop: 10 }}>
-            {legalLoading
-              ? "Loading the latest Terms & Conditions…"
-              : "We couldn't load the Terms & Conditions just now. Please refresh the page and try again."}
+      {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
+      <StepButtons onBack={onBack} onContinue={onContinue} />
+    </>
+  );
+}
+
+function TermsStep({
+  terms, setTerms, onBack, onContinue, busy, error, legal, legalLoading,
+}: {
+  terms: boolean; setTerms: (v: boolean) => void;
+  onBack: () => void; onContinue: () => void; busy: boolean; error: string | null;
+  legal: CurrentLegalDocument; legalLoading: boolean;
+}) {
+  return (
+    <>
+      <h2 className="tv-auth-title">Terms &amp; Conditions</h2>
+      <p className="tv-auth-tag">Please review and accept our terms before entering your vault.</p>
+      {legal ? (
+        <>
+          <p style={{ margin: "12px 0 0", fontWeight: 650, fontSize: 15 }}>
+            TalVault Terms &amp; Conditions (Summary)
+          </p>
+          <div className="tv-auth-hint" style={{ marginTop: 4 }}>
+            {formatTermsVersion(legal.version)} ·{" "}
+            <a href="/legal/terms/talent" target="_blank" rel="noopener noreferrer" className="tv-auth-link">
+              Read the full terms
+            </a>
           </div>
-        )}
-      </div>
+          <LegalDocumentView body={legal.body} />
+        </>
+      ) : (
+        <div className="tv-auth-hint" style={{ marginTop: 10 }}>
+          {legalLoading
+            ? "Loading the latest Terms & Conditions…"
+            : "We couldn't load the Terms & Conditions just now. Please refresh the page and try again."}
+        </div>
+      )}
       <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, cursor: "pointer", fontSize: 14 }}>
         <input
           type="checkbox"
+          required
           checked={terms}
           onChange={(e) => setTerms(e.target.checked)}
           style={{ marginTop: 3, width: 16, height: 16 }}
         />
-        <span>
-          I accept the TalVault Terms &amp; Conditions{legal ? ` (${legal.version})` : ""}.
-        </span>
+        <span>I have read and accept the TalVault Terms &amp; Conditions</span>
       </label>
-      {!terms && (
-        <div className="tv-auth-hint" style={{ marginTop: 8 }}>
-          Please read the terms above and tick the box to enable activation.
-        </div>
-      )}
       {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
       <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
         <button
@@ -507,37 +534,30 @@ function Step3({
           disabled={busy || !terms || !legal}
           style={{ flex: 1, marginTop: 0, height: 46 }}
         >
-          {busy ? "Creating your vault…" : "Create account"}
+          {busy ? "Creating your vault…" : "Accept and continue"}
         </button>
       </div>
     </>
   );
 }
 
-function Step4({ email }: { email: string }) {
+function TwoFactorStep() {
   const nav = useNavigate();
   return (
     <>
-      <h2 className="tv-auth-title">Secure your vault with two-step sign-in</h2>
+      <h2 className="tv-auth-title">Secure with 2FA</h2>
       <p className="tv-auth-tag">
-        A password on its own isn't enough to protect your documents. So each
-        time you sign in, after your password we'll email a short 6-digit code to{" "}
-        <strong>{email}</strong>. You type it in to finish signing in. There's
-        nothing to install — just check your inbox.
+        Two-factor authentication adds a second check when you sign in, so your documents stay safe
+        even if someone learns your password. Each time you sign in, we'll email you a one-time code.
       </p>
-      <div className="tv-auth-hint" style={{ marginTop: 12 }}>
-        Two-step sign-in is required on every TalVault account, so this is the
-        last step before your vault opens.
-      </div>
-
       <button
         type="button"
         className="tv-auth-submit"
-        onClick={() => nav({ to: "/enroll-2fa" })}
+        onClick={() => nav({ to: "/enroll-2fa", search: { next: "/talent" } as any })}
         style={{ marginTop: 20, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
       >
         <Check className="h-4 w-4" />
-        <span>Set up two-step sign-in</span>
+        <span>Go to my vault</span>
       </button>
     </>
   );
@@ -577,7 +597,7 @@ function BrandingPanel() {
         <h1 className="tv-auth-headline">Activate your Talent vault</h1>
         <p className="tv-auth-sub">
           Set up your account and enter a secure workspace with a Private Vault, Agency Shared Folder and
-          sharing with {SHARE_RECIPIENT_TERM_PLURAL}.
+          {SHARE_TERM_CAPITALISED} sharing.
         </p>
         <ul className="tv-auth-points">
           <li className="tv-auth-point"><span className="tv-auth-point-dot"><Lock className="h-4 w-4 text-white" /></span>Private Vault</li>
