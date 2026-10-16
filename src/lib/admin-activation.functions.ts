@@ -53,6 +53,7 @@ const activateInput = z.object({
   display_name: z.string().trim().min(2).max(120),
   designation: z.string().trim().max(120).optional().or(z.literal("")),
   password: z.string().min(12).max(200),
+  terms_accepted: z.literal(true),
 });
 
 export type AdminActivationResult =
@@ -135,6 +136,7 @@ export const activateAdminInvitation = createServerFn({ method: "POST" })
       .update({
         display_name: data.display_name,
         designation: data.designation && data.designation.length > 0 ? data.designation : null,
+        terms_accepted_at: new Date().toISOString(),
       })
       .eq("id", userId);
 
