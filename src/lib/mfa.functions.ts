@@ -62,7 +62,6 @@ export const getMfaStatus = createServerFn({ method: "POST" })
 
     const email = typeof claims["email"] === "string" ? (claims["email"] as string) : null;
 
-
     const enrolled = !!settings?.enrolled_at;
     const gate: MfaGateState = !enrolled ? "enrol" : sessionVerified ? "ok" : "challenge";
 
