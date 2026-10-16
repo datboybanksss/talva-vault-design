@@ -31,7 +31,6 @@ import {
   verifySignInCode,
 } from "@/lib/mfa.functions";
 import { browserSessionId } from "@/lib/device";
-// TESTING ONLY — remove before launch
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
 function recordSignIn() {

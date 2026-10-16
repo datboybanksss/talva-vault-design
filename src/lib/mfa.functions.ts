@@ -62,18 +62,6 @@ export const getMfaStatus = createServerFn({ method: "POST" })
 
     const email = typeof claims["email"] === "string" ? (claims["email"] as string) : null;
 
-    // TESTING ONLY — remove before launch. Server-side allowlist of test
-    // accounts that skip the emailed code. Empty/unset secret = no bypass.
-    const bypassList = (process.env["MFA_TEST_BYPASS_EMAILS"] ?? "")
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean);
-    // TESTING ONLY — set to false before launch. Skips 2FA for every account.
-    const MFA_TEST_BYPASS_ALL = true;
-    if (MFA_TEST_BYPASS_ALL || (email && bypassList.includes(email.toLowerCase()))) {
-      console.warn("mfa_test_bypass_used", { userId });
-      return { enrolled: true, explainerSeen: true, sessionVerified: true, gate: "ok", email };
-    }
 
     const enrolled = !!settings?.enrolled_at;
     const gate: MfaGateState = !enrolled ? "enrol" : sessionVerified ? "ok" : "challenge";
