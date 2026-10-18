@@ -3,7 +3,7 @@ import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PORTAL_FOR_DENIED_CODE, checkPortalAccess, resolvePortalHome } from "@/lib/portal-access";
+import { MFA_ENFORCED, PORTAL_FOR_DENIED_CODE, checkPortalAccess, resolvePortalHome } from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
 import { ShieldCheck, Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
@@ -376,6 +376,13 @@ function AuthPage() {
   // What happens once the password has been accepted: the account's own
   // records decide whether it needs first-time set-up, a code, or nothing.
   const afterPassword = useCallback(async () => {
+    // Temporary: while MFA_ENFORCED is off (sending domain unverified), a
+    // correct password is enough on its own.
+    if (!MFA_ENFORCED) {
+      recordSignIn();
+      await goNext(true);
+      return;
+    }
     // Every password sign-in earns a fresh code, even on a browser that was
     // verified earlier today.
     await beginSignInChallenge({ data: { device: browserSessionId() } }).catch(() => {});
