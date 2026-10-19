@@ -24,11 +24,12 @@ import {
 import { preflightUpload } from "@/lib/file-validation";
 
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
+import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { toast } from "sonner";
 import {
   Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen, Archive,
   Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
-  ChevronDown, Search,
+  ChevronDown, Search, Eye,
 } from "lucide-react";
 
 
@@ -135,6 +136,7 @@ function PrivateVault() {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
   const [aiReviewFor, setAiReviewFor] = useState<{ id: string; name: string } | null>(null);
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
   const [filterFolder, setFilterFolder] = useState<string>("__all");
   const [showAllDocs, setShowAllDocs] = useState(false);
@@ -238,6 +240,15 @@ function PrivateVault() {
     try {
       const { url } = await download({ data: { id } });
       window.open(url, "_blank");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not open file.");
+    }
+  }
+
+  async function onView(id: string, name: string) {
+    try {
+      const { url } = await download({ data: { id } });
+      setPreview({ url, name });
     } catch (e: any) {
       toast.error(e?.message ?? "Could not open file.");
     }
@@ -485,6 +496,12 @@ function PrivateVault() {
                               onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
                             },
                             {
+                              key: "view", label: "View document", icon: Eye,
+                              disabled: !d.storage_path,
+                              title: d.storage_path ? undefined : "No file attached to this document",
+                              onSelect: () => onView(d.id, d.name),
+                            },
+                            {
                               key: "download", label: "Download document", icon: Download,
                               disabled: !d.storage_path,
                               title: d.storage_path ? undefined : "No file attached to this document",
@@ -515,6 +532,8 @@ function PrivateVault() {
         )}
       </div>
       )}
+
+      {preview && <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />}
 
       {aiReviewFor && (
         <AiFilingReviewModal
@@ -761,6 +780,11 @@ function SharedDocumentsView() {
                   <tr key={d.id}>
                     <td>
                       <strong>{d.name}</strong>
+                      {d.pending_review && (
+                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6, fontSize: 11 }}>
+                          Pending review
+                        </span>
+                      )}
                     </td>
                     <td>{d.folder}</td>
                     <td><span className={`tvp-status tvp-${statusTone(d.status)}`}>{d.status.replace(/_/g, " ")}</span></td>

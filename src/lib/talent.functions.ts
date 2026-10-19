@@ -274,7 +274,7 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
     const { data: docs, error: dErr } = await supabase
       .from("talent_shared_documents")
       .select(
-        "id, name, folder, status, validity_expires_at, storage_path, uploaded_by, created_at, updated_at, locked_until, current_version_id",
+        "id, name, folder, status, validity_expires_at, storage_path, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review",
       )
       .eq("talent_link_id", link.id)
       .order("created_at", { ascending: false });

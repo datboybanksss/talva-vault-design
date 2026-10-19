@@ -101,13 +101,14 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
       if (link) {
         const { data: shared } = await supabaseAdmin
           .from("talent_shared_documents")
-          .select("id, name, folder, validity_expires_at")
+          .select("id, name, folder, validity_expires_at, reminder_at")
           .eq("talent_link_id", link.id)
-          .not("validity_expires_at", "is", null)
-          .lte("validity_expires_at", cutoff)
+          .or(`reminder_at.lte.${new Date().toISOString()},validity_expires_at.lte.${cutoff}`)
           .limit(200);
         for (const d of shared ?? []) {
-          const due = d.validity_expires_at as string;
+          // A manually set reminder date feeds the same list as an expiry.
+          const due = (d.validity_expires_at ?? d.reminder_at) as string | null;
+          if (!due) continue;
           pending.push({
             user_id: userId,
             kind: "doc_expiring",

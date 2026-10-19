@@ -2164,6 +2164,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_filing_enabled: boolean
           avatar_url: string | null
           created_at: string
           designation: string | null
@@ -2179,6 +2180,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_filing_enabled?: boolean
           avatar_url?: string | null
           created_at?: string
           designation?: string | null
@@ -2194,6 +2196,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_filing_enabled?: boolean
           avatar_url?: string | null
           created_at?: string
           designation?: string | null
@@ -2566,7 +2569,9 @@ export type Database = {
         Row: {
           created_at: string
           expires_at: string | null
+          expiry_source: string | null
           folder_id: string | null
+          folder_source: string | null
           id: string
           mime_type: string | null
           name: string
@@ -2581,7 +2586,9 @@ export type Database = {
         Insert: {
           created_at?: string
           expires_at?: string | null
+          expiry_source?: string | null
           folder_id?: string | null
+          folder_source?: string | null
           id?: string
           mime_type?: string | null
           name: string
@@ -2596,7 +2603,9 @@ export type Database = {
         Update: {
           created_at?: string
           expires_at?: string | null
+          expiry_source?: string | null
           folder_id?: string | null
+          folder_source?: string | null
           id?: string
           mime_type?: string | null
           name?: string
@@ -2805,12 +2814,15 @@ export type Database = {
           contract_total_cents: number | null
           created_at: string
           current_version_id: string | null
+          expiry_source: string | null
           folder: string
+          folder_source: string | null
           id: string
           locked_until: string | null
           name: string
           originator: string
           pending_review: boolean
+          reminder_at: string | null
           retention_stamped_at: string | null
           retention_years_at_upload: number | null
           revoked_at: string | null
@@ -2833,12 +2845,15 @@ export type Database = {
           contract_total_cents?: number | null
           created_at?: string
           current_version_id?: string | null
+          expiry_source?: string | null
           folder?: string
+          folder_source?: string | null
           id?: string
           locked_until?: string | null
           name: string
           originator?: string
           pending_review?: boolean
+          reminder_at?: string | null
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
           revoked_at?: string | null
@@ -2861,12 +2876,15 @@ export type Database = {
           contract_total_cents?: number | null
           created_at?: string
           current_version_id?: string | null
+          expiry_source?: string | null
           folder?: string
+          folder_source?: string | null
           id?: string
           locked_until?: string | null
           name?: string
           originator?: string
           pending_review?: boolean
+          reminder_at?: string | null
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
           revoked_at?: string | null

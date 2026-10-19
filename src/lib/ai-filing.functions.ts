@@ -2,12 +2,17 @@
  * Document filing review — server functions.
  *
  * getFilingCatalog: returns the closed catalog of destinations the reviewer may
- * file a freshly uploaded document into, plus the portal's default reminder lead
- * time. No AI is involved yet — the UI seeds its "suggestion" from the folder the
- * user picked at upload time. When a real suggestion service lands it can return
- * a `suggestion` object from here (or from its own function) without any UI rework.
+ * file a freshly uploaded document into, the portal's default reminder lead
+ * time, and whether the caller has "Organise documents with AI" switched on.
+ * No document-content AI service is wired up yet — the UI seeds its suggestion
+ * from a filename heuristic, which is recorded with source 'filename', never
+ * 'ai'. When a real suggestion service lands it can return a `suggestion`
+ * object from here (or from its own function) without any UI rework.
  *
- * confirmDocumentFiling: applies the human-confirmed destination/expiry/reminder.
+ * confirmDocumentFiling: applies the human-confirmed destination/expiry/
+ * reminder and stores where each value came from (folder_source / expiry_source:
+ * 'ai' | 'filename' | 'user'). A source of 'ai' is refused while no AI analysis
+ * has actually run — today that is always, because no AI service is connected.
  */
 
 import { createServerFn } from "@tanstack/react-start";
@@ -16,6 +21,7 @@ import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
 const ScopeEnum = z.enum(["talent", "agency"]);
+const SourceEnum = z.enum(["ai", "filename", "user"]);
 
 const CatalogInput = z.object({
   scope: ScopeEnum,
@@ -29,6 +35,9 @@ const ConfirmInput = z.object({
   destination: z.string().nullable(),
   expires_at: z.string().nullable(),
   reminder_at: z.string().nullable(),
+  /** Where the folder and expiry values came from. */
+  folder_source: SourceEnum.nullable().default(null),
+  expiry_source: SourceEnum.nullable().default(null),
   ai_assisted: z.boolean().default(false),
 });
 
@@ -37,6 +46,16 @@ const SkipInput = z.object({
   document_id: z.string().uuid(),
 });
 
+/** The caller's own "Organise documents with AI" preference (default on). */
+async function callerAiEnabled(supabase: any, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("ai_filing_enabled")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.ai_filing_enabled !== false;
+}
 
 async function callerAgencyId(supabase: any, userId: string) {
   const { data, error } = await supabase
@@ -60,6 +79,25 @@ async function writableAgencyId(supabase: any, userId: string) {
   if (error) throw new Error(error.message);
   if (!ok) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended. Existing documents are view and download only.");
   return agencyId;
+}
+
+/**
+ * No document-content AI service is connected yet, so no filing can legitimately
+ * carry an 'ai' source. Refuse it rather than record a provenance we cannot
+ * prove. When a real service lands, this check becomes "analysis ran and the
+ * caller's AI switch is on".
+ */
+function assertSourcesAllowed(
+  aiEnabled: boolean,
+  folderSource: string | null,
+  expirySource: string | null,
+) {
+  if (folderSource === "ai" || expirySource === "ai") {
+    if (!aiEnabled) {
+      throw new Error("AI filing is switched off for your account, so values can't be saved as AI-suggested.");
+    }
+    throw new Error("No AI analysis ran for this document, so values can't be saved as AI-suggested.");
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -160,7 +198,8 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
         "Filed into the talent's Agency Shared Folder. The talent's Private Vault stays out of reach.";
     }
 
-    return { catalog, defaultReminderDays, secondaryHint, currentDestination, fileName };
+    const aiEnabled = await callerAiEnabled(supabase, userId);
+    return { catalog, defaultReminderDays, secondaryHint, currentDestination, fileName, aiEnabled };
   });
 
 // -----------------------------------------------------------------------------
@@ -171,11 +210,13 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ConfirmInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
+    const aiEnabled = await callerAiEnabled(supabase, userId);
+    assertSourcesAllowed(aiEnabled, data.folder_source, data.expiry_source);
 
     if (data.scope === "talent") {
       const { data: doc } = await supabase
         .from("talent_private_documents")
-        .select("id, user_id")
+        .select("id, user_id, name")
         .eq("id", data.document_id)
         .maybeSingle();
       if (!doc || doc.user_id !== userId) throw new Error("Not found.");
@@ -184,6 +225,8 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
         expires_at: data.expires_at,
         reminder_at: data.reminder_at,
         pending_review: false,
+        folder_source: data.folder_source,
+        expiry_source: data.expiry_source,
       };
 
       if (data.destination) patch.folder_id = data.destination;
@@ -193,6 +236,21 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
         .update(patch)
         .eq("id", data.document_id);
       if (error) throw new Error(error.message);
+
+      await supabase.from("talent_audit_log").insert({
+        actor_id: userId,
+        actor_email: claims?.email ?? null,
+        action: "document_filing_confirmed",
+        target_type: "private_document",
+        target_id: data.document_id,
+        target_label: doc.name,
+        detail: {
+          folder: data.destination,
+          expires_at: data.expires_at,
+          folder_source: data.folder_source,
+          expiry_source: data.expiry_source,
+        },
+      });
       return { ok: true };
     }
 
@@ -219,7 +277,10 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
 
     const patch: Record<string, unknown> = {
       validity_expires_at: data.expires_at,
+      reminder_at: data.reminder_at,
       pending_review: false,
+      folder_source: data.folder_source,
+      expiry_source: data.expiry_source,
     };
 
     if (data.destination) patch.folder = data.destination;
@@ -241,6 +302,8 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
       detail: {
         folder: data.destination,
         expires_at: data.expires_at,
+        folder_source: data.folder_source,
+        expiry_source: data.expiry_source,
         ai_assisted: data.ai_assisted,
       },
     });
@@ -301,4 +364,29 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
     });
 
     return { ok: true };
+  });
+
+// -----------------------------------------------------------------------------
+// Per-user "Organise documents with AI" preference (default on)
+// -----------------------------------------------------------------------------
+export const getAiFilingPreference = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    return { aiEnabled: await callerAiEnabled(supabase, userId) };
+  });
+
+export const setAiFilingPreference = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ ai_filing_enabled: z.boolean() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ ai_filing_enabled: data.ai_filing_enabled })
+      .eq("id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, aiEnabled: data.ai_filing_enabled };
   });

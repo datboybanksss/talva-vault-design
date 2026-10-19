@@ -8,6 +8,7 @@ import { updateTalentProfile, getTalentNotificationPrefs, updateTalentNotificati
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
+import { AiFilingPreferenceCard } from "@/components/account/ai-filing-preference-card";
 import { MyTermsAcceptances } from "@/components/shared/my-terms-acceptances";
 import { SecurityLogPanel } from "@/components/talent/security-log-panel";
 import {
@@ -169,6 +170,9 @@ function TalentSettings() {
 
       {mode === "account" && (
         <div className="tvp-account-grid">
+          <div className="tvp-account-full">
+            <AiFilingPreferenceCard />
+          </div>
           <PasswordCard
             email={ctx?.profile?.email ?? ""}
             logPasswordChange={() => logTalentPasswordChange()}
