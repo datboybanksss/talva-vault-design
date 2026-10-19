@@ -96,6 +96,7 @@ export const listIndependentTalentInvitations = createServerFn({ method: "GET" }
     return (rows ?? []).map((r: any) => ({
       ...r,
       status: effectiveStatus(r),
+      stored_status: r.status as string,
       doc_count: docCount.get(r.id) ?? 0,
     }));
   });
