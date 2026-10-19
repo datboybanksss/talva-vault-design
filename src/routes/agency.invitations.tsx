@@ -73,6 +73,7 @@ function InvitationsPage() {
   const revokeFn = useServerFn(revokeAgencyInvitationMine);
   const logCopyFn = useServerFn(logAgencyCopyLinkMine);
   const qc = useQueryClient();
+  const readOnly = useAgencyReadOnly();
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
   const invites = useQuery({
@@ -271,8 +272,7 @@ function InvitationsPage() {
                               onSelect: () => {
                                 // Still stored as open (only past its date): a fresh expiry is enough.
                                 if (open) resendM.mutate({ id: i.id, type: i.type });
-                                else if (i.type === "talent") navigate({ to: "/agency/talent/invite" });
-                                else setOpenForm("staff");
+                                else setOpenForm(i.type as InviteType);
                               },
                             },
                             allowed.includes("revoke") && {
