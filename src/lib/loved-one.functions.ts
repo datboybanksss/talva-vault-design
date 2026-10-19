@@ -218,11 +218,17 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: share } = await supabase
       .from("loved_one_shares")
-      .select("id, token, talent_id, loved_one_name, loved_one_email, expires_at")
+      .select("id, token, talent_id, loved_one_name, loved_one_email, expires_at, revoked_at, is_active")
       .eq("id", data.id)
       .eq("created_by", userId)
       .maybeSingle();
     if (!share) throw new Error("Share not found.");
+    if (share.revoked_at || share.is_active === false) {
+      throw new Error("This share has been revoked. Reshare with this person to give access again.");
+    }
+    if (share.expires_at && new Date(share.expires_at).getTime() < Date.now()) {
+      throw new Error("This share has expired. Reshare with this person to give access again.");
+    }
 
     const { generateAccessCode, hashAccessCode } = await import("@/lib/loved-one-access.server");
     const accessCode = generateAccessCode();
