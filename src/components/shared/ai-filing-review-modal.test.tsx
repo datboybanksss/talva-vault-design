@@ -217,7 +217,7 @@ describe("AiFilingReviewModal — filename guess mode", () => {
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
     expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
-      destination: "f-passport",
+      destination: "f-identity",
       folder_source: "filename",
       expiry_source: "user", // no date in the file name, so expiry stayed empty/user
     });
