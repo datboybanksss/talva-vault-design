@@ -122,7 +122,7 @@ async function loadDocument(scope: AnalysisScope, documentId: string) {
       }
       return { id: r.id, label: parts.join(" → ") };
     });
-    return { bucket: "talent-private", path: doc.storage_path, name: doc.name, mime: doc.mime_type, catalogue };
+    return { bucket: "talent-private-documents", path: doc.storage_path, name: doc.name, mime: doc.mime_type, catalogue };
   }
   const { data: doc } = await supabaseAdmin
     .from("talent_shared_documents")
