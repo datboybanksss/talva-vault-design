@@ -25,7 +25,7 @@ const catalog = [
 
 const confirmSpy = vi.fn(async (_data: any) => ({ ok: true }));
 const skipSpy = vi.fn(async (_data: any) => ({ ok: true }));
-const catalogSpy = vi.fn(async (_data?: any) => ({
+const catalogSpy = vi.fn(async (_data?: any): Promise<any> => ({
   catalog,
   defaultReminderDays: 30,
   secondaryHint: "This stays in your Private Vault.",
