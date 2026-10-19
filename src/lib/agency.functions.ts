@@ -648,6 +648,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       lastDocumentAt: lastDocAt.get(r.id) ?? null,
       createdAt: r.created_at as string,
       updatedAt: r.updated_at as string,
+      talentInvitationId: (r.talent_invitation_id as string) ?? null,
     }));
   });
 
