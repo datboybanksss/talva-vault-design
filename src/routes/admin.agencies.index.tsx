@@ -149,7 +149,7 @@ function AgenciesPage() {
     const headers = ["Agency", "Status", "Contact person", "Contact email", "Country", "Talent", "Created"];
     const rows = filteredRows.map((a: any) => [
       a.name,
-      statusLabel[a.status],
+      statusLabel("agency", a.status),
       a.contact_person ?? "",
       a.contact_email ?? "",
       a.country ?? "",
@@ -275,7 +275,7 @@ function AgenciesPage() {
             className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} ${k === "all" ? "tvp-bg-teal" : `tvp-bg-st-${statusToken("agency", k)}`}`}
             onClick={() => setTab(k)}
           >
-            <div className="tvp-label">{k === "all" ? "All" : statusLabel[k]}</div>
+            <div className="tvp-label">{k === "all" ? "All" : statusLabel("agency", k)}</div>
             <div className="tvp-num">{counts[k] ?? 0}</div>
           </button>
         ))}
