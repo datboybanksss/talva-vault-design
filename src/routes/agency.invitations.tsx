@@ -28,27 +28,15 @@ import {
   updateAgencyStaffRole,
   removeAgencyStaffMember,
 } from "@/lib/agency.functions";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
+import { invitationActions, invitationIsOpen } from "@/lib/status-actions";
+import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
 
 
 export const Route = createFileRoute("/agency/invitations")({
   head: () => ({ meta: [{ title: "Invitations · TalVault" }] }),
   component: InvitationsPage,
 });
-
-const statusLabel: Record<string, string> = {
-  pending: "Invited",
-  accepted: "Accepted",
-  expired: "Expired",
-  declined: "Declined",
-  revoked: "Revoked",
-};
-const statusTone: Record<string, string> = {
-  pending: "blue",
-  accepted: "green",
-  expired: "red",
-  declined: "neutral",
-  revoked: "neutral",
-};
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -239,8 +227,8 @@ function InvitationsPage() {
                       </span>
                     </td>
                     <td>
-                      <span className={`tvp-status tvp-${statusTone[i.status] ?? "neutral"}`}>
-                        {statusLabel[i.status] ?? i.status}
+                      <span className={statusPillClass("invitation", i.status)}>
+                        {statusLabel("invitation", i.status)}
                       </span>
                     </td>
                     <td>{i.invited_by_label}</td>
@@ -250,35 +238,53 @@ function InvitationsPage() {
                     </td>
                     <td>
                       <RowActionsMenu
-                        actions={[
-                          isOwner && {
-                            key: "email", label: "Edit & send email", icon: Mail,
-                            onSelect: () =>
-                              navigate({
-                                to: "/agency/invitations/$id/email-preview",
-                                params: { id: i.id },
-                                search: { type: i.type as "talent" | "staff" },
-                              }),
-                          },
-                          {
-                            key: "copy", label: "Copy invite link", icon: Link2,
-                            title: "Copying does not extend expiry",
-                            onSelect: () => copyLink(i),
-                          },
-                          (i.stored_status ?? i.status) === "pending" && isOwner && {
-                            key: "resend", label: "Resend invitation", icon: RefreshCw,
-                            title: "Refreshes expiry and logs a new send",
-                            onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
-                          },
-                          (i.stored_status ?? i.status) === "pending" && isOwner && {
-                            key: "revoke", label: "Revoke invitation", icon: Ban,
-                            destructive: true, separatorBefore: true,
-                            onSelect: () => {
-                              if (confirm(`Revoke invitation to ${i.email}?`))
-                                revokeM.mutate({ id: i.id, type: i.type });
+                        actions={(() => {
+                          const allowed = invitationActions({
+                            status: i.status,
+                            storedStatus: i.stored_status,
+                            viewer: isOwner ? "agency_owner" : "agency_staff",
+                            canWrite: !readOnly,
+                          });
+                          const open = invitationIsOpen(i.stored_status ?? i.status);
+                          return [
+                            allowed.includes("edit_email") && {
+                              key: "email", label: "Edit & send email", icon: Mail,
+                              onSelect: () =>
+                                navigate({
+                                  to: "/agency/invitations/$id/email-preview",
+                                  params: { id: i.id },
+                                  search: { type: i.type as "talent" | "staff" },
+                                }),
                             },
-                          },
-                        ]}
+                            allowed.includes("copy_link") && {
+                              key: "copy", label: "Copy invite link", icon: Link2,
+                              title: "Copying does not extend expiry",
+                              onSelect: () => copyLink(i),
+                            },
+                            allowed.includes("resend") && {
+                              key: "resend", label: "Resend invitation", icon: RefreshCw,
+                              title: "Refreshes expiry and logs a new send",
+                              onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
+                            },
+                            allowed.includes("reinvite") && {
+                              key: "reinvite", label: "Reinvite", icon: Send,
+                              onSelect: () => {
+                                // Still stored as open (only past its date): a fresh expiry is enough.
+                                if (open) resendM.mutate({ id: i.id, type: i.type });
+                                else if (i.type === "talent") navigate({ to: "/agency/talent/invite" });
+                                else setOpenForm("staff");
+                              },
+                            },
+                            allowed.includes("revoke") && {
+                              key: "revoke", label: "Revoke invitation", icon: Ban,
+                              destructive: true, separatorBefore: true,
+                              onSelect: () => {
+                                if (confirm(`Revoke invitation to ${i.email}?`))
+                                  revokeM.mutate({ id: i.id, type: i.type });
+                              },
+                            },
+                          ];
+                        })()}
                       />
                     </td>
                   </tr>
