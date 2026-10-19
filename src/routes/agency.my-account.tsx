@@ -15,6 +15,7 @@ import { friendlyAuthError } from "@/lib/password";
 import { SectionHeader } from "@/components/account/section-header";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
+import { AiFilingPreferenceCard } from "@/components/account/ai-filing-preference-card";
 import { MyTermsAcceptances } from "@/components/shared/my-terms-acceptances";
 
 export const Route = createFileRoute("/agency/my-account")({
@@ -66,6 +67,9 @@ function MyAccountPage() {
             <ProfileCard me={me.data} />
           </div>
           <EmailCard me={me.data} />
+          <div className="tvp-account-full">
+            <AiFilingPreferenceCard />
+          </div>
           <PasswordCard
             email={me.data.email}
             logPasswordChange={() => logPwFn()}

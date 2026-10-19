@@ -2,16 +2,25 @@
  * Filing review popup — shared by BOTH the Agency Document Vault and the Talent
  * Private Vault. Opens after an upload completes, before the document counts as filed.
  *
- * No document-content AI service is wired up yet. When no `suggestion` prop is
- * given we run a filename heuristic (keyword → folder, date pattern → expiry).
- * A suggestion badge is only shown when that heuristic actually inferred
- * something; otherwise the field is labelled as a plain default. The `suggestion`
- * prop remains the seam for a real service, with the same shape.
+ * Modes:
+ * - `ai`       — a real suggestion service returned a `suggestion` prop. Fields
+ *                are pre-filled and labelled "Suggested by AI". No such service
+ *                is connected yet, so this mode is currently unused.
+ * - `filename` — the filename heuristic matched a folder or a date. Fields are
+ *                pre-filled and labelled "Suggested · Based on the file name".
+ *                This is NOT AI and is never presented as such.
+ * - `manual`   — the caller switched "Organise documents with AI" off, or
+ *                nothing could be suggested. No badges, no provenance link, no
+ *                confidence label. The folder starts on the folder the document
+ *                was uploaded into (or empty, forcing a choice before saving).
+ * - `failed`   — the folder list could not be loaded. Same presentation as
+ *                `manual`, with a neutral helper line instead of a banner.
  *
  * UX contract: every field is live and editable the moment the popup opens. The
  * suggestion only pre-fills them. Editing IS the correction mechanism, so there
  * is no per-field confirm step and no separate "reject" path — whatever sits in
- * the fields when "Save filing" is pressed is what gets written.
+ * the fields when "Save filing" is pressed is what gets written, and a field's
+ * label flips to "Edited by you" the moment it is touched.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -54,6 +63,9 @@ export type FilingSuggestion = {
   expiry_source_text?: string | null;
 };
 
+type FilingMode = "ai" | "filename" | "manual" | "failed";
+type FieldSource = "ai" | "filename" | "user";
+
 type Props = {
   scope: AiFilingScope;
   documentId: string;
@@ -61,8 +73,8 @@ type Props = {
   /** Prefix shown before the destination, e.g. "Private Vault" or "Agency Shared Folder". */
   destinationPrefix: string;
   /**
-   * Suggested filing. Omit (or pass null) to fall back to the placeholder default:
-   * the folder the document was uploaded into, with no expiry.
+   * Suggested filing from a real AI service. Omit (or pass null) to fall back to
+   * the filename heuristic, or to manual mode when nothing matches.
    */
   suggestion?: FilingSuggestion | null;
   onClose: () => void;
@@ -79,17 +91,6 @@ function minusDays(iso: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-const AMBER_PANEL = {
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 10,
-  padding: "10px 12px",
-  borderRadius: 8,
-  background: "rgba(180, 83, 9, 0.08)",
-  border: "1px solid rgba(180, 83, 9, 0.25)",
-  fontSize: 13,
-} as const;
-
 const FIELD_COL = {
   display: "flex",
   flexDirection: "column",
@@ -99,35 +100,36 @@ const FIELD_COL = {
 } as const;
 
 /**
- * Passive provenance strip for a field: where the value came from, how confident
- * the suggestion was, and the verbatim source sentence on demand. It carries no
+ * Passive provenance strip for a field: where the value came from. It carries no
  * Confirm/Edit actions — the field itself is always editable, and the badge flips
  * to "Edited by you" the moment the value is changed.
  *
- * The "Suggested by AI" badge is only shown when something was genuinely
- * inferred. Otherwise the value is simply the default and says so.
+ * "Suggested by AI" (with the "Where did this come from?" link) is reserved for a
+ * genuine AI suggestion. A filename match shows a neutral "Suggested" badge with
+ * the explanation "Based on the file name" and no provenance link. In manual or
+ * failed mode nothing is labelled at all.
  */
 function FieldProvenance({
   value,
   source,
-  suggested,
+  mode,
   confidence,
   sourceText,
-  defaultLabel,
 }: {
   value: string;
-  source: "ai" | "user";
-  /** True only when a real suggestion produced this value. */
-  suggested: boolean;
+  source: FieldSource;
+  mode: FilingMode;
   confidence?: "high" | "medium" | "low" | null;
   sourceText?: string | null;
-  defaultLabel: string;
 }) {
   const [showSource, setShowSource] = useState(false);
   const edited = source === "user";
+  const labelled = mode === "ai" || mode === "filename";
+
+  if (!labelled && !edited) return null;
 
   return (
-    <div className="tv-prov" data-source={edited ? "user" : suggested ? "ai" : "default"}>
+    <div className="tv-prov" data-source={edited ? "user" : source}>
       <div className="tv-prov__head">
         <span className="tv-prov__value">{value}</span>
         <span className="tv-prov__badge" style={{ marginLeft: "auto" }}>
@@ -135,36 +137,39 @@ function FieldProvenance({
             <>
               <Check className="h-3 w-3" /> Edited by you
             </>
-          ) : suggested ? (
+          ) : source === "ai" ? (
             <>
               <Sparkles className="h-3 w-3" /> Suggested by AI
               {confidence ? ` · ${confidence} confidence` : ""}
             </>
           ) : (
             <>
-              <FolderTree className="h-3 w-3" /> {defaultLabel}
+              <FolderTree className="h-3 w-3" /> Suggested
             </>
           )}
         </span>
-        <button
-          type="button"
-          className="tv-btn tv-btn--ghost"
-          data-tour="filing-source-toggle"
-          onClick={() => setShowSource((v) => !v)}
-          aria-expanded={showSource}
-        >
-          <HelpCircle className="h-3.5 w-3.5" />
-          {showSource ? "Hide source" : "Where did this come from?"}
-        </button>
+        {mode === "ai" && !edited && (
+          <button
+            type="button"
+            className="tv-btn tv-btn--ghost"
+            data-tour="filing-source-toggle"
+            onClick={() => setShowSource((v) => !v)}
+            aria-expanded={showSource}
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            {showSource ? "Hide source" : "Where did this come from?"}
+          </button>
+        )}
       </div>
 
-      {showSource && (
+      {mode === "filename" && !edited && (
+        <p className="tv-prov__source">Based on the file name.</p>
+      )}
+      {mode === "ai" && showSource && (
         <p className="tv-prov__source">
           {sourceText
             ? `"${sourceText}"`
-            : edited
-              ? "You set this value yourself, so there is no document extract behind it."
-              : "Nothing was detected for this field, so it fell back to the default — the folder you uploaded into, with no expiry."}
+            : "The suggestion was made from the document's contents."}
         </p>
       )}
     </div>
@@ -195,16 +200,27 @@ export function AiFilingReviewModal({
   const catalog: CatalogItem[] = useMemo(() => data?.catalog ?? [], [data]);
 
   /**
-   * Real suggestion if a caller passed one; otherwise a filename heuristic. When
-   * the heuristic finds nothing, we fall back to a plain default (the folder the
-   * document was uploaded into) which is never presented as an AI suggestion.
+   * The filename heuristic only runs when the caller's AI switch is on and no
+   * real AI suggestion was passed in. It is a plain guess from the file name —
+   * never presented or recorded as AI.
    */
   const heuristic = useMemo(
-    () => (suggestionProp || !data ? null : suggestFromFileName(documentName, catalog)),
+    () =>
+      suggestionProp || !data || data.aiEnabled === false
+        ? null
+        : suggestFromFileName(documentName, catalog),
     [suggestionProp, data, catalog, documentName],
   );
 
-  const isGenuineSuggestion = Boolean(suggestionProp) || Boolean(heuristic);
+  const mode: FilingMode = isError
+    ? "failed"
+    : suggestionProp
+      ? "ai"
+      : data?.aiEnabled === false
+        ? "manual"
+        : heuristic
+          ? "filename"
+          : "manual";
 
   const suggestion: FilingSuggestion | null = useMemo(() => {
     if (suggestionProp) return suggestionProp;
@@ -228,7 +244,6 @@ export function AiFilingReviewModal({
       rationale: null,
     };
   }, [suggestionProp, data, heuristic]);
-
 
   /**
    * The catalog arrives as flattened "Parent → Child" paths. Split it back into a
@@ -273,8 +288,8 @@ export function AiFilingReviewModal({
   /** Held as text so the field can be cleared while typing without snapping back. */
   const [leadDaysText, setLeadDaysText] = useState<string>("30");
   const [noReminder, setNoReminder] = useState(false);
-  const [folderSource, setFolderSource] = useState<"ai" | "user">("ai");
-  const [expirySource, setExpirySource] = useState<"ai" | "user">("ai");
+  const [folderSource, setFolderSource] = useState<FieldSource>("user");
+  const [expirySource, setExpirySource] = useState<FieldSource>("user");
 
   useEffect(() => {
     if (!data || !suggestion) return;
@@ -284,8 +299,10 @@ export function AiFilingReviewModal({
     setExpiry(suggestion.expiry_date ?? "");
     setLeadDaysText(String(suggestion.reminder_lead_days ?? data.defaultReminderDays ?? 30));
     setNoReminder(false);
-    setFolderSource("ai");
-    setExpirySource("ai");
+    // A pre-filled field keeps the mode's source until the user touches it.
+    const initial: FieldSource = suggestionProp ? "ai" : heuristic ? "filename" : "user";
+    setFolderSource(suggestion.folder_id ? initial : "user");
+    setExpirySource(suggestion.expiry_date ? initial : "user");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
@@ -304,6 +321,10 @@ export function AiFilingReviewModal({
   const reminderDate =
     expiry && !noReminder && leadDaysValid ? minusDays(expiry, leadDays) : null;
 
+  // In manual/failed mode with no upload folder to fall back on, the reviewer
+  // must choose a folder before saving.
+  const mustChooseFolder = (mode === "manual" || mode === "failed") && !data?.currentDestination;
+
   const save = useMutation({
     mutationFn: () =>
       confirmFn({
@@ -313,8 +334,9 @@ export function AiFilingReviewModal({
           destination,
           expires_at: expiry ? new Date(`${expiry}T00:00:00Z`).toISOString() : null,
           reminder_at: reminderDate ? new Date(`${reminderDate}T09:00:00Z`).toISOString() : null,
-          ai_assisted:
-            isGenuineSuggestion && (folderSource === "ai" || expirySource === "ai"),
+          folder_source: folderSource,
+          expiry_source: expirySource,
+          ai_assisted: mode === "ai" && (folderSource === "ai" || expirySource === "ai"),
         },
       }),
     onSuccess: () => {
@@ -334,6 +356,8 @@ export function AiFilingReviewModal({
   });
 
   const busy = save.isPending || skip.isPending;
+  const saveDisabled = busy || (mustChooseFolder && !destination);
+  const showConfidence = mode === "ai" && suggestion?.confidence;
 
   return (
     <div
@@ -372,7 +396,7 @@ export function AiFilingReviewModal({
           </span>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h2 className="display-lg" style={{ fontSize: "var(--t-title)" }}>
-              AI filing review
+              {mode === "ai" ? "AI filing review" : "Filing review"}
             </h2>
             <p className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
               {documentName}
@@ -391,23 +415,20 @@ export function AiFilingReviewModal({
         )}
 
         {isError && !isLoading && (
-          <div style={AMBER_PANEL}>
-            <ShieldAlert
-              className="h-4 w-4 shrink-0"
-              style={{ color: "var(--tvp-amber, #b45309)", marginTop: 2 }}
-            />
-            <span>Couldn't load your folder list. Close this and file the document manually.</span>
-          </div>
+          <p className="tvp-muted" style={{ fontSize: 13 }}>
+            Automatic analysis could not be completed, so nothing is pre-filled. Choose a folder
+            and any expiry yourself, then save — or skip for now.
+          </p>
         )}
 
-        {!isLoading && !isError && (
+        {!isLoading && (
           <>
             {/* ---------------- Folder & subfolder ---------------- */}
             <section className="tvp-card tvp-panel tvp-settings-tight" style={{ gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <FolderTree className="h-4 w-4" style={{ color: "var(--tvp-teal, #0f766e)" }} />
                 <strong style={{ fontSize: 14 }}>Folder &amp; subfolder</strong>
-                {suggestion?.confidence && (
+                {showConfidence && (
                   <span
                     className="tvp-muted"
                     data-tour="filing-confidence"
@@ -418,7 +439,7 @@ export function AiFilingReviewModal({
                       letterSpacing: 0.4,
                     }}
                   >
-                    {suggestion.confidence} confidence
+                    {suggestion?.confidence} confidence
                   </span>
                 )}
               </div>
@@ -440,7 +461,9 @@ export function AiFilingReviewModal({
                       setFolderSource("user");
                     }}
                   >
-                    <option value="">Leave where it was uploaded</option>
+                    <option value="">
+                      {mustChooseFolder ? "Choose a folder" : "Leave where it was uploaded"}
+                    </option>
                     {tree.order.map((name) => (
                       <option key={name} value={name}>
                         {name}
@@ -489,7 +512,7 @@ export function AiFilingReviewModal({
                   {data.secondaryHint}
                 </div>
               )}
-              {suggestion?.rationale && (
+              {mode === "ai" && suggestion?.rationale && (
                 <div className="tvp-muted" style={{ fontSize: 12 }}>
                   {suggestion.rationale}
                 </div>
@@ -498,8 +521,7 @@ export function AiFilingReviewModal({
               <FieldProvenance
                 value={destinationLabel ?? "Unfiled"}
                 source={folderSource}
-                suggested={Boolean(suggestionProp) || Boolean(heuristic?.folder_id)}
-                defaultLabel="Default folder"
+                mode={mode}
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.folder_source_text ?? null}
               />
@@ -584,19 +606,17 @@ export function AiFilingReviewModal({
               <FieldProvenance
                 value={expiry ? expiry : "No expiry"}
                 source={expirySource}
-                suggested={Boolean(suggestionProp) || Boolean(heuristic?.expiry_date)}
-                defaultLabel="No expiry detected"
+                mode={mode}
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.expiry_source_text ?? null}
               />
             </section>
 
             {/* ---------------- Human validation notice ---------------- */}
-            <div style={AMBER_PANEL} data-tour="filing-validation-notice">
-              <ShieldAlert
-                className="h-4 w-4 shrink-0"
-                style={{ color: "var(--tvp-amber, #b45309)", marginTop: 2 }}
-              />
+            <div className="tvp-callout" data-tour="filing-validation-notice">
+              <div className="tvp-callout-icon">
+                <ShieldAlert className="h-4 w-4" />
+              </div>
               <div>
                 <strong>Human validation required.</strong>
                 <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
@@ -624,7 +644,8 @@ export function AiFilingReviewModal({
                 className="tvp-primary"
                 data-tour="filing-save"
                 onClick={() => save.mutate()}
-                disabled={busy}
+                disabled={saveDisabled}
+                title={saveDisabled && !busy ? "Choose a folder first" : undefined}
               >
                 {save.isPending ? "Saving…" : "Save filing"}
               </button>

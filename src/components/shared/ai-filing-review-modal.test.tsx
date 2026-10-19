@@ -1,9 +1,13 @@
 /**
  * Behaviour contract for the filing review popup.
  *
- * Guards the UX rules that are easy to regress: the AI suggestion only pre-fills
- * the fields, every field is editable immediately (no unlock step), there is no
- * reject path, and "Save filing" writes exactly what is in the fields at the time.
+ * Guards the UX rules that are easy to regress: a suggestion only pre-fills the
+ * fields, every field is editable immediately (no unlock step), there is no
+ * reject path, and "Save filing" writes exactly what is in the fields at the
+ * time. A filename guess is labelled "Suggested · Based on the file name" —
+ * never "Suggested by AI" — and is recorded with source 'filename'. In manual
+ * mode (AI switch off, or nothing matched) no badges show at all and every
+ * saved value is source 'user'.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -21,12 +25,13 @@ const catalog = [
 
 const confirmSpy = vi.fn(async (_data: any) => ({ ok: true }));
 const skipSpy = vi.fn(async (_data: any) => ({ ok: true }));
-const catalogSpy = vi.fn(async (_data?: any) => ({
+const catalogSpy = vi.fn(async (_data?: any): Promise<any> => ({
   catalog,
   defaultReminderDays: 30,
   secondaryHint: "This stays in your Private Vault.",
   currentDestination: "f-passport",
   fileName: "passport.pdf",
+  aiEnabled: true,
 }));
 
 vi.mock("@/lib/ai-filing.functions", () => ({
@@ -48,22 +53,24 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import { AiFilingReviewModal } from "./ai-filing-review-modal";
 
-function renderModal(onDone = vi.fn()) {
+const AI_SUGGESTION = {
+  folder_id: "f-passport",
+  expiry_date: "2030-01-31",
+  reminder_lead_days: 30,
+  confidence: "high" as const,
+  rationale: null,
+};
+
+function renderModal(onDone = vi.fn(), opts: { suggestion?: any; fileName?: string } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
       <AiFilingReviewModal
         scope="talent"
         documentId="11111111-1111-1111-1111-111111111111"
-        documentName="passport.pdf"
+        documentName={opts.fileName ?? "passport.pdf"}
         destinationPrefix="Private Vault"
-        suggestion={{
-          folder_id: "f-passport",
-          expiry_date: "2030-01-31",
-          reminder_lead_days: 30,
-          confidence: "high",
-          rationale: null,
-        }}
+        suggestion={opts.suggestion === undefined ? AI_SUGGESTION : opts.suggestion}
         onClose={vi.fn()}
         onDone={onDone}
       />
@@ -77,10 +84,11 @@ const subSelect = () => screen.getByLabelText("Destination subfolder") as HTMLSe
 const expiryInput = () => screen.getByLabelText("Expiry date") as HTMLInputElement;
 const leadInput = () => screen.getByLabelText("Reminder lead days") as HTMLInputElement;
 
-describe("AiFilingReviewModal", () => {
+describe("AiFilingReviewModal — AI suggestion mode", () => {
   beforeEach(() => {
     confirmSpy.mockClear();
     skipSpy.mockClear();
+    catalogSpy.mockClear();
   });
 
   it("pre-fills folder, subfolder and expiry from the AI suggestion, all editable immediately", async () => {
@@ -101,6 +109,12 @@ describe("AiFilingReviewModal", () => {
     expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
   });
 
+  it("labels untouched AI-suggested fields as 'Suggested by AI'", async () => {
+    renderModal();
+    await waitFor(() => expect(folderSelect()).toBeDefined());
+    expect(screen.getAllByText(/Suggested by AI/i).length).toBeGreaterThan(0);
+  });
+
   it("has no reject path, and keeps the human validation notice", async () => {
     renderModal();
     await waitFor(() => expect(folderSelect()).toBeDefined());
@@ -111,7 +125,7 @@ describe("AiFilingReviewModal", () => {
     expect(screen.getByRole("button", { name: /Skip for now/i })).toBeDefined();
   });
 
-  it("saves the untouched suggestion as-is", async () => {
+  it("saves the untouched suggestion as-is, with 'ai' sources", async () => {
     const user = userEvent.setup();
     renderModal();
     await waitFor(() => expect(folderSelect()).toBeDefined());
@@ -123,6 +137,8 @@ describe("AiFilingReviewModal", () => {
       destination: "f-passport",
       expires_at: "2030-01-31T00:00:00.000Z",
       reminder_at: "2030-01-01T09:00:00.000Z",
+      folder_source: "ai",
+      expiry_source: "ai",
     });
   });
 
@@ -152,6 +168,8 @@ describe("AiFilingReviewModal", () => {
       destination: "f-visa",
       expires_at: "2027-06-15T00:00:00.000Z",
       reminder_at: "2027-06-01T09:00:00.000Z",
+      folder_source: "user",
+      expiry_source: "user",
     });
     await waitFor(() => expect(onDone).toHaveBeenCalled());
   });
@@ -171,5 +189,123 @@ describe("AiFilingReviewModal", () => {
       expires_at: null,
       reminder_at: null,
     });
+  });
+});
+
+describe("AiFilingReviewModal — filename guess mode", () => {
+  beforeEach(() => {
+    confirmSpy.mockClear();
+    skipSpy.mockClear();
+    catalogSpy.mockClear();
+  });
+
+  it("labels the guess 'Suggested' with 'Based on the file name' — never 'Suggested by AI'", async () => {
+    renderModal(vi.fn(), { suggestion: null, fileName: "passport.pdf" });
+    await waitFor(() => expect(folderSelect().value).toBe("Identity & Personal"));
+
+    expect(screen.getAllByText(/^Suggested$/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Based on the file name/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Suggested by AI/i)).toBeNull();
+    expect(screen.queryByText(/Where did this come from/i)).toBeNull();
+  });
+
+  it("records the saved values with source 'filename'", async () => {
+    const user = userEvent.setup();
+    renderModal(vi.fn(), { suggestion: null, fileName: "passport.pdf" });
+    await waitFor(() => expect(folderSelect().value).toBe("Identity & Personal"));
+
+    await user.click(screen.getByRole("button", { name: /Save filing/i }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+      destination: "f-identity",
+      folder_source: "filename",
+      expiry_source: "user", // no date in the file name, so expiry stayed empty/user
+    });
+  });
+});
+
+describe("AiFilingReviewModal — manual mode (AI switch off)", () => {
+  beforeEach(() => {
+    confirmSpy.mockClear();
+    skipSpy.mockClear();
+    catalogSpy.mockClear();
+  });
+
+  it("shows no suggestion badges and no provenance link", async () => {
+    catalogSpy.mockResolvedValueOnce({
+      catalog,
+      defaultReminderDays: 30,
+      secondaryHint: null,
+      currentDestination: "f-passport",
+      fileName: "passport.pdf",
+      aiEnabled: false,
+    });
+    renderModal(vi.fn(), { suggestion: null });
+    await waitFor(() => expect(folderSelect().value).toBe("Identity & Personal"));
+
+    expect(screen.queryByText(/Suggested by AI/i)).toBeNull();
+    expect(screen.queryByText(/^Suggested$/i)).toBeNull();
+    expect(screen.queryByText(/Where did this come from/i)).toBeNull();
+    expect(screen.queryByText(/confidence/i)).toBeNull();
+  });
+
+  it("saves every value with source 'user'", async () => {
+    const user = userEvent.setup();
+    catalogSpy.mockResolvedValueOnce({
+      catalog,
+      defaultReminderDays: 30,
+      secondaryHint: null,
+      currentDestination: "f-passport",
+      fileName: "passport.pdf",
+      aiEnabled: false,
+    });
+    renderModal(vi.fn(), { suggestion: null });
+    await waitFor(() => expect(folderSelect().value).toBe("Identity & Personal"));
+
+    await user.click(screen.getByRole("button", { name: /Save filing/i }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+      folder_source: "user",
+      expiry_source: "user",
+    });
+  });
+
+  it("requires a folder choice when the document was uploaded with none", async () => {
+    catalogSpy.mockResolvedValueOnce({
+      catalog,
+      defaultReminderDays: 30,
+      secondaryHint: null,
+      currentDestination: null,
+      fileName: "scan.pdf",
+      aiEnabled: false,
+    });
+    renderModal(vi.fn(), { suggestion: null, fileName: "scan.pdf" });
+    await waitFor(() => expect(folderSelect()).toBeDefined());
+
+    const saveBtn = screen.getByRole("button", { name: /Save filing/i }) as HTMLButtonElement;
+    expect(saveBtn.disabled).toBe(true);
+
+    const user = userEvent.setup();
+    await user.selectOptions(folderSelect(), "Travel & Visas");
+    await user.selectOptions(subSelect(), "f-visa");
+    expect(saveBtn.disabled).toBe(false);
+  });
+
+  it("Skip for now still works in manual mode", async () => {
+    const user = userEvent.setup();
+    catalogSpy.mockResolvedValueOnce({
+      catalog,
+      defaultReminderDays: 30,
+      secondaryHint: null,
+      currentDestination: null,
+      fileName: "scan.pdf",
+      aiEnabled: false,
+    });
+    const onDone = renderModal(vi.fn(), { suggestion: null, fileName: "scan.pdf" });
+    await waitFor(() => expect(folderSelect()).toBeDefined());
+
+    await user.click(screen.getByRole("button", { name: /Skip for now/i }));
+    await waitFor(() => expect(skipSpy).toHaveBeenCalled());
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
   });
 });
