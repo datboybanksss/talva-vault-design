@@ -1883,6 +1883,11 @@ a.tvp-entity-card:hover {
 button.tvp-entity-card:focus-visible,
 a.tvp-entity-card:focus-visible { outline: 2px solid var(--tvp-teal-2); outline-offset: 2px; }
 .tvp-entity-card.tvp-entity-card-compact { padding: 13px; gap: 10px; }
+/* Document Vault talent picker only: equal-height tiles, shared card rhythm, pills pinned to the bottom. */
+.tvp-entity-grid.tvp-vault-picker { align-items: stretch; }
+.tvp-vault-picker > .tvp-entity-card.tvp-entity-card-compact { height: 100%; padding: var(--sp-5); gap: 7px; justify-content: flex-start; }
+.tvp-vault-picker > .tvp-entity-card > .tvp-entity-pills { margin-top: auto; }
+.tvp-vault-picker .tvp-entity-meta { margin-top: var(--sp-1); }
 
 .tvp-entity-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .tvp-entity-identity { min-width: 0; flex: 1; }
