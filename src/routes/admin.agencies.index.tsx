@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { statusLabel, statusPillClass } from "@/lib/status-labels";
+import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { agencyActions, invitationActions } from "@/lib/status-actions";
-import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X, Trash2, FileEdit } from "lucide-react";
+import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X, Trash2, FileEdit, Send } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -272,7 +272,7 @@ function AgenciesPage() {
         {(["all", "accepted", "invited", "incomplete", "suspended", "expired"] as const).map((k) => (
           <button
             key={k}
-            className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} tvp-bg-${k === "all" ? "teal" : statusTone[k]}`}
+            className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} ${k === "all" ? "tvp-bg-teal" : `tvp-bg-st-${statusToken("agency", k)}`}`}
             onClick={() => setTab(k)}
           >
             <div className="tvp-label">{k === "all" ? "All" : statusLabel[k]}</div>
