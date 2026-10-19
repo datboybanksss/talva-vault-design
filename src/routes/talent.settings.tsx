@@ -1,4 +1,5 @@
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Info, Save } from "lucide-react";
@@ -189,7 +190,7 @@ function TalentSettings() {
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
             Linked Agency:{" "}
             <strong style={{ color: "var(--tvp-ink)" }}>{ctx?.agency?.name ?? "—"}</strong>
-            {ctx?.link?.status ? <> · <span className="tvp-muted">{ctx.link.status}</span></> : null}
+            {ctx?.link?.status ? <> · <span className={statusPillClass("talentLink", ctx.link.status)}>{statusLabel("talentLink", ctx.link.status)}</span></> : null}
           </p>
           <div className="tvp-callout">
             <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
