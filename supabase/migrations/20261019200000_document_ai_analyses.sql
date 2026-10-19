@@ -1,3 +1,12 @@
+-- Document AI (Parserly) analyses: one row per uploaded document.
+-- Applied 2026-10-19 via the database tool; recorded here as the single history.
+-- Guarded: every statement is a no-op when the object already exists.
+--
+-- ROLLBACK (run manually if ever needed):
+--   DROP TRIGGER IF EXISTS document_ai_analyses_touch ON public.document_ai_analyses;
+--   DROP POLICY IF EXISTS "Document viewers can read its analysis" ON public.document_ai_analyses;
+--   DROP TABLE IF EXISTS public.document_ai_analyses;
+
 CREATE TABLE IF NOT EXISTS public.document_ai_analyses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   scope text NOT NULL CHECK (scope IN ('talent','agency')),
