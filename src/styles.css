@@ -838,6 +838,14 @@
   & .tvp-status.tvp-neutral { background: var(--tvp-neutral-bg);color: var(--tvp-muted); }
   & .tvp-status.tvp-teal    { background: var(--tvp-teal-100);  color: var(--tvp-teal);  }
   & .tvp-status.tvp-grey    { background: var(--tvp-neutral-bg);color: var(--tvp-muted); }
+  /* Lifecycle status pills — colours come only from the --st-* tokens (see lib/status-labels.ts). */
+  & .tvp-status.st-incomplete { background: var(--st-incomplete-bg); color: var(--st-incomplete-fg); }
+  & .tvp-status.st-invited { background: var(--st-invited-bg); color: var(--st-invited-fg); }
+  & .tvp-status.st-accepted { background: var(--st-accepted-bg); color: var(--st-accepted-fg); }
+  & .tvp-status.st-expired { background: var(--st-expired-bg); color: var(--st-expired-fg); }
+  & .tvp-status.st-declined { background: var(--st-declined-bg); color: var(--st-declined-fg); }
+  & .tvp-status.st-suspended { background: var(--st-suspended-bg); color: var(--st-suspended-fg); }
+  & .tvp-status.st-neutral { background: var(--st-neutral-bg); color: var(--st-neutral-fg); }
 
   /* Closed-request history — replaces the bare 5-column table */
   & .tvp-history-list { list-style: none; margin: 12px 0 0; padding: 0; border: 1px solid var(--tvp-line); border-radius: 14px; overflow: hidden; background: var(--surface); }
