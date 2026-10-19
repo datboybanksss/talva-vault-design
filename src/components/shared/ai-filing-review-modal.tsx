@@ -442,18 +442,27 @@ export function AiFilingReviewModal({
   const toggleAi = useMutation({
     mutationFn: async (next: boolean) => {
       await prefFn({ data: { ai_filing_enabled: next } });
-      return next;
+      // Switching on from the popup runs the analysis for this document now.
+      const view =
+        next && !suggestionProp
+          ? ((await startFn({ data: { scope, document_id: documentId } })) as AnalysisView)
+          : null;
+      return { next, view };
     },
     onMutate: (next) => {
-      setAiOverride(next);
-      if (!next) qc.removeQueries({ queryKey: analysisKey });
+      if (!next) {
+        // Off: drop to manual immediately and discard any pending suggestion.
+        setAiOverride(false);
+        qc.removeQueries({ queryKey: analysisKey });
+      }
     },
-    onSuccess: (next) => {
+    onSuccess: ({ next, view }) => {
+      if (view) qc.setQueryData(analysisKey, view);
+      setAiOverride(next);
       qc.invalidateQueries({ queryKey: ["ai-filing-preference"] });
-      if (next && !suggestionProp) retry.mutate();
     },
     onError: (e: any, next) => {
-      setAiOverride(!next);
+      if (!next) setAiOverride(null);
       toast.error(e?.message ?? "Could not change this preference.");
     },
   });
