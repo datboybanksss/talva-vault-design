@@ -123,11 +123,9 @@ export async function resolveDeniedDestination(
 export type MfaGate = "ok" | "enrol" | "challenge";
 
 /**
- * Two-step sign-in switch. TEMPORARILY OFF at Lara's request (18 Oct 2026)
- * while the notify.talvault.com sending domain is unverified and no codes
- * can be delivered. Set back to true to re-enable mandatory emailed codes.
+ * Mandatory emailed-code sign-in, restored at Lara's request.
  */
-export const MFA_ENFORCED = false;
+export const MFA_ENFORCED = true;
 
 /**
  * Two-step sign-in state for the current session, resolved server-side from
