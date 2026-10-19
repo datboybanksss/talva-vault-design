@@ -356,6 +356,7 @@ export function AiFilingReviewModal({
   });
 
   const busy = save.isPending || skip.isPending;
+  const saveDisabled = busy || (mustChooseFolder && !destination);
   const showConfidence = mode === "ai" && suggestion?.confidence;
 
   return (
