@@ -111,18 +111,21 @@ function FieldProvenance({
   mode,
   confidence,
   sourceText,
+  touched,
 }: {
   value: string;
+  touched: boolean;
   source: FieldSource;
   mode: FilingMode;
   confidence?: "high" | "medium" | "low" | null;
   sourceText?: string | null;
 }) {
   const [showSource, setShowSource] = useState(false);
-  const edited = source === "user";
+  const edited = touched && source === "user";
   const labelled = mode === "ai" || mode === "filename";
 
-  if (!labelled && !edited) return null;
+  if (!labelled) return null;
+  if (source === "user" && !edited) return null;
 
   return (
     <div className="tv-prov" data-source={edited ? "user" : source}>
@@ -666,6 +669,7 @@ export function AiFilingReviewModal({
                 mode={mode}
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.folder_source_text ?? null}
+                touched={folderTouched}
               />
             </section>
 
@@ -751,6 +755,7 @@ export function AiFilingReviewModal({
                 mode={mode}
                 confidence={suggestion?.confidence ?? null}
                 sourceText={suggestion?.expiry_source_text ?? null}
+                touched={expiryTouched}
               />
             </section>
 
