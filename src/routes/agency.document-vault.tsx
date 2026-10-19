@@ -252,6 +252,7 @@ function VaultPage() {
   const [newVersionFor, setNewVersionFor] = useState<VaultDoc | null>(null);
   const [overrideFor, setOverrideFor] = useState<VaultDoc | null>(null);
   const [aiReviewFor, setAiReviewFor] = useState<{ id: string; name: string } | null>(null);
+  const aiRow = useAnalyseWithAi("agency");
 
   const isOwner = me?.role === "owner";
   const upsertRuleFn = useServerFn(upsertAgencyRetentionRule);
