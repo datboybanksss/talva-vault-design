@@ -104,15 +104,34 @@ Dashboard blanks:
 | Administrators | active / suspended | Edit, Suspend / Restore, Remove (main admin only) | update/setSuspended/removeAdministrator | Yes, except no current-value check on suspend |
 | Admin invitations | stored pending | Edit access, Edit email, Resend, Copy, Revoke, Delete | updateAdminInvitation (pending), resendAdminInvitation (pending), revokeAdminInvitation (**no status check**) | Revoke is not checked |
 
-### 3c. Talent portal
+### 3c. Talent portal (statuses only, no invite actions)
 
-| Screen | Status | Actions offered | Server function | Server rule |
-|---|---|---|---|---|
-| Trusted contact shares | active / expiring / locked | Copy link, New access code, Access history, Revoke access | regenerateAccessCode, revokeLovedOneShare (T, owner) | **No status check:** a new code can be issued on a revoked or expired share |
-| Trusted contact shares | expired | Reshare (creates a new share), Access history, Revoke access | createLovedOneShare | Revoking an expired share is pointless |
-| Trusted contact shares | revoked | Reshare, Access history | createLovedOneShare | OK |
-| Connection requests | open | Accept, Decline | respondToLinkRequest → respond_link_request (T; the database checks expiry and closure) | Yes, in the database |
-| Settings / dashboard relationship | any | **None**, raw status text | n/a | No talent-side view of connections; read-only and post-end access are not explained |
+Rule: talent cannot invite anyone. The Talent portal gets the shared labels and colours only, never Resend, Revoke invite or Reinvite.
+
+**Invite-type actions in the Talent portal today: none.**
+- Connection requests (`routes/talent.requests.tsx`) offer Accept and Decline. That is a reply to an agency, not an invitation, so it stays.
+- Talent dashboard and settings offer no relationship actions.
+
+Where the Talent portal shows these statuses:
+| Screen | File | Status | Problem |
+|---|---|---|---|
+| Settings: agency relationship | routes/talent.settings.tsx | Relationship status | Raw value ("read_only"), no pill |
+| Connection requests | routes/talent.requests.tsx | None (open requests only) | Could show an "Invited" pill and expiry from the shared map |
+| Dashboard | routes/talent.index.tsx | Linked or not linked, as a sentence | No pill |
+| Trusted contact shares | routes/talent.sharing.tsx | Share status (worked out from dates) | Raw lowercase values |
+
+**How Trusted contacts are added today (no change proposed):**
+1. On the Trusted contact sharing page (`routes/talent.sharing.tsx`), the talent opens the new-share form.
+2. They enter the person's name, email and relationship, choose the documents, and set an expiry. The default is 30 days.
+3. Saving calls `createLovedOneShare`. That needs the talent's Terms acceptance and creates a `loved_one_shares` row.
+4. The person gets a link (`/loved-one/$token`) and an access code. They do not need an account.
+
+**Existing share actions (no change proposed):**
+- Copy link, New access code and Revoke access, for active, expiring or locked shares.
+- "Reshare with this person", for expired or revoked shares. It creates a new share, not an invitation.
+- Access history, on every share.
+
+Server gap noted for information only: a new access code can still be issued on a revoked or expired share.
 
 ## 4. Proposed single source of truth
 
