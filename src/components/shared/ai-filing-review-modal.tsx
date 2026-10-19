@@ -3,29 +3,28 @@
  * Private Vault. Opens after an upload completes, before the document counts as filed.
  *
  * Modes:
- * - `ai`       — a real suggestion service returned a `suggestion` prop. Fields
- *                are pre-filled and labelled "Suggested by AI". No such service
- *                is connected yet, so this mode is currently unused.
- * - `filename` — the filename heuristic matched a folder or a date. Fields are
- *                pre-filled and labelled "Suggested · Based on the file name".
- *                This is NOT AI and is never presented as such.
- * - `manual`   — the caller switched "Organise documents with AI" off, or
- *                nothing could be suggested. No badges, no provenance link, no
- *                confidence label. The folder starts on the folder the document
- *                was uploaded into (or empty, forcing a choice before saving).
- * - `failed`   — the folder list could not be loaded. Same presentation as
- *                `manual`, with a neutral helper line instead of a banner.
+ * - `analysing` — AI is on and the Parserly analysis is queued/processing. A
+ *                 neutral "Reading your document…" note; fields stay usable and
+ *                 anything saved now is recorded as the person's own ('user').
+ * - `ai`        — Parserly returned a suggestion. Fields are pre-filled and
+ *                 labelled "Suggested by AI", with confidence and the quoted source.
+ * - `filename`  — AI is on but Parserly is unavailable here, and the file name
+ *                 matched something. Labelled "Suggested · Based on the file name".
+ *                 Never presented or recorded as AI.
+ * - `failed`    — the analysis failed or is unavailable (and no filename match).
+ *                 Neutral note with Retry; nothing labelled.
+ * - `manual`    — the person's "Organise documents with AI" switch is off. No
+ *                 analysing state, no badges, nothing sent for analysis.
  *
- * UX contract: every field is live and editable the moment the popup opens. The
- * suggestion only pre-fills them. Editing IS the correction mechanism, so there
- * is no per-field confirm step and no separate "reject" path — whatever sits in
- * the fields when "Save filing" is pressed is what gets written, and a field's
- * label flips to "Edited by you" the moment it is touched.
+ * A small link flips the same per-user switch: on → runs the analysis for this
+ * document now; off → drops straight to manual and discards any suggestion.
+ * A field's label flips to "Edited by you" once touched, and a late-arriving
+ * suggestion never overwrites a field the person already changed.
  */
 
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -37,33 +36,30 @@ import {
   Clock,
   Check,
   HelpCircle,
+  RotateCcw,
 } from "lucide-react";
 import {
   getFilingCatalog,
   confirmDocumentFiling,
   skipDocumentFiling,
+  getDocumentAnalysis,
+  startDocumentAnalysis,
+  setAiFilingPreference,
 } from "@/lib/ai-filing.functions";
+import { isPending, type AnalysisStatus, type FilingSuggestion } from "@/lib/document-ai-core";
 import { suggestFromFileName } from "@/lib/filing-heuristics";
 
 export type AiFilingScope = "talent" | "agency";
 
-/** The shape a real suggestion service must return. */
-export type FilingSuggestion = {
-  /** talent: folder uuid | agency: folder name. null = no destination suggested. */
-  folder_id: string | null;
-  /** Detected expiry as YYYY-MM-DD, or null when none was found. */
-  expiry_date: string | null;
-  /** Suggested reminder lead time in days, or null to fall back to portal default. */
-  reminder_lead_days: number | null;
-  confidence?: "high" | "medium" | "low" | null;
-  rationale?: string | null;
-  /** Verbatim sentence(s) from the document the folder suggestion was drawn from. */
-  folder_source_text?: string | null;
-  /** Verbatim sentence(s) the expiry date was read from. */
-  expiry_source_text?: string | null;
+export type { FilingSuggestion };
+
+type AnalysisView = {
+  status: AnalysisStatus | null;
+  suggestion: FilingSuggestion | null;
+  error_code: string | null;
 };
 
-type FilingMode = "ai" | "filename" | "manual" | "failed";
+type FilingMode = "analysing" | "ai" | "filename" | "manual" | "failed";
 type FieldSource = "ai" | "filename" | "user";
 
 type Props = {
@@ -73,8 +69,8 @@ type Props = {
   /** Prefix shown before the destination, e.g. "Private Vault" or "Agency Shared Folder". */
   destinationPrefix: string;
   /**
-   * Suggested filing from a real AI service. Omit (or pass null) to fall back to
-   * the filename heuristic, or to manual mode when nothing matches.
+   * Test/override hook: a ready-made AI suggestion. Normally omitted — the popup
+   * fetches the Parserly analysis itself.
    */
   suggestion?: FilingSuggestion | null;
   onClose: () => void;
@@ -526,11 +522,45 @@ export function AiFilingReviewModal({
           </div>
         )}
 
-        {isError && !isLoading && (
-          <p className="tvp-muted" style={{ fontSize: 13 }}>
-            Automatic analysis could not be completed, so nothing is pre-filled. Choose a folder
-            and any expiry yourself, then save — or skip for now.
+        {!isLoading && mode === "analysing" && (
+          <p
+            className="tvp-muted"
+            data-testid="filing-analysing"
+            style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Reading your document… You can fill in the fields yourself or skip for now.
           </p>
+        )}
+
+        {!isLoading && (isError || analysisFailed) && mode !== "ai" && mode !== "manual" && (
+          <p className="tvp-muted" data-testid="filing-failed" style={{ fontSize: 13 }}>
+            Automatic analysis could not be completed. Review and file the document yourself.{" "}
+            {!isError && (
+              <button
+                type="button"
+                className="tv-btn tv-btn--ghost"
+                onClick={() => retry.mutate()}
+                disabled={retry.isPending || busy}
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> {retry.isPending ? "Retrying…" : "Retry"}
+              </button>
+            )}
+          </p>
+        )}
+
+        {!isLoading && data && !suggestionProp && (
+          <div style={{ fontSize: 12 }}>
+            <button
+              type="button"
+              className="tv-btn tv-btn--ghost"
+              data-tour="filing-ai-toggle"
+              onClick={() => toggleAi.mutate(!aiEnabled)}
+              disabled={toggleAi.isPending || busy}
+            >
+              {aiEnabled ? "Turn off AI organisation" : "Turn on AI organisation"}
+            </button>
+          </div>
         )}
 
         {!isLoading && (
@@ -570,7 +600,7 @@ export function AiFilingReviewModal({
                     onChange={(e) => {
                       setTopFolder(e.target.value);
                       setSubFolder("");
-                      setFolderSource("user");
+                      touchFolder();
                     }}
                   >
                     <option value="">
@@ -596,7 +626,7 @@ export function AiFilingReviewModal({
                     disabled={busy || subOptions.length === 0}
                     onChange={(e) => {
                       setSubFolder(e.target.value);
-                      setFolderSource("user");
+                      touchFolder();
                     }}
                   >
                     <option value="" disabled={!activeGroup?.ownId && subOptions.length > 0}>
@@ -661,7 +691,7 @@ export function AiFilingReviewModal({
                     onChange={(e) => {
                       setExpiry(e.target.value);
                       setNoReminder(false);
-                      setExpirySource("user");
+                      touchExpiry();
                     }}
                   />
                 </label>
@@ -681,7 +711,7 @@ export function AiFilingReviewModal({
                     disabled={busy || noReminder || !expiry}
                     onChange={(e) => {
                       setLeadDaysText(e.target.value.replace(/[^0-9]/g, "").slice(0, 3));
-                      setExpirySource("user");
+                      touchExpiry();
                     }}
                     onBlur={() => setLeadDaysText(String(leadDays))}
                   />
@@ -698,7 +728,7 @@ export function AiFilingReviewModal({
                     disabled={busy}
                     onChange={(e) => {
                       setNoReminder(e.target.checked);
-                      setExpirySource("user");
+                      touchExpiry();
                     }}
                   />
                   <span>No reminder needed for this document</span>
