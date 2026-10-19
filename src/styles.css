@@ -914,6 +914,7 @@
   & .tvp-reporting-note .tvp-note-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--tvp-teal-100); color: var(--tvp-teal); font-weight: 900; flex: 0 0 auto; }
 
   & .tvp-breadcrumb { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; color: var(--tvp-teal); font-weight: 900; font-size: 13px; }
+  & .tvp-vault-breadcrumb { flex-wrap: wrap; color: var(--tvp-muted); font-weight: 600; }
   & .tvp-subnav { display: flex; gap: 24px; border-bottom: 1px solid var(--tvp-line); padding: 0 20px; }
   & .tvp-subnav button { height: 50px; border: 0; background: transparent; font-weight: 900; color: var(--tvp-text); font-size: 13px; }
   & .tvp-subnav button.tvp-active { color: var(--tvp-teal); box-shadow: inset 0 -3px 0 var(--tvp-teal); }
