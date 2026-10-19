@@ -49,3 +49,10 @@
 - [x] Shared allowed-actions (Admin/Agency) + server checks + tests
 - [ ] Admin agency detail: row action menus on its two invitation tables (awaiting go-ahead)
 - [x] "Pause relationship" → "End relationship"; Reactivate direct (owner, writable); Draft neutral
+
+## Filing when AI is skipped/fails/off (Oct 2026)
+- [x] Per-user AI switch (profiles.ai_filing_enabled, default on) in Talent and Agency settings
+- [x] Modal modes ai/filename/manual/failed; filename guess labelled "Suggested · Based on the file name", never AI
+- [x] Per-field sources stored; server refuses 'ai'; agency filing saves reminder_at; talent filing audited
+- [x] View document on every Private Vault row; Pending review pill on talent's shared list
+- [x] Reminders read shared reminder_at; tests + type-check green
