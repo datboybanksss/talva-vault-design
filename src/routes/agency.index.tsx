@@ -82,7 +82,6 @@ function formatDate(iso: string) {
 }
 
 function AgencyDashboard() {
-  const qc = useQueryClient();
   const whoamiFn = useServerFn(agencyWhoami);
   const getMetricsFn = useServerFn(getAgencyDashboardMetrics);
   const listTalentFn = useServerFn(listAgencyTalent);
