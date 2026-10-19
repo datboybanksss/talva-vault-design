@@ -396,7 +396,7 @@ function VaultPage() {
 
   return (
     <>
-      <div className="tvp-topbar" style={{ marginBottom: 12, alignItems: "center" }}>
+      <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Document Vault</h1>
         </div>
@@ -428,9 +428,9 @@ function VaultPage() {
       {/* Only rendered when something is genuinely expiring — no reassurance
           panel when the list is empty. */}
       {tab !== "Requests" && expiring.length > 0 && (
-      <div className="tvp-card" style={{ marginBottom: 10, padding: "10px 14px" }}>
-        <h2 className="tvp-h2" style={{ marginBottom: 4 }}>Expiring soon</h2>
-        <div className="tvp-list" style={{ marginTop: 6 }}>
+      <div className="tvp-card tvp-panel">
+        <div className="tvp-panel-head"><h2 className="tvp-h2">Expiring soon</h2></div>
+        <div className="tvp-list">
           {expiring.map((d) => (
             <div key={d.id} className="tvp-list-item">
               <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
@@ -447,7 +447,7 @@ function VaultPage() {
       </div>
       )}
 
-      <div className="tvp-tabs" data-tour="vault-tabs" style={{ marginTop: 10, marginBottom: 14 }}>
+      <div className="tvp-tabs" data-tour="vault-tabs">
         {tabs.map((t) => {
           const isRequests = t === "Requests";
           if (isRequests && mode === "search") return null;
@@ -485,10 +485,7 @@ function VaultPage() {
       </div>
 
       {mode === "browse" && tab !== "Requests" && (
-        <div
-          className="tvp-muted"
-          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, marginBottom: 10, flexWrap: "wrap" }}
-        >
+        <div className="tvp-breadcrumb tvp-vault-breadcrumb">
           <button
             type="button"
             className="tvp-link"
@@ -532,13 +529,17 @@ function VaultPage() {
       ) : (
       <div className="tvp-stack" data-tour="vault-panes">
         {showTalentPicker && (
-          <div className="tvp-card">
-            <h2 className="tvp-h2" style={{ marginBottom: 2 }}>Select a talent</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 0 }}>
-              Open a talent to browse their folders, or search across the whole roster.
-            </p>
+          <div className="tvp-card tvp-panel">
+            <div className="tvp-panel-head">
+              <div>
+                <h2 className="tvp-h2">Select a talent</h2>
+                <p className="tvp-subtitle">
+                  Open a talent to browse their folders, or search across the whole roster.
+                </p>
+              </div>
+            </div>
             {talentLinks.length === 0 ? (
-              <div className="tvp-callout" style={{ marginTop: 12 }}>
+              <div className="tvp-callout">
                 <div className="tvp-callout-icon tvp-bg-purple"><UsersIcon className="h-4 w-4" /></div>
                 <div>
                   <strong>No talent on your roster yet.</strong>{" "}
@@ -546,7 +547,7 @@ function VaultPage() {
                 </div>
               </div>
             ) : (
-              <div className="tvp-entity-grid tvp-entity-grid-compact" style={{ marginTop: 12 }}>
+              <div className="tvp-entity-grid tvp-entity-grid-compact tvp-vault-picker">
                 {talentLinks.map((l) => {
                   const stats = summaryByTalent.get(l.id);
                   const totalDocsForTalent = stats?.docCount ?? 0;

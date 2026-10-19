@@ -914,6 +914,7 @@
   & .tvp-reporting-note .tvp-note-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--tvp-teal-100); color: var(--tvp-teal); font-weight: 900; flex: 0 0 auto; }
 
   & .tvp-breadcrumb { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; color: var(--tvp-teal); font-weight: 900; font-size: 13px; }
+  & .tvp-vault-breadcrumb { flex-wrap: wrap; color: var(--tvp-muted); font-weight: 600; }
   & .tvp-subnav { display: flex; gap: 24px; border-bottom: 1px solid var(--tvp-line); padding: 0 20px; }
   & .tvp-subnav button { height: 50px; border: 0; background: transparent; font-weight: 900; color: var(--tvp-text); font-size: 13px; }
   & .tvp-subnav button.tvp-active { color: var(--tvp-teal); box-shadow: inset 0 -3px 0 var(--tvp-teal); }
@@ -1883,6 +1884,11 @@ a.tvp-entity-card:hover {
 button.tvp-entity-card:focus-visible,
 a.tvp-entity-card:focus-visible { outline: 2px solid var(--tvp-teal-2); outline-offset: 2px; }
 .tvp-entity-card.tvp-entity-card-compact { padding: 13px; gap: 10px; }
+/* Document Vault talent picker only: equal-height tiles, shared card rhythm, pills pinned to the bottom. */
+.tvp-entity-grid.tvp-vault-picker { align-items: stretch; }
+.tvp-vault-picker > .tvp-entity-card.tvp-entity-card-compact { height: 100%; padding: var(--sp-5); gap: 7px; justify-content: flex-start; }
+.tvp-vault-picker > .tvp-entity-card > .tvp-entity-pills { margin-top: auto; }
+.tvp-vault-picker .tvp-entity-meta { margin-top: var(--sp-1); }
 
 .tvp-entity-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .tvp-entity-identity { min-width: 0; flex: 1; }
