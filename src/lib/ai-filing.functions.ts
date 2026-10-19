@@ -1,18 +1,15 @@
 /**
  * Document filing review — server functions.
  *
- * getFilingCatalog: returns the closed catalog of destinations the reviewer may
- * file a freshly uploaded document into, the portal's default reminder lead
- * time, and whether the caller has "Organise documents with AI" switched on.
- * No document-content AI service is wired up yet — the UI seeds its suggestion
- * from a filename heuristic, which is recorded with source 'filename', never
- * 'ai'. When a real suggestion service lands it can return a `suggestion`
- * object from here (or from its own function) without any UI rework.
+ * getFilingCatalog: the closed catalog of destinations, the portal's default
+ * reminder lead time, and whether the caller has "Organise documents with AI" on.
+ *
+ * getDocumentAnalysis / startDocumentAnalysis: poll and (re)start the Parserly
+ * analysis for one document (see document-ai.server.ts / parserly.server.ts).
  *
  * confirmDocumentFiling: applies the human-confirmed destination/expiry/
- * reminder and stores where each value came from (folder_source / expiry_source:
- * 'ai' | 'filename' | 'user'). A source of 'ai' is refused while no AI analysis
- * has actually run — today that is always, because no AI service is connected.
+ * reminder and stores where each value came from ('ai' | 'filename' | 'user').
+ * 'ai' is accepted only for a completed analysis whose values match exactly.
  */
 
 import { createServerFn } from "@tanstack/react-start";
