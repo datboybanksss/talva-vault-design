@@ -1,214 +1,67 @@
-# Status and row-action audit — Admin, Agency and Talent portals
+# Document filing when AI is skipped, fails or is switched off
 
-Audit only. Nothing changes until this plan is approved. All file paths are under `src/`.
+## Current behaviour (verified in code and database)
 
-## 1. Every list that shows a status
+- No document-reading AI exists yet. The filing review uses a guess from the file name only (`suggestFromFileName`), and it runs in the browser.
+- The text "Automatic analysis could not be completed" is not in the current code or on the live site's home page.
+- The "Suggested by AI" badge appears whenever the file-name guess matched a folder or a date.
 
-| Portal | Screen / section | File | Status shown | How the label is made |
-|---|---|---|---|---|
-| Admin | Dashboard: Agency invitations | routes/admin.index.tsx | agencies.status | Local map |
-| Admin | Dashboard: Talent invitations | routes/admin.index.tsx | independent_talent_invitations.status | Map in components/admin/talent-invitation-actions.tsx |
-| Admin | Agencies | routes/admin.agencies.index.tsx | agencies.status | Local map (copy of the dashboard map) |
-| Admin | Agency detail: header | routes/admin.agencies.$id.tsx | agencies.status | **Raw value** ("accepted") |
-| Admin | Agency detail: agency users invited | routes/admin.agencies.$id.tsx | agency_invitations.status | **Raw value** ("pending") |
-| Admin | Agency detail: talent invited by this agency | routes/admin.agencies.$id.tsx | talent_invitations.status | **Raw value** |
-| Admin | Invitations (agency and talent together) | routes/admin.invitations.index.tsx | agency / independent invitation status | Local map |
-| Admin | Administrators and admin invitations | routes/admin.administrators.tsx | user_roles.suspended, admin_invitations.status | Literal "Suspended" plus local map |
-| Admin | Talent list | none | none | **No admin talent list exists.** Talent only appear as counts and invitations. |
-| Agency | Dashboard: Talent Workspace Overview, plus the recent-talent component | routes/agency.index.tsx | agency_talent_links.status | Shared map in lib/status-labels.ts |
-| Agency | Talent roster | routes/agency.talent.index.tsx (EntityCard) | agency_talent_links.status | Shared map |
-| Agency | Document Vault talent picker | routes/agency.document-vault.tsx (EntityCard, compact) | agency_talent_links.status | Shared map |
-| Agency | Invitations | routes/agency.invitations.tsx | talent_invitations / agency_invitations status | Local map |
-| Agency | Active staff | routes/agency.invitations.tsx (ActiveStaffCard) | agency_members.suspended | Literal "Active" / "Suspended" |
-| Talent | Trusted contact shares | routes/talent.sharing.tsx | Worked out from revoked_at, is_active, expires_at, locked_at | **Raw lowercase** ("expiring", "locked") |
-| Talent | Settings: agency relationship | routes/talent.settings.tsx | agency_talent_links.status | **Raw value** ("read_only"), plain text with no pill |
-| Talent | Connection requests | routes/talent.requests.tsx | No status (open requests only) | n/a |
-| Talent | Dashboard | routes/talent.index.tsx | Linked or not linked, as a sentence | No list and no actions |
+1. Skip for now
+   - (a) Talent Private Vault: the document is saved (`pending_review = true`). It is listed in the vault table with a "Pending review" pill and appears under the "Pending review" filter. Its menu offers Finish filing review, Download and Delete. **There is no View or preview action.**
+   - (b) Agency upload to talent: the document is saved (`pending_review = true`) and appears under the "Pending review" tab. Its menu offers View, Download and Finish filing review.
+   - (b) Talent side: the talent's agency-shared list does not filter on `pending_review`, so the talent can already see it, but with no pending marker.
+2. Visibility (RLS)
+   - Private documents: `auth.uid() = user_id` only, so they stay private.
+   - Shared documents: the agency reads them through its folder access, and the talent reads them through `talent_can_read_shared_doc`. Agency writes are already blocked by the "Suspended agency read-only" and "Terms not accepted" policies.
+   - Both rules are already enforced by RLS and the server.
+3. AI opt-out
+   - No opt-out setting exists for talent or agency staff.
+   - The server never calls AI.
+   - `ai_assisted` is written only to the agency audit log. Nothing on the document rows records whether a value was AI-suggested or entered by the user.
+   - Agency filing drops the reminder date: the shared documents table has no reminder column, so only the expiry is saved.
+4. Wrong badges
+   - The failed-analysis state cannot be reproduced from current code.
+   - The badge logic is still loose: `suggested` is true whenever the file-name guess returned anything, and both fields start labelled as AI.
 
-## 2. Status values and how they are displayed
+## Proposed changes
 
-### 2a. Values in the database (live counts as of today)
+Screens:
+- Shared modal gets an explicit mode: `ai` (suggestion succeeded), `failed`, or `manual` (opt-out, or no suggestion).
+  - In `failed` and `manual` mode: no badges, no "Where did this come from?" link and no confidence label. Folder starts empty, or on the folder the document was uploaded into, with no expiry and the portal's default reminder days.
+  - Failure is shown with the existing neutral muted helper line, not an amber banner.
+  - The file-name guess counts as `ai` only when it actually matched something. Each field is labelled AI only while it is untouched.
+- Talent Private Vault: add "View document" (the existing preview dialog) to every row, including pending ones.
+- Talent agency-shared list: show the shared "Pending review" pill on agency uploads not yet filed. View and download only; the talent cannot file them.
+- Settings: an "Organise documents with AI" switch.
+  - Talent: on the Settings, Preferences card.
+  - Agency: on Agency settings, as an agency-wide switch (owners only).
+  - When off, the modal opens in manual mode and no suggestion is requested.
+- Pending review keeps the same folder, subfolder, expiry and reminder modal. Skip for now stays available in every mode.
 
-| Source | Values | Live rows |
-|---|---|---|
-| agency_talent_links.status (agency_talent_link_status) | active, invited, needs_review, expired, read_only, revoked, ended | active 11, invited 2 |
-| agency_talent_links.request_kind | invite, link_request | All visible rows read "invite" (the private kind is in talent_invite_private) |
-| agencies.status (agency_status), plus suspended_at | incomplete, invited, accepted, expired, declined, suspended | accepted 8, invited 6 |
-| agency_invitations / talent_invitations / independent_talent_invitations (invitation_status) | draft, pending, accepted, expired, declined, revoked | agency: pending 10 / accepted 6 / revoked 1; talent: pending 7 / accepted 10 / revoked 2; independent: 0 |
-| admin_invitations.status (plain text, no enum) | pending, accepted, revoked (expired is worked out from the date) | pending 2 / accepted 3 / revoked 4 |
-| agency_members | `suspended` true/false and `role` (no status column) | n/a |
-| user_roles | `suspended_at` (admins) | n/a |
-| loved_one_shares | Worked out: active / expiring / locked / expired / revoked | n/a |
+Server:
+- `getFilingCatalog` returns `aiEnabled` from the setting. The future suggestion call (and the file-name guess) runs only when it is on, and failures come back as `analysis: "failed"`.
+- `confirmDocumentFiling` stores per-field provenance: `folder_source` and `expiry_source` (`ai` or `user`). It refuses `ai` when AI is off or the analysis failed.
+- Agency filing saves `reminder_at`.
+- Talent filing gets an audit entry in `talent_audit_log`.
+- Reminders job: read the agency `reminder_at` too, so a manual expiry feeds the same Expiring soon list and bell as an AI one. It already uses `expires_at` / `validity_expires_at`, whatever their source.
 
-"Expired" on invitations is mostly worked out on screen: `effectiveInvitationStatus` in lib/invitation-status.ts turns a pending invitation past its expiry date into expired. The stored row still says pending.
+Database (guarded migration with rollback SQL):
+- `talent_profiles.ai_filing_enabled boolean default true`
+- `agencies.ai_filing_enabled boolean default true`
+- `talent_private_documents.folder_source` and `.expiry_source` (text, check `ai`/`user`, nullable)
+- `talent_shared_documents.reminder_at`, `.folder_source`, `.expiry_source`
+- RLS: no new policies needed. Existing owner, agency, suspended and Terms policies cover the new columns. The agency switch is changed only through the owner-checked server function.
 
-### 2b. Raw values shown on screen
-- Admin agency detail: the header and both invitation tables.
-- Talent settings: relationship status (e.g. "read_only").
-- Talent trusted contact shares: all five statuses, in lowercase.
-- Several screens show the raw value if a status has no label. The roster, dashboard, picker, admin talent invitations and admin invitations all do this.
+Tests:
+- The modal shows no badges in failed or manual mode.
+- Saved sources are `user` when AI is off.
+- Skip keeps the document listed and openable.
+- The reminder query includes a manual agency expiry.
 
-### 2c. The same status with different labels
-| Status | Labels found |
-|---|---|
-| Invitation pending | "Invited" (admin lists, agency invitations) vs "pending" (admin agency detail) |
-| Agency accepted | "Accepted" (admin lists) vs "accepted" (agency detail) |
-| Relationship read_only | "Read-only" (agency screens) vs "read_only" (talent settings) |
-| Staff / admin active | "Active" pill (agency staff) vs no pill at all (administrators) |
+## Decisions needed
 
-### 2d. Colours compared with the --st-* tokens
-- No status pill uses the `--st-*` lifecycle tokens today. `.tvp-status.tvp-<tone>` uses the separate `--tvp-*` palette. Neutral partly uses `--st-neutral-bg`, with muted text.
-- **Expired** has two colours: amber for relationships and agencies, red for invitations (agency invitations, admin invitations, independent talent invitations). The token says amber.
-- **Draft** is amber on invitation screens. It should be its own colour, either neutral or `--st-incomplete` purple.
-- **Declined** is red for agencies but neutral for invitations. The token says red.
-- **Revoked** is red for relationships but neutral for invitations. It also has no `--st-*` token.
-- **Read-only** and **Suspended** are teal, which matches `--st-suspended` in hue but is not the token.
-- **Document Vault picker "Invited" shown amber.** The code maps invited to blue (`TALENT_LINK_STATUS_TONE.invited = "blue"`), and the picker uses that map. The amber shown on the live site is not in today's code. It is probably an older published version or another class winning. First step of the build: inspect the live element's classes and computed colour to confirm.
-
-## 3. Status to actions matrices (as built today)
-
-Server guard key: **W** = writable agency (`getWritableCallerAgency`, which includes `agency_is_writable` and Terms acceptance), **O** = agency owner, **AE** = admin edit permission, **AS** = admin agency-support permission, **T** = talent Terms check.
-
-### 3a. Agency portal
-
-| Screen | Status | Actions offered | Server function | Status rule repeated on the server? |
-|---|---|---|---|---|
-| Dashboard overview | ended | Open, Reactivate relationship (owner) | reactivateTalentRelationship (W, O) | **No.** Any status can be set to active. |
-| Dashboard overview | every status except ended, **including invited, expired and revoked** | Open, Pause relationship (owner) | endTalentRelationship (W, O) | **No.** An invited row can be "paused", which sets it to ended. |
-| Dashboard overview | invited | **No Resend, Revoke or Copy link** | n/a | Inconsistent with the Invitations screen |
-| Roster | every status | Change talent type | updateTalentLinkTalentType (W) | No status check, no owner check |
-| Roster | not ended, expired or revoked | Assign / change manager | setTalentManager (W) | Yes |
-| Roster | invited | **No Resend or Revoke; no Pause or Reactivate** | n/a | Inconsistent with the dashboard |
-| Document Vault picker | every status | Open folders (no menu) | listAgencyTalentLinksLite (read) | n/a. Invited and revoked links can be opened and show empty folders. |
-| Invitations | every status | Copy invite link, Edit and send email (owner) | logAgencyCopyLinkMine (readable, no W) | No status check, so links for accepted or revoked invitations can be copied |
-| Invitations | stored pending (also shown when actually expired) | Resend, Revoke (owner) | resendAgencyInvitationMine (W, O, pending); revokeAgencyInvitationMine (W, O) | Resend: yes. Revoke: **no pending check** |
-| Invitations | expired / revoked | **No Reinvite** | n/a | Missing |
-| Active staff | active, not owner, not self | Make lead / make staff, Remove | updateAgencyStaffRole, removeAgencyStaffMember (W, O) | The server does not repeat the "not suspended" rule |
-
-Dashboard blanks:
-- "Type" reads from `agency_talent_links.talent_type`. Gift's link has no type, so it shows "—". It does not fall back to the talent's own profile.
-- "Last activity" is the newest shared document, otherwise when the link was last changed. It only goes blank if that date is invalid. Check Gift's link row during the build.
-
-### 3b. Admin portal
-
-| Screen | Status | Actions offered | Server function | Server rule |
-|---|---|---|---|---|
-| Agencies | invited, invitation in draft | Continue draft, Delete | deleteAgencyInvitation (AE) | Refuses accepted invitations |
-| Agencies | invited, invitation sent (**any status, even expired or revoked**) | Preview, Copy, Correct email, Resend, Revoke, Delete | resendInvitation (AS, stored pending), revokeInvitation (AS, **no status check**), updateInvitationEmail (AS, refuses accepted only) | Wider than the combined Invitations list |
-| Agencies / agency detail | every status except suspended | Suspend | suspendAgency (AE) | No status check |
-| Agencies / agency detail | suspended | Reinstate | unsuspendAgency (AE) | No status check |
-| Agency detail invitation tables | every status | **No actions** | n/a | Inconsistent |
-| Invitations: agency rows | stored pending | Preview, Copy, Edit email, Resend, Revoke, Delete | As above | Matches the stored status, so expired invitations still show Resend |
-| Invitations / dashboard: talent rows | **actually pending only** | Open, Copy, Resend, Revoke | resend/revokeIndependentTalentInvitation (AE, stored pending) | **Opposite rule to agency rows:** expired talent invitations hide Resend, but the server would allow it |
-| Invitations | expired / revoked | **No Reinvite** on either type | n/a | Missing |
-| Administrators | active / suspended | Edit, Suspend / Restore, Remove (main admin only) | update/setSuspended/removeAdministrator | Yes, except no current-value check on suspend |
-| Admin invitations | stored pending | Edit access, Edit email, Resend, Copy, Revoke, Delete | updateAdminInvitation (pending), resendAdminInvitation (pending), revokeAdminInvitation (**no status check**) | Revoke is not checked |
-
-### 3c. Talent portal (statuses only, no invite actions)
-
-Rule: talent cannot invite anyone. The Talent portal gets the shared labels and colours only, never Resend, Revoke invite or Reinvite.
-
-**Invite-type actions in the Talent portal today: none.**
-- Connection requests (`routes/talent.requests.tsx`) offer Accept and Decline. That is a reply to an agency, not an invitation, so it stays.
-- Talent dashboard and settings offer no relationship actions.
-
-Where the Talent portal shows these statuses:
-| Screen | File | Status | Problem |
-|---|---|---|---|
-| Settings: agency relationship | routes/talent.settings.tsx | Relationship status | Raw value ("read_only"), no pill |
-| Connection requests | routes/talent.requests.tsx | None (open requests only) | Could show an "Invited" pill and expiry from the shared map |
-| Dashboard | routes/talent.index.tsx | Linked or not linked, as a sentence | No pill |
-| Trusted contact shares | routes/talent.sharing.tsx | Share status (worked out from dates) | Raw lowercase values |
-
-**How Trusted contacts are added today (no change proposed):**
-1. On the Trusted contact sharing page (`routes/talent.sharing.tsx`), the talent opens the new-share form.
-2. They enter the person's name, email and relationship, choose the documents, and set an expiry. The default is 30 days.
-3. Saving calls `createLovedOneShare`. That needs the talent's Terms acceptance and creates a `loved_one_shares` row.
-4. The person gets a link (`/loved-one/$token`) and an access code. They do not need an account.
-
-**Existing share actions (no change proposed):**
-- Copy link, New access code and Revoke access, for active, expiring or locked shares.
-- "Reshare with this person", for expired or revoked shares. It creates a new share, not an invitation.
-- Access history, on every share.
-
-Server gap noted for information only: a new access code can still be issued on a revoked or expired share.
-
-## 4. Proposed single source of truth
-
-### 4a. One shared status map (label and colour)
-Extend `lib/status-labels.ts` with one entry per status family. Each entry holds the label (sentence case) and a colour on the `--st-*` tokens:
-
-| Family | Status | Label | Colour |
-|---|---|---|---|
-| Relationship | invited | Invited | --st-invited (blue) |
-| | active | Active | --st-accepted (green) |
-| | needs_review | Needs review | --st-incomplete (purple) |
-| | read_only | Read-only | --st-suspended (teal) |
-| | expired | Expired | --st-expired (amber) |
-| | revoked | Revoked | --st-declined (red) |
-| | ended | Ended | --st-neutral |
-| Invitation | draft | Draft | --st-incomplete (purple) |
-| | pending (and not expired) | Invited | --st-invited |
-| | pending (past expiry) or expired | Expired | --st-expired |
-| | accepted | Accepted | --st-accepted |
-| | declined | Declined | --st-declined |
-| | revoked | Revoked | --st-declined |
-| Agency | incomplete / invited / accepted / expired / declined | Incomplete / Invited / Active / Expired / Declined | Matching --st-* token |
-| | suspended | Suspended (read-only) | --st-suspended |
-| Staff / admin | active / suspended | Active / Suspended | --st-accepted / --st-suspended |
-| Trusted contact share | active / expiring / locked / expired / revoked | Active / Expiring soon / Locked / Expired / Revoked | accepted / expired / expired / neutral / declined |
-
-- Add `.tvp-status.st-<name>` pill classes in `styles.css` that use `--st-<name>-bg` and `--st-<name>-fg`.
-- Retire the per-screen maps: admin.index, admin.agencies.index, admin.agencies.$id, admin.invitations.index, admin.administrators, agency.invitations and the talent-invitation-actions map.
-- An unknown status shows a neutral "Unknown" pill instead of the raw value.
-
-### 4b. One shared allowed-actions map (Admin and Agency only)
-Add a new file, `lib/status-actions.ts`. It is plain shared logic used by both the screens and the server. For a given row (family, status, expiry, viewer role, whether the agency is writable, the admin's permission level) it returns the allowed action keys. The screens filter `RowActionsMenu` with it. Each server function calls the same helper and refuses actions that are not allowed.
-
-| Family | Status | Agency owner (writable agency) | Agency staff | Admin |
-|---|---|---|---|---|
-| Relationship | invited (still in date) | Resend invite, Revoke invite, Copy link | Copy link | View only |
-| Relationship | invited and expired, or revoked | Reinvite (a new invitation through the same neutral flow) | — | View only |
-| Relationship | active / needs_review | Open, Change type, Assign manager, Pause relationship | Open | View only |
-| Relationship | read_only / ended | Open (read-only), Reactivate (owner; the talent must accept) | Open | View only |
-| Agency invitation | draft | — | — | Continue draft, Delete |
-| Agency / talent / admin invitation | pending, in date | Resend, Revoke, Copy, Edit email | Copy | Resend, Revoke, Copy, Edit email |
-| Any invitation | expired / revoked / declined | Reinvite | — | Reinvite, Delete |
-| Any invitation | accepted | — | — | Open the agency, talent or admin record |
-| Agency | active | — | — | Suspend |
-| Agency | suspended | All write actions hidden (`agency_is_writable` = false); view only until `agency_read_only_until()` | Same | Reinstate |
-
-**Talent portal: no entry in this map.** Talent never gets Resend, Revoke invite or Reinvite. It only uses the shared labels and colours from 4a, and keeps its existing Accept/Decline and Trusted contact share actions unchanged.
-
-How the existing rules are kept:
-- **Only an agency connects existing talent.** Admin talent actions only ever create independent invitations, which need ID and proof of talent. There is no admin "Link to agency" action.
-- **Agencies cannot tell if a talent account exists (T&C §6.3).** Agency actions are decided only from the agency-visible row: status and expiry. They never use `request_kind`, `talent_invite_private` or `talent_user_id`. Inert invitations offer the same Resend, Revoke and Copy actions. Reinvite goes through the existing neutral invite function.
-- **Suspended agencies are read-only.** Every write action is hidden when `agency_is_writable` is false. The server keeps `getWritableCallerAgency`.
-- **Talent post-end access.** This audit changes no talent actions. What talent can view after a relationship ends is still decided only by `talent_link_read_until()`.
-- **Admin invites.** The existing ID and proof-of-talent gate stays. Reinvite opens a new draft that needs both documents again.
-
-## Technical details (build phase, after approval)
-
-1. Confirm the amber picker colour on the live site (element classes and computed style). Check Gift's link row for the blank type and last activity.
-2. Add `--st-*` pill classes, extend `status-labels.ts` with all the families above, and add `status-actions.ts` with unit tests (one per rule).
-3. Swap every local map and raw value in the screens listed in section 1 for the shared maps. Talent settings and trusted contact shares get proper pills.
-4. Filter every `RowActionsMenu` through `allowedActions`. Add the missing actions:
-   - agency dashboard and roster: Resend, Revoke and Copy for invited relationships;
-   - Reinvite for expired, revoked and declined invitations on the agency and admin screens;
-   - admin agency detail: action menus on its invitation tables.
-   Remove "Pause relationship" from invited, expired and revoked rows.
-5. Add the server checks that are missing today:
-   - endTalentRelationship / reactivateTalentRelationship: allowed prior statuses;
-   - revokeAgencyInvitationMine, revokeInvitation, revokeAdminInvitation: pending only;
-   - updateInvitationEmail: pending only;
-   - regenerateAccessCode: not revoked or expired;
-   - updateAgencyStaffRole / removeAgencyStaffMember: target not suspended;
-   - suspendAgency / unsuspendAgency: current status;
-   - talent invitations: use one expiry rule on the screen and the server.
-6. No database schema change is expected. If a Reactivate rule needs a database function, it goes in a guarded `supabase/migrations` file with rollback SQL.
-7. Run the type-check, run the existing tests plus the new status-actions tests, and spot-check the Vault picker, roster and admin invitations.
-
-## Decisions needed from you
-- Should "Pause relationship" stay as the label for ending a relationship? It sets the status to ended. Would you prefer "End relationship"?
-- Should Reactivate need the talent to accept again? I recommend yes, because of consent.
-- Draft colour: purple (`--st-incomplete`) or neutral?
+1. Agency opt-out: agency-wide (owner sets it), or per staff member?
+2. Default for new users: AI on, or off until they opt in?
+3. In failed or manual mode, should the folder start empty (forcing a choice) or on the folder the document was uploaded into?
+4. Should the file-name guess still count as "AI" while no real document AI exists, or should badges stay off until the real service is connected?
+5. Please re-send the screenshot of the "Automatic analysis could not be completed" screen, and say whether it was the live site or the preview. I couldn't find that text in current code.
