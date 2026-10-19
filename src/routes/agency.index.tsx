@@ -1,10 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { Users, FileText, Mail, FileSpreadsheet, Info, UserPlus, Settings, FolderCog, Sparkles, Activity, ShieldCheck, ClipboardCheck, CalendarClock, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
 import {
   agencyWhoami,
   getAgencyDashboardMetrics,
@@ -458,6 +457,7 @@ function RecentTalentActivity({
     managerName: string; nextAction: string | null; docCount: number;
     expiringDocsCount: number; lastDocumentAt: string | null;
     createdAt: string; updatedAt: string;
+    talentInvitationId?: string | null; inviteToken?: string | null; inviteStatus?: string | null;
   }>;
   isLoading: boolean;
   isOwner: boolean;
