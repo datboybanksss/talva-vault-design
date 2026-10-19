@@ -1473,6 +1473,54 @@ export type Database = {
           },
         ]
       }
+      document_ai_analyses: {
+        Row: {
+          agency_id: string | null
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          document_id: string
+          error_code: string | null
+          id: string
+          provider_ref: string | null
+          requested_by: string
+          scope: string
+          status: string
+          suggestion: Json | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id?: string | null
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          document_id: string
+          error_code?: string | null
+          id?: string
+          provider_ref?: string | null
+          requested_by: string
+          scope: string
+          status?: string
+          suggestion?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string | null
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          document_id?: string
+          error_code?: string | null
+          id?: string
+          provider_ref?: string | null
+          requested_by?: string
+          scope?: string
+          status?: string
+          suggestion?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
