@@ -324,7 +324,6 @@ export function AiFilingReviewModal({
   // In manual/failed mode with no upload folder to fall back on, the reviewer
   // must choose a folder before saving.
   const mustChooseFolder = (mode === "manual" || mode === "failed") && !data?.currentDestination;
-  const saveDisabled = busy || (mustChooseFolder && !destination);
 
   const save = useMutation({
     mutationFn: () =>
