@@ -741,8 +741,8 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
                   </td>
                   <td>{fmtDate(m.joinedAt)}</td>
                   <td>
-                    <span className={`tvp-status tvp-${m.suspended ? "red" : "green"}`}>
-                      {m.suspended ? "Suspended" : "Active"}
+                    <span className={statusPillClass("member", m.suspended ? "suspended" : "active")}>
+                      {statusLabel("member", m.suspended ? "suspended" : "active")}
                     </span>
                   </td>
                   <td>
