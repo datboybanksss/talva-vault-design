@@ -1,4 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
+import { invitationActions } from "@/lib/status-actions";
 import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle, Trash2, FileEdit } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,23 +41,6 @@ export const Route = createFileRoute("/admin/invitations/")({
   }),
   component: InvitationsPage,
 });
-
-const statusLabel: Record<string, string> = {
-  draft: "Draft",
-  pending: "Invited",
-  accepted: "Accepted",
-  expired: "Expired",
-  declined: "Declined",
-  revoked: "Revoked",
-};
-const statusTone: Record<string, string> = {
-  draft: "amber",
-  pending: "blue",
-  accepted: "green",
-  expired: "red",
-  declined: "neutral",
-  revoked: "neutral",
-};
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -290,10 +275,10 @@ function InvitationsPage() {
         {["all", "draft", "pending", "accepted", "expired", "declined", "revoked"].map((k) => (
           <button
             key={k}
-            className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} tvp-bg-${k === "all" ? "teal" : statusTone[k] ?? "neutral"}`}
+            className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} ${k === "all" ? "tvp-bg-teal" : `tvp-bg-st-${statusToken("invitation", k)}`}`}
             onClick={() => setTab(k)}
           >
-            <div className="tvp-label">{k === "all" ? "All" : statusLabel[k]}</div>
+            <div className="tvp-label">{k === "all" ? "All" : statusLabel("invitation", k)}</div>
             <div className="tvp-num">{counts[k] ?? 0}</div>
           </button>
         ))}
@@ -363,8 +348,8 @@ function InvitationsPage() {
                     </td>
                     <td>{t.email}</td>
                     <td>
-                      <span className={`tvp-status tvp-${statusTone[t.status] ?? "neutral"}`}>
-                        {statusLabel[t.status] ?? t.status}
+                      <span className={statusPillClass("invitation", t.status)}>
+                        {statusLabel("invitation", t.status)}
                       </span>
                     </td>
                     <td>{t.last_sent_at ? fmtDate(t.last_sent_at) : "—"}</td>
@@ -397,7 +382,9 @@ function InvitationsPage() {
                     : dLeft < 0
                       ? "Expired"
                       : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
-                const readOnly = !isOpen;
+                const allowed = invitationActions({
+                  status: i.status, storedStatus: i.stored_status, viewer: "admin", canWrite: true,
+                });
                 return (
                   <tr
                     key={i.id}
@@ -416,8 +403,8 @@ function InvitationsPage() {
                     </td>
                     <td>{i.email}</td>
                     <td>
-                      <span className={`tvp-status tvp-${statusTone[i.status]}`}>
-                        {statusLabel[i.status]}
+                      <span className={statusPillClass("invitation", i.status)}>
+                        {statusLabel("invitation", i.status)}
                       </span>
                     </td>
                     <td>{fmtDate(i.last_sent_at)}</td>
@@ -429,7 +416,7 @@ function InvitationsPage() {
                       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                         <RowActionsMenu
                           actions={[
-                            i.status === "draft" && {
+                            allowed.includes("continue_draft") && {
                               key: "continue", label: "Continue draft", icon: FileEdit,
                               title: "Add compliance documents and send",
                               onSelect: () => nav({ to: "/admin/invitations/new", search: { draft: i.id } as any }),
@@ -438,29 +425,33 @@ function InvitationsPage() {
                               key: "preview", label: "Preview branded email", icon: Mail,
                               to: "/admin/invitations/$id/email-preview", params: { id: i.id },
                             },
-                            i.status !== "draft" && {
+                            allowed.includes("copy_link") && {
                               key: "copy", label: "Copy invite link", icon: Link2,
                               title: "Copying does not extend expiry",
                               onSelect: () => copyLink(i),
                             },
-                            i.status !== "draft" && !readOnly && {
+                            allowed.includes("edit_email") && {
                               key: "edit", label: "Edit email address", icon: Pencil,
                               title: "Only possible before the invitation is accepted",
                               onSelect: () => { setEditing(i); setEmailDraft(i.email); },
                             },
-                            i.status !== "draft" && isOpen && {
+                            allowed.includes("resend") && {
                               key: "resend", label: "Resend invitation", icon: RefreshCw,
                               title: "Logs a new send and refreshes expiry",
                               onSelect: () => resendM.mutate(i.id),
                             },
-                            i.status !== "draft" && isOpen && {
+                            allowed.includes("reinvite") && {
+                              key: "reinvite", label: "Reinvite", icon: Send,
+                              onSelect: () => (isOpen ? resendM.mutate(i.id) : nav({ to: "/admin/invitations/new" })),
+                            },
+                            allowed.includes("revoke") && {
                               key: "revoke", label: "Revoke invitation", icon: Ban,
                               destructive: true, separatorBefore: true,
                               onSelect: () => {
                                 if (confirm(`Revoke invitation to ${i.agency_name}?`)) revokeM.mutate(i.id);
                               },
                             },
-                            i.status !== "accepted" && {
+                            (allowed.includes("delete") || i.status === "pending") && {
                               key: "delete",
                               label: i.status === "draft" ? "Delete draft" : "Delete invitation",
                               icon: Trash2, destructive: true,
