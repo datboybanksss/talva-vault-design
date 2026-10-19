@@ -1433,6 +1433,9 @@ export const endTalentRelationship = createServerFn({ method: "POST" })
       .single();
     if (fetchErr) throw new Error(fetchErr.message);
     if (link.agency_id !== agencyId) throw new Error("Forbidden");
+    if (!canEndRelationship(link.status)) {
+      throw new Error("Only an active relationship can be ended.");
+    }
 
     const { data: updated, error } = await supabase
       .from("agency_talent_links")
@@ -1471,6 +1474,9 @@ export const reactivateTalentRelationship = createServerFn({ method: "POST" })
       .single();
     if (fetchErr) throw new Error(fetchErr.message);
     if (link.agency_id !== agencyId) throw new Error("Forbidden");
+    if (!canReactivateRelationship(link.status)) {
+      throw new Error("Only an ended or read-only relationship can be reactivated.");
+    }
 
     const { data: updated, error } = await supabase
       .from("agency_talent_links")
