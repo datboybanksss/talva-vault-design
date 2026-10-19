@@ -185,9 +185,13 @@ export function AiFilingReviewModal({
   onClose,
   onDone,
 }: Props) {
+  const qc = useQueryClient();
   const catalogFn = useServerFn(getFilingCatalog);
   const confirmFn = useServerFn(confirmDocumentFiling);
   const skipFn = useServerFn(skipDocumentFiling);
+  const analysisFn = useServerFn(getDocumentAnalysis);
+  const startFn = useServerFn(startDocumentAnalysis);
+  const prefFn = useServerFn(setAiFilingPreference);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["filing-review", scope, documentId],
@@ -199,51 +203,60 @@ export function AiFilingReviewModal({
 
   const catalog: CatalogItem[] = useMemo(() => data?.catalog ?? [], [data]);
 
-  /**
-   * The filename heuristic only runs when the caller's AI switch is on and no
-   * real AI suggestion was passed in. It is a plain guess from the file name —
-   * never presented or recorded as AI.
-   */
+  /** The person's own switch; starts from the server, flipped by the popup link. */
+  const [aiOverride, setAiOverride] = useState<boolean | null>(null);
+  const aiEnabled = aiOverride ?? (data ? data.aiEnabled !== false : false);
+
+  /** Parserly analysis status — polled while queued/processing. */
+  const analysisKey = ["filing-analysis", scope, documentId];
+  const analysisQ = useQuery({
+    queryKey: analysisKey,
+    queryFn: () => analysisFn({ data: { scope, document_id: documentId } }) as Promise<AnalysisView>,
+    enabled: !!data && aiEnabled && !suggestionProp,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchInterval: (q) => (isPending((q.state.data as AnalysisView | undefined)?.status) ? 2000 : false),
+  });
+  const analysis = aiEnabled ? (analysisQ.data as AnalysisView | undefined) : undefined;
+  const status = analysis?.status ?? null;
+
+  const aiSuggestion: FilingSuggestion | null = !aiEnabled
+    ? null
+    : suggestionProp
+      ? suggestionProp
+      : status === "completed"
+        ? (analysis?.suggestion ?? null)
+        : null;
+
+  /** The filename guess is only a fallback when AI is on but Parserly is unavailable. */
   const heuristic = useMemo(
     () =>
-      suggestionProp || !data || data.aiEnabled === false
-        ? null
-        : suggestFromFileName(documentName, catalog),
-    [suggestionProp, data, catalog, documentName],
+      aiEnabled && !suggestionProp && status === "unavailable" && data
+        ? suggestFromFileName(documentName, catalog)
+        : null,
+    [aiEnabled, suggestionProp, status, data, catalog, documentName],
   );
+
+  const analysing =
+    aiEnabled && !suggestionProp && !!data && (analysisQ.isLoading || isPending(status));
+  const analysisFailed =
+    aiEnabled &&
+    !suggestionProp &&
+    (analysisQ.isError || status === "failed" || status === "unavailable");
 
   const mode: FilingMode = isError
     ? "failed"
-    : suggestionProp
-      ? "ai"
-      : data?.aiEnabled === false
-        ? "manual"
-        : heuristic
-          ? "filename"
-          : "manual";
-
-  const suggestion: FilingSuggestion | null = useMemo(() => {
-    if (suggestionProp) return suggestionProp;
-    if (!data) return null;
-    if (heuristic) {
-      return {
-        folder_id: heuristic.folder_id ?? data.currentDestination ?? null,
-        expiry_date: heuristic.expiry_date,
-        reminder_lead_days: data.defaultReminderDays ?? 30,
-        confidence: heuristic.confidence,
-        rationale: heuristic.rationale,
-        folder_source_text: heuristic.folder_source_text,
-        expiry_source_text: heuristic.expiry_source_text,
-      };
-    }
-    return {
-      folder_id: data.currentDestination ?? null,
-      expiry_date: null,
-      reminder_lead_days: data.defaultReminderDays ?? 30,
-      confidence: null,
-      rationale: null,
-    };
-  }, [suggestionProp, data, heuristic]);
+    : !aiEnabled
+      ? "manual"
+      : aiSuggestion
+        ? "ai"
+        : analysing
+          ? "analysing"
+          : heuristic
+            ? "filename"
+            : analysisFailed
+              ? "failed"
+              : "manual";
 
   /**
    * The catalog arrives as flattened "Parent → Child" paths. Split it back into a
@@ -290,21 +303,85 @@ export function AiFilingReviewModal({
   const [noReminder, setNoReminder] = useState(false);
   const [folderSource, setFolderSource] = useState<FieldSource>("user");
   const [expirySource, setExpirySource] = useState<FieldSource>("user");
+  /** Fields the person has touched are never overwritten by a late suggestion. */
+  const [folderTouched, setFolderTouched] = useState(false);
+  const [expiryTouched, setExpiryTouched] = useState(false);
+
+  const defaultLead = data?.defaultReminderDays ?? 30;
+
+  /** Manual starting values: the upload folder (if any), no expiry, portal default lead. */
+  function resetUntouchedToManual() {
+    if (!folderTouched) {
+      const { top, sub } = locate(data?.currentDestination ?? null);
+      setTopFolder(top);
+      setSubFolder(sub);
+      setFolderSource("user");
+    }
+    if (!expiryTouched) {
+      setExpiry("");
+      setLeadDaysText(String(defaultLead));
+      setExpirySource("user");
+    }
+  }
 
   useEffect(() => {
-    if (!data || !suggestion) return;
-    const { top, sub } = locate(suggestion.folder_id);
-    setTopFolder(top);
-    setSubFolder(sub);
-    setExpiry(suggestion.expiry_date ?? "");
-    setLeadDaysText(String(suggestion.reminder_lead_days ?? data.defaultReminderDays ?? 30));
-    setNoReminder(false);
-    // A pre-filled field keeps the mode's source until the user touches it.
-    const initial: FieldSource = suggestionProp ? "ai" : heuristic ? "filename" : "user";
-    setFolderSource(suggestion.folder_id ? initial : "user");
-    setExpirySource(suggestion.expiry_date ? initial : "user");
+    if (!data) return;
+    resetUntouchedToManual();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
+
+  /** Apply whichever suggestion is active to the fields the person hasn't touched. */
+  const active: { s: FilingSuggestion; source: FieldSource } | null = aiSuggestion
+    ? { s: aiSuggestion, source: "ai" }
+    : heuristic && mode === "filename"
+      ? {
+          s: {
+            folder_id: heuristic.folder_id,
+            expiry_date: heuristic.expiry_date,
+            reminder_lead_days: null,
+            confidence: heuristic.confidence,
+            rationale: heuristic.rationale,
+          },
+          source: "filename",
+        }
+      : null;
+  const activeKey = active ? `${active.source}|${active.s.folder_id}|${active.s.expiry_date}` : "none";
+
+  useEffect(() => {
+    if (!data) return;
+    if (!active) {
+      resetUntouchedToManual();
+      return;
+    }
+    if (!folderTouched) {
+      if (active.s.folder_id) {
+        const { top, sub } = locate(active.s.folder_id);
+        setTopFolder(top);
+        setSubFolder(sub);
+        setFolderSource(top ? active.source : "user");
+      } else {
+        setFolderSource("user");
+      }
+    }
+    if (!expiryTouched) {
+      setExpiry(active.s.expiry_date ?? "");
+      setLeadDaysText(String(active.s.reminder_lead_days ?? defaultLead));
+      setNoReminder(false);
+      setExpirySource(active.s.expiry_date ? active.source : "user");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeKey, data]);
+
+  const touchFolder = () => {
+    setFolderTouched(true);
+    setFolderSource("user");
+  };
+  const touchExpiry = () => {
+    setExpiryTouched(true);
+    setExpirySource("user");
+  };
+
+  const suggestion = active?.s ?? null;
 
   const activeGroup = topFolder ? tree.groups.get(topFolder) : undefined;
   const subOptions = activeGroup?.children ?? [];
@@ -321,9 +398,9 @@ export function AiFilingReviewModal({
   const reminderDate =
     expiry && !noReminder && leadDaysValid ? minusDays(expiry, leadDays) : null;
 
-  // In manual/failed mode with no upload folder to fall back on, the reviewer
-  // must choose a folder before saving.
-  const mustChooseFolder = (mode === "manual" || mode === "failed") && !data?.currentDestination;
+  // Without an upload folder to fall back on, a folder must be chosen unless a
+  // suggestion filled one in.
+  const mustChooseFolder = mode !== "ai" && mode !== "filename" && !data?.currentDestination;
 
   const save = useMutation({
     mutationFn: () =>
@@ -334,8 +411,9 @@ export function AiFilingReviewModal({
           destination,
           expires_at: expiry ? new Date(`${expiry}T00:00:00Z`).toISOString() : null,
           reminder_at: reminderDate ? new Date(`${reminderDate}T09:00:00Z`).toISOString() : null,
-          folder_source: folderSource,
-          expiry_source: expirySource,
+          // Values are only 'ai'/'filename' while that suggestion is on screen.
+          folder_source: mode === "ai" || mode === "filename" ? folderSource : "user",
+          expiry_source: mode === "ai" || mode === "filename" ? expirySource : "user",
           ai_assisted: mode === "ai" && (folderSource === "ai" || expirySource === "ai"),
         },
       }),
@@ -353,6 +431,31 @@ export function AiFilingReviewModal({
       onDone();
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not skip this document."),
+  });
+
+  const retry = useMutation({
+    mutationFn: () => startFn({ data: { scope, document_id: documentId } }) as Promise<AnalysisView>,
+    onSuccess: (view) => qc.setQueryData(analysisKey, view),
+    onError: (e: any) => toast.error(e?.message ?? "Could not start the analysis."),
+  });
+
+  const toggleAi = useMutation({
+    mutationFn: async (next: boolean) => {
+      await prefFn({ data: { ai_filing_enabled: next } });
+      return next;
+    },
+    onMutate: (next) => {
+      setAiOverride(next);
+      if (!next) qc.removeQueries({ queryKey: analysisKey });
+    },
+    onSuccess: (next) => {
+      qc.invalidateQueries({ queryKey: ["ai-filing-preference"] });
+      if (next && !suggestionProp) retry.mutate();
+    },
+    onError: (e: any, next) => {
+      setAiOverride(!next);
+      toast.error(e?.message ?? "Could not change this preference.");
+    },
   });
 
   const busy = save.isPending || skip.isPending;
