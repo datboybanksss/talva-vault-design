@@ -1,4 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
+import { effectiveInvitationStatus } from "@/lib/invitation-status";
+import { agencyActions, invitationActions } from "@/lib/status-actions";
 import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X, Trash2, FileEdit } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,23 +32,6 @@ export const Route = createFileRoute("/admin/agencies/")({
   head: () => ({ meta: [{ title: "Agencies · TalVault Admin" }] }),
   component: AgenciesPage,
 });
-
-const statusLabel: Record<string, string> = {
-  incomplete: "Incomplete",
-  invited: "Invited",
-  accepted: "Accepted",
-  expired: "Expired",
-  declined: "Declined",
-  suspended: "Suspended",
-};
-const statusTone: Record<string, string> = {
-  incomplete: "purple",
-  invited: "blue",
-  accepted: "green",
-  expired: "amber",
-  declined: "red",
-  suspended: "teal",
-};
 
 function AgenciesPage() {
   const listFn = useServerFn(listAgencies);
@@ -328,6 +314,16 @@ function AgenciesPage() {
                 const inviteEmail = invitation?.email ?? a.contact_email;
                 const isDraftInvite = a.status === "invited" && !!invitation && invitation.status === "draft";
                 const isSentInvite = a.status === "invited" && !!invitation && invitation.status !== "draft";
+                const invAllowed = invitation
+                  ? invitationActions({
+                      status: effectiveInvitationStatus(invitation.status, invitation.expires_at),
+                      storedStatus: invitation.status,
+                      viewer: "admin",
+                      canWrite: true,
+                    })
+                  : [];
+                const agencyAllowed = agencyActions({ status: a.status, canEdit: true });
+                const inviteOpen = isSentInvite && invAllowed.includes("resend");
                 return (
                   <tr key={a.id}>
                     <td>
@@ -342,8 +338,8 @@ function AgenciesPage() {
                       )}
                     </td>
                     <td>
-                      <span className={`tvp-status tvp-${statusTone[a.status]}`}>
-                        {statusLabel[a.status]}
+                      <span className={statusPillClass("agency", a.status)}>
+                        {statusLabel("agency", a.status)}
                       </span>
                       {a.status === "suspended" && (
                         <span
@@ -388,24 +384,31 @@ function AgenciesPage() {
                               to: "/admin/invitations/$id/email-preview",
                               params: { id: invitation?.id ?? "" },
                             },
-                            isSentInvite && {
+                            inviteOpen && {
                               key: "copy", label: "Copy invite link", icon: Link2,
                               title: "Copying does not extend expiry",
                               onSelect: () => copyInviteLink(invitation!),
                             },
-                            isSentInvite && {
+                            inviteOpen && {
                               key: "edit", label: "Correct invite email", icon: Pencil,
                               onSelect: () => {
                                 setEditingInvite({ id: invitation!.id, email: invitation!.email, agencyName: a.name });
                                 setEmailDraft(invitation!.email);
                               },
                             },
-                            isSentInvite && {
+                            inviteOpen && {
                               key: "resend", label: "Resend invite", icon: RefreshCw,
                               title: "Refreshes the expiry date",
                               onSelect: () => resendM.mutate(invitation!.id),
                             },
-                            a.status === "suspended"
+                            isSentInvite && invAllowed.includes("reinvite") && {
+                              key: "reinvite", label: "Reinvite", icon: Send,
+                              onSelect: () =>
+                                invitation!.status === "pending"
+                                  ? resendM.mutate(invitation!.id)
+                                  : nav({ to: "/admin/invitations/new" }),
+                            },
+                            agencyAllowed.includes("reinstate")
                               ? {
                                   key: "reinstate", label: "Reinstate agency", icon: RotateCcw,
                                   separatorBefore: true,
@@ -416,7 +419,7 @@ function AgenciesPage() {
                                   destructive: true, separatorBefore: true,
                                   onSelect: () => doSuspend(a.id, a.name),
                                 },
-                            isSentInvite && {
+                            inviteOpen && {
                               key: "revoke", label: "Revoke invitation", icon: Ban,
                               destructive: true,
                               onSelect: () => {
