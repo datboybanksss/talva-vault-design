@@ -26,7 +26,7 @@ import { useFolderCatalogue, useFolderNames, type CatalogueCategory } from "@/li
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EntityCard } from "@/components/shared/entity-card";
-import { TALENT_LINK_STATUS_LABEL, TALENT_LINK_STATUS_TONE } from "@/lib/status-labels";
+import { statusLabel as lifecycleLabel, statusPillClass } from "@/lib/status-labels";
 
 type VaultDoc = {
   id: string;
@@ -565,8 +565,8 @@ function VaultPage() {
                       onClick={() => pickTalent(l.id)}
                       pills={
                         <>
-                          <span className={`tvp-status tvp-${TALENT_LINK_STATUS_TONE[l.status] ?? "neutral"}`}>
-                            {TALENT_LINK_STATUS_LABEL[l.status] ?? l.status}
+                          <span className={statusPillClass("talentLink", l.status)}>
+                            {lifecycleLabel("talentLink", l.status)}
                           </span>
                           {(stats?.reviewCount ?? 0) > 0 && (
                             <span className="tvp-status tvp-purple">{stats?.reviewCount} to review</span>

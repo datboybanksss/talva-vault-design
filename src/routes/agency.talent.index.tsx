@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
+  agencyWhoami,
   listAgencyStaff,
   listAgencyTalent,
   setTalentManager,
@@ -26,7 +27,6 @@ import { EntityCard } from "@/components/shared/entity-card";
 import { usePagedList } from "@/lib/pagination";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { useTalentLinkRowActions } from "@/components/agency/talent-link-actions";
-import { agencyWhoami } from "@/lib/agency.functions";
 
 export const Route = createFileRoute("/agency/talent/")({
   head: () => ({
