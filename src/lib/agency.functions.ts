@@ -4179,13 +4179,14 @@ export const updateAgencyStaffRole = createServerFn({ method: "POST" })
 
     const { data: member, error: readErr } = await supabase
       .from("agency_members")
-      .select("id, user_id, role")
+      .select("id, user_id, role, suspended")
       .eq("id", data.member_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
     if (readErr) throw new Error(readErr.message);
     if (!member) throw new Error("Staff member not found for your agency.");
     if (member.role === "owner") throw new Error("The agency owner's role cannot be changed here.");
+    if (member.suspended) throw new Error("A suspended team member's role cannot be changed.");
     if (member.user_id === userId) throw new Error("You cannot change your own role.");
 
     const { data: updated, error } = await supabase
