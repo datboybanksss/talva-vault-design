@@ -54,3 +54,81 @@ export const BILLING_DOC_STATUSES: StatusMeta[] = [
 const billing = toMaps(BILLING_DOC_STATUSES);
 export const BILLING_DOC_STATUS_LABEL = billing.label;
 export const BILLING_DOC_STATUS_TONE = billing.tone;
+
+/* ------------------------------------------------------------------------- */
+/* Lifecycle statuses (talent links, invitations, agencies, staff, shares).  */
+/* One map for all three portals. Colours are --st-* token names, rendered   */
+/* by `.tvp-status.st-<name>` in styles.css.                                 */
+/* ------------------------------------------------------------------------- */
+
+export type StToken =
+  | "incomplete" | "invited" | "accepted" | "expired" | "declined" | "suspended" | "neutral";
+
+export type StatusFamily = "talentLink" | "invitation" | "agency" | "member" | "share";
+
+type Entry = { label: string; st: StToken };
+
+export const LIFECYCLE_STATUS: Record<StatusFamily, Record<string, Entry>> = {
+  /** public.agency_talent_link_status */
+  talentLink: {
+    invited: { label: "Invited", st: "invited" },
+    active: { label: "Active", st: "accepted" },
+    needs_review: { label: "Needs review", st: "incomplete" },
+    read_only: { label: "Read-only", st: "suspended" },
+    expired: { label: "Expired", st: "expired" },
+    revoked: { label: "Revoked", st: "declined" },
+    ended: { label: "Ended", st: "neutral" },
+  },
+  /** public.invitation_status (+ admin_invitations text) with expiry derived at read time */
+  invitation: {
+    draft: { label: "Draft", st: "neutral" },
+    pending: { label: "Invited", st: "invited" },
+    expired: { label: "Expired", st: "expired" },
+    accepted: { label: "Accepted", st: "accepted" },
+    declined: { label: "Declined", st: "declined" },
+    revoked: { label: "Revoked", st: "declined" },
+  },
+  /** public.agency_status */
+  agency: {
+    incomplete: { label: "Incomplete", st: "incomplete" },
+    invited: { label: "Invited", st: "invited" },
+    accepted: { label: "Accepted", st: "accepted" },
+    expired: { label: "Expired", st: "expired" },
+    declined: { label: "Declined", st: "declined" },
+    suspended: { label: "Suspended", st: "suspended" },
+  },
+  /** agency_members.suspended / user_roles.suspended_at */
+  member: {
+    active: { label: "Active", st: "accepted" },
+    suspended: { label: "Suspended", st: "suspended" },
+  },
+  /** loved_one_shares, derived from revoked_at / expires_at / locked_at */
+  share: {
+    active: { label: "Active", st: "accepted" },
+    expiring: { label: "Expiring soon", st: "expired" },
+    locked: { label: "Locked", st: "expired" },
+    expired: { label: "Expired", st: "neutral" },
+    revoked: { label: "Revoked", st: "declined" },
+  },
+};
+
+const UNKNOWN: Entry = { label: "Unknown", st: "neutral" };
+
+function entry(family: StatusFamily, status: string | null | undefined): Entry {
+  return (status && LIFECYCLE_STATUS[family][status]) || UNKNOWN;
+}
+
+/** Display label — never the raw database value. */
+export function statusLabel(family: StatusFamily, status: string | null | undefined): string {
+  return entry(family, status).label;
+}
+
+/** --st-* token name for a status. */
+export function statusToken(family: StatusFamily, status: string | null | undefined): StToken {
+  return entry(family, status).st;
+}
+
+/** Full pill class: `tvp-status st-<token>`. */
+export function statusPillClass(family: StatusFamily, status: string | null | undefined): string {
+  return `tvp-status st-${entry(family, status).st}`;
+}

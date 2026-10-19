@@ -1,19 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { Users, FileText, Mail, FileSpreadsheet, RotateCcw, PauseCircle, Info, UserPlus, Settings, FolderCog, Sparkles, Activity, ShieldCheck, ClipboardCheck, CalendarClock, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
+import { Users, FileText, Mail, FileSpreadsheet, Info, UserPlus, Settings, FolderCog, Sparkles, Activity, ShieldCheck, ClipboardCheck, CalendarClock, ArrowRight } from "lucide-react";
 import {
   agencyWhoami,
   getAgencyDashboardMetrics,
   listAgencyTalent,
-  endTalentRelationship,
-  reactivateTalentRelationship,
   listAgencyAuditLog,
 } from "@/lib/agency.functions";
-import { TALENT_LINK_STATUS_LABEL, TALENT_LINK_STATUS_TONE } from "@/lib/status-labels";
+import { TALENT_LINK_STATUS_LABEL, statusLabel, statusPillClass } from "@/lib/status-labels";
+import { useTalentLinkRowActions } from "@/components/agency/talent-link-actions";
 
 const ACTIVITY_ACTION_LABELS: Record<string, string> = {
   create_talent_invitation: "Invited talent",
@@ -23,7 +21,7 @@ const ACTIVITY_ACTION_LABELS: Record<string, string> = {
   upload_vault_document: "Uploaded document",
   delete_vault_document: "Deleted document",
   update_vault_document: "Updated document",
-  end_talent_relationship: "Paused talent relationship",
+  end_talent_relationship: "Ended talent relationship",
   reactivate_talent_relationship: "Reactivated talent relationship",
   create_billing_doc: "Created quote/invoice",
   update_billing_doc: "Updated quote/invoice",
@@ -61,7 +59,6 @@ export const Route = createFileRoute("/agency/")({
 });
 
 const STATUS_LABEL = TALENT_LINK_STATUS_LABEL;
-const STATUS_TONE = TALENT_LINK_STATUS_TONE;
 
 const CHIP_ORDER: Array<{ key: string; tone: string }> = [
   { key: "active", tone: "green" },
@@ -85,12 +82,9 @@ function formatDate(iso: string) {
 }
 
 function AgencyDashboard() {
-  const qc = useQueryClient();
   const whoamiFn = useServerFn(agencyWhoami);
   const getMetricsFn = useServerFn(getAgencyDashboardMetrics);
   const listTalentFn = useServerFn(listAgencyTalent);
-  const endFn = useServerFn(endTalentRelationship);
-  const reactivateFn = useServerFn(reactivateTalentRelationship);
 
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoamiFn() });
   const metrics = useQuery({
@@ -107,24 +101,7 @@ function AgencyDashboard() {
 
   const isOwner = who.data?.role === "owner";
 
-  const endMut = useMutation({
-    mutationFn: (id: string) => endFn({ data: { id } }),
-    onSuccess: () => {
-      toast.success("Relationship ended. Existing documents remain accessible; new uploads are blocked.");
-      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
-      qc.invalidateQueries({ queryKey: ["agency", "vault", "talent-links"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to end relationship"),
-  });
-  const reactivateMut = useMutation({
-    mutationFn: (id: string) => reactivateFn({ data: { id } }),
-    onSuccess: () => {
-      toast.success("Relationship reactivated.");
-      qc.invalidateQueries({ queryKey: ["agency", "talent"] });
-      qc.invalidateQueries({ queryKey: ["agency", "vault", "talent-links"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to reactivate"),
-  });
+  const rowActions = useTalentLinkRowActions({ isOwner });
 
   const listActivityFn = useServerFn(listAgencyAuditLog);
   const [activityFilter, setActivityFilter] = useState<string>("all");
@@ -420,8 +397,8 @@ function AgencyDashboard() {
                       </span>
                     </td>
                     <td>
-                      <span className={`tvp-status tvp-${STATUS_TONE[r.status] ?? "neutral"}`}>
-                        {STATUS_LABEL[r.status] ?? r.status}
+                      <span className={statusPillClass("talentLink", r.status)}>
+                        {statusLabel("talentLink", r.status)}
                       </span>
                     </td>
                     <td>{r.managerName || "—"}</td>
@@ -435,26 +412,8 @@ function AgencyDashboard() {
                           Open <ArrowRight className="inline h-3 w-3" />
                         </Link>
                         <RowActionsMenu
-                          actions={[
-                            isOwner && r.status === "ended" && {
-                              key: "reactivate", label: "Reactivate relationship", icon: RotateCcw,
-                              disabled: reactivateMut.isPending,
-                              onSelect: () => {
-                                if (confirm(`Reactivate relationship with ${r.displayName}?`)) reactivateMut.mutate(r.id);
-                              },
-                            },
-                            isOwner && r.status !== "ended" && {
-                              key: "pause", label: "Pause relationship", icon: PauseCircle,
-                              destructive: true, disabled: endMut.isPending,
-                              onSelect: () => {
-                                if (
-                                  confirm(
-                                    `Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`,
-                                  )
-                                ) endMut.mutate(r.id);
-                              },
-                            },
-                          ]}
+                          label={`Actions for ${r.displayName}`}
+                          actions={rowActions(r)}
                         />
                       </div>
                     </td>
@@ -490,19 +449,19 @@ function pendingLabel(r: { status: string; nextAction: string | null; expiringDo
 }
 
 function RecentTalentActivity({
-  rows, isLoading, isOwner, endMut, reactivateMut,
+  rows, isLoading, isOwner,
 }: {
   rows: Array<{
     id: string; displayName: string; status: string; talentType: string | null;
     managerName: string; nextAction: string | null; docCount: number;
     expiringDocsCount: number; lastDocumentAt: string | null;
     createdAt: string; updatedAt: string;
+    talentInvitationId?: string | null; inviteToken?: string | null; inviteStatus?: string | null;
   }>;
   isLoading: boolean;
   isOwner: boolean;
-  endMut: any;
-  reactivateMut: any;
 }) {
+  const rowActions = useTalentLinkRowActions({ isOwner });
   const [chip, setChip] = useState<"all" | "needs_review" | "action_needed" | "compliant">("all");
 
   const counts = useMemo(() => {
@@ -600,8 +559,8 @@ function RecentTalentActivity({
                   </span>
                 </td>
                 <td>
-                  <span className={`tvp-status tvp-${STATUS_TONE[r.status] ?? "neutral"}`}>
-                    {STATUS_LABEL[r.status] ?? r.status}
+                  <span className={statusPillClass("talentLink", r.status)}>
+                    {statusLabel("talentLink", r.status)}
                   </span>
                 </td>
                 <td>{pendingLabel(r)}</td>
@@ -614,26 +573,8 @@ function RecentTalentActivity({
                       Open <ArrowRight className="inline h-3 w-3" />
                     </Link>
                     <RowActionsMenu
-                      actions={[
-                        isOwner && r.status === "ended" && {
-                          key: "reactivate", label: "Reactivate relationship", icon: RotateCcw,
-                          disabled: reactivateMut.isPending,
-                          onSelect: () => {
-                            if (confirm(`Reactivate relationship with ${r.displayName}?`)) reactivateMut.mutate(r.id);
-                          },
-                        },
-                        isOwner && r.status !== "ended" && {
-                          key: "pause", label: "Pause relationship", icon: PauseCircle,
-                          destructive: true, disabled: endMut.isPending,
-                          onSelect: () => {
-                            if (
-                              confirm(
-                                `Pause working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`,
-                              )
-                            ) endMut.mutate(r.id);
-                          },
-                        },
-                      ]}
+                      label={`Actions for ${r.displayName}`}
+                      actions={rowActions(r)}
                     />
                   </div>
                 </td>

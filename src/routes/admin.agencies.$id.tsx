@@ -1,4 +1,6 @@
 import { usePagedList } from "@/lib/pagination";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
+import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useSessionReady } from "@/hooks/use-session-ready";
@@ -28,20 +30,6 @@ function fmtDate(iso?: string | null) {
     day: "numeric", month: "short", year: "numeric",
   });
 }
-const invStatusTone: Record<string, string> = {
-  pending: "blue", accepted: "green", expired: "red",
-  declined: "neutral", revoked: "neutral",
-};
-
-const statusTone: Record<string, string> = {
-  incomplete: "purple",
-  invited: "blue",
-  accepted: "green",
-  expired: "amber",
-  declined: "red",
-  suspended: "teal",
-};
-
 function AgencyDetail() {
   const { id } = useParams({ from: "/admin/agencies/$id" });
   const getFn = useServerFn(getAgencyById);
@@ -116,7 +104,7 @@ function AgencyDetail() {
           </h1>
           {a && (
             <div className="tvp-subtitle" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <span className={`tvp-status tvp-${statusTone[a.status]}`}>{a.status}</span>
+              <span className={statusPillClass("agency", a.status)}>{statusLabel("agency", a.status)}</span>
               {a.contact_email}
             </div>
           )}
@@ -206,7 +194,7 @@ function AgencyDetail() {
                   <tr key={i.id}>
                     <td>{i.email}</td>
                     <td>{i.contact_person ?? "—"}</td>
-                    <td><span className={`tvp-status tvp-${invStatusTone[i.status] ?? "neutral"}`}>{i.status}</span></td>
+                    <td><span className={statusPillClass("invitation", effectiveInvitationStatus(i.status, i.expires_at))}>{statusLabel("invitation", effectiveInvitationStatus(i.status, i.expires_at))}</span></td>
                     <td>{fmtDate(i.last_sent_at)}</td>
                     <td>{fmtDate(i.expires_at)}</td>
                     <td>{i.send_count}</td>
@@ -254,7 +242,7 @@ function AgencyDetail() {
                   <tr key={i.id}>
                     <td>{i.talent_name ?? "—"}</td>
                     <td>{i.email}</td>
-                    <td><span className={`tvp-status tvp-${invStatusTone[i.status] ?? "neutral"}`}>{i.status}</span></td>
+                    <td><span className={statusPillClass("invitation", effectiveInvitationStatus(i.status, i.expires_at))}>{statusLabel("invitation", effectiveInvitationStatus(i.status, i.expires_at))}</span></td>
                     <td>{fmtDate(i.last_sent_at)}</td>
                     <td>{fmtDate(i.expires_at)}</td>
                     <td>{i.send_count}</td>

@@ -42,3 +42,10 @@
 - [x] DB cut-off = 10 years from relationship end or agency suspension; talent-added items unlimited
 - [x] Q&I reader, request uploads, copy (E7, bell, 30-day warning, vault, tour)
 - [x] Agency staff read-only for 10 years after suspension; no access after; reinstating restores writes
+
+## Status & row-action consistency (Oct 2026)
+- [x] Confirm live vault picker amber/raw cause; check Gift link row
+- [x] Shared status labels/--st-* colours in all three portals
+- [x] Shared allowed-actions (Admin/Agency) + server checks + tests
+- [ ] Admin agency detail: row action menus on its two invitation tables (awaiting go-ahead)
+- [x] "Pause relationship" → "End relationship"; Reactivate direct (owner, writable); Draft neutral

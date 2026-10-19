@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { useSessionReady } from "@/hooks/use-session-ready";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -41,19 +42,6 @@ import {
 } from "@/lib/invitation-email";
 
 /** Administrator invitation statuses, styled like the Agency invitations page. */
-const statusLabel: Record<string, string> = {
-  pending: "Invited",
-  accepted: "Accepted",
-  expired: "Expired",
-  revoked: "Revoked",
-};
-const statusTone: Record<string, string> = {
-  pending: "blue",
-  accepted: "green",
-  expired: "red",
-  revoked: "neutral",
-};
-
 export const Route = createFileRoute("/admin/administrators")({
   head: () => ({ meta: [{ title: "Administrators · TalVault Admin" }] }),
   component: AdminsPage,
@@ -375,8 +363,8 @@ function AdminsPage() {
                           {adminPermission(a.permission_level)?.label ?? "—"}
                         </span>
                         {a.suspended && (
-                          <span className="tvp-status tvp-red" style={{ marginLeft: 6 }}>
-                            Suspended
+                          <span className={statusPillClass("member", "suspended")} style={{ marginLeft: 6 }}>
+                            {statusLabel("member", "suspended")}
                           </span>
                         )}
                       </td>
@@ -551,8 +539,8 @@ function AdminsPage() {
 
                     </td>
                     <td>
-                      <span className={`tvp-status tvp-${statusTone[i.status] ?? "amber"}`}>
-                        {statusLabel[i.status] ?? i.status}
+                      <span className={statusPillClass("invitation", i.status)}>
+                        {statusLabel("invitation", i.status)}
                       </span>
                     </td>
                     <td>

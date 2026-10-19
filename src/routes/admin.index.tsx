@@ -1,9 +1,8 @@
 import { SHARE_TERM } from "@/lib/terms";
+import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import {
   useTalentInvitationActions,
-  TALENT_INVITE_STATUS_LABEL,
-  TALENT_INVITE_STATUS_TONE,
 } from "@/components/admin/talent-invitation-actions";
 import { listIndependentTalentInvitations } from "@/lib/independent-talent.functions";
 import { usePagedList } from "@/lib/pagination";
@@ -38,24 +37,6 @@ export const Route = createFileRoute("/admin/")({
   }),
   component: AdminDashboard,
 });
-
-const statusLabel: Record<string, string> = {
-  incomplete: "Incomplete",
-  invited: "Invited",
-  accepted: "Accepted",
-  expired: "Expired",
-  declined: "Declined",
-  suspended: "Suspended",
-};
-
-const statusTone: Record<string, string> = {
-  incomplete: "purple",
-  invited: "blue",
-  accepted: "green",
-  expired: "amber",
-  declined: "red",
-  suspended: "teal",
-};
 
 function AdminDashboard() {
   const getMetricsFn = useServerFn(getDashboardMetrics);
@@ -213,16 +194,16 @@ function AdminDashboard() {
           {(Object.keys(counts) as string[]).map((s) => (
             <button
               key={s}
-              className={`tvp-life-chip${filter === s ? " tvp-active-filter" : ""} tvp-bg-${statusTone[s]}`}
+              className={`tvp-life-chip${filter === s ? " tvp-active-filter" : ""} tvp-bg-st-${statusToken("agency", s)}`}
               onClick={() => setFilter(filter === s ? "all" : s)}
             >
-              <div className="tvp-label">{statusLabel[s]}</div>
+              <div className="tvp-label">{statusLabel("agency", s)}</div>
               <div className="tvp-num">{counts[s] ?? 0}</div>
             </button>
           ))}
         </div>
         <div className="tvp-small" style={{ margin: "-4px 0 14px 2px" }}>
-          {filter === "all" ? "Showing all agencies" : `Filtered by ${statusLabel[filter]}`}
+          {filter === "all" ? "Showing all agencies" : `Filtered by ${statusLabel("agency", filter)}`}
         </div>
 
         <div className="tvp-table-wrap">
@@ -252,8 +233,8 @@ function AdminDashboard() {
                     </Link>
                   </td>
                   <td>
-                    <span className={`tvp-status tvp-${statusTone[r.status]}`}>
-                      {statusLabel[r.status]}
+                    <span className={statusPillClass("agency", r.status)}>
+                      {statusLabel("agency", r.status)}
                     </span>
                   </td>
                   <td>{r.contact_person ?? r.contact_email ?? "—"}</td>
@@ -306,8 +287,8 @@ function AdminDashboard() {
                   </td>
                   <td>{r.email}</td>
                   <td>
-                    <span className={`tvp-status tvp-${TALENT_INVITE_STATUS_TONE[r.status] ?? "neutral"}`}>
-                      {TALENT_INVITE_STATUS_LABEL[r.status] ?? r.status}
+                    <span className={statusPillClass("invitation", r.status)}>
+                      {statusLabel("invitation", r.status)}
                     </span>
                   </td>
                   <td>{r.last_sent_at ? fmt(r.last_sent_at) : "—"}</td>

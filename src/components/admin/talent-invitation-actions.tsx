@@ -2,7 +2,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Ban, FileEdit, Link2, RefreshCw, Eye } from "lucide-react";
+import { Ban, FileEdit, Link2, RefreshCw, Eye, Send } from "lucide-react";
+import { invitationActions } from "@/lib/status-actions";
 import type { RowAction } from "@/components/shared/row-actions-menu";
 import {
   getIndependentTalentInvitation,
@@ -11,23 +12,6 @@ import {
 } from "@/lib/independent-talent.functions";
 import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
 import { logTalentInviteCopyLink } from "@/lib/admin.functions";
-
-export const TALENT_INVITE_STATUS_LABEL: Record<string, string> = {
-  draft: "Draft",
-  pending: "Invited",
-  accepted: "Accepted",
-  expired: "Expired",
-  declined: "Declined",
-  revoked: "Revoked",
-};
-export const TALENT_INVITE_STATUS_TONE: Record<string, string> = {
-  draft: "amber",
-  pending: "blue",
-  accepted: "green",
-  expired: "red",
-  declined: "neutral",
-  revoked: "neutral",
-};
 
 /** State-driven row actions for an admin-sent (independent) talent invitation. */
 export function useTalentInvitationActions() {
@@ -68,8 +52,14 @@ export function useTalentInvitationActions() {
     }
   };
 
-  return (row: { id: string; status: string; talent_name: string }): RowAction[] => {
-    const open = row.status === "pending";
+  return (row: { id: string; status: string; stored_status?: string | null; talent_name: string }): RowAction[] => {
+    const allowed = invitationActions({
+      status: row.status,
+      storedStatus: row.stored_status,
+      viewer: "admin",
+      canWrite: true,
+    });
+    const storedOpen = (row.stored_status ?? row.status) === "pending";
     return [
       {
         key: "open",
@@ -81,7 +71,7 @@ export function useTalentInvitationActions() {
         key: "copy",
         label: "Copy invite link",
         icon: Link2,
-        hidden: !open,
+        hidden: !allowed.includes("copy_link"),
         title: "Copying does not extend expiry",
         onSelect: () => copyLink(row.id),
       },
@@ -89,15 +79,26 @@ export function useTalentInvitationActions() {
         key: "resend",
         label: "Resend invitation",
         icon: RefreshCw,
-        hidden: !open,
+        hidden: !allowed.includes("resend"),
         title: "Logs a new send and refreshes expiry",
         onSelect: () => resendM.mutate(row.id),
+      },
+      {
+        key: "reinvite",
+        label: "Reinvite",
+        icon: Send,
+        hidden: !allowed.includes("reinvite"),
+        title: storedOpen
+          ? "Sends the invitation again with a fresh expiry"
+          : "Starts a new invitation — the ID document and proof of talent are needed again",
+        onSelect: () =>
+          storedOpen ? resendM.mutate(row.id) : nav({ to: "/admin/invitations/talent/new" }),
       },
       {
         key: "revoke",
         label: "Revoke invitation",
         icon: Ban,
-        hidden: !open,
+        hidden: !allowed.includes("revoke"),
         destructive: true,
         separatorBefore: true,
         title: "Also deletes the ID document and proof of talent",

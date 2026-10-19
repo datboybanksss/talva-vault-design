@@ -1,4 +1,5 @@
 import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_PLURAL, SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
 import { ModalShell } from "@/components/shared/modal-shell";
 import { createFileRoute } from "@tanstack/react-router";
@@ -143,7 +144,6 @@ function SharingPage() {
                       : s.share_kind === "document"
                         ? "1 document"
                         : `${s.scope?.private_folder_ids?.length ?? 0} folder(s)`;
-                  const tone = status === "active" ? "green" : status === "expiring" || status === "locked" ? "amber" : "teal";
                   return (
                     <tr key={s.id}>
                       <td>
@@ -178,7 +178,7 @@ function SharingPage() {
                           <Eye className="h-3 w-3" /> {s.view_count ?? 0}
                         </div>
                       </td>
-                      <td><span className={`tvp-status tvp-${tone}`}>{status}</span></td>
+                      <td><span className={statusPillClass("share", status)}>{statusLabel("share", status)}</span></td>
                       <td>
                         <div className="tvp-row-actions">
                           <RowActionsMenu

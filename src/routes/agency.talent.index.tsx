@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Plus, Tags, UserCog, Users as UsersIcon, X } from "lucide-react";
+import { Download, Plus, Users as UsersIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
+  agencyWhoami,
   listAgencyStaff,
   listAgencyTalent,
   setTalentManager,
@@ -24,7 +25,8 @@ import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { ModalShell } from "@/components/shared/modal-shell";
 import { EntityCard } from "@/components/shared/entity-card";
 import { usePagedList } from "@/lib/pagination";
-import { TALENT_LINK_STATUS_LABEL, TALENT_LINK_STATUS_TONE } from "@/lib/status-labels";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
+import { useTalentLinkRowActions } from "@/components/agency/talent-link-actions";
 
 export const Route = createFileRoute("/agency/talent/")({
   head: () => ({
@@ -47,8 +49,6 @@ export const Route = createFileRoute("/agency/talent/")({
   component: TalentPage,
 });
 
-const STATUS_LABEL = TALENT_LINK_STATUS_LABEL;
-const STATUS_TONE = TALENT_LINK_STATUS_TONE;
 
 /**
  * Roster grouping. Each card still shows the talent's own individual status —
@@ -76,6 +76,9 @@ type TalentRow = {
   lastDocumentAt: string | null;
   createdAt: string;
   updatedAt: string;
+  talentInvitationId?: string | null;
+  inviteToken?: string | null;
+  inviteStatus?: string | null;
 };
 
 function fmtDate(iso: string) {
@@ -134,6 +137,20 @@ function TalentPage() {
     onError: (e: any) => toast.error(e?.message ?? "Could not update the manager"),
   });
 
+  const whoFn = useServerFn(agencyWhoami);
+  const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoFn() });
+  const rowActions = useTalentLinkRowActions({
+    isOwner: (who.data as any)?.role === "owner",
+    onChangeType: (r) => {
+      setTypeEditor(r as TalentRow);
+      setTypeDraft(r.talentType ?? "");
+    },
+    onAssignManager: (r) => {
+      setManagerEditor(r as TalentRow);
+      setManagerDraft(r.managerUserId ?? "unassigned");
+    },
+  });
+
   const listFn = useServerFn(listAgencyTalent);
   const talent = useQuery({ queryKey: ["agency", "talent"], queryFn: () => listFn() });
 
@@ -189,7 +206,7 @@ function TalentPage() {
     const header = ["Talent", "Status", "Lead", "Talent type", "Documents", "Awaiting", "Expiring", "Next action", "Joined"];
     const lines = filtered.map((r) => [
       r.displayName,
-      STATUS_LABEL[r.status] ?? r.status,
+      statusLabel("talentLink", r.status),
       r.managerName,
       r.talentType ?? "",
       String(r.docCount),
@@ -325,8 +342,8 @@ function TalentPage() {
                   subtitle={`${r.talentType ?? "Talent type not set"} · Manager: ${r.managerName || "Unassigned"}`}
                   pills={
                     <>
-                      <span className={`tvp-status tvp-${STATUS_TONE[r.status] ?? "neutral"}`}>
-                        {STATUS_LABEL[r.status] ?? r.status}
+                      <span className={statusPillClass("talentLink", r.status)}>
+                        {statusLabel("talentLink", r.status)}
                       </span>
                       <span className="tvp-entity-since">
                         {r.status === "invited" ? "Invited" : "Since"} {fmtDate(r.createdAt)}
@@ -341,30 +358,7 @@ function TalentPage() {
                   actions={
                     <RowActionsMenu
                       label={`Actions for ${r.displayName}`}
-                      actions={[
-                        {
-                          key: "type",
-                          label: "Change talent type",
-                          icon: Tags,
-                          onSelect: () => {
-                            setTypeEditor(r);
-                            setTypeDraft(r.talentType ?? "");
-                          },
-                        },
-                        ...(["ended", "expired", "revoked"].includes(r.status)
-                          ? []
-                          : [
-                              {
-                                key: "manager",
-                                label: r.managerUserId ? "Change manager" : "Assign manager",
-                                icon: UserCog,
-                                onSelect: () => {
-                                  setManagerEditor(r);
-                                  setManagerDraft(r.managerUserId ?? "unassigned");
-                                },
-                              },
-                            ]),
-                      ]}
+                      actions={rowActions(r)}
                     />
                   }
                 />

@@ -489,9 +489,11 @@ export const suspendAgency = createServerFn({ method: "POST" })
         suspended_by: userId,
       })
       .eq("id", data.id)
+      .neq("status", "suspended")
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!updated) throw new Error("This agency is already suspended.");
     await logAudit(
       supabase,
       userId,
@@ -527,9 +529,11 @@ export const unsuspendAgency = createServerFn({ method: "POST" })
         suspended_by: null,
       })
       .eq("id", data.id)
+      .eq("status", "suspended")
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Only a suspended agency can be reinstated.");
     await logAudit(
       supabase,
       userId,
@@ -1266,9 +1270,11 @@ export const revokeInvitation = createServerFn({ method: "POST" })
       .from("agency_invitations")
       .update({ status: "revoked" })
       .eq("id", data.id)
+      .eq("status", "pending")
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!inv) throw new Error("Only an open invitation can be revoked.");
     await logAudit(
       supabase,
       userId,
@@ -1297,6 +1303,9 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
       throw new Error(
         "BR-INV-004: This invitation has been accepted. Update the email via account settings instead.",
       );
+    }
+    if (existing.status !== "pending") {
+      throw new Error("Only an open invitation's email address can be changed.");
     }
     const { data: inv, error } = await supabase
       .from("agency_invitations")
@@ -1686,9 +1695,11 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
         revoked_by: userId,
       })
       .eq("id", data.id)
+      .eq("status", "pending")
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!inv) throw new Error("Only an open invitation can be revoked.");
     await logAudit(
       supabase,
       userId,
