@@ -66,6 +66,7 @@ type FolderCount = {
 
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
+import { useAnalyseWithAi } from "@/components/shared/use-analyse-with-ai";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -762,6 +763,15 @@ function VaultPage() {
                             d.pendingReview && {
                               key: "review", label: "Finish filing review", icon: Sparkles,
                               onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
+                            },
+                            aiRow.canAnalyse(d.pendingReview) && {
+                              key: "analyse", label: "Analyse with AI", icon: Sparkles,
+                              disabled: !d.storagePath || aiRow.isPending,
+                              onSelect: () =>
+                                aiRow.analyse({
+                                  id: d.id, name: d.name,
+                                  open: () => setAiReviewFor({ id: d.id, name: d.name }),
+                                }),
                             },
                             {
                               key: "versions", label: "Version history", icon: History,

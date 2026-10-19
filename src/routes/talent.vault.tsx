@@ -24,6 +24,7 @@ import {
 import { preflightUpload } from "@/lib/file-validation";
 
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
+import { useAnalyseWithAi } from "@/components/shared/use-analyse-with-ai";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { toast } from "sonner";
 import {
@@ -173,6 +174,7 @@ function PrivateVault() {
     id ? folders.find((f) => f.id === id)?.name ?? "—" : "Unfiled";
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
+  const aiRow = useAnalyseWithAi("talent");
 
 
 
@@ -494,6 +496,15 @@ function PrivateVault() {
                             d.pending_review && {
                               key: "review", label: "Finish filing review", icon: Sparkles,
                               onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
+                            },
+                            aiRow.canAnalyse(d.pending_review) && {
+                              key: "analyse", label: "Analyse with AI", icon: Sparkles,
+                              disabled: !d.storage_path || aiRow.isPending,
+                              onSelect: () =>
+                                aiRow.analyse({
+                                  id: d.id, name: d.name,
+                                  open: () => setAiReviewFor({ id: d.id, name: d.name }),
+                                }),
                             },
                             {
                               key: "view", label: "View document", icon: Eye,
