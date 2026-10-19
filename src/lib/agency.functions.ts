@@ -589,6 +589,20 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       return out;
     };
 
+    // Invitation details for still-invited rows, so the roster can offer the
+    // same Resend / Revoke / Copy link actions as the Invitations page.
+    const inviteIds = rows
+      .filter((r: any) => r.status === "invited" && r.talent_invitation_id)
+      .map((r: any) => r.talent_invitation_id as string);
+    const inviteMap = new Map<string, { token: string; expires_at: string | null; status: string }>();
+    if (inviteIds.length) {
+      const { data: invs } = await supabase
+        .from("talent_invitations")
+        .select("id, token, expires_at, status")
+        .in("id", inviteIds);
+      for (const i of invs ?? []) inviteMap.set(i.id as string, i as any);
+    }
+
     const [profilesRes, docRows] = await Promise.all([
       profileIds.length
         ? supabase
@@ -649,6 +663,13 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       createdAt: r.created_at as string,
       updatedAt: r.updated_at as string,
       talentInvitationId: (r.talent_invitation_id as string) ?? null,
+      inviteToken: r.talent_invitation_id ? inviteMap.get(r.talent_invitation_id)?.token ?? null : null,
+      inviteStatus: r.talent_invitation_id && inviteMap.has(r.talent_invitation_id)
+        ? effectiveInvitationStatus(
+            inviteMap.get(r.talent_invitation_id)!.status,
+            inviteMap.get(r.talent_invitation_id)!.expires_at,
+          )
+        : null,
     }));
   });
 
