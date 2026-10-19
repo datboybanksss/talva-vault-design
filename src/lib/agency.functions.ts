@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
+import { canEditLink, canEndRelationship, canReactivateRelationship } from "@/lib/status-actions";
 
 function extractRequestMeta(): { ip_address: string | null; user_agent: string | null } {
   try {
@@ -1061,8 +1062,10 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
     await assertAgencyOwner(supabase, userId, agencyId);
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
     const { data: inv, error } = await supabase
-      .from(table).update({ status: "revoked" }).eq("id", data.id).select().single();
+      .from(table).update({ status: "revoked" }).eq("id", data.id).eq("status", "pending")
+      .select().maybeSingle();
     if (error) throw new Error(error.message);
+    if (!inv) throw new Error("Only an open invitation can be revoked.");
 
     if (data.type === "talent") {
       // Keep the roster entry in step with the revoked invitation.
@@ -3938,12 +3941,15 @@ export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
 
     const { data: link, error: linkErr } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, talent_type")
+      .select("id, display_name, talent_type, status")
       .eq("id", data.talent_link_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
     if (linkErr) throw new Error(linkErr.message);
     if (!link) throw new Error("Talent not found on your roster");
+    if (!canEditLink(link.status)) {
+      throw new Error("The talent type can't be changed once a relationship has ended.");
+    }
 
     const { error } = await supabase
       .from("agency_talent_links")
