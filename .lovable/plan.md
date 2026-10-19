@@ -104,15 +104,34 @@ Dashboard blanks:
 | Administrators | active / suspended | Edit, Suspend / Restore, Remove (main admin only) | update/setSuspended/removeAdministrator | Yes, except no current-value check on suspend |
 | Admin invitations | stored pending | Edit access, Edit email, Resend, Copy, Revoke, Delete | updateAdminInvitation (pending), resendAdminInvitation (pending), revokeAdminInvitation (**no status check**) | Revoke is not checked |
 
-### 3c. Talent portal
+### 3c. Talent portal (statuses only, no invite actions)
 
-| Screen | Status | Actions offered | Server function | Server rule |
-|---|---|---|---|---|
-| Trusted contact shares | active / expiring / locked | Copy link, New access code, Access history, Revoke access | regenerateAccessCode, revokeLovedOneShare (T, owner) | **No status check:** a new code can be issued on a revoked or expired share |
-| Trusted contact shares | expired | Reshare (creates a new share), Access history, Revoke access | createLovedOneShare | Revoking an expired share is pointless |
-| Trusted contact shares | revoked | Reshare, Access history | createLovedOneShare | OK |
-| Connection requests | open | Accept, Decline | respondToLinkRequest → respond_link_request (T; the database checks expiry and closure) | Yes, in the database |
-| Settings / dashboard relationship | any | **None**, raw status text | n/a | No talent-side view of connections; read-only and post-end access are not explained |
+Rule: talent cannot invite anyone. The Talent portal gets the shared labels and colours only, never Resend, Revoke invite or Reinvite.
+
+**Invite-type actions in the Talent portal today: none.**
+- Connection requests (`routes/talent.requests.tsx`) offer Accept and Decline. That is a reply to an agency, not an invitation, so it stays.
+- Talent dashboard and settings offer no relationship actions.
+
+Where the Talent portal shows these statuses:
+| Screen | File | Status | Problem |
+|---|---|---|---|
+| Settings: agency relationship | routes/talent.settings.tsx | Relationship status | Raw value ("read_only"), no pill |
+| Connection requests | routes/talent.requests.tsx | None (open requests only) | Could show an "Invited" pill and expiry from the shared map |
+| Dashboard | routes/talent.index.tsx | Linked or not linked, as a sentence | No pill |
+| Trusted contact shares | routes/talent.sharing.tsx | Share status (worked out from dates) | Raw lowercase values |
+
+**How Trusted contacts are added today (no change proposed):**
+1. On the Trusted contact sharing page (`routes/talent.sharing.tsx`), the talent opens the new-share form.
+2. They enter the person's name, email and relationship, choose the documents, and set an expiry. The default is 30 days.
+3. Saving calls `createLovedOneShare`. That needs the talent's Terms acceptance and creates a `loved_one_shares` row.
+4. The person gets a link (`/loved-one/$token`) and an access code. They do not need an account.
+
+**Existing share actions (no change proposed):**
+- Copy link, New access code and Revoke access, for active, expiring or locked shares.
+- "Reshare with this person", for expired or revoked shares. It creates a new share, not an invitation.
+- Access history, on every share.
+
+Server gap noted for information only: a new access code can still be issued on a revoked or expired share.
 
 ## 4. Proposed single source of truth
 
@@ -143,29 +162,29 @@ Extend `lib/status-labels.ts` with one entry per status family. Each entry holds
 - Retire the per-screen maps: admin.index, admin.agencies.index, admin.agencies.$id, admin.invitations.index, admin.administrators, agency.invitations and the talent-invitation-actions map.
 - An unknown status shows a neutral "Unknown" pill instead of the raw value.
 
-### 4b. One shared allowed-actions map
+### 4b. One shared allowed-actions map (Admin and Agency only)
 Add a new file, `lib/status-actions.ts`. It is plain shared logic used by both the screens and the server. For a given row (family, status, expiry, viewer role, whether the agency is writable, the admin's permission level) it returns the allowed action keys. The screens filter `RowActionsMenu` with it. Each server function calls the same helper and refuses actions that are not allowed.
 
-| Family | Status | Agency owner (writable agency) | Agency staff | Admin | Talent |
-|---|---|---|---|---|---|
-| Relationship | invited (still in date) | Resend invite, Revoke invite, Copy link | Copy link | View only | (Shown in Requests) Accept / Decline |
-| Relationship | invited, expired, or revoked | Reinvite (a new invitation through the same neutral flow) | — | View only | — |
-| Relationship | active / needs_review | Open, Change type, Assign manager, Pause relationship | Open | View only | View |
-| Relationship | read_only / ended | Open (read-only), Reactivate (owner, only before the post-end limit; the talent must accept) | Open | View only | View until `talent_link_read_until()` |
-| Agency invitation | draft | — | — | Continue draft, Delete | — |
-| Agency / talent / admin invitation | pending, in date | Resend, Revoke, Copy, Edit email | Copy | Resend, Revoke, Copy, Edit email | — |
-| Any invitation | expired / revoked / declined | Reinvite | — | Reinvite, Delete | — |
-| Any invitation | accepted | — | — | Open the agency, talent or admin record | — |
-| Agency | active | — | — | Suspend | — |
-| Agency | suspended | All write actions hidden (`agency_is_writable` = false); view only until `agency_read_only_until()` | Same | Reinstate | Unaffected (own 10-year rule) |
-| Trusted contact share | active / expiring / locked | — | — | — | Copy link, New access code, Access history, Revoke |
-| Trusted contact share | expired / revoked | — | — | — | Reshare, Access history |
+| Family | Status | Agency owner (writable agency) | Agency staff | Admin |
+|---|---|---|---|---|
+| Relationship | invited (still in date) | Resend invite, Revoke invite, Copy link | Copy link | View only |
+| Relationship | invited and expired, or revoked | Reinvite (a new invitation through the same neutral flow) | — | View only |
+| Relationship | active / needs_review | Open, Change type, Assign manager, Pause relationship | Open | View only |
+| Relationship | read_only / ended | Open (read-only), Reactivate (owner; the talent must accept) | Open | View only |
+| Agency invitation | draft | — | — | Continue draft, Delete |
+| Agency / talent / admin invitation | pending, in date | Resend, Revoke, Copy, Edit email | Copy | Resend, Revoke, Copy, Edit email |
+| Any invitation | expired / revoked / declined | Reinvite | — | Reinvite, Delete |
+| Any invitation | accepted | — | — | Open the agency, talent or admin record |
+| Agency | active | — | — | Suspend |
+| Agency | suspended | All write actions hidden (`agency_is_writable` = false); view only until `agency_read_only_until()` | Same | Reinstate |
+
+**Talent portal: no entry in this map.** Talent never gets Resend, Revoke invite or Reinvite. It only uses the shared labels and colours from 4a, and keeps its existing Accept/Decline and Trusted contact share actions unchanged.
 
 How the existing rules are kept:
 - **Only an agency connects existing talent.** Admin talent actions only ever create independent invitations, which need ID and proof of talent. There is no admin "Link to agency" action.
 - **Agencies cannot tell if a talent account exists (T&C §6.3).** Agency actions are decided only from the agency-visible row: status and expiry. They never use `request_kind`, `talent_invite_private` or `talent_user_id`. Inert invitations offer the same Resend, Revoke and Copy actions. Reinvite goes through the existing neutral invite function.
 - **Suspended agencies are read-only.** Every write action is hidden when `agency_is_writable` is false. The server keeps `getWritableCallerAgency`.
-- **Talent post-end access.** Read-only and ended relationships show "Open (read-only)" only while `talent_link_read_until()` is in the future, so the screen asks the database rather than repeating the rule.
+- **Talent post-end access.** This audit changes no talent actions. What talent can view after a relationship ends is still decided only by `talent_link_read_until()`.
 - **Admin invites.** The existing ID and proof-of-talent gate stays. Reinvite opens a new draft that needs both documents again.
 
 ## Technical details (build phase, after approval)
