@@ -1,24 +1,22 @@
 /**
  * Document filing review — server functions.
  *
- * getFilingCatalog: returns the closed catalog of destinations the reviewer may
- * file a freshly uploaded document into, the portal's default reminder lead
- * time, and whether the caller has "Organise documents with AI" switched on.
- * No document-content AI service is wired up yet — the UI seeds its suggestion
- * from a filename heuristic, which is recorded with source 'filename', never
- * 'ai'. When a real suggestion service lands it can return a `suggestion`
- * object from here (or from its own function) without any UI rework.
+ * getFilingCatalog: the closed catalog of destinations, the portal's default
+ * reminder lead time, and whether the caller has "Organise documents with AI" on.
+ *
+ * getDocumentAnalysis / startDocumentAnalysis: poll and (re)start the Parserly
+ * analysis for one document (see document-ai.server.ts / parserly.server.ts).
  *
  * confirmDocumentFiling: applies the human-confirmed destination/expiry/
- * reminder and stores where each value came from (folder_source / expiry_source:
- * 'ai' | 'filename' | 'user'). A source of 'ai' is refused while no AI analysis
- * has actually run — today that is always, because no AI service is connected.
+ * reminder and stores where each value came from ('ai' | 'filename' | 'user').
+ * 'ai' is accepted only for a completed analysis whose values match exactly.
  */
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
+import { applyAiPreferenceChange, checkAiSources } from "@/lib/document-ai-core";
 
 const ScopeEnum = z.enum(["talent", "agency"]);
 const SourceEnum = z.enum(["ai", "filename", "user"]);
@@ -82,22 +80,54 @@ async function writableAgencyId(supabase: any, userId: string) {
 }
 
 /**
- * No document-content AI service is connected yet, so no filing can legitimately
- * carry an 'ai' source. Refuse it rather than record a provenance we cannot
- * prove. When a real service lands, this check becomes "analysis ran and the
- * caller's AI switch is on".
+ * 'ai' is accepted only when a completed Parserly analysis exists for the
+ * document and the saved value matches what it returned (checkAiSources).
  */
-function assertSourcesAllowed(
+async function assertSourcesAllowed(
   aiEnabled: boolean,
-  folderSource: string | null,
-  expirySource: string | null,
+  scope: "talent" | "agency",
+  documentId: string,
+  data: { folder_source: string | null; expiry_source: string | null; destination: string | null; expires_at: string | null },
 ) {
-  if (folderSource === "ai" || expirySource === "ai") {
-    if (!aiEnabled) {
-      throw new Error("AI filing is switched off for your account, so values can't be saved as AI-suggested.");
-    }
-    throw new Error("No AI analysis ran for this document, so values can't be saved as AI-suggested.");
+  if (data.folder_source !== "ai" && data.expiry_source !== "ai") return;
+  const { readAnalysis } = await import("@/lib/document-ai.server");
+  const analysis = await readAnalysis(scope, documentId);
+  const err = checkAiSources({
+    aiEnabled,
+    analysis,
+    folderSource: data.folder_source,
+    expirySource: data.expiry_source,
+    destination: data.destination,
+    expiresAt: data.expires_at,
+  });
+  if (err) throw new Error(err);
+}
+
+/** Authorise the caller for a document before any analysis work. */
+async function authoriseForDocument(
+  supabase: any,
+  userId: string,
+  scope: "talent" | "agency",
+  documentId: string,
+): Promise<{ agencyId: string | null }> {
+  if (scope === "talent") {
+    await assertTermsAccepted(supabase, userId, "talent");
+    const { data: doc } = await supabase
+      .from("talent_private_documents")
+      .select("id, user_id")
+      .eq("id", documentId)
+      .maybeSingle();
+    if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+    return { agencyId: null };
   }
+  const agencyId = await writableAgencyId(supabase, userId);
+  const { data: doc } = await supabase
+    .from("talent_shared_documents")
+    .select("id, agency_id")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (!doc || doc.agency_id !== agencyId) throw new Error("Not found.");
+  return { agencyId };
 }
 
 // -----------------------------------------------------------------------------
@@ -211,7 +241,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const aiEnabled = await callerAiEnabled(supabase, userId);
-    assertSourcesAllowed(aiEnabled, data.folder_source, data.expiry_source);
+    await assertSourcesAllowed(aiEnabled, data.scope, data.document_id, data);
 
     if (data.scope === "talent") {
       const { data: doc } = await supabase
@@ -382,11 +412,72 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
     z.object({ ai_filing_enabled: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId, claims } = context as any;
     const { error } = await supabase
       .from("profiles")
       .update({ ai_filing_enabled: data.ai_filing_enabled })
       .eq("id", userId);
     if (error) throw new Error(error.message);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { cancelQueuedAnalysesFor } = await import("@/lib/document-ai.server");
+    const { data: membership } = await supabase
+      .from("agency_members")
+      .select("agency_id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    await applyAiPreferenceChange(data.ai_filing_enabled, {
+      audit: async (next) => {
+        const entry = {
+          actor_id: userId,
+          actor_email: claims?.email ?? null,
+          action: next ? "ai_filing_switched_on" : "ai_filing_switched_off",
+          target_type: "user_preference",
+          target_id: userId,
+          target_label: "Organise documents with AI",
+          detail: { ai_filing_enabled: next, changed_at: new Date().toISOString() },
+        };
+        const { error: auditErr } = membership
+          ? await (supabaseAdmin as any).from("agency_audit_log").insert({ ...entry, agency_id: membership.agency_id })
+          : await (supabaseAdmin as any).from("talent_audit_log").insert(entry);
+        if (auditErr) throw new Error(auditErr.message);
+      },
+      cancelQueued: () => cancelQueuedAnalysesFor(userId),
+    });
     return { ok: true, aiEnabled: data.ai_filing_enabled };
+  });
+
+// -----------------------------------------------------------------------------
+// Document AI analysis status (polled by the filing popup) and (re)start
+// -----------------------------------------------------------------------------
+const AnalysisInput = z.object({ scope: ScopeEnum, document_id: z.string().uuid() });
+
+/** Advances a queued/processing analysis one step and returns its state. */
+export const getDocumentAnalysis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => AnalysisInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await authoriseForDocument(supabase, userId, data.scope, data.document_id);
+    const { advanceDocumentAnalysis } = await import("@/lib/document-ai.server");
+    return advanceDocumentAnalysis({ scope: data.scope, documentId: data.document_id, requesterId: userId });
+  });
+
+/** Retry, "Analyse with AI", or switching AI on from the popup. */
+export const startDocumentAnalysis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => AnalysisInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await authoriseForDocument(supabase, userId, data.scope, data.document_id);
+    const { restartAnalysis } = await import("@/lib/document-ai.server");
+    return restartAnalysis({
+      scope: data.scope,
+      documentId: data.document_id,
+      requesterId: userId,
+      agencyId,
+    });
   });

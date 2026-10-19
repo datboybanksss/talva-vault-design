@@ -33,6 +33,7 @@ export function AiFilingPreferenceCard() {
     onSuccess: (_r, next) => {
       setEnabled(next);
       qc.invalidateQueries({ queryKey: ["ai-filing-preference"] });
+      qc.removeQueries({ queryKey: ["filing-analysis"] });
       toast.success(next ? "Filing suggestions switched on." : "Filing suggestions switched off.");
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not save this preference."),
@@ -60,8 +61,12 @@ export function AiFilingPreferenceCard() {
         <div>
           <strong>Organise documents with AI</strong>
           <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-            When you upload a document, TalVault suggests a folder and expiry for you to review.
-            Switch this off and the filing review opens blank for you to complete yourself.
+            {enabled
+              ? "When you upload a document, TalVault's AI reads it and suggests a folder and expiry date for you to check."
+              : "Your documents are not sent for AI analysis. You choose the folder and expiry yourself."}
+          </div>
+          <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
+            You can change this at any time. Documents you've already filed keep their saved details.
           </div>
         </div>
         <span className={`tvp-status tvp-${enabled ? "green" : "neutral"}`}>

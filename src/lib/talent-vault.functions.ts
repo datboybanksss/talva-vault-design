@@ -220,6 +220,14 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
         targetId: doc.id,
         targetLabel: doc.name ?? null,
       });
+      // Document AI: the uploader's switch is read here, on the server. Off →
+      // recorded as skipped and the file is never sent for analysis.
+      try {
+        const { recordUploadAnalysis } = await import("@/lib/document-ai.server");
+        await recordUploadAnalysis({ scope: "talent", documentId: doc.id, uploaderId: userId });
+      } catch (e) {
+        console.error("[document-ai] could not record analysis", e);
+      }
       return { ok: true as const, size_bytes: result.sizeBytes };
     } catch (e) {
       // The object is already removed by validateStoredUpload; drop the row too

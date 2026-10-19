@@ -34,19 +34,38 @@ const catalogSpy = vi.fn(async (_data?: any): Promise<any> => ({
   aiEnabled: true,
 }));
 
+const analysisSpy = vi.fn(async (_data?: any): Promise<any> => ({
+  status: "unavailable",
+  suggestion: null,
+  error_code: "not_configured",
+}));
+const startSpy = vi.fn(async (_data?: any): Promise<any> => ({
+  status: "queued",
+  suggestion: null,
+  error_code: null,
+}));
+const prefSpy = vi.fn(async (_data?: any) => ({ ok: true }));
+
 vi.mock("@/lib/ai-filing.functions", () => ({
   getFilingCatalog: "getFilingCatalog",
   confirmDocumentFiling: "confirmDocumentFiling",
   skipDocumentFiling: "skipDocumentFiling",
+  getDocumentAnalysis: "getDocumentAnalysis",
+  startDocumentAnalysis: "startDocumentAnalysis",
+  setAiFilingPreference: "setAiFilingPreference",
 }));
 
+const SPIES: Record<string, (d: any) => Promise<any>> = {
+  getFilingCatalog: (d) => catalogSpy(d),
+  confirmDocumentFiling: (d) => confirmSpy(d),
+  skipDocumentFiling: (d) => skipSpy(d),
+  getDocumentAnalysis: (d) => analysisSpy(d),
+  startDocumentAnalysis: (d) => startSpy(d),
+  setAiFilingPreference: (d) => prefSpy(d),
+};
+
 vi.mock("@tanstack/react-start", () => ({
-  useServerFn: (fn: string) =>
-    fn === "getFilingCatalog"
-      ? ({ data }: any) => catalogSpy(data)
-      : fn === "confirmDocumentFiling"
-        ? ({ data }: any) => confirmSpy(data)
-        : ({ data }: any) => skipSpy(data),
+  useServerFn: (fn: string) => (arg?: any) => SPIES[fn](arg?.data),
 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -307,5 +326,113 @@ describe("AiFilingReviewModal — manual mode (AI switch off)", () => {
     await user.click(screen.getByRole("button", { name: /Skip for now/i }));
     await waitFor(() => expect(skipSpy).toHaveBeenCalled());
     await waitFor(() => expect(onDone).toHaveBeenCalled());
+  });
+});
+
+
+const PARSERLY = {
+  folder_id: "f-visa",
+  expiry_date: "2029-05-01",
+  reminder_lead_days: 45,
+  confidence: "medium" as const,
+  rationale: null,
+  folder_source_text: "Visa — Schengen",
+  expiry_source_text: "Valid until 01/05/2029",
+};
+
+function resetAll() {
+  confirmSpy.mockClear();
+  skipSpy.mockClear();
+  catalogSpy.mockClear();
+  analysisSpy.mockClear();
+  startSpy.mockClear();
+  prefSpy.mockClear();
+}
+
+describe("AiFilingReviewModal — Parserly journey", () => {
+  beforeEach(resetAll);
+
+  it("shows the analysing state with usable fields; saving now records 'user'", async () => {
+    analysisSpy.mockResolvedValue({ status: "processing", suggestion: null, error_code: null });
+    const user = userEvent.setup();
+    renderModal(vi.fn(), { suggestion: null, fileName: "visa.pdf" });
+    await waitFor(() => expect(screen.getByTestId("filing-analysing")).toBeDefined());
+    expect(folderSelect().disabled).toBe(false);
+    await user.click(screen.getByRole("button", { name: /Save filing/i }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+      folder_source: "user",
+      expiry_source: "user",
+    });
+    analysisSpy.mockReset();
+  });
+
+  it("Skip for now works while analysing", async () => {
+    analysisSpy.mockResolvedValue({ status: "queued", suggestion: null, error_code: null });
+    const user = userEvent.setup();
+    const onDone = renderModal(vi.fn(), { suggestion: null });
+    await waitFor(() => expect(screen.getByTestId("filing-analysing")).toBeDefined());
+    await user.click(screen.getByRole("button", { name: /Skip for now/i }));
+    await waitFor(() => expect(skipSpy).toHaveBeenCalled());
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+    analysisSpy.mockReset();
+  });
+
+  it("pre-fills a completed analysis as 'Suggested by AI' with Parserly's quoted text", async () => {
+    analysisSpy.mockResolvedValue({ status: "completed", suggestion: PARSERLY, error_code: null });
+    const user = userEvent.setup();
+    renderModal(vi.fn(), { suggestion: null });
+    await waitFor(() => expect(subSelect().value).toBe("f-visa"));
+    expect(expiryInput().value).toBe("2029-05-01");
+    expect(leadInput().value).toBe("45");
+    expect(screen.getAllByText(/Suggested by AI/i).length).toBeGreaterThan(0);
+    await user.click(screen.getAllByRole("button", { name: /Where did this come from/i })[0]);
+    expect(screen.getByText(/Visa — Schengen/)).toBeDefined();
+    analysisSpy.mockReset();
+  });
+
+  it("failed analysis: neutral note, no AI badges, Retry re-runs the analysis", async () => {
+    analysisSpy.mockResolvedValue({ status: "failed", suggestion: null, error_code: "parserly_error" });
+    startSpy.mockResolvedValueOnce({ status: "completed", suggestion: PARSERLY, error_code: null });
+    const user = userEvent.setup();
+    renderModal(vi.fn(), { suggestion: null, fileName: "passport.pdf" });
+    await waitFor(() => expect(screen.getByTestId("filing-failed")).toBeDefined());
+    expect(screen.queryByText(/Suggested by AI/i)).toBeNull();
+    expect(screen.queryByText(/^Suggested$/i)).toBeNull(); // no filename fallback on a real failure
+    await user.click(screen.getByRole("button", { name: /Retry/i }));
+    await waitFor(() => expect(startSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(subSelect().value).toBe("f-visa"));
+    analysisSpy.mockReset();
+  });
+
+  it("popup toggle: off drops to manual and discards the suggestion; on re-runs analysis", async () => {
+    analysisSpy.mockResolvedValue({ status: "completed", suggestion: PARSERLY, error_code: null });
+    const user = userEvent.setup();
+    renderModal(vi.fn(), { suggestion: null });
+    await waitFor(() => expect(subSelect().value).toBe("f-visa"));
+
+    await user.click(screen.getByRole("button", { name: /Turn off AI organisation/i }));
+    await waitFor(() => expect(screen.queryByText(/Suggested by AI/i)).toBeNull());
+    expect(prefSpy).toHaveBeenLastCalledWith({ ai_filing_enabled: false });
+    expect(subSelect().value).toBe("f-passport"); // back to the upload folder
+    expect(expiryInput().value).toBe("");
+
+    startSpy.mockResolvedValueOnce({ status: "completed", suggestion: PARSERLY, error_code: null });
+    await user.click(await screen.findByRole("button", { name: /Turn on AI organisation/i }));
+    await waitFor(() => expect(startSpy).toHaveBeenCalled());
+    expect(prefSpy).toHaveBeenLastCalledWith({ ai_filing_enabled: true });
+    await waitFor(() => expect(subSelect().value).toBe("f-visa"));
+    analysisSpy.mockReset();
+  });
+
+  it("does not request an analysis at all when the switch is off", async () => {
+    catalogSpy.mockResolvedValueOnce({
+      catalog, defaultReminderDays: 30, secondaryHint: null,
+      currentDestination: "f-passport", fileName: "passport.pdf", aiEnabled: false,
+    });
+    renderModal(vi.fn(), { suggestion: null });
+    await waitFor(() => expect(folderSelect().value).toBe("Identity & Personal"));
+    expect(analysisSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("filing-analysing")).toBeNull();
   });
 });
