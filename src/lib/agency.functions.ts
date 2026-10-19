@@ -1590,6 +1590,14 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
     await logAgencyAudit(supabase, agencyId, userId, claims?.email,
       "upload_vault_document", "talent_shared_document", inserted.id, data.name,
       { folder: data.folder, talent_link_id: data.talent_link_id ?? null });
+
+    // Document AI: this staff member's own switch decides, read on the server.
+    try {
+      const { recordUploadAnalysis } = await import("@/lib/document-ai.server");
+      await recordUploadAnalysis({ scope: "agency", documentId: inserted.id, uploaderId: userId, agencyId });
+    } catch (e) {
+      console.error("[document-ai] could not record analysis", e);
+    }
     return inserted;
   });
 
