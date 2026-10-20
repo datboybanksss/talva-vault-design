@@ -66,7 +66,8 @@
 - [x] Run tests and verify light/dark layouts; report remaining click-through checks.
 
 ## Separate lint clean-up — 20 October 2026
-- [ ] Apply formatting-only pass without touching managed integration files.
-- [ ] Triage remaining rules and fix behaviour-preserving cases.
-- [ ] Make CI lint failures blocking.
-- [ ] Run tests and inspect automatic validation; report approval-required lint debt.
+- [x] Apply formatting-only pass without touching managed integration files.
+- [x] Triage remaining rules and fix behaviour-preserving cases.
+- [x] Make CI lint failures blocking.
+- [x] Run tests and inspect automatic validation; report approval-required lint debt.
+- [ ] Resolve remaining lint debt — awaiting approval for type refactors, draft hydration effects and mixed-export refactors; see LINT-TRIAGE.md.
