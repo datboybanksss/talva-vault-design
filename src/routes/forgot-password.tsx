@@ -3,7 +3,7 @@ import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { z } from "zod";
-import { ShieldCheck } from "lucide-react";
+import "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/password";
 

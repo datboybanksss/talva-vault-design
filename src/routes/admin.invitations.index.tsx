@@ -180,15 +180,15 @@ function InvitationsPage() {
     };
   }, [emailParam, invites.data]);
 
-  const pages = invites.data?.pages ?? [];
+  const pages = useMemo(() => invites.data?.pages ?? [], [invites.data?.pages]);
   const visible = useMemo(() => pages.flatMap((p: any) => p.rows ?? []), [pages]);
   // Tab counts are counted in the database, not derived from loaded rows.
-  const agencyCounts: Record<string, number> = (pages[0] as any)?.counts ?? {};
+  const agencyCounts: Record<string, number> = useMemo(() => pages[0]?.counts ?? {}, [pages]);
   const total = (pages[0] as any)?.total ?? 0;
 
   // Admin-sent talent invitations are few, so they are filtered here; the
   // agency list stays filtered and paged by the database.
-  const talentAll: any[] = talentQ.data ?? [];
+  const talentAll = useMemo(() => talentQ.data ?? [], [talentQ.data]);
   const talentCounts = useMemo(() => {
     const c: Record<string, number> = { all: talentAll.length };
     for (const t of talentAll) c[t.status] = (c[t.status] ?? 0) + 1;

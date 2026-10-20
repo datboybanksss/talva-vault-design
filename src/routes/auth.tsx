@@ -14,17 +14,10 @@ import {
   resolvePortalHome,
 } from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
-import { ShieldCheck, Lock, FileCheck2, Users } from "lucide-react";
+import { Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
 import { PasswordInput } from "@/components/password-input";
-import {
-  MIN_PW_LENGTH,
-  PW_POLICY_HINT,
-  checkRequirements,
-  scorePassword,
-  validateNewPassword,
-  friendlyAuthError,
-} from "@/lib/password";
+import { friendlyAuthError } from "@/lib/password";
 import {
   INVITE_KINDS,
   claimInvitation,

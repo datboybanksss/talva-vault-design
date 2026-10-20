@@ -89,7 +89,7 @@ function TermsAcceptancesPage() {
     queryFn: () => missingFn(),
   });
 
-  const rows = list.data?.rows ?? [];
+  const rows = useMemo(() => list.data?.rows ?? [], [list.data?.rows]);
   const versions = [...new Set((list.data?.versions ?? []).map((v) => v.version))];
   const agencies = useMemo(() => {
     const m = new Map<string, string>();

@@ -215,7 +215,7 @@ export function AiFilingReviewModal({
   };
 
   /** Parserly analysis status — polled while queued/processing. */
-  const analysisKey = ["filing-analysis", scope, documentId];
+  const analysisKey = useMemo(() => ["filing-analysis", scope, documentId], [scope, documentId]);
   const analysisQ = useQuery({
     queryKey: analysisKey,
     queryFn: async () => {
@@ -262,8 +262,7 @@ export function AiFilingReviewModal({
     analysisQ.data?.status,
     analysisQ.isLoading,
     qc,
-    scope,
-    documentId,
+    analysisKey,
   ]);
   const analysis =
     aiEnabled && !pollStopped && !analysisQ.isError

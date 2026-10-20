@@ -1,6 +1,6 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ShieldCheck, ScrollText, FileText, Bell, Check, ArrowLeft, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";

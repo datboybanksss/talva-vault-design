@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -13,10 +13,6 @@ import {
   Settings,
   FolderCog,
   Sparkles,
-  Activity,
-  ShieldCheck,
-  ClipboardCheck,
-  CalendarClock,
   ArrowRight,
 } from "lucide-react";
 import {

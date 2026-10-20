@@ -1,7 +1,7 @@
 import { TalVaultIcon } from "@/components/brand/talvault-logo";
 import { type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, ChevronLeft, Search, ShieldCheck } from "lucide-react";
+import { Bell, ChevronLeft, Search } from "lucide-react";
 import { useState } from "react";
 
 export type NavItem = {

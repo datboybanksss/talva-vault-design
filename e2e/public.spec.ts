@@ -64,7 +64,9 @@ test.describe("Invalid invitation and share links show a friendly message", () =
       await page.goto(l.path());
       // A clear explanation, not a crash screen.
       await expect(
-        page.getByText(/not found|no longer valid|expired|invalid|isn't available|unavailable/i).first(),
+        page
+          .getByText(/not found|no longer valid|expired|invalid|isn't available|unavailable/i)
+          .first(),
       ).toBeVisible();
       await expect(page.getByText(/something went wrong|application error/i)).toHaveCount(0);
       expect(errors.filter((e) => /Uncaught|TypeError|ReferenceError/.test(e))).toEqual([]);
@@ -79,7 +81,11 @@ test.describe("Invitation link format", () => {
   const formats = [
     { pattern: "/invite/<token>", path: "/invite/", eyebrow: /Agency Activation/i },
     { pattern: "/invite/talent/<token>", path: "/invite/talent/", eyebrow: /Talent Activation/i },
-    { pattern: "/invite/admin/<token>", path: "/invite/admin/", eyebrow: /Administrator Activation/i },
+    {
+      pattern: "/invite/admin/<token>",
+      path: "/invite/admin/",
+      eyebrow: /Administrator Activation/i,
+    },
   ];
   for (const f of formats) {
     test(`${f.pattern} reaches its activation page`, async ({ page }) => {
@@ -119,12 +125,39 @@ test.describe("Help icon", () => {
 
 test.describe("UK spelling on public pages", () => {
   const AMERICAN = [
-    "color", "colors", "colored", "center", "centers", "centered", "organization", "organizations",
-    "organize", "organized", "analyze", "analyzed", "catalog", "favorite", "behavior", "honor",
-    "license", "licenses", "realize", "recognize", "authorize", "authorized", "advisor",
+    "color",
+    "colors",
+    "colored",
+    "center",
+    "centers",
+    "centered",
+    "organization",
+    "organizations",
+    "organize",
+    "organized",
+    "analyze",
+    "analyzed",
+    "catalog",
+    "favorite",
+    "behavior",
+    "honor",
+    "license",
+    "licenses",
+    "realize",
+    "recognize",
+    "authorize",
+    "authorized",
+    "advisor",
   ];
   const re = new RegExp(`\\b(${AMERICAN.join("|")})\\b`, "gi");
-  const pages = ["/", "/auth", "/forgot-password", "/legal/privacy", "/legal/terms/talent", "/legal/terms/agency"];
+  const pages = [
+    "/",
+    "/auth",
+    "/forgot-password",
+    "/legal/privacy",
+    "/legal/terms/talent",
+    "/legal/terms/agency",
+  ];
   for (const path of pages) {
     test(path, async ({ page }) => {
       await page.goto(path);

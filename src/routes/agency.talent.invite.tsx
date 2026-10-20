@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Send, Sparkles, Check, Settings2, ShieldCheck, Lock } from "lucide-react";
+import { ArrowLeft, Send, Check, Settings2, ShieldCheck, Lock } from "lucide-react";
 import {
   agencyWhoami,
   listAgencyTalent,

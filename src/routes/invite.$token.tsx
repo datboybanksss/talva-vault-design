@@ -1,17 +1,8 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  ShieldCheck,
-  Lock,
-  FolderLock,
-  FileText,
-  Users,
-  Check,
-  ArrowLeft,
-  Info,
-} from "lucide-react";
+import { Lock, FolderLock, FileText, Users, Check, ArrowLeft, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/password-input";
 import {

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
