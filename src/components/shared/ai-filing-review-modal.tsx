@@ -200,6 +200,7 @@ export function AiFilingReviewModal({
   const [aiOverride, setAiOverride] = useState<boolean | null>(null);
   const preference = useQuery<{ aiEnabled: boolean }>({
     queryKey: ["ai-filing-preference"], enabled: false,
+    queryFn: async () => ({ aiEnabled: data?.aiEnabled !== false }),
   });
   const aiEnabled = aiOverride ?? preference.data?.aiEnabled ?? (data ? data.aiEnabled !== false : false);
   const togglePending = useRef(false);
@@ -487,11 +488,13 @@ export function AiFilingReviewModal({
       }
     },
     onSuccess: ({ next, view }) => {
+      togglePending.current = false;
       if (view) qc.setQueryData(analysisKey, view);
       setAiOverride(null);
     },
     onSettled: () => { togglePending.current = false; },
     onError: (e: any, next) => {
+      togglePending.current = false;
       setAiOverride(null);
       toast.error(e?.message ?? "Could not change this preference.");
     },
