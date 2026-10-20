@@ -25,6 +25,7 @@ import { preflightUpload } from "@/lib/file-validation";
 
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { useAnalyseWithAi } from "@/components/shared/use-analyse-with-ai";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { toast } from "sonner";
 import {
@@ -481,8 +482,8 @@ function PrivateVault() {
                     <td>
                       <strong>{d.name}</strong>
                       {d.pending_review && (
-                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6, fontSize: 11 }}>
-                          Pending review
+                        <span className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}>
+                          {statusLabel("document", "pending_review")}
                         </span>
                       )}
                     </td>
@@ -792,8 +793,8 @@ function SharedDocumentsView() {
                     <td>
                       <strong>{d.name}</strong>
                       {d.pending_review && (
-                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6, fontSize: 11 }}>
-                          Pending review
+                        <span className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}>
+                          {statusLabel("document", "pending_review")}
                         </span>
                       )}
                     </td>

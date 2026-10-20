@@ -67,7 +67,12 @@ export function suggestFromFileName(
   for (const rule of KEYWORD_RULES) {
     const hit = rule.keywords.find((k) => words.has(k) || name.includes(k));
     if (!hit) continue;
-    const match = catalog.find((c) => {
+    const deepest = [...catalog].sort((a, b) => b.label.split(" → ").length - a.label.split(" → ").length);
+    const direct = deepest.find((c) => {
+      const leaf = normalise(c.label.split(" → ").pop() ?? "");
+      return leaf.split(/\s+/).some((word) => word === hit || word === `${hit}s`);
+    });
+    const match = direct ?? deepest.find((c) => {
       const label = c.label.toLowerCase();
       return rule.folderHints.some((h) => label.includes(h));
     });
