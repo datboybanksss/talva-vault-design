@@ -220,7 +220,7 @@ describe("AiFilingReviewModal — filename guess mode", () => {
 
   it("labels the guess 'Suggested' with 'Based on the file name' — never 'Suggested by AI'", async () => {
     renderModal(vi.fn(), { suggestion: null, fileName: "passport.pdf" });
-    await waitFor(() => expect(folderSelect().value).toBe("Identity & Personal"));
+    await waitFor(() => expect(screen.getAllByText(/^Suggested$/i).length).toBeGreaterThan(0));
 
     expect(screen.getAllByText(/^Suggested$/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Based on the file name/i).length).toBeGreaterThan(0);
@@ -236,7 +236,7 @@ describe("AiFilingReviewModal — filename guess mode", () => {
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
     expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
-      destination: "f-identity",
+      destination: "f-passport",
       folder_source: "filename",
       expiry_source: "user", // no date in the file name, so expiry stayed empty/user
     });
@@ -434,5 +434,36 @@ describe("AiFilingReviewModal — Parserly journey", () => {
     await waitFor(() => expect(folderSelect().value).toBe("Identity & Personal"));
     expect(analysisSpy).not.toHaveBeenCalled();
     expect(screen.queryByTestId("filing-analysing")).toBeNull();
+  });
+});
+
+
+describe("AiFilingReviewModal — polling safeguards", () => {
+  beforeEach(resetAll);
+
+  it("stops immediately on a request error, discards stale suggestions and allows Retry", async () => {
+    analysisSpy.mockRejectedValueOnce(new Error("Request failed"));
+    startSpy.mockResolvedValueOnce({ status: "completed", suggestion: PARSERLY, error_code: null });
+    renderModal(vi.fn(), { suggestion: null });
+    await waitFor(() => expect(screen.getByTestId("filing-failed")).toBeDefined());
+    expect(screen.queryByTestId("filing-analysing")).toBeNull();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(subSelect().value).toBe("f-visa"));
+    expect(startSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops a processing job after two minutes and leaves Skip available", async () => {
+    analysisSpy.mockResolvedValue({ status: "processing", suggestion: null, error_code: null });
+    const clock = vi.spyOn(Date, "now");
+    clock.mockReturnValue(1_000_000);
+    renderModal(vi.fn(), { suggestion: null });
+    await waitFor(() => expect(screen.getByTestId("filing-analysing")).toBeDefined());
+    clock.mockReturnValue(1_120_001);
+    await waitFor(() => expect(screen.getByTestId("filing-failed")).toBeDefined(), { timeout: 3500 });
+    expect(screen.queryByTestId("filing-analysing")).toBeNull();
+    await userEvent.setup().click(screen.getByRole("button", { name: /Skip for now/ }));
+    await waitFor(() => expect(skipSpy).toHaveBeenCalledTimes(1));
+    clock.mockRestore();
+    analysisSpy.mockReset();
   });
 });

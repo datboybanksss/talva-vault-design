@@ -64,11 +64,14 @@ export const BILLING_DOC_STATUS_TONE = billing.tone;
 export type StToken =
   | "incomplete" | "invited" | "accepted" | "expired" | "declined" | "suspended" | "neutral";
 
-export type StatusFamily = "talentLink" | "invitation" | "agency" | "member" | "share";
+export type StatusFamily = "talentLink" | "invitation" | "agency" | "member" | "share" | "document";
 
 type Entry = { label: string; st: StToken };
 
 export const LIFECYCLE_STATUS: Record<StatusFamily, Record<string, Entry>> = {
+  document: {
+    pending_review: { label: "Pending review", st: "incomplete" },
+  },
   /** public.agency_talent_link_status */
   talentLink: {
     invited: { label: "Invited", st: "invited" },

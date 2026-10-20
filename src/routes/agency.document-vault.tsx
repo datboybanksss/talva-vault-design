@@ -67,6 +67,7 @@ type FolderCount = {
 import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { useAnalyseWithAi } from "@/components/shared/use-analyse-with-ai";
+import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -90,7 +91,13 @@ const meQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/document-vault")({
-  head: () => ({ meta: [{ title: "Document Vault · TalVault" }] }),
+  head: () => ({ meta: [
+    { title: "Document Vault · TalVault" },
+    { name: "description", content: "Browse and review agency-shared talent documents in TalVault." },
+    { property: "og:title", content: "Document Vault · TalVault" },
+    { property: "og:description", content: "Browse and review agency-shared talent documents in TalVault." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: (search: Record<string, unknown>): { tab?: string } =>
     typeof search.tab === "string" ? { tab: search.tab } : {},
   loader: async ({ context }) => {
@@ -212,6 +219,7 @@ const TAB_FILTER: Record<Tab, "all" | "pending_review" | "needs_review" | "expir
 
 function VaultPage() {
   const qc = useQueryClient();
+  const readOnly = !!useAgencyReadOnly();
   const folderOptions = useFolderNames();
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
   const { data: me } = useSuspenseQuery(meQO);
@@ -415,16 +423,16 @@ function VaultPage() {
             <Search className="h-4 w-4" />
             {mode === "search" ? "Back to browsing" : "Search all documents"}
           </button>
-          <button
+          {!readOnly && <button
             className="tvp-purple-btn"
             title="Ask a talent to submit a specific document"
             onClick={() => { setRequestsAutoOpen(true); setTab("Requests"); }}
           >
             <Inbox className="h-4 w-4" />Request Document
-          </button>
-          <button className="tvp-primary" onClick={() => setShowUpload(true)}>
+          </button>}
+          {!readOnly && <button className="tvp-primary" onClick={() => setShowUpload(true)}>
             <Upload className="h-4 w-4" />Upload to Talent
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -742,7 +750,7 @@ function VaultPage() {
                     <td>
                       <span className={`tvp-status tvp-${statusTone(d.status)}`}>{statusLabel(d.status)}</span>
                       {d.pendingReview && (
-                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6 }}>Pending review</span>
+                        <span className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}>{lifecycleLabel("document", "pending_review")}</span>
                       )}
                     </td>
                     <td className="tvp-muted">{formatValidity(d.validityExpiresAt)}</td>
@@ -761,11 +769,11 @@ function VaultPage() {
                               disabled: !d.storagePath || downloadMut.isPending,
                               onSelect: () => downloadMut.mutate(d.id),
                             },
-                            d.pendingReview && {
+                            !readOnly && d.pendingReview && {
                               key: "review", label: "Finish filing review", icon: Sparkles,
                               onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
                             },
-                            aiRow.canAnalyse(d.pendingReview) && {
+                            !readOnly && aiRow.canAnalyse(d.pendingReview) && {
                               key: "analyse", label: "Analyse with AI", icon: Sparkles,
                               disabled: !d.storagePath || aiRow.isPending,
                               onSelect: () =>
@@ -779,15 +787,15 @@ function VaultPage() {
                               separatorBefore: true,
                               onSelect: () => setVersionsFor(d),
                             },
-                            {
+                            !readOnly && {
                               key: "newversion", label: "Upload new version", icon: Upload,
                               onSelect: () => setNewVersionFor(d),
                             },
-                            isOwner && {
+                            !readOnly && isOwner && {
                               key: "retention", label: "Set retention override", icon: ShieldPlus,
                               onSelect: () => setOverrideFor(d),
                             },
-                            {
+                            !readOnly && {
                               key: "delete", label: "Delete document", icon: Trash2,
                               destructive: true, separatorBefore: true,
                               disabled: isLocked || deleteMut.isPending,
@@ -821,7 +829,7 @@ function VaultPage() {
       </div>
       )}
 
-      {showUpload && (
+      {!readOnly && showUpload && (
         <UploadDialog
           agencyId={me.agency?.id ?? ""}
           talentLinks={talentLinks}
@@ -835,7 +843,7 @@ function VaultPage() {
         />
       )}
 
-      {aiReviewFor && (
+      {!readOnly && aiReviewFor && (
         <AiFilingReviewModal
           scope="agency"
           documentId={aiReviewFor.id}
@@ -858,7 +866,7 @@ function VaultPage() {
         />
       )}
 
-      {newVersionFor && (
+      {!readOnly && newVersionFor && (
         <NewVersionDialog
           doc={newVersionFor}
           agencyId={me.agency?.id ?? ""}
@@ -870,7 +878,7 @@ function VaultPage() {
         />
       )}
 
-      {overrideFor && (
+      {!readOnly && overrideFor && (
         <OverrideDialog
           doc={overrideFor}
           onClose={() => setOverrideFor(null)}

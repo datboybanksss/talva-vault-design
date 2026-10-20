@@ -5,6 +5,8 @@
  */
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { DocumentModal } from "@/components/shared/document-modal";
 import { FileText, Download, X, Loader2 } from "lucide-react";
 
 function inferKind(name: string): "pdf" | "image" | "other" {
@@ -46,69 +48,57 @@ export function PreviewDialog({ url, name, onClose }: { url: string; name: strin
   }, [url, kind]);
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,0.7)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="tvp-card"
-        style={{ width: "min(1100px, 100%)", height: "min(85vh, 900px)", display: "flex", flexDirection: "column", padding: 0, overflow: "hidden" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid var(--tvp-border, #e5e7eb)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+    <DocumentModal title={name} onClose={onClose} className="tvp-preview-modal">
+        <div className="tvp-preview-header">
+          <div className="tvp-preview-name">
             <FileText className="h-4 w-4 text-[var(--tvp-muted)]" />
-            <strong style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</strong>
+            <strong className="tvp-preview-filename">{name}</strong>
           </div>
           <div className="flex gap-2">
-            <a className="tvp-secondary" href={url} target="_blank" rel="noopener" download={name}>
+            <Button asChild variant="outline" className="tvp-secondary"><a href={url} target="_blank" rel="noopener" download={name}>
               <Download className="h-4 w-4" />Download
-            </a>
-            <button className="tvp-mini-btn" title="Close" onClick={onClose}>
+            </a></Button>
+            <Button variant="ghost" size="icon" className="tvp-mini-btn" aria-label="Close" title="Close" onClick={onClose}>
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
-        <div style={{ flex: 1, background: "#0f172a08", overflow: "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="tvp-preview-body">
           {kind === "pdf" && (
             loadError ? (
-              <div style={{ textAlign: "center", padding: 32 }}>
+              <div className="tvp-preview-empty">
                 <FileText className="h-10 w-10 mx-auto mb-3 text-[var(--tvp-muted)]" />
                 <h3 className="tvp-h2">Preview unavailable</h3>
-                <p className="tvp-muted" style={{ marginTop: 6, marginBottom: 16 }}>{loadError}</p>
-                <a className="tvp-primary" href={url} target="_blank" rel="noopener" download={name}>
+                <p className="tvp-muted tvp-preview-error">{loadError}</p>
+                <Button asChild className="tvp-primary"><a href={url} target="_blank" rel="noopener" download={name}>
                   <Download className="h-4 w-4" />Download instead
-                </a>
+                </a></Button>
               </div>
             ) : !blobUrl ? (
-              <div className="tvp-muted" style={{ display: "flex", alignItems: "center", gap: 8, padding: 32 }}>
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading preview…
+              <div className="tvp-muted tvp-preview-loading">
+                <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> Loading preview…
               </div>
             ) : (
-              <iframe src={blobUrl} title={name} style={{ width: "100%", height: "100%", border: 0, background: "white" }} />
+              <iframe src={blobUrl} title={name} className="tvp-preview-frame" />
             )
           )}
           {kind === "image" && (
-            <img src={url} alt={name} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            <img src={url} alt={name} className="tvp-preview-image" />
           )}
           {kind === "other" && (
-            <div style={{ textAlign: "center", padding: 32 }}>
+            <div className="tvp-preview-empty">
               <FileText className="h-10 w-10 mx-auto mb-3 text-[var(--tvp-muted)]" />
               <h3 className="tvp-h2">Preview not available</h3>
-              <p className="tvp-muted" style={{ marginTop: 6, marginBottom: 16 }}>
+              <p className="tvp-muted tvp-preview-error">
                 This file type can't be rendered inline in the browser.
               </p>
-              <a className="tvp-primary" href={url} target="_blank" rel="noopener" download={name}>
+              <Button asChild className="tvp-primary"><a href={url} target="_blank" rel="noopener" download={name}>
                 <Download className="h-4 w-4" />Download to open
-              </a>
+              </a></Button>
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </DocumentModal>
   );
 }
 

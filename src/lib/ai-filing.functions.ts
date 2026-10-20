@@ -421,13 +421,12 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { cancelQueuedAnalysesFor } = await import("@/lib/document-ai.server");
-    const { data: membership } = await supabase
+    const { data: memberships, error: membershipError } = await supabaseAdmin
       .from("agency_members")
       .select("agency_id")
       .eq("user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
+    if (membershipError) throw new Error(membershipError.message);
 
     await applyAiPreferenceChange(data.ai_filing_enabled, {
       audit: async (next) => {
@@ -440,8 +439,9 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
           target_label: "Organise documents with AI",
           detail: { ai_filing_enabled: next, changed_at: new Date().toISOString() },
         };
-        const { error: auditErr } = membership
-          ? await (supabaseAdmin as any).from("agency_audit_log").insert({ ...entry, agency_id: membership.agency_id })
+        const agencyIds = [...new Set((memberships ?? []).map((m: { agency_id: string }) => m.agency_id))];
+        const { error: auditErr } = agencyIds.length
+          ? await (supabaseAdmin as any).from("agency_audit_log").insert(agencyIds.map((agency_id) => ({ ...entry, agency_id })))
           : await (supabaseAdmin as any).from("talent_audit_log").insert(entry);
         if (auditErr) throw new Error(auditErr.message);
       },

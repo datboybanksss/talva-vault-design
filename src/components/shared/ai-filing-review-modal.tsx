@@ -22,7 +22,7 @@
  * suggestion never overwrites a field the person already changed.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,7 +30,6 @@ import {
   Sparkles,
   FolderTree,
   CalendarClock,
-  ShieldAlert,
   X,
   Loader2,
   Clock,
@@ -47,6 +46,9 @@ import {
   setAiFilingPreference,
 } from "@/lib/ai-filing.functions";
 import { isPending, type AnalysisStatus, type FilingSuggestion } from "@/lib/document-ai-core";
+import { Button } from "@/components/ui/button";
+import { DocumentModal } from "@/components/shared/document-modal";
+import { syncAiFilingPreference } from "@/lib/ai-filing-cache";
 import { suggestFromFileName } from "@/lib/filing-heuristics";
 
 export type AiFilingScope = "talent" | "agency";
@@ -87,14 +89,6 @@ function minusDays(iso: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-const FIELD_COL = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 4,
-  flex: "1 1 220px",
-  minWidth: 0,
-} as const;
-
 /**
  * Passive provenance strip for a field: where the value came from. It carries no
  * Confirm/Edit actions — the field itself is always editable, and the badge flips
@@ -128,10 +122,10 @@ function FieldProvenance({
   if (source === "user" && !edited) return null;
 
   return (
-    <div className="tv-prov" data-source={edited ? "user" : source}>
-      <div className="tv-prov__head">
-        <span className="tv-prov__value">{value}</span>
-        <span className="tv-prov__badge" style={{ marginLeft: "auto" }}>
+    <div className="tvp-provenance" data-source={edited ? "user" : source}>
+      <div className="tvp-provenance__head">
+        <span className="tvp-provenance__value">{value}</span>
+        <span className="tvp-provenance__badge">
           {edited ? (
             <>
               <Check className="h-3 w-3" /> Edited by you
@@ -148,24 +142,24 @@ function FieldProvenance({
           )}
         </span>
         {mode === "ai" && !edited && (
-          <button
+          <Button
             type="button"
-            className="tv-btn tv-btn--ghost"
+            variant="ghost" className="tvp-ghost"
             data-tour="filing-source-toggle"
             onClick={() => setShowSource((v) => !v)}
             aria-expanded={showSource}
           >
             <HelpCircle className="h-3.5 w-3.5" />
             {showSource ? "Hide source" : "Where did this come from?"}
-          </button>
+          </Button>
         )}
       </div>
 
       {mode === "filename" && !edited && (
-        <p className="tv-prov__source">Based on the file name.</p>
+        <p className="tvp-provenance__source">Based on the file name.</p>
       )}
       {mode === "ai" && showSource && (
-        <p className="tv-prov__source">
+        <p className="tvp-provenance__source">
           {sourceText
             ? `"${sourceText}"`
             : "The suggestion was made from the document's contents."}
@@ -204,19 +198,46 @@ export function AiFilingReviewModal({
 
   /** The person's own switch; starts from the server, flipped by the popup link. */
   const [aiOverride, setAiOverride] = useState<boolean | null>(null);
-  const aiEnabled = aiOverride ?? (data ? data.aiEnabled !== false : false);
+  const preference = useQuery<{ aiEnabled: boolean }>({
+    queryKey: ["ai-filing-preference"], enabled: false,
+    queryFn: async () => ({ aiEnabled: data?.aiEnabled !== false }),
+  });
+  const aiEnabled = aiOverride ?? preference.data?.aiEnabled ?? (data ? data.aiEnabled !== false : false);
+  const togglePending = useRef(false);
+  const pollStarted = useRef(Date.now());
+  const pollAttempts = useRef(0);
+  const [pollStopped, setPollStopped] = useState(false);
+  const resetPolling = () => {
+    pollStarted.current = Date.now();
+    pollAttempts.current = 0;
+    setPollStopped(false);
+  };
 
   /** Parserly analysis status — polled while queued/processing. */
   const analysisKey = ["filing-analysis", scope, documentId];
   const analysisQ = useQuery({
     queryKey: analysisKey,
-    queryFn: () => analysisFn({ data: { scope, document_id: documentId } }) as Promise<AnalysisView>,
-    enabled: !!data && aiEnabled && !suggestionProp,
+    queryFn: async () => {
+      pollAttempts.current += 1;
+      if (pollAttempts.current > 60 || Date.now() - pollStarted.current >= 120_000) {
+        return { status: "failed", suggestion: null, error_code: "poll_timeout" } as AnalysisView;
+      }
+      return analysisFn({ data: { scope, document_id: documentId } }) as Promise<AnalysisView>;
+    },
+    enabled: !!data && aiEnabled && !suggestionProp && !pollStopped && !togglePending.current,
     retry: false,
     refetchOnWindowFocus: false,
-    refetchInterval: (q) => (isPending((q.state.data as AnalysisView | undefined)?.status) ? 2000 : false),
+    refetchInterval: (q) => (!pollStopped && q.state.status !== "error" && isPending((q.state.data as AnalysisView | undefined)?.status) ? 2000 : false),
   });
-  const analysis = aiEnabled ? (analysisQ.data as AnalysisView | undefined) : undefined;
+  useEffect(() => {
+    if (!aiEnabled || suggestionProp || !data || pollStopped || analysisQ.isError || !isPending(analysisQ.data?.status) && !analysisQ.isLoading) return;
+    const timer = setTimeout(() => {
+      setPollStopped(true);
+      void qc.cancelQueries({ queryKey: analysisKey });
+    }, Math.max(0, 120_000 - (Date.now() - pollStarted.current)));
+    return () => clearTimeout(timer);
+  }, [aiEnabled, data, suggestionProp, pollStopped, analysisQ.isError, analysisQ.data?.status, analysisQ.isLoading, qc, scope, documentId]);
+  const analysis = aiEnabled && !pollStopped && !analysisQ.isError ? (analysisQ.data as AnalysisView | undefined) : undefined;
   const status = analysis?.status ?? null;
 
   const aiSuggestion: FilingSuggestion | null = !aiEnabled
@@ -237,11 +258,11 @@ export function AiFilingReviewModal({
   );
 
   const analysing =
-    aiEnabled && !suggestionProp && !!data && (analysisQ.isLoading || isPending(status));
+    aiEnabled && !suggestionProp && !!data && !pollStopped && !analysisQ.isError && (analysisQ.isLoading || isPending(status));
   const analysisFailed =
     aiEnabled &&
     !suggestionProp &&
-    (analysisQ.isError || status === "failed" || status === "unavailable");
+    (pollStopped || analysisQ.isError || status === "failed" || status === "unavailable");
 
   const mode: FilingMode = isError
     ? "failed"
@@ -272,7 +293,8 @@ export function AiFilingReviewModal({
         groups.set(top, { ownId: null, children: [] });
         order.push(top);
       }
-      const group = groups.get(top)!;
+      const group = groups.get(top);
+      if (!group) continue;
       if (parts.length === 1) group.ownId = item.id;
       else group.children.push({ id: item.id, label: parts.slice(1).join(PATH_SEP) });
     }
@@ -284,7 +306,8 @@ export function AiFilingReviewModal({
     () => (id: string | null) => {
       if (!id) return { top: "", sub: "" };
       for (const top of tree.order) {
-        const group = tree.groups.get(top)!;
+        const group = tree.groups.get(top);
+        if (!group) continue;
         if (group.ownId === id) return { top, sub: "" };
         if (group.children.some((c) => c.id === id)) return { top, sub: id };
       }
@@ -433,7 +456,11 @@ export function AiFilingReviewModal({
   });
 
   const retry = useMutation({
-    mutationFn: () => startFn({ data: { scope, document_id: documentId } }) as Promise<AnalysisView>,
+    mutationFn: async () => {
+      await qc.cancelQueries({ queryKey: analysisKey });
+      resetPolling();
+      return startFn({ data: { scope, document_id: documentId } }) as Promise<AnalysisView>;
+    },
     onSuccess: (view) => qc.setQueryData(analysisKey, view),
     onError: (e: any) => toast.error(e?.message ?? "Could not start the analysis."),
   });
@@ -441,6 +468,7 @@ export function AiFilingReviewModal({
   const toggleAi = useMutation({
     mutationFn: async (next: boolean) => {
       await prefFn({ data: { ai_filing_enabled: next } });
+      await syncAiFilingPreference(qc, next);
       // Switching on from the popup runs the analysis for this document now.
       const view =
         next && !suggestionProp
@@ -448,7 +476,11 @@ export function AiFilingReviewModal({
           : null;
       return { next, view };
     },
-    onMutate: (next) => {
+    onMutate: async (next) => {
+      togglePending.current = true;
+      resetPolling();
+      await qc.cancelQueries({ queryKey: analysisKey });
+      qc.setQueryData(analysisKey, { status: "queued", suggestion: null, error_code: null });
       if (!next) {
         // Off: drop to manual immediately and discard any pending suggestion.
         setAiOverride(false);
@@ -456,12 +488,14 @@ export function AiFilingReviewModal({
       }
     },
     onSuccess: ({ next, view }) => {
+      togglePending.current = false;
       if (view) qc.setQueryData(analysisKey, view);
-      setAiOverride(next);
-      qc.invalidateQueries({ queryKey: ["ai-filing-preference"] });
+      setAiOverride(null);
     },
+    onSettled: () => { togglePending.current = false; },
     onError: (e: any, next) => {
-      if (!next) setAiOverride(null);
+      togglePending.current = false;
+      setAiOverride(null);
       toast.error(e?.message ?? "Could not change this preference.");
     },
   });
@@ -471,127 +505,92 @@ export function AiFilingReviewModal({
   const showConfidence = mode === "ai" && suggestion?.confidence;
 
   return (
-    <div
-      onClick={busy ? undefined : onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 60,
-        padding: 24,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Filing review"
-        className="tvp-card"
-        style={{
-          width: "min(720px, 100%)",
-          maxHeight: "90vh",
-          overflow: "auto",
-          padding: 22,
-          display: "flex",
-          flexDirection: "column",
-          gap: 14,
-        }}
-      >
+    <DocumentModal title="Filing review" onClose={onClose} busy={busy} className="tvp-filing-modal">
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <span className="tvp-kpi-icon tvp-bg-purple" style={{ width: 34, height: 34 }}>
+        <div className="tvp-filing-header">
+          <span className="tvp-kpi-icon tvp-bg-purple">
             <Sparkles className="h-4 w-4" />
           </span>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h2 className="display-lg" style={{ fontSize: "var(--t-title)" }}>
+          <div className="tvp-filing-identity">
+            <h2 className="tvp-filing-title">
               {mode === "ai" ? "AI filing review" : "Filing review"}
             </h2>
-            <p className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+            <p className="tvp-muted tvp-filing-meta">
               {documentName}
             </p>
           </div>
-          <button className="tvp-mini-btn" title="Close" onClick={onClose} disabled={busy}>
+          <Button variant="ghost" size="icon" className="tvp-mini-btn" title="Close" aria-label="Close" onClick={onClose} disabled={busy}>
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         {isLoading && (
-          <div className="tvp-callout" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Loader2 className="h-4 w-4 animate-spin" />
+          <div className="tvp-muted tvp-filing-note">
+            <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
             <span>Loading your folders…</span>
           </div>
         )}
 
         {!isLoading && mode === "analysing" && (
           <p
-            className="tvp-muted"
+            className="tvp-muted tvp-filing-note"
             data-testid="filing-analysing"
-            style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}
           >
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
             Reading your document… You can fill in the fields yourself or skip for now.
           </p>
         )}
 
         {!isLoading && (isError || analysisFailed) && mode !== "ai" && mode !== "manual" && (
-          <p className="tvp-muted" data-testid="filing-failed" style={{ fontSize: 13 }}>
+          <p className="tvp-muted tvp-filing-note" data-testid="filing-failed">
             Automatic analysis could not be completed. Review and file the document yourself.{" "}
             {!isError && (
-              <button
+              <Button
                 type="button"
-                className="tv-btn tv-btn--ghost"
+                variant="ghost" className="tvp-ghost"
                 onClick={() => retry.mutate()}
                 disabled={retry.isPending || busy}
               >
                 <RotateCcw className="h-3.5 w-3.5" /> {retry.isPending ? "Retrying…" : "Retry"}
-              </button>
+              </Button>
             )}
           </p>
         )}
 
         {!isLoading && data && !suggestionProp && (
-          <div style={{ fontSize: 12 }}>
-            <button
+          <div className="tvp-filing-meta">
+            <Button
               type="button"
-              className="tv-btn tv-btn--ghost"
+              variant="ghost" className="tvp-ghost"
               data-tour="filing-ai-toggle"
               onClick={() => toggleAi.mutate(!aiEnabled)}
               disabled={toggleAi.isPending || busy}
             >
               {aiEnabled ? "Turn off AI organisation" : "Turn on AI organisation"}
-            </button>
+            </Button>
           </div>
         )}
 
         {!isLoading && (
           <>
             {/* ---------------- Folder & subfolder ---------------- */}
-            <section className="tvp-card tvp-panel tvp-settings-tight" style={{ gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <FolderTree className="h-4 w-4" style={{ color: "var(--tvp-teal, #0f766e)" }} />
-                <strong style={{ fontSize: 14 }}>Folder &amp; subfolder</strong>
+            <section className="tvp-filing-section">
+              <div className="tvp-filing-section-head">
+                <FolderTree className="h-4 w-4 text-primary" />
+                <strong>Folder &amp; subfolder</strong>
                 {showConfidence && (
                   <span
                     className="tvp-muted"
                     data-tour="filing-confidence"
-                    style={{
-                      marginLeft: "auto",
-                      fontSize: 11,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.4,
-                    }}
                   >
                     {suggestion?.confidence} confidence
                   </span>
                 )}
               </div>
 
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <label style={FIELD_COL}>
-                  <span className="tvp-muted" style={{ fontSize: 12 }}>
+              <div className="tvp-filing-fields">
+                <label className="tvp-filing-field">
+                  <span className="tvp-muted tvp-filing-meta">
                     {destinationPrefix} folder
                   </span>
                   <select
@@ -617,8 +616,8 @@ export function AiFilingReviewModal({
                   </select>
                 </label>
 
-                <label style={{ ...FIELD_COL, opacity: subOptions.length ? 1 : 0.55 }}>
-                  <span className="tvp-muted" style={{ fontSize: 12 }}>
+                <label className={`tvp-filing-field${subOptions.length ? "" : " tvp-field-disabled"}`}>
+                  <span className="tvp-muted tvp-filing-meta">
                     Subfolder
                   </span>
                   <select
@@ -648,17 +647,17 @@ export function AiFilingReviewModal({
                 </label>
               </div>
 
-              <div style={{ fontSize: 13 }} data-testid="filing-destination">
+              <div className="tvp-filing-note" data-testid="filing-destination">
                 {destinationPrefix}: <strong>{destinationLabel ?? "Unfiled"}</strong>
               </div>
 
               {data?.secondaryHint && (
-                <div className="tvp-muted" style={{ fontSize: 12 }}>
+                <div className="tvp-muted tvp-filing-meta">
                   {data.secondaryHint}
                 </div>
               )}
               {mode === "ai" && suggestion?.rationale && (
-                <div className="tvp-muted" style={{ fontSize: 12 }}>
+                <div className="tvp-muted tvp-filing-meta">
                   {suggestion.rationale}
                 </div>
               )}
@@ -674,15 +673,15 @@ export function AiFilingReviewModal({
             </section>
 
             {/* ---------------- Expiry & reminder ---------------- */}
-            <section className="tvp-card tvp-panel tvp-settings-tight" style={{ gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <CalendarClock className="h-4 w-4" style={{ color: "var(--tvp-amber, #b45309)" }} />
-                <strong style={{ fontSize: 14 }}>Expiry &amp; reminder</strong>
+            <section className="tvp-filing-section">
+              <div className="tvp-filing-section-head">
+                <CalendarClock className="h-4 w-4 text-[var(--tvp-amber)]" />
+                <strong>Expiry &amp; reminder</strong>
               </div>
 
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <label style={FIELD_COL}>
-                  <span className="tvp-muted" style={{ fontSize: 12 }}>
+              <div className="tvp-filing-fields">
+                <label className="tvp-filing-field">
+                  <span className="tvp-muted tvp-filing-meta">
                     Expiry date
                   </span>
                   <input
@@ -700,8 +699,8 @@ export function AiFilingReviewModal({
                   />
                 </label>
 
-                <label style={{ ...FIELD_COL, opacity: expiry ? 1 : 0.55 }}>
-                  <span className="tvp-muted" style={{ fontSize: 12 }}>
+                <label className={`tvp-filing-field${expiry ? "" : " tvp-field-disabled"}`}>
+                  <span className="tvp-muted tvp-filing-meta">
                     Remind me this many days before
                   </span>
                   <input
@@ -724,7 +723,7 @@ export function AiFilingReviewModal({
 
               {expiry && (
                 <label
-                  style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}
+                  className="tvp-filing-note"
                 >
                   <input
                     type="checkbox"
@@ -739,7 +738,7 @@ export function AiFilingReviewModal({
                 </label>
               )}
 
-              <div className="tvp-muted" style={{ fontSize: 12 }} data-testid="reminder-summary">
+              <div className="tvp-muted tvp-filing-meta" data-testid="reminder-summary">
                 {!expiry
                   ? "No expiry set — add one above if this document has a valid-until date, and the reminder field unlocks."
                   : noReminder
@@ -760,33 +759,25 @@ export function AiFilingReviewModal({
             </section>
 
             {/* ---------------- Human validation notice ---------------- */}
-            <div className="tvp-callout" data-tour="filing-validation-notice">
-              <div className="tvp-callout-icon">
-                <ShieldAlert className="h-4 w-4" />
-              </div>
-              <div>
-                <strong>Human validation required.</strong>
-                <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                  Suggestions are never applied automatically. Edit anything above that isn't
-                  right, then save — or skip for now and come back to it from the Pending review
-                  filter.
-                </div>
-              </div>
+            <div className="tvp-muted tvp-filing-validation" data-tour="filing-validation-notice">
+              <strong>Human validation required.</strong>
+              <p>Suggestions are never applied automatically. Edit anything above that isn't
+                right, then save — or skip for now and come back to it from the Pending review filter.</p>
             </div>
 
             {/* ---------------- Footer ---------------- */}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
-              <button
+            <div className="tvp-filing-footer">
+              <Button
                 type="button"
-                className="tvp-secondary"
+                variant="outline" className="tvp-secondary"
                 data-tour="filing-skip"
                 title="Leave it where it was uploaded and review later"
                 onClick={() => skip.mutate()}
                 disabled={busy}
               >
                 <Clock className="h-4 w-4" /> {skip.isPending ? "Skipping…" : "Skip for now"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 className="tvp-primary"
                 data-tour="filing-save"
@@ -795,12 +786,11 @@ export function AiFilingReviewModal({
                 title={saveDisabled && !busy ? "Choose a folder first" : undefined}
               >
                 {save.isPending ? "Saving…" : "Save filing"}
-              </button>
+              </Button>
             </div>
           </>
         )}
-      </div>
-    </div>
+    </DocumentModal>
   );
 }
 

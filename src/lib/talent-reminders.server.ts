@@ -1,3 +1,4 @@
+import { documentReminderDue, expiryPhrase, reminderLinkReadable } from "@/lib/document-reminder-core";
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 // Server-only reminder engine. Detects documents crossing their reminder /
 // expiry threshold, materialises in-app notifications, and then attempts an
@@ -18,13 +19,6 @@ const ACCESS_WARNING_DAYS = 30;
 
 function fmt(v: string) {
   return new Date(v).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function daysPhrase(iso: string) {
-  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / DAY);
-  if (days < 0) return `expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`;
-  if (days === 0) return "expires today";
-  return `expires in ${days} day${days === 1 ? "" : "s"}`;
 }
 
 type Pending = {
@@ -49,6 +43,10 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
   if (error) throw new Error(error.message);
 
   const pending: Pending[] = [];
+  const now = Date.now();
+  const start = new Date(now); start.setUTCHours(0, 0, 0, 0);
+  const lower = start.toISOString();
+  const current = new Date(now).toISOString();
   const { data: yearsRow } = await supabaseAdmin.rpc("talent_post_end_access_years");
   const postEndYears = (yearsRow as number | null) ?? 0;
   const emailByUser = new Map<string, string | null>();
@@ -62,7 +60,7 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
     emailByUser.set(userId, (p.email as string | null) ?? null);
     const prefs = allPrefs.in_app ?? {};
     const on = (k: string) => prefs[k] !== false;
-    const cutoff = new Date(Date.now() + noticeDays * DAY).toISOString();
+    const cutoff = new Date(now + noticeDays * DAY).toISOString();
 
     // 1. Private Vault documents — explicit reminder_at, or expiry inside the window.
     if (on("doc_expiring")) {
@@ -70,17 +68,18 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
         .from("talent_private_documents")
         .select("id, name, expires_at, reminder_at")
         .eq("user_id", userId)
-        .or(`reminder_at.lte.${new Date().toISOString()},expires_at.lte.${cutoff}`)
-        .limit(200);
+        .or(`and(reminder_at.gte.${lower},reminder_at.lte.${current}),and(expires_at.gte.${lower},expires_at.lte.${cutoff})`)
+        .order("expires_at", { ascending: true, nullsFirst: false });
       for (const d of docs ?? []) {
-        const due = (d.expires_at ?? d.reminder_at) as string | null;
-        if (!due) continue;
+        const event = documentReminderDue(d.expires_at, d.reminder_at, noticeDays, now);
+        if (!event) continue;
+        const due = event.date;
         pending.push({
           user_id: userId,
           kind: "doc_expiring",
           dedupe_key: `doc_expiring:private:${d.id}:${due.slice(0, 10)}`,
-          title: `${d.name} ${daysPhrase(due)}`,
-          detail: `Private Vault · due ${fmt(due)}`,
+          title: event.kind === "reminder" ? `${d.name} · reminder due today` : `${d.name} ${expiryPhrase(due, now)}`,
+          detail: `Private Vault${d.expires_at ? ` · ${expiryPhrase(d.expires_at, now)} (${fmt(d.expires_at)})` : ` · reminder ${fmt(due)}`}`,
           tone: "amber",
           target_type: "private_document",
           target_id: d.id as string,
@@ -91,30 +90,36 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
 
     // 2. Agency Shared Folder documents.
     if (on("doc_expiring")) {
-      const { data: link } = await supabaseAdmin
+      const { data: links, error: linksError } = await supabaseAdmin
         .from("agency_talent_links")
-        .select("id")
+        .select("id, status, ended_at")
         .eq("talent_user_id", userId)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (link) {
+        .in("status", ["active", "read_only", "needs_review"])
+        .is("ended_at", null)
+        .order("created_at", { ascending: true });
+      if (linksError) throw new Error(linksError.message);
+      for (const link of links ?? []) {
+        const { data: until, error: untilError } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: link.id });
+        if (untilError) throw new Error(untilError.message);
+        if (!reminderLinkReadable(link, until, now)) continue;
         const { data: shared } = await supabaseAdmin
           .from("talent_shared_documents")
           .select("id, name, folder, validity_expires_at, reminder_at")
           .eq("talent_link_id", link.id)
-          .or(`reminder_at.lte.${new Date().toISOString()},validity_expires_at.lte.${cutoff}`)
-          .limit(200);
+          .is("revoked_at", null)
+          .or(`and(reminder_at.gte.${lower},reminder_at.lte.${current}),and(validity_expires_at.gte.${lower},validity_expires_at.lte.${cutoff})`)
+          .order("validity_expires_at", { ascending: true, nullsFirst: false });
         for (const d of shared ?? []) {
           // A manually set reminder date feeds the same list as an expiry.
-          const due = (d.validity_expires_at ?? d.reminder_at) as string | null;
-          if (!due) continue;
+          const event = documentReminderDue(d.validity_expires_at, d.reminder_at, noticeDays, now);
+          if (!event) continue;
+          const due = event.date;
           pending.push({
             user_id: userId,
             kind: "doc_expiring",
             dedupe_key: `doc_expiring:shared:${d.id}:${due.slice(0, 10)}`,
-            title: `${d.name} ${daysPhrase(due)}`,
-            detail: `${d.folder} · Agency Shared Folder`,
+            title: event.kind === "reminder" ? `${d.name} · reminder due today` : `${d.name} ${expiryPhrase(due, now)}`,
+            detail: `${d.folder} · Agency Shared Folder${d.validity_expires_at ? ` · ${expiryPhrase(d.validity_expires_at, now)} (${fmt(d.validity_expires_at)})` : ` · reminder ${fmt(due)}`}`,
             tone: "amber",
             target_type: "shared_document",
             target_id: d.id as string,
@@ -160,7 +165,9 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
         .eq("talent_id", p.id)
         .eq("is_active", true)
         .is("revoked_at", null)
+        .gte("expires_at", lower)
         .lte("expires_at", cutoff)
+        .order("expires_at", { ascending: true })
         .limit(100);
       for (const s of shares ?? []) {
         const due = s.expires_at as string;
@@ -168,7 +175,7 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
           user_id: userId,
           kind: "share_expiring",
           dedupe_key: `share_expiring:${s.id}:${due.slice(0, 10)}`,
-          title: `${SHARE_RECIPIENT_TERM_CAPITALISED} access for ${s.loved_one_name ?? s.loved_one_email} ${daysPhrase(due)}`,
+          title: `${SHARE_RECIPIENT_TERM_CAPITALISED} access for ${s.loved_one_name ?? s.loved_one_email} ${expiryPhrase(due, now)}`,
           detail: `${SHARE_RECIPIENT_TERM_CAPITALISED} sharing · expires ${fmt(due)}`,
           tone: "purple",
           target_type: "loved_one_share",
@@ -179,6 +186,7 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
     }
   }
 
+  pending.sort((a, b) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime());
   if (pending.length === 0) return { scanned: profiles?.length ?? 0, created: 0 };
 
   // dedupe_key embeds the due date, so a shifted date raises a fresh reminder

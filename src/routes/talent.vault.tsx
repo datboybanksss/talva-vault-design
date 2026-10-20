@@ -25,6 +25,7 @@ import { preflightUpload } from "@/lib/file-validation";
 
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { useAnalyseWithAi } from "@/components/shared/use-analyse-with-ai";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { toast } from "sonner";
 import {
@@ -36,7 +37,13 @@ import {
 
 
 export const Route = createFileRoute("/talent/vault")({
-  head: () => ({ meta: [{ title: "Vault · TalVault Talent" }] }),
+  head: () => ({ meta: [
+    { title: "Vault · TalVault Talent" },
+    { name: "description", content: "Manage your private documents and agency-shared folders in TalVault." },
+    { property: "og:title", content: "Vault · TalVault Talent" },
+    { property: "og:description", content: "Manage your private documents and agency-shared folders in TalVault." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: (search: Record<string, unknown>): { tab?: Mode; view?: AgencyView } => {
     const t = search.tab;
     const v = search.view;
@@ -481,8 +488,8 @@ function PrivateVault() {
                     <td>
                       <strong>{d.name}</strong>
                       {d.pending_review && (
-                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6, fontSize: 11 }}>
-                          Pending review
+                        <span className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}>
+                          {statusLabel("document", "pending_review")}
                         </span>
                       )}
                     </td>
@@ -792,8 +799,8 @@ function SharedDocumentsView() {
                     <td>
                       <strong>{d.name}</strong>
                       {d.pending_review && (
-                        <span className="tvp-status tvp-purple" style={{ marginLeft: 6, fontSize: 11 }}>
-                          Pending review
+                        <span className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}>
+                          {statusLabel("document", "pending_review")}
                         </span>
                       )}
                     </td>

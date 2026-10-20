@@ -56,3 +56,11 @@
 - [x] Per-field sources stored; server refuses 'ai'; agency filing saves reminder_at; talent filing audited
 - [x] View document on every Private Vault row; Pending review pill on talent's shared list
 - [x] Reminders read shared reminder_at; tests + type-check green
+
+## Approved audit fixes — 20 October 2026
+- [x] Hide suspended-agency vault write actions.
+- [x] Correct reminder eligibility, due dates and dedupe.
+- [x] Fix deepest filename matching, bounded polling and preference synchronisation.
+- [x] Audit every membership and verify analysis read permissions.
+- [x] Bring filing, preview, pending pills and AI switch onto shared tokens/controls.
+- [x] Run tests and verify light/dark layouts; report remaining click-through checks.
