@@ -37,7 +37,13 @@ import {
 
 
 export const Route = createFileRoute("/talent/vault")({
-  head: () => ({ meta: [{ title: "Vault · TalVault Talent" }] }),
+  head: () => ({ meta: [
+    { title: "Vault · TalVault Talent" },
+    { name: "description", content: "Manage your private documents and agency-shared folders in TalVault." },
+    { property: "og:title", content: "Vault · TalVault Talent" },
+    { property: "og:description", content: "Manage your private documents and agency-shared folders in TalVault." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: (search: Record<string, unknown>): { tab?: Mode; view?: AgencyView } => {
     const t = search.tab;
     const v = search.view;

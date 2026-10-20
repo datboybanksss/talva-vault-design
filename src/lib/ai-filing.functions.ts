@@ -421,7 +421,7 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { cancelQueuedAnalysesFor } = await import("@/lib/document-ai.server");
-    const { data: memberships, error: membershipError } = await supabase
+    const { data: memberships, error: membershipError } = await supabaseAdmin
       .from("agency_members")
       .select("agency_id")
       .eq("user_id", userId)

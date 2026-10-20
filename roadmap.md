@@ -58,9 +58,9 @@
 - [x] Reminders read shared reminder_at; tests + type-check green
 
 ## Approved audit fixes — 20 October 2026
-- [ ] Hide suspended-agency vault write actions.
-- [ ] Correct reminder eligibility, due dates and dedupe.
-- [ ] Fix deepest filename matching, bounded polling and preference synchronisation.
-- [ ] Audit every membership and verify analysis read permissions.
-- [ ] Bring filing, preview, pending pills and AI switch onto shared tokens/controls.
-- [ ] Run tests and verify light/dark layouts; report remaining click-through checks.
+- [x] Hide suspended-agency vault write actions.
+- [x] Correct reminder eligibility, due dates and dedupe.
+- [x] Fix deepest filename matching, bounded polling and preference synchronisation.
+- [x] Audit every membership and verify analysis read permissions.
+- [x] Bring filing, preview, pending pills and AI switch onto shared tokens/controls.
+- [x] Run tests and verify light/dark layouts; report remaining click-through checks.

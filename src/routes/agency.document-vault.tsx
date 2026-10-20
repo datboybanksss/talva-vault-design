@@ -91,7 +91,13 @@ const meQO = queryOptions({
 });
 
 export const Route = createFileRoute("/agency/document-vault")({
-  head: () => ({ meta: [{ title: "Document Vault · TalVault" }] }),
+  head: () => ({ meta: [
+    { title: "Document Vault · TalVault" },
+    { name: "description", content: "Browse and review agency-shared talent documents in TalVault." },
+    { property: "og:title", content: "Document Vault · TalVault" },
+    { property: "og:description", content: "Browse and review agency-shared talent documents in TalVault." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: (search: Record<string, unknown>): { tab?: string } =>
     typeof search.tab === "string" ? { tab: search.tab } : {},
   loader: async ({ context }) => {
