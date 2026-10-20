@@ -49,34 +49,159 @@ type ActionMeta = {
 };
 
 const ACTIONS: Record<string, ActionMeta> = {
-  create_talent_invitation: { label: "Invited talent", category: "talent", icon: <UserPlus className="h-4 w-4" />, tone: "blue" },
-  resend_talent_invitation: { label: "Resent talent invitation", category: "talent", icon: <Send className="h-4 w-4" />, tone: "blue" },
-  revoke_talent_invitation: { label: "Revoked talent invitation", category: "talent", icon: <UserMinus className="h-4 w-4" />, tone: "red" },
-  copy_talent_invitation_link: { label: "Copied talent invite link", category: "talent", icon: <LinkIcon className="h-4 w-4" />, tone: "blue" },
-  create_staff_invitation: { label: "Invited staff member", category: "talent", icon: <UserPlus className="h-4 w-4" />, tone: "purple" },
-  resend_staff_invitation: { label: "Resent staff invitation", category: "talent", icon: <Send className="h-4 w-4" />, tone: "purple" },
-  revoke_staff_invitation: { label: "Revoked staff invitation", category: "talent", icon: <UserMinus className="h-4 w-4" />, tone: "red" },
-  copy_staff_invitation_link: { label: "Copied staff invite link", category: "talent", icon: <LinkIcon className="h-4 w-4" />, tone: "purple" },
-  end_talent_relationship: { label: "Ended talent relationship", category: "talent", icon: <UserMinus className="h-4 w-4" />, tone: "red" },
-  reactivate_talent_relationship: { label: "Reactivated talent relationship", category: "talent", icon: <UserCheck className="h-4 w-4" />, tone: "green" },
+  create_talent_invitation: {
+    label: "Invited talent",
+    category: "talent",
+    icon: <UserPlus className="h-4 w-4" />,
+    tone: "blue",
+  },
+  resend_talent_invitation: {
+    label: "Resent talent invitation",
+    category: "talent",
+    icon: <Send className="h-4 w-4" />,
+    tone: "blue",
+  },
+  revoke_talent_invitation: {
+    label: "Revoked talent invitation",
+    category: "talent",
+    icon: <UserMinus className="h-4 w-4" />,
+    tone: "red",
+  },
+  copy_talent_invitation_link: {
+    label: "Copied talent invite link",
+    category: "talent",
+    icon: <LinkIcon className="h-4 w-4" />,
+    tone: "blue",
+  },
+  create_staff_invitation: {
+    label: "Invited staff member",
+    category: "talent",
+    icon: <UserPlus className="h-4 w-4" />,
+    tone: "purple",
+  },
+  resend_staff_invitation: {
+    label: "Resent staff invitation",
+    category: "talent",
+    icon: <Send className="h-4 w-4" />,
+    tone: "purple",
+  },
+  revoke_staff_invitation: {
+    label: "Revoked staff invitation",
+    category: "talent",
+    icon: <UserMinus className="h-4 w-4" />,
+    tone: "red",
+  },
+  copy_staff_invitation_link: {
+    label: "Copied staff invite link",
+    category: "talent",
+    icon: <LinkIcon className="h-4 w-4" />,
+    tone: "purple",
+  },
+  end_talent_relationship: {
+    label: "Ended talent relationship",
+    category: "talent",
+    icon: <UserMinus className="h-4 w-4" />,
+    tone: "red",
+  },
+  reactivate_talent_relationship: {
+    label: "Reactivated talent relationship",
+    category: "talent",
+    icon: <UserCheck className="h-4 w-4" />,
+    tone: "green",
+  },
 
-  upload_vault_document: { label: "Uploaded document", category: "documents", icon: <Upload className="h-4 w-4" />, tone: "green" },
-  update_vault_document: { label: "Updated document", category: "documents", icon: <Pencil className="h-4 w-4" />, tone: "blue" },
-  delete_vault_document: { label: "Deleted document", category: "documents", icon: <Trash2 className="h-4 w-4" />, tone: "red" },
-  create_document_request: { label: "Requested document", category: "documents", icon: <FileText className="h-4 w-4" />, tone: "blue" },
-  complete_document_request: { label: "Marked request complete", category: "documents", icon: <ShieldCheck className="h-4 w-4" />, tone: "green" },
-  resubmit_document_request: { label: "Requested resubmission", category: "documents", icon: <RotateCcw className="h-4 w-4" />, tone: "amber" },
-  cancel_document_request: { label: "Cancelled document request", category: "documents", icon: <AlertTriangle className="h-4 w-4" />, tone: "red" },
+  upload_vault_document: {
+    label: "Uploaded document",
+    category: "documents",
+    icon: <Upload className="h-4 w-4" />,
+    tone: "green",
+  },
+  update_vault_document: {
+    label: "Updated document",
+    category: "documents",
+    icon: <Pencil className="h-4 w-4" />,
+    tone: "blue",
+  },
+  delete_vault_document: {
+    label: "Deleted document",
+    category: "documents",
+    icon: <Trash2 className="h-4 w-4" />,
+    tone: "red",
+  },
+  create_document_request: {
+    label: "Requested document",
+    category: "documents",
+    icon: <FileText className="h-4 w-4" />,
+    tone: "blue",
+  },
+  complete_document_request: {
+    label: "Marked request complete",
+    category: "documents",
+    icon: <ShieldCheck className="h-4 w-4" />,
+    tone: "green",
+  },
+  resubmit_document_request: {
+    label: "Requested resubmission",
+    category: "documents",
+    icon: <RotateCcw className="h-4 w-4" />,
+    tone: "amber",
+  },
+  cancel_document_request: {
+    label: "Cancelled document request",
+    category: "documents",
+    icon: <AlertTriangle className="h-4 w-4" />,
+    tone: "red",
+  },
 
-  share_document: { label: "Shared document", category: "sharing", icon: <LinkIcon className="h-4 w-4" />, tone: "teal" },
-  unshare_document: { label: "Unshared document", category: "sharing", icon: <LinkIcon className="h-4 w-4" />, tone: "amber" },
-  toggle_billing_shared: { label: "Toggled billing share", category: "sharing", icon: <LinkIcon className="h-4 w-4" />, tone: "teal" },
+  share_document: {
+    label: "Shared document",
+    category: "sharing",
+    icon: <LinkIcon className="h-4 w-4" />,
+    tone: "teal",
+  },
+  unshare_document: {
+    label: "Unshared document",
+    category: "sharing",
+    icon: <LinkIcon className="h-4 w-4" />,
+    tone: "amber",
+  },
+  toggle_billing_shared: {
+    label: "Toggled billing share",
+    category: "sharing",
+    icon: <LinkIcon className="h-4 w-4" />,
+    tone: "teal",
+  },
 
-  create_billing_doc: { label: "Created quote/invoice", category: "billing", icon: <Receipt className="h-4 w-4" />, tone: "blue" },
-  update_billing_doc: { label: "Updated quote/invoice", category: "billing", icon: <Pencil className="h-4 w-4" />, tone: "blue" },
-  delete_billing_doc: { label: "Deleted quote/invoice", category: "billing", icon: <Trash2 className="h-4 w-4" />, tone: "red" },
-  convert_quote_to_invoice: { label: "Converted quote to invoice", category: "billing", icon: <Receipt className="h-4 w-4" />, tone: "green" },
-  send_billing_doc: { label: "Sent quote/invoice", category: "billing", icon: <Send className="h-4 w-4" />, tone: "teal" },
+  create_billing_doc: {
+    label: "Created quote/invoice",
+    category: "billing",
+    icon: <Receipt className="h-4 w-4" />,
+    tone: "blue",
+  },
+  update_billing_doc: {
+    label: "Updated quote/invoice",
+    category: "billing",
+    icon: <Pencil className="h-4 w-4" />,
+    tone: "blue",
+  },
+  delete_billing_doc: {
+    label: "Deleted quote/invoice",
+    category: "billing",
+    icon: <Trash2 className="h-4 w-4" />,
+    tone: "red",
+  },
+  convert_quote_to_invoice: {
+    label: "Converted quote to invoice",
+    category: "billing",
+    icon: <Receipt className="h-4 w-4" />,
+    tone: "green",
+  },
+  send_billing_doc: {
+    label: "Sent quote/invoice",
+    category: "billing",
+    icon: <Send className="h-4 w-4" />,
+    tone: "teal",
+  },
 };
 
 function metaFor(action: string): ActionMeta {
@@ -111,9 +236,13 @@ function parseDevice(ua: string | null): { icon: ReactElement; label: string; ki
   else if (/safari\//.test(u) && !/chrome\//.test(u)) browser = "Safari";
 
   const icon =
-    device === "mobile" ? <Smartphone className="h-4 w-4" /> :
-    device === "tablet" ? <Tablet className="h-4 w-4" /> :
-    <Monitor className="h-4 w-4" />;
+    device === "mobile" ? (
+      <Smartphone className="h-4 w-4" />
+    ) : device === "tablet" ? (
+      <Tablet className="h-4 w-4" />
+    ) : (
+      <Monitor className="h-4 w-4" />
+    );
   return { icon, label: `${browser} · ${os}`, kind: device };
 }
 
@@ -123,8 +252,11 @@ function formatFullTs(iso: string) {
   try {
     const d = new Date(iso);
     const s = d.toLocaleString(undefined, {
-      day: "numeric", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
     return `${s} · ${TZ}`;
   } catch {
@@ -225,10 +357,7 @@ function AgencyActivityLog() {
     queryFn: () => actionsFn() as Promise<string[]>,
   });
 
-  const filtered: AuditRow[] = useMemo(
-    () => (rows.data?.pages ?? []).flat(),
-    [rows.data],
-  );
+  const filtered: AuditRow[] = useMemo(() => (rows.data?.pages ?? []).flat(), [rows.data]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: summary.data?.total ?? 0 };
@@ -240,15 +369,38 @@ function AgencyActivityLog() {
   }, [summary.data]);
 
   const handleExport = () => {
-    const header = ["Timestamp", "Timezone", "Actor", "Actor email", "Action", "Category", "Target type", "Target", "Device", "IP address"];
+    const header = [
+      "Timestamp",
+      "Timezone",
+      "Actor",
+      "Actor email",
+      "Action",
+      "Category",
+      "Target type",
+      "Target",
+      "Device",
+      "IP address",
+    ];
     const lines = [header.map(csvEscape).join(",")];
     for (const r of filtered) {
       const m = metaFor(r.action);
       const dev = parseDevice(r.userAgent);
-      lines.push([
-        r.createdAt, TZ, r.actorName, r.actorEmail ?? "", m.label, m.category,
-        r.targetType ?? "", r.targetLabel ?? "", dev.label, r.ipAddress ?? "",
-      ].map(csvEscape).join(","));
+      lines.push(
+        [
+          r.createdAt,
+          TZ,
+          r.actorName,
+          r.actorEmail ?? "",
+          m.label,
+          m.category,
+          r.targetType ?? "",
+          r.targetLabel ?? "",
+          dev.label,
+          r.ipAddress ?? "",
+        ]
+          .map(csvEscape)
+          .join(","),
+      );
     }
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -281,7 +433,9 @@ function AgencyActivityLog() {
             aria-label="Date range"
           >
             {RANGE_OPTIONS.map((o) => (
-              <option key={o.key} value={o.key}>{o.label}</option>
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
             ))}
           </select>
           <button className="tvp-secondary" onClick={handleExport} disabled={!filtered.length}>
@@ -315,8 +469,12 @@ function AgencyActivityLog() {
               </button>
             );
           })}
-          <div className="tvp-muted" style={{ alignSelf: "center", fontSize: 12, marginLeft: "auto" }}>
-            Showing {filtered.length} of {counts[category] ?? 0} event{(counts[category] ?? 0) === 1 ? "" : "s"}
+          <div
+            className="tvp-muted"
+            style={{ alignSelf: "center", fontSize: 12, marginLeft: "auto" }}
+          >
+            Showing {filtered.length} of {counts[category] ?? 0} event
+            {(counts[category] ?? 0) === 1 ? "" : "s"}
             {actions.data ? ` · ${actions.data.length} action types tracked` : ""}
           </div>
         </div>
@@ -344,13 +502,15 @@ function AgencyActivityLog() {
                   alignItems: "flex-start",
                 }}
               >
-                <div className={`tvp-kpi-icon tvp-bg-${m.tone} shrink-0`} style={{ width: 36, height: 36 }}>
+                <div
+                  className={`tvp-kpi-icon tvp-bg-${m.tone} shrink-0`}
+                  style={{ width: 36, height: 36 }}
+                >
                   {m.icon}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14 }}>
-                    <strong>{r.actorName}</strong>{" "}
-                    <span className="tvp-muted">— {m.label}</span>
+                    <strong>{r.actorName}</strong> <span className="tvp-muted">— {m.label}</span>
                     {r.targetLabel && (
                       <>
                         {" "}
@@ -358,7 +518,16 @@ function AgencyActivityLog() {
                       </>
                     )}
                   </div>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 4, display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  <div
+                    className="tvp-muted"
+                    style={{
+                      fontSize: 12,
+                      marginTop: 4,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 10,
+                    }}
+                  >
                     <span>{formatFullTs(r.createdAt)}</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       {dev.icon}

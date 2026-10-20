@@ -22,7 +22,13 @@ export type MyAcceptance = {
 
 export type TermsStatus = {
   required: boolean;
-  current: { id: string; version: string; title: string; body: string; effective_at: string } | null;
+  current: {
+    id: string;
+    version: string;
+    title: string;
+    body: string;
+    effective_at: string;
+  } | null;
   acceptances: MyAcceptance[];
 };
 
@@ -43,7 +49,12 @@ async function belongsToPortal(sb: any, userId: string, portal: TermsPortal): Pr
       .maybeSingle();
     return !!data;
   }
-  const { data } = await sb.from("agency_members").select("agency_id").eq("user_id", userId).limit(1).maybeSingle();
+  const { data } = await sb
+    .from("agency_members")
+    .select("agency_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
   return !!data;
 }
 
@@ -62,7 +73,9 @@ export const getMyTermsStatus = createServerFn({ method: "POST" })
         .maybeSingle(),
       sb
         .from("legal_acceptances")
-        .select("id, doc_type, version, accepted_at, proof_ref, acceptance_method, hash_retrospective, document_id")
+        .select(
+          "id, doc_type, version, accepted_at, proof_ref, acceptance_method, hash_retrospective, document_id",
+        )
         .eq("user_id", userId)
         .order("accepted_at", { ascending: false }),
     ]);
@@ -89,9 +102,10 @@ export const acceptCurrentTerms = createServerFn({ method: "POST" })
       .eq("is_current", true)
       .maybeSingle();
     if (!current || current.id !== data.document_id)
-      throw new Error("These Terms have been updated. Please reload the page and read the latest version.");
-    if (!(await belongsToPortal(sb, context.userId, data.portal)))
-      throw new Error("Forbidden");
+      throw new Error(
+        "These Terms have been updated. Please reload the page and read the latest version.",
+      );
+    if (!(await belongsToPortal(sb, context.userId, data.portal))) throw new Error("Forbidden");
     const { recordLegalAcceptance } = await import("@/lib/legal-acceptance.server");
     return recordLegalAcceptance({
       userId: context.userId,
@@ -114,7 +128,10 @@ export const getAcceptedTermsText = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!acc) throw new Error("Not found");
     if (acc.user_id !== context.userId) {
-      const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+      const { data: isAdmin } = await context.supabase.rpc("has_role", {
+        _user_id: context.userId,
+        _role: "admin",
+      });
       if (!isAdmin) throw new Error("Not found");
     }
     const { data: doc } = await sb
@@ -129,7 +146,10 @@ export const getAcceptedTermsText = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------- admin ----
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  const { data, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: admin only");
 }
@@ -159,7 +179,8 @@ export type AdminAcceptanceRow = {
 
 async function identityMaps(sb: any, userIds: string[]) {
   const ids = [...new Set(userIds)];
-  if (ids.length === 0) return { prof: new Map(), talent: new Map(), member: new Map(), agencies: new Map() };
+  if (ids.length === 0)
+    return { prof: new Map(), talent: new Map(), member: new Map(), agencies: new Map() };
   const [{ data: profs }, { data: tps }, { data: mems }] = await Promise.all([
     sb.from("profiles").select("id, email, display_name").in("id", ids),
     sb.from("talent_profiles").select("user_id, full_name").in("user_id", ids),
@@ -179,59 +200,86 @@ async function identityMaps(sb: any, userIds: string[]) {
 
 export const listTermsAcceptances = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ rows: AdminAcceptanceRow[]; versions: { doc_type: string; version: string; is_current: boolean }[] }> => {
-    await assertAdmin(context);
-    const sb = await admin();
-    const [{ data: accs, error }, { data: docs }] = await Promise.all([
-      sb.from("legal_acceptances").select("*").order("accepted_at", { ascending: false }).limit(5000),
-      sb.from("legal_documents").select("id, doc_type, version, is_current, body_sha256").order("effective_at"),
-    ]);
-    if (error) throw new Error(error.message);
-    const docHash = new Map((docs ?? []).map((d: any) => [d.id, d.body_sha256]));
-    const maps = await identityMaps(sb, (accs ?? []).map((a: any) => a.user_id));
-    const extraAgencyIds = (accs ?? [])
-      .map((a: any) => a.agency_id)
-      .filter((id: string | null) => id && !maps.agencies.has(id));
-    if (extraAgencyIds.length) {
-      const { data: ags } = await sb.from("agencies").select("id, name").in("id", extraAgencyIds);
-      for (const a of ags ?? []) maps.agencies.set(a.id, a.name);
-    }
-    const rows = (accs ?? []).map((a: any): AdminAcceptanceRow => {
-      const p: any = maps.prof.get(a.user_id);
-      const t: any = maps.talent.get(a.user_id);
-      const m: any = maps.member.get(a.user_id);
-      const stamped = !!a.user_email;
-      const fallbackRole =
-        a.doc_type === "talent" ? "talent" : m ? (m.role === "owner" ? "agency_owner" : "agency_staff") : null;
-      const agencyId = a.agency_id ?? (a.doc_type === "agency" ? (m?.agency_id ?? null) : null);
-      const document_sha256 = (a.document_id && docHash.get(a.document_id)) ?? null;
+  .handler(
+    async ({
+      context,
+    }): Promise<{
+      rows: AdminAcceptanceRow[];
+      versions: { doc_type: string; version: string; is_current: boolean }[];
+    }> => {
+      await assertAdmin(context);
+      const sb = await admin();
+      const [{ data: accs, error }, { data: docs }] = await Promise.all([
+        sb
+          .from("legal_acceptances")
+          .select("*")
+          .order("accepted_at", { ascending: false })
+          .limit(5000),
+        sb
+          .from("legal_documents")
+          .select("id, doc_type, version, is_current, body_sha256")
+          .order("effective_at"),
+      ]);
+      if (error) throw new Error(error.message);
+      const docHash = new Map((docs ?? []).map((d: any) => [d.id, d.body_sha256]));
+      const maps = await identityMaps(
+        sb,
+        (accs ?? []).map((a: any) => a.user_id),
+      );
+      const extraAgencyIds = (accs ?? [])
+        .map((a: any) => a.agency_id)
+        .filter((id: string | null) => id && !maps.agencies.has(id));
+      if (extraAgencyIds.length) {
+        const { data: ags } = await sb.from("agencies").select("id, name").in("id", extraAgencyIds);
+        for (const a of ags ?? []) maps.agencies.set(a.id, a.name);
+      }
+      const rows = (accs ?? []).map((a: any): AdminAcceptanceRow => {
+        const p: any = maps.prof.get(a.user_id);
+        const t: any = maps.talent.get(a.user_id);
+        const m: any = maps.member.get(a.user_id);
+        const stamped = !!a.user_email;
+        const fallbackRole =
+          a.doc_type === "talent"
+            ? "talent"
+            : m
+              ? m.role === "owner"
+                ? "agency_owner"
+                : "agency_staff"
+              : null;
+        const agencyId = a.agency_id ?? (a.doc_type === "agency" ? (m?.agency_id ?? null) : null);
+        const document_sha256 = (a.document_id && docHash.get(a.document_id)) ?? null;
+        return {
+          id: a.id,
+          user_id: a.user_id,
+          name: a.user_full_name ?? t?.full_name ?? p?.display_name ?? null,
+          email: a.user_email ?? p?.email ?? null,
+          stamped_identity: stamped,
+          role: a.user_role ?? fallbackRole,
+          agency_id: agencyId,
+          agency_name: agencyId ? (maps.agencies.get(agencyId) ?? null) : null,
+          doc_type: a.doc_type,
+          version: a.version,
+          accepted_at: a.accepted_at,
+          ip_address: a.ip_address,
+          user_agent: a.user_agent,
+          proof_ref: a.proof_ref,
+          acceptance_method: a.acceptance_method,
+          hash_retrospective: a.hash_retrospective,
+          body_sha256: a.body_sha256,
+          document_sha256,
+          text_verified: !!a.body_sha256 && a.body_sha256 === document_sha256,
+        };
+      });
       return {
-        id: a.id,
-        user_id: a.user_id,
-        name: a.user_full_name ?? t?.full_name ?? p?.display_name ?? null,
-        email: a.user_email ?? p?.email ?? null,
-        stamped_identity: stamped,
-        role: a.user_role ?? fallbackRole,
-        agency_id: agencyId,
-        agency_name: agencyId ? (maps.agencies.get(agencyId) ?? null) : null,
-        doc_type: a.doc_type,
-        version: a.version,
-        accepted_at: a.accepted_at,
-        ip_address: a.ip_address,
-        user_agent: a.user_agent,
-        proof_ref: a.proof_ref,
-        acceptance_method: a.acceptance_method,
-        hash_retrospective: a.hash_retrospective,
-        body_sha256: a.body_sha256,
-        document_sha256,
-        text_verified: !!a.body_sha256 && a.body_sha256 === document_sha256,
+        rows,
+        versions: (docs ?? []).map((d: any) => ({
+          doc_type: d.doc_type,
+          version: d.version,
+          is_current: d.is_current,
+        })),
       };
-    });
-    return {
-      rows,
-      versions: (docs ?? []).map((d: any) => ({ doc_type: d.doc_type, version: d.version, is_current: d.is_current })),
-    };
-  });
+    },
+  );
 
 export type NotAcceptedRow = {
   user_id: string;
@@ -252,9 +300,17 @@ export const listTermsNotAccepted = createServerFn({ method: "POST" })
     const sb = await admin();
     const [{ data: docs }, { data: tps }, { data: mems }, { data: accs }] = await Promise.all([
       sb.from("legal_documents").select("id, doc_type, version").eq("is_current", true),
-      sb.from("talent_profiles").select("user_id, full_name").not("user_id", "is", null).is("deleted_at", null).eq("is_test", false),
+      sb
+        .from("talent_profiles")
+        .select("user_id, full_name")
+        .not("user_id", "is", null)
+        .is("deleted_at", null)
+        .eq("is_test", false),
       sb.from("agency_members").select("user_id, agency_id, role"),
-      sb.from("legal_acceptances").select("user_id, doc_type, version, document_id, accepted_at").order("accepted_at"),
+      sb
+        .from("legal_acceptances")
+        .select("user_id, doc_type, version, document_id, accepted_at")
+        .order("accepted_at"),
     ]);
     const current = new Map((docs ?? []).map((d: any) => [d.doc_type, d]));
     const accepted = new Set((accs ?? []).map((a: any) => `${a.user_id}:${a.document_id}`));

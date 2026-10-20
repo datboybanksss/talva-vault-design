@@ -22,7 +22,8 @@ export const Route = createFileRoute("/admin/reporting")({
       { property: "og:title", content: "Reporting · TalVault Admin" },
       {
         property: "og:description",
-        content: "Growth, engagement, financial and retention metrics across the TalVault platform.",
+        content:
+          "Growth, engagement, financial and retention metrics across the TalVault platform.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -100,12 +101,25 @@ function Card({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="tvp-card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 4 }}>
+    <div
+      className="tvp-card"
+      style={{ padding: 16, display: "flex", flexDirection: "column", gap: 4 }}
+    >
       <div className="tvp-kpi-label">{label}</div>
-      <div className="tvp-kpi-value" style={{ fontSize: 26 }}>{value}</div>
-      {sub && <div className="tvp-muted" style={{ fontSize: 12 }}>{sub}</div>}
+      <div className="tvp-kpi-value" style={{ fontSize: 26 }}>
+        {value}
+      </div>
+      {sub && (
+        <div className="tvp-muted" style={{ fontSize: 12 }}>
+          {sub}
+        </div>
+      )}
       {children}
-      {note && <div className="tvp-muted" style={{ fontSize: 11, fontStyle: "italic" }}>{note}</div>}
+      {note && (
+        <div className="tvp-muted" style={{ fontSize: 11, fontStyle: "italic" }}>
+          {note}
+        </div>
+      )}
       {metric && onDrill && (
         <button
           className="tvp-link"
@@ -136,7 +150,9 @@ function ReportingPage() {
     if (!d) return undefined;
     if (!d.trackingSince) return "Tracking starts with the first recorded talent activity.";
     return `Tracking since ${new Date(d.trackingSince).toLocaleDateString("en-ZA", {
-      day: "numeric", month: "short", year: "numeric",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     })}`;
   }, [d]);
 
@@ -149,22 +165,61 @@ function ReportingPage() {
       ["Generated", new Date(d.generatedAt).toLocaleString("en-ZA")],
       [],
       ["Metric", "Value", "Context"],
-      ["Two-sided engagement (north star)", `${d.northStar.pct}%`, `${d.northStar.active} of ${d.northStar.total} live agency-talent relationships active on both sides`],
+      [
+        "Two-sided engagement (north star)",
+        `${d.northStar.pct}%`,
+        `${d.northStar.active} of ${d.northStar.total} live agency-talent relationships active on both sides`,
+      ],
       ["Agencies added", d.growth.agenciesAdded, `${d.growth.agenciesAddedPrior} in prior period`],
-      ["Invite-to-acceptance rate", `${d.growth.acceptanceRate}%`, `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations`],
-      ["Median time to accept (days)", d.growth.medianDaysToAccept ?? "No acceptances", `${d.growth.acceptedInPeriod} accepted in period`],
-      ["Talent active in period", d.engagement.activeTalent, `of ${d.engagement.totalTalent} onboarded talent`],
-      ["Talent onboarded", d.engagement.talentSplit.total, `${d.engagement.talentSplit.agencyLinked} agency-linked · ${d.engagement.talentSplit.independent} independent`],
-      [`Agencies whose talent use ${SHARE_RECIPIENT_TERM} sharing`, d.engagement.agenciesWithShare, `${d.engagement.sharesCreated} new ${SHARE_RECIPIENT_TERM} shares`],
-      ["Documents uploaded", d.engagement.documentsUploaded, `${d.engagement.sharedDocuments} shared, ${d.engagement.privateDocuments} private`],
+      [
+        "Invite-to-acceptance rate",
+        `${d.growth.acceptanceRate}%`,
+        `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations`,
+      ],
+      [
+        "Median time to accept (days)",
+        d.growth.medianDaysToAccept ?? "No acceptances",
+        `${d.growth.acceptedInPeriod} accepted in period`,
+      ],
+      [
+        "Talent active in period",
+        d.engagement.activeTalent,
+        `of ${d.engagement.totalTalent} onboarded talent`,
+      ],
+      [
+        "Talent onboarded",
+        d.engagement.talentSplit.total,
+        `${d.engagement.talentSplit.agencyLinked} agency-linked · ${d.engagement.talentSplit.independent} independent`,
+      ],
+      [
+        `Agencies whose talent use ${SHARE_RECIPIENT_TERM} sharing`,
+        d.engagement.agenciesWithShare,
+        `${d.engagement.sharesCreated} new ${SHARE_RECIPIENT_TERM} shares`,
+      ],
+      [
+        "Documents uploaded",
+        d.engagement.documentsUploaded,
+        `${d.engagement.sharedDocuments} shared, ${d.engagement.privateDocuments} private`,
+      ],
       ["Quotes generated", d.financials.quotesCount, zar(d.financials.quotesValueCents)],
       ["Invoices generated", d.financials.invoicesCount, zar(d.financials.invoicesValueCents)],
-      ["Amount received", zar(d.financials.receivedCents), `${d.financials.paymentsCount} payments, including partial payments`],
+      [
+        "Amount received",
+        zar(d.financials.receivedCents),
+        `${d.financials.paymentsCount} payments, including partial payments`,
+      ],
       ["Outstanding", zar(d.financials.outstandingCents), "Invoiced in period, not yet received"],
       [],
-      ["Cohort month", "Talent onboarded", "Active at 30 days", "Active at 60 days", "Active at 90 days"],
+      [
+        "Cohort month",
+        "Talent onboarded",
+        "Active at 30 days",
+        "Active at 60 days",
+        "Active at 90 days",
+      ],
       ...d.cohorts.map((c: any) => [
-        c.month, c.size,
+        c.month,
+        c.size,
         c.d30.mature ? `${Math.round((c.d30.active / c.d30.mature) * 100)}%` : "Not yet due",
         c.d60.mature ? `${Math.round((c.d60.active / c.d60.mature) * 100)}%` : "Not yet due",
         c.d90.mature ? `${Math.round((c.d90.active / c.d90.mature) * 100)}%` : "Not yet due",
@@ -220,7 +275,9 @@ function ReportingPage() {
             <label>Date range</label>
             <select value={preset} onChange={(e) => setPreset(e.target.value as Preset)}>
               {(Object.keys(PRESET_LABEL) as Preset[]).map((p) => (
-                <option key={p} value={p}>{PRESET_LABEL[p]}</option>
+                <option key={p} value={p}>
+                  {PRESET_LABEL[p]}
+                </option>
               ))}
             </select>
           </div>
@@ -265,8 +322,17 @@ function ReportingPage() {
       {d && (
         <>
           {/* North star */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>North star</h2>
-          <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 24 }}>
+          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
+            North star
+          </h2>
+          <div
+            className="tvp-grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 12,
+              marginBottom: 24,
+            }}
+          >
             <Card
               label="Two-sided engagement (agency and talent)"
               value={`${d.northStar.pct}%`}
@@ -284,8 +350,17 @@ function ReportingPage() {
           </div>
 
           {/* Growth & funnel */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>Growth &amp; funnel</h2>
-          <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginBottom: 24 }}>
+          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
+            Growth &amp; funnel
+          </h2>
+          <div
+            className="tvp-grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 12,
+              marginBottom: 24,
+            }}
+          >
             <Card
               label="Agencies added"
               value={String(d.growth.agenciesAdded)}
@@ -315,8 +390,17 @@ function ReportingPage() {
           </div>
 
           {/* Engagement */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>Engagement &amp; activity</h2>
-          <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginBottom: 24 }}>
+          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
+            Engagement &amp; activity
+          </h2>
+          <div
+            className="tvp-grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 12,
+              marginBottom: 24,
+            }}
+          >
             <Card
               label="Talent active in period"
               value={`${d.engagement.activeTalent} / ${d.engagement.totalTalent}`}
@@ -342,8 +426,17 @@ function ReportingPage() {
           </div>
 
           {/* Financials */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>Financials</h2>
-          <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginBottom: 24 }}>
+          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
+            Financials
+          </h2>
+          <div
+            className="tvp-grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 12,
+              marginBottom: 24,
+            }}
+          >
             <Card
               label="Quotes generated"
               value={String(d.financials.quotesCount)}
@@ -376,7 +469,9 @@ function ReportingPage() {
           </div>
 
           {/* Cohort retention */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>Cohort retention</h2>
+          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
+            Cohort retention
+          </h2>
           <div className="tvp-table-wrap" style={{ marginBottom: 32 }}>
             <table className="tvp-table">
               <thead>
@@ -400,7 +495,8 @@ function ReportingPage() {
                   <tr key={c.month}>
                     <td>
                       {new Date(`${c.month}-01T00:00:00Z`).toLocaleDateString("en-ZA", {
-                        month: "long", year: "numeric",
+                        month: "long",
+                        year: "numeric",
                       })}
                     </td>
                     <td>{c.size}</td>
@@ -417,7 +513,10 @@ function ReportingPage() {
                 ))}
               </tbody>
             </table>
-            <p className="tvp-muted" style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}>
+            <p
+              className="tvp-muted"
+              style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}
+            >
               {trackingNote} · Cohorts only count talent whose window has already closed.
             </p>
           </div>

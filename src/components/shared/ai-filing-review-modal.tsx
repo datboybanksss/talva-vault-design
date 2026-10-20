@@ -144,7 +144,8 @@ function FieldProvenance({
         {mode === "ai" && !edited && (
           <Button
             type="button"
-            variant="ghost" className="tvp-ghost"
+            variant="ghost"
+            className="tvp-ghost"
             data-tour="filing-source-toggle"
             onClick={() => setShowSource((v) => !v)}
             aria-expanded={showSource}
@@ -160,9 +161,7 @@ function FieldProvenance({
       )}
       {mode === "ai" && showSource && (
         <p className="tvp-provenance__source">
-          {sourceText
-            ? `"${sourceText}"`
-            : "The suggestion was made from the document's contents."}
+          {sourceText ? `"${sourceText}"` : "The suggestion was made from the document's contents."}
         </p>
       )}
     </div>
@@ -199,10 +198,12 @@ export function AiFilingReviewModal({
   /** The person's own switch; starts from the server, flipped by the popup link. */
   const [aiOverride, setAiOverride] = useState<boolean | null>(null);
   const preference = useQuery<{ aiEnabled: boolean }>({
-    queryKey: ["ai-filing-preference"], enabled: false,
+    queryKey: ["ai-filing-preference"],
+    enabled: false,
     queryFn: async () => ({ aiEnabled: data?.aiEnabled !== false }),
   });
-  const aiEnabled = aiOverride ?? preference.data?.aiEnabled ?? (data ? data.aiEnabled !== false : false);
+  const aiEnabled =
+    aiOverride ?? preference.data?.aiEnabled ?? (data ? data.aiEnabled !== false : false);
   const togglePending = useRef(false);
   const pollStarted = useRef(Date.now());
   const pollAttempts = useRef(0);
@@ -227,17 +228,47 @@ export function AiFilingReviewModal({
     enabled: !!data && aiEnabled && !suggestionProp && !pollStopped && !togglePending.current,
     retry: false,
     refetchOnWindowFocus: false,
-    refetchInterval: (q) => (!pollStopped && q.state.status !== "error" && isPending((q.state.data as AnalysisView | undefined)?.status) ? 2000 : false),
+    refetchInterval: (q) =>
+      !pollStopped &&
+      q.state.status !== "error" &&
+      isPending((q.state.data as AnalysisView | undefined)?.status)
+        ? 2000
+        : false,
   });
   useEffect(() => {
-    if (!aiEnabled || suggestionProp || !data || pollStopped || analysisQ.isError || !isPending(analysisQ.data?.status) && !analysisQ.isLoading) return;
-    const timer = setTimeout(() => {
-      setPollStopped(true);
-      void qc.cancelQueries({ queryKey: analysisKey });
-    }, Math.max(0, 120_000 - (Date.now() - pollStarted.current)));
+    if (
+      !aiEnabled ||
+      suggestionProp ||
+      !data ||
+      pollStopped ||
+      analysisQ.isError ||
+      (!isPending(analysisQ.data?.status) && !analysisQ.isLoading)
+    )
+      return;
+    const timer = setTimeout(
+      () => {
+        setPollStopped(true);
+        void qc.cancelQueries({ queryKey: analysisKey });
+      },
+      Math.max(0, 120_000 - (Date.now() - pollStarted.current)),
+    );
     return () => clearTimeout(timer);
-  }, [aiEnabled, data, suggestionProp, pollStopped, analysisQ.isError, analysisQ.data?.status, analysisQ.isLoading, qc, scope, documentId]);
-  const analysis = aiEnabled && !pollStopped && !analysisQ.isError ? (analysisQ.data as AnalysisView | undefined) : undefined;
+  }, [
+    aiEnabled,
+    data,
+    suggestionProp,
+    pollStopped,
+    analysisQ.isError,
+    analysisQ.data?.status,
+    analysisQ.isLoading,
+    qc,
+    scope,
+    documentId,
+  ]);
+  const analysis =
+    aiEnabled && !pollStopped && !analysisQ.isError
+      ? (analysisQ.data as AnalysisView | undefined)
+      : undefined;
   const status = analysis?.status ?? null;
 
   const aiSuggestion: FilingSuggestion | null = !aiEnabled
@@ -258,7 +289,12 @@ export function AiFilingReviewModal({
   );
 
   const analysing =
-    aiEnabled && !suggestionProp && !!data && !pollStopped && !analysisQ.isError && (analysisQ.isLoading || isPending(status));
+    aiEnabled &&
+    !suggestionProp &&
+    !!data &&
+    !pollStopped &&
+    !analysisQ.isError &&
+    (analysisQ.isLoading || isPending(status));
   const analysisFailed =
     aiEnabled &&
     !suggestionProp &&
@@ -367,7 +403,9 @@ export function AiFilingReviewModal({
           source: "filename",
         }
       : null;
-  const activeKey = active ? `${active.source}|${active.s.folder_id}|${active.s.expiry_date}` : "none";
+  const activeKey = active
+    ? `${active.source}|${active.s.folder_id}|${active.s.expiry_date}`
+    : "none";
 
   useEffect(() => {
     if (!data) return;
@@ -417,8 +455,7 @@ export function AiFilingReviewModal({
 
   const leadDays = Math.max(1, Math.min(365, Number(leadDaysText) || 0));
   const leadDaysValid = leadDaysText.trim() !== "" && Number(leadDaysText) >= 1;
-  const reminderDate =
-    expiry && !noReminder && leadDaysValid ? minusDays(expiry, leadDays) : null;
+  const reminderDate = expiry && !noReminder && leadDaysValid ? minusDays(expiry, leadDays) : null;
 
   // Without an upload folder to fall back on, a folder must be chosen unless a
   // suggestion filled one in.
@@ -492,7 +529,9 @@ export function AiFilingReviewModal({
       if (view) qc.setQueryData(analysisKey, view);
       setAiOverride(null);
     },
-    onSettled: () => { togglePending.current = false; },
+    onSettled: () => {
+      togglePending.current = false;
+    },
     onError: (e: any, next) => {
       togglePending.current = false;
       setAiOverride(null);
@@ -506,290 +545,283 @@ export function AiFilingReviewModal({
 
   return (
     <DocumentModal title="Filing review" onClose={onClose} busy={busy} className="tvp-filing-modal">
-        {/* Header */}
-        <div className="tvp-filing-header">
-          <span className="tvp-kpi-icon tvp-bg-purple">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <div className="tvp-filing-identity">
-            <h2 className="tvp-filing-title">
-              {mode === "ai" ? "AI filing review" : "Filing review"}
-            </h2>
-            <p className="tvp-muted tvp-filing-meta">
-              {documentName}
-            </p>
-          </div>
-          <Button variant="ghost" size="icon" className="tvp-mini-btn" title="Close" aria-label="Close" onClick={onClose} disabled={busy}>
-            <X className="h-4 w-4" />
-          </Button>
+      {/* Header */}
+      <div className="tvp-filing-header">
+        <span className="tvp-kpi-icon tvp-bg-purple">
+          <Sparkles className="h-4 w-4" />
+        </span>
+        <div className="tvp-filing-identity">
+          <h2 className="tvp-filing-title">
+            {mode === "ai" ? "AI filing review" : "Filing review"}
+          </h2>
+          <p className="tvp-muted tvp-filing-meta">{documentName}</p>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="tvp-mini-btn"
+          title="Close"
+          aria-label="Close"
+          onClick={onClose}
+          disabled={busy}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
-        {isLoading && (
-          <div className="tvp-muted tvp-filing-note">
-            <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
-            <span>Loading your folders…</span>
-          </div>
-        )}
+      {isLoading && (
+        <div className="tvp-muted tvp-filing-note">
+          <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
+          <span>Loading your folders…</span>
+        </div>
+      )}
 
-        {!isLoading && mode === "analysing" && (
-          <p
-            className="tvp-muted tvp-filing-note"
-            data-testid="filing-analysing"
-          >
-            <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
-            Reading your document… You can fill in the fields yourself or skip for now.
-          </p>
-        )}
+      {!isLoading && mode === "analysing" && (
+        <p className="tvp-muted tvp-filing-note" data-testid="filing-analysing">
+          <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
+          Reading your document… You can fill in the fields yourself or skip for now.
+        </p>
+      )}
 
-        {!isLoading && (isError || analysisFailed) && mode !== "ai" && mode !== "manual" && (
-          <p className="tvp-muted tvp-filing-note" data-testid="filing-failed">
-            Automatic analysis could not be completed. Review and file the document yourself.{" "}
-            {!isError && (
-              <Button
-                type="button"
-                variant="ghost" className="tvp-ghost"
-                onClick={() => retry.mutate()}
-                disabled={retry.isPending || busy}
-              >
-                <RotateCcw className="h-3.5 w-3.5" /> {retry.isPending ? "Retrying…" : "Retry"}
-              </Button>
-            )}
-          </p>
-        )}
-
-        {!isLoading && data && !suggestionProp && (
-          <div className="tvp-filing-meta">
+      {!isLoading && (isError || analysisFailed) && mode !== "ai" && mode !== "manual" && (
+        <p className="tvp-muted tvp-filing-note" data-testid="filing-failed">
+          Automatic analysis could not be completed. Review and file the document yourself.{" "}
+          {!isError && (
             <Button
               type="button"
-              variant="ghost" className="tvp-ghost"
-              data-tour="filing-ai-toggle"
-              onClick={() => toggleAi.mutate(!aiEnabled)}
-              disabled={toggleAi.isPending || busy}
+              variant="ghost"
+              className="tvp-ghost"
+              onClick={() => retry.mutate()}
+              disabled={retry.isPending || busy}
             >
-              {aiEnabled ? "Turn off AI organisation" : "Turn on AI organisation"}
+              <RotateCcw className="h-3.5 w-3.5" /> {retry.isPending ? "Retrying…" : "Retry"}
+            </Button>
+          )}
+        </p>
+      )}
+
+      {!isLoading && data && !suggestionProp && (
+        <div className="tvp-filing-meta">
+          <Button
+            type="button"
+            variant="ghost"
+            className="tvp-ghost"
+            data-tour="filing-ai-toggle"
+            onClick={() => toggleAi.mutate(!aiEnabled)}
+            disabled={toggleAi.isPending || busy}
+          >
+            {aiEnabled ? "Turn off AI organisation" : "Turn on AI organisation"}
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && (
+        <>
+          {/* ---------------- Folder & subfolder ---------------- */}
+          <section className="tvp-filing-section">
+            <div className="tvp-filing-section-head">
+              <FolderTree className="h-4 w-4 text-primary" />
+              <strong>Folder &amp; subfolder</strong>
+              {showConfidence && (
+                <span className="tvp-muted" data-tour="filing-confidence">
+                  {suggestion?.confidence} confidence
+                </span>
+              )}
+            </div>
+
+            <div className="tvp-filing-fields">
+              <label className="tvp-filing-field">
+                <span className="tvp-muted tvp-filing-meta">{destinationPrefix} folder</span>
+                <select
+                  className="tvp-select"
+                  data-tour="filing-folder"
+                  aria-label="Destination folder"
+                  value={topFolder}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setTopFolder(e.target.value);
+                    setSubFolder("");
+                    touchFolder();
+                  }}
+                >
+                  <option value="">
+                    {mustChooseFolder ? "Choose a folder" : "Leave where it was uploaded"}
+                  </option>
+                  {tree.order.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label
+                className={`tvp-filing-field${subOptions.length ? "" : " tvp-field-disabled"}`}
+              >
+                <span className="tvp-muted tvp-filing-meta">Subfolder</span>
+                <select
+                  className="tvp-select"
+                  data-tour="filing-subfolder"
+                  aria-label="Destination subfolder"
+                  value={subFolder}
+                  disabled={busy || subOptions.length === 0}
+                  onChange={(e) => {
+                    setSubFolder(e.target.value);
+                    touchFolder();
+                  }}
+                >
+                  <option value="" disabled={!activeGroup?.ownId && subOptions.length > 0}>
+                    {subOptions.length === 0
+                      ? "No subfolders"
+                      : activeGroup?.ownId
+                        ? "None — file in the main folder"
+                        : "Choose a subfolder"}
+                  </option>
+                  {subOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="tvp-filing-note" data-testid="filing-destination">
+              {destinationPrefix}: <strong>{destinationLabel ?? "Unfiled"}</strong>
+            </div>
+
+            {data?.secondaryHint && (
+              <div className="tvp-muted tvp-filing-meta">{data.secondaryHint}</div>
+            )}
+            {mode === "ai" && suggestion?.rationale && (
+              <div className="tvp-muted tvp-filing-meta">{suggestion.rationale}</div>
+            )}
+
+            <FieldProvenance
+              value={destinationLabel ?? "Unfiled"}
+              source={folderSource}
+              mode={mode}
+              confidence={suggestion?.confidence ?? null}
+              sourceText={suggestion?.folder_source_text ?? null}
+              touched={folderTouched}
+            />
+          </section>
+
+          {/* ---------------- Expiry & reminder ---------------- */}
+          <section className="tvp-filing-section">
+            <div className="tvp-filing-section-head">
+              <CalendarClock className="h-4 w-4 text-[var(--tvp-amber)]" />
+              <strong>Expiry &amp; reminder</strong>
+            </div>
+
+            <div className="tvp-filing-fields">
+              <label className="tvp-filing-field">
+                <span className="tvp-muted tvp-filing-meta">Expiry date</span>
+                <input
+                  type="date"
+                  className="tvp-select"
+                  data-tour="filing-expiry"
+                  aria-label="Expiry date"
+                  value={expiry}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setExpiry(e.target.value);
+                    setNoReminder(false);
+                    touchExpiry();
+                  }}
+                />
+              </label>
+
+              <label className={`tvp-filing-field${expiry ? "" : " tvp-field-disabled"}`}>
+                <span className="tvp-muted tvp-filing-meta">Remind me this many days before</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  className="tvp-select"
+                  data-tour="filing-reminder-days"
+                  aria-label="Reminder lead days"
+                  value={leadDaysText}
+                  disabled={busy || noReminder || !expiry}
+                  onChange={(e) => {
+                    setLeadDaysText(e.target.value.replace(/[^0-9]/g, "").slice(0, 3));
+                    touchExpiry();
+                  }}
+                  onBlur={() => setLeadDaysText(String(leadDays))}
+                />
+              </label>
+            </div>
+
+            {expiry && (
+              <label className="tvp-filing-note">
+                <input
+                  type="checkbox"
+                  checked={noReminder}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setNoReminder(e.target.checked);
+                    touchExpiry();
+                  }}
+                />
+                <span>No reminder needed for this document</span>
+              </label>
+            )}
+
+            <div className="tvp-muted tvp-filing-meta" data-testid="reminder-summary">
+              {!expiry
+                ? "No expiry set — add one above if this document has a valid-until date, and the reminder field unlocks."
+                : noReminder
+                  ? "No reminder will be set."
+                  : reminderDate
+                    ? `Reminder on ${reminderDate}.`
+                    : "Enter a lead time between 1 and 365 days to schedule a reminder."}
+            </div>
+
+            <FieldProvenance
+              value={expiry ? expiry : "No expiry"}
+              source={expirySource}
+              mode={mode}
+              confidence={suggestion?.confidence ?? null}
+              sourceText={suggestion?.expiry_source_text ?? null}
+              touched={expiryTouched}
+            />
+          </section>
+
+          {/* ---------------- Human validation notice ---------------- */}
+          <div className="tvp-muted tvp-filing-validation" data-tour="filing-validation-notice">
+            <strong>Human validation required.</strong>
+            <p>
+              Suggestions are never applied automatically. Edit anything above that isn't right,
+              then save — or skip for now and come back to it from the Pending review filter.
+            </p>
+          </div>
+
+          {/* ---------------- Footer ---------------- */}
+          <div className="tvp-filing-footer">
+            <Button
+              type="button"
+              variant="outline"
+              className="tvp-secondary"
+              data-tour="filing-skip"
+              title="Leave it where it was uploaded and review later"
+              onClick={() => skip.mutate()}
+              disabled={busy}
+            >
+              <Clock className="h-4 w-4" /> {skip.isPending ? "Skipping…" : "Skip for now"}
+            </Button>
+            <Button
+              type="button"
+              className="tvp-primary"
+              data-tour="filing-save"
+              onClick={() => save.mutate()}
+              disabled={saveDisabled}
+              title={saveDisabled && !busy ? "Choose a folder first" : undefined}
+            >
+              {save.isPending ? "Saving…" : "Save filing"}
             </Button>
           </div>
-        )}
-
-        {!isLoading && (
-          <>
-            {/* ---------------- Folder & subfolder ---------------- */}
-            <section className="tvp-filing-section">
-              <div className="tvp-filing-section-head">
-                <FolderTree className="h-4 w-4 text-primary" />
-                <strong>Folder &amp; subfolder</strong>
-                {showConfidence && (
-                  <span
-                    className="tvp-muted"
-                    data-tour="filing-confidence"
-                  >
-                    {suggestion?.confidence} confidence
-                  </span>
-                )}
-              </div>
-
-              <div className="tvp-filing-fields">
-                <label className="tvp-filing-field">
-                  <span className="tvp-muted tvp-filing-meta">
-                    {destinationPrefix} folder
-                  </span>
-                  <select
-                    className="tvp-select"
-                    data-tour="filing-folder"
-                    aria-label="Destination folder"
-                    value={topFolder}
-                    disabled={busy}
-                    onChange={(e) => {
-                      setTopFolder(e.target.value);
-                      setSubFolder("");
-                      touchFolder();
-                    }}
-                  >
-                    <option value="">
-                      {mustChooseFolder ? "Choose a folder" : "Leave where it was uploaded"}
-                    </option>
-                    {tree.order.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className={`tvp-filing-field${subOptions.length ? "" : " tvp-field-disabled"}`}>
-                  <span className="tvp-muted tvp-filing-meta">
-                    Subfolder
-                  </span>
-                  <select
-                    className="tvp-select"
-                    data-tour="filing-subfolder"
-                    aria-label="Destination subfolder"
-                    value={subFolder}
-                    disabled={busy || subOptions.length === 0}
-                    onChange={(e) => {
-                      setSubFolder(e.target.value);
-                      touchFolder();
-                    }}
-                  >
-                    <option value="" disabled={!activeGroup?.ownId && subOptions.length > 0}>
-                      {subOptions.length === 0
-                        ? "No subfolders"
-                        : activeGroup?.ownId
-                          ? "None — file in the main folder"
-                          : "Choose a subfolder"}
-                    </option>
-                    {subOptions.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <div className="tvp-filing-note" data-testid="filing-destination">
-                {destinationPrefix}: <strong>{destinationLabel ?? "Unfiled"}</strong>
-              </div>
-
-              {data?.secondaryHint && (
-                <div className="tvp-muted tvp-filing-meta">
-                  {data.secondaryHint}
-                </div>
-              )}
-              {mode === "ai" && suggestion?.rationale && (
-                <div className="tvp-muted tvp-filing-meta">
-                  {suggestion.rationale}
-                </div>
-              )}
-
-              <FieldProvenance
-                value={destinationLabel ?? "Unfiled"}
-                source={folderSource}
-                mode={mode}
-                confidence={suggestion?.confidence ?? null}
-                sourceText={suggestion?.folder_source_text ?? null}
-                touched={folderTouched}
-              />
-            </section>
-
-            {/* ---------------- Expiry & reminder ---------------- */}
-            <section className="tvp-filing-section">
-              <div className="tvp-filing-section-head">
-                <CalendarClock className="h-4 w-4 text-[var(--tvp-amber)]" />
-                <strong>Expiry &amp; reminder</strong>
-              </div>
-
-              <div className="tvp-filing-fields">
-                <label className="tvp-filing-field">
-                  <span className="tvp-muted tvp-filing-meta">
-                    Expiry date
-                  </span>
-                  <input
-                    type="date"
-                    className="tvp-select"
-                    data-tour="filing-expiry"
-                    aria-label="Expiry date"
-                    value={expiry}
-                    disabled={busy}
-                    onChange={(e) => {
-                      setExpiry(e.target.value);
-                      setNoReminder(false);
-                      touchExpiry();
-                    }}
-                  />
-                </label>
-
-                <label className={`tvp-filing-field${expiry ? "" : " tvp-field-disabled"}`}>
-                  <span className="tvp-muted tvp-filing-meta">
-                    Remind me this many days before
-                  </span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={365}
-                    className="tvp-select"
-                    data-tour="filing-reminder-days"
-                    aria-label="Reminder lead days"
-                    value={leadDaysText}
-                    disabled={busy || noReminder || !expiry}
-                    onChange={(e) => {
-                      setLeadDaysText(e.target.value.replace(/[^0-9]/g, "").slice(0, 3));
-                      touchExpiry();
-                    }}
-                    onBlur={() => setLeadDaysText(String(leadDays))}
-                  />
-                </label>
-              </div>
-
-              {expiry && (
-                <label
-                  className="tvp-filing-note"
-                >
-                  <input
-                    type="checkbox"
-                    checked={noReminder}
-                    disabled={busy}
-                    onChange={(e) => {
-                      setNoReminder(e.target.checked);
-                      touchExpiry();
-                    }}
-                  />
-                  <span>No reminder needed for this document</span>
-                </label>
-              )}
-
-              <div className="tvp-muted tvp-filing-meta" data-testid="reminder-summary">
-                {!expiry
-                  ? "No expiry set — add one above if this document has a valid-until date, and the reminder field unlocks."
-                  : noReminder
-                    ? "No reminder will be set."
-                    : reminderDate
-                      ? `Reminder on ${reminderDate}.`
-                      : "Enter a lead time between 1 and 365 days to schedule a reminder."}
-              </div>
-
-              <FieldProvenance
-                value={expiry ? expiry : "No expiry"}
-                source={expirySource}
-                mode={mode}
-                confidence={suggestion?.confidence ?? null}
-                sourceText={suggestion?.expiry_source_text ?? null}
-                touched={expiryTouched}
-              />
-            </section>
-
-            {/* ---------------- Human validation notice ---------------- */}
-            <div className="tvp-muted tvp-filing-validation" data-tour="filing-validation-notice">
-              <strong>Human validation required.</strong>
-              <p>Suggestions are never applied automatically. Edit anything above that isn't
-                right, then save — or skip for now and come back to it from the Pending review filter.</p>
-            </div>
-
-            {/* ---------------- Footer ---------------- */}
-            <div className="tvp-filing-footer">
-              <Button
-                type="button"
-                variant="outline" className="tvp-secondary"
-                data-tour="filing-skip"
-                title="Leave it where it was uploaded and review later"
-                onClick={() => skip.mutate()}
-                disabled={busy}
-              >
-                <Clock className="h-4 w-4" /> {skip.isPending ? "Skipping…" : "Skip for now"}
-              </Button>
-              <Button
-                type="button"
-                className="tvp-primary"
-                data-tour="filing-save"
-                onClick={() => save.mutate()}
-                disabled={saveDisabled}
-                title={saveDisabled && !busy ? "Choose a folder first" : undefined}
-              >
-                {save.isPending ? "Saving…" : "Save filing"}
-              </Button>
-            </div>
-          </>
-        )}
+        </>
+      )}
     </DocumentModal>
   );
 }

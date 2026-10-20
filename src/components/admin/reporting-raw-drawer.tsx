@@ -68,15 +68,22 @@ export function ReportingRawDrawer({
   return (
     <div
       style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 70,
-        display: "flex", justifyContent: "flex-end",
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        zIndex: 70,
+        display: "flex",
+        justifyContent: "flex-end",
       }}
       onClick={onClose}
     >
       <div
         className="tvp-card"
         style={{
-          width: "min(880px, 96vw)", height: "100%", borderRadius: 0, padding: 24,
+          width: "min(880px, 96vw)",
+          height: "100%",
+          borderRadius: 0,
+          padding: 24,
           overflowY: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -97,7 +104,9 @@ export function ReportingRawDrawer({
         </p>
 
         {data?.note && (
-          <p className="tvp-muted" style={{ fontSize: 12, marginBottom: 12 }}>{data.note}</p>
+          <p className="tvp-muted" style={{ fontSize: 12, marginBottom: 12 }}>
+            {data.note}
+          </p>
         )}
 
         {q.isLoading && <div className="tvp-muted">Loading rows…</div>}
@@ -110,12 +119,20 @@ export function ReportingRawDrawer({
             <div className="tvp-table-wrap">
               <table className="tvp-table">
                 <thead>
-                  <tr>{data.columns.map((c) => <th key={c}>{c}</th>)}</tr>
+                  <tr>
+                    {data.columns.map((c) => (
+                      <th key={c}>{c}</th>
+                    ))}
+                  </tr>
                 </thead>
                 <tbody>
                   {data.rows.length === 0 && (
                     <tr>
-                      <td colSpan={data.columns.length} className="tvp-muted" style={{ padding: 20 }}>
+                      <td
+                        colSpan={data.columns.length}
+                        className="tvp-muted"
+                        style={{ padding: 20 }}
+                      >
                         No records in this period.
                       </td>
                     </tr>

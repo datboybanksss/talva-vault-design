@@ -23,7 +23,8 @@ export const Route = createFileRoute("/api/public/verify-billing-sender")({
     handlers: {
       GET: async ({ request }) => {
         const token = new URL(request.url).searchParams.get("token") ?? "";
-        if (!token || token.length < 20) return page("Invalid link", "This verification link is not valid.", false);
+        if (!token || token.length < 20)
+          return page("Invalid link", "This verification link is not valid.", false);
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: agency } = await supabaseAdmin
@@ -32,9 +33,21 @@ export const Route = createFileRoute("/api/public/verify-billing-sender")({
           .eq("billing_from_token", token)
           .maybeSingle();
 
-        if (!agency) return page("Link already used", "This address has either been verified already or the link has been replaced by a newer one.", false);
-        if (!agency.billing_from_token_expires_at || new Date(agency.billing_from_token_expires_at).getTime() < Date.now()) {
-          return page("Link expired", "Verification links last 24 hours. Send yourself a new one from Settings → Quotes & Invoices.", false);
+        if (!agency)
+          return page(
+            "Link already used",
+            "This address has either been verified already or the link has been replaced by a newer one.",
+            false,
+          );
+        if (
+          !agency.billing_from_token_expires_at ||
+          new Date(agency.billing_from_token_expires_at).getTime() < Date.now()
+        ) {
+          return page(
+            "Link expired",
+            "Verification links last 24 hours. Send yourself a new one from Settings → Quotes & Invoices.",
+            false,
+          );
         }
 
         const { error } = await supabaseAdmin
@@ -45,7 +58,12 @@ export const Route = createFileRoute("/api/public/verify-billing-sender")({
             billing_from_token_expires_at: null,
           })
           .eq("id", agency.id);
-        if (error) return page("Something went wrong", "We could not verify this address. Please try again from Settings.", false);
+        if (error)
+          return page(
+            "Something went wrong",
+            "We could not verify this address. Please try again from Settings.",
+            false,
+          );
 
         return page(
           "Address verified",

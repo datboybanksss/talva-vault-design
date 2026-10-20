@@ -23,7 +23,10 @@ export const Route = createFileRoute("/agency/my-account")({
   head: () => ({
     meta: [
       { title: "My Account · TalVault Agency" },
-      { name: "description", content: "Your agency profile, sign-in email, password and two-factor settings." },
+      {
+        name: "description",
+        content: "Your agency profile, sign-in email, password and two-factor settings.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -46,15 +49,14 @@ function MyAccountPage() {
 
   const logPwFn = useServerFn(logOwnAgencyPasswordChange);
 
-
   return (
     <>
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">My Account</h1>
           <div className="tvp-subtitle">
-            Your personal profile, sign-in email, password and two-factor
-            settings. Changes only affect your own account.
+            Your personal profile, sign-in email, password and two-factor settings. Changes only
+            affect your own account.
           </div>
         </div>
       </div>
@@ -70,10 +72,7 @@ function MyAccountPage() {
           <div className="tvp-account-full">
             <AiFilingPreferenceCard />
           </div>
-          <PasswordCard
-            email={me.data.email}
-            logPasswordChange={() => logPwFn()}
-          />
+          <PasswordCard email={me.data.email} logPasswordChange={() => logPwFn()} />
           <div className="tvp-account-full">
             <TwoFactorCard contextLabel="agency" />
           </div>
@@ -159,24 +158,15 @@ function ProfileCard({ me }: { me: any }) {
 
         <div className="tv-auth-field">
           <label htmlFor="agency-role">Role</label>
-          <input
-            id="agency-role"
-            value={roleLabel(me.role)}
-            readOnly
-            disabled
-          />
+          <input id="agency-role" value={roleLabel(me.role)} readOnly disabled />
           <div className="tv-auth-hint">
-            Your role in {me.agency?.name ?? "this agency"}. Only the Manager (Owner)
-            can change roles from the Manage Staff page.
+            Your role in {me.agency?.name ?? "this agency"}. Only the Manager (Owner) can change
+            roles from the Manage Staff page.
           </div>
         </div>
 
         <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-          <button
-            type="submit"
-            className="tvp-primary"
-            disabled={!dirty || save.isPending}
-          >
+          <button type="submit" className="tvp-primary" disabled={!dirty || save.isPending}>
             {save.isPending ? "Saving…" : "Save profile"}
           </button>
         </div>
@@ -242,8 +232,8 @@ function EmailCard({ me }: { me: any }) {
             autoComplete="email"
           />
           <div className="tv-auth-hint">
-            We'll send a confirmation link to the new address. Your current
-            email stays active until you click it.
+            We'll send a confirmation link to the new address. Your current email stays active until
+            you click it.
           </div>
         </div>
 
@@ -251,11 +241,7 @@ function EmailCard({ me }: { me: any }) {
         {info && <div className="tv-form-alert tv-form-alert-info">{info}</div>}
 
         <div style={{ marginTop: 12 }}>
-          <button
-            type="submit"
-            className="tvp-primary"
-            disabled={!dirty || busy}
-          >
+          <button type="submit" className="tvp-primary" disabled={!dirty || busy}>
             {busy ? "Sending…" : "Request email change"}
           </button>
         </div>

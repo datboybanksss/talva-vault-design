@@ -56,7 +56,11 @@ const SIGNATURES: Signature[] = [
   { kind: "png", offset: 0, bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
   { kind: "ole", offset: 0, bytes: [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1] },
   // RIFF ???? WEBP
-  { kind: "webp", offset: 0, bytes: [0x52, 0x49, 0x46, 0x46, -1, -1, -1, -1, 0x57, 0x45, 0x42, 0x50] },
+  {
+    kind: "webp",
+    offset: 0,
+    bytes: [0x52, 0x49, 0x46, 0x46, -1, -1, -1, -1, 0x57, 0x45, 0x42, 0x50],
+  },
   // ???? ftyp heic / heix / hevc / mif1
   { kind: "heic", offset: 4, bytes: [0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69] },
   { kind: "heic", offset: 4, bytes: [0x66, 0x74, 0x79, 0x70, 0x6d, 0x69, 0x66, 0x31] },
@@ -74,12 +78,25 @@ const SIGNATURES: Signature[] = [
 
 /** Kinds acceptable in the document buckets. */
 const DOCUMENT_KINDS: ReadonlySet<DetectedKind> = new Set<DetectedKind>([
-  "pdf", "jpeg", "png", "gif", "webp", "heic", "tiff", "zip", "ole", "rtf", "text",
+  "pdf",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "heic",
+  "tiff",
+  "zip",
+  "ole",
+  "rtf",
+  "text",
 ]);
 
 /** Kinds acceptable for the agency logo. Raster only — SVG is never allowed. */
 const IMAGE_KINDS: ReadonlySet<DetectedKind> = new Set<DetectedKind>([
-  "jpeg", "png", "gif", "webp",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
 ]);
 
 /**
@@ -155,7 +172,6 @@ export function detectKind(head: Uint8Array): DetectedKind | null {
   if (looksLikeActiveMarkup(head)) return null;
   return "text";
 }
-
 
 export class UploadRejected extends Error {
   readonly code: string;

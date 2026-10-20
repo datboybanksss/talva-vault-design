@@ -62,7 +62,13 @@ export const BILLING_DOC_STATUS_TONE = billing.tone;
 /* ------------------------------------------------------------------------- */
 
 export type StToken =
-  | "incomplete" | "invited" | "accepted" | "expired" | "declined" | "suspended" | "neutral";
+  | "incomplete"
+  | "invited"
+  | "accepted"
+  | "expired"
+  | "declined"
+  | "suspended"
+  | "neutral";
 
 export type StatusFamily = "talentLink" | "invitation" | "agency" | "member" | "share" | "document";
 

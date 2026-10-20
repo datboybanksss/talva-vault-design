@@ -5,7 +5,11 @@ import { computeTotals, fmtMoney } from "@/lib/billing";
 
 export type BillingSendResult =
   | { sent: true; message_id?: string }
-  | { sent: false; reason: "email_not_configured" | "domain_unverified" | "send_failed"; detail?: string };
+  | {
+      sent: false;
+      reason: "email_not_configured" | "domain_unverified" | "send_failed";
+      detail?: string;
+    };
 
 /**
  * The platform sender. Outbound mail can only leave from a domain that has been
@@ -22,12 +26,14 @@ export function systemFromEmail(): string {
 }
 
 /** Display form of the From header actually used for an agency's billing mail. */
-export function billingFromHeader(agencyName: string | null | undefined, senderVerified: boolean, senderEmail?: string | null): string {
+export function billingFromHeader(
+  agencyName: string | null | undefined,
+  senderVerified: boolean,
+  senderEmail?: string | null,
+): string {
   const base = systemFromEmail();
   const name = agencyName?.trim() || "TalVault";
-  return senderVerified && senderEmail
-    ? `${name} (via TalVault) <${base}>`
-    : `${name} <${base}>`;
+  return senderVerified && senderEmail ? `${name} (via TalVault) <${base}>` : `${name} <${base}>`;
 }
 
 async function send(
@@ -67,7 +73,10 @@ async function send(
 }
 
 function esc(s: string) {
-  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+  return s.replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string,
+  );
 }
 
 function shell(title: string, bodyHtml: string) {
@@ -135,37 +144,39 @@ export async function sendBillingDocEmail(opts: {
 }): Promise<BillingSendResult> {
   const label = opts.kind === "quote" ? "Quotation" : "Invoice";
   const subject = `${label} ${opts.number} from ${opts.agencyName}`;
-  const dueLine =
-    opts.dueDate
-      ? `<p><strong>${opts.kind === "quote" ? "Valid until" : "Payment due"}:</strong> ${esc(opts.dueDate)}</p>`
-      : "";
+  const dueLine = opts.dueDate
+    ? `<p><strong>${opts.kind === "quote" ? "Valid until" : "Payment due"}:</strong> ${esc(opts.dueDate)}</p>`
+    : "";
   const lines = opts.lines ?? [];
   const totals = computeTotals(lines);
   const accent = /^#[0-9a-f]{6}$/i.test(opts.agency?.accentColor ?? "")
-    ? opts.agency?.accentColor ?? "#086a70"
+    ? (opts.agency?.accentColor ?? "#086a70")
     : "#086a70";
   // A VAT-registered agency issues a "Tax Invoice"; quotations keep their own heading.
-  const docHeading = opts.kind === "quote"
-    ? "Quotation"
-    : opts.agency?.isVatRegistered ? "Tax Invoice" : "Invoice";
+  const docHeading =
+    opts.kind === "quote" ? "Quotation" : opts.agency?.isVatRegistered ? "Tax Invoice" : "Invoice";
   const pay = opts.agency?.paymentDetails;
   const paymentRows = pay
-    ? ([
-        ["Bank", pay.bankName],
-        ["Account holder", pay.accountHolder],
-        ["Account number", pay.accountNumber],
-        ["Branch code", pay.branchCode],
-      ] as const).filter(([, value]) => !!value)
+    ? (
+        [
+          ["Bank", pay.bankName],
+          ["Account holder", pay.accountHolder],
+          ["Account number", pay.accountNumber],
+          ["Branch code", pay.branchCode],
+        ] as const
+      ).filter(([, value]) => !!value)
     : [];
-  const paymentHtml = pay && (paymentRows.length > 0 || pay.instructions)
-    ? `<div style="padding:14px 18px;border-top:1px solid #e7e5df;background:#faf9f6;font-size:12px;color:#33413f;">
+  const paymentHtml =
+    pay && (paymentRows.length > 0 || pay.instructions)
+      ? `<div style="padding:14px 18px;border-top:1px solid #e7e5df;background:#faf9f6;font-size:12px;color:#33413f;">
         <strong style="display:block;margin-bottom:6px;">Payment details</strong>
         ${paymentRows.map(([field, value]) => `<div>${esc(field)}: ${esc(String(value))}</div>`).join("")}
         ${pay.instructions ? `<div style="margin-top:6px;white-space:pre-line;">${esc(pay.instructions)}</div>` : ""}
       </div>`
-    : "";
-  const detailHtml = lines.length > 0
-    ? `<div style="margin:24px 0;border:1px solid #e7e5df;border-radius:6px;overflow:hidden;">
+      : "";
+  const detailHtml =
+    lines.length > 0
+      ? `<div style="margin:24px 0;border:1px solid #e7e5df;border-radius:6px;overflow:hidden;">
         <div style="padding:16px 18px;border-bottom:3px solid ${esc(accent)};display:flex;justify-content:space-between;gap:16px;">
           <div><strong style="font-size:18px;">${esc(opts.agencyName)}</strong>${opts.agency?.billingAddress ? `<div style="white-space:pre-line;color:#5b6769;font-size:12px;">${esc(opts.agency.billingAddress)}</div>` : ""}${opts.agency?.contactEmail ? `<div style="color:#5b6769;font-size:12px;">${esc(opts.agency.contactEmail)}</div>` : ""}${opts.agency?.phone ? `<div style="color:#5b6769;font-size:12px;">${esc(opts.agency.phone)}</div>` : ""}</div>
           <div style="text-align:right;"><strong>${esc(docHeading)} ${esc(opts.number)}</strong>${opts.issuedAt ? `<div style="font-size:12px;color:#5b6769;">Issued ${esc(opts.issuedAt)}</div>` : ""}${opts.dueDate ? `<div style="font-size:12px;color:#5b6769;">${opts.kind === "quote" ? "Valid until" : "Payment due"} ${esc(opts.dueDate)}</div>` : ""}</div>
@@ -179,11 +190,13 @@ export async function sendBillingDocEmail(opts: {
           <thead><tr style="background:#f2f1ed;color:#465456;">
             <th style="padding:9px 12px;text-align:left;">Description</th><th style="padding:9px 12px;text-align:right;">Qty</th><th style="padding:9px 12px;text-align:right;">Unit price</th><th style="padding:9px 12px;text-align:right;">VAT</th><th style="padding:9px 12px;text-align:right;">Total</th>
           </tr></thead>
-          <tbody>${lines.map((line) => {
-            const base = Math.round(line.quantity * line.unit_price_cents);
-            const vat = Math.round(base * line.vat_rate_bp / 10000);
-            return `<tr style="border-top:1px solid #e7e5df;"><td style="padding:10px 12px;">${esc(line.description)}</td><td style="padding:10px 12px;text-align:right;">${line.quantity}</td><td style="padding:10px 12px;text-align:right;">${esc(fmtMoney(line.unit_price_cents, opts.currency))}</td><td style="padding:10px 12px;text-align:right;">${(line.vat_rate_bp / 100).toFixed(2)}%</td><td style="padding:10px 12px;text-align:right;">${esc(fmtMoney(base + vat, opts.currency))}</td></tr>`;
-          }).join("")}</tbody>
+          <tbody>${lines
+            .map((line) => {
+              const base = Math.round(line.quantity * line.unit_price_cents);
+              const vat = Math.round((base * line.vat_rate_bp) / 10000);
+              return `<tr style="border-top:1px solid #e7e5df;"><td style="padding:10px 12px;">${esc(line.description)}</td><td style="padding:10px 12px;text-align:right;">${line.quantity}</td><td style="padding:10px 12px;text-align:right;">${esc(fmtMoney(line.unit_price_cents, opts.currency))}</td><td style="padding:10px 12px;text-align:right;">${(line.vat_rate_bp / 100).toFixed(2)}%</td><td style="padding:10px 12px;text-align:right;">${esc(fmtMoney(base + vat, opts.currency))}</td></tr>`;
+            })
+            .join("")}</tbody>
         </table>
         <div style="padding:14px 18px;border-top:1px solid #e7e5df;text-align:right;">
           <div>Subtotal: <strong>${esc(fmtMoney(totals.subtotal_cents, opts.currency))}</strong></div>
@@ -193,7 +206,7 @@ export async function sendBillingDocEmail(opts: {
         ${opts.agency?.isVatRegistered && opts.agency.vatNumber ? `<div style="padding:10px 18px;border-top:1px solid #e7e5df;color:#5b6769;font-size:12px;">Agency VAT number: ${esc(opts.agency.vatNumber)}</div>` : ""}
         ${paymentHtml}
       </div>`
-    : `<p style="font-size:22px;font-weight:700;margin:16px 0;">${esc(opts.amount)}</p>${paymentHtml}`;
+      : `<p style="font-size:22px;font-weight:700;margin:16px 0;">${esc(opts.amount)}</p>${paymentHtml}`;
   const html = shell(
     label,
     `<p>Hello${opts.clientName ? ` ${esc(opts.clientName)}` : ""},</p>
@@ -203,11 +216,13 @@ export async function sendBillingDocEmail(opts: {
      ${opts.notes ? `<p style="color:#4a5b5d;">${esc(opts.notes)}</p>` : ""}
      <p style="color:#6b7a7c;font-size:13px;">Reply to this email to reach ${esc(opts.agencyName)} directly.</p>`,
   );
-  const lineText = lines.map((line) => {
-    const base = Math.round(line.quantity * line.unit_price_cents);
-    const vat = Math.round(base * line.vat_rate_bp / 10000);
-    return `${line.description} — ${line.quantity} × ${fmtMoney(line.unit_price_cents, opts.currency)} — ${fmtMoney(base + vat, opts.currency)}`;
-  }).join("\n");
+  const lineText = lines
+    .map((line) => {
+      const base = Math.round(line.quantity * line.unit_price_cents);
+      const vat = Math.round((base * line.vat_rate_bp) / 10000);
+      return `${line.description} — ${line.quantity} × ${fmtMoney(line.unit_price_cents, opts.currency)} — ${fmtMoney(base + vat, opts.currency)}`;
+    })
+    .join("\n");
   const text = `${label} ${opts.number} from ${opts.agencyName}\n${opts.issuedAt ? `Issued: ${opts.issuedAt}\n` : ""}${opts.dueDate ? `${opts.kind === "quote" ? "Valid until" : "Due"}: ${opts.dueDate}\n` : ""}${lineText ? `\n${lineText}\n\nSubtotal: ${fmtMoney(totals.subtotal_cents, opts.currency)}\nVAT: ${fmtMoney(totals.vat_cents, opts.currency)}\nTotal: ${fmtMoney(totals.total_cents, opts.currency)}` : `Amount: ${opts.amount}`}${opts.notes ? `\n\n${opts.notes}` : ""}\n\nReply to this email to reach ${opts.agencyName} directly.`;
   return send(opts.to, opts.from, opts.replyTo, { subject, html, text }, opts.idempotencyKey);
 }

@@ -85,7 +85,6 @@ async function onboardedTalent(admin: any, toIso: string) {
   return (await fetchOnboardedTalent(admin, toIso)) as any[];
 }
 
-
 // -----------------------------------------------------------------------------
 // North star — two-sided engagement per agency/talent relationship
 // -----------------------------------------------------------------------------
@@ -121,9 +120,14 @@ async function northStarPairs(
     .lte("created_at", period.toIso);
   if (linkErr) throw new Error(linkErr.message);
   // Inert invitations (can never be accepted) are not real relationships.
-  const { data: inert } = await admin.from("talent_invite_private").select("invitation_id").eq("kind", "inert");
+  const { data: inert } = await admin
+    .from("talent_invite_private")
+    .select("invitation_id")
+    .eq("kind", "inert");
   const inertIds = new Set(((inert ?? []) as any[]).map((r) => r.invitation_id));
-  const live = ((links ?? []) as any[]).filter((l) => !l.talent_invitation_id || !inertIds.has(l.talent_invitation_id));
+  const live = ((links ?? []) as any[]).filter(
+    (l) => !l.talent_invitation_id || !inertIds.has(l.talent_invitation_id),
+  );
   if (live.length === 0) return [];
 
   const byId = new Map<string, NorthStarPair>();
@@ -203,8 +207,7 @@ async function northStarPairs(
     .lte("created_at", period.toIso);
   for (const r of requests ?? []) {
     if (!r.talent_link_id) continue;
-    const inWindow = (ts: string | null) =>
-      !!ts && ts >= period.fromIso && ts <= period.toIso;
+    const inWindow = (ts: string | null) => !!ts && ts >= period.fromIso && ts <= period.toIso;
     if (inWindow(r.created_at)) addAgency(r.talent_link_id, "document_request_created");
     if (inWindow(r.reviewed_at)) addAgency(r.talent_link_id, "document_request_reviewed");
   }
@@ -276,10 +279,16 @@ export const getReportingSummary = createServerFn({ method: "GET" })
 
     // ---- Growth & funnel -----------------------------------------------------
     const [{ count: agenciesAdded }, { count: agenciesAddedPrior }] = await Promise.all([
-      admin.from("agencies").select("id", { count: "exact", head: true })
-        .gte("created_at", period.fromIso).lte("created_at", period.toIso),
-      admin.from("agencies").select("id", { count: "exact", head: true })
-        .gte("created_at", prior.fromIso).lte("created_at", prior.toIso),
+      admin
+        .from("agencies")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", period.fromIso)
+        .lte("created_at", period.toIso),
+      admin
+        .from("agencies")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", prior.fromIso)
+        .lte("created_at", prior.toIso),
     ]);
 
     const { data: invitesInPeriod, error: invErr } = await admin
@@ -312,23 +321,29 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .gte("created_at", period.fromIso)
       .lte("created_at", period.toIso);
     if (shareErr) throw new Error(shareErr.message);
-    const shareTalentIds = [...new Set((sharesInPeriod ?? []).map((s: any) => s.talent_id))].filter(Boolean);
+    const shareTalentIds = [...new Set((sharesInPeriod ?? []).map((s: any) => s.talent_id))].filter(
+      Boolean,
+    );
     let agenciesWithShare = 0;
     if (shareTalentIds.length > 0) {
       const { data: profs } = await admin
         .from("talent_profiles")
         .select("id, agency_id")
         .in("id", shareTalentIds as string[]);
-      agenciesWithShare = new Set(
-        (profs ?? []).map((p: any) => p.agency_id).filter(Boolean),
-      ).size;
+      agenciesWithShare = new Set((profs ?? []).map((p: any) => p.agency_id).filter(Boolean)).size;
     }
 
     const [{ count: sharedDocs }, { count: privateDocs }] = await Promise.all([
-      admin.from("talent_shared_documents").select("id", { count: "exact", head: true })
-        .gte("created_at", period.fromIso).lte("created_at", period.toIso),
-      admin.from("talent_private_documents").select("id", { count: "exact", head: true })
-        .gte("created_at", period.fromIso).lte("created_at", period.toIso),
+      admin
+        .from("talent_shared_documents")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", period.fromIso)
+        .lte("created_at", period.toIso),
+      admin
+        .from("talent_private_documents")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", period.fromIso)
+        .lte("created_at", period.toIso),
     ]);
 
     // ---- Financials ----------------------------------------------------------
@@ -395,9 +410,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
             const start = new Date(m.created_at).getTime();
             const limit = start + days * 86400000;
             if (limit > Date.now()) return false;
-            return (byTalent.get(m.talent_user_id) ?? []).some(
-              (ts) => ts >= start && ts <= limit,
-            );
+            return (byTalent.get(m.talent_user_id) ?? []).some((ts) => ts >= start && ts <= limit);
           }).length;
         const mature = (days: number) =>
           members.filter((m) => new Date(m.created_at).getTime() + days * 86400000 <= Date.now())
@@ -505,7 +518,11 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
 
     switch (data.metric) {
       case "agencies_added": {
-        const { data: rows, count, error } = await admin
+        const {
+          data: rows,
+          count,
+          error,
+        } = await admin
           .from("agencies")
           .select("name, status, country, contact_email, created_at", { count: "exact" })
           .gte("created_at", period.fromIso)
@@ -517,7 +534,11 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           total: count ?? 0,
           columns: ["Agency", "Status", "Country", "Contact", "Added"],
           rows: (rows ?? []).map((r: any) => [
-            r.name, r.status, r.country ?? "—", r.contact_email ?? "—", r.created_at,
+            r.name,
+            r.status,
+            r.country ?? "—",
+            r.contact_email ?? "—",
+            r.created_at,
           ]),
         };
       }
@@ -534,19 +555,26 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
             .gte("accepted_at", period.fromIso)
             .lte("accepted_at", period.toIso);
         }
-        const { data: rows, count, error } = await q
-          .order("created_at", { ascending: false })
-          .range(range.from, range.to);
+        const {
+          data: rows,
+          count,
+          error,
+        } = await q.order("created_at", { ascending: false }).range(range.from, range.to);
         if (error) throw new Error(error.message);
         return {
           total: count ?? 0,
           columns: ["Agency", "Email", "Status", "Invited", "Accepted", "Days to accept"],
           rows: (rows ?? []).map((r: any) => [
-            r.agency_name, r.email, r.status, r.created_at, r.accepted_at ?? "—",
+            r.agency_name,
+            r.email,
+            r.status,
+            r.created_at,
+            r.accepted_at ?? "—",
             r.accepted_at
               ? Math.round(
                   ((new Date(r.accepted_at).getTime() - new Date(r.created_at).getTime()) /
-                    86400000) * 10,
+                    86400000) *
+                    10,
                 ) / 10
               : "—",
           ]),
@@ -554,7 +582,10 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
       }
       case "north_star_pairs": {
         const pairs = await northStarPairs(admin, period);
-        const names = await agencyNames(admin, pairs.map((p) => p.agencyId));
+        const names = await agencyNames(
+          admin,
+          pairs.map((p) => p.agencyId),
+        );
         const readable = (a: string) => a.replace(/_/g, " ");
         const all = pairs
           .map((p) => [
@@ -562,7 +593,13 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
             p.talentName,
             p.talentActions.length ? p.talentActions.map(readable).join(", ") : "No activity",
             p.agencyActions.length ? p.agencyActions.map(readable).join(", ") : "No activity",
-            p.both ? "Both sides" : p.talentActions.length ? "Talent only" : p.agencyActions.length ? "Agency only" : "Neither",
+            p.both
+              ? "Both sides"
+              : p.talentActions.length
+                ? "Talent only"
+                : p.agencyActions.length
+                  ? "Agency only"
+                  : "Neither",
           ])
           .sort((a, b) => {
             const rank = (r: string) =>
@@ -571,8 +608,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           });
         return {
           total: all.length,
-          note:
-            "Every live agency–talent relationship in the period. Only rows marked “Both sides” count towards the north star. Quotes and invoices are not counted yet — they cannot be tied to a specific talent.",
+          note: "Every live agency–talent relationship in the period. Only rows marked “Both sides” count towards the north star. Quotes and invoices are not counted yet — they cannot be tied to a specific talent.",
           columns: ["Agency", "Talent", "Talent activity", "Agency activity", "Counts as engaged"],
           rows: all.slice(range.from, range.to + 1),
         };
@@ -584,7 +620,10 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         for (const t of talent) byUser.set(t.talent_user_id, t);
         const sets = activeSets(rows.filter((r) => byUser.has(r.actor_id)));
         const qualifying = [...sets.any];
-        const names = await agencyNames(admin, qualifying.map((id) => byUser.get(id)?.agency_id));
+        const names = await agencyNames(
+          admin,
+          qualifying.map((id) => byUser.get(id)?.agency_id),
+        );
         const counts = new Map<string, number>();
         const last = new Map<string, string>();
         for (const r of rows) {
@@ -611,11 +650,18 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         };
       }
       case "shares": {
-        const { data: rows, count, error } = await admin
+        const {
+          data: rows,
+          count,
+          error,
+        } = await admin
           .from("loved_one_shares")
-          .select("loved_one_name, loved_one_email, share_kind, permission, is_active, created_at", {
-            count: "exact",
-          })
+          .select(
+            "loved_one_name, loved_one_email, share_kind, permission, is_active, created_at",
+            {
+              count: "exact",
+            },
+          )
           .gte("created_at", period.fromIso)
           .lte("created_at", period.toIso)
           .order("created_at", { ascending: false })
@@ -623,15 +669,30 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         if (error) throw new Error(error.message);
         return {
           total: count ?? 0,
-          columns: [SHARE_RECIPIENT_TERM_CAPITALISED, "Email", "Kind", "Permission", "Active", "Created"],
+          columns: [
+            SHARE_RECIPIENT_TERM_CAPITALISED,
+            "Email",
+            "Kind",
+            "Permission",
+            "Active",
+            "Created",
+          ],
           rows: (rows ?? []).map((r: any) => [
-            r.loved_one_name ?? "—", r.loved_one_email, r.share_kind, r.permission,
-            r.is_active ? "Yes" : "No", r.created_at,
+            r.loved_one_name ?? "—",
+            r.loved_one_email,
+            r.share_kind,
+            r.permission,
+            r.is_active ? "Yes" : "No",
+            r.created_at,
           ]),
         };
       }
       case "documents_uploaded": {
-        const { data: rows, count, error } = await admin
+        const {
+          data: rows,
+          count,
+          error,
+        } = await admin
           .from("talent_shared_documents")
           .select("name, folder, status, agency_id, created_at", { count: "exact" })
           .gte("created_at", period.fromIso)
@@ -639,7 +700,10 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           .order("created_at", { ascending: false })
           .range(range.from, range.to);
         if (error) throw new Error(error.message);
-        const names = await agencyNames(admin, (rows ?? []).map((r: any) => r.agency_id));
+        const names = await agencyNames(
+          admin,
+          (rows ?? []).map((r: any) => r.agency_id),
+        );
         const { count: privateCount } = await admin
           .from("talent_private_documents")
           .select("id", { count: "exact", head: true })
@@ -653,7 +717,11 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
               : undefined,
           columns: ["Document", "Folder", "Status", "Agency", "Uploaded"],
           rows: (rows ?? []).map((r: any) => [
-            r.name, r.folder, r.status, names.get(r.agency_id) ?? "—", r.created_at,
+            r.name,
+            r.folder,
+            r.status,
+            names.get(r.agency_id) ?? "—",
+            r.created_at,
           ]),
         };
       }
@@ -661,7 +729,11 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
       case "invoices":
       case "outstanding": {
         const kind = data.metric === "quotes" ? "quote" : "invoice";
-        const { data: rows, count, error } = await admin
+        const {
+          data: rows,
+          count,
+          error,
+        } = await admin
           .from("agency_billing_docs")
           .select(
             "id, agency_id, number, client_name, talent_name, issued_at, due_date, total_cents, currency, status, created_at",
@@ -673,7 +745,10 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           .order("created_at", { ascending: false })
           .range(range.from, range.to);
         if (error) throw new Error(error.message);
-        const names = await agencyNames(admin, (rows ?? []).map((r: any) => r.agency_id));
+        const names = await agencyNames(
+          admin,
+          (rows ?? []).map((r: any) => r.agency_id),
+        );
         const ids = (rows ?? []).map((r: any) => r.id);
         const paid = new Map<string, number>();
         if (ids.length > 0) {
@@ -690,7 +765,16 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           columns:
             kind === "quote"
               ? ["Agency", "Number", "Client", "Issued", "Amount", "Status"]
-              : ["Agency", "Number", "Client", "Issued", "Amount", "Amount paid", "Outstanding", "Status"],
+              : [
+                  "Agency",
+                  "Number",
+                  "Client",
+                  "Issued",
+                  "Amount",
+                  "Amount paid",
+                  "Outstanding",
+                  "Status",
+                ],
           rows: (rows ?? []).map((r: any) => {
             const base = [
               names.get(r.agency_id) ?? "—",
@@ -711,7 +795,11 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         };
       }
       case "payments_received": {
-        const { data: rows, count, error } = await admin
+        const {
+          data: rows,
+          count,
+          error,
+        } = await admin
           .from("agency_invoice_payments")
           .select("id, doc_id, agency_id, amount_cents, paid_on, method, reference", {
             count: "exact",
@@ -721,7 +809,10 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           .order("paid_on", { ascending: false })
           .range(range.from, range.to);
         if (error) throw new Error(error.message);
-        const names = await agencyNames(admin, (rows ?? []).map((r: any) => r.agency_id));
+        const names = await agencyNames(
+          admin,
+          (rows ?? []).map((r: any) => r.agency_id),
+        );
         const docIds = [...new Set((rows ?? []).map((r: any) => r.doc_id))];
         const docs = new Map<string, any>();
         if (docIds.length > 0) {
@@ -733,7 +824,16 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         }
         return {
           total: count ?? 0,
-          columns: ["Agency", "Invoice", "Client", "Invoice total", "Amount received", "Date received", "Method", "Status"],
+          columns: [
+            "Agency",
+            "Invoice",
+            "Client",
+            "Invoice total",
+            "Amount received",
+            "Date received",
+            "Method",
+            "Status",
+          ],
           rows: (rows ?? []).map((r: any) => {
             const d = docs.get(r.doc_id);
             return [

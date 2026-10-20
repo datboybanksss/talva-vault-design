@@ -25,25 +25,31 @@ const catalog = [
 
 const confirmSpy = vi.fn(async (_data: any) => ({ ok: true }));
 const skipSpy = vi.fn(async (_data: any) => ({ ok: true }));
-const catalogSpy = vi.fn(async (_data?: any): Promise<any> => ({
-  catalog,
-  defaultReminderDays: 30,
-  secondaryHint: "This stays in your Private Vault.",
-  currentDestination: "f-passport",
-  fileName: "passport.pdf",
-  aiEnabled: true,
-}));
+const catalogSpy = vi.fn(
+  async (_data?: any): Promise<any> => ({
+    catalog,
+    defaultReminderDays: 30,
+    secondaryHint: "This stays in your Private Vault.",
+    currentDestination: "f-passport",
+    fileName: "passport.pdf",
+    aiEnabled: true,
+  }),
+);
 
-const analysisSpy = vi.fn(async (_data?: any): Promise<any> => ({
-  status: "unavailable",
-  suggestion: null,
-  error_code: "not_configured",
-}));
-const startSpy = vi.fn(async (_data?: any): Promise<any> => ({
-  status: "queued",
-  suggestion: null,
-  error_code: null,
-}));
+const analysisSpy = vi.fn(
+  async (_data?: any): Promise<any> => ({
+    status: "unavailable",
+    suggestion: null,
+    error_code: "not_configured",
+  }),
+);
+const startSpy = vi.fn(
+  async (_data?: any): Promise<any> => ({
+    status: "queued",
+    suggestion: null,
+    error_code: null,
+  }),
+);
 const prefSpy = vi.fn(async (_data?: any) => ({ ok: true }));
 
 vi.mock("@/lib/ai-filing.functions", () => ({
@@ -329,7 +335,6 @@ describe("AiFilingReviewModal — manual mode (AI switch off)", () => {
   });
 });
 
-
 const PARSERLY = {
   folder_id: "f-visa",
   expiry_date: "2029-05-01",
@@ -392,7 +397,11 @@ describe("AiFilingReviewModal — Parserly journey", () => {
   });
 
   it("failed analysis: neutral note, no AI badges, Retry re-runs the analysis", async () => {
-    analysisSpy.mockResolvedValue({ status: "failed", suggestion: null, error_code: "parserly_error" });
+    analysisSpy.mockResolvedValue({
+      status: "failed",
+      suggestion: null,
+      error_code: "parserly_error",
+    });
     startSpy.mockResolvedValueOnce({ status: "completed", suggestion: PARSERLY, error_code: null });
     const user = userEvent.setup();
     renderModal(vi.fn(), { suggestion: null, fileName: "passport.pdf" });
@@ -427,8 +436,12 @@ describe("AiFilingReviewModal — Parserly journey", () => {
 
   it("does not request an analysis at all when the switch is off", async () => {
     catalogSpy.mockResolvedValueOnce({
-      catalog, defaultReminderDays: 30, secondaryHint: null,
-      currentDestination: "f-passport", fileName: "passport.pdf", aiEnabled: false,
+      catalog,
+      defaultReminderDays: 30,
+      secondaryHint: null,
+      currentDestination: "f-passport",
+      fileName: "passport.pdf",
+      aiEnabled: false,
     });
     renderModal(vi.fn(), { suggestion: null });
     await waitFor(() => expect(folderSelect().value).toBe("Identity & Personal"));
@@ -436,7 +449,6 @@ describe("AiFilingReviewModal — Parserly journey", () => {
     expect(screen.queryByTestId("filing-analysing")).toBeNull();
   });
 });
-
 
 describe("AiFilingReviewModal — polling safeguards", () => {
   beforeEach(resetAll);
@@ -459,7 +471,9 @@ describe("AiFilingReviewModal — polling safeguards", () => {
     renderModal(vi.fn(), { suggestion: null });
     await waitFor(() => expect(screen.getByTestId("filing-analysing")).toBeDefined());
     clock.mockReturnValue(1_120_001);
-    await waitFor(() => expect(screen.getByTestId("filing-failed")).toBeDefined(), { timeout: 3500 });
+    await waitFor(() => expect(screen.getByTestId("filing-failed")).toBeDefined(), {
+      timeout: 3500,
+    });
     expect(screen.queryByTestId("filing-analysing")).toBeNull();
     await userEvent.setup().click(screen.getByRole("button", { name: /Skip for now/ }));
     await waitFor(() => expect(skipSpy).toHaveBeenCalledTimes(1));

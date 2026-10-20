@@ -14,10 +14,11 @@
  *   down: no `object-src`, no framing, no cross-origin form posts.
  */
 
-const SUPABASE_URL = (process.env["VITE_SUPABASE_URL"] ?? process.env["SUPABASE_URL"] ?? "").replace(
-  /\/$/,
-  "",
-);
+const SUPABASE_URL = (
+  process.env["VITE_SUPABASE_URL"] ??
+  process.env["SUPABASE_URL"] ??
+  ""
+).replace(/\/$/, "");
 
 function buildCsp(isDev: boolean): string {
   const supabaseHttp = SUPABASE_URL || "https://*.supabase.co";

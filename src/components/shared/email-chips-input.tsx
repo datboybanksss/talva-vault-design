@@ -28,7 +28,10 @@ export function EmailChipsInput({
   const [error, setError] = useState<string | null>(null);
 
   function add(raw: string): boolean {
-    const email = raw.trim().replace(/[,;]+$/, "").toLowerCase();
+    const email = raw
+      .trim()
+      .replace(/[,;]+$/, "")
+      .toLowerCase();
     if (!email) return true;
     if (!isValidEmail(email)) {
       setError(`"${email}" is not a valid email address`);
@@ -66,11 +69,16 @@ export function EmailChipsInput({
     const bad: string[] = [];
     for (const p of parts) {
       const email = p.trim().toLowerCase();
-      if (!isValidEmail(email)) { bad.push(email); continue; }
+      if (!isValidEmail(email)) {
+        bad.push(email);
+        continue;
+      }
       if (!next.some((v) => v.toLowerCase() === email) && next.length < max) next.push(email);
     }
     onChange(next);
-    setError(bad.length ? `Skipped ${bad.length} invalid address${bad.length === 1 ? "" : "es"}` : null);
+    setError(
+      bad.length ? `Skipped ${bad.length} invalid address${bad.length === 1 ? "" : "es"}` : null,
+    );
   }
 
   return (
@@ -78,26 +86,47 @@ export function EmailChipsInput({
       <div
         className="tvp-chip-field"
         style={{
-          display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center",
-          border: "1px solid var(--line-200, #e2e0da)", borderRadius: "var(--r-sm, 6px)",
-          padding: "6px 8px", background: "var(--surface, #fff)", minHeight: 40,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          alignItems: "center",
+          border: "1px solid var(--line-200, #e2e0da)",
+          borderRadius: "var(--r-sm, 6px)",
+          padding: "6px 8px",
+          background: "var(--surface, #fff)",
+          minHeight: 40,
         }}
       >
         {value.map((email) => (
           <span
             key={email}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              background: "var(--tvp-teal-bg, #e6f2f3)", color: "var(--tvp-teal, #0d6d78)",
-              borderRadius: 999, padding: "3px 8px", fontSize: 13, fontWeight: 600,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "var(--tvp-teal-bg, #e6f2f3)",
+              color: "var(--tvp-teal, #0d6d78)",
+              borderRadius: 999,
+              padding: "3px 8px",
+              fontSize: 13,
+              fontWeight: 600,
             }}
           >
             {email}
             <button
               type="button"
               aria-label={`Remove ${email}`}
-              onClick={() => { onChange(value.filter((v) => v !== email)); setError(null); }}
-              style={{ background: "none", border: 0, cursor: "pointer", color: "inherit", lineHeight: 0 }}
+              onClick={() => {
+                onChange(value.filter((v) => v !== email));
+                setError(null);
+              }}
+              style={{
+                background: "none",
+                border: 0,
+                cursor: "pointer",
+                color: "inherit",
+                lineHeight: 0,
+              }}
             >
               <X className="h-3 w-3" />
             </button>
@@ -108,11 +137,23 @@ export function EmailChipsInput({
           type="email"
           value={draft}
           placeholder={value.length ? "Add another…" : placeholder}
-          onChange={(e) => { setDraft(e.target.value); setError(null); }}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setError(null);
+          }}
           onKeyDown={onKeyDown}
           onPaste={onPaste}
-          onBlur={() => { if (draft.trim() && add(draft)) setDraft(""); }}
-          style={{ flex: 1, minWidth: 180, border: 0, outline: "none", background: "transparent", padding: "4px 2px" }}
+          onBlur={() => {
+            if (draft.trim() && add(draft)) setDraft("");
+          }}
+          style={{
+            flex: 1,
+            minWidth: 180,
+            border: 0,
+            outline: "none",
+            background: "transparent",
+            padding: "4px 2px",
+          }}
         />
       </div>
       {error ? (

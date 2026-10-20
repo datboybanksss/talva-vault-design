@@ -4,16 +4,18 @@ import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Info, Save } from "lucide-react";
 import { toast } from "sonner";
-import { updateTalentProfile, getTalentNotificationPrefs, updateTalentNotificationPrefs } from "@/lib/talent.functions";
+import {
+  updateTalentProfile,
+  getTalentNotificationPrefs,
+  updateTalentNotificationPrefs,
+} from "@/lib/talent.functions";
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
 import { AiFilingPreferenceCard } from "@/components/account/ai-filing-preference-card";
 import { MyTermsAcceptances } from "@/components/shared/my-terms-acceptances";
 import { SecurityLogPanel } from "@/components/talent/security-log-panel";
-import {
-  logTalentPasswordChange,
-} from "@/lib/talent-audit.functions";
+import { logTalentPasswordChange } from "@/lib/talent-audit.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 
 export const Route = createFileRoute("/talent/settings")({
@@ -27,29 +29,49 @@ export const Route = createFileRoute("/talent/settings")({
 type Mode = "profile" | "account" | "security" | "folders" | "relationship" | "notifications";
 
 const IN_APP_CHANNELS: { key: string; label: string; hint: string; live: boolean }[] = [
-  { key: "doc_expiring", label: "Document expiring", hint: "Private Vault and Agency Shared Folder documents approaching their expiry date.", live: true },
-  { key: "share_expiring", label: `${SHARE_RECIPIENT_TERM_CAPITALISED} access expiring`, hint: "A magic-link share you created is about to lapse.", live: true },
-  { key: "agency_share", label: "Agency shares a document", hint: "Arrives with the shared-folder event stream.", live: false },
-  { key: "ai_review", label: "AI suggestions need review", hint: "Arrives when AI filing runs server-side.", live: false },
+  {
+    key: "doc_expiring",
+    label: "Document expiring",
+    hint: "Private Vault and Agency Shared Folder documents approaching their expiry date.",
+    live: true,
+  },
+  {
+    key: "share_expiring",
+    label: `${SHARE_RECIPIENT_TERM_CAPITALISED} access expiring`,
+    hint: "A magic-link share you created is about to lapse.",
+    live: true,
+  },
+  {
+    key: "agency_share",
+    label: "Agency shares a document",
+    hint: "Arrives with the shared-folder event stream.",
+    live: false,
+  },
+  {
+    key: "ai_review",
+    label: "AI suggestions need review",
+    hint: "Arrives when AI filing runs server-side.",
+    live: false,
+  },
 ];
 
 function TalentSettings() {
   const { tab } = Route.useSearch();
   const [mode, setMode] = useState<Mode>(
-    (["profile", "account", "security", "folders", "relationship", "notifications"] as const).includes(tab as Mode)
+    (
+      ["profile", "account", "security", "folders", "relationship", "notifications"] as const
+    ).includes(tab as Mode)
       ? (tab as Mode)
       : "profile",
   );
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
   });
-  const ctx = (rootMatch?.loaderData ?? null) as
-    | {
-        profile: { full_name: string; email: string | null } | null;
-        agency: { name: string } | null;
-        link: { talent_type: string | null; status: string } | null;
-      }
-    | null;
+  const ctx = (rootMatch?.loaderData ?? null) as {
+    profile: { full_name: string; email: string | null } | null;
+    agency: { name: string } | null;
+    link: { talent_type: string | null; status: string } | null;
+  } | null;
 
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
   const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "");
@@ -60,7 +82,10 @@ function TalentSettings() {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [inAppEnabled, setInAppEnabled] = useState(true);
   const [inApp, setInApp] = useState<Record<string, boolean>>({
-    doc_expiring: true, share_expiring: true, agency_share: true, ai_review: true,
+    doc_expiring: true,
+    share_expiring: true,
+    agency_share: true,
+    ai_review: true,
   });
 
   useEffect(() => {
@@ -104,7 +129,9 @@ function TalentSettings() {
     }
     setSavingProfile(true);
     try {
-      await updateTalentProfile({ data: { full_name: fullName.trim(), talent_type: talentType || null } });
+      await updateTalentProfile({
+        data: { full_name: fullName.trim(), talent_type: talentType || null },
+      });
       toast.success("Profile updated");
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to update profile");
@@ -118,18 +145,50 @@ function TalentSettings() {
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Settings</h1>
-          <div className="tvp-subtitle">Manage profile, account, relationship and notifications.</div>
+          <div className="tvp-subtitle">
+            Manage profile, account, relationship and notifications.
+          </div>
         </div>
       </div>
 
       <div className="tvp-tabs" data-tour="talent-settings-tabs">
-        <button className={`tvp-tab${mode === "profile" ? " tvp-active" : ""}`} onClick={() => setMode("profile")}>Profile</button>
-        <button className={`tvp-tab${mode === "account" ? " tvp-active" : ""}`} onClick={() => setMode("account")}>Account</button>
-        <button className={`tvp-tab${mode === "security" ? " tvp-active" : ""}`} onClick={() => setMode("security")}>Security log</button>
-        <button className={`tvp-tab${mode === "folders" ? " tvp-active" : ""}`} onClick={() => setMode("folders")}>Manage folders</button>
+        <button
+          className={`tvp-tab${mode === "profile" ? " tvp-active" : ""}`}
+          onClick={() => setMode("profile")}
+        >
+          Profile
+        </button>
+        <button
+          className={`tvp-tab${mode === "account" ? " tvp-active" : ""}`}
+          onClick={() => setMode("account")}
+        >
+          Account
+        </button>
+        <button
+          className={`tvp-tab${mode === "security" ? " tvp-active" : ""}`}
+          onClick={() => setMode("security")}
+        >
+          Security log
+        </button>
+        <button
+          className={`tvp-tab${mode === "folders" ? " tvp-active" : ""}`}
+          onClick={() => setMode("folders")}
+        >
+          Manage folders
+        </button>
 
-        <button className={`tvp-tab${mode === "relationship" ? " tvp-active" : ""}`} onClick={() => setMode("relationship")}>Agency Relationship</button>
-        <button className={`tvp-tab${mode === "notifications" ? " tvp-active" : ""}`} onClick={() => setMode("notifications")}>Notifications</button>
+        <button
+          className={`tvp-tab${mode === "relationship" ? " tvp-active" : ""}`}
+          onClick={() => setMode("relationship")}
+        >
+          Agency Relationship
+        </button>
+        <button
+          className={`tvp-tab${mode === "notifications" ? " tvp-active" : ""}`}
+          onClick={() => setMode("notifications")}
+        >
+          Notifications
+        </button>
       </div>
 
       {mode === "profile" && (
@@ -137,7 +196,9 @@ function TalentSettings() {
           <div className="tvp-panel-head">
             <div>
               <h2 className="tvp-h2">Talent Profile</h2>
-              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>Your display name and talent type as shown to your agency.</p>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                Your display name and talent type as shown to your agency.
+              </p>
             </div>
             <button className="tvp-primary" onClick={saveProfile} disabled={savingProfile}>
               <Save className="h-4 w-4" /> {savingProfile ? "Saving…" : "Save Profile"}
@@ -157,7 +218,9 @@ function TalentSettings() {
               <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
                 <option value="">Not set</option>
                 {talentTypeOptions.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
                 {talentType && !talentTypeOptions.includes(talentType) && (
                   <option value={talentType}>{talentType}</option>
@@ -194,12 +257,23 @@ function TalentSettings() {
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
             Linked Agency:{" "}
             <strong style={{ color: "var(--tvp-ink)" }}>{ctx?.agency?.name ?? "—"}</strong>
-            {ctx?.link?.status ? <> · <span className={statusPillClass("talentLink", ctx.link.status)}>{statusLabel("talentLink", ctx.link.status)}</span></> : null}
+            {ctx?.link?.status ? (
+              <>
+                {" "}
+                ·{" "}
+                <span className={statusPillClass("talentLink", ctx.link.status)}>
+                  {statusLabel("talentLink", ctx.link.status)}
+                </span>
+              </>
+            ) : null}
           </p>
           <div className="tvp-callout">
-            <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
+            <div className="tvp-callout-icon">
+              <Info className="h-4 w-4" />
+            </div>
             <div>
-              If the relationship ends, the shared folder moves to read-only/export access. Private Vault remains yours.
+              If the relationship ends, the shared folder moves to read-only/export access. Private
+              Vault remains yours.
             </div>
           </div>
         </div>
@@ -230,7 +304,9 @@ function TalentSettings() {
                   onChange={(e) => setExpiryDays(e.target.value)}
                   style={{ maxWidth: 120 }}
                 />
-                <span className="tvp-muted" style={{ fontSize: 13, fontWeight: 700 }}>days ahead</span>
+                <span className="tvp-muted" style={{ fontSize: 13, fontWeight: 700 }}>
+                  days ahead
+                </span>
               </div>
               <p className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
                 Drives the “Expiring soon” tile on your dashboard.
@@ -242,7 +318,13 @@ function TalentSettings() {
           </p>
           <label
             className="tvp-doc-card"
-            style={{ cursor: "pointer", marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}
+            style={{
+              cursor: "pointer",
+              marginTop: 8,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
           >
             <input
               type="checkbox"
@@ -283,7 +365,9 @@ function TalentSettings() {
                   />
                   <div>
                     <strong>{c.label}</strong>
-                    <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>{c.hint}</div>
+                    <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                      {c.hint}
+                    </div>
                   </div>
                   <span className={`tvp-status tvp-${c.live ? "green" : "neutral"}`}>
                     {c.live ? "Active" : "Soon"}
@@ -298,14 +382,21 @@ function TalentSettings() {
           </p>
           <label
             className="tvp-doc-card"
-            style={{ cursor: "not-allowed", opacity: 0.6, marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}
+            style={{
+              cursor: "not-allowed",
+              opacity: 0.6,
+              marginTop: 8,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
           >
             <input type="checkbox" checked={false} disabled style={{ width: 18, height: 18 }} />
             <div>
               <strong>Email me the same reminders</strong>
               <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                Not available yet — pending domain verification. Reminders will start arriving by email
-                automatically once the TalVault sending domain is verified.
+                Not available yet — pending domain verification. Reminders will start arriving by
+                email automatically once the TalVault sending domain is verified.
               </div>
             </div>
             <span className="tvp-status tvp-neutral">Not available yet</span>

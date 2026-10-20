@@ -46,8 +46,7 @@ export function PasswordCard({
     }
     const v = validateNewPassword(next);
     if (v) return setError(v);
-    if (next !== confirm)
-      return setError("New password and confirmation do not match.");
+    if (next !== confirm) return setError("New password and confirmation do not match.");
     if (next === current)
       return setError("New password must be different from your current password.");
 
@@ -125,9 +124,7 @@ export function PasswordCard({
                       <li className={r.lower ? "ok" : ""}>
                         {r.lower ? "✓" : "•"} A lowercase letter
                       </li>
-                      <li className={r.number ? "ok" : ""}>
-                        {r.number ? "✓" : "•"} A number
-                      </li>
+                      <li className={r.number ? "ok" : ""}>{r.number ? "✓" : "•"} A number</li>
                       <li className={r.special ? "ok" : ""}>
                         {r.special ? "✓" : "•"} A special character
                       </li>
@@ -172,12 +169,7 @@ export function PasswordCard({
           <button type="submit" className="tvp-primary" disabled={busy}>
             {busy ? "Updating…" : "Update password"}
           </button>
-          <button
-            type="button"
-            className="tvp-secondary"
-            onClick={reset}
-            disabled={busy}
-          >
+          <button type="button" className="tvp-secondary" onClick={reset} disabled={busy}>
             Reset
           </button>
         </div>

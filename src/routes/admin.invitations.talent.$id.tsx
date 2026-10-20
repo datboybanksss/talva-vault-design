@@ -5,7 +5,10 @@ export const Route = createFileRoute("/admin/invitations/talent/$id")({
   head: () => ({
     meta: [
       { title: "Talent invitation · TalVault Admin" },
-      { name: "description", content: "Edit a talent invitation draft, or resend or revoke a sent one." },
+      {
+        name: "description",
+        content: "Edit a talent invitation draft, or resend or revoke a sent one.",
+      },
     ],
   }),
   component: TalentInvitePage,

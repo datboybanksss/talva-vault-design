@@ -17,8 +17,12 @@ export function BillingPeriodSelector({
 }) {
   return (
     <div className="tvp-period-bar">
-      <span className="tvp-period-icon"><CalendarRange className="h-4 w-4" /></span>
-      <label className="tvp-period-label" htmlFor="tvp-period-select">Period</label>
+      <span className="tvp-period-icon">
+        <CalendarRange className="h-4 w-4" />
+      </span>
+      <label className="tvp-period-label" htmlFor="tvp-period-select">
+        Period
+      </label>
       <select
         id="tvp-period-select"
         className="tvp-select"
@@ -26,7 +30,9 @@ export function BillingPeriodSelector({
         onChange={(e) => onChange({ ...value, key: e.target.value as PeriodKey })}
       >
         {PERIOD_OPTIONS.map((o) => (
-          <option key={o.key} value={o.key}>{o.label}</option>
+          <option key={o.key} value={o.key}>
+            {o.label}
+          </option>
         ))}
       </select>
 
@@ -38,7 +44,9 @@ export function BillingPeriodSelector({
             aria-label="Date from"
             value={value.custom.from}
             max={value.custom.to || undefined}
-            onChange={(e) => onChange({ ...value, custom: { ...value.custom, from: e.target.value } })}
+            onChange={(e) =>
+              onChange({ ...value, custom: { ...value.custom, from: e.target.value } })
+            }
           />
           <span className="tvp-period-label">to</span>
           <input
@@ -47,7 +55,9 @@ export function BillingPeriodSelector({
             aria-label="Date to"
             value={value.custom.to}
             min={value.custom.from || undefined}
-            onChange={(e) => onChange({ ...value, custom: { ...value.custom, to: e.target.value } })}
+            onChange={(e) =>
+              onChange({ ...value, custom: { ...value.custom, to: e.target.value } })
+            }
           />
         </>
       )}

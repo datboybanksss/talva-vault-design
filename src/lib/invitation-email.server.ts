@@ -2,7 +2,11 @@ import { sendLovableEmail } from "@lovable.dev/email-js";
 
 type SendResult =
   | { sent: true; message_id?: string }
-  | { sent: false; reason: "email_not_configured" | "domain_unverified" | "send_failed"; detail?: string };
+  | {
+      sent: false;
+      reason: "email_not_configured" | "domain_unverified" | "send_failed";
+      detail?: string;
+    };
 
 /**
  * Real send through the Lovable Emails integration. Returns a structured
@@ -34,7 +38,6 @@ export async function sendInvitationEmail(
 
   const key = idempotencyKey ?? `${label}-${to}-${Date.now()}`;
 
-
   try {
     const res = await sendLovableEmail(
       {
@@ -55,9 +58,7 @@ export async function sendInvitationEmail(
   } catch (e: any) {
     const status = typeof e?.status === "number" ? e.status : undefined;
     const detail = String(e?.message ?? e);
-    const domainIssue =
-      status === 403 ||
-      /domain|verif|not allowed|sender/i.test(detail);
+    const domainIssue = status === 403 || /domain|verif|not allowed|sender/i.test(detail);
     return {
       sent: false,
       reason: domainIssue ? "domain_unverified" : "send_failed",
@@ -74,7 +75,10 @@ export async function sendInvitationEmail(
 export async function simulatedInvitationSend(): Promise<SendResult> {
   if (!process.env["LOVABLE_API_KEY"]) return { sent: false, reason: "email_not_configured" };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: inert } = await (supabaseAdmin as any).from("talent_invite_private").select("invitation_id").eq("kind", "inert");
+  const { data: inert } = await (supabaseAdmin as any)
+    .from("talent_invite_private")
+    .select("invitation_id")
+    .eq("kind", "inert");
   const skip = new Set(((inert ?? []) as any[]).map((r) => r.invitation_id));
   const { data: recent } = await supabaseAdmin
     .from("talent_invitations")

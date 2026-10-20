@@ -11,7 +11,9 @@ import { SHARE_TERM_PLURAL } from "@/lib/terms";
 async function loadLink(linkId: string) {
   const { data: link } = await supabaseAdmin
     .from("agency_talent_links")
-    .select("id, agency_id, talent_user_id, talent_invitation_id, display_name, request_expires_at, requested_at, ended_at")
+    .select(
+      "id, agency_id, talent_user_id, talent_invitation_id, display_name, request_expires_at, requested_at, ended_at",
+    )
     .eq("id", linkId)
     .maybeSingle();
   if (!link) return null;
@@ -19,18 +21,36 @@ async function loadLink(linkId: string) {
   // the live expiry come from the private record and the invitation.
   if (!link.talent_user_id || !link.request_expires_at) {
     const [{ data: priv }, { data: inv }] = await Promise.all([
-      (supabaseAdmin as any).from("talent_invite_private").select("talent_user_id, kind").eq("link_id", linkId).maybeSingle(),
+      (supabaseAdmin as any)
+        .from("talent_invite_private")
+        .select("talent_user_id, kind")
+        .eq("link_id", linkId)
+        .maybeSingle(),
       link.talent_invitation_id
-        ? supabaseAdmin.from("talent_invitations").select("expires_at").eq("id", link.talent_invitation_id).maybeSingle()
+        ? supabaseAdmin
+            .from("talent_invitations")
+            .select("expires_at")
+            .eq("id", link.talent_invitation_id)
+            .maybeSingle()
         : Promise.resolve({ data: null as any }),
     ]);
-    if (!link.talent_user_id && priv?.kind === "link_request") (link as any).talent_user_id = priv.talent_user_id;
-    if (!link.request_expires_at && inv?.expires_at) (link as any).request_expires_at = inv.expires_at;
+    if (!link.talent_user_id && priv?.kind === "link_request")
+      (link as any).talent_user_id = priv.talent_user_id;
+    if (!link.request_expires_at && inv?.expires_at)
+      (link as any).request_expires_at = inv.expires_at;
   }
   const [{ data: agency }, { data: talent }] = await Promise.all([
-    supabaseAdmin.from("agencies").select("name, contact_email").eq("id", link.agency_id).maybeSingle(),
+    supabaseAdmin
+      .from("agencies")
+      .select("name, contact_email")
+      .eq("id", link.agency_id)
+      .maybeSingle(),
     link.talent_user_id
-      ? supabaseAdmin.from("talent_profiles").select("email, full_name").eq("user_id", link.talent_user_id).maybeSingle()
+      ? supabaseAdmin
+          .from("talent_profiles")
+          .select("email, full_name")
+          .eq("user_id", link.talent_user_id)
+          .maybeSingle()
       : Promise.resolve({ data: null as any }),
   ]);
   return {
@@ -61,7 +81,12 @@ export async function emailLinkRequest(linkId: string) {
     ctaUrl: `${PUBLIC_SITE_URL}/talent/requests`,
     recipientEmail: ctx.talentEmail,
   });
-  const r = await sendInvitationEmail(ctx.talentEmail, mail, `link-request-${linkId}`, "link_request");
+  const r = await sendInvitationEmail(
+    ctx.talentEmail,
+    mail,
+    `link-request-${linkId}`,
+    "link_request",
+  );
   if (r.sent) {
     await supabaseAdmin
       .from("talent_notifications")
@@ -121,8 +146,7 @@ export async function notifyRelationshipEnded(linkId: string) {
       kind: "relationship_ended",
       dedupe_key: `relationship_ended:${linkId}:${ctx.link.ended_at ?? ""}`,
       title: `Your connection with ${ctx.agencyName} has ended`,
-      detail:
-        `Items they shared stay viewable, read-only, for ${years} years from the date the connection ended (until ${fmtLongDate(until)}). Anything you added yourself stays yours.`,
+      detail: `Items they shared stay viewable, read-only, for ${years} years from the date the connection ended (until ${fmtLongDate(until)}). Anything you added yourself stays yours.`,
       tone: "amber",
       target_type: "agency_link",
       target_id: linkId,
@@ -142,5 +166,10 @@ export async function notifyRelationshipEnded(linkId: string) {
     ctaUrl: `${PUBLIC_SITE_URL}/talent/vault`,
     recipientEmail: ctx.talentEmail,
   });
-  return sendInvitationEmail(ctx.talentEmail, mail, `relationship-ended-${linkId}`, "relationship_ended");
+  return sendInvitationEmail(
+    ctx.talentEmail,
+    mail,
+    `relationship-ended-${linkId}`,
+    "relationship_ended",
+  );
 }

@@ -46,18 +46,24 @@ export function AiFilingPreferenceCard() {
         subtitle="How TalVault helps you file newly uploaded documents."
       />
       <div className="tvp-list-item tvp-ai-preference">
-        <Switch id={switchId} checked={enabled}
+        <Switch
+          id={switchId}
+          checked={enabled}
           disabled={!pref.data || save.isPending}
-          onCheckedChange={(next) => save.mutate(next)} />
+          onCheckedChange={(next) => save.mutate(next)}
+        />
         <div>
-          <label htmlFor={switchId}><strong>Organise documents with AI</strong></label>
+          <label htmlFor={switchId}>
+            <strong>Organise documents with AI</strong>
+          </label>
           <div className="tvp-muted tvp-preference-copy">
             {enabled
               ? "When you upload a document, TalVault's AI reads it and suggests a folder and expiry date for you to check."
               : "Your documents are not sent for AI analysis. You choose the folder and expiry yourself."}
           </div>
           <div className="tvp-muted tvp-preference-meta">
-            You can change this at any time. Documents you've already filed keep their saved details.
+            You can change this at any time. Documents you've already filed keep their saved
+            details.
           </div>
         </div>
         <span className={`tvp-status tvp-${enabled ? "green" : "neutral"}`}>

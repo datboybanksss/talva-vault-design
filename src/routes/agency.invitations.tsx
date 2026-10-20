@@ -12,7 +12,19 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link2, RefreshCw, Ban, Send, X, Check, Settings2, ShieldCheck, FolderCog, Mail, Trash2 } from "lucide-react";
+import {
+  Link2,
+  RefreshCw,
+  Ban,
+  Send,
+  X,
+  Check,
+  Settings2,
+  ShieldCheck,
+  FolderCog,
+  Mail,
+  Trash2,
+} from "lucide-react";
 import { ModalShell } from "@/components/shared/modal-shell";
 import { toast } from "sonner";
 import {
@@ -32,7 +44,6 @@ import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { invitationActions, invitationIsOpen } from "@/lib/status-actions";
 import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
 
-
 export const Route = createFileRoute("/agency/invitations")({
   head: () => ({ meta: [{ title: "Invitations · TalVault" }] }),
   component: InvitationsPage,
@@ -40,7 +51,9 @@ export const Route = createFileRoute("/agency/invitations")({
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 function daysBetween(iso: string) {
@@ -88,11 +101,16 @@ function InvitationsPage() {
   const list = useMemo(() => invites.data ?? [], [invites.data]);
   const filteredRows = useMemo(() => {
     switch (tab) {
-      case "all": return list;
-      case "talent": return list.filter((i: any) => i.type === "talent");
-      case "staff": return list.filter((i: any) => i.type === "staff");
-      case "expired": return list.filter((i: any) => i.status === "expired");
-      case "revoked": return list.filter((i: any) => i.status === "revoked");
+      case "all":
+        return list;
+      case "talent":
+        return list.filter((i: any) => i.type === "talent");
+      case "staff":
+        return list.filter((i: any) => i.type === "staff");
+      case "expired":
+        return list.filter((i: any) => i.status === "expired");
+      case "revoked":
+        return list.filter((i: any) => i.status === "revoked");
     }
   }, [list, tab]);
 
@@ -155,18 +173,24 @@ function InvitationsPage() {
           <button
             className="tvp-secondary"
             disabled={!isOwner}
-            title={isOwner ? "Invite an agency staff member" : "Only the agency owner can invite staff."}
+            title={
+              isOwner ? "Invite an agency staff member" : "Only the agency owner can invite staff."
+            }
             onClick={() => setOpenForm("staff")}
           >
-            <Send className="h-4 w-4" />Invite Staff
+            <Send className="h-4 w-4" />
+            Invite Staff
           </button>
           <button
             className="tvp-primary"
             disabled={!isOwner}
-            title={isOwner ? "Invite talent to your agency" : "Only the agency owner can invite talent."}
+            title={
+              isOwner ? "Invite talent to your agency" : "Only the agency owner can invite talent."
+            }
             onClick={() => setOpenForm("talent")}
           >
-            <Send className="h-4 w-4" />Invite Talent
+            <Send className="h-4 w-4" />
+            Invite Talent
           </button>
         </div>
       </div>
@@ -185,127 +209,146 @@ function InvitationsPage() {
       </div>
 
       <div className="tvp-stack">
-      <div className="tvp-card">
-        <div className="tvp-table-wrap">
-          <table className="tvp-table">
-            <thead>
-              <tr>
-                <th style={{ minWidth: 180, whiteSpace: "nowrap" }}>Recipient</th>
-                <th>Email</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Sent By</th>
-                <th>Sent</th>
-                <th>Expires</th>
-                <th style={{ width: 48 }} />
-              </tr>
-            </thead>
-            <tbody>
-              {invites.isLoading && (
-                <tr><td colSpan={8} className="tvp-muted">Loading…</td></tr>
-              )}
-              {!invites.isLoading && visible.length === 0 && (
-                <tr><td colSpan={8} className="tvp-muted">{EMPTY_STATE[tab]}</td></tr>
-              )}
-              {visible.map((i: any) => {
-                const dLeft = daysBetween(i.expires_at);
-                const isOpen = (i.stored_status ?? i.status) === "pending";
-                const expiryTone =
-                  isOpen && dLeft < 0 ? "red"
-                    : isOpen && dLeft <= 3 ? "amber"
-                      : "neutral";
-                const expiryLabel =
-                  !isOpen ? "—"
-                    : dLeft < 0 ? "Expired"
-                      : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
-                return (
-                  <tr key={`${i.type}-${i.id}`}>
-                    <td style={{ whiteSpace: "nowrap" }}><strong>{i.recipient_name ?? "—"}</strong></td>
-                    <td>{i.email}</td>
-                    <td>
-                      <span className={`tvp-status tvp-${i.type === "talent" ? "blue" : "teal"}`}>
-                        {i.type === "talent" ? "Talent Invite" : "Staff Invite"}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={statusPillClass("invitation", i.status)}>
-                        {statusLabel("invitation", i.status)}
-                      </span>
-                    </td>
-                    <td>{i.invited_by_label}</td>
-                    <td>{fmtDate(i.last_sent_at)}</td>
-                    <td>
-                      <span className={`tvp-status tvp-${expiryTone}`}>{expiryLabel}</span>
-                    </td>
-                    <td>
-                      <RowActionsMenu
-                        actions={(() => {
-                          const allowed = invitationActions({
-                            status: i.status,
-                            storedStatus: i.stored_status,
-                            viewer: isOwner ? "agency_owner" : "agency_staff",
-                            canWrite: !readOnly,
-                          });
-                          const open = invitationIsOpen(i.stored_status ?? i.status);
-                          return [
-                            allowed.includes("edit_email") && {
-                              key: "email", label: "Edit & send email", icon: Mail,
-                              onSelect: () =>
-                                navigate({
-                                  to: "/agency/invitations/$id/email-preview",
-                                  params: { id: i.id },
-                                  search: { type: i.type as "talent" | "staff" },
-                                }),
-                            },
-                            allowed.includes("copy_link") && {
-                              key: "copy", label: "Copy invite link", icon: Link2,
-                              title: "Copying does not extend expiry",
-                              onSelect: () => copyLink(i),
-                            },
-                            allowed.includes("resend") && {
-                              key: "resend", label: "Resend invitation", icon: RefreshCw,
-                              title: "Refreshes expiry and logs a new send",
-                              onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
-                            },
-                            allowed.includes("reinvite") && {
-                              key: "reinvite", label: "Reinvite", icon: Send,
-                              onSelect: () => {
-                                // Still stored as open (only past its date): a fresh expiry is enough.
-                                if (open) resendM.mutate({ id: i.id, type: i.type });
-                                else setOpenForm(i.type as InviteType);
-                              },
-                            },
-                            allowed.includes("revoke") && {
-                              key: "revoke", label: "Revoke invitation", icon: Ban,
-                              destructive: true, separatorBefore: true,
-                              onSelect: () => {
-                                if (confirm(`Revoke invitation to ${i.email}?`))
-                                  revokeM.mutate({ id: i.id, type: i.type });
-                              },
-                            },
-                          ];
-                        })()}
-                      />
+        <div className="tvp-card">
+          <div className="tvp-table-wrap">
+            <table className="tvp-table">
+              <thead>
+                <tr>
+                  <th style={{ minWidth: 180, whiteSpace: "nowrap" }}>Recipient</th>
+                  <th>Email</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Sent By</th>
+                  <th>Sent</th>
+                  <th>Expires</th>
+                  <th style={{ width: 48 }} />
+                </tr>
+              </thead>
+              <tbody>
+                {invites.isLoading && (
+                  <tr>
+                    <td colSpan={8} className="tvp-muted">
+                      Loading…
                     </td>
                   </tr>
-                );
-              })}
-              <LoadMoreRow
-                colSpan={8}
-                noun="invitations"
-                shown={page.shown}
-                total={page.total}
-                hasMore={page.hasMore}
-                onLoadMore={page.loadMore}
-              />
-            </tbody>
-          </table>
+                )}
+                {!invites.isLoading && visible.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="tvp-muted">
+                      {EMPTY_STATE[tab]}
+                    </td>
+                  </tr>
+                )}
+                {visible.map((i: any) => {
+                  const dLeft = daysBetween(i.expires_at);
+                  const isOpen = (i.stored_status ?? i.status) === "pending";
+                  const expiryTone =
+                    isOpen && dLeft < 0 ? "red" : isOpen && dLeft <= 3 ? "amber" : "neutral";
+                  const expiryLabel = !isOpen
+                    ? "—"
+                    : dLeft < 0
+                      ? "Expired"
+                      : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
+                  return (
+                    <tr key={`${i.type}-${i.id}`}>
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        <strong>{i.recipient_name ?? "—"}</strong>
+                      </td>
+                      <td>{i.email}</td>
+                      <td>
+                        <span className={`tvp-status tvp-${i.type === "talent" ? "blue" : "teal"}`}>
+                          {i.type === "talent" ? "Talent Invite" : "Staff Invite"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={statusPillClass("invitation", i.status)}>
+                          {statusLabel("invitation", i.status)}
+                        </span>
+                      </td>
+                      <td>{i.invited_by_label}</td>
+                      <td>{fmtDate(i.last_sent_at)}</td>
+                      <td>
+                        <span className={`tvp-status tvp-${expiryTone}`}>{expiryLabel}</span>
+                      </td>
+                      <td>
+                        <RowActionsMenu
+                          actions={(() => {
+                            const allowed = invitationActions({
+                              status: i.status,
+                              storedStatus: i.stored_status,
+                              viewer: isOwner ? "agency_owner" : "agency_staff",
+                              canWrite: !readOnly,
+                            });
+                            const open = invitationIsOpen(i.stored_status ?? i.status);
+                            return [
+                              allowed.includes("edit_email") && {
+                                key: "email",
+                                label: "Edit & send email",
+                                icon: Mail,
+                                onSelect: () =>
+                                  navigate({
+                                    to: "/agency/invitations/$id/email-preview",
+                                    params: { id: i.id },
+                                    search: { type: i.type as "talent" | "staff" },
+                                  }),
+                              },
+                              allowed.includes("copy_link") && {
+                                key: "copy",
+                                label: "Copy invite link",
+                                icon: Link2,
+                                title: "Copying does not extend expiry",
+                                onSelect: () => copyLink(i),
+                              },
+                              allowed.includes("resend") && {
+                                key: "resend",
+                                label: "Resend invitation",
+                                icon: RefreshCw,
+                                title: "Refreshes expiry and logs a new send",
+                                onSelect: () => resendM.mutate({ id: i.id, type: i.type }),
+                              },
+                              allowed.includes("reinvite") && {
+                                key: "reinvite",
+                                label: "Reinvite",
+                                icon: Send,
+                                onSelect: () => {
+                                  // Still stored as open (only past its date): a fresh expiry is enough.
+                                  if (open) resendM.mutate({ id: i.id, type: i.type });
+                                  else setOpenForm(i.type as InviteType);
+                                },
+                              },
+                              allowed.includes("revoke") && {
+                                key: "revoke",
+                                label: "Revoke invitation",
+                                icon: Ban,
+                                destructive: true,
+                                separatorBefore: true,
+                                onSelect: () => {
+                                  if (confirm(`Revoke invitation to ${i.email}?`))
+                                    revokeM.mutate({ id: i.id, type: i.type });
+                                },
+                              },
+                            ];
+                          })()}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+                <LoadMoreRow
+                  colSpan={8}
+                  noun="invitations"
+                  shown={page.shown}
+                  total={page.total}
+                  hasMore={page.hasMore}
+                  onLoadMore={page.loadMore}
+                />
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <ActiveStaffCard isOwner={isOwner} />
+        <ActiveStaffCard isOwner={isOwner} />
       </div>
-
 
       {openForm && (
         <NewInvitationModal
@@ -351,7 +394,9 @@ function InvitationsPage() {
 type FolderItem = { name: string; sort_order?: number; retention_years?: number | null };
 
 function NewInvitationModal({
-  type, onClose, onSubmit,
+  type,
+  onClose,
+  onSubmit,
 }: {
   type: InviteType;
   onClose: () => void;
@@ -421,14 +466,13 @@ function NewInvitationModal({
     !busy;
 
   const showFoldersPanel = type === "talent" && panel === "folders";
-  const primaryLabel =
-    busy
-      ? "Sending…"
-      : type === "staff"
-        ? "Create & send invitation"
-        : showFoldersPanel
-          ? `Set up ${name.trim() || "talent"}’s folders & send invite`
-          : "Next: choose folders";
+  const primaryLabel = busy
+    ? "Sending…"
+    : type === "staff"
+      ? "Create & send invitation"
+      : showFoldersPanel
+        ? `Set up ${name.trim() || "talent"}’s folders & send invite`
+        : "Next: choose folders";
 
   return (
     <div
@@ -436,8 +480,13 @@ function NewInvitationModal({
       aria-modal="true"
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
       }}
     >
       <div
@@ -449,18 +498,26 @@ function NewInvitationModal({
           <h2 className="tvp-h2">
             {type === "talent" ? "New Talent Invitation" : "New Staff Invitation"}
           </h2>
-          <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+          <button title="Close" className="tvp-mini-btn" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {type === "talent" && (
           <div className="tvp-stepper" style={{ marginTop: 4 }}>
             <div className={`tvp-step ${panel === "details" ? "tvp-active" : "tvp-done"}`}>
               <div className="tvp-step-num">1</div>
-              <div><div className="tvp-step-title">Details</div><div className="tvp-step-sub">Name, email, expiry</div></div>
+              <div>
+                <div className="tvp-step-title">Details</div>
+                <div className="tvp-step-sub">Name, email, expiry</div>
+              </div>
             </div>
             <div className={`tvp-step ${panel === "folders" ? "tvp-active" : ""}`}>
               <div className="tvp-step-num">2</div>
-              <div><div className="tvp-step-title">Folders</div><div className="tvp-step-sub">Standard or custom</div></div>
+              <div>
+                <div className="tvp-step-title">Folders</div>
+                <div className="tvp-step-sub">Standard or custom</div>
+              </div>
             </div>
           </div>
         )}
@@ -494,27 +551,47 @@ function NewInvitationModal({
                       retention_years: f.retention_years ?? null,
                     })),
                   }
-                : { contact_person: name.trim() || undefined, email: email.trim(), role, expiry_days: expiryDays };
+                : {
+                    contact_person: name.trim() || undefined,
+                    email: email.trim(),
+                    role,
+                    expiry_days: expiryDays,
+                  };
             await onSubmit(payload);
             setBusy(false);
           }}
         >
-          {(!showFoldersPanel) && (
+          {!showFoldersPanel && (
             <>
               {type === "talent" ? (
                 <div className="tvp-form-group">
                   <label>Talent name *</label>
-                  <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. full name as it appears on ID" />
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    placeholder="e.g. full name as it appears on ID"
+                  />
                 </div>
               ) : (
                 <div className="tvp-form-group">
                   <label>Contact person</label>
-                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. full name as it appears on ID" />
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. full name as it appears on ID"
+                  />
                 </div>
               )}
               <div className="tvp-form-group">
                 <label>Email *</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="name@email.com" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="name@email.com"
+                />
               </div>
               {type === "staff" && (
                 <div className="tvp-form-group">
@@ -528,7 +605,10 @@ function NewInvitationModal({
               <div className="tvp-form-group">
                 <label>Invitation expiry (days)</label>
                 <input
-                  type="number" min={1} max={60} value={expiryDays}
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={expiryDays}
                   onChange={(e) => setExpiryDays(Number(e.target.value) || 14)}
                 />
               </div>
@@ -544,35 +624,63 @@ function NewInvitationModal({
                 background: "rgba(20, 184, 166, 0.06)",
               }}
             >
-              <h3 className="tvp-h3" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <h3
+                className="tvp-h3"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
                 <FolderCog className="h-4 w-4" /> Folders for {name.trim() || "this talent"}
               </h3>
 
-              <div className="tvp-ai-box" style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div
+                className="tvp-ai-box"
+                style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "flex-start" }}
+              >
                 <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
                 <div className="tvp-small">
                   Folders inside the Roster Shared Folder are visible to both you and the talent.
-                  The talent also gets a separate Private Vault for personal documents — you can’t see those.
+                  The talent also gets a separate Private Vault for personal documents — you can’t
+                  see those.
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 14 }}>
+              <div
+                style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 14 }}
+              >
                 <button
                   type="button"
                   onClick={() => setFolderMode("standard")}
                   className={`tvp-rule-card ${folderMode === "standard" ? "tvp-active" : ""}`}
-                  style={{ textAlign: "left", flexDirection: "column", alignItems: "stretch", cursor: "pointer" }}
+                  style={{
+                    textAlign: "left",
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                    cursor: "pointer",
+                  }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
                     <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                       <Check className="h-4 w-4" /> Use my standard set
                     </strong>
                     <span className="tvp-small tvp-muted">Recommended</span>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                    {standardFolders.length === 0
-                      ? <span className="tvp-small tvp-muted">No default template configured yet.</span>
-                      : standardFolders.map((f) => <span key={f.name} className="tvp-badge">{f.name}</span>)}
+                    {standardFolders.length === 0 ? (
+                      <span className="tvp-small tvp-muted">
+                        No default template configured yet.
+                      </span>
+                    ) : (
+                      standardFolders.map((f) => (
+                        <span key={f.name} className="tvp-badge">
+                          {f.name}
+                        </span>
+                      ))
+                    )}
                   </div>
                   <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
                     Pulled from your default Folder Template.
@@ -583,7 +691,12 @@ function NewInvitationModal({
                   type="button"
                   onClick={() => setFolderMode("custom")}
                   className={`tvp-rule-card ${folderMode === "custom" ? "tvp-active" : ""}`}
-                  style={{ textAlign: "left", flexDirection: "column", alignItems: "stretch", cursor: "pointer" }}
+                  style={{
+                    textAlign: "left",
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                    cursor: "pointer",
+                  }}
                 >
                   <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                     <Settings2 className="h-4 w-4" /> Customise for this talent
@@ -613,7 +726,8 @@ function NewInvitationModal({
                             onChange={() => {
                               setCustomFolders((prev) => {
                                 const next = new Set(prev);
-                                if (next.has(f.name)) next.delete(f.name); else next.add(f.name);
+                                if (next.has(f.name)) next.delete(f.name);
+                                else next.add(f.name);
                                 return next;
                               });
                             }}
@@ -629,24 +743,31 @@ function NewInvitationModal({
 
               <div className="tvp-small tvp-muted" style={{ marginTop: 10 }}>
                 Defaults are configured in{" "}
-                <Link to="/agency/folder-templates" className="tvp-link">Folder Templates</Link>.
+                <Link to="/agency/folder-templates" className="tvp-link">
+                  Folder Templates
+                </Link>
+                .
               </div>
             </div>
           )}
 
           <div className="tvp-footer-actions">
             {type === "talent" && showFoldersPanel && (
-              <button type="button" className="tvp-secondary" onClick={() => setPanel("details")}>Back</button>
+              <button type="button" className="tvp-secondary" onClick={() => setPanel("details")}>
+                Back
+              </button>
             )}
-            <button type="button" className="tvp-secondary" onClick={onClose}>Cancel</button>
+            <button type="button" className="tvp-secondary" onClick={onClose}>
+              Cancel
+            </button>
             <button
               type="submit"
               className="tvp-primary"
               disabled={
-                busy
-                || !email.trim()
-                || (type === "talent" && !name.trim())
-                || (showFoldersPanel && activeSelection.length === 0)
+                busy ||
+                !email.trim() ||
+                (type === "talent" && !name.trim()) ||
+                (showFoldersPanel && activeSelection.length === 0)
               }
             >
               {primaryLabel}
@@ -657,7 +778,6 @@ function NewInvitationModal({
     </div>
   );
 }
-
 
 /**
  * Active staff roster. Everyone who has accepted a staff invitation, with the
@@ -723,16 +843,33 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
             </tr>
           </thead>
           <tbody>
-            {staff.isLoading && <tr><td colSpan={6} className="tvp-muted">Loading…</td></tr>}
+            {staff.isLoading && (
+              <tr>
+                <td colSpan={6} className="tvp-muted">
+                  Loading…
+                </td>
+              </tr>
+            )}
             {!staff.isLoading && rows.length === 0 && (
-              <tr><td colSpan={6} className="tvp-muted">No staff members yet — invite a staff member to get started.</td></tr>
+              <tr>
+                <td colSpan={6} className="tvp-muted">
+                  No staff members yet — invite a staff member to get started.
+                </td>
+              </tr>
             )}
             {rows.map((m) => {
               const editable = isOwner && m.role !== "owner" && !m.isSelf && !m.suspended;
               const isLead = m.role === "lead";
               return (
                 <tr key={m.id}>
-                  <td><strong>{m.name}</strong>{m.isSelf && <span className="tvp-status tvp-neutral" style={{ marginLeft: 6 }}>You</span>}</td>
+                  <td>
+                    <strong>{m.name}</strong>
+                    {m.isSelf && (
+                      <span className="tvp-status tvp-neutral" style={{ marginLeft: 6 }}>
+                        You
+                      </span>
+                    )}
+                  </td>
                   <td>{m.email || "—"}</td>
                   <td>
                     <span className="tvp-status tvp-neutral">
@@ -741,7 +878,9 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
                   </td>
                   <td>{fmtDate(m.joinedAt)}</td>
                   <td>
-                    <span className={statusPillClass("member", m.suspended ? "suspended" : "active")}>
+                    <span
+                      className={statusPillClass("member", m.suspended ? "suspended" : "active")}
+                    >
                       {statusLabel("member", m.suspended ? "suspended" : "active")}
                     </span>
                   </td>
@@ -750,32 +889,36 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
                         action set is filtered by role, permissions and state. */}
                     <RowActionsMenu
                       actions={[
-                        editable && !isLead && {
-                          key: "make-lead",
-                          label: "Make lead manager",
-                          icon: ShieldCheck,
-                          title: "Full talent operations",
-                          disabled: changeRole.isPending,
-                          onSelect: () => changeRole.mutate({ member_id: m.id, role: "lead" }),
-                        },
-                        editable && isLead && {
-                          key: "make-staff",
-                          label: "Make staff manager",
-                          icon: Settings2,
-                          title: "View and limited actions",
-                          disabled: changeRole.isPending,
-                          onSelect: () => changeRole.mutate({ member_id: m.id, role: "staff" }),
-                        },
-                        isOwner && m.role !== "owner" && !m.isSelf && {
-                          key: "remove",
-                          label: "Remove from agency",
-                          icon: Trash2,
-                          destructive: true,
-                          separatorBefore: true,
-                          title: "Ends their access to this agency",
-                          disabled: removeStaff.isPending,
-                          onSelect: () => setConfirmRemove(m),
-                        },
+                        editable &&
+                          !isLead && {
+                            key: "make-lead",
+                            label: "Make lead manager",
+                            icon: ShieldCheck,
+                            title: "Full talent operations",
+                            disabled: changeRole.isPending,
+                            onSelect: () => changeRole.mutate({ member_id: m.id, role: "lead" }),
+                          },
+                        editable &&
+                          isLead && {
+                            key: "make-staff",
+                            label: "Make staff manager",
+                            icon: Settings2,
+                            title: "View and limited actions",
+                            disabled: changeRole.isPending,
+                            onSelect: () => changeRole.mutate({ member_id: m.id, role: "staff" }),
+                          },
+                        isOwner &&
+                          m.role !== "owner" &&
+                          !m.isSelf && {
+                            key: "remove",
+                            label: "Remove from agency",
+                            icon: Trash2,
+                            destructive: true,
+                            separatorBefore: true,
+                            title: "Ends their access to this agency",
+                            disabled: removeStaff.isPending,
+                            onSelect: () => setConfirmRemove(m),
+                          },
                         !!m.email && {
                           key: "copy-email",
                           label: "Copy email address",

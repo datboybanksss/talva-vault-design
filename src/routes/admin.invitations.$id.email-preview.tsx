@@ -43,7 +43,9 @@ function EmailPreviewPage() {
   const inviteUrl = inv ? `${origin}/invite/${inv.token}` : "";
   const expiryDate = inv
     ? new Date(inv.expires_at).toLocaleDateString("en-GB", {
-        day: "numeric", month: "long", year: "numeric",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       })
     : "";
 
@@ -84,26 +86,43 @@ function EmailPreviewPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/admin/invitations" search={{}} className="tvp-link"
-            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+          <Link
+            to="/admin/invitations"
+            search={{}}
+            className="tvp-link"
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}
+          >
             <ArrowLeft className="h-3 w-3" /> Back to invitations
           </Link>
-          <h1 className="tvp-h1" style={{ marginTop: 4 }}>Invitation email</h1>
+          <h1 className="tvp-h1" style={{ marginTop: 4 }}>
+            Invitation email
+          </h1>
           <div className="tvp-subtitle">
             Edit the subject and message, preview it exactly as the recipient sees it, then send.
-            Tokens available: {"{{contact_person}}"}, {"{{agency_name}}"}, {"{{email}}"}, {"{{expiry_date}}"}.
+            Tokens available: {"{{contact_person}}"}, {"{{agency_name}}"}, {"{{email}}"},{" "}
+            {"{{expiry_date}}"}.
           </div>
         </div>
         <div className="tvp-actions">
-          <button className="tvp-secondary" onClick={copyLink} disabled={!inv} title="Copy the unique invite link">
-            <Copy className="h-4 w-4" />Copy link
+          <button
+            className="tvp-secondary"
+            onClick={copyLink}
+            disabled={!inv}
+            title="Copy the unique invite link"
+          >
+            <Copy className="h-4 w-4" />
+            Copy link
           </button>
           <button
             className="tvp-primary"
             disabled={!inv || sendM.isPending || !subject.trim() || !body.trim()}
-            onClick={() => { setStatus(null); sendM.mutate(); }}
+            onClick={() => {
+              setStatus(null);
+              sendM.mutate();
+            }}
           >
-            <Send className="h-4 w-4" />{sendM.isPending ? "Sending…" : "Send email"}
+            <Send className="h-4 w-4" />
+            {sendM.isPending ? "Sending…" : "Send email"}
           </button>
         </div>
       </div>

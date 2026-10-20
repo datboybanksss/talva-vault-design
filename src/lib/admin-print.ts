@@ -19,7 +19,10 @@ function card(value: string, label: string) {
 /** Admin Reporting — the metrics snapshot currently shown on screen. */
 export function buildAdminReportingHtml(d: any) {
   const pct = (n: number, dn: number) => (dn > 0 ? `${Math.round((n / dn) * 100)}%` : "0%");
-  const window = (w: any) => (w?.mature ? `${Math.round((w.active / w.mature) * 100)}% (${w.active} of ${w.mature})` : "Not yet due");
+  const window = (w: any) =>
+    w?.mature
+      ? `${Math.round((w.active / w.mature) * 100)}% (${w.active} of ${w.mature})`
+      : "Not yet due";
 
   const metricRows = (rows: [string, string, string][]) => `<table>
     <thead><tr><th>Metric</th><th>Value</th><th>Context</th></tr></thead>
@@ -42,16 +45,40 @@ export function buildAdminReportingHtml(d: any) {
 
 <h2>Growth &amp; funnel</h2>
 ${metricRows([
-  ["Agencies added", String(d.growth.agenciesAdded), `${d.growth.agenciesAddedPrior} in prior period`],
-  ["Invite-to-acceptance rate", `${d.growth.acceptanceRate}%`, `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations sent in period`],
-  ["Median time to accept", d.growth.medianDaysToAccept == null ? "No acceptances" : `${d.growth.medianDaysToAccept} days`, `${d.growth.acceptedInPeriod} accepted in period`],
+  [
+    "Agencies added",
+    String(d.growth.agenciesAdded),
+    `${d.growth.agenciesAddedPrior} in prior period`,
+  ],
+  [
+    "Invite-to-acceptance rate",
+    `${d.growth.acceptanceRate}%`,
+    `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations sent in period`,
+  ],
+  [
+    "Median time to accept",
+    d.growth.medianDaysToAccept == null ? "No acceptances" : `${d.growth.medianDaysToAccept} days`,
+    `${d.growth.acceptedInPeriod} accepted in period`,
+  ],
 ])}
 
 <h2>Engagement &amp; activity</h2>
 ${metricRows([
-  ["Talent active in period", `${d.engagement.activeTalent} / ${d.engagement.totalTalent}`, `${pct(d.engagement.activeTalent, d.engagement.totalTalent)} of onboarded talent`],
-  ["Agencies with an active talent share", String(d.engagement.agenciesWithShare), `${d.engagement.sharesCreated} share(s) created in period`],
-  ["Documents uploaded", String(d.engagement.documentsUploaded), `${d.engagement.sharedDocuments} shared with agencies, ${d.engagement.privateDocuments} in private vaults`],
+  [
+    "Talent active in period",
+    `${d.engagement.activeTalent} / ${d.engagement.totalTalent}`,
+    `${pct(d.engagement.activeTalent, d.engagement.totalTalent)} of onboarded talent`,
+  ],
+  [
+    "Agencies with an active talent share",
+    String(d.engagement.agenciesWithShare),
+    `${d.engagement.sharesCreated} share(s) created in period`,
+  ],
+  [
+    "Documents uploaded",
+    String(d.engagement.documentsUploaded),
+    `${d.engagement.sharedDocuments} shared with agencies, ${d.engagement.privateDocuments} in private vaults`,
+  ],
 ])}
 
 <h2>Financials</h2>
@@ -63,18 +90,24 @@ ${metricRows([
 </div>
 
 <h2>Cohort retention</h2>
-${d.cohorts.length === 0
-  ? `<p class="empty">No talent onboarded up to the end of this period yet.</p>`
-  : `<table>
+${
+  d.cohorts.length === 0
+    ? `<p class="empty">No talent onboarded up to the end of this period yet.</p>`
+    : `<table>
   <thead><tr><th>Onboarding month</th><th class="n">Talent onboarded</th><th class="n">Active at 30 days</th><th class="n">Active at 60 days</th><th class="n">Active at 90 days</th></tr></thead>
-  <tbody>${d.cohorts.map((c: any) => `<tr>
+  <tbody>${d.cohorts
+    .map(
+      (c: any) => `<tr>
     <td>${esc(new Date(`${c.month}-01T00:00:00Z`).toLocaleDateString("en-ZA", { month: "long", year: "numeric" }))}</td>
     <td class="n">${c.size}</td>
     <td class="n">${esc(window(c.d30))}</td>
     <td class="n">${esc(window(c.d60))}</td>
     <td class="n">${esc(window(c.d90))}</td>
-  </tr>`).join("")}</tbody>
-</table>`}
+  </tr>`,
+    )
+    .join("")}</tbody>
+</table>`
+}
 </body></html>`;
 }
 
@@ -92,7 +125,13 @@ export type AdminBillingPrintRow = {
 /** Admin Quotes & Invoices — the currently filtered table. */
 export function buildAdminBillingHtml(
   rows: AdminBillingPrintRow[],
-  kpis: { total: number; outstanding: number; paid30: number; overdueAmt: number; overdueCount: number },
+  kpis: {
+    total: number;
+    outstanding: number;
+    paid30: number;
+    overdueAmt: number;
+    overdueCount: number;
+  },
   filterLabel: string,
   statusLabel: Record<string, string>,
 ) {
@@ -108,11 +147,14 @@ export function buildAdminBillingHtml(
   ${card(zar(kpis.overdueAmt), `Overdue · ${kpis.overdueCount} record(s)`)}
 </div>
 <h2>Records in this view</h2>
-${rows.length === 0
-  ? `<p class="empty">No records match the current filters.</p>`
-  : `<table>
+${
+  rows.length === 0
+    ? `<p class="empty">No records match the current filters.</p>`
+    : `<table>
   <thead><tr><th>Agency</th><th>Type</th><th>Number</th><th>Client</th><th>Issued</th><th class="n">Total</th><th>Status</th></tr></thead>
-  <tbody>${rows.map((r) => `<tr>
+  <tbody>${rows
+    .map(
+      (r) => `<tr>
     <td>${esc(r.agency_name ?? "")}</td>
     <td>${esc(r.kind === "quote" ? "Quote" : "Invoice")}</td>
     <td>${esc(r.number ?? "")}</td>
@@ -120,7 +162,10 @@ ${rows.length === 0
     <td>${esc(dayMonthYear(r.issued_at))}</td>
     <td class="n">${esc(new Intl.NumberFormat("en-ZA", { style: "currency", currency: r.currency || "ZAR", maximumFractionDigits: 0 }).format(r.total_cents / 100))}</td>
     <td>${esc(statusLabel[r.status] ?? r.status)}</td>
-  </tr>`).join("")}</tbody>
-</table>`}
+  </tr>`,
+    )
+    .join("")}</tbody>
+</table>`
+}
 </body></html>`;
 }

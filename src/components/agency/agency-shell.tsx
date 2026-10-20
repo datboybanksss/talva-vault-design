@@ -23,11 +23,15 @@ import {
   X,
 } from "lucide-react";
 
-
 import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
-import { agencyWhoami, listAgencyNotifications, getAgencyDashboardMetrics, dismissAgencyReminder } from "@/lib/agency.functions";
+import {
+  agencyWhoami,
+  listAgencyNotifications,
+  getAgencyDashboardMetrics,
+  dismissAgencyReminder,
+} from "@/lib/agency.functions";
 import { TermsGate } from "@/components/shared/terms-gate";
 import { PortalFooter } from "@/components/shared/portal-footer";
 import { AgencyReadOnlyContext, useHideWriteControls } from "@/components/agency/agency-read-only";
@@ -50,7 +54,8 @@ const manage: NavItem[] = [
     to: "/agency/quotes-invoices",
     label: (
       <>
-        Quotes &<br />Invoices
+        Quotes &<br />
+        Invoices
       </>
     ),
     icon: <Receipt />,
@@ -61,7 +66,6 @@ const settings: NavItem[] = [
   { to: "/agency/activity", label: "Activity Log", icon: <Clock /> },
   { to: "/agency/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
-
 
 const toneIcon: Record<string, any> = {
   amber: Clock,
@@ -113,11 +117,17 @@ export function AgencyShell({ children }: { children: ReactNode }) {
   // and the Invitations badge counts open invitations.
   // Suspended agency: view and download only, until the date the database sets.
   const readOnly =
-    me?.readOnlyUntil && me.readOnlyNotice ? { until: me.readOnlyUntil, notice: me.readOnlyNotice } : null;
+    me?.readOnlyUntil && me.readOnlyNotice
+      ? { until: me.readOnlyUntil, notice: me.readOnlyNotice }
+      : null;
   const contentRef = useRef<HTMLDivElement>(null);
   useHideWriteControls(contentRef, !!readOnly);
   const readOnlyDate = readOnly
-    ? new Date(readOnly.until).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    ? new Date(readOnly.until).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
     : null;
 
   const badgeCounts: Record<"talent" | "invitations", number> = {
@@ -125,17 +135,13 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     invitations: metrics?.invitationsNeedAction ?? 0,
   };
 
-  const items = [
-    ...(notifs?.computed ?? []),
-    ...(notifs?.persisted ?? []),
-  ];
+  const items = [...(notifs?.computed ?? []), ...(notifs?.persisted ?? [])];
 
   const dismissReminderFn = useServerFn(dismissAgencyReminder);
   const dismissItem = async (n: { key: string; snapshot: number }) => {
     await dismissReminderFn({ data: { kind: n.key, snapshot: n.snapshot } });
     await queryClient.invalidateQueries({ queryKey: ["agency", "notifications"] });
   };
-
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -157,7 +163,6 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-
   const isActive = (item: NavItem) => {
     if (item.match === "exact") return pathname === item.to;
     return pathname === item.to || pathname.startsWith(item.to + "/");
@@ -176,9 +181,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
         >
           <span className="shrink-0">{item.icon}</span>
           <span className="tvp-nav-label">{item.label}</span>
-          {item.badgeKey && count > 0 && (
-            <span className="tvp-nav-badge">{count}</span>
-          )}
+          {item.badgeKey && count > 0 && <span className="tvp-nav-badge">{count}</span>}
         </Link>
       );
     });
@@ -216,8 +219,8 @@ export function AgencyShell({ children }: { children: ReactNode }) {
         aria-hidden="true"
       />
       <aside className="tvp-sidebar">
-
-        <button title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        <button
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="tvp-collapse-btn"
           onClick={() => setCollapsed((c) => !c)}
           aria-label="Toggle sidebar"
@@ -261,7 +264,8 @@ export function AgencyShell({ children }: { children: ReactNode }) {
             </div>
             <div className="tvp-profile-role">{roleLabel}</div>
           </Link>
-          <button title="Log out"
+          <button
+            title="Log out"
             className="tvp-logout"
             aria-label="Log out"
             onClick={handleSignOut}
@@ -269,12 +273,12 @@ export function AgencyShell({ children }: { children: ReactNode }) {
             <LogOut className="h-4 w-4" />
           </button>
         </div>
-
       </aside>
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
-          <button title="Open navigation"
+          <button
+            title="Open navigation"
             type="button"
             className="tvp-mobile-menu-btn"
             aria-label="Open navigation"
@@ -283,7 +287,6 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          
 
           {readOnly && (
             <span className="tvp-read-only-label" role="status" title={readOnly.notice}>
@@ -307,10 +310,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
             </button>
             {bellOpen && (
               <div className="tvp-notification-panel">
-                <div
-                  className="flex items-center justify-between"
-                  style={{ marginBottom: 6 }}
-                >
+                <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
                   <div className="tvp-h2">Reminders</div>
                 </div>
                 {items.length === 0 && (
@@ -330,10 +330,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                       </div>
                       <div className="tvp-notification-text">
                         <strong>{n.title}</strong>
-                        <div
-                          className="tvp-muted"
-                          style={{ fontSize: 12, marginTop: 2 }}
-                        >
+                        <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
                           {n.detail}
                         </div>
                         {n.note && (
@@ -374,7 +371,6 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                     </div>
                   );
                 })}
-
               </div>
             )}
           </div>
@@ -386,10 +382,11 @@ export function AgencyShell({ children }: { children: ReactNode }) {
           >
             {initials || "?"}
           </Link>
-
         </div>
         <AgencyReadOnlyContext.Provider value={readOnly}>
-          <div ref={contentRef}><TermsGate portal="agency">{children}</TermsGate></div>
+          <div ref={contentRef}>
+            <TermsGate portal="agency">{children}</TermsGate>
+          </div>
         </AgencyReadOnlyContext.Provider>
         <PortalFooter />
       </main>

@@ -30,7 +30,10 @@ export const INVITE_PORTAL_HOME: Record<InviteKind, string> = {
   admin: "/admin",
 };
 
-const INVITE_TABLE: Record<InviteKind, "agency_invitations" | "talent_invitations" | "admin_invitations"> = {
+const INVITE_TABLE: Record<
+  InviteKind,
+  "agency_invitations" | "talent_invitations" | "admin_invitations"
+> = {
   agency: "agency_invitations",
   talent: "talent_invitations",
   admin: "admin_invitations",
@@ -78,14 +81,11 @@ export const inviteAccountStatus = createServerFn({ method: "POST" })
       .ilike("email", escaped)
       .limit(5);
 
-    const match = (profiles ?? []).find(
-      (p) => (p.email ?? "").trim().toLowerCase() === invited,
-    );
+    const match = (profiles ?? []).find((p) => (p.email ?? "").trim().toLowerCase() === invited);
     if (!match) return { account_exists: false, email: inv.email };
 
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(match.id);
-    const exists =
-      (authUser?.user?.email ?? "").trim().toLowerCase() === invited;
+    const exists = (authUser?.user?.email ?? "").trim().toLowerCase() === invited;
 
     return { account_exists: exists, email: inv.email };
   });
@@ -110,12 +110,9 @@ export type PendingInviteForMe = {
  */
 export const pendingInvitationForMe = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((v: unknown) =>
-    z.object({ kind: kindSchema.optional() }).parse(v ?? {}),
-  )
+  .inputValidator((v: unknown) => z.object({ kind: kindSchema.optional() }).parse(v ?? {}))
   .handler(async ({ data, context }): Promise<PendingInviteForMe | null> => {
-    const email =
-      typeof context.claims.email === "string" ? context.claims.email.trim() : "";
+    const email = typeof context.claims.email === "string" ? context.claims.email.trim() : "";
     if (!email) return null;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -125,7 +122,10 @@ export const pendingInvitationForMe = createServerFn({ method: "POST" })
     for (const kind of kinds) {
       const { data: rows } = await supabaseAdmin
         .from(INVITE_TABLE[kind])
-        .select("token, expires_at, " + (kind === "agency" ? "agency_name" : kind === "talent" ? "talent_name" : "email"))
+        .select(
+          "token, expires_at, " +
+            (kind === "agency" ? "agency_name" : kind === "talent" ? "talent_name" : "email"),
+        )
         .ilike("email", email)
         .eq("status", "pending")
         .gt("expires_at", now)
@@ -137,7 +137,12 @@ export const pendingInvitationForMe = createServerFn({ method: "POST" })
         return {
           kind,
           token: row.token,
-          label: kind === "agency" ? row.agency_name ?? null : kind === "talent" ? row.talent_name ?? null : null,
+          label:
+            kind === "agency"
+              ? (row.agency_name ?? null)
+              : kind === "talent"
+                ? (row.talent_name ?? null)
+                : null,
           expires_at: row.expires_at,
         };
       }
@@ -146,7 +151,6 @@ export const pendingInvitationForMe = createServerFn({ method: "POST" })
   });
 
 export type ClaimResult =
-
   | { ok: true; kind: InviteKind; dest: string; already_linked: boolean }
   | {
       ok: false;
@@ -169,8 +173,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ClaimResult> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
-    const signedInEmail =
-      typeof context.claims.email === "string" ? context.claims.email : "";
+    const signedInEmail = typeof context.claims.email === "string" ? context.claims.email : "";
 
     const dest = INVITE_PORTAL_HOME[data.kind];
     const now = new Date().toISOString();
@@ -183,7 +186,8 @@ export const claimInvitation = createServerFn({ method: "POST" })
         .select("id, email, permission_level, status, expires_at, accepted_user_id")
         .eq("token", data.token)
         .maybeSingle();
-      if (!inv) return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
+      if (!inv)
+        return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
       if (!sameEmail(inv.email, signedInEmail))
         return {
           ok: false,
@@ -204,7 +208,11 @@ export const claimInvitation = createServerFn({ method: "POST" })
 
       if (inv.status === "accepted") {
         if (existingRole) return { ok: true, kind: data.kind, dest, already_linked: true };
-        return { ok: false, code: "already_accepted", message: "This invitation has already been used." };
+        return {
+          ok: false,
+          code: "already_accepted",
+          message: "This invitation has already been used.",
+        };
       }
       if (inv.status !== "pending")
         return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
@@ -247,7 +255,8 @@ export const claimInvitation = createServerFn({ method: "POST" })
         .select("id, agency_id, email, status, expires_at")
         .eq("token", data.token)
         .maybeSingle();
-      if (!inv) return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
+      if (!inv)
+        return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
       if (!sameEmail(inv.email, signedInEmail))
         return {
           ok: false,
@@ -268,7 +277,10 @@ export const claimInvitation = createServerFn({ method: "POST" })
       // A connection request to an existing account is never accepted here —
       // the talent reviews it (accept or decline) in their portal.
       const { data: priv } = await (supabaseAdmin as any)
-        .from("talent_invite_private").select("kind").eq("invitation_id", inv.id).maybeSingle();
+        .from("talent_invite_private")
+        .select("kind")
+        .eq("invitation_id", inv.id)
+        .maybeSingle();
       if (priv?.kind === "inert")
         return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
       if (priv?.kind === "link_request" && inv.status === "pending")
@@ -299,7 +311,8 @@ export const claimInvitation = createServerFn({ method: "POST" })
       .select("id, agency_id, agency_name, contact_person, email, kind, role, status, expires_at")
       .eq("token", data.token)
       .maybeSingle();
-    if (!inv) return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
+    if (!inv)
+      return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
     if (!sameEmail(inv.email, signedInEmail))
       return {
         ok: false,
@@ -319,7 +332,11 @@ export const claimInvitation = createServerFn({ method: "POST" })
         .eq("agency_id", inv.agency_id ?? "")
         .maybeSingle();
       if (member) return { ok: true, kind: "agency", dest, already_linked: true };
-      return { ok: false, code: "already_accepted", message: "This invitation has already been used." };
+      return {
+        ok: false,
+        code: "already_accepted",
+        message: "This invitation has already been used.",
+      };
     }
     if (inv.status !== "pending")
       return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
@@ -343,14 +360,26 @@ export const claimInvitation = createServerFn({ method: "POST" })
           })
           .select("id")
           .single();
-        if (agErr || !agency) return { ok: false, code: "unknown", message: agErr?.message ?? "Could not create the workspace." };
+        if (agErr || !agency)
+          return {
+            ok: false,
+            code: "unknown",
+            message: agErr?.message ?? "Could not create the workspace.",
+          };
         agencyId = agency.id;
-        await supabaseAdmin.from("agency_invitations").update({ agency_id: agencyId }).eq("id", inv.id);
+        await supabaseAdmin
+          .from("agency_invitations")
+          .update({ agency_id: agencyId })
+          .eq("id", inv.id);
       }
     }
 
     if (!agencyId)
-      return { ok: false, code: "invalid_token", message: "This invitation isn't linked to a workspace." };
+      return {
+        ok: false,
+        code: "invalid_token",
+        message: "This invitation isn't linked to a workspace.",
+      };
 
     const { data: existingMember } = await supabaseAdmin
       .from("agency_members")

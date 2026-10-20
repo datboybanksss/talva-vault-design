@@ -3,14 +3,18 @@ import { documentReminderDue, expiryPhrase, reminderLinkReadable } from "./docum
 const now = Date.parse("2026-10-20T12:00:00Z");
 describe("document reminders", () => {
   it("fires on the explicit reminder, not a future expiry", () => {
-    expect(documentReminderDue("2026-12-01T00:00:00Z", "2026-10-20T09:00:00Z", 30, now))
-      .toEqual({ date: "2026-10-20T09:00:00Z", kind: "reminder" });
+    expect(documentReminderDue("2026-12-01T00:00:00Z", "2026-10-20T09:00:00Z", 30, now)).toEqual({
+      date: "2026-10-20T09:00:00Z",
+      kind: "reminder",
+    });
   });
   it("does not send before the configured reminder", () => {
     expect(documentReminderDue("2026-11-01T00:00:00Z", "2026-10-25T09:00:00Z", 30, now)).toBeNull();
   });
   it("fires on expiry even if its reminder was earlier", () => {
-    expect(documentReminderDue("2026-10-20T00:00:00Z", "2026-10-01T09:00:00Z", 30, now)?.kind).toBe("expiry");
+    expect(documentReminderDue("2026-10-20T00:00:00Z", "2026-10-01T09:00:00Z", 30, now)?.kind).toBe(
+      "expiry",
+    );
   });
   it("excludes long-expired documents and overdue standalone reminders", () => {
     expect(documentReminderDue("2020-01-01T00:00:00Z", null, 30, now)).toBeNull();
@@ -26,8 +30,14 @@ describe("document reminders", () => {
   });
   it("includes all current readable links but not ended links or expired access", () => {
     expect(reminderLinkReadable({ status: "active", ended_at: null }, null, now)).toBe(true);
-    expect(reminderLinkReadable({ status: "read_only", ended_at: null }, "2027-01-01", now)).toBe(true);
-    expect(reminderLinkReadable({ status: "ended", ended_at: "2026-01-01" }, "2036-01-01", now)).toBe(false);
-    expect(reminderLinkReadable({ status: "active", ended_at: null }, "2026-01-01", now)).toBe(false);
+    expect(reminderLinkReadable({ status: "read_only", ended_at: null }, "2027-01-01", now)).toBe(
+      true,
+    );
+    expect(
+      reminderLinkReadable({ status: "ended", ended_at: "2026-01-01" }, "2036-01-01", now),
+    ).toBe(false);
+    expect(reminderLinkReadable({ status: "active", ended_at: null }, "2026-01-01", now)).toBe(
+      false,
+    );
   });
 });

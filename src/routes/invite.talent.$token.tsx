@@ -33,7 +33,10 @@ export const Route = createFileRoute("/invite/talent/$token")({
   head: () => ({
     meta: [
       { title: "Activate your Talent vault · TalVault" },
-      { name: "description", content: "Accept your TalVault talent invitation and set up your secure vault." },
+      {
+        name: "description",
+        content: "Accept your TalVault talent invitation and set up your secure vault.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -43,7 +46,6 @@ export const Route = createFileRoute("/invite/talent/$token")({
 function TalentInvitePage() {
   const { token } = Route.useParams();
   const nav = useNavigate();
-
 
   const inviteQ = useQuery({
     queryKey: ["talent-invite-token", token],
@@ -57,7 +59,9 @@ function TalentInvitePage() {
   // Snapshot the first successful resolve. Completing the wizard signs the
   // user in, which invalidates queries — a refetch would then report the token
   // as "accepted" and blow the user out of step 4.
-  const [snapshot, setSnapshot] = useState<Extract<ResolvedTalentInvitation, { ok: true }> | null>(null);
+  const [snapshot, setSnapshot] = useState<Extract<ResolvedTalentInvitation, { ok: true }> | null>(
+    null,
+  );
   const resolved = inviteQ.data;
   useEffect(() => {
     if (resolved && resolved.ok) setSnapshot((prev) => prev ?? resolved);
@@ -75,12 +79,16 @@ function TalentInvitePage() {
           ) : inviteQ.isLoading ? (
             <div className="tv-auth-tag">Loading your invitation…</div>
           ) : !resolved ? (
-            <TerminalError title="Something went wrong" body="We couldn't load this invitation. Please try again or contact the person who invited you." />
+            <TerminalError
+              title="Something went wrong"
+              body="We couldn't load this invitation. Please try again or contact the person who invited you."
+            />
           ) : resolved.ok === false ? (
-            <TerminalError title={terminalTitle(resolved.reason)} body={terminalBody(resolved.reason)} />
+            <TerminalError
+              title={terminalTitle(resolved.reason)}
+              body={terminalBody(resolved.reason)}
+            />
           ) : null}
-
-
         </div>
       </section>
     </div>
@@ -126,27 +134,38 @@ function InviteBody({
   return <Wizard invite={invite} token={token} onDone={onDone} />;
 }
 
-
 type Reason = Exclude<ResolvedTalentInvitation, { ok: true }>["reason"];
 
 function terminalTitle(reason: Reason): string {
   switch (reason) {
-    case "expired": return "This invitation has expired";
-    case "accepted": return "Invitation already accepted";
-    case "revoked": return "Invitation revoked";
-    case "throttled": return "Too many attempts";
-    case "invalid": return "This invitation is no longer valid";
-    default: return "Invitation not found";
+    case "expired":
+      return "This invitation has expired";
+    case "accepted":
+      return "Invitation already accepted";
+    case "revoked":
+      return "Invitation revoked";
+    case "throttled":
+      return "Too many attempts";
+    case "invalid":
+      return "This invitation is no longer valid";
+    default:
+      return "Invitation not found";
   }
 }
 function terminalBody(reason: Reason): string {
   switch (reason) {
-    case "expired": return "Contact the person who invited you to receive a fresh invitation link.";
-    case "accepted": return "This invitation has already been used. Sign in to your account instead.";
-    case "revoked": return "This invitation has been withdrawn. Contact the person who invited you for a new one.";
-    case "throttled": return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact the person who invited you.";
-    case "invalid": return "Contact the person who invited you if you think this is a mistake.";
-    default: return "The link you followed doesn't match any active invitation. Double-check the URL or contact the person who invited you.";
+    case "expired":
+      return "Contact the person who invited you to receive a fresh invitation link.";
+    case "accepted":
+      return "This invitation has already been used. Sign in to your account instead.";
+    case "revoked":
+      return "This invitation has been withdrawn. Contact the person who invited you for a new one.";
+    case "throttled":
+      return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact the person who invited you.";
+    case "invalid":
+      return "Contact the person who invited you if you think this is a mistake.";
+    default:
+      return "The link you followed doesn't match any active invitation. Double-check the URL or contact the person who invited you.";
   }
 }
 
@@ -157,7 +176,9 @@ function TerminalError({ title, body }: { title: string; body: string }) {
       <h2 className="tv-auth-title">{title}</h2>
       <p className="tv-auth-tag">{body}</p>
       <div className="tv-auth-back" style={{ marginTop: 24 }}>
-        <Link to="/auth" className="tv-auth-link">Go to sign in →</Link>
+        <Link to="/auth" className="tv-auth-link">
+          Go to sign in →
+        </Link>
       </div>
     </>
   );
@@ -250,50 +271,84 @@ function Wizard({
     }
     if (step === 3) {
       const v = validateNewPassword(password);
-      if (v) { setError(v); return; }
-      if (password !== confirmPw) { setError("Passwords do not match."); return; }
+      if (v) {
+        setError(v);
+        return;
+      }
+      if (password !== confirmPw) {
+        setError("Passwords do not match.");
+        return;
+      }
     }
     if (step === 4) {
-      if (!legal) { setError("The Terms & Conditions are still loading. Please try again in a moment."); return; }
-      if (!terms) { setError("You must accept the Terms & Conditions to continue."); return; }
+      if (!legal) {
+        setError("The Terms & Conditions are still loading. Please try again in a moment.");
+        return;
+      }
+      if (!terms) {
+        setError("You must accept the Terms & Conditions to continue.");
+        return;
+      }
       activate.mutate();
       return;
     }
     setStep((s) => (s < TALENT_STEP_COUNT ? ((s + 1) as StepKey) : s));
   };
-  const goBack = () => { setError(null); setStep((s) => (s > 1 ? ((s - 1) as StepKey) : s)); };
+  const goBack = () => {
+    setError(null);
+    setStep((s) => (s > 1 ? ((s - 1) as StepKey) : s));
+  };
 
   return (
     <>
       <ProgressBar step={step} />
-      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>Talent Activation · Step {step} of {TALENT_STEP_COUNT}</div>
+      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>
+        Talent Activation · Step {step} of {TALENT_STEP_COUNT}
+      </div>
 
       {step === 1 && <Step1 invite={invite} onContinue={goNext} />}
       {step === 2 && (
         <Step2
-          fullName={fullName} setFullName={setFullName}
-          idNumber={idNumber} setIdNumber={setIdNumber}
-          dob={dob} setDob={setDob}
-          phone={phone} setPhone={setPhone}
-          taxNumber={taxNumber} setTaxNumber={setTaxNumber}
-          provisional={provisional} setProvisional={setProvisional}
-          onBack={goBack} onContinue={goNext} error={error}
+          fullName={fullName}
+          setFullName={setFullName}
+          idNumber={idNumber}
+          setIdNumber={setIdNumber}
+          dob={dob}
+          setDob={setDob}
+          phone={phone}
+          setPhone={setPhone}
+          taxNumber={taxNumber}
+          setTaxNumber={setTaxNumber}
+          provisional={provisional}
+          setProvisional={setProvisional}
+          onBack={goBack}
+          onContinue={goNext}
+          error={error}
         />
       )}
       {step === 3 && (
         <Step3
-          password={password} setPassword={setPassword}
-          confirmPw={confirmPw} setConfirmPw={setConfirmPw}
-          strength={strength} req={req}
-          onBack={goBack} onContinue={goNext} error={error}
+          password={password}
+          setPassword={setPassword}
+          confirmPw={confirmPw}
+          setConfirmPw={setConfirmPw}
+          strength={strength}
+          req={req}
+          onBack={goBack}
+          onContinue={goNext}
+          error={error}
         />
       )}
       {step === 4 && (
         <TermsStep
-          terms={terms} setTerms={setTerms}
-          legal={legal} legalLoading={legalQ.isLoading}
-          onBack={goBack} onContinue={goNext}
-          busy={activate.isPending} error={error}
+          terms={terms}
+          setTerms={setTerms}
+          legal={legal}
+          legalLoading={legalQ.isLoading}
+          onBack={goBack}
+          onContinue={goNext}
+          busy={activate.isPending}
+          error={error}
         />
       )}
       {step === 5 && <TwoFactorStep />}
@@ -323,14 +378,20 @@ function ProgressBar({ step }: { step: number }) {
 /* ------------------------------- Steps ------------------------------------ */
 
 function Step1({
-  invite, onContinue,
-}: { invite: Extract<ResolvedTalentInvitation, { ok: true }>; onContinue: () => void }) {
+  invite,
+  onContinue,
+}: {
+  invite: Extract<ResolvedTalentInvitation, { ok: true }>;
+  onContinue: () => void;
+}) {
   return (
     <>
       <h2 className="tv-auth-title">Accept Talent Invite</h2>
       <p className="tv-auth-tag">
         {invite.agency_name ? (
-          <>You've been invited by <strong>{invite.agency_name}</strong>.</>
+          <>
+            You've been invited by <strong>{invite.agency_name}</strong>.
+          </>
         ) : (
           <>You've been invited to TalVault.</>
         )}
@@ -357,7 +418,8 @@ function Step1({
           marginTop: 8,
         }}
       >
-        Email must match the invite. You must register with the same email address the invitation was sent to.
+        Email must match the invite. You must register with the same email address the invitation
+        was sent to.
       </div>
       <button type="button" className="tv-auth-submit" onClick={onContinue}>
         Continue
@@ -367,30 +429,63 @@ function Step1({
 }
 
 function Step2({
-  fullName, setFullName, idNumber, setIdNumber, dob, setDob, phone, setPhone,
-  taxNumber, setTaxNumber, provisional, setProvisional, onBack, onContinue, error,
+  fullName,
+  setFullName,
+  idNumber,
+  setIdNumber,
+  dob,
+  setDob,
+  phone,
+  setPhone,
+  taxNumber,
+  setTaxNumber,
+  provisional,
+  setProvisional,
+  onBack,
+  onContinue,
+  error,
 }: {
-  fullName: string; setFullName: (v: string) => void;
-  idNumber: string; setIdNumber: (v: string) => void;
-  dob: string; setDob: (v: string) => void;
-  phone: string; setPhone: (v: string) => void;
-  taxNumber: string; setTaxNumber: (v: string) => void;
-  provisional: boolean; setProvisional: (v: boolean) => void;
-  onBack: () => void; onContinue: () => void; error: string | null;
+  fullName: string;
+  setFullName: (v: string) => void;
+  idNumber: string;
+  setIdNumber: (v: string) => void;
+  dob: string;
+  setDob: (v: string) => void;
+  phone: string;
+  setPhone: (v: string) => void;
+  taxNumber: string;
+  setTaxNumber: (v: string) => void;
+  provisional: boolean;
+  setProvisional: (v: boolean) => void;
+  onBack: () => void;
+  onContinue: () => void;
+  error: string | null;
 }) {
   return (
     <>
       <h2 className="tv-auth-title">Confirm your details</h2>
       <p className="tv-auth-tag">
-        These details stay in your Private Vault. No agency can see them unless you share a document.
+        These details stay in your Private Vault. No agency can see them unless you share a
+        document.
       </p>
       <div className="tv-auth-field">
         <label htmlFor="full-name">Full name</label>
-        <input id="full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Aisha Mokoena" autoFocus />
+        <input
+          id="full-name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="e.g. Aisha Mokoena"
+          autoFocus
+        />
       </div>
       <div className="tv-auth-field">
         <label htmlFor="id-number">ID / Passport number</label>
-        <input id="id-number" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="e.g. 9001015800086" />
+        <input
+          id="id-number"
+          value={idNumber}
+          onChange={(e) => setIdNumber(e.target.value)}
+          placeholder="e.g. 9001015800086"
+        />
       </div>
       <div className="tv-auth-field">
         <label htmlFor="dob">Date of birth (you must be 18 or over)</label>
@@ -398,13 +493,34 @@ function Step2({
       </div>
       <div className="tv-auth-field">
         <label htmlFor="phone">Phone (optional)</label>
-        <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+27 71 234 5678" autoComplete="tel" />
+        <input
+          id="phone"
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="+27 71 234 5678"
+          autoComplete="tel"
+        />
       </div>
       <div className="tv-auth-field">
         <label htmlFor="tax-number">Tax reference number (optional)</label>
-        <input id="tax-number" value={taxNumber} onChange={(e) => setTaxNumber(e.target.value)} placeholder="SARS tax number" />
+        <input
+          id="tax-number"
+          value={taxNumber}
+          onChange={(e) => setTaxNumber(e.target.value)}
+          placeholder="SARS tax number"
+        />
       </div>
-      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 4, cursor: "pointer", fontSize: 14 }}>
+      <label
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          marginTop: 4,
+          cursor: "pointer",
+          fontSize: 14,
+        }}
+      >
         <input
           type="checkbox"
           checked={provisional}
@@ -413,19 +529,33 @@ function Step2({
         />
         <span>I am a registered provisional taxpayer.</span>
       </label>
-      {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
+      {error && (
+        <div className="tv-auth-alert" style={{ marginTop: 12 }}>
+          {error}
+        </div>
+      )}
       <StepButtons onBack={onBack} onContinue={onContinue} />
     </>
   );
 }
 
 function Step3({
-  password, setPassword, confirmPw, setConfirmPw, strength, req, onBack, onContinue, error,
+  password,
+  setPassword,
+  confirmPw,
+  setConfirmPw,
+  strength,
+  req,
+  onBack,
+  onContinue,
+  error,
 }: any) {
   return (
     <>
       <h2 className="tv-auth-title">Create your password</h2>
-      <p className="tv-auth-tag">Choose a strong password. You'll use this to sign in from now on.</p>
+      <p className="tv-auth-tag">
+        Choose a strong password. You'll use this to sign in from now on.
+      </p>
       <div className="tv-auth-field">
         <label htmlFor="password">Password</label>
         <PasswordInput
@@ -440,15 +570,22 @@ function Step3({
         {password.length > 0 && (
           <>
             <ul className="tv-auth-reqs" aria-live="polite">
-              <li className={req.length ? "ok" : ""}>{req.length ? "✓" : "•"} At least {MIN_PW_LENGTH} characters</li>
+              <li className={req.length ? "ok" : ""}>
+                {req.length ? "✓" : "•"} At least {MIN_PW_LENGTH} characters
+              </li>
               <li className={req.upper ? "ok" : ""}>{req.upper ? "✓" : "•"} An uppercase letter</li>
               <li className={req.lower ? "ok" : ""}>{req.lower ? "✓" : "•"} A lowercase letter</li>
               <li className={req.number ? "ok" : ""}>{req.number ? "✓" : "•"} A number</li>
-              <li className={req.special ? "ok" : ""}>{req.special ? "✓" : "•"} A special character</li>
+              <li className={req.special ? "ok" : ""}>
+                {req.special ? "✓" : "•"} A special character
+              </li>
             </ul>
             <div className="tv-auth-strength" aria-live="polite">
               <div className="tv-auth-strength-bar">
-                <div className="tv-auth-strength-fill" style={{ width: `${strength.pct}%`, background: strength.color }} />
+                <div
+                  className="tv-auth-strength-fill"
+                  style={{ width: `${strength.pct}%`, background: strength.color }}
+                />
               </div>
               <div className="tv-auth-strength-row">
                 <span className="tv-auth-strength-label">Strength</span>
@@ -469,18 +606,34 @@ function Step3({
           minLength={MIN_PW_LENGTH}
         />
       </div>
-      {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
+      {error && (
+        <div className="tv-auth-alert" style={{ marginTop: 12 }}>
+          {error}
+        </div>
+      )}
       <StepButtons onBack={onBack} onContinue={onContinue} />
     </>
   );
 }
 
 function TermsStep({
-  terms, setTerms, onBack, onContinue, busy, error, legal, legalLoading,
+  terms,
+  setTerms,
+  onBack,
+  onContinue,
+  busy,
+  error,
+  legal,
+  legalLoading,
 }: {
-  terms: boolean; setTerms: (v: boolean) => void;
-  onBack: () => void; onContinue: () => void; busy: boolean; error: string | null;
-  legal: CurrentLegalDocument; legalLoading: boolean;
+  terms: boolean;
+  setTerms: (v: boolean) => void;
+  onBack: () => void;
+  onContinue: () => void;
+  busy: boolean;
+  error: string | null;
+  legal: CurrentLegalDocument;
+  legalLoading: boolean;
 }) {
   return (
     <>
@@ -493,7 +646,12 @@ function TermsStep({
           </p>
           <div className="tv-auth-hint" style={{ marginTop: 4 }}>
             {formatTermsVersion(legal.version)} ·{" "}
-            <a href="/legal/terms/talent" target="_blank" rel="noopener noreferrer" className="tv-auth-link">
+            <a
+              href="/legal/terms/talent"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tv-auth-link"
+            >
               Read the full terms
             </a>
           </div>
@@ -506,7 +664,16 @@ function TermsStep({
             : "We couldn't load the Terms & Conditions just now. Please refresh the page and try again."}
         </div>
       )}
-      <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 14, cursor: "pointer", fontSize: 14 }}>
+      <label
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          marginTop: 14,
+          cursor: "pointer",
+          fontSize: 14,
+        }}
+      >
         <input
           type="checkbox"
           required
@@ -516,7 +683,11 @@ function TermsStep({
         />
         <span>I have read and accept the TalVault Terms &amp; Conditions</span>
       </label>
-      {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
+      {error && (
+        <div className="tv-auth-alert" style={{ marginTop: 12 }}>
+          {error}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
         <button
           type="button"
@@ -548,13 +719,21 @@ function TwoFactorStep() {
       <h2 className="tv-auth-title">Secure with 2FA</h2>
       <p className="tv-auth-tag">
         Two-factor authentication adds a second check when you sign in, so your documents stay safe
-        even if someone learns your password. Each time you sign in, we'll email you a one-time code.
+        even if someone learns your password. Each time you sign in, we'll email you a one-time
+        code.
       </p>
       <button
         type="button"
         className="tv-auth-submit"
         onClick={() => nav({ to: "/enroll-2fa", search: { next: "/talent" } as any })}
-        style={{ marginTop: 20, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+        style={{
+          marginTop: 20,
+          height: 46,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        }}
       >
         <Check className="h-4 w-4" />
         <span>Go to my vault</span>
@@ -574,7 +753,12 @@ function StepButtons({ onBack, onContinue }: { onBack: () => void; onContinue: (
       >
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
-      <button type="button" className="tv-auth-submit" onClick={onContinue} style={{ flex: 1, marginTop: 0, height: 46 }}>
+      <button
+        type="button"
+        className="tv-auth-submit"
+        onClick={onContinue}
+        style={{ flex: 1, marginTop: 0, height: 46 }}
+      >
         Continue
       </button>
     </div>
@@ -587,7 +771,9 @@ function BrandingPanel() {
   return (
     <aside className="tv-auth-hero">
       <div className="tv-auth-brand">
-        <div className="tv-auth-mark"><TalVaultIcon variant="white" style={{ height: 24, width: 24 }} /></div>
+        <div className="tv-auth-mark">
+          <TalVaultIcon variant="white" style={{ height: 24, width: 24 }} />
+        </div>
         <div>
           <TalVaultWordmark variant="white" style={{ height: 20 }} />
           <div className="tv-auth-brand-sub">TALENT</div>
@@ -596,17 +782,40 @@ function BrandingPanel() {
       <div>
         <h1 className="tv-auth-headline">Activate your Talent vault</h1>
         <p className="tv-auth-sub">
-          Set up your account and enter a secure workspace with a Private Vault, Agency Shared Folder and
+          Set up your account and enter a secure workspace with a Private Vault, Agency Shared
+          Folder and
           {SHARE_TERM_CAPITALISED} sharing.
         </p>
         <ul className="tv-auth-points">
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><Lock className="h-4 w-4 text-white" /></span>Private Vault</li>
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><FolderLock className="h-4 w-4 text-white" /></span>Agency Shared Folder</li>
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><Sparkles className="h-4 w-4 text-white" /></span>AI review</li>
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><Users className="h-4 w-4 text-white" /></span>{SHARE_RECIPIENT_TERM_CAPITALISED} access</li>
+          <li className="tv-auth-point">
+            <span className="tv-auth-point-dot">
+              <Lock className="h-4 w-4 text-white" />
+            </span>
+            Private Vault
+          </li>
+          <li className="tv-auth-point">
+            <span className="tv-auth-point-dot">
+              <FolderLock className="h-4 w-4 text-white" />
+            </span>
+            Agency Shared Folder
+          </li>
+          <li className="tv-auth-point">
+            <span className="tv-auth-point-dot">
+              <Sparkles className="h-4 w-4 text-white" />
+            </span>
+            AI review
+          </li>
+          <li className="tv-auth-point">
+            <span className="tv-auth-point-dot">
+              <Users className="h-4 w-4 text-white" />
+            </span>
+            {SHARE_RECIPIENT_TERM_CAPITALISED} access
+          </li>
         </ul>
       </div>
-      <div className="tv-auth-footnote">Private Vault · Shared Folder · AI review · {SHARE_RECIPIENT_TERM_CAPITALISED} access</div>
+      <div className="tv-auth-footnote">
+        Private Vault · Shared Folder · AI review · {SHARE_RECIPIENT_TERM_CAPITALISED} access
+      </div>
     </aside>
   );
 }

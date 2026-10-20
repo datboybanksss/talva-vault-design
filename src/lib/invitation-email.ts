@@ -34,7 +34,8 @@ export const DEFAULT_TALENT_INVITATION_BODY = [
 ].join("\n");
 
 /** Admin → independent talent (no agency). TalVault is the sender. */
-export const DEFAULT_INDEPENDENT_TALENT_INVITATION_SUBJECT = "You're invited to set up your TalVault";
+export const DEFAULT_INDEPENDENT_TALENT_INVITATION_SUBJECT =
+  "You're invited to set up your TalVault";
 
 export const DEFAULT_INDEPENDENT_TALENT_INVITATION_BODY = [
   "Welcome to TalVault, {{talent_name}}",
@@ -54,8 +55,7 @@ export const DEFAULT_STAFF_INVITATION_BODY = [
   "Click the button below to accept your invitation and set up your account. You'll choose your own password on the next screen — we never send passwords by email.",
 ].join("\n");
 
-export const DEFAULT_ADMIN_INVITATION_SUBJECT =
-  "You've been invited to administer TalVault";
+export const DEFAULT_ADMIN_INVITATION_SUBJECT = "You've been invited to administer TalVault";
 
 export const DEFAULT_ADMIN_INVITATION_BODY = [
   "Hi,",
@@ -144,8 +144,9 @@ export function applyTokens(body: string, vars: InvitationTokens) {
 }
 
 export function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );
 }
 

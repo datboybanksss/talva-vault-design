@@ -87,23 +87,18 @@ function ForgotPasswordPage() {
         <div className="tv-auth-eyebrow">Account recovery</div>
         <h1 className="tv-auth-title">Forgot your password?</h1>
         <p className="tv-auth-tag">
-          Enter the email address on your account and we&apos;ll send you a secure link
-          to set a new password.
+          Enter the email address on your account and we&apos;ll send you a secure link to set a new
+          password.
         </p>
 
         {sent ? (
           <>
             <div className="tv-auth-alert tv-info" style={{ marginTop: 18 }}>
-              If an account exists for <strong>{email.trim()}</strong>, a reset link is
-              on its way. The link expires shortly — check your spam folder if it
-              doesn&apos;t arrive.
+              If an account exists for <strong>{email.trim()}</strong>, a reset link is on its way.
+              The link expires shortly — check your spam folder if it doesn&apos;t arrive.
             </div>
             <div className="tv-auth-switch">
-              <button
-                type="button"
-                className="tv-auth-link"
-                onClick={() => setSent(false)}
-              >
+              <button type="button" className="tv-auth-link" onClick={() => setSent(false)}>
                 Use a different email
               </button>
             </div>
@@ -124,11 +119,7 @@ function ForgotPasswordPage() {
               />
             </div>
             {error && <div className="tv-auth-alert">{error}</div>}
-            <button
-              type="submit"
-              className="tv-auth-submit"
-              disabled={busy || !email.trim()}
-            >
+            <button type="submit" className="tv-auth-submit" disabled={busy || !email.trim()}>
               {busy ? "Sending…" : "Send reset link"}
             </button>
           </form>

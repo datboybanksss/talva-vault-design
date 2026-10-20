@@ -48,25 +48,36 @@ export function BillingSenderCard({
 
   const resend = useMutation({
     mutationFn: () => resendFn({}),
-    onSuccess: () => { refresh(); toast.success("Verification email resent"); },
+    onSuccess: () => {
+      refresh();
+      toast.success("Verification email resent");
+    },
     onError: (e: any) => toast.error(e.message ?? "Could not resend"),
   });
 
   const clear = useMutation({
     mutationFn: () => clearFn({}),
-    onSuccess: () => { refresh(); setValue(""); setName(""); toast.success("Sending address removed"); },
+    onSuccess: () => {
+      refresh();
+      setValue("");
+      setName("");
+      toast.success("Sending address removed");
+    },
     onError: (e: any) => toast.error(e.message ?? "Could not remove"),
   });
 
   const verified = !!verifiedAt && !!email;
   const pending = !!email && !verified;
-  const dirty = value.trim().toLowerCase() !== (email ?? "").toLowerCase() || name.trim() !== (displayName ?? "");
+  const dirty =
+    value.trim().toLowerCase() !== (email ?? "").toLowerCase() ||
+    name.trim() !== (displayName ?? "");
   const canSave = isValidEmail(value) && dirty;
 
   return (
     <div className="tvp-card tvp-panel">
       <h3 className="tvp-h3 tvp-qi-head">
-        <AtSign aria-hidden />Sending address
+        <AtSign aria-hidden />
+        Sending address
       </h3>
       <p className="tvp-qi-desc">
         Quotes and invoices go out from TalVault's verified mail domain. Once your own address is
@@ -77,15 +88,22 @@ export function BillingSenderCard({
       {email && (
         <div
           style={{
-            display: "flex", alignItems: "center", gap: 8, marginTop: 14,
-            padding: "8px 10px", borderRadius: "var(--r-sm, 6px)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 14,
+            padding: "8px 10px",
+            borderRadius: "var(--r-sm, 6px)",
             background: verified ? "var(--tvp-green-bg, #e8f5ec)" : "var(--tvp-amber-bg, #fdf3e2)",
             color: verified ? "var(--tvp-green, #1d7a45)" : "var(--tvp-amber, #a1620a)",
-            fontWeight: 600, fontSize: 13,
+            fontWeight: 600,
+            fontSize: 13,
           }}
         >
           {verified ? <BadgeCheck className="h-4 w-4" /> : <Clock3 className="h-4 w-4" />}
-          <span>{verified ? "Verified" : "Pending verification"} · {email}</span>
+          <span>
+            {verified ? "Verified" : "Pending verification"} · {email}
+          </span>
         </div>
       )}
 
@@ -115,18 +133,31 @@ export function BillingSenderCard({
       </div>
 
       <div className="tvp-qi-actions">
-        <button className="tvp-primary" disabled={!canSave || save.isPending} onClick={() => save.mutate()}>
+        <button
+          className="tvp-primary"
+          disabled={!canSave || save.isPending}
+          onClick={() => save.mutate()}
+        >
           <Save className="h-4 w-4" />
           {save.isPending ? "Sending…" : email && !dirty ? "Saved" : "Save & verify"}
         </button>
         {pending && (
-          <button className="tvp-secondary" disabled={resend.isPending} onClick={() => resend.mutate()}>
+          <button
+            className="tvp-secondary"
+            disabled={resend.isPending}
+            onClick={() => resend.mutate()}
+          >
             {resend.isPending ? "Resending…" : "Resend verification"}
           </button>
         )}
         {email && (
-          <button className="tvp-secondary" disabled={clear.isPending} onClick={() => clear.mutate()}>
-            <Trash2 className="h-4 w-4" />Remove
+          <button
+            className="tvp-secondary"
+            disabled={clear.isPending}
+            onClick={() => clear.mutate()}
+          >
+            <Trash2 className="h-4 w-4" />
+            Remove
           </button>
         )}
       </div>

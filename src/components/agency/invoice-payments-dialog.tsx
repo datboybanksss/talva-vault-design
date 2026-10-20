@@ -19,13 +19,7 @@ function today() {
  * the invoice only moves to "paid" once the recorded payments cover the total,
  * which the database recomputes on every change.
  */
-export function InvoicePaymentsDialog({
-  docId,
-  onClose,
-}: {
-  docId: string;
-  onClose: () => void;
-}) {
+export function InvoicePaymentsDialog({ docId, onClose }: { docId: string; onClose: () => void }) {
   const qc = useQueryClient();
   const listFn = useServerFn(listInvoicePayments);
   const recordFn = useServerFn(recordInvoicePayment);
@@ -88,9 +82,15 @@ export function InvoicePaymentsDialog({
   return (
     <div
       style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 60,
-        display: "flex", alignItems: "flex-start", justifyContent: "center",
-        padding: 16, overflowY: "auto",
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        zIndex: 60,
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        padding: 16,
+        overflowY: "auto",
       }}
       onClick={onClose}
     >
@@ -110,7 +110,10 @@ export function InvoicePaymentsDialog({
 
         {q.data && (
           <>
-            <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
+            <div
+              className="tvp-grid"
+              style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}
+            >
               <div className="tvp-card" style={{ padding: 12 }}>
                 <div className="tvp-kpi-label">Invoice total</div>
                 <div className="tvp-kpi-value" style={{ fontSize: 20 }}>
@@ -196,7 +199,11 @@ export function InvoicePaymentsDialog({
               <table className="tvp-table">
                 <thead>
                   <tr>
-                    <th>Date received</th><th>Amount</th><th>Method</th><th>Reference</th><th></th>
+                    <th>Date received</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -211,7 +218,9 @@ export function InvoicePaymentsDialog({
                     <tr key={p.id}>
                       <td>
                         {new Date(p.paid_on).toLocaleDateString("en-ZA", {
-                          day: "numeric", month: "short", year: "numeric",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
                         })}
                       </td>
                       <td>{fmtMoney(p.amount_cents, currency)}</td>

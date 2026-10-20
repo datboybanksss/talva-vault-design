@@ -135,7 +135,9 @@ export const listTalentNotifications = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     let q = supabase
       .from("talent_notifications")
-      .select("id, kind, title, detail, tone, target_type, target_id, due_at, read_at, dismissed_at, email_sent_at, created_at")
+      .select(
+        "id, kind, title, detail, tone, target_type, target_id, due_at, read_at, dismissed_at, email_sent_at, created_at",
+      )
       .eq("user_id", userId);
     if (data.unread_only) q = q.is("read_at", null);
     const { data: rows, error } = await q
@@ -218,8 +220,6 @@ export const dismissTalentNotification = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-
-
 const UpdateProfileInput = z.object({
   full_name: z.string().trim().min(1).max(160),
   talent_type: z.string().trim().max(80).nullable().optional(),
@@ -291,7 +291,7 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
 
     return {
       link: { id: link.id, agency_id: link.agency_id, status: link.status },
-      folders: expired ? [] : folders ?? [],
+      folders: expired ? [] : (folders ?? []),
       documents: docs ?? [],
       read_until: readUntil,
     };
@@ -528,12 +528,23 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       .maybeSingle();
 
     const [privDocs, privFolders, sharesRes] = await Promise.all([
-      supabase.from("talent_private_documents").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      supabase
+        .from("talent_private_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
       // Top-level categories only — sub-folders would inflate the dashboard count.
-      supabase.from("talent_private_folders").select("id", { count: "exact", head: true })
-        .eq("user_id", userId).is("parent_id", null).is("removed_at", null),
-      supabase.from("loved_one_shares").select("id", { count: "exact", head: true })
-        .eq("is_active", true).is("revoked_at", null).gt("expires_at", new Date().toISOString()),
+      supabase
+        .from("talent_private_folders")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .is("parent_id", null)
+        .is("removed_at", null),
+      supabase
+        .from("loved_one_shares")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true)
+        .is("revoked_at", null)
+        .gt("expires_at", new Date().toISOString()),
     ]);
     const activeShares = sharesRes.count ?? 0;
 
@@ -553,32 +564,54 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       notificationId?: string;
     }[] = [];
 
-
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const expiryCutoff = new Date(Date.now() + expiryNoticeDays * 86400_000).toISOString();
       const [sc, sf, ec, or, rr, pr, expDocs, reqRows] = await Promise.all([
-        supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
-        supabaseAdmin.from("agency_talent_folders").select("id", { count: "exact", head: true }).eq("talent_link_id", link.id),
-        supabaseAdmin.from("talent_shared_documents").select("id", { count: "exact", head: true })
-          .eq("talent_link_id", link.id).not("validity_expires_at", "is", null).lt("validity_expires_at", expiryCutoff),
-        supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
-          .eq("talent_link_id", link.id).in("status", ["pending", "submitted"]),
-        supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
-          .eq("talent_link_id", link.id).eq("status", "resubmission_required"),
-        supabaseAdmin.from("agency_document_requests").select("id", { count: "exact", head: true })
-          .eq("talent_link_id", link.id).eq("status", "pending"),
-        supabaseAdmin.from("talent_shared_documents")
+        supabaseAdmin
+          .from("talent_shared_documents")
+          .select("id", { count: "exact", head: true })
+          .eq("talent_link_id", link.id),
+        supabaseAdmin
+          .from("agency_talent_folders")
+          .select("id", { count: "exact", head: true })
+          .eq("talent_link_id", link.id),
+        supabaseAdmin
+          .from("talent_shared_documents")
+          .select("id", { count: "exact", head: true })
+          .eq("talent_link_id", link.id)
+          .not("validity_expires_at", "is", null)
+          .lt("validity_expires_at", expiryCutoff),
+        supabaseAdmin
+          .from("agency_document_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("talent_link_id", link.id)
+          .in("status", ["pending", "submitted"]),
+        supabaseAdmin
+          .from("agency_document_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("talent_link_id", link.id)
+          .eq("status", "resubmission_required"),
+        supabaseAdmin
+          .from("agency_document_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("talent_link_id", link.id)
+          .eq("status", "pending"),
+        supabaseAdmin
+          .from("talent_shared_documents")
           .select("id, name, folder, validity_expires_at")
           .eq("talent_link_id", link.id)
           .not("validity_expires_at", "is", null)
           .lt("validity_expires_at", expiryCutoff)
-          .order("validity_expires_at", { ascending: true }).limit(50),
-        supabaseAdmin.from("agency_document_requests")
+          .order("validity_expires_at", { ascending: true })
+          .limit(50),
+        supabaseAdmin
+          .from("agency_document_requests")
           .select("id, title, folder, status, due_date, updated_at")
           .eq("talent_link_id", link.id)
           .in("status", ["pending", "resubmission_required"])
-          .order("updated_at", { ascending: false }).limit(50),
+          .order("updated_at", { ascending: false })
+          .limit(50),
       ]);
       sharedCount = sc.count ?? 0;
       sharedFolderCount = sf.count ?? 0;
@@ -588,7 +621,11 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       pendingRequests = pr.count ?? 0;
 
       const fmtDate = (v: string) =>
-        new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+        new Date(v).toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
 
       const items = [
         ...(expDocs.data ?? []).map((d: any) => {
@@ -617,7 +654,9 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
             r.status === "resubmission_required"
               ? `Resubmission requested: ${r.title}`
               : `Manager requested: ${r.title}`,
-          detail: r.due_date ? `${r.folder} · due ${fmtDate(r.due_date)}` : `${r.folder} · no due date`,
+          detail: r.due_date
+            ? `${r.folder} · due ${fmtDate(r.due_date)}`
+            : `${r.folder} · no due date`,
         })),
       ];
 
@@ -670,7 +709,6 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       attention = [];
     }
 
-
     return {
       hasLink: !!link,
       privateDocs: privDocs.count ?? 0,
@@ -708,21 +746,21 @@ export const listTalentDismissals = createServerFn({ method: "GET" })
 export const dismissTalentReminder = createServerFn({ method: "POST" })
   .middleware([requireTalentTermsAccepted])
   .inputValidator((d: unknown) =>
-    z.object({ kind: z.string().min(1).max(60), snapshot: z.number().int().nonnegative() }).parse(d),
+    z
+      .object({ kind: z.string().min(1).max(60), snapshot: z.number().int().nonnegative() })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase
-      .from("talent_notification_dismissals")
-      .upsert(
-        {
-          user_id: userId,
-          kind: data.kind,
-          snapshot: data.snapshot,
-          dismissed_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,kind" },
-      );
+    const { error } = await supabase.from("talent_notification_dismissals").upsert(
+      {
+        user_id: userId,
+        kind: data.kind,
+        snapshot: data.snapshot,
+        dismissed_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,kind" },
+    );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -747,8 +785,19 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
       .neq("status", "invited")
       .order("created_at", { ascending: true });
     // Ended links stay readable only until their fixed post-end cut-off.
-    const myLinks: Array<{ id: string; agency_id: string; display_name: string; status: string; read_until: string | null }> = [];
-    for (const l of (links ?? []) as Array<{ id: string; agency_id: string; display_name: string; status: string }>) {
+    const myLinks: Array<{
+      id: string;
+      agency_id: string;
+      display_name: string;
+      status: string;
+      read_until: string | null;
+    }> = [];
+    for (const l of (links ?? []) as Array<{
+      id: string;
+      agency_id: string;
+      display_name: string;
+      status: string;
+    }>) {
       const readUntil = await linkReadUntil(l.id);
       if (readUntil && new Date(readUntil).getTime() <= Date.now()) continue;
       myLinks.push({ ...l, read_until: readUntil });
@@ -768,17 +817,24 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
       const out = new Map<string, any>();
       const linkIds = myLinks.map((l) => l.id);
       const { data: direct } = await supabaseAdmin
-        .from("agency_billing_docs").select(COLS)
-        .in("talent_link_id", linkIds).eq("shared_with_talent", shared);
+        .from("agency_billing_docs")
+        .select(COLS)
+        .in("talent_link_id", linkIds)
+        .eq("shared_with_talent", shared);
       for (const d of direct ?? []) out.set(d.id, d);
       for (const l of myLinks) {
         const { data: legacy } = await supabaseAdmin
-          .from("agency_billing_docs").select(COLS)
-          .eq("agency_id", l.agency_id).is("talent_link_id", null)
-          .eq("shared_with_talent", shared).ilike("talent_name", l.display_name);
+          .from("agency_billing_docs")
+          .select(COLS)
+          .eq("agency_id", l.agency_id)
+          .is("talent_link_id", null)
+          .eq("shared_with_talent", shared)
+          .ilike("talent_name", l.display_name);
         for (const d of legacy ?? []) out.set(d.id, d);
       }
-      return Array.from(out.values()).sort((x, y) => String(y.issued_at).localeCompare(String(x.issued_at)));
+      return Array.from(out.values()).sort((x, y) =>
+        String(y.issued_at).localeCompare(String(x.issued_at)),
+      );
     };
     const docs = await fetchFor(true);
     const unsharedCount = (await fetchFor(false)).length;
@@ -804,9 +860,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
         ...r,
         received_cents: received.get(r.id) ?? 0,
         outstanding_cents:
-          r.kind === "invoice"
-            ? Math.max(0, Number(r.total_cents) - (received.get(r.id) ?? 0))
-            : 0,
+          r.kind === "invoice" ? Math.max(0, Number(r.total_cents) - (received.get(r.id) ?? 0)) : 0,
       })),
     };
   });

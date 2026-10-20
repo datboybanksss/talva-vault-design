@@ -1,4 +1,8 @@
-import { documentReminderDue, expiryPhrase, reminderLinkReadable } from "@/lib/document-reminder-core";
+import {
+  documentReminderDue,
+  expiryPhrase,
+  reminderLinkReadable,
+} from "@/lib/document-reminder-core";
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 // Server-only reminder engine. Detects documents crossing their reminder /
 // expiry threshold, materialises in-app notifications, and then attempts an
@@ -18,7 +22,11 @@ const DAY = 86400_000;
 const ACCESS_WARNING_DAYS = 30;
 
 function fmt(v: string) {
-  return new Date(v).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(v).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 type Pending = {
@@ -44,7 +52,8 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
 
   const pending: Pending[] = [];
   const now = Date.now();
-  const start = new Date(now); start.setUTCHours(0, 0, 0, 0);
+  const start = new Date(now);
+  start.setUTCHours(0, 0, 0, 0);
   const lower = start.toISOString();
   const current = new Date(now).toISOString();
   const { data: yearsRow } = await supabaseAdmin.rpc("talent_post_end_access_years");
@@ -68,7 +77,9 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
         .from("talent_private_documents")
         .select("id, name, expires_at, reminder_at")
         .eq("user_id", userId)
-        .or(`and(reminder_at.gte.${lower},reminder_at.lte.${current}),and(expires_at.gte.${lower},expires_at.lte.${cutoff})`)
+        .or(
+          `and(reminder_at.gte.${lower},reminder_at.lte.${current}),and(expires_at.gte.${lower},expires_at.lte.${cutoff})`,
+        )
         .order("expires_at", { ascending: true, nullsFirst: false });
       for (const d of docs ?? []) {
         const event = documentReminderDue(d.expires_at, d.reminder_at, noticeDays, now);
@@ -78,7 +89,10 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
           user_id: userId,
           kind: "doc_expiring",
           dedupe_key: `doc_expiring:private:${d.id}:${due.slice(0, 10)}`,
-          title: event.kind === "reminder" ? `${d.name} · reminder due today` : `${d.name} ${expiryPhrase(due, now)}`,
+          title:
+            event.kind === "reminder"
+              ? `${d.name} · reminder due today`
+              : `${d.name} ${expiryPhrase(due, now)}`,
           detail: `Private Vault${d.expires_at ? ` · ${expiryPhrase(d.expires_at, now)} (${fmt(d.expires_at)})` : ` · reminder ${fmt(due)}`}`,
           tone: "amber",
           target_type: "private_document",
@@ -99,7 +113,10 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
         .order("created_at", { ascending: true });
       if (linksError) throw new Error(linksError.message);
       for (const link of links ?? []) {
-        const { data: until, error: untilError } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: link.id });
+        const { data: until, error: untilError } = await supabaseAdmin.rpc(
+          "talent_link_read_until",
+          { _link_id: link.id },
+        );
         if (untilError) throw new Error(untilError.message);
         if (!reminderLinkReadable(link, until, now)) continue;
         const { data: shared } = await supabaseAdmin
@@ -107,7 +124,9 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
           .select("id, name, folder, validity_expires_at, reminder_at")
           .eq("talent_link_id", link.id)
           .is("revoked_at", null)
-          .or(`and(reminder_at.gte.${lower},reminder_at.lte.${current}),and(validity_expires_at.gte.${lower},validity_expires_at.lte.${cutoff})`)
+          .or(
+            `and(reminder_at.gte.${lower},reminder_at.lte.${current}),and(validity_expires_at.gte.${lower},validity_expires_at.lte.${cutoff})`,
+          )
           .order("validity_expires_at", { ascending: true, nullsFirst: false });
         for (const d of shared ?? []) {
           // A manually set reminder date feeds the same list as an expiry.
@@ -118,7 +137,10 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
             user_id: userId,
             kind: "doc_expiring",
             dedupe_key: `doc_expiring:shared:${d.id}:${due.slice(0, 10)}`,
-            title: event.kind === "reminder" ? `${d.name} · reminder due today` : `${d.name} ${expiryPhrase(due, now)}`,
+            title:
+              event.kind === "reminder"
+                ? `${d.name} · reminder due today`
+                : `${d.name} ${expiryPhrase(due, now)}`,
             detail: `${d.folder} · Agency Shared Folder${d.validity_expires_at ? ` · ${expiryPhrase(d.validity_expires_at, now)} (${fmt(d.validity_expires_at)})` : ` · reminder ${fmt(due)}`}`,
             tone: "amber",
             target_type: "shared_document",
@@ -137,11 +159,17 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
         .eq("talent_user_id", userId)
         .in("status", ["ended", "revoked", "expired", "active", "read_only", "needs_review"]);
       for (const l of links ?? []) {
-        const { data: until } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: l.id });
+        const { data: until } = await supabaseAdmin.rpc("talent_link_read_until", {
+          _link_id: l.id,
+        });
         if (!until) continue;
         const ms = new Date(until as string).getTime() - Date.now();
         if (ms <= 0 || ms > ACCESS_WARNING_DAYS * DAY) continue;
-        const { data: ag } = await supabaseAdmin.from("agencies").select("name").eq("id", l.agency_id).maybeSingle();
+        const { data: ag } = await supabaseAdmin
+          .from("agencies")
+          .select("name")
+          .eq("id", l.agency_id)
+          .maybeSingle();
         const due = until as string;
         pending.push({
           user_id: userId,
@@ -208,7 +236,13 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
  * UI keeps telling the truth about what was actually delivered.
  */
 async function emailNewReminders(
-  rows: { id: string; user_id: string; title: string; detail: string | null; email_sent_at: string | null }[],
+  rows: {
+    id: string;
+    user_id: string;
+    title: string;
+    detail: string | null;
+    email_sent_at: string | null;
+  }[],
   emailByUser: Map<string, string | null>,
 ): Promise<number> {
   if (rows.length === 0) return 0;
@@ -221,7 +255,12 @@ async function emailNewReminders(
     if (!to || row.email_sent_at) continue;
     try {
       const mail = buildReminderEmail({ title: row.title, detail: row.detail });
-      const res = await sendInvitationEmail(to, mail, `talent-reminder-${row.id}`, "talent_reminder");
+      const res = await sendInvitationEmail(
+        to,
+        mail,
+        `talent-reminder-${row.id}`,
+        "talent_reminder",
+      );
       if (res.sent) {
         sent += 1;
         await supabaseAdmin

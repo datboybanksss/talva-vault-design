@@ -48,7 +48,10 @@ export type ResolvedTalentInvitation =
       talent_name: string | null;
       expires_at: string;
     }
-  | { ok: false; reason: "not_found" | "invalid" | "expired" | "accepted" | "revoked" | "throttled" };
+  | {
+      ok: false;
+      reason: "not_found" | "invalid" | "expired" | "accepted" | "revoked" | "throttled";
+    };
 
 export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
   .inputValidator((v) => resolveInput.parse(v))
@@ -64,8 +67,7 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
     if (inv.status === "accepted") return { ok: false, reason: "accepted" };
     if (inv.status === "revoked") return { ok: false, reason: "revoked" };
     if (inv.status !== "pending") return { ok: false, reason: "not_found" };
-    if (new Date(inv.expires_at).getTime() < Date.now())
-      return { ok: false, reason: "expired" };
+    if (new Date(inv.expires_at).getTime() < Date.now()) return { ok: false, reason: "expired" };
 
     let agencyName: string | null = null;
     if (inv.agency_id) {
@@ -81,7 +83,10 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
     // open copied links). Inert invitations can never be accepted.
     if (inv.kind === "agency") {
       const { data: priv } = await (supabaseAdmin as any)
-        .from("talent_invite_private").select("kind").eq("invitation_id", inv.id).maybeSingle();
+        .from("talent_invite_private")
+        .select("kind")
+        .eq("invitation_id", inv.id)
+        .maybeSingle();
       if (priv?.kind === "inert") return { ok: false, reason: "invalid" };
     }
     const linkRequest = false;
@@ -102,7 +107,10 @@ const activateInput = z.object({
   email: z.string().email().max(255),
   full_name: z.string().trim().min(2).max(120),
   id_number: z.string().trim().max(40).optional().or(z.literal("")),
-  date_of_birth: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter your date of birth."),
+  date_of_birth: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter your date of birth."),
   tax_number: z.string().trim().max(40).optional().or(z.literal("")),
   is_provisional_taxpayer: z.boolean().optional(),
   phone_number: z.string().trim().max(40).optional().or(z.literal("")),
@@ -139,8 +147,7 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       perIp: { max: 10, windowSeconds: 900, blockSeconds: 1800 },
       perToken: { max: 6, windowSeconds: 900, blockSeconds: 1800 },
     });
-    if (!guard.allowed)
-      return { ok: false, code: "throttled", message: throttleMessage(guard) };
+    if (!guard.allowed) return { ok: false, code: "throttled", message: throttleMessage(guard) };
 
     // Checked before any account exists, so an under-18 never gets one.
     if (ageOn(data.date_of_birth) < MINIMUM_TALENT_AGE)
@@ -157,20 +164,41 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
     if (inv.kind === "agency") {
       const { data: priv } = await (supabaseAdmin as any)
-        .from("talent_invite_private").select("kind").eq("invitation_id", inv.id).maybeSingle();
+        .from("talent_invite_private")
+        .select("kind")
+        .eq("invitation_id", inv.id)
+        .maybeSingle();
       if (priv?.kind === "inert")
         return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
     }
     if (inv.status === "accepted")
-      return { ok: false, code: "already_accepted", message: "This invitation has already been accepted. Please sign in instead." };
+      return {
+        ok: false,
+        code: "already_accepted",
+        message: "This invitation has already been accepted. Please sign in instead.",
+      };
     if (inv.status === "revoked")
-      return { ok: false, code: "revoked", message: "This invitation has been revoked. Contact the person who invited you for a new one." };
+      return {
+        ok: false,
+        code: "revoked",
+        message:
+          "This invitation has been revoked. Contact the person who invited you for a new one.",
+      };
     if (inv.status !== "pending")
       return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
     if (new Date(inv.expires_at).getTime() < Date.now())
-      return { ok: false, code: "expired", message: "This invitation has expired. Contact the person who invited you for a fresh invite." };
+      return {
+        ok: false,
+        code: "expired",
+        message:
+          "This invitation has expired. Contact the person who invited you for a fresh invite.",
+      };
     if (data.email.trim().toLowerCase() !== inv.email.trim().toLowerCase())
-      return { ok: false, code: "email_mismatch", message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact the person who invited you.` };
+      return {
+        ok: false,
+        code: "email_mismatch",
+        message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact the person who invited you.`,
+      };
 
     // handle_new_user() -> accept_talent_invitation() provisions the talent
     // profile, the agency_talent_links row, the shared folders and marks the
@@ -203,8 +231,16 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
     try {
       const { recordLegalAcceptance } = await import("@/lib/legal-acceptance.server");
       // Name first, so the acceptance stamp captures the name just entered.
-      await supabaseAdmin.from("talent_profiles").update({ full_name: data.full_name }).eq("user_id", userId);
-      await recordLegalAcceptance({ userId, docType: "talent", version: data.terms_version, method: "activation" });
+      await supabaseAdmin
+        .from("talent_profiles")
+        .update({ full_name: data.full_name })
+        .eq("user_id", userId);
+      await recordLegalAcceptance({
+        userId,
+        docType: "talent",
+        version: data.terms_version,
+        method: "activation",
+      });
     } catch (e: any) {
       await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => undefined);
       return {

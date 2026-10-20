@@ -115,7 +115,9 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
     });
     if (roleErr) throw new Error(roleErr.message);
     if (!isOwner) throw new Error("Forbidden: only agency owners may send talent invitations.");
-    const { data: writable } = await supabase.rpc("agency_is_writable", { _agency_id: inv.agency_id });
+    const { data: writable } = await supabase.rpc("agency_is_writable", {
+      _agency_id: inv.agency_id,
+    });
     if (!writable) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended.");
     await assertTermsAccepted(supabase, userId, "agency");
 
@@ -132,7 +134,10 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
       let r: any;
       if (priv.kind === "link_request" && priv.link_id) {
         const { emailLinkRequest } = await import("@/lib/link-notify.server");
-        r = await emailLinkRequest(priv.link_id).catch(() => ({ sent: false, reason: "send_failed" }));
+        r = await emailLinkRequest(priv.link_id).catch(() => ({
+          sent: false,
+          reason: "send_failed",
+        }));
       } else {
         const { simulatedInvitationSend } = await import("@/lib/invitation-email.server");
         r = await simulatedInvitationSend();
@@ -145,12 +150,17 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
         target_type: "talent_invitation",
         target_id: inv.id,
         target_label: inv.email,
-        detail: { subject: data.subject, reason: r.sent ? null : r.reason ?? "send_failed" },
+        detail: { subject: data.subject, reason: r.sent ? null : (r.reason ?? "send_failed") },
       });
       if (r.sent) {
-        await supabase.from("talent_invitations").update({ email_sent_at: new Date().toISOString() }).eq("id", inv.id);
+        await supabase
+          .from("talent_invitations")
+          .update({ email_sent_at: new Date().toISOString() })
+          .eq("id", inv.id);
       }
-      return r.sent ? { sent: true as const } : { sent: false as const, reason: r.reason ?? "send_failed" };
+      return r.sent
+        ? { sent: true as const }
+        : { sent: false as const, reason: r.reason ?? "send_failed" };
     }
 
     const { data: agency } = await supabase
@@ -184,9 +194,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
       agency_id: inv.agency_id,
       actor_id: userId,
       actor_email: claims?.email ?? null,
-      action: result.sent
-        ? "talent_invitation_email_sent"
-        : "talent_invitation_email_send_failed",
+      action: result.sent ? "talent_invitation_email_sent" : "talent_invitation_email_send_failed",
       target_type: "talent_invitation",
       target_id: inv.id,
       target_label: inv.email,
@@ -230,7 +238,6 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
       );
     }
 
-
     const { data: inv, error } = await supabase
       .from("admin_invitations")
       .select("id, email, permission_level, expires_at, status")
@@ -262,9 +269,7 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
     await supabase.from("admin_audit_log").insert({
       actor_id: userId,
       actor_email: claims?.email ?? null,
-      action: result.sent
-        ? "admin_invitation_email_sent"
-        : "admin_invitation_email_send_failed",
+      action: result.sent ? "admin_invitation_email_sent" : "admin_invitation_email_send_failed",
       target_type: "admin_invitation",
       target_id: inv.id,
       target_label: inv.email,
@@ -311,7 +316,9 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
     });
     if (roleErr) throw new Error(roleErr.message);
     if (!isOwner) throw new Error("Forbidden: only agency owners may send staff invitations.");
-    const { data: writable } = await supabase.rpc("agency_is_writable", { _agency_id: inv.agency_id });
+    const { data: writable } = await supabase.rpc("agency_is_writable", {
+      _agency_id: inv.agency_id,
+    });
     if (!writable) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended.");
     await assertTermsAccepted(supabase, userId, "agency");
 
@@ -340,9 +347,7 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
       agency_id: inv.agency_id,
       actor_id: userId,
       actor_email: claims?.email ?? null,
-      action: result.sent
-        ? "staff_invitation_email_sent"
-        : "staff_invitation_email_send_failed",
+      action: result.sent ? "staff_invitation_email_sent" : "staff_invitation_email_send_failed",
       target_type: "agency_invitation",
       target_id: inv.id,
       target_label: inv.email,

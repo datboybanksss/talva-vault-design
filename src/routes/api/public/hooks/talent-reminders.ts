@@ -60,20 +60,24 @@ export const Route = createFileRoute("/api/public/hooks/talent-reminders")({
         try {
           const result = await runTalentReminderScan();
           // Same daily run: delete documents held for closed independent invites.
-          const { purgeClosedIndependentInviteDocuments } = await import("@/lib/independent-invite-purge.server");
+          const { purgeClosedIndependentInviteDocuments } =
+            await import("@/lib/independent-invite-purge.server");
           const purged = await purgeClosedIndependentInviteDocuments();
-          return new Response(JSON.stringify({ ok: true, ...result, purged_invites: purged.invitations }), {
-            headers: { "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({ ok: true, ...result, purged_invites: purged.invitations }),
+            {
+              headers: { "Content-Type": "application/json" },
+            },
+          );
         } catch (e: any) {
           // TVA-SEC-008: full detail server-side only. The caller gets an opaque
           // code it can quote in a support request, never the exception text.
           const ref = crypto.randomUUID();
           console.error("[talent-reminders]", ref, e?.stack ?? e?.message ?? e);
-          return new Response(
-            JSON.stringify({ ok: false, error: "scan_failed", ref }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ ok: false, error: "scan_failed", ref }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
       },
     },

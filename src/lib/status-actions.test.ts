@@ -30,7 +30,9 @@ describe("talent relationship actions (agency)", () => {
   });
   it("active → end relationship (owner only)", () => {
     expect(talentLinkActions({ status: "active", ...owner })).toContain("end_relationship");
-    expect(talentLinkActions({ status: "active", isOwner: false, writable: true })).not.toContain("end_relationship");
+    expect(talentLinkActions({ status: "active", isOwner: false, writable: true })).not.toContain(
+      "end_relationship",
+    );
   });
   it("ended and read-only → reactivate directly", () => {
     expect(talentLinkActions({ status: "ended", ...owner })).toContain("reactivate");
@@ -38,7 +40,11 @@ describe("talent relationship actions (agency)", () => {
   });
   it("suspended agency (not writable) gets no write actions", () => {
     for (const s of ["invited", "active", "ended", "expired"]) {
-      expect(talentLinkActions({ status: s, isOwner: true, writable: false }).filter((x) => x !== "open" && x !== "copy_link")).toEqual([]);
+      expect(
+        talentLinkActions({ status: s, isOwner: true, writable: false }).filter(
+          (x) => x !== "open" && x !== "copy_link",
+        ),
+      ).toEqual([]);
     }
   });
   it("server transition rules", () => {
@@ -51,18 +57,30 @@ describe("talent relationship actions (agency)", () => {
 
 describe("invitation actions", () => {
   it("pending → resend and revoke for admin and agency owner, copy only for staff", () => {
-    expect(invitationActions({ status: "pending", viewer: "admin", canWrite: true })).toEqual(expect.arrayContaining(["resend", "revoke"]));
-    expect(invitationActions({ status: "pending", viewer: "agency_owner", canWrite: true })).toEqual(expect.arrayContaining(["resend", "revoke"]));
-    expect(invitationActions({ status: "pending", viewer: "agency_staff", canWrite: true })).toEqual(["copy_link"]);
+    expect(invitationActions({ status: "pending", viewer: "admin", canWrite: true })).toEqual(
+      expect.arrayContaining(["resend", "revoke"]),
+    );
+    expect(
+      invitationActions({ status: "pending", viewer: "agency_owner", canWrite: true }),
+    ).toEqual(expect.arrayContaining(["resend", "revoke"]));
+    expect(
+      invitationActions({ status: "pending", viewer: "agency_staff", canWrite: true }),
+    ).toEqual(["copy_link"]);
   });
   it("expired, revoked and declined → reinvite", () => {
     for (const s of ["expired", "revoked", "declined"]) {
-      expect(invitationActions({ status: s, viewer: "admin", canWrite: true })).toContain("reinvite");
-      expect(invitationActions({ status: s, viewer: "agency_owner", canWrite: true })).toContain("reinvite");
+      expect(invitationActions({ status: s, viewer: "admin", canWrite: true })).toContain(
+        "reinvite",
+      );
+      expect(invitationActions({ status: s, viewer: "agency_owner", canWrite: true })).toContain(
+        "reinvite",
+      );
     }
   });
   it("draft → continue draft for admins only", () => {
-    expect(invitationActions({ status: "draft", viewer: "admin", canWrite: true })).toContain("continue_draft");
+    expect(invitationActions({ status: "draft", viewer: "admin", canWrite: true })).toContain(
+      "continue_draft",
+    );
   });
 });
 

@@ -34,7 +34,10 @@ export async function recordLegalAcceptance(args: {
 }): Promise<{ proof_ref: string | null }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  let q = supabaseAdmin.from("legal_documents").select("id, doc_type, version").eq("doc_type", args.docType);
+  let q = supabaseAdmin
+    .from("legal_documents")
+    .select("id, doc_type, version")
+    .eq("doc_type", args.docType);
   q = args.documentId ? q.eq("id", args.documentId) : q.eq("version", args.version ?? "");
   const { data: doc } = await q.maybeSingle();
   if (!doc) throw new Error(`Unknown ${args.docType} Terms & Conditions version.`);

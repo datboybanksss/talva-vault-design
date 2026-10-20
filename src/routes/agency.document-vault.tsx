@@ -1,10 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Upload, FolderOpen, Sparkles, FileText, Files, Trash2, Download, Eye, X, Loader2,
-  Lock, History, ShieldPlus, Search, ChevronRight, ChevronDown, FileSignature, Award, Receipt, IdCard, Users as UsersIcon, HeartPulse, Landmark, AlertTriangle, Inbox, CalendarClock, RefreshCw, Plane, Briefcase,
+  Upload,
+  FolderOpen,
+  Sparkles,
+  FileText,
+  Files,
+  Trash2,
+  Download,
+  Eye,
+  X,
+  Loader2,
+  Lock,
+  History,
+  ShieldPlus,
+  Search,
+  ChevronRight,
+  ChevronDown,
+  FileSignature,
+  Award,
+  Receipt,
+  IdCard,
+  Users as UsersIcon,
+  HeartPulse,
+  Landmark,
+  AlertTriangle,
+  Inbox,
+  CalendarClock,
+  RefreshCw,
+  Plane,
+  Briefcase,
 } from "lucide-react";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery, useInfiniteQuery, queryOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+  useInfiniteQuery,
+  queryOptions,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   listAgencyVaultDocuments,
@@ -64,7 +98,11 @@ type FolderCount = {
   expiringCount: number;
 };
 
-import { VaultRequestsPanel, requestsListQO, requestsTalentQO } from "@/components/agency/vault-requests-panel";
+import {
+  VaultRequestsPanel,
+  requestsListQO,
+  requestsTalentQO,
+} from "@/components/agency/vault-requests-panel";
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
 import { useAnalyseWithAi } from "@/components/shared/use-analyse-with-ai";
 import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
@@ -83,21 +121,30 @@ const expiringQO = queryOptions({
 });
 const talentLinksQO = queryOptions({
   queryKey: ["agency", "vault", "talent-links"],
-  queryFn:  () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
+  queryFn: () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
 });
 const meQO = queryOptions({
   queryKey: ["agency", "whoami"],
-  queryFn:  () => agencyWhoami(),
+  queryFn: () => agencyWhoami(),
 });
 
 export const Route = createFileRoute("/agency/document-vault")({
-  head: () => ({ meta: [
-    { title: "Document Vault · TalVault" },
-    { name: "description", content: "Browse and review agency-shared talent documents in TalVault." },
-    { property: "og:title", content: "Document Vault · TalVault" },
-    { property: "og:description", content: "Browse and review agency-shared talent documents in TalVault." },
-    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Document Vault · TalVault" },
+      {
+        name: "description",
+        content: "Browse and review agency-shared talent documents in TalVault.",
+      },
+      { property: "og:title", content: "Document Vault · TalVault" },
+      {
+        property: "og:description",
+        content: "Browse and review agency-shared talent documents in TalVault.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   validateSearch: (search: Record<string, unknown>): { tab?: string } =>
     typeof search.tab === "string" ? { tab: search.tab } : {},
   loader: async ({ context }) => {
@@ -120,11 +167,15 @@ export const Route = createFileRoute("/agency/document-vault")({
   component: VaultPage,
 });
 
-
-const tabs = ["All Documents", "Pending Review", "Needs Review", "Expiring", "Recently Updated", "Requests"] as const;
-type Tab = typeof tabs[number];
-
-
+const tabs = [
+  "All Documents",
+  "Pending Review",
+  "Needs Review",
+  "Expiring",
+  "Recently Updated",
+  "Requests",
+] as const;
+type Tab = (typeof tabs)[number];
 
 type FolderMeta = {
   key: string;
@@ -137,11 +188,23 @@ const FOLDER_META: Record<string, { description: string; icon: any }> = {
   "Contracts & Agreements": { description: "Agreements, riders, addenda", icon: FileSignature },
   "Banking, Tax & Financial": { description: "Invoices, tax and banking records", icon: Receipt },
   "Travel & Visas": { description: "Itineraries, visas, travel approvals", icon: Plane },
-  "Medical, Fitness & Insurance": { description: "Clearances, cover, fitness records", icon: HeartPulse },
-  "Career & Professional Records": { description: "CVs, accreditations, career history", icon: Briefcase },
+  "Medical, Fitness & Insurance": {
+    description: "Clearances, cover, fitness records",
+    icon: HeartPulse,
+  },
+  "Career & Professional Records": {
+    description: "CVs, accreditations, career history",
+    icon: Briefcase,
+  },
   "Brand, Sponsorship & Media": { description: "Brand deals, partnerships, media", icon: Award },
-  "Bookings, Events & Appearances": { description: "Bookings, call sheets, appearances", icon: CalendarClock },
-  "Rights, Licences & Compliance": { description: "Licences, certifications, compliance", icon: ShieldPlus },
+  "Bookings, Events & Appearances": {
+    description: "Bookings, call sheets, appearances",
+    icon: CalendarClock,
+  },
+  "Rights, Licences & Compliance": {
+    description: "Licences, certifications, compliance",
+    icon: ShieldPlus,
+  },
   "Other Documents": { description: "Anything that does not fit elsewhere", icon: Files },
 };
 function allowedFoldersFrom(categories: CatalogueCategory[]): FolderMeta[] {
@@ -153,9 +216,24 @@ function allowedFoldersFrom(categories: CatalogueCategory[]): FolderMeta[] {
   }));
 }
 const BLOCKED_FOLDERS: FolderMeta[] = [
-  { key: "family", label: "Family / Personal contacts", description: "Talent's personal contacts", icon: UsersIcon },
-  { key: "medical", label: "Medical / Insurance", description: "Health records, insurance", icon: HeartPulse },
-  { key: "finance", label: "Personal Finance", description: "Bank statements, taxes", icon: Landmark },
+  {
+    key: "family",
+    label: "Family / Personal contacts",
+    description: "Talent's personal contacts",
+    icon: UsersIcon,
+  },
+  {
+    key: "medical",
+    label: "Medical / Insurance",
+    description: "Health records, insurance",
+    icon: HeartPulse,
+  },
+  {
+    key: "finance",
+    label: "Personal Finance",
+    description: "Bank statements, taxes",
+    icon: Landmark,
+  },
 ];
 
 function statusTone(status: string): "purple" | "green" | "amber" {
@@ -194,7 +272,9 @@ const talentFoldersQO = (talentLinkId: string | null) =>
   queryOptions({
     queryKey: ["agency", "vault", "talent-folders", talentLinkId],
     queryFn: () =>
-      listAgencyTalentFolders({ data: { talent_link_id: talentLinkId! } }) as Promise<ProvisionedFolder[]>,
+      listAgencyTalentFolders({ data: { talent_link_id: talentLinkId! } }) as Promise<
+        ProvisionedFolder[]
+      >,
     enabled: !!talentLinkId,
   });
 
@@ -202,20 +282,24 @@ const folderCountsQO = (talentLinkId: string | null) =>
   queryOptions({
     queryKey: ["agency", "vault", "folder-counts", talentLinkId],
     queryFn: () =>
-      getAgencyVaultFolderCounts({ data: { talent_link_id: talentLinkId! } }) as Promise<FolderCount[]>,
+      getAgencyVaultFolderCounts({ data: { talent_link_id: talentLinkId! } }) as Promise<
+        FolderCount[]
+      >,
     enabled: !!talentLinkId,
   });
 
 /** Maps the visible tab onto the server-side filter the API understands. */
-const TAB_FILTER: Record<Tab, "all" | "pending_review" | "needs_review" | "expiring" | "recently_updated"> = {
+const TAB_FILTER: Record<
+  Tab,
+  "all" | "pending_review" | "needs_review" | "expiring" | "recently_updated"
+> = {
   "All Documents": "all",
   "Pending Review": "pending_review",
   "Needs Review": "needs_review",
-  "Expiring": "expiring",
+  Expiring: "expiring",
   "Recently Updated": "recently_updated",
-  "Requests": "all",
+  Requests: "all",
 };
-
 
 function VaultPage() {
   const qc = useQueryClient();
@@ -242,14 +326,18 @@ function VaultPage() {
   }, [searchParams.tab]);
 
   const needsActionCount = useMemo(
-    () => requestRows.filter(r => r.status === "pending" || r.status === "submitted").length,
+    () => requestRows.filter((r) => r.status === "pending" || r.status === "submitted").length,
     [requestRows],
   );
 
   const [mode, setMode] = useState<"browse" | "search">("browse");
   const [talentId, setTalentId] = useState<string | null>(null);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
-  const [folderSel, setFolderSel] = useState<{ label: string; names: string[]; restricted: boolean } | null>(null);
+  const [folderSel, setFolderSel] = useState<{
+    label: string;
+    names: string[];
+    restricted: boolean;
+  } | null>(null);
 
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<string>("all");
@@ -291,7 +379,9 @@ function VaultPage() {
   });
 
   // ---- Folder tree for the selected talent, live from agency_talent_folders ----
-  const { data: talentFolders = [], isLoading: foldersLoading } = useQuery(talentFoldersQO(talentId));
+  const { data: talentFolders = [], isLoading: foldersLoading } = useQuery(
+    talentFoldersQO(talentId),
+  );
   const { data: folderCounts = [] } = useQuery(folderCountsQO(talentId));
 
   const countsByFolder = useMemo(() => {
@@ -394,7 +484,6 @@ function VaultPage() {
     isLoadingMore: docsQuery.isFetchingNextPage,
   };
 
-
   const showTalentPicker = mode === "browse" && !talentId && tab === "All Documents";
   const showFolderGrid = mode === "browse" && !!talentId && !folderSel && tab === "All Documents";
   const showTable = tab !== "Requests" && !showTalentPicker && !showFolderGrid;
@@ -423,39 +512,54 @@ function VaultPage() {
             <Search className="h-4 w-4" />
             {mode === "search" ? "Back to browsing" : "Search all documents"}
           </button>
-          {!readOnly && <button
-            className="tvp-purple-btn"
-            title="Ask a talent to submit a specific document"
-            onClick={() => { setRequestsAutoOpen(true); setTab("Requests"); }}
-          >
-            <Inbox className="h-4 w-4" />Request Document
-          </button>}
-          {!readOnly && <button className="tvp-primary" onClick={() => setShowUpload(true)}>
-            <Upload className="h-4 w-4" />Upload to Talent
-          </button>}
+          {!readOnly && (
+            <button
+              className="tvp-purple-btn"
+              title="Ask a talent to submit a specific document"
+              onClick={() => {
+                setRequestsAutoOpen(true);
+                setTab("Requests");
+              }}
+            >
+              <Inbox className="h-4 w-4" />
+              Request Document
+            </button>
+          )}
+          {!readOnly && (
+            <button className="tvp-primary" onClick={() => setShowUpload(true)}>
+              <Upload className="h-4 w-4" />
+              Upload to Talent
+            </button>
+          )}
         </div>
       </div>
 
       {/* Only rendered when something is genuinely expiring — no reassurance
           panel when the list is empty. */}
       {tab !== "Requests" && expiring.length > 0 && (
-      <div className="tvp-card tvp-panel">
-        <div className="tvp-panel-head"><h2 className="tvp-h2">Expiring soon</h2></div>
-        <div className="tvp-list">
-          {expiring.map((d) => (
-            <div key={d.id} className="tvp-list-item">
-              <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
-              <div>
-                <strong>{d.talentName} · {d.name}</strong>
-                <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
+        <div className="tvp-card tvp-panel">
+          <div className="tvp-panel-head">
+            <h2 className="tvp-h2">Expiring soon</h2>
+          </div>
+          <div className="tvp-list">
+            {expiring.map((d) => (
+              <div key={d.id} className="tvp-list-item">
+                <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
+                <div>
+                  <strong>
+                    {d.talentName} · {d.name}
+                  </strong>
+                  <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
+                </div>
+                <span
+                  className={`tvp-status tvp-${(daysUntil(d.validityExpiresAt) ?? 0) <= 60 ? "amber" : "blue"}`}
+                >
+                  {daysUntil(d.validityExpiresAt)} days
+                </span>
               </div>
-              <span className={`tvp-status tvp-${(daysUntil(d.validityExpiresAt) ?? 0) <= 60 ? "amber" : "blue"}`}>
-                {daysUntil(d.validityExpiresAt)} days
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
       )}
 
       <div className="tvp-tabs" data-tour="vault-tabs">
@@ -466,18 +570,18 @@ function VaultPage() {
             "All Documents": { Icon: Files, color: "var(--tvp-teal)" },
             "Pending Review": { Icon: Sparkles, color: "var(--tvp-purple, #7c3aed)" },
             "Needs Review": { Icon: Eye, color: "var(--tvp-teal)" },
-            "Expiring": { Icon: CalendarClock, color: "var(--tvp-amber)" },
+            Expiring: { Icon: CalendarClock, color: "var(--tvp-amber)" },
             "Recently Updated": { Icon: RefreshCw, color: "var(--tvp-teal)" },
-            "Requests": { Icon: Inbox, color: "var(--tvp-purple, #7c3aed)" },
+            Requests: { Icon: Inbox, color: "var(--tvp-purple, #7c3aed)" },
           };
           const { Icon, color } = iconMap[t];
           const label: Record<Tab, string> = {
             "All Documents": mode === "search" ? "All results" : "Browse",
             "Pending Review": "Pending review",
             "Needs Review": "Needs review",
-            "Expiring": "Expiring",
+            Expiring: "Expiring",
             "Recently Updated": "Recently updated",
-            "Requests": "Requests",
+            Requests: "Requests",
           };
           return (
             <button
@@ -501,7 +605,11 @@ function VaultPage() {
             type="button"
             className="tvp-link"
             style={{ background: "none", border: 0, padding: 0, cursor: "pointer" }}
-            onClick={() => { setTalentId(null); setFolderSel(null); setOpenCategory(null); }}
+            onClick={() => {
+              setTalentId(null);
+              setFolderSel(null);
+              setOpenCategory(null);
+            }}
           >
             Talent roster
           </button>
@@ -538,295 +646,414 @@ function VaultPage() {
           onAutoOpenConsumed={() => setRequestsAutoOpen(false)}
         />
       ) : (
-      <div className="tvp-stack" data-tour="vault-panes">
-        {showTalentPicker && (
-          <div className="tvp-card tvp-panel">
-            <div className="tvp-panel-head">
-              <div>
-                <h2 className="tvp-h2">Select a talent</h2>
-                <p className="tvp-subtitle">
-                  Open a talent to browse their folders, or search across the whole roster.
-                </p>
-              </div>
-            </div>
-            {talentLinks.length === 0 ? (
-              <div className="tvp-callout">
-                <div className="tvp-callout-icon tvp-bg-purple"><UsersIcon className="h-4 w-4" /></div>
+        <div className="tvp-stack" data-tour="vault-panes">
+          {showTalentPicker && (
+            <div className="tvp-card tvp-panel">
+              <div className="tvp-panel-head">
                 <div>
-                  <strong>No talent on your roster yet.</strong>{" "}
-                  <span className="tvp-muted">Invite your first talent and their folders will appear here.</span>
+                  <h2 className="tvp-h2">Select a talent</h2>
+                  <p className="tvp-subtitle">
+                    Open a talent to browse their folders, or search across the whole roster.
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="tvp-entity-grid tvp-entity-grid-compact tvp-vault-picker">
-                {talentLinks.map((l) => {
-                  const stats = summaryByTalent.get(l.id);
-                  const totalDocsForTalent = stats?.docCount ?? 0;
-                  const folderTotal = stats?.folderCount ?? 0;
-                  return (
-                    <EntityCard
-                      key={l.id}
-                      compact
-                      name={l.displayName}
-                      avatarSeed={l.id}
-                      photoUrl={l.avatarUrl}
-                      subtitle={l.talentType ?? "Talent type not set"}
-                      meta={`${folderTotal} ${folderTotal === 1 ? "folder" : "folders"} · ${totalDocsForTalent} ${totalDocsForTalent === 1 ? "document" : "documents"}`}
-                      ariaLabel={`Open ${l.displayName}'s folders`}
-                      onClick={() => pickTalent(l.id)}
-                      pills={
-                        <>
-                          <span className={statusPillClass("talentLink", l.status)}>
-                            {lifecycleLabel("talentLink", l.status)}
-                          </span>
-                          {(stats?.reviewCount ?? 0) > 0 && (
-                            <span className="tvp-status tvp-purple">{stats?.reviewCount} to review</span>
-                          )}
-                        </>
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {showFolderGrid && (
-          <div className="tvp-card">
-            <h2 className="tvp-h2" style={{ marginBottom: 2 }}>{selectedTalent?.displayName}'s folders</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 0 }}>
-              Provisioned from Manage folders. Open a category, or drill into a subfolder.
-            </p>
-            {foldersLoading ? (
-              <div className="tvp-muted" style={{ padding: 16 }}>Loading folders…</div>
-            ) : categories.length === 0 ? (
-              <div className="tvp-callout" style={{ marginTop: 12 }}>
-                <div className="tvp-callout-icon tvp-bg-purple"><FolderOpen className="h-4 w-4" /></div>
-                <div>
-                  <strong>No folders provisioned for this talent.</strong>{" "}
-                  <span className="tvp-muted">Set their folder list under Agency profile → Manage folders.</span>
+              {talentLinks.length === 0 ? (
+                <div className="tvp-callout">
+                  <div className="tvp-callout-icon tvp-bg-purple">
+                    <UsersIcon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <strong>No talent on your roster yet.</strong>{" "}
+                    <span className="tvp-muted">
+                      Invite your first talent and their folders will appear here.
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="tvp-folder-tree">
-                {categories.map((c) => {
-                  const Icon = FOLDER_META[c.folder.folderName]?.icon ?? FolderOpen;
-                  const open = openCategory === c.folder.id;
-                  return (
-                    <div key={c.folder.id} className={`tvp-folder-card${open ? " tvp-open" : ""}`}>
-                      <button
-                        type="button"
-                        className="tvp-folder-head"
-                        onClick={() => setOpenCategory(open ? null : c.folder.id)}
-                      >
-                        <span className="tvp-callout-icon tvp-bg-teal"><Icon className="h-4 w-4" /></span>
-                        <span style={{ minWidth: 0 }}>
-                          <span className="tvp-folder-name">
-                            {c.folder.folderName}
-                            {c.folder.restricted && <Lock className="inline h-3 w-3 ml-1" />}
-                          </span>
-                          <span className="tvp-folder-meta" style={{ display: "block" }}>
-                            {c.count} {c.count === 1 ? "document" : "documents"}
-                            {c.children.length > 0 && ` · ${c.children.length} subfolders`}
-                          </span>
-                          <span style={{ display: "flex", gap: 5, marginTop: 6, flexWrap: "wrap" }}>
-                            {c.reviewCount > 0 && <span className="tvp-status tvp-purple">{c.reviewCount} to review</span>}
-                            {c.expiringCount > 0 && <span className="tvp-status tvp-amber">{c.expiringCount} expiring</span>}
-                            {c.needsReview && <span className="tvp-status tvp-amber">Folder needs review</span>}
-                          </span>
-                        </span>
-                        <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
-                      </button>
-                      <div className="tvp-folder-body">
-                        <div>
-                          <div className="tvp-folder-body-inner">
-                            <button
-                              type="button"
-                              className="tvp-secondary"
-                              style={{ justifyContent: "flex-start" }}
-                              onClick={() => setFolderSel({ label: c.folder.folderName, names: c.names, restricted: c.folder.restricted })}
-                            >
-                              <FolderOpen className="h-4 w-4" />Open all in this category
-                            </button>
-                            {c.children.length > 0 && (
-                              <div className="tvp-subfolder-list">
-                                {c.children.map((s) => {
-                                  const n = countsByFolder.get(s.folderName)?.docCount ?? 0;
-                                  return (
-                                    <button
-                                      key={s.id}
-                                      type="button"
-                                      className="tvp-subfolder-pill"
-                                      onClick={() => setFolderSel({ label: `${c.folder.folderName} · ${s.folderName}`, names: [s.folderName], restricted: s.restricted })}
-                                    >
-                                      {s.restricted && <Lock className="h-3 w-3" />}
-                                      {s.folderName}
-                                      <span className="tvp-muted" style={{ fontSize: 11, marginLeft: 4 }}>{n}</span>
-                                      {s.needsReview && <span className="tvp-status tvp-amber" style={{ marginLeft: 4 }}>Review</span>}
-                                    </button>
-                                  );
-                                })}
-                              </div>
+              ) : (
+                <div className="tvp-entity-grid tvp-entity-grid-compact tvp-vault-picker">
+                  {talentLinks.map((l) => {
+                    const stats = summaryByTalent.get(l.id);
+                    const totalDocsForTalent = stats?.docCount ?? 0;
+                    const folderTotal = stats?.folderCount ?? 0;
+                    return (
+                      <EntityCard
+                        key={l.id}
+                        compact
+                        name={l.displayName}
+                        avatarSeed={l.id}
+                        photoUrl={l.avatarUrl}
+                        subtitle={l.talentType ?? "Talent type not set"}
+                        meta={`${folderTotal} ${folderTotal === 1 ? "folder" : "folders"} · ${totalDocsForTalent} ${totalDocsForTalent === 1 ? "document" : "documents"}`}
+                        ariaLabel={`Open ${l.displayName}'s folders`}
+                        onClick={() => pickTalent(l.id)}
+                        pills={
+                          <>
+                            <span className={statusPillClass("talentLink", l.status)}>
+                              {lifecycleLabel("talentLink", l.status)}
+                            </span>
+                            {(stats?.reviewCount ?? 0) > 0 && (
+                              <span className="tvp-status tvp-purple">
+                                {stats?.reviewCount} to review
+                              </span>
                             )}
+                          </>
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showFolderGrid && (
+            <div className="tvp-card">
+              <h2 className="tvp-h2" style={{ marginBottom: 2 }}>
+                {selectedTalent?.displayName}'s folders
+              </h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 0 }}>
+                Provisioned from Manage folders. Open a category, or drill into a subfolder.
+              </p>
+              {foldersLoading ? (
+                <div className="tvp-muted" style={{ padding: 16 }}>
+                  Loading folders…
+                </div>
+              ) : categories.length === 0 ? (
+                <div className="tvp-callout" style={{ marginTop: 12 }}>
+                  <div className="tvp-callout-icon tvp-bg-purple">
+                    <FolderOpen className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <strong>No folders provisioned for this talent.</strong>{" "}
+                    <span className="tvp-muted">
+                      Set their folder list under Agency profile → Manage folders.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="tvp-folder-tree">
+                  {categories.map((c) => {
+                    const Icon = FOLDER_META[c.folder.folderName]?.icon ?? FolderOpen;
+                    const open = openCategory === c.folder.id;
+                    return (
+                      <div
+                        key={c.folder.id}
+                        className={`tvp-folder-card${open ? " tvp-open" : ""}`}
+                      >
+                        <button
+                          type="button"
+                          className="tvp-folder-head"
+                          onClick={() => setOpenCategory(open ? null : c.folder.id)}
+                        >
+                          <span className="tvp-callout-icon tvp-bg-teal">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span style={{ minWidth: 0 }}>
+                            <span className="tvp-folder-name">
+                              {c.folder.folderName}
+                              {c.folder.restricted && <Lock className="inline h-3 w-3 ml-1" />}
+                            </span>
+                            <span className="tvp-folder-meta" style={{ display: "block" }}>
+                              {c.count} {c.count === 1 ? "document" : "documents"}
+                              {c.children.length > 0 && ` · ${c.children.length} subfolders`}
+                            </span>
+                            <span
+                              style={{ display: "flex", gap: 5, marginTop: 6, flexWrap: "wrap" }}
+                            >
+                              {c.reviewCount > 0 && (
+                                <span className="tvp-status tvp-purple">
+                                  {c.reviewCount} to review
+                                </span>
+                              )}
+                              {c.expiringCount > 0 && (
+                                <span className="tvp-status tvp-amber">
+                                  {c.expiringCount} expiring
+                                </span>
+                              )}
+                              {c.needsReview && (
+                                <span className="tvp-status tvp-amber">Folder needs review</span>
+                              )}
+                            </span>
+                          </span>
+                          <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
+                        </button>
+                        <div className="tvp-folder-body">
+                          <div>
+                            <div className="tvp-folder-body-inner">
+                              <button
+                                type="button"
+                                className="tvp-secondary"
+                                style={{ justifyContent: "flex-start" }}
+                                onClick={() =>
+                                  setFolderSel({
+                                    label: c.folder.folderName,
+                                    names: c.names,
+                                    restricted: c.folder.restricted,
+                                  })
+                                }
+                              >
+                                <FolderOpen className="h-4 w-4" />
+                                Open all in this category
+                              </button>
+                              {c.children.length > 0 && (
+                                <div className="tvp-subfolder-list">
+                                  {c.children.map((s) => {
+                                    const n = countsByFolder.get(s.folderName)?.docCount ?? 0;
+                                    return (
+                                      <button
+                                        key={s.id}
+                                        type="button"
+                                        className="tvp-subfolder-pill"
+                                        onClick={() =>
+                                          setFolderSel({
+                                            label: `${c.folder.folderName} · ${s.folderName}`,
+                                            names: [s.folderName],
+                                            restricted: s.restricted,
+                                          })
+                                        }
+                                      >
+                                        {s.restricted && <Lock className="h-3 w-3" />}
+                                        {s.folderName}
+                                        <span
+                                          className="tvp-muted"
+                                          style={{ fontSize: 11, marginLeft: 4 }}
+                                        >
+                                          {n}
+                                        </span>
+                                        {s.needsReview && (
+                                          <span
+                                            className="tvp-status tvp-amber"
+                                            style={{ marginLeft: 4 }}
+                                          >
+                                            Review
+                                          </span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {showTable && (
-        <div className="tvp-card">
-          {mode === "search" && (
-            <div className="tvp-toolbar">
-              <input
-                className="tvp-search"
-                placeholder="Search every document, talent or folder..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <select className="tvp-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
-                  <option value="all">Folder: All</option>
-                  {folderOptions.map((f: string) => <option key={f} value={f}>{f}</option>)}
-                </select>
-                <select className="tvp-select" value={talentFilter} onChange={(e) => setTalentFilter(e.target.value)}>
-                  <option value="all">Talent: All</option>
-                  {talentLinks.map((l) => <option key={l.id} value={l.id}>{l.displayName}</option>)}
-                </select>
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
-          {page.total === 0 ? (
-            <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
-              {mode === "search"
-                ? "No documents match your search — try a different term or clear the filters."
-                : "Nothing here yet — use “Upload to Talent” to add the first document."}
+
+          {showTable && (
+            <div className="tvp-card">
+              {mode === "search" && (
+                <div className="tvp-toolbar">
+                  <input
+                    className="tvp-search"
+                    placeholder="Search every document, talent or folder..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <select
+                      className="tvp-select"
+                      value={folderFilter}
+                      onChange={(e) => setFolderFilter(e.target.value)}
+                    >
+                      <option value="all">Folder: All</option>
+                      {folderOptions.map((f: string) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="tvp-select"
+                      value={talentFilter}
+                      onChange={(e) => setTalentFilter(e.target.value)}
+                    >
+                      <option value="all">Talent: All</option>
+                      {talentLinks.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+              {page.total === 0 ? (
+                <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
+                  {mode === "search"
+                    ? "No documents match your search — try a different term or clear the filters."
+                    : "Nothing here yet — use “Upload to Talent” to add the first document."}
+                </div>
+              ) : (
+                <table className="tvp-table">
+                  <thead>
+                    <tr>
+                      <th>Document</th>
+                      <th>Talent</th>
+                      <th>Folder</th>
+                      <th>Status</th>
+                      <th>Validity</th>
+                      <th style={{ width: 200 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {page.visible.map((d) => {
+                      const isLocked =
+                        !!d.lockedUntil && new Date(d.lockedUntil).getTime() > Date.now();
+                      const lockDate = d.lockedUntil
+                        ? new Date(d.lockedUntil).toLocaleDateString()
+                        : "";
+                      return (
+                        <tr key={d.id}>
+                          <td>
+                            <FileText className="inline h-4 w-4 mr-2 text-[var(--tvp-muted)]" />
+                            {d.folder === "Contracts & Agreements" ? (
+                              <Link
+                                to="/agency/contracts/$id"
+                                params={{ id: d.id }}
+                                className="tvp-link"
+                              >
+                                <strong>{d.name}</strong>
+                              </Link>
+                            ) : (
+                              <strong>{d.name}</strong>
+                            )}
+                            {isLocked && (
+                              <span
+                                title={`Locked by retention rule until ${lockDate} — cannot be deleted.`}
+                                style={{
+                                  marginLeft: 6,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  color: "var(--tvp-amber, #b45309)",
+                                  fontSize: 12,
+                                }}
+                              >
+                                <Lock className="h-3.5 w-3.5" />
+                                Locked · {lockDate}
+                              </span>
+                            )}
+                          </td>
+                          <td>{d.talentName}</td>
+                          <td>{d.folder}</td>
+                          <td>
+                            <span className={`tvp-status tvp-${statusTone(d.status)}`}>
+                              {statusLabel(d.status)}
+                            </span>
+                            {d.pendingReview && (
+                              <span
+                                className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}
+                              >
+                                {lifecycleLabel("document", "pending_review")}
+                              </span>
+                            )}
+                          </td>
+                          <td className="tvp-muted">{formatValidity(d.validityExpiresAt)}</td>
+                          <td>
+                            <div className="tvp-row-actions">
+                              <RowActionsMenu
+                                actions={[
+                                  {
+                                    key: "view",
+                                    label: "View document",
+                                    icon: Eye,
+                                    disabled: !d.storagePath || viewMut.isPending,
+                                    title: d.storagePath
+                                      ? undefined
+                                      : "No file attached to this document",
+                                    onSelect: () => viewMut.mutate(d.id),
+                                  },
+                                  {
+                                    key: "download",
+                                    label: "Download document",
+                                    icon: Download,
+                                    disabled: !d.storagePath || downloadMut.isPending,
+                                    onSelect: () => downloadMut.mutate(d.id),
+                                  },
+                                  !readOnly &&
+                                    d.pendingReview && {
+                                      key: "review",
+                                      label: "Finish filing review",
+                                      icon: Sparkles,
+                                      onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
+                                    },
+                                  !readOnly &&
+                                    aiRow.canAnalyse(d.pendingReview) && {
+                                      key: "analyse",
+                                      label: "Analyse with AI",
+                                      icon: Sparkles,
+                                      disabled: !d.storagePath || aiRow.isPending,
+                                      onSelect: () =>
+                                        aiRow.analyse({
+                                          id: d.id,
+                                          name: d.name,
+                                          open: () => setAiReviewFor({ id: d.id, name: d.name }),
+                                        }),
+                                    },
+                                  {
+                                    key: "versions",
+                                    label: "Version history",
+                                    icon: History,
+                                    separatorBefore: true,
+                                    onSelect: () => setVersionsFor(d),
+                                  },
+                                  !readOnly && {
+                                    key: "newversion",
+                                    label: "Upload new version",
+                                    icon: Upload,
+                                    onSelect: () => setNewVersionFor(d),
+                                  },
+                                  !readOnly &&
+                                    isOwner && {
+                                      key: "retention",
+                                      label: "Set retention override",
+                                      icon: ShieldPlus,
+                                      onSelect: () => setOverrideFor(d),
+                                    },
+                                  !readOnly && {
+                                    key: "delete",
+                                    label: "Delete document",
+                                    icon: Trash2,
+                                    destructive: true,
+                                    separatorBefore: true,
+                                    disabled: isLocked || deleteMut.isPending,
+                                    title: isLocked ? `Locked until ${lockDate}` : undefined,
+                                    onSelect: () => {
+                                      if (
+                                        confirm(
+                                          `Delete "${d.name}"? This removes the file and all versions.`,
+                                        )
+                                      ) {
+                                        deleteMut.mutate(d.id);
+                                      }
+                                    },
+                                  },
+                                ]}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <LoadMoreRow
+                      colSpan={7}
+                      noun="documents"
+                      shown={page.shown}
+                      total={page.total}
+                      hasMore={page.hasMore}
+                      onLoadMore={page.loadMore}
+                    />
+                  </tbody>
+                </table>
+              )}
             </div>
-          ) : (
-            <table className="tvp-table">
-              <thead>
-                <tr>
-                  <th>Document</th>
-                  <th>Talent</th>
-                  <th>Folder</th>
-                  <th>Status</th>
-                  <th>Validity</th>
-                  <th style={{ width: 200 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {page.visible.map((d) => {
-                  const isLocked = !!d.lockedUntil && new Date(d.lockedUntil).getTime() > Date.now();
-                  const lockDate = d.lockedUntil ? new Date(d.lockedUntil).toLocaleDateString() : "";
-                  return (
-                  <tr key={d.id}>
-                    <td>
-                      <FileText className="inline h-4 w-4 mr-2 text-[var(--tvp-muted)]" />
-                      {d.folder === "Contracts & Agreements" ? (
-                        <Link to="/agency/contracts/$id" params={{ id: d.id }} className="tvp-link">
-                          <strong>{d.name}</strong>
-                        </Link>
-                      ) : (
-                        <strong>{d.name}</strong>
-                      )}
-                      {isLocked && (
-                        <span
-                          title={`Locked by retention rule until ${lockDate} — cannot be deleted.`}
-                          style={{ marginLeft: 6, display: "inline-flex", alignItems: "center", gap: 4, color: "var(--tvp-amber, #b45309)", fontSize: 12 }}
-                        >
-                          <Lock className="h-3.5 w-3.5" />
-                          Locked · {lockDate}
-                        </span>
-                      )}
-                    </td>
-                    <td>{d.talentName}</td>
-                    <td>{d.folder}</td>
-                    <td>
-                      <span className={`tvp-status tvp-${statusTone(d.status)}`}>{statusLabel(d.status)}</span>
-                      {d.pendingReview && (
-                        <span className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}>{lifecycleLabel("document", "pending_review")}</span>
-                      )}
-                    </td>
-                    <td className="tvp-muted">{formatValidity(d.validityExpiresAt)}</td>
-                    <td>
-                      <div className="tvp-row-actions">
-                        <RowActionsMenu
-                          actions={[
-                            {
-                              key: "view", label: "View document", icon: Eye,
-                              disabled: !d.storagePath || viewMut.isPending,
-                              title: d.storagePath ? undefined : "No file attached to this document",
-                              onSelect: () => viewMut.mutate(d.id),
-                            },
-                            {
-                              key: "download", label: "Download document", icon: Download,
-                              disabled: !d.storagePath || downloadMut.isPending,
-                              onSelect: () => downloadMut.mutate(d.id),
-                            },
-                            !readOnly && d.pendingReview && {
-                              key: "review", label: "Finish filing review", icon: Sparkles,
-                              onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
-                            },
-                            !readOnly && aiRow.canAnalyse(d.pendingReview) && {
-                              key: "analyse", label: "Analyse with AI", icon: Sparkles,
-                              disabled: !d.storagePath || aiRow.isPending,
-                              onSelect: () =>
-                                aiRow.analyse({
-                                  id: d.id, name: d.name,
-                                  open: () => setAiReviewFor({ id: d.id, name: d.name }),
-                                }),
-                            },
-                            {
-                              key: "versions", label: "Version history", icon: History,
-                              separatorBefore: true,
-                              onSelect: () => setVersionsFor(d),
-                            },
-                            !readOnly && {
-                              key: "newversion", label: "Upload new version", icon: Upload,
-                              onSelect: () => setNewVersionFor(d),
-                            },
-                            !readOnly && isOwner && {
-                              key: "retention", label: "Set retention override", icon: ShieldPlus,
-                              onSelect: () => setOverrideFor(d),
-                            },
-                            !readOnly && {
-                              key: "delete", label: "Delete document", icon: Trash2,
-                              destructive: true, separatorBefore: true,
-                              disabled: isLocked || deleteMut.isPending,
-                              title: isLocked ? `Locked until ${lockDate}` : undefined,
-                              onSelect: () => {
-                                if (confirm(`Delete "${d.name}"? This removes the file and all versions.`)) {
-                                  deleteMut.mutate(d.id);
-                                }
-                              },
-                            },
-                          ]}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                  );
-                })}
-                <LoadMoreRow
-                  colSpan={7}
-                  noun="documents"
-                  shown={page.shown}
-                  total={page.total}
-                  hasMore={page.hasMore}
-                  onLoadMore={page.loadMore}
-                />
-              </tbody>
-            </table>
           )}
         </div>
-        )}
-      </div>
       )}
 
       {!readOnly && showUpload && (
@@ -857,14 +1084,11 @@ function VaultPage() {
         />
       )}
 
-      {preview && <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />}
-
-      {versionsFor && (
-        <VersionsDialog
-          doc={versionsFor}
-          onClose={() => setVersionsFor(null)}
-        />
+      {preview && (
+        <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />
       )}
+
+      {versionsFor && <VersionsDialog doc={versionsFor} onClose={() => setVersionsFor(null)} />}
 
       {!readOnly && newVersionFor && (
         <NewVersionDialog
@@ -906,7 +1130,6 @@ function VaultPage() {
   );
 }
 
-
 function UploadDialog({
   agencyId,
   talentLinks,
@@ -942,7 +1165,9 @@ function UploadDialog({
   });
 
   // Reset folder selection when talent changes
-  const folderKeys = (allowedFolders ?? []).map((f: { folderName: string }) => f.folderName).join("|");
+  const folderKeys = (allowedFolders ?? [])
+    .map((f: { folderName: string }) => f.folderName)
+    .join("|");
   useMemo(() => {
     if (allowedFolders && allowedFolders.length > 0) {
       if (!allowedFolders.find((f: { folderName: string }) => f.folderName === folder)) {
@@ -981,12 +1206,17 @@ function UploadDialog({
       const path = `${agencyId}/${talentLinkId || "unassigned"}/${crypto.randomUUID()}-${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("talent-documents")
-        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+        .upload(path, file, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false,
+        });
       if (upErr) throw upErr;
 
       const ext = file.name.match(/\.[^.]+$/)?.[0] ?? "";
       const finalName = displayName.trim()
-        ? (displayName.trim().endsWith(ext) ? displayName.trim() : displayName.trim() + ext)
+        ? displayName.trim().endsWith(ext)
+          ? displayName.trim()
+          : displayName.trim() + ext
         : file.name;
 
       const inserted: any = await registerFn({
@@ -1011,27 +1241,52 @@ function UploadDialog({
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 12, fontWeight: 600, color: "var(--tvp-ink, #0f172a)",
-    textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4,
+    fontSize: 12,
+    fontWeight: 600,
+    color: "var(--tvp-ink, #0f172a)",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 4,
   };
-  const groupStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 0, marginTop: 4 };
+  const groupStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 0,
+    marginTop: 4,
+  };
 
   return (
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24,
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+        padding: 24,
       }}
     >
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
         className="tvp-card"
-        style={{ width: "min(680px, 100%)", maxHeight: "90vh", overflow: "auto", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}
+        style={{
+          width: "min(680px, 100%)",
+          maxHeight: "90vh",
+          overflow: "auto",
+          padding: 22,
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
       >
         <div>
-          <h2 className="tvp-h2" style={{ margin: 0 }}>Upload document</h2>
+          <h2 className="tvp-h2" style={{ margin: 0 }}>
+            Upload document
+          </h2>
           <div className="tvp-muted" style={{ fontSize: 13, marginTop: 2 }}>
             Files land in the talent's Roster Shared Folder.
           </div>
@@ -1039,17 +1294,24 @@ function UploadDialog({
 
         <div
           style={{
-            display: "flex", alignItems: "flex-start", gap: 10,
-            padding: "10px 12px", borderRadius: 8,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            padding: "10px 12px",
+            borderRadius: 8,
             background: "rgba(180, 83, 9, 0.08)",
             border: "1px solid rgba(180, 83, 9, 0.25)",
           }}
         >
-          <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: "var(--tvp-amber, #b45309)", marginTop: 2 }} />
+          <AlertTriangle
+            className="h-4 w-4 shrink-0"
+            style={{ color: "var(--tvp-amber, #b45309)", marginTop: 2 }}
+          />
           <div style={{ fontSize: 13 }}>
             <strong>Managers can only upload to the Roster Shared Folder.</strong>
             <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-              Talent's Private Vault (Family, Medical, Personal Finance) is shown below as locked so you can see the access boundary — those folders are for the talent only.
+              Talent's Private Vault (Family, Medical, Personal Finance) is shown below as locked so
+              you can see the access boundary — those folders are for the talent only.
             </div>
           </div>
         </div>
@@ -1059,10 +1321,14 @@ function UploadDialog({
           <div style={labelStyle}>File</div>
           <div
             onClick={() => fileRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
-              e.preventDefault(); setDragOver(false);
+              e.preventDefault();
+              setDragOver(false);
               const f = e.dataTransfer.files?.[0];
               if (f) pickFile(f);
             }}
@@ -1071,25 +1337,42 @@ function UploadDialog({
             style={{
               border: `1.5px dashed ${dragOver ? "#2563eb" : "var(--tvp-border, #cbd5e1)"}`,
               background: dragOver ? "rgba(37, 99, 235, 0.06)" : "rgba(15, 23, 42, 0.02)",
-              borderRadius: 10, padding: file ? "12px 14px" : "22px 14px",
-              cursor: "pointer", transition: "all 120ms ease",
-              display: "flex", alignItems: "center", gap: 12,
+              borderRadius: 10,
+              padding: file ? "12px 14px" : "22px 14px",
+              cursor: "pointer",
+              transition: "all 120ms ease",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
             }}
           >
             {file ? (
               <>
                 <div
                   style={{
-                    width: 36, height: 36, borderRadius: 8,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
                     background: "rgba(37, 99, 235, 0.10)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#2563eb", flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#2563eb",
+                    flexShrink: 0,
                   }}
                 >
                   <FileText className="h-4 w-4" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 14,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {file.name}
                   </div>
                   <div className="tvp-muted" style={{ fontSize: 12 }}>
@@ -1098,7 +1381,11 @@ function UploadDialog({
                 </div>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); pickFile(null); if (fileRef.current) fileRef.current.value = ""; }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    pickFile(null);
+                    if (fileRef.current) fileRef.current.value = "";
+                  }}
                   className="tvp-secondary"
                   style={{ padding: "4px 10px", fontSize: 12 }}
                 >
@@ -1109,10 +1396,15 @@ function UploadDialog({
               <>
                 <div
                   style={{
-                    width: 40, height: 40, borderRadius: 10,
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
                     background: "rgba(37, 99, 235, 0.10)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#2563eb", flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#2563eb",
+                    flexShrink: 0,
                   }}
                 >
                   <Upload className="h-5 w-5" />
@@ -1139,11 +1431,16 @@ function UploadDialog({
         {/* Talent */}
         <div style={groupStyle}>
           <div style={labelStyle}>Talent</div>
-          <select className="tvp-select" value={talentLinkId} onChange={(e) => setTalentLinkId(e.target.value)}>
+          <select
+            className="tvp-select"
+            value={talentLinkId}
+            onChange={(e) => setTalentLinkId(e.target.value)}
+          >
             <option value="">Select talent…</option>
             {talentLinks.map((l) => (
               <option key={l.id} value={l.id} disabled={l.status === "ended"}>
-                {l.displayName}{l.status === "ended" ? " (ended — new uploads blocked)" : ""}
+                {l.displayName}
+                {l.status === "ended" ? " (ended — new uploads blocked)" : ""}
               </option>
             ))}
           </select>
@@ -1152,7 +1449,15 @@ function UploadDialog({
         {/* Destination folder — no redundant talent-name suffix */}
         <div style={groupStyle}>
           <div style={labelStyle}>Destination folder</div>
-          <div className="tvp-muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>
+          <div
+            className="tvp-muted"
+            style={{
+              fontSize: 11,
+              textTransform: "uppercase",
+              letterSpacing: 0.4,
+              marginBottom: 6,
+            }}
+          >
             Roster Shared Folder · Allowed
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1167,14 +1472,19 @@ function UploadDialog({
             ) : (allowedFolders ?? []).length === 0 ? (
               <div
                 style={{
-                  fontSize: 12, padding: "10px 12px", borderRadius: 8,
+                  fontSize: 12,
+                  padding: "10px 12px",
+                  borderRadius: 8,
                   background: "rgba(180, 83, 9, 0.08)",
                   border: "1px solid rgba(180, 83, 9, 0.25)",
                 }}
               >
                 <strong>This talent has no folders yet.</strong>
                 <div className="tvp-muted" style={{ marginTop: 2 }}>
-                  Set one up under <Link to="/agency/folder-templates" className="tvp-link">Folder Templates</Link>{" "}
+                  Set one up under{" "}
+                  <Link to="/agency/folder-templates" className="tvp-link">
+                    Folder Templates
+                  </Link>{" "}
                   or re-invite with a folder selection.
                 </div>
               </div>
@@ -1189,33 +1499,54 @@ function UploadDialog({
                     type="button"
                     onClick={() => setFolder(f.folderName)}
                     style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 12px", borderRadius: 8, textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      textAlign: "left",
                       background: active ? "var(--surface-soft)" : "var(--surface)",
                       color: "var(--tvp-ink)",
                       border: `1px solid ${active ? "var(--tvp-teal-2)" : "var(--tvp-line)"}`,
                       cursor: "pointer",
                     }}
                   >
-                    <Icon className="h-4 w-4" style={{ color: active ? "var(--tvp-teal-2)" : "var(--tvp-muted)" }} />
+                    <Icon
+                      className="h-4 w-4"
+                      style={{ color: active ? "var(--tvp-teal-2)" : "var(--tvp-muted)" }}
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{f.folderName}</div>
                       {meta?.description && (
-                        <div className="tvp-muted" style={{ fontSize: 12 }}>{meta.description}</div>
+                        <div className="tvp-muted" style={{ fontSize: 12 }}>
+                          {meta.description}
+                        </div>
                       )}
                     </div>
-                    <span className="tvp-status tvp-green" style={{ fontSize: 11 }}>Allowed</span>
+                    <span className="tvp-status tvp-green" style={{ fontSize: 11 }}>
+                      Allowed
+                    </span>
                   </button>
                 );
               })
             )}
           </div>
 
-          <div className="tvp-muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, marginTop: 12, marginBottom: 2 }}>
+          <div
+            className="tvp-muted"
+            style={{
+              fontSize: 11,
+              textTransform: "uppercase",
+              letterSpacing: 0.4,
+              marginTop: 12,
+              marginBottom: 2,
+            }}
+          >
             Talent Private Vault · Read-only to you
           </div>
           <div className="tvp-muted" style={{ fontSize: 11, marginBottom: 6 }}>
-            Representative list — the Talent Portal isn't wired yet, so these aren't per-talent real folders.
+            Representative list — the Talent Portal isn't wired yet, so these aren't per-talent real
+            folders.
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.65 }}>
             {BLOCKED_FOLDERS.map((f) => {
@@ -1225,8 +1556,11 @@ function UploadDialog({
                   key={f.key}
                   title="This folder lives in the talent's Private Vault. Managers cannot upload here."
                   style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 12px", borderRadius: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: 8,
                     background: "rgba(15, 23, 42, 0.04)",
                     border: "1px dashed var(--tvp-border, #cbd5e1)",
                     cursor: "not-allowed",
@@ -1234,12 +1568,24 @@ function UploadDialog({
                 >
                   <Icon className="h-4 w-4 text-[var(--tvp-muted)]" />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 14,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
                       <Lock className="h-3.5 w-3.5" /> {f.label}
                     </div>
-                    <div className="tvp-muted" style={{ fontSize: 12 }}>{f.description}</div>
+                    <div className="tvp-muted" style={{ fontSize: 12 }}>
+                      {f.description}
+                    </div>
                   </div>
-                  <span className="tvp-status tvp-amber" style={{ fontSize: 11 }}>Blocked</span>
+                  <span className="tvp-status tvp-amber" style={{ fontSize: 11 }}>
+                    Blocked
+                  </span>
                 </div>
               );
             })}
@@ -1248,7 +1594,19 @@ function UploadDialog({
 
         {/* Optional name override */}
         <div style={groupStyle}>
-          <div style={labelStyle}>Document name <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "var(--tvp-muted)" }}>(optional)</span></div>
+          <div style={labelStyle}>
+            Document name{" "}
+            <span
+              style={{
+                fontWeight: 400,
+                textTransform: "none",
+                letterSpacing: 0,
+                color: "var(--tvp-muted)",
+              }}
+            >
+              (optional)
+            </span>
+          </div>
           <input
             className="tvp-select"
             type="text"
@@ -1262,21 +1620,48 @@ function UploadDialog({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={groupStyle}>
             <div style={labelStyle}>Status</div>
-            <select className="tvp-select" value={status} onChange={(e) => setStatus(e.target.value as any)}>
+            <select
+              className="tvp-select"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as any)}
+            >
               <option value="needs_review">Needs review</option>
               <option value="filed">Filed</option>
               <option value="ai_suggested">AI suggested</option>
             </select>
           </div>
           <div style={groupStyle}>
-            <div style={labelStyle}>Expiry <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "var(--tvp-muted)" }}>(optional)</span></div>
-            <input className="tvp-select" type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+            <div style={labelStyle}>
+              Expiry{" "}
+              <span
+                style={{
+                  fontWeight: 400,
+                  textTransform: "none",
+                  letterSpacing: 0,
+                  color: "var(--tvp-muted)",
+                }}
+              >
+                (optional)
+              </span>
+            </div>
+            <input
+              className="tvp-select"
+              type="date"
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
+            />
           </div>
         </div>
 
         <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="submit" className="tvp-primary" disabled={busy || !file || !talentLinkId || !folder}>
+          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="tvp-primary"
+            disabled={busy || !file || !talentLinkId || !folder}
+          >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             Upload
           </button>
@@ -1314,8 +1699,14 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24,
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+        padding: 24,
       }}
     >
       <div
@@ -1326,14 +1717,19 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h2 className="tvp-h2">Version history</h2>
-            <div className="tvp-muted" style={{ fontSize: 13 }}>{doc.name}</div>
+            <div className="tvp-muted" style={{ fontSize: 13 }}>
+              {doc.name}
+            </div>
           </div>
-          <button className="tvp-mini-btn" onClick={onClose} title="Close"><X className="h-4 w-4" /></button>
+          <button className="tvp-mini-btn" onClick={onClose} title="Close">
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {isLoading ? (
           <div className="tvp-muted" style={{ padding: 24, textAlign: "center" }}>
-            <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…
+            <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+            Loading…
           </div>
         ) : versions.length === 0 ? (
           <p className="tvp-muted" style={{ padding: 12 }}>
@@ -1352,15 +1748,26 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
             <tbody>
               {versions.map((v: any) => (
                 <tr key={v.id}>
-                  <td><strong>v{v.version_number}</strong>{data?.currentVersionId === v.id ? " · current" : ""}</td>
+                  <td>
+                    <strong>v{v.version_number}</strong>
+                    {data?.currentVersionId === v.id ? " · current" : ""}
+                  </td>
                   <td>{v.name}</td>
                   <td className="tvp-muted">{new Date(v.created_at).toLocaleString()}</td>
                   <td>
                     <div className="flex gap-1 justify-end">
-                      <button className="tvp-mini-btn" title="View" onClick={() => open(v.id, "inline")}>
+                      <button
+                        className="tvp-mini-btn"
+                        title="View"
+                        onClick={() => open(v.id, "inline")}
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="tvp-mini-btn" title="Download" onClick={() => open(v.id, "attachment")}>
+                      <button
+                        className="tvp-mini-btn"
+                        title="Download"
+                        onClick={() => open(v.id, "attachment")}
+                      >
                         <Download className="h-4 w-4" />
                       </button>
                     </div>
@@ -1371,7 +1778,9 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
           </table>
         )}
       </div>
-      {preview && <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />}
+      {preview && (
+        <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />
+      )}
     </div>
   );
 }
@@ -1380,8 +1789,16 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
 // New version upload dialog
 // ---------------------------------------------------------------------------
 function NewVersionDialog({
-  doc, agencyId, onClose, onDone,
-}: { doc: VaultDoc; agencyId: string; onClose: () => void; onDone: () => void }) {
+  doc,
+  agencyId,
+  onClose,
+  onDone,
+}: {
+  doc: VaultDoc;
+  agencyId: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const registerVersion = useServerFn(registerAgencyDocumentVersion);
@@ -1398,7 +1815,10 @@ function NewVersionDialog({
       const path = `${agencyId}/${doc.talentLinkId || "unassigned"}/${crypto.randomUUID()}-${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("talent-documents")
-        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+        .upload(path, file, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false,
+        });
       if (upErr) throw upErr;
       await registerVersion({
         data: {
@@ -1422,8 +1842,13 @@ function NewVersionDialog({
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
       }}
     >
       <form
@@ -1436,10 +1861,14 @@ function NewVersionDialog({
         <p className="tvp-muted" style={{ fontSize: 13 }}>
           Replacing "{doc.name}" — the previous file is preserved in version history.
         </p>
-        <label className="tvp-muted" style={{ fontSize: 13 }}>File</label>
+        <label className="tvp-muted" style={{ fontSize: 13 }}>
+          File
+        </label>
         <input ref={fileRef} type="file" required />
         <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
           <button type="submit" className="tvp-primary" disabled={busy}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             Upload version
@@ -1454,7 +1883,9 @@ function NewVersionDialog({
 // Per-document retention override dialog
 // ---------------------------------------------------------------------------
 function OverrideDialog({
-  doc, onClose, onSave,
+  doc,
+  onClose,
+  onSave,
 }: {
   doc: VaultDoc;
   onClose: () => void;
@@ -1467,13 +1898,26 @@ function OverrideDialog({
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
       }}
     >
       <form
         onClick={(e) => e.stopPropagation()}
-        onSubmit={async (e) => { e.preventDefault(); setBusy(true); try { await onSave(Number(years), description); } finally { setBusy(false); } }}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          try {
+            await onSave(Number(years), description);
+          } finally {
+            setBusy(false);
+          }
+        }}
         className="tvp-card"
         style={{ width: 480, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
       >
@@ -1482,7 +1926,9 @@ function OverrideDialog({
           Locks "{doc.name}" from deletion for the specified number of years from its upload date.
           This overrides any folder-level rule for this document.
         </p>
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Retention (years)</label>
+        <label className="tvp-muted" style={{ fontSize: 13 }}>
+          Retention (years)
+        </label>
         <input
           className="tvp-select"
           type="number"
@@ -1492,15 +1938,21 @@ function OverrideDialog({
           onChange={(e) => setYears(Number(e.target.value))}
           required
         />
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Description (optional)</label>
+        <label className="tvp-muted" style={{ fontSize: 13 }}>
+          Description (optional)
+        </label>
         <input
           className="tvp-select"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
         <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="submit" className="tvp-primary" disabled={busy}>Set override</button>
+          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button type="submit" className="tvp-primary" disabled={busy}>
+            Set override
+          </button>
         </div>
       </form>
     </div>

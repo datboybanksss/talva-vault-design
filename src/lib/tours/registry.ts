@@ -1,4 +1,8 @@
-import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
+import {
+  SHARE_RECIPIENT_TERM,
+  SHARE_RECIPIENT_TERM_CAPITALISED,
+  SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED,
+} from "@/lib/terms";
 import type { TourGuide } from "./types";
 
 /**
@@ -64,7 +68,8 @@ export const GUIDES: TourGuide[] = [
     portal: "talent",
     kind: "module",
     title: "Using your Vault",
-    description: "Upload a document end to end, from choosing the right side of the vault to filing it.",
+    description:
+      "Upload a document end to end, from choosing the right side of the vault to filing it.",
     match: ["/talent/vault"],
     steps: [
       {
@@ -79,7 +84,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="talent-vault-body"]',
         title: "Step 2 — open the folder you're filing into",
-        body: "Under \"Private Vault Folders\", click the folder — say \"Identity Documents\" — to expand it. Its subfolders appear beneath it (\"Passports\", \"Identity cards\"). Each folder row has its own \"Upload here\" button, which files straight into that folder so you don't have to pick it again later.",
+        body: 'Under "Private Vault Folders", click the folder — say "Identity Documents" — to expand it. Its subfolders appear beneath it ("Passports", "Identity cards"). Each folder row has its own "Upload here" button, which files straight into that folder so you don\'t have to pick it again later.',
         optional: true,
       },
       {
@@ -87,7 +92,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="talent-vault-upload"]',
         title: "Step 3 — upload the file",
-        body: "Click \"Upload here\" on the Identity Documents row (or the plain \"Upload\" button at the top if you'd rather file it afterwards) and choose the file — for example passport-2026.pdf. The file is checked before it's accepted: it must be a real PDF or image and under the size limit, so a renamed .exe is rejected on the spot.",
+        body: 'Click "Upload here" on the Identity Documents row (or the plain "Upload" button at the top if you\'d rather file it afterwards) and choose the file — for example passport-2026.pdf. The file is checked before it\'s accepted: it must be a real PDF or image and under the size limit, so a renamed .exe is rejected on the spot.',
         optional: true,
       },
       {
@@ -95,7 +100,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="talent-vault-body"]',
         title: "Step 4 — check it landed",
-        body: "Scroll to \"All private documents\". The new row shows Document, Folder, Size and Uploaded — \"passport-2026.pdf · Identity Documents · 1.2 MB · today\". Use \"Search private documents…\" or the folder dropdown (including \"Unfiled\") if you can't see it.",
+        body: 'Scroll to "All private documents". The new row shows Document, Folder, Size and Uploaded — "passport-2026.pdf · Identity Documents · 1.2 MB · today". Use "Search private documents…" or the folder dropdown (including "Unfiled") if you can\'t see it.',
         optional: true,
       },
       {
@@ -103,7 +108,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "agency" } },
         selector: '[data-tour="talent-vault-body"]',
         title: "Step 5 — the Agency Shared Folder works the same way",
-        body: "Switch to Agency Shared Folder and repeat: open the folder, upload, confirm. The difference is the extra Status and Expires columns — a document your Manager hasn't checked yet reads \"Pending review\" until they confirm it. Anything filed here is what your agency uses for compliance. If a connection ends, its items stay here read-only — view and download only — for 10 years from the date the relationship ended.",
+        body: 'Switch to Agency Shared Folder and repeat: open the folder, upload, confirm. The difference is the extra Status and Expires columns — a document your Manager hasn\'t checked yet reads "Pending review" until they confirm it. Anything filed here is what your agency uses for compliance. If a connection ends, its items stay here read-only — view and download only — for 10 years from the date the relationship ended.',
         optional: true,
       },
       {
@@ -111,7 +116,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "requests" } },
         selector: '[data-tour="talent-vault-body"]',
         title: "Step 6 — responding to a request",
-        body: "Under \"Open requests\", each card names what your Manager asked for and when it's due. Click \"Upload response\" on that card and the document is attached to the request itself, not just dropped in a folder. If the card reads \"Manager requested a resubmission\", their reason is shown above the button and the button reads \"Resubmit\" — previous submissions stay in \"Recent history\", nothing is deleted.",
+        body: 'Under "Open requests", each card names what your Manager asked for and when it\'s due. Click "Upload response" on that card and the document is attached to the request itself, not just dropped in a folder. If the card reads "Manager requested a resubmission", their reason is shown above the button and the button reads "Resubmit" — previous submissions stay in "Recent history", nothing is deleted.',
         optional: true,
       },
       {
@@ -127,7 +132,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-folder"]',
         title: "Folder & subfolder",
-        body: "Say you upload a photo of your passport. The AI fills Private Vault folder with \"Identity Documents\" and Subfolder with \"Passports\", and shows a confidence label — high, medium or low. Under the fields the value carries a \"Suggested by AI\" badge with that confidence. AI only ever picks from your own folders — it never invents one.",
+        body: 'Say you upload a photo of your passport. The AI fills Private Vault folder with "Identity Documents" and Subfolder with "Passports", and shows a confidence label — high, medium or low. Under the fields the value carries a "Suggested by AI" badge with that confidence. AI only ever picks from your own folders — it never invents one.',
         optional: true,
       },
       {
@@ -135,7 +140,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-source-toggle"]',
         title: "Where did this come from?",
-        body: "Click \"Where did this come from?\" and the exact sentence the AI read from your document is shown — for a passport, something like \"Republic of South Africa — Passport No. M00123456\". If the sentence doesn't support the suggestion, don't trust it.",
+        body: 'Click "Where did this come from?" and the exact sentence the AI read from your document is shown — for a passport, something like "Republic of South Africa — Passport No. M00123456". If the sentence doesn\'t support the suggestion, don\'t trust it.',
         optional: true,
       },
       {
@@ -143,7 +148,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-subfolder"]',
         title: "The fields are live — just change them",
-        body: "There's no approve or reject button. Open the Subfolder dropdown and pick \"Identity cards\" instead, and the badge flips straight to \"Edited by you\". Whatever is sitting in the fields is what gets saved.",
+        body: 'There\'s no approve or reject button. Open the Subfolder dropdown and pick "Identity cards" instead, and the badge flips straight to "Edited by you". Whatever is sitting in the fields is what gets saved.',
         optional: true,
       },
       {
@@ -151,7 +156,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-expiry"]',
         title: "Expiry & reminder",
-        body: "The AI also reads expiry dates. On a passport it would set Expiry date to 2031-04-18 and put 30 in \"Remind me this many days before\", so a reminder lands on 2031-03-19. Check the source sentence, correct the date if it's misread, or tick \"No reminder needed for this document\" when the document never expires.",
+        body: 'The AI also reads expiry dates. On a passport it would set Expiry date to 2031-04-18 and put 30 in "Remind me this many days before", so a reminder lands on 2031-03-19. Check the source sentence, correct the date if it\'s misread, or tick "No reminder needed for this document" when the document never expires.',
         optional: true,
       },
       {
@@ -159,7 +164,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-save"]',
         title: "Nothing is filed automatically",
-        body: "\"Save filing\" writes exactly what's in the fields at that moment — folder, expiry and reminder. \"Skip for now\" doesn't lose the document: it stays uploaded and waits for you under the Pending review filter, so you can come back when you have the paperwork in front of you.",
+        body: '"Save filing" writes exactly what\'s in the fields at that moment — folder, expiry and reminder. "Skip for now" doesn\'t lose the document: it stays uploaded and waits for you under the Pending review filter, so you can come back when you have the paperwork in front of you.',
         optional: true,
       },
       {
@@ -167,7 +172,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/vault", search: { tab: "private" } },
         selector: '[data-tour="filing-ai-toggle"]',
         title: "AI on or off — your choice, any time",
-        body: "\"Turn off AI organisation\" in the popup (or in Settings → Account) means your documents are not sent for AI analysis; you choose the folder and expiry yourself. Turn it back on and the current document is analysed straight away. Documents waiting under Pending review then get an \"Analyse with AI\" action in their row menu — nothing older is analysed unless you ask.",
+        body: '"Turn off AI organisation" in the popup (or in Settings → Account) means your documents are not sent for AI analysis; you choose the folder and expiry yourself. Turn it back on and the current document is analysed straight away. Documents waiting under Pending review then get an "Analyse with AI" action in their row menu — nothing older is analysed unless you ask.',
         optional: true,
       },
     ],
@@ -200,7 +205,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/sharing" },
         selector: '[data-tour="share-scope"]',
         title: "Step 3 — what are you sharing?",
-        body: "Choose \"Whole folders\" and tick only the folders they need — say \"Insurance\" and \"Medical\" — or choose \"A single document\", type \"policy\" into \"Search your documents…\" and select the one row. Share the least you can get away with; you can always create a second share later.",
+        body: 'Choose "Whole folders" and tick only the folders they need — say "Insurance" and "Medical" — or choose "A single document", type "policy" into "Search your documents…" and select the one row. Share the least you can get away with; you can always create a second share later.',
         optional: true,
       },
       {
@@ -208,7 +213,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/sharing" },
         selector: '[data-tour="share-permission"]',
         title: "Step 4 — what can they do?",
-        body: "\"View only (watermarked)\" opens documents in a viewer stamped with their email and the time, and downloads are blocked on the server, not just hidden. Pick \"View & download\" only when they genuinely need their own copy — for example an adviser filing a claim.",
+        body: '"View only (watermarked)" opens documents in a viewer stamped with their email and the time, and downloads are blocked on the server, not just hidden. Pick "View & download" only when they genuinely need their own copy — for example an adviser filing a claim.',
         optional: true,
       },
       {
@@ -216,7 +221,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/sharing" },
         selector: '[data-tour="share-permission"]',
         title: "Step 5 — note, email and create",
-        body: "Optional note: \"Insurance papers for the claim — call me if anything is missing.\" Leave \"Email the link to Sarah Mokoena\" ticked to send the link straight to her — the access code is never emailed. Then click \"Create secure share\".",
+        body: 'Optional note: "Insurance papers for the claim — call me if anything is missing." Leave "Email the link to Sarah Mokoena" ticked to send the link straight to her — the access code is never emailed. Then click "Create secure share".',
         optional: true,
       },
       {
@@ -224,7 +229,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/sharing" },
         selector: '[data-tour="talent-share-new"]',
         title: "Step 6 — copy the code now, send it separately",
-        body: "The confirmation panel is headed \"Shown once — copy it now\": it holds the Magic link and a separate access code. Copy the code before you close it — it is never shown again. Send the link and the code by different means, for example the link by email and the code by phone call, so neither on its own opens anything. Click \"Done\" when you've done both.",
+        body: 'The confirmation panel is headed "Shown once — copy it now": it holds the Magic link and a separate access code. Copy the code before you close it — it is never shown again. Send the link and the code by different means, for example the link by email and the code by phone call, so neither on its own opens anything. Click "Done" when you\'ve done both.',
         optional: true,
       },
       {
@@ -257,28 +262,28 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/settings" },
         selector: '[data-tour="talent-settings-tabs"]',
         title: "Step 2 — set Talent Type first",
-        body: "On Profile, set Talent Type — for example \"Actor\" — and save. It isn't cosmetic: it decides which folder categories your agency offers you, so setting it before you tidy your folders saves doing the job twice.",
+        body: 'On Profile, set Talent Type — for example "Actor" — and save. It isn\'t cosmetic: it decides which folder categories your agency offers you, so setting it before you tidy your folders saves doing the job twice.',
       },
       {
         key: "folders",
         route: { to: "/talent/settings" },
         selector: '[data-tour="talent-settings-tabs"]',
         title: "Step 3 — Manage folders",
-        body: "Open Manage folders and untick the categories you'll never use — if you have no dependants, switch \"Guardianship\" off. Nothing is deleted; the category is hidden from your Private Vault, and ticking it again brings it back with its documents intact.",
+        body: 'Open Manage folders and untick the categories you\'ll never use — if you have no dependants, switch "Guardianship" off. Nothing is deleted; the category is hidden from your Private Vault, and ticking it again brings it back with its documents intact.',
       },
       {
         key: "notifications",
         route: { to: "/talent/settings" },
         selector: '[data-tour="talent-settings-tabs"]',
         title: "Step 4 — Notifications",
-        body: "On Notifications, set \"Warn me before a document expires\" to 60 days ahead — a passport expiring 2031-04-18 then appears on your dashboard from 2031-02-17 — and press Save. That number drives the \"Expiring soon\" tile.",
+        body: 'On Notifications, set "Warn me before a document expires" to 60 days ahead — a passport expiring 2031-04-18 then appears on your dashboard from 2031-02-17 — and press Save. That number drives the "Expiring soon" tile.',
       },
       {
         key: "in-app",
         route: { to: "/talent/settings" },
         selector: '[data-tour="talent-settings-tabs"]',
         title: "Step 5 — in-app reminders",
-        body: "Below that, the \"In-app reminders\" cards control what appears in the \"Needs attention\" panel on your dashboard. Cards marked \"Active\" can be ticked; those marked \"Soon\" are switched off until the TalVault sending domain is verified, so email delivery isn't running yet.",
+        body: 'Below that, the "In-app reminders" cards control what appears in the "Needs attention" panel on your dashboard. Cards marked "Active" can be ticked; those marked "Soon" are switched off until the TalVault sending domain is verified, so email delivery isn\'t running yet.',
       },
     ],
   },
@@ -340,7 +345,8 @@ export const GUIDES: TourGuide[] = [
     portal: "agency",
     kind: "module",
     title: "Quotes & Invoices workflow",
-    description: "A worked example: settings, a R12,000 quote, converting it, getting paid, reporting.",
+    description:
+      "A worked example: settings, a R12,000 quote, converting it, getting paid, reporting.",
     match: ["/agency/quotes-invoices"],
     steps: [
       {
@@ -348,35 +354,35 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/settings", search: { tab: "quotes-invoices" } },
         selector: '[data-tour="billing-settings"]',
         title: "Step 1 — set your defaults before you bill anyone",
-        body: "Agency Profile → Quotes & Invoices. Under \"Quote Acceptance\" put 14 in \"Default acceptance window (days)\" and 7 in \"Reminder cadence (days before expiry)\". Under \"Invoice Payment\" put 30 in \"Default payment terms (days)\" and 3 in \"Overdue grace period (days)\". Every new document is pre-filled from these, so you set them once.",
+        body: 'Agency Profile → Quotes & Invoices. Under "Quote Acceptance" put 14 in "Default acceptance window (days)" and 7 in "Reminder cadence (days before expiry)". Under "Invoice Payment" put 30 in "Default payment terms (days)" and 3 in "Overdue grace period (days)". Every new document is pre-filled from these, so you set them once.',
       },
       {
         key: "settings-vat",
         route: { to: "/agency/settings", search: { tab: "quotes-invoices" } },
         selector: '[data-tour="billing-settings"]',
         title: "Step 2 — VAT / Tax",
-        body: "If you're registered, tick \"Registered for VAT (show \"Tax Invoice\")\", type your VAT registration number — e.g. 4123456789 — and set \"Default VAT rate (%)\" to 15. That 15% becomes the pre-filled VAT % on every new line item, and documents are headed \"Tax Invoice\" rather than \"Invoice\".",
+        body: 'If you\'re registered, tick "Registered for VAT (show "Tax Invoice")", type your VAT registration number — e.g. 4123456789 — and set "Default VAT rate (%)" to 15. That 15% becomes the pre-filled VAT % on every new line item, and documents are headed "Tax Invoice" rather than "Invoice".',
       },
       {
         key: "settings-branding",
         route: { to: "/agency/settings", search: { tab: "quotes-invoices" } },
         selector: '[data-tour="billing-settings"]',
         title: "Step 3 — branding and sender, then Save settings",
-        body: "Under \"Branding\", type your \"Billing address (appears on documents)\" — \"12 Long Street, Gardens, Cape Town, 8001\" — click Upload for the agency logo (PNG/JPG/SVG/WEBP, max 2 MB) and pick an accent colour. Check the sender card at the top: until your own address is verified, documents go out from the TalVault system address. Finish with \"Save settings\".",
+        body: 'Under "Branding", type your "Billing address (appears on documents)" — "12 Long Street, Gardens, Cape Town, 8001" — click Upload for the agency logo (PNG/JPG/SVG/WEBP, max 2 MB) and pick an accent colour. Check the sender card at the top: until your own address is verified, documents go out from the TalVault system address. Finish with "Save settings".',
       },
       {
         key: "new-quote",
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="billing-new"]',
         title: "Step 4 — click New Quote",
-        body: "Back on Quotes & Invoices, use \"New Quote\" for work you're pricing. \"New Invoice\" is only for billing with no quote first. The editor opens headed \"New quote\", with Type already set to Quote and Number left blank — leave it blank, a real number is allocated when you send.",
+        body: 'Back on Quotes & Invoices, use "New Quote" for work you\'re pricing. "New Invoice" is only for billing with no quote first. The editor opens headed "New quote", with Type already set to Quote and Number left blank — leave it blank, a real number is allocated when you send.',
       },
       {
         key: "editor-ref",
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-ref"]',
         title: "Step 5 — Reference / description",
-        body: "Type what the job actually is: \"Brand campaign — Autumn 2026\". This is what you'll recognise the row by in the workspace table and in the search box, so make it specific — \"Shoot\" will not help you in three months.",
+        body: 'Type what the job actually is: "Brand campaign — Autumn 2026". This is what you\'ll recognise the row by in the workspace table and in the search box, so make it specific — "Shoot" will not help you in three months.',
         optional: true,
       },
       {
@@ -384,7 +390,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-client"]',
         title: "Step 6 — who it's for",
-        body: "Client / recipient name: \"Kalahari Retail Group\". Talent: \"Naledi Khumalo\" — type the talent's name exactly as it appears on your roster, because that's what links the document to them and lets you share it with them later. Then \"Recipient billing address\": \"5 Rivonia Road, Sandton, 2196\" — SARS requires it on invoices over R5,000 — and \"Recipient VAT number\" if they have one.",
+        body: 'Client / recipient name: "Kalahari Retail Group". Talent: "Naledi Khumalo" — type the talent\'s name exactly as it appears on your roster, because that\'s what links the document to them and lets you share it with them later. Then "Recipient billing address": "5 Rivonia Road, Sandton, 2196" — SARS requires it on invoices over R5,000 — and "Recipient VAT number" if they have one.',
         optional: true,
       },
       {
@@ -392,7 +398,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-recipients"]',
         title: "Step 7 — Recipient emails",
-        body: "Type \"accounts@kalahariretail.co.za\" and press Enter to turn it into a chip, then add \"thandi@kalahariretail.co.za\" the same way. Every chip receives the document when you send. An address with no chip around it hasn't been added — press Enter.",
+        body: 'Type "accounts@kalahariretail.co.za" and press Enter to turn it into a chip, then add "thandi@kalahariretail.co.za" the same way. Every chip receives the document when you send. An address with no chip around it hasn\'t been added — press Enter.',
         optional: true,
       },
       {
@@ -400,7 +406,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-ref"]',
         title: "Step 8 — dates and window",
-        body: "Issued defaults to today. On a quote the next date field is labelled \"Valid until\" — set 2026-09-14 — and \"Acceptance window (days)\" is already 14 from your settings. Currency stays ZAR. Leave Status on Draft; sending changes it for you.",
+        body: 'Issued defaults to today. On a quote the next date field is labelled "Valid until" — set 2026-09-14 — and "Acceptance window (days)" is already 14 from your settings. Currency stays ZAR. Leave Status on Draft; sending changes it for you.',
         optional: true,
       },
       {
@@ -408,7 +414,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-add-line"]',
         title: "Step 9 — line items",
-        body: "First line: Description \"Full-day shoot\", Qty 1, Unit price (excl.) 10000, VAT % 15 — Line total reads R11,500.00. Click \"Add line\" and add \"Wardrobe & travel\", Qty 1, Unit price 2000, VAT % 15. Prices are entered excluding VAT; the trash icon on a row removes it.",
+        body: 'First line: Description "Full-day shoot", Qty 1, Unit price (excl.) 10000, VAT % 15 — Line total reads R11,500.00. Click "Add line" and add "Wardrobe & travel", Qty 1, Unit price 2000, VAT % 15. Prices are entered excluding VAT; the trash icon on a row removes it.',
         optional: true,
       },
       {
@@ -424,7 +430,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-totals"]',
         title: "Step 11 — notes and sharing",
-        body: "\"Notes / terms\": \"50% deposit on acceptance, balance on delivery of final assets.\" Tick \"Share with linked talent\" so Naledi can see the quote in her own portal. On an invoice you'd also see \"Allow partial payment\" — tick it when you've agreed a deposit.",
+        body: '"Notes / terms": "50% deposit on acceptance, balance on delivery of final assets." Tick "Share with linked talent" so Naledi can see the quote in her own portal. On an invoice you\'d also see "Allow partial payment" — tick it when you\'ve agreed a deposit.',
         optional: true,
       },
       {
@@ -432,7 +438,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-actions"]',
         title: "Step 12 — preview, save, send",
-        body: "Click \"Preview\" to see the document exactly as the client receives it — logo, VAT number, line items and the address it's sent from. Close it, click \"Save draft\", then send from the preview: the number is allocated (QT-2026-0001), the status flips to Sent, and you're told how many of your recipients it reached.",
+        body: 'Click "Preview" to see the document exactly as the client receives it — logo, VAT number, line items and the address it\'s sent from. Close it, click "Save draft", then send from the preview: the number is allocated (QT-2026-0001), the status flips to Sent, and you\'re told how many of your recipients it reached.',
         optional: true,
       },
       {
@@ -440,7 +446,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="billing-table"]',
         title: "Step 13 — mark it accepted",
-        body: "The row now reads QT-2026-0001 · Quote · Naledi Khumalo · Kalahari Retail Group, with \"Accept within 14 days\" under \"Acceptance / Due Rule\". When the client says yes, change the Status dropdown in that row to Accepted. Use the chips above the table — Quote drafts, Quotes sent, Accepted, Partial, Late — to filter rather than scrolling.",
+        body: 'The row now reads QT-2026-0001 · Quote · Naledi Khumalo · Kalahari Retail Group, with "Accept within 14 days" under "Acceptance / Due Rule". When the client says yes, change the Status dropdown in that row to Accepted. Use the chips above the table — Quote drafts, Quotes sent, Accepted, Partial, Late — to filter rather than scrolling.',
         optional: true,
       },
       {
@@ -448,7 +454,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="billing-convert"]',
         title: "Step 14 — convert it to an invoice",
-        body: "Never retype an accepted quote. On the quote's own row, click the convert icon (two arrows) at the right — it only appears while the quote has no invoice yet. Confirm, and INV-2026-0001 is created with both line items, the 15% VAT, the client and the recipients carried over. The quote row then shows a green \"→ INV-2026-0001\" chip and the invoice shows \"← QT-2026-0001\".",
+        body: 'Never retype an accepted quote. On the quote\'s own row, click the convert icon (two arrows) at the right — it only appears while the quote has no invoice yet. Confirm, and INV-2026-0001 is created with both line items, the 15% VAT, the client and the recipients carried over. The quote row then shows a green "→ INV-2026-0001" chip and the invoice shows "← QT-2026-0001".',
         optional: true,
       },
       {
@@ -456,7 +462,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="billing-table"]',
         title: "Step 15 — record payment",
-        body: "When the deposit lands, set the invoice's Status dropdown to Partial; when the balance clears, set it to Paid. The rule column tracks it — \"Payment due in 30 days\", then \"Overdue by 4 days\" if it slips. Overdue is not applied automatically: you mark it, using the grace period you set in Step 1 as your cue.",
+        body: 'When the deposit lands, set the invoice\'s Status dropdown to Partial; when the balance clears, set it to Paid. The rule column tracks it — "Payment due in 30 days", then "Overdue by 4 days" if it slips. Overdue is not applied automatically: you mark it, using the grace period you set in Step 1 as your cue.',
         optional: true,
       },
       {
@@ -464,7 +470,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="billing-summary"]',
         title: "Step 16 — read the money back",
-        body: "Set Period to \"This month\" and the four cards answer it: Total Quoted R13,800.00, Total Invoiced R13,800.00, Total Received R6,900.00, Total Outstanding R6,900.00. The \"Quotes Accepted\" tile below carries the line that matters most — \"1 ready to convert\" means an accepted quote you haven't invoiced yet.",
+        body: 'Set Period to "This month" and the four cards answer it: Total Quoted R13,800.00, Total Invoiced R13,800.00, Total Received R6,900.00, Total Outstanding R6,900.00. The "Quotes Accepted" tile below carries the line that matters most — "1 ready to convert" means an accepted quote you haven\'t invoiced yet.',
         optional: true,
       },
       {
@@ -472,14 +478,14 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="billing-subtabs"]',
         title: "Step 17 — the Reports subtab",
-        body: "Click Reports. Set Period to \"Last quarter\" (or Custom and enter your own from/to dates) and you get the invoiced-versus-received chart plus \"Breakdown by talent\" and \"Breakdown by client\".",
+        body: 'Click Reports. Set Period to "Last quarter" (or Custom and enter your own from/to dates) and you get the invoiced-versus-received chart plus "Breakdown by talent" and "Breakdown by client".',
       },
       {
         key: "export",
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="billing-export"]',
         title: "Step 18 — export for your accountant",
-        body: "\"Export CSV\" downloads every line item in the period as a spreadsheet; \"Print / Save PDF\" opens the print dialog for a formatted statement — choose \"Save as PDF\" as the destination. Both use the period on screen, so set the period first.",
+        body: '"Export CSV" downloads every line item in the period as a spreadsheet; "Print / Save PDF" opens the print dialog for a formatted statement — choose "Save as PDF" as the destination. Both use the period on screen, so set the period first.',
         optional: true,
       },
     ],
@@ -497,7 +503,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="vault-panes"]',
         title: "Step 1 — talent, then folder, then document",
-        body: "The Vault is three panes. Click \"Naledi Khumalo\" under \"Select a talent\", then a folder such as \"Identity Documents\" to expand it, then the document. A folder carrying an amber \"Folder needs review\" pill has something waiting on you inside.",
+        body: 'The Vault is three panes. Click "Naledi Khumalo" under "Select a talent", then a folder such as "Identity Documents" to expand it, then the document. A folder carrying an amber "Folder needs review" pill has something waiting on you inside.',
         optional: true,
       },
       {
@@ -505,7 +511,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="vault-panes"]',
         title: "Step 2 — or search the whole roster at once",
-        body: "If you don't know whose it is, type into \"Search every document, talent or folder...\" — \"passport\" returns matching rows across every talent with columns Document, Talent, Folder, Status and Validity, so you can skip the panes entirely.",
+        body: 'If you don\'t know whose it is, type into "Search every document, talent or folder..." — "passport" returns matching rows across every talent with columns Document, Talent, Folder, Status and Validity, so you can skip the panes entirely.',
         optional: true,
       },
       {
@@ -513,14 +519,14 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="vault-actions"]',
         title: "Step 3 — Upload document",
-        body: "Click the upload action and the \"Upload document\" dialog opens. Confirm Talent reads \"Naledi Khumalo\", then choose the Destination folder.",
+        body: 'Click the upload action and the "Upload document" dialog opens. Confirm Talent reads "Naledi Khumalo", then choose the Destination folder.',
       },
       {
         key: "upload-folder",
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="vault-actions"]',
         title: "Step 4 — Allowed vs Blocked folders",
-        body: "In \"Destination folder\", folders in the Roster Shared Folder are tagged green \"Allowed\". Folders that live in the talent's Private Vault are tagged amber \"Blocked\" and can't be selected — as a Manager you cannot put anything into a talent's private space, by design. Pick \"Identity Documents\".",
+        body: 'In "Destination folder", folders in the Roster Shared Folder are tagged green "Allowed". Folders that live in the talent\'s Private Vault are tagged amber "Blocked" and can\'t be selected — as a Manager you cannot put anything into a talent\'s private space, by design. Pick "Identity Documents".',
         optional: true,
       },
       {
@@ -528,7 +534,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="vault-actions"]',
         title: "Step 5 — name, status, expiry",
-        body: "\"Document name (optional)\": \"Passport — Naledi Khumalo\" (leave it blank to keep the file name). Status: \"Needs review\" if you still have to check it, \"Filed\" if you're certain. Expiry (optional): 2031-04-18. Then upload.",
+        body: '"Document name (optional)": "Passport — Naledi Khumalo" (leave it blank to keep the file name). Status: "Needs review" if you still have to check it, "Filed" if you\'re certain. Expiry (optional): 2031-04-18. Then upload.',
         optional: true,
       },
       {
@@ -550,7 +556,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault", search: { tab: "Requests" } },
         selector: '[data-tour="vault-new-request"]',
         title: "Step 8 — raise a request",
-        body: "Click \"New document request\" and work down the form: Talent \"Naledi Khumalo\"; Folder \"Identity Documents\" (where the submission will land); Title 'Updated passport scan'; Due date 2026-09-30; Instructions \"Please send the photo page in colour — all four corners visible.\" The talent sees the title, date and instructions verbatim, so write them as you'd say them.",
+        body: 'Click "New document request" and work down the form: Talent "Naledi Khumalo"; Folder "Identity Documents" (where the submission will land); Title \'Updated passport scan\'; Due date 2026-09-30; Instructions "Please send the photo page in colour — all four corners visible." The talent sees the title, date and instructions verbatim, so write them as you\'d say them.',
         optional: true,
       },
       {
@@ -558,7 +564,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault", search: { tab: "Requests" } },
         selector: '[data-tour="vault-requests-table"]',
         title: "Step 9 — open the submission",
-        body: "The table lists Title, Talent, Folder, Due and Status. When Naledi responds, her row moves to Submitted — click \"Review\" on it. The panel shows the current status, the instructions you sent and the file she uploaded.",
+        body: 'The table lists Title, Talent, Folder, Due and Status. When Naledi responds, her row moves to Submitted — click "Review" on it. The panel shows the current status, the instructions you sent and the file she uploaded.',
         optional: true,
       },
       {
@@ -566,7 +572,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault", search: { tab: "Requests" } },
         selector: '[data-tour="request-outcome"]',
         title: "Step 10 — choose an outcome",
-        body: "Under \"Outcome\" pick one of three: \"Complete\" (accepted, request closes), \"Resubmission required\" (back to the talent), or \"Cancel request\" (no longer needed). Choosing resubmission reveals \"Reason (required)\" — pick the reason code that fits, e.g. an unreadable scan.",
+        body: 'Under "Outcome" pick one of three: "Complete" (accepted, request closes), "Resubmission required" (back to the talent), or "Cancel request" (no longer needed). Choosing resubmission reveals "Reason (required)" — pick the reason code that fits, e.g. an unreadable scan.',
         optional: true,
       },
       {
@@ -574,7 +580,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault", search: { tab: "Requests" } },
         selector: '[data-tour="request-outcome"]',
         title: "Step 11 — write the note the talent reads",
-        body: "On a resubmission the Notes field is marked \"(shown to talent)\". Write plainly what to fix: \"The bottom corner is cut off — please re-scan the full photo page.\" Submit, and her card reads \"Manager requested a resubmission\" with your note; her old submission is kept in history, not overwritten.",
+        body: 'On a resubmission the Notes field is marked "(shown to talent)". Write plainly what to fix: "The bottom corner is cut off — please re-scan the full photo page." Submit, and her card reads "Manager requested a resubmission" with your note; her old submission is kept in history, not overwritten.',
         optional: true,
       },
       {
@@ -582,7 +588,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="vault-actions"]',
         title: "After you upload, the filing review opens",
-        body: "When an Upload to Talent finishes, the filing review popup opens before the document counts as filed. With your own \"Organise documents with AI\" switch on, it shows \"Reading your document…\" while the AI reads the file. The fields work straight away; anything you save before the suggestion arrives is recorded as your own entry. If the analysis can't be completed, a short note says so and offers Retry.",
+        body: 'When an Upload to Talent finishes, the filing review popup opens before the document counts as filed. With your own "Organise documents with AI" switch on, it shows "Reading your document…" while the AI reads the file. The fields work straight away; anything you save before the suggestion arrives is recorded as your own entry. If the analysis can\'t be completed, a short note says so and offers Retry.',
         optional: true,
       },
       {
@@ -590,7 +596,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-folder"]',
         title: "Folder & subfolder",
-        body: "Upload a scan of a talent's passport and the AI sets Agency Shared Folder folder to \"Identity Documents\" and Subfolder to \"Passports\", with a confidence label of high, medium or low. The value below carries a \"Suggested by AI\" badge showing that confidence.",
+        body: 'Upload a scan of a talent\'s passport and the AI sets Agency Shared Folder folder to "Identity Documents" and Subfolder to "Passports", with a confidence label of high, medium or low. The value below carries a "Suggested by AI" badge showing that confidence.',
         optional: true,
       },
       {
@@ -598,7 +604,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-source-toggle"]',
         title: "Where did this come from?",
-        body: "Click \"Where did this come from?\" to see the verbatim sentence the suggestion was drawn from — for that passport, \"Republic of South Africa — Passport No. M00123456\". If the extract doesn't back the folder, change it.",
+        body: 'Click "Where did this come from?" to see the verbatim sentence the suggestion was drawn from — for that passport, "Republic of South Africa — Passport No. M00123456". If the extract doesn\'t back the folder, change it.',
         optional: true,
       },
       {
@@ -606,7 +612,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-subfolder"]',
         title: "The fields are live, not a proposal",
-        body: "There is no accept or reject step. Change the Subfolder dropdown to \"Identity cards\" and the badge immediately reads \"Edited by you\" — your value is what gets written, the suggestion is only a pre-fill.",
+        body: 'There is no accept or reject step. Change the Subfolder dropdown to "Identity cards" and the badge immediately reads "Edited by you" — your value is what gets written, the suggestion is only a pre-fill.',
         optional: true,
       },
       {
@@ -614,7 +620,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-expiry"]',
         title: "Expiry & reminder",
-        body: "The AI also proposes an expiry it read off the document — on a driving licence, Expiry date 2029-07-31 — plus a lead time in \"Remind me this many days before\", say 45, giving a reminder on 2029-06-16. Check the source sentence, correct a misread date, or tick \"No reminder needed for this document\".",
+        body: 'The AI also proposes an expiry it read off the document — on a driving licence, Expiry date 2029-07-31 — plus a lead time in "Remind me this many days before", say 45, giving a reminder on 2029-06-16. Check the source sentence, correct a misread date, or tick "No reminder needed for this document".',
         optional: true,
       },
       {
@@ -622,7 +628,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-save"]',
         title: "Human validation required",
-        body: "Nothing is ever filed automatically. \"Save filing\" writes exactly what's in the fields at that moment. \"Skip for now\" leaves the document queued under the Pending review filter on the tabs you saw earlier, so it's never lost — just waiting.",
+        body: 'Nothing is ever filed automatically. "Save filing" writes exactly what\'s in the fields at that moment. "Skip for now" leaves the document queued under the Pending review filter on the tabs you saw earlier, so it\'s never lost — just waiting.',
         optional: true,
       },
       {
@@ -630,7 +636,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/document-vault" },
         selector: '[data-tour="filing-ai-toggle"]',
         title: "Your AI switch, any time",
-        body: "\"Turn off AI organisation\" in the popup (or in My Account) stops your uploads being sent for AI analysis — it only affects documents you upload, never a colleague's. Turn it back on and the current document is analysed immediately; documents on the Pending Review tab get an \"Analyse with AI\" row action. Nothing is analysed in bulk.",
+        body: '"Turn off AI organisation" in the popup (or in My Account) stops your uploads being sent for AI analysis — it only affects documents you upload, never a colleague\'s. Turn it back on and the current document is analysed immediately; documents on the Pending Review tab get an "Analyse with AI" row action. Nothing is analysed in bulk.',
         optional: true,
       },
     ],
@@ -648,14 +654,14 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/invitations" },
         selector: '[data-tour="agency-invite-actions"]',
         title: "Step 1 — Invite Talent or Invite Staff",
-        body: "On Invitations, \"Invite Talent\" opens the two-step wizard — Details, then Folders. \"Invite Staff\" adds a colleague to your agency instead and has no folder step. Only the agency owner can send either.",
+        body: 'On Invitations, "Invite Talent" opens the two-step wizard — Details, then Folders. "Invite Staff" adds a colleague to your agency instead and has no folder step. Only the agency owner can send either.',
       },
       {
         key: "details",
         route: { to: "/agency/invitations" },
         selector: '[data-tour="agency-invite-actions"]',
         title: "Step 2 — Details",
-        body: "Talent name *: \"Naledi Khumalo\" — use the full name exactly as it appears on their ID, because it's what their documents are filed under. Email *: \"naledi@example.com\". Invitation expiry (days): 7. Then continue to the Folders step.",
+        body: 'Talent name *: "Naledi Khumalo" — use the full name exactly as it appears on their ID, because it\'s what their documents are filed under. Email *: "naledi@example.com". Invitation expiry (days): 7. Then continue to the Folders step.',
         optional: true,
       },
       {
@@ -663,7 +669,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/invitations" },
         selector: '[data-tour="agency-invite-actions"]',
         title: "Step 3 — Folders for this talent",
-        body: "Two cards. \"Use my standard set\" (Recommended) provisions the folders listed as badges on the card, pulled from your default Folder Template — take this unless you have a reason not to. \"Customise for this talent\" opens the full folder list with each one marked Recommended or Optional; tick, say, \"Work Permits\" for an international booking. The counter reads \"7 folders selected\".",
+        body: 'Two cards. "Use my standard set" (Recommended) provisions the folders listed as badges on the card, pulled from your default Folder Template — take this unless you have a reason not to. "Customise for this talent" opens the full folder list with each one marked Recommended or Optional; tick, say, "Work Permits" for an international booking. The counter reads "7 folders selected".',
         optional: true,
       },
       {
@@ -688,7 +694,8 @@ export const GUIDES: TourGuide[] = [
     portal: "agency",
     kind: "module",
     title: "Folders & document rules",
-    description: "Set the standard folder set, its validity rules, then retention and expiry notice.",
+    description:
+      "Set the standard folder set, its validity rules, then retention and expiry notice.",
     match: ["/agency/settings"],
     steps: [
       {
@@ -696,14 +703,14 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/settings", search: { tab: "folders" } },
         selector: '[data-tour="manage-folders"]',
         title: "Step 1 — Default Folder Selection",
-        body: "Agency Profile → Manage Folders. Tick the categories every new talent should get — Identity Documents, Contracts, Banking, Medical — and untick what your agency never handles. This is the set the invitation wizard offers as \"Use my standard set\", so getting it right here saves customising every invitation.",
+        body: 'Agency Profile → Manage Folders. Tick the categories every new talent should get — Identity Documents, Contracts, Banking, Medical — and untick what your agency never handles. This is the set the invitation wizard offers as "Use my standard set", so getting it right here saves customising every invitation.',
       },
       {
         key: "subfolders",
         route: { to: "/agency/settings", search: { tab: "folders" } },
         selector: '[data-tour="manage-folders"]',
         title: "Step 2 — add subfolders under Folder Rules",
-        body: "In the \"Folder Rules\" table, use the add action on a folder row to open \"Add a subfolder\", type a Subfolder name — for example \"Medical Clearance\" under Medical — and save. Subfolders are how you keep a folder usable once it holds twenty documents.",
+        body: 'In the "Folder Rules" table, use the add action on a folder row to open "Add a subfolder", type a Subfolder name — for example "Medical Clearance" under Medical — and save. Subfolders are how you keep a folder usable once it holds twenty documents.',
         optional: true,
       },
       {
@@ -711,7 +718,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/settings", search: { tab: "folders" } },
         selector: '[data-tour="manage-folders"]',
         title: "Step 3 — Default Validity Rule",
-        body: "Still in Folder Rules, open the \"Default Validity Rule\" cell for a folder. Choose a Preset, or type your own — \"3 years\" for a work permit. New documents filed there inherit it, so expiry is tracked even when nobody typed a date. The reset control puts a row back to the platform default.",
+        body: 'Still in Folder Rules, open the "Default Validity Rule" cell for a folder. Choose a Preset, or type your own — "3 years" for a work permit. New documents filed there inherit it, so expiry is tracked even when nobody typed a date. The reset control puts a row back to the platform default.',
         optional: true,
       },
       {
@@ -719,14 +726,14 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/settings", search: { tab: "document-rules" } },
         selector: '[data-tour="document-rules"]',
         title: "Step 4 — folder retention rules",
-        body: "On Document Rules, click add on \"Folder retention rules\". Scope: \"Entire folder\"; Folder: \"Contracts\"; set the retention years and a description like \"Statutory 10-year contract retention\"; \"Save rule\". Documents under that rule cannot be deleted until the period lapses — the \"Documents currently locked\" tile counts them.",
+        body: 'On Document Rules, click add on "Folder retention rules". Scope: "Entire folder"; Folder: "Contracts"; set the retention years and a description like "Statutory 10-year contract retention"; "Save rule". Documents under that rule cannot be deleted until the period lapses — the "Documents currently locked" tile counts them.',
       },
       {
         key: "overrides",
         route: { to: "/agency/settings", search: { tab: "document-rules" } },
         selector: '[data-tour="document-rules"]',
         title: "Step 5 — per-document overrides",
-        body: "For a single exception, add a rule with Scope \"Specific document\" and pick the document. It appears under \"Per-document overrides\" and beats the folder rule for that one file; remove the override and the folder rule applies again. Only the agency owner can edit or delete either.",
+        body: 'For a single exception, add a rule with Scope "Specific document" and pick the document. It appears under "Per-document overrides" and beats the folder rule for that one file; remove the override and the folder rule applies again. Only the agency owner can edit or delete either.',
         optional: true,
       },
       {
@@ -734,7 +741,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/settings", search: { tab: "document-rules" } },
         selector: '[data-tour="document-rules"]',
         title: "Step 6 — expiring-document notice period",
-        body: "At the bottom, set \"Notice period (days)\" to 60 and Save. A permit expiring 2027-01-31 then appears on your dashboard warning banner and in the Vault's Expiring tab from 2026-12-02 — enough time to chase a renewal rather than discover it late.",
+        body: 'At the bottom, set "Notice period (days)" to 60 and Save. A permit expiring 2027-01-31 then appears on your dashboard warning banner and in the Vault\'s Expiring tab from 2026-12-02 — enough time to chase a renewal rather than discover it late.',
       },
     ],
   },
@@ -805,7 +812,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/invitations/new" },
         selector: '[data-tour="admin-invite-actions"]',
         title: "Step 2 — agency details",
-        body: "Agency name *: \"NewTech Talent Agency\". Primary contact person: \"Maya Johnson\". Contact email *: \"contact@agency.com\" — this is the only address the secure link is issued to, so check it character by character. Phone: \"+27 82 123 4567\".",
+        body: 'Agency name *: "NewTech Talent Agency". Primary contact person: "Maya Johnson". Contact email *: "contact@agency.com" — this is the only address the secure link is issued to, so check it character by character. Phone: "+27 82 123 4567".',
         optional: true,
       },
       {
@@ -813,7 +820,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/invitations/new" },
         selector: '[data-tour="admin-invite-actions"]',
         title: "Step 3 — Business type drives the paperwork",
-        body: "Choose Business type * before anything else on the lower half of the form: the \"Compliance documents\" list underneath rebuilds itself to match, so a sole proprietor is asked for a different set than a registered company. Change it afterwards and you'll re-do that list.",
+        body: 'Choose Business type * before anything else on the lower half of the form: the "Compliance documents" list underneath rebuilds itself to match, so a sole proprietor is asked for a different set than a registered company. Change it afterwards and you\'ll re-do that list.',
         optional: true,
       },
       {
@@ -821,7 +828,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/invitations/new" },
         selector: '[data-tour="admin-invite-actions"]',
         title: "Step 4 — expiry, then create",
-        body: "Set \"Invitation expiry (days)\" to 14 — long enough for a company to gather documents, short enough that a stale link doesn't sit live for a month. Create the invitation; it lands in the list as Pending and nothing has been emailed yet.",
+        body: 'Set "Invitation expiry (days)" to 14 — long enough for a company to gather documents, short enough that a stale link doesn\'t sit live for a month. Create the invitation; it lands in the list as Pending and nothing has been emailed yet.',
         optional: true,
       },
       {
@@ -845,7 +852,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/invitations" },
         selector: '[data-tour="admin-invite-table"]',
         title: "Step 7 — a wrong address, or a cancellation",
-        body: "If the email was wrong, use \"Edit invitation email\" on the row, correct Recipient email and resend — the old link stops working. To cancel, prefer Revoke over Delete: revoking keeps the audit trail, deleting removes the invitation permanently.",
+        body: 'If the email was wrong, use "Edit invitation email" on the row, correct Recipient email and resend — the old link stops working. To cancel, prefer Revoke over Delete: revoking keeps the audit trail, deleting removes the invitation permanently.',
         optional: true,
       },
       {
@@ -853,7 +860,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/invitations" },
         selector: '[data-tour="admin-invite-kpis"]',
         title: "Step 8 — where each one stands",
-        body: "The tiles — Total Invitations, Awaiting Acceptance, Accepted — filter the list when clicked. Work \"Awaiting Acceptance\" weekly: anything sitting there past its Expires date needs a resend or a revoke, not silence.",
+        body: 'The tiles — Total Invitations, Awaiting Acceptance, Accepted — filter the list when clicked. Work "Awaiting Acceptance" weekly: anything sitting there past its Expires date needs a resend or a revoke, not silence.',
         optional: true,
       },
     ],
@@ -871,7 +878,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/invitations" },
         selector: '[data-tour="admin-invite-actions"]',
         title: "Step 1 — start a talent invitation",
-        body: "Click \"Invite talent\". Use this only for talent joining without an agency — agencies invite their own talent, and only an agency can connect with someone already on TalVault.",
+        body: 'Click "Invite talent". Use this only for talent joining without an agency — agencies invite their own talent, and only an agency can connect with someone already on TalVault.',
       },
       {
         key: "details",
@@ -885,7 +892,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/invitations/talent/new" },
         selector: '[data-tour="admin-talent-invite-docs"]',
         title: "Step 3 — ID document and proof of talent",
-        body: "Upload one file to each slot. Files are checked for their real type and size, and duplicate file names are refused. \"Send invitation\" stays disabled until both are attached.",
+        body: 'Upload one file to each slot. Files are checked for their real type and size, and duplicate file names are refused. "Send invitation" stays disabled until both are attached.',
         optional: true,
       },
       {
@@ -910,7 +917,8 @@ export const GUIDES: TourGuide[] = [
     portal: "admin",
     kind: "module",
     title: "Terms acceptances",
-    description: "See who accepted which Terms & Conditions, prove the exact text, and find who still needs to accept.",
+    description:
+      "See who accepted which Terms & Conditions, prove the exact text, and find who still needs to accept.",
     match: ["/admin/terms-acceptances"],
     steps: [
       {
@@ -918,7 +926,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/terms-acceptances" },
         selector: '[data-tour="admin-terms-table"]',
         title: "Every acceptance, with proof",
-        body: "Each row is a permanent record: who accepted, which version, when, from which IP and device, and a proof reference you can quote in a dispute. \"Verified\" means the stored fingerprint of the text matches the document. Open the row menu to read the exact text accepted.",
+        body: 'Each row is a permanent record: who accepted, which version, when, from which IP and device, and a proof reference you can quote in a dispute. "Verified" means the stored fingerprint of the text matches the document. Open the row menu to read the exact text accepted.',
         optional: true,
       },
       {
@@ -957,7 +965,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/agencies" },
         selector: '[data-tour="admin-agency-table"]',
         title: "Step 1 — find the agency",
-        body: "Type \"NewTech\" into \"Search agencies...\" or click a tile — Total Agencies, Accepted, Invited, Suspended — to filter. The table gives Agency, Status, Contact, Country, Talent and Created. \"Reset filters\" clears everything if the list looks emptier than it should.",
+        body: 'Type "NewTech" into "Search agencies..." or click a tile — Total Agencies, Accepted, Invited, Suspended — to filter. The table gives Agency, Status, Contact, Country, Talent and Created. "Reset filters" clears everything if the list looks emptier than it should.',
         optional: true,
       },
       {
@@ -965,7 +973,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/agencies" },
         selector: '[data-tour="admin-agency-table"]',
         title: "Step 2 — open it and check the facts",
-        body: "Click the agency row to open its detail page — members, talent count and compliance state. Do this before any action: the Talent number tells you how many people a suspension will affect. If a row is still Invited, the \"Find matching invitation\" action jumps you to the invitation instead.",
+        body: 'Click the agency row to open its detail page — members, talent count and compliance state. Do this before any action: the Talent number tells you how many people a suspension will affect. If a row is still Invited, the "Find matching invitation" action jumps you to the invitation instead.',
         optional: true,
       },
       {
@@ -973,7 +981,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/agencies" },
         selector: '[data-tour="admin-agency-actions"]',
         title: "Step 3 — suspend, with a reason",
-        body: "Choose Suspend and type the reason in full — \"Unpaid platform subscription — 60 days overdue, escalated 2026-08-14.\" It is written to the audit log with your name, and it's what the next admin will read. Suspension blocks active actions but preserves read-only access and export, so nobody loses their documents.",
+        body: 'Choose Suspend and type the reason in full — "Unpaid platform subscription — 60 days overdue, escalated 2026-08-14." It is written to the audit log with your name, and it\'s what the next admin will read. Suspension blocks active actions but preserves read-only access and export, so nobody loses their documents.',
         optional: true,
       },
       {
@@ -1013,7 +1021,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/quotes-invoices" },
         selector: '[data-tour="admin-billing-table"]',
         title: "Step 3 — trace a figure to its source",
-        body: "Type an agency name into \"Search number, client, agency...\", or set the type filter to Invoice. Each row gives Agency, Type, Number, Client, Issued, Total and Status — so \"R48,300 outstanding\" resolves to, say, three overdue invoices from one agency, which is what you'd raise with them.",
+        body: 'Type an agency name into "Search number, client, agency...", or set the type filter to Invoice. Each row gives Agency, Type, Number, Client, Issued, Total and Status — so "R48,300 outstanding" resolves to, say, three overdue invoices from one agency, which is what you\'d raise with them.',
         optional: true,
       },
     ],

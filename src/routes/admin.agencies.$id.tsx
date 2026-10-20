@@ -27,7 +27,9 @@ export const Route = createFileRoute("/admin/agencies/$id")({
 function fmtDate(iso?: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 function AgencyDetail() {
@@ -103,8 +105,13 @@ function AgencyDetail() {
             {a?.name ?? (q.isLoading ? "Loading…" : "Agency not found")}
           </h1>
           {a && (
-            <div className="tvp-subtitle" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <span className={statusPillClass("agency", a.status)}>{statusLabel("agency", a.status)}</span>
+            <div
+              className="tvp-subtitle"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
+              <span className={statusPillClass("agency", a.status)}>
+                {statusLabel("agency", a.status)}
+              </span>
               {a.contact_email}
             </div>
           )}
@@ -118,7 +125,8 @@ function AgencyDetail() {
                 disabled={!canEdit}
                 title={canEdit ? "Reinstate this agency" : noEditTitle}
               >
-                <RotateCcw className="h-4 w-4" />Reinstate
+                <RotateCcw className="h-4 w-4" />
+                Reinstate
               </button>
             ) : (
               <button
@@ -127,7 +135,8 @@ function AgencyDetail() {
                 disabled={!canEdit}
                 title={canEdit ? "Suspend this agency" : noEditTitle}
               >
-                <Ban className="h-4 w-4" />Suspend
+                <Ban className="h-4 w-4" />
+                Suspend
               </button>
             )}
           </div>
@@ -139,27 +148,57 @@ function AgencyDetail() {
           <h2 className="tvp-h2">Agency details</h2>
           <div className="tvp-form-layout" style={{ marginTop: 12 }}>
             <div>
-              <p><strong>Contact person</strong><br />{a.contact_person ?? "—"}</p>
-              <p style={{ marginTop: 10 }}><strong>Contact email</strong><br />{a.contact_email ?? "—"}</p>
-              <p style={{ marginTop: 10 }}><strong>Phone</strong><br />{a.phone ?? "—"}</p>
-              <p style={{ marginTop: 10 }}><strong>Country</strong><br />{a.country ?? "—"}</p>
+              <p>
+                <strong>Contact person</strong>
+                <br />
+                {a.contact_person ?? "—"}
+              </p>
+              <p style={{ marginTop: 10 }}>
+                <strong>Contact email</strong>
+                <br />
+                {a.contact_email ?? "—"}
+              </p>
+              <p style={{ marginTop: 10 }}>
+                <strong>Phone</strong>
+                <br />
+                {a.phone ?? "—"}
+              </p>
+              <p style={{ marginTop: 10 }}>
+                <strong>Country</strong>
+                <br />
+                {a.country ?? "—"}
+              </p>
             </div>
             <div>
-              <p><strong>Created</strong><br />
-                {new Date(a.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              <p>
+                <strong>Created</strong>
+                <br />
+                {new Date(a.created_at).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
               </p>
               {a.status === "suspended" && (
                 <>
-                  <p style={{ marginTop: 10 }}><strong>Suspension reason</strong><br />{a.suspension_reason ?? "—"}</p>
-                  <p style={{ marginTop: 10 }}><strong>Suspended at</strong><br />
-                    {a.suspended_at
-                      ? new Date(a.suspended_at).toLocaleString("en-GB")
-                      : "—"}
+                  <p style={{ marginTop: 10 }}>
+                    <strong>Suspension reason</strong>
+                    <br />
+                    {a.suspension_reason ?? "—"}
+                  </p>
+                  <p style={{ marginTop: 10 }}>
+                    <strong>Suspended at</strong>
+                    <br />
+                    {a.suspended_at ? new Date(a.suspended_at).toLocaleString("en-GB") : "—"}
                   </p>
                 </>
               )}
               {a.notes && (
-                <p style={{ marginTop: 10 }}><strong>Notes</strong><br />{a.notes}</p>
+                <p style={{ marginTop: 10 }}>
+                  <strong>Notes</strong>
+                  <br />
+                  {a.notes}
+                </p>
               )}
             </div>
           </div>
@@ -180,21 +219,47 @@ function AgencyDetail() {
             <table className="tvp-table">
               <thead>
                 <tr>
-                  <th>Email</th><th>Contact</th><th>Status</th><th>Sent</th><th>Expires</th><th>Sends</th>
+                  <th>Email</th>
+                  <th>Contact</th>
+                  <th>Status</th>
+                  <th>Sent</th>
+                  <th>Expires</th>
+                  <th>Sends</th>
                 </tr>
               </thead>
               <tbody>
                 {agencyInv.isLoading && (
-                  <tr><td colSpan={6} className="tvp-muted">Loading…</td></tr>
+                  <tr>
+                    <td colSpan={6} className="tvp-muted">
+                      Loading…
+                    </td>
+                  </tr>
                 )}
                 {!agencyInv.isLoading && (agencyInv.data ?? []).length === 0 && (
-                  <tr><td colSpan={6} className="tvp-muted">No team invitations from this agency yet — colleagues they invite will appear here.</td></tr>
+                  <tr>
+                    <td colSpan={6} className="tvp-muted">
+                      No team invitations from this agency yet — colleagues they invite will appear
+                      here.
+                    </td>
+                  </tr>
                 )}
                 {agencyInvPage.visible.map((i: any) => (
                   <tr key={i.id}>
                     <td>{i.email}</td>
                     <td>{i.contact_person ?? "—"}</td>
-                    <td><span className={statusPillClass("invitation", effectiveInvitationStatus(i.status, i.expires_at))}>{statusLabel("invitation", effectiveInvitationStatus(i.status, i.expires_at))}</span></td>
+                    <td>
+                      <span
+                        className={statusPillClass(
+                          "invitation",
+                          effectiveInvitationStatus(i.status, i.expires_at),
+                        )}
+                      >
+                        {statusLabel(
+                          "invitation",
+                          effectiveInvitationStatus(i.status, i.expires_at),
+                        )}
+                      </span>
+                    </td>
                     <td>{fmtDate(i.last_sent_at)}</td>
                     <td>{fmtDate(i.expires_at)}</td>
                     <td>{i.send_count}</td>
@@ -221,28 +286,55 @@ function AgencyDetail() {
               <Users className="h-4 w-4" /> Talent invited by this agency
             </h2>
             <span className="tvp-muted" style={{ fontSize: 12 }}>
-              Invitations this agency has sent to Talent. Separate from the agency-user invitations above.
+              Invitations this agency has sent to Talent. Separate from the agency-user invitations
+              above.
             </span>
           </div>
           <div className="tvp-table-wrap">
             <table className="tvp-table">
               <thead>
                 <tr>
-                  <th>Talent</th><th>Email</th><th>Status</th><th>Sent</th><th>Expires</th><th>Sends</th>
+                  <th>Talent</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Sent</th>
+                  <th>Expires</th>
+                  <th>Sends</th>
                 </tr>
               </thead>
               <tbody>
                 {talentInv.isLoading && (
-                  <tr><td colSpan={6} className="tvp-muted">Loading…</td></tr>
+                  <tr>
+                    <td colSpan={6} className="tvp-muted">
+                      Loading…
+                    </td>
+                  </tr>
                 )}
                 {!talentInv.isLoading && (talentInv.data ?? []).length === 0 && (
-                  <tr><td colSpan={6} className="tvp-muted">This agency hasn't invited any talent yet — invitations they send will show up here.</td></tr>
+                  <tr>
+                    <td colSpan={6} className="tvp-muted">
+                      This agency hasn't invited any talent yet — invitations they send will show up
+                      here.
+                    </td>
+                  </tr>
                 )}
                 {talentInvPage.visible.map((i: any) => (
                   <tr key={i.id}>
                     <td>{i.talent_name ?? "—"}</td>
                     <td>{i.email}</td>
-                    <td><span className={statusPillClass("invitation", effectiveInvitationStatus(i.status, i.expires_at))}>{statusLabel("invitation", effectiveInvitationStatus(i.status, i.expires_at))}</span></td>
+                    <td>
+                      <span
+                        className={statusPillClass(
+                          "invitation",
+                          effectiveInvitationStatus(i.status, i.expires_at),
+                        )}
+                      >
+                        {statusLabel(
+                          "invitation",
+                          effectiveInvitationStatus(i.status, i.expires_at),
+                        )}
+                      </span>
+                    </td>
                     <td>{fmtDate(i.last_sent_at)}</td>
                     <td>{fmtDate(i.expires_at)}</td>
                     <td>{i.send_count}</td>

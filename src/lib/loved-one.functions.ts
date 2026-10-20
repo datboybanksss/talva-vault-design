@@ -7,7 +7,10 @@ const BUCKET = "talent-private-documents";
 
 async function ensureTalentProfile(supabase: any, userId: string) {
   const { data } = await supabase
-    .from("talent_profiles").select("id").eq("user_id", userId).maybeSingle();
+    .from("talent_profiles")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
   if (!data) throw new Error("Talent profile not found.");
   return data.id as string;
 }
@@ -26,7 +29,6 @@ export const listMyLovedOneShares = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return data ?? [];
   });
-
 
 /**
  * Immutable record of a recipient actually reaching something. Written with the
@@ -160,8 +162,13 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
     if (data.send_email) {
       const { buildShareEmail, sendShareEmail } = await import("@/lib/loved-one-email.server");
       const { data: prof } = await supabase
-        .from("talent_profiles").select("full_name").eq("id", talentId).maybeSingle();
-      const origin = process.env.PUBLIC_SITE_URL ?? "https://id-preview--f47b509e-a49f-44ed-abf5-85631a6dc162.lovable.app";
+        .from("talent_profiles")
+        .select("full_name")
+        .eq("id", talentId)
+        .maybeSingle();
+      const origin =
+        process.env.PUBLIC_SITE_URL ??
+        "https://id-preview--f47b509e-a49f-44ed-abf5-85631a6dc162.lovable.app";
       const mail = buildShareEmail({
         lovedOneName: data.loved_one_name,
         sharerName: prof?.full_name ?? "A TalVault user",
@@ -178,9 +185,11 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
       const result = await sendShareEmail(data.loved_one_email, mail);
       email = result.sent ? { sent: true } : { sent: false, reason: result.reason };
       if (result.sent) {
-        await supabase.from("loved_one_shares")
+        await supabase
+          .from("loved_one_shares")
           .update({ email_sent_at: new Date().toISOString() })
-          .eq("id", row.id).eq("created_by", userId);
+          .eq("id", row.id)
+          .eq("created_by", userId);
       }
     }
 
@@ -218,13 +227,17 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: share } = await supabase
       .from("loved_one_shares")
-      .select("id, token, talent_id, loved_one_name, loved_one_email, expires_at, revoked_at, is_active")
+      .select(
+        "id, token, talent_id, loved_one_name, loved_one_email, expires_at, revoked_at, is_active",
+      )
       .eq("id", data.id)
       .eq("created_by", userId)
       .maybeSingle();
     if (!share) throw new Error("Share not found.");
     if (share.revoked_at || share.is_active === false) {
-      throw new Error("This share has been revoked. Reshare with this person to give access again.");
+      throw new Error(
+        "This share has been revoked. Reshare with this person to give access again.",
+      );
     }
     if (share.expires_at && new Date(share.expires_at).getTime() < Date.now()) {
       throw new Error("This share has expired. Reshare with this person to give access again.");
@@ -239,7 +252,8 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
         failed_attempts: 0,
         locked_at: null,
       })
-      .eq("id", share.id).eq("created_by", userId);
+      .eq("id", share.id)
+      .eq("created_by", userId);
     if (error) throw new Error(error.message);
 
     // Tell the Loved One a new code was issued (the code itself is never sent).
@@ -251,7 +265,11 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
       const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
       const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
       const { data: prof } = share.talent_id
-        ? await supabase.from("talent_profiles").select("full_name").eq("id", share.talent_id).maybeSingle()
+        ? await supabase
+            .from("talent_profiles")
+            .select("full_name")
+            .eq("id", share.talent_id)
+            .maybeSingle()
         : { data: null as any };
       const mail = buildRegeneratedCodeEmail({
         lovedOneName: share.loved_one_name ?? share.loved_one_email,
@@ -294,8 +312,10 @@ async function loadShareByToken(token: string) {
     .eq("token", token)
     .maybeSingle();
   if (!share) return null;
-  if (share.revoked_at || share.is_active === false) return { ...share, _invalid: "revoked" as const };
-  if (new Date(share.expires_at).getTime() < Date.now()) return { ...share, _invalid: "expired" as const };
+  if (share.revoked_at || share.is_active === false)
+    return { ...share, _invalid: "revoked" as const };
+  if (new Date(share.expires_at).getTime() < Date.now())
+    return { ...share, _invalid: "expired" as const };
   if (share.locked_at) return { ...share, _invalid: "locked" as const };
   return share;
 }
@@ -306,7 +326,8 @@ async function loadShareByToken(token: string) {
  * subfolders of each shared folder.
  */
 export async function resolveShareFolders(scopeFolderIds: string[], owner: string | null) {
-  if (!owner || scopeFolderIds.length === 0) return { folders: [] as any[], folderIds: [] as string[] };
+  if (!owner || scopeFolderIds.length === 0)
+    return { folders: [] as any[], folderIds: [] as string[] };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: all } = await supabaseAdmin
     .from("talent_private_folders")
@@ -329,7 +350,6 @@ export async function resolveShareFolders(scopeFolderIds: string[], owner: strin
   };
 }
 
-
 /**
  * Billing shares expose exactly the set the talent themselves can see — the
  * quotes and invoices their Manager has shared with them. Nothing else in the
@@ -340,7 +360,10 @@ async function loadSharedBilling(talentId: string | null) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const { data: profile } = await supabaseAdmin
-    .from("talent_profiles").select("user_id").eq("id", talentId).maybeSingle();
+    .from("talent_profiles")
+    .select("user_id")
+    .eq("id", talentId)
+    .maybeSingle();
   if (!profile?.user_id) return [] as any[];
 
   const { data: link } = await supabaseAdmin
@@ -367,7 +390,10 @@ async function loadSharedBilling(talentId: string | null) {
   const { data: lines } = await supabaseAdmin
     .from("agency_billing_doc_lines")
     .select("doc_id, description, quantity, unit_price_cents, vat_rate_bp, sort_order")
-    .in("doc_id", rows.map((r) => r.id))
+    .in(
+      "doc_id",
+      rows.map((r) => r.id),
+    )
     .order("sort_order", { ascending: true });
 
   const { data: agency } = await supabaseAdmin
@@ -398,7 +424,9 @@ async function loadSharedBilling(talentId: string | null) {
 /** Exchanges the access code for a short-lived signed ticket. */
 export const unlockLovedOneShare = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) =>
-    z.object({ token: z.string().min(20).max(80), code: z.string().trim().min(4).max(40) }).parse(i),
+    z
+      .object({ token: z.string().min(20).max(80), code: z.string().trim().min(4).max(40) })
+      .parse(i),
   )
   .handler(async ({ data }) => {
     // IP-level throttle on top of the per-share failed-attempt lock, so a
@@ -417,7 +445,8 @@ export const unlockLovedOneShare = createServerFn({ method: "POST" })
     if ("_invalid" in share) return { ok: false as const, reason: share._invalid };
     if (!share.access_code_hash) return { ok: false as const, reason: "no_code_set" as const };
 
-    const { accessCodeMatches, issueTicket, MAX_FAILED_ATTEMPTS } = await import("@/lib/loved-one-access.server");
+    const { accessCodeMatches, issueTicket, MAX_FAILED_ATTEMPTS } =
+      await import("@/lib/loved-one-access.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     if (!accessCodeMatches(data.code, share.access_code_hash, data.token)) {
@@ -441,7 +470,9 @@ export const unlockLovedOneShare = createServerFn({ method: "POST" })
   });
 
 export const getLovedOneShareByToken = createServerFn({ method: "GET" })
-  .inputValidator((i: unknown) => TokenInput.extend({ ticket: z.string().max(400).optional() }).parse(i))
+  .inputValidator((i: unknown) =>
+    TokenInput.extend({ ticket: z.string().max(400).optional() }).parse(i),
+  )
   .handler(async ({ data }) => {
     const share = await loadShareByToken(data.token);
     if (!share) return { status: "not_found" as const };
@@ -451,7 +482,11 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sharerRes = share.talent_id
-      ? await supabaseAdmin.from("talent_profiles").select("full_name").eq("id", share.talent_id).maybeSingle()
+      ? await supabaseAdmin
+          .from("talent_profiles")
+          .select("full_name")
+          .eq("id", share.talent_id)
+          .maybeSingle()
       : { data: null as any };
     const sharer = { full_name: sharerRes.data?.full_name ?? "A TalVault user" };
 
@@ -478,13 +513,15 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
 
     const [docsInFolders, singleDocs] = await Promise.all([
       folderIds.length && owner
-        ? supabaseAdmin.from("talent_private_documents")
+        ? supabaseAdmin
+            .from("talent_private_documents")
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
             .in("folder_id", folderIds)
             .eq("user_id", owner)
         : Promise.resolve({ data: [] as any[] }),
       docIds.length && owner
-        ? supabaseAdmin.from("talent_private_documents")
+        ? supabaseAdmin
+            .from("talent_private_documents")
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
             .in("id", docIds)
             .eq("user_id", owner)
@@ -496,15 +533,20 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
     for (const d of docsInFolders.data ?? []) dedup.set(d.id, d);
     for (const d of singleDocs.data ?? []) dedup.set(d.id, d);
 
-    const billing =
-      share.share_kind === "billing" ? await loadSharedBilling(share.talent_id) : [];
+    const billing = share.share_kind === "billing" ? await loadSharedBilling(share.talent_id) : [];
 
     const { data: counter } = await supabaseAdmin
-      .from("loved_one_shares").select("view_count").eq("id", share.id).single();
-    await supabaseAdmin.from("loved_one_shares").update({
-      last_viewed_at: new Date().toISOString(),
-      view_count: (counter?.view_count ?? 0) + 1,
-    }).eq("id", share.id);
+      .from("loved_one_shares")
+      .select("view_count")
+      .eq("id", share.id)
+      .single();
+    await supabaseAdmin
+      .from("loved_one_shares")
+      .update({
+        last_viewed_at: new Date().toISOString(),
+        view_count: (counter?.view_count ?? 0) + 1,
+      })
+      .eq("id", share.id);
     await logShareAccess(share.id as string, "opened");
 
     return {
@@ -531,12 +573,14 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
  */
 export const getLovedOneFileUrl = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) =>
-    z.object({
-      token: z.string().min(20).max(80),
-      ticket: z.string().max(400).optional(),
-      document_id: z.string().uuid(),
-      mode: z.enum(["view", "download"]).default("view"),
-    }).parse(i),
+    z
+      .object({
+        token: z.string().min(20).max(80),
+        ticket: z.string().max(400).optional(),
+        document_id: z.string().uuid(),
+        mode: z.enum(["view", "download"]).default("view"),
+      })
+      .parse(i),
   )
   .handler(async ({ data }) => {
     const share = await loadShareByToken(data.token);
@@ -564,7 +608,8 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
       share.created_by as string | null,
     );
     const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
-    const inScope = docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
+    const inScope =
+      docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
     if (!inScope) throw new Error("This document isn't in the share scope.");
 
     await logShareAccess(share.id as string, data.mode, {

@@ -12,19 +12,47 @@ export const Route = createFileRoute("/admin/audit")({
   component: AuditPage,
 });
 
-const actionArea: Record<string, { area: string; tone: string; severity: string; sevTone: string }> = {
+const actionArea: Record<
+  string,
+  { area: string; tone: string; severity: string; sevTone: string }
+> = {
   suspend_agency: { area: "Agencies", tone: "teal", severity: "High", sevTone: "red" },
   unsuspend_agency: { area: "Agencies", tone: "teal", severity: "Medium", sevTone: "amber" },
   view_agency: { area: "Agencies", tone: "teal", severity: "Low", sevTone: "green" },
-  create_agency_invitation: { area: "Invitations", tone: "blue", severity: "Medium", sevTone: "amber" },
+  create_agency_invitation: {
+    area: "Invitations",
+    tone: "blue",
+    severity: "Medium",
+    sevTone: "amber",
+  },
   resend_invitation: { area: "Invitations", tone: "blue", severity: "Low", sevTone: "green" },
   revoke_invitation: { area: "Invitations", tone: "blue", severity: "Medium", sevTone: "amber" },
-  update_invitation_email: { area: "Invitations", tone: "blue", severity: "Medium", sevTone: "amber" },
+  update_invitation_email: {
+    area: "Invitations",
+    tone: "blue",
+    severity: "Medium",
+    sevTone: "amber",
+  },
   copy_invitation_link: { area: "Invitations", tone: "blue", severity: "Low", sevTone: "green" },
-  copy_talent_invitation_link: { area: "Invitations", tone: "blue", severity: "Low", sevTone: "green" },
-  agency_talent_invite_inert: { area: "Invitations", tone: "blue", severity: "Medium", sevTone: "amber" },
+  copy_talent_invitation_link: {
+    area: "Invitations",
+    tone: "blue",
+    severity: "Low",
+    sevTone: "green",
+  },
+  agency_talent_invite_inert: {
+    area: "Invitations",
+    tone: "blue",
+    severity: "Medium",
+    sevTone: "amber",
+  },
   view_quotes_invoices: { area: "Reporting", tone: "purple", severity: "Low", sevTone: "green" },
-  export_quotes_invoices: { area: "Reporting", tone: "purple", severity: "Medium", sevTone: "amber" },
+  export_quotes_invoices: {
+    area: "Reporting",
+    tone: "purple",
+    severity: "Medium",
+    sevTone: "amber",
+  },
   approve_legal_copy: { area: "Legal & Copy", tone: "teal", severity: "Medium", sevTone: "amber" },
 };
 
@@ -69,7 +97,13 @@ function AuditPage() {
 
   const summary = useQuery({
     queryKey: ["admin", "audit-summary"],
-    queryFn: () => summaryFn() as Promise<{ total: number; today: number; actorCount: number; byAction: Record<string, number> }>,
+    queryFn: () =>
+      summaryFn() as Promise<{
+        total: number;
+        today: number;
+        actorCount: number;
+        byAction: Record<string, number>;
+      }>,
     refetchInterval: 30_000,
   });
 
@@ -98,10 +132,12 @@ function AuditPage() {
   }, [byAction, summary.data]);
 
   const filtersActive = areaFilter !== "all" || !!search;
-  const resetFilters = () => { setAreaFilter("all"); setSearch(""); };
+  const resetFilters = () => {
+    setAreaFilter("all");
+    setSearch("");
+  };
 
-  const selected =
-    visible.find((e: any) => e.id === selectedId) ?? visible[0] ?? null;
+  const selected = visible.find((e: any) => e.id === selectedId) ?? visible[0] ?? null;
 
   const exportCsv = () => {
     const headers = ["Time", "Actor", "Action", "Target", "Detail"];
@@ -134,7 +170,8 @@ function AuditPage() {
         </div>
         <div className="tvp-actions">
           <button className="tvp-secondary" onClick={exportCsv}>
-            <Download className="h-4 w-4" />Export Log
+            <Download className="h-4 w-4" />
+            Export Log
           </button>
         </div>
       </div>
@@ -142,39 +179,57 @@ function AuditPage() {
       {/* KPI row */}
       <div className="tvp-grid tvp-kpi-grid">
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-teal"><Activity className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <Activity className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{kpis.total}</div>
             <div className="tvp-kpi-label">Total Events</div>
-            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Immutable audit trail</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>
+              Immutable audit trail
+            </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-blue"><Mail className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-blue">
+            <Mail className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{kpis.eventsToday}</div>
             <div className="tvp-kpi-label">Events Today</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.eventsToday > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: kpis.eventsToday > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+            >
               {kpis.eventsToday > 0 ? "Active session" : "Quiet so far"}
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-red"><ShieldAlert className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-red">
+            <ShieldAlert className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{kpis.highSeverity}</div>
             <div className="tvp-kpi-label">High-Severity Actions</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.highSeverity > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: kpis.highSeverity > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}
+            >
               {kpis.highSeverity > 0 ? "Review recommended" : "No high-severity events"}
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-purple"><Users2 className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-purple">
+            <Users2 className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{kpis.distinctActors}</div>
             <div className="tvp-kpi-label">Distinct Actors</div>
-            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>Admins + system</div>
+            <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>
+              Admins + system
+            </div>
           </div>
         </div>
       </div>
@@ -183,8 +238,12 @@ function AuditPage() {
       <div className="tvp-life-chips">
         {["all", "Agencies", "Invitations", "Reporting", "Legal & Copy", "System"].map((k) => {
           const toneMap: Record<string, string> = {
-            all: "teal", Agencies: "teal", Invitations: "blue", Reporting: "purple",
-            "Legal & Copy": "amber", System: "neutral",
+            all: "teal",
+            Agencies: "teal",
+            Invitations: "blue",
+            Reporting: "purple",
+            "Legal & Copy": "amber",
+            System: "neutral",
           };
           return (
             <button
@@ -208,7 +267,9 @@ function AuditPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
           {filtersActive && (
-            <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
+            <button className="tvp-link" onClick={resetFilters}>
+              Reset filters
+            </button>
           )}
         </div>
         <div
@@ -223,32 +284,68 @@ function AuditPage() {
             <table className="tvp-table">
               <thead>
                 <tr>
-                  <th>Time</th><th>Actor</th><th>Action</th><th>Area</th><th>Target</th><th>Severity</th>
+                  <th>Time</th>
+                  <th>Actor</th>
+                  <th>Action</th>
+                  <th>Area</th>
+                  <th>Target</th>
+                  <th>Severity</th>
                 </tr>
               </thead>
               <tbody>
                 {q.isPending && (
-                  <tr><td colSpan={6} className="tvp-muted">Loading events…</td></tr>
+                  <tr>
+                    <td colSpan={6} className="tvp-muted">
+                      Loading events…
+                    </td>
+                  </tr>
                 )}
                 {!q.isPending && visible.length === 0 && (
-                  <tr><td colSpan={6} className="tvp-muted">No audit events to show yet — every privileged action is recorded here as it happens.</td></tr>
+                  <tr>
+                    <td colSpan={6} className="tvp-muted">
+                      No audit events to show yet — every privileged action is recorded here as it
+                      happens.
+                    </td>
+                  </tr>
                 )}
                 {visible.map((e: any) => {
                   const meta = actionArea[e.action] ?? {
-                    area: "System", tone: "neutral", severity: "Low", sevTone: "green",
+                    area: "System",
+                    tone: "neutral",
+                    severity: "Low",
+                    sevTone: "green",
                   };
                   return (
                     <tr
                       key={e.id}
                       onClick={() => setSelectedId(e.id)}
-                      style={{ cursor: "pointer", background: selected?.id === e.id ? "color-mix(in oklab, var(--tvp-teal) 6%, transparent)" : undefined }}
+                      style={{
+                        cursor: "pointer",
+                        background:
+                          selected?.id === e.id
+                            ? "color-mix(in oklab, var(--tvp-teal) 6%, transparent)"
+                            : undefined,
+                      }}
                     >
-                      <td>{new Date(e.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
-                      <td><strong>{e.actor_email ?? "System"}</strong></td>
+                      <td>
+                        {new Date(e.created_at).toLocaleString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td>
+                        <strong>{e.actor_email ?? "System"}</strong>
+                      </td>
                       <td>{humanAction(e.action)}</td>
-                      <td><span className={`tvp-status tvp-${meta.tone}`}>{meta.area}</span></td>
+                      <td>
+                        <span className={`tvp-status tvp-${meta.tone}`}>{meta.area}</span>
+                      </td>
                       <td>{e.target_label ?? "—"}</td>
-                      <td><span className={`tvp-status tvp-${meta.sevTone}`}>{meta.severity}</span></td>
+                      <td>
+                        <span className={`tvp-status tvp-${meta.sevTone}`}>{meta.severity}</span>
+                      </td>
                     </tr>
                   );
                 })}
@@ -268,32 +365,52 @@ function AuditPage() {
             {selected ? (
               (() => {
                 const meta = actionArea[selected.action] ?? {
-                  area: "System", tone: "neutral", severity: "Low", sevTone: "green",
+                  area: "System",
+                  tone: "neutral",
+                  severity: "Low",
+                  sevTone: "green",
                 };
                 return (
                   <>
                     <p style={{ marginTop: 10 }}>
                       <span className={`tvp-status tvp-${meta.sevTone}`}>{meta.severity}</span>
                     </p>
-                    <h3 className="tvp-h3" style={{ marginTop: 10 }}>{humanAction(selected.action)}</h3>
+                    <h3 className="tvp-h3" style={{ marginTop: 10 }}>
+                      {humanAction(selected.action)}
+                    </h3>
                     <p className="tvp-muted" style={{ fontSize: 12 }}>
                       Reference: {selected.id}
                     </p>
                     <div style={{ marginTop: 16 }}>
                       <div style={{ fontWeight: 900, marginBottom: 4 }}>Actor</div>
-                      <p><strong>{selected.actor_email ?? "System"}</strong></p>
+                      <p>
+                        <strong>{selected.actor_email ?? "System"}</strong>
+                      </p>
                     </div>
                     <div style={{ marginTop: 16 }}>
                       <div style={{ fontWeight: 900, marginBottom: 4 }}>Target</div>
-                      <p><strong>{selected.target_label ?? "—"}</strong>
-                      {selected.target_type && (
-                        <><br /><span className="tvp-muted">{selected.target_type}</span></>
-                      )}
+                      <p>
+                        <strong>{selected.target_label ?? "—"}</strong>
+                        {selected.target_type && (
+                          <>
+                            <br />
+                            <span className="tvp-muted">{selected.target_type}</span>
+                          </>
+                        )}
                       </p>
                     </div>
                     <div style={{ marginTop: 16 }}>
                       <div style={{ fontWeight: 900, marginBottom: 4 }}>Detail</div>
-                      <pre style={{ fontSize: 12, background: "rgba(0,0,0,0.03)", padding: 8, borderRadius: 6, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                      <pre
+                        style={{
+                          fontSize: 12,
+                          background: "rgba(0,0,0,0.03)",
+                          padding: 8,
+                          borderRadius: 6,
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-all",
+                        }}
+                      >
                         {JSON.stringify(selected.detail ?? {}, null, 2)}
                       </pre>
                     </div>

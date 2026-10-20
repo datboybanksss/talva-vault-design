@@ -18,7 +18,10 @@ export type ResolvedInvitation =
       role: string | null;
       expires_at: string;
     }
-  | { ok: false; reason: "not_found" | "expired" | "accepted" | "revoked" | "unsupported" | "throttled" };
+  | {
+      ok: false;
+      reason: "not_found" | "expired" | "accepted" | "revoked" | "unsupported" | "throttled";
+    };
 
 export const resolveAgencyInvitationToken = createServerFn({ method: "POST" })
   .inputValidator((v) => resolveInput.parse(v))
@@ -38,8 +41,7 @@ export const resolveAgencyInvitationToken = createServerFn({ method: "POST" })
     if (inv.status === "accepted") return { ok: false, reason: "accepted" };
     if (inv.status === "revoked") return { ok: false, reason: "revoked" };
     if (inv.status !== "pending") return { ok: false, reason: "not_found" };
-    if (new Date(inv.expires_at).getTime() < Date.now())
-      return { ok: false, reason: "expired" };
+    if (new Date(inv.expires_at).getTime() < Date.now()) return { ok: false, reason: "expired" };
     if (inv.kind !== "agency_onboarding" && inv.kind !== "staff")
       return { ok: false, reason: "unsupported" };
 
@@ -91,8 +93,7 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
       perIp: { max: 10, windowSeconds: 900, blockSeconds: 1800 },
       perToken: { max: 6, windowSeconds: 900, blockSeconds: 1800 },
     });
-    if (!guard.allowed)
-      return { ok: false, code: "throttled", message: throttleMessage(guard) };
+    if (!guard.allowed) return { ok: false, code: "throttled", message: throttleMessage(guard) };
 
     const pwErr = validateNewPassword(data.password);
     if (pwErr) return { ok: false, code: "weak_password", message: pwErr };
@@ -105,14 +106,34 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
       .eq("token", data.token)
       .maybeSingle();
 
-    if (invErr || !inv) return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
-    if (inv.status === "accepted") return { ok: false, code: "already_accepted", message: "This invitation has already been accepted. Please sign in instead." };
-    if (inv.status === "revoked") return { ok: false, code: "revoked", message: "This invitation has been revoked. Contact your administrator for a new one." };
-    if (inv.status !== "pending") return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
+    if (invErr || !inv)
+      return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
+    if (inv.status === "accepted")
+      return {
+        ok: false,
+        code: "already_accepted",
+        message: "This invitation has already been accepted. Please sign in instead.",
+      };
+    if (inv.status === "revoked")
+      return {
+        ok: false,
+        code: "revoked",
+        message: "This invitation has been revoked. Contact your administrator for a new one.",
+      };
+    if (inv.status !== "pending")
+      return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
     if (new Date(inv.expires_at).getTime() < Date.now())
-      return { ok: false, code: "expired", message: "This invitation has expired. Contact your administrator for a fresh invite." };
+      return {
+        ok: false,
+        code: "expired",
+        message: "This invitation has expired. Contact your administrator for a fresh invite.",
+      };
     if (data.email.trim().toLowerCase() !== inv.email.trim().toLowerCase())
-      return { ok: false, code: "email_mismatch", message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact your agency administrator.` };
+      return {
+        ok: false,
+        code: "email_mismatch",
+        message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact your agency administrator.`,
+      };
 
     // Create the auth user. handle_new_user() trigger will provision profile,
     // agency (for owner onboarding) or membership (for staff) and mark the

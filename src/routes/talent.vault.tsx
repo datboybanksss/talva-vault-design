@@ -29,21 +29,43 @@ import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { toast } from "sonner";
 import {
-  Upload, Lock, FileStack, Sparkles, Info, Download, FolderOpen, Archive,
-  Folder, Trash2, MoreVertical, Inbox, AlertCircle, CheckCircle2, Clock as ClockIcon,
-  ChevronDown, Search, Eye,
+  Upload,
+  Lock,
+  FileStack,
+  Sparkles,
+  Info,
+  Download,
+  FolderOpen,
+  Archive,
+  Folder,
+  Trash2,
+  MoreVertical,
+  Inbox,
+  AlertCircle,
+  CheckCircle2,
+  Clock as ClockIcon,
+  ChevronDown,
+  Search,
+  Eye,
 } from "lucide-react";
 
-
-
 export const Route = createFileRoute("/talent/vault")({
-  head: () => ({ meta: [
-    { title: "Vault · TalVault Talent" },
-    { name: "description", content: "Manage your private documents and agency-shared folders in TalVault." },
-    { property: "og:title", content: "Vault · TalVault Talent" },
-    { property: "og:description", content: "Manage your private documents and agency-shared folders in TalVault." },
-    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Vault · TalVault Talent" },
+      {
+        name: "description",
+        content: "Manage your private documents and agency-shared folders in TalVault.",
+      },
+      { property: "og:title", content: "Vault · TalVault Talent" },
+      {
+        property: "og:description",
+        content: "Manage your private documents and agency-shared folders in TalVault.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   validateSearch: (search: Record<string, unknown>): { tab?: Mode; view?: AgencyView } => {
     const t = search.tab;
     const v = search.view;
@@ -57,7 +79,6 @@ export const Route = createFileRoute("/talent/vault")({
   },
   component: VaultPage,
 });
-
 
 type Mode = "private" | "agency";
 type AgencyView = "folder" | "requests";
@@ -85,12 +106,17 @@ function VaultPage() {
         </div>
       </div>
 
-
       <div className="tvp-tabs" data-tour="talent-vault-tabs">
-        <button className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`} onClick={() => goTo("private")}>
+        <button
+          className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`}
+          onClick={() => goTo("private")}
+        >
           <Lock className="h-4 w-4" /> Private Vault
         </button>
-        <button className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`} onClick={() => goTo("agency")}>
+        <button
+          className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`}
+          onClick={() => goTo("agency")}
+        >
           <FileStack className="h-4 w-4" /> Agency Shared Folder
         </button>
       </div>
@@ -100,13 +126,9 @@ function VaultPage() {
 
         {mode === "agency" && <AgencySharedFolder initialView={view ?? "folder"} />}
       </div>
-
-
-
     </>
   );
 }
-
 
 type PrivateFolder = {
   id: string;
@@ -158,7 +180,6 @@ function PrivateVault() {
       return next;
     });
 
-
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["talent", "private-vault"],
     queryFn: () => load() as Promise<{ folders: PrivateFolder[]; documents: PrivateDoc[] }>,
@@ -178,14 +199,10 @@ function PrivateVault() {
     return map;
   }, [folders]);
   const folderName = (id: string | null) =>
-    id ? folders.find((f) => f.id === id)?.name ?? "—" : "Unfiled";
+    id ? (folders.find((f) => f.id === id)?.name ?? "—") : "Unfiled";
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
   const aiRow = useAnalyseWithAi("talent");
-
-
-
-
 
   async function onDeleteFolder(id: string, name: string, isTop: boolean) {
     const message = isTop
@@ -289,9 +306,10 @@ function PrivateVault() {
     return out;
   }
 
-  const filterScope = filterFolder !== "__all" && filterFolder !== "__unfiled" && filterFolder !== "__pending"
-    ? folderAndDescendants(filterFolder)
-    : null;
+  const filterScope =
+    filterFolder !== "__all" && filterFolder !== "__unfiled" && filterFolder !== "__pending"
+      ? folderAndDescendants(filterFolder)
+      : null;
 
   const pendingCount = documents.filter((d) => d.pending_review).length;
 
@@ -312,19 +330,24 @@ function PrivateVault() {
   const isFiltering = search.trim() !== "" || filterFolder !== "__all";
   const docsVisible = showAllDocs || isFiltering;
 
-
-
   if (isLoading) {
-    return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Private Vault…</p></div>;
+    return (
+      <div className="tvp-card tvp-panel">
+        <p className="tvp-muted">Loading Private Vault…</p>
+      </div>
+    );
   }
   if (isError) {
-    return <div className="tvp-card tvp-panel"><p className="tvp-warn">Failed to load: {(error as Error)?.message}</p></div>;
+    return (
+      <div className="tvp-card tvp-panel">
+        <p className="tvp-warn">Failed to load: {(error as Error)?.message}</p>
+      </div>
+    );
   }
 
   return (
     <>
       <input ref={fileInput} type="file" hidden onChange={onFilePicked} />
-
 
       <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
         <div className="tvp-vault-search">
@@ -335,11 +358,21 @@ function PrivateVault() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select className="tvp-vault-select" value={filterFolder} onChange={(e) => setFilterFolder(e.target.value)}>
+        <select
+          className="tvp-vault-select"
+          value={filterFolder}
+          onChange={(e) => setFilterFolder(e.target.value)}
+        >
           <option value="__all">Folder: All</option>
           <option value="__unfiled">Unfiled</option>
-          <option value="__pending">Pending review{pendingCount ? ` (${pendingCount})` : ""}</option>
-          {topFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          <option value="__pending">
+            Pending review{pendingCount ? ` (${pendingCount})` : ""}
+          </option>
+          {topFolders.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
         </select>
         <div className="tvp-view-switch" role="tablist" aria-label="Private vault view">
           <button
@@ -364,194 +397,266 @@ function PrivateVault() {
       </div>
 
       {!docsVisible && (
-      <div className="tvp-card tvp-panel">
-        <div className="tvp-panel-head">
-          <div>
-            <h2 className="tvp-h2">Private Vault Folders</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · choose which
-              categories appear in Settings → Manage folders.
+        <div className="tvp-card tvp-panel">
+          <div className="tvp-panel-head">
+            <div>
+              <h2 className="tvp-h2">Private Vault Folders</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · choose which
+                categories appear in Settings → Manage folders.
+              </p>
+            </div>
+            <div className="tvp-row-actions">
+              <button
+                className="tvp-primary"
+                data-tour="talent-vault-upload"
+                onClick={() => triggerUpload(null)}
+              >
+                <Upload className="h-4 w-4" /> Upload
+              </button>
+            </div>
+          </div>
+
+          {topFolders.length === 0 ? (
+            <p className="tvp-muted" style={{ fontSize: 13 }}>
+              No folders switched on yet — turn categories on under Settings → Manage folders.
             </p>
-          </div>
-          <div className="tvp-row-actions">
-            <button className="tvp-primary" data-tour="talent-vault-upload" onClick={() => triggerUpload(null)}><Upload className="h-4 w-4" /> Upload</button>
-          </div>
-        </div>
-
-        {topFolders.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13 }}>
-            No folders switched on yet — turn categories on under Settings → Manage folders.
-          </p>
-        ) : (
-          <div className="tvp-folder-tree">
-            {topFolders.map((f) => {
-              const subs = subsByParent.get(f.id) ?? [];
-              const groups = subs.filter((s) => (subsByParent.get(s.id) ?? []).length > 0);
-              const leaves = subs.filter((s) => (subsByParent.get(s.id) ?? []).length === 0);
-              const docCount = documents.filter((d) => d.folder_id === f.id).length;
-              const open = openFolders.has(f.id);
-              return (
-                <div key={f.id} className={`tvp-folder-card${open ? " tvp-open" : ""}`}>
-                  <button
-                    type="button"
-                    className="tvp-folder-head"
-                    aria-expanded={open}
-                    onClick={() => toggleFolder(f.id)}
-                  >
-                    <span className={`tvp-kpi-icon tvp-bg-${f.tone ?? "teal"}`} style={{ width: 40, height: 40 }}>
-                      <Folder className="h-4 w-4" />
-                    </span>
-                    <span style={{ minWidth: 0 }}>
-                      <span className="tvp-folder-name" style={{ display: "block" }}>{f.name}</span>
-                      <span className="tvp-folder-meta" style={{ display: "block" }}>
-                        {subs.length} sub · {docCount} doc{docCount === 1 ? "" : "s"}
+          ) : (
+            <div className="tvp-folder-tree">
+              {topFolders.map((f) => {
+                const subs = subsByParent.get(f.id) ?? [];
+                const groups = subs.filter((s) => (subsByParent.get(s.id) ?? []).length > 0);
+                const leaves = subs.filter((s) => (subsByParent.get(s.id) ?? []).length === 0);
+                const docCount = documents.filter((d) => d.folder_id === f.id).length;
+                const open = openFolders.has(f.id);
+                return (
+                  <div key={f.id} className={`tvp-folder-card${open ? " tvp-open" : ""}`}>
+                    <button
+                      type="button"
+                      className="tvp-folder-head"
+                      aria-expanded={open}
+                      onClick={() => toggleFolder(f.id)}
+                    >
+                      <span
+                        className={`tvp-kpi-icon tvp-bg-${f.tone ?? "teal"}`}
+                        style={{ width: 40, height: 40 }}
+                      >
+                        <Folder className="h-4 w-4" />
                       </span>
-                    </span>
-                    <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
-                  </button>
+                      <span style={{ minWidth: 0 }}>
+                        <span className="tvp-folder-name" style={{ display: "block" }}>
+                          {f.name}
+                        </span>
+                        <span className="tvp-folder-meta" style={{ display: "block" }}>
+                          {subs.length} sub · {docCount} doc{docCount === 1 ? "" : "s"}
+                        </span>
+                      </span>
+                      <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
+                    </button>
 
-                  <div className="tvp-folder-body">
-                    <div>
-                      <div className="tvp-folder-body-inner">
-                        {groups.map((s) => (
-                          <div key={s.id}>
-                            <div className="tvp-folder-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              {s.name}
-                              <button title="Delete group" type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name, false)} aria-label="Delete group"><Trash2 className="h-3 w-3" /></button>
+                    <div className="tvp-folder-body">
+                      <div>
+                        <div className="tvp-folder-body-inner">
+                          {groups.map((s) => (
+                            <div key={s.id}>
+                              <div
+                                className="tvp-folder-eyebrow"
+                                style={{ display: "flex", alignItems: "center", gap: 6 }}
+                              >
+                                {s.name}
+                                <button
+                                  title="Delete group"
+                                  type="button"
+                                  className="tvp-mini-btn"
+                                  onClick={() => onDeleteFolder(s.id, s.name, false)}
+                                  aria-label="Delete group"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                              <div className="tvp-subfolder-list" style={{ marginTop: 6 }}>
+                                {(subsByParent.get(s.id) ?? []).map((k) => (
+                                  <span key={k.id} className="tvp-subfolder-pill">
+                                    {k.name}
+                                    <button
+                                      title="Delete subfolder"
+                                      type="button"
+                                      className="tvp-mini-btn"
+                                      onClick={() => onDeleteFolder(k.id, k.name, false)}
+                                      aria-label="Delete subfolder"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                            <div className="tvp-subfolder-list" style={{ marginTop: 6 }}>
-                              {(subsByParent.get(s.id) ?? []).map((k) => (
-                                <span key={k.id} className="tvp-subfolder-pill">
-                                  {k.name}
-                                  <button title="Delete subfolder" type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(k.id, k.name, false)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
+                          ))}
+
+                          {leaves.length > 0 && (
+                            <div className="tvp-subfolder-list">
+                              {leaves.map((s) => (
+                                <span key={s.id} className="tvp-subfolder-pill">
+                                  {s.name}
+                                  <button
+                                    title="Delete subfolder"
+                                    type="button"
+                                    className="tvp-mini-btn"
+                                    onClick={() => onDeleteFolder(s.id, s.name, false)}
+                                    aria-label="Delete subfolder"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
                                 </span>
                               ))}
                             </div>
-                          </div>
-                        ))}
+                          )}
 
-                        {leaves.length > 0 && (
-                          <div className="tvp-subfolder-list">
-                            {leaves.map((s) => (
-                              <span key={s.id} className="tvp-subfolder-pill">
-                                {s.name}
-                                <button title="Delete subfolder" type="button" className="tvp-mini-btn" onClick={() => onDeleteFolder(s.id, s.name, false)} aria-label="Delete subfolder"><Trash2 className="h-3 w-3" /></button>
-                              </span>
-                            ))}
+                          <div className="tvp-footer-actions" style={{ marginTop: 2 }}>
+                            <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}>
+                              <Upload className="h-4 w-4" /> Upload here
+                            </button>
+                            <button
+                              title="Remove folder — hidden, restorable from Settings"
+                              className="tvp-mini-btn"
+                              onClick={() => onDeleteFolder(f.id, f.name, true)}
+                              aria-label="Remove folder (restorable)"
+                            >
+                              <Archive className="h-4 w-4" />
+                            </button>
                           </div>
-                        )}
-
-                        <div className="tvp-footer-actions" style={{ marginTop: 2 }}>
-                          <button className="tvp-secondary" onClick={() => triggerUpload(f.id)}><Upload className="h-4 w-4" /> Upload here</button>
-                          <button title="Remove folder — hidden, restorable from Settings" className="tvp-mini-btn" onClick={() => onDeleteFolder(f.id, f.name, true)} aria-label="Remove folder (restorable)"><Archive className="h-4 w-4" /></button>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {docsVisible && (
-      <div className="tvp-card">
+        <div className="tvp-card">
+          <div className="tvp-panel-head">
+            <div>
+              <h2 className="tvp-h2">All private documents</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                {filteredDocs.length === documents.length
+                  ? `${filteredDocs.length} document${filteredDocs.length === 1 ? "" : "s"} across all folders`
+                  : `${filteredDocs.length} of ${documents.length} document${documents.length === 1 ? "" : "s"} match`}
+              </p>
+            </div>
+          </div>
 
-        <div className="tvp-panel-head">
-          <div>
-            <h2 className="tvp-h2">All private documents</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              {filteredDocs.length === documents.length
-                ? `${filteredDocs.length} document${filteredDocs.length === 1 ? "" : "s"} across all folders`
-                : `${filteredDocs.length} of ${documents.length} document${documents.length === 1 ? "" : "s"} match`}
+          {filteredDocs.length === 0 ? (
+            <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
+              {documents.length === 0
+                ? "Nothing uploaded yet — pick a folder above and upload your first document."
+                : "No documents match your search or folder filter — clear them to see everything."}
             </p>
-          </div>
-        </div>
-
-        {filteredDocs.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
-            {documents.length === 0
-              ? "Nothing uploaded yet — pick a folder above and upload your first document."
-              : "No documents match your search or folder filter — clear them to see everything."}
-          </p>
-
-        ) : (
-          <div className="tvp-table-wrap">
-            <table className="tvp-table">
-              <thead><tr><th>Document</th><th>Folder</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
-              <tbody>
-                {docPage.visible.map((d) => (
-                  <tr key={d.id}>
-                    <td>
-                      <strong>{d.name}</strong>
-                      {d.pending_review && (
-                        <span className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}>
-                          {statusLabel("document", "pending_review")}
-                        </span>
-                      )}
-                    </td>
-                    <td>{folderName(d.folder_id)}</td>
-                    <td>{d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : "—"}</td>
-                    <td>{new Date(d.created_at).toLocaleDateString("en-GB")}</td>
-                    <td>
-                      <div className="tvp-row-actions">
-                        <RowActionsMenu
-                          actions={[
-                            d.pending_review && {
-                              key: "review", label: "Finish filing review", icon: Sparkles,
-                              onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
-                            },
-                            aiRow.canAnalyse(d.pending_review) && {
-                              key: "analyse", label: "Analyse with AI", icon: Sparkles,
-                              disabled: !d.storage_path || aiRow.isPending,
-                              onSelect: () =>
-                                aiRow.analyse({
-                                  id: d.id, name: d.name,
-                                  open: () => setAiReviewFor({ id: d.id, name: d.name }),
-                                }),
-                            },
-                            {
-                              key: "view", label: "View document", icon: Eye,
-                              disabled: !d.storage_path,
-                              title: d.storage_path ? undefined : "No file attached to this document",
-                              onSelect: () => onView(d.id, d.name),
-                            },
-                            {
-                              key: "download", label: "Download document", icon: Download,
-                              disabled: !d.storage_path,
-                              title: d.storage_path ? undefined : "No file attached to this document",
-                              onSelect: () => onDownload(d.id),
-                            },
-                            {
-                              key: "delete", label: "Delete document", icon: Trash2,
-                              destructive: true, separatorBefore: true,
-                              onSelect: () => onDeleteDoc(d.id, d.name),
-                            },
-                          ]}
-                        />
-                      </div>
-                    </td>
+          ) : (
+            <div className="tvp-table-wrap">
+              <table className="tvp-table">
+                <thead>
+                  <tr>
+                    <th>Document</th>
+                    <th>Folder</th>
+                    <th>Size</th>
+                    <th>Uploaded</th>
+                    <th></th>
                   </tr>
-                ))}
-                <LoadMoreRow
-                colSpan={6}
-                noun="documents"
-                shown={docPage.shown}
-                total={docPage.total}
-                hasMore={docPage.hasMore}
-                onLoadMore={docPage.loadMore}
-              />
-            </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {docPage.visible.map((d) => (
+                    <tr key={d.id}>
+                      <td>
+                        <strong>{d.name}</strong>
+                        {d.pending_review && (
+                          <span
+                            className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}
+                          >
+                            {statusLabel("document", "pending_review")}
+                          </span>
+                        )}
+                      </td>
+                      <td>{folderName(d.folder_id)}</td>
+                      <td>{d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : "—"}</td>
+                      <td>{new Date(d.created_at).toLocaleDateString("en-GB")}</td>
+                      <td>
+                        <div className="tvp-row-actions">
+                          <RowActionsMenu
+                            actions={[
+                              d.pending_review && {
+                                key: "review",
+                                label: "Finish filing review",
+                                icon: Sparkles,
+                                onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
+                              },
+                              aiRow.canAnalyse(d.pending_review) && {
+                                key: "analyse",
+                                label: "Analyse with AI",
+                                icon: Sparkles,
+                                disabled: !d.storage_path || aiRow.isPending,
+                                onSelect: () =>
+                                  aiRow.analyse({
+                                    id: d.id,
+                                    name: d.name,
+                                    open: () => setAiReviewFor({ id: d.id, name: d.name }),
+                                  }),
+                              },
+                              {
+                                key: "view",
+                                label: "View document",
+                                icon: Eye,
+                                disabled: !d.storage_path,
+                                title: d.storage_path
+                                  ? undefined
+                                  : "No file attached to this document",
+                                onSelect: () => onView(d.id, d.name),
+                              },
+                              {
+                                key: "download",
+                                label: "Download document",
+                                icon: Download,
+                                disabled: !d.storage_path,
+                                title: d.storage_path
+                                  ? undefined
+                                  : "No file attached to this document",
+                                onSelect: () => onDownload(d.id),
+                              },
+                              {
+                                key: "delete",
+                                label: "Delete document",
+                                icon: Trash2,
+                                destructive: true,
+                                separatorBefore: true,
+                                onSelect: () => onDeleteDoc(d.id, d.name),
+                              },
+                            ]}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  <LoadMoreRow
+                    colSpan={6}
+                    noun="documents"
+                    shown={docPage.shown}
+                    total={docPage.total}
+                    hasMore={docPage.hasMore}
+                    onLoadMore={docPage.loadMore}
+                  />
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
 
-      {preview && <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />}
+      {preview && (
+        <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />
+      )}
 
       {aiReviewFor && (
         <AiFilingReviewModal
@@ -567,28 +672,32 @@ function PrivateVault() {
         />
       )}
     </>
-
-
   );
 }
-
 
 const SHARED_TONES = ["teal", "blue", "purple", "green", "amber", "red"];
 
 function statusTone(status: string) {
   switch (status) {
-    case "approved": return "green";
-    case "needs_review": return "purple";
-    case "resubmission_required": return "amber";
-    case "cancelled": return "red";
-    default: return "blue";
+    case "approved":
+      return "green";
+    case "needs_review":
+      return "purple";
+    case "resubmission_required":
+      return "amber";
+    case "cancelled":
+      return "red";
+    default:
+      return "blue";
   }
 }
 
 function AgencySharedFolder({ initialView }: { initialView: AgencyView }) {
   const navigate = useNavigate();
   const [view, setView] = useState<AgencyView>(initialView);
-  useEffect(() => { setView(initialView); }, [initialView]);
+  useEffect(() => {
+    setView(initialView);
+  }, [initialView]);
 
   const loadDash = useServerFn(getTalentDashboard);
   const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
@@ -629,7 +738,6 @@ function AgencySharedFolder({ initialView }: { initialView: AgencyView }) {
 }
 
 function SharedDocumentsView() {
-
   const load = useServerFn(getRosterSharedContents);
   const download = useServerFn(getSharedDocumentDownloadUrl);
 
@@ -637,7 +745,6 @@ function SharedDocumentsView() {
   const [folderFilter, setFolderFilter] = useState<string>("__all");
   const [showAllDocs, setShowAllDocs] = useState(false);
   const docsVisible = showAllDocs || search.trim() !== "" || folderFilter !== "__all";
-
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["talent", "roster-shared"],
@@ -654,17 +761,26 @@ function SharedDocumentsView() {
   }
 
   if (isLoading) {
-    return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading Agency Shared Folder…</p></div>;
+    return (
+      <div className="tvp-card tvp-panel">
+        <p className="tvp-muted">Loading Agency Shared Folder…</p>
+      </div>
+    );
   }
   if (isError) {
-    return <div className="tvp-card tvp-panel"><p className="tvp-warn">Failed to load: {(error as Error)?.message}</p></div>;
+    return (
+      <div className="tvp-card tvp-panel">
+        <p className="tvp-warn">Failed to load: {(error as Error)?.message}</p>
+      </div>
+    );
   }
   if (!data?.link) {
     return (
       <div className="tvp-card tvp-panel">
         <h2 className="tvp-h2">No active manager link</h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
-          You aren't currently linked to a Talent Manager. Once you're invited and accepted, the Agency Shared Folder appears here.
+          You aren't currently linked to a Talent Manager. Once you're invited and accepted, the
+          Agency Shared Folder appears here.
         </p>
       </div>
     );
@@ -679,11 +795,6 @@ function SharedDocumentsView() {
 
   return (
     <>
-
-
-
-
-
       <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
         <div className="tvp-vault-search">
           <Search />
@@ -693,9 +804,17 @@ function SharedDocumentsView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select className="tvp-vault-select" value={folderFilter} onChange={(e) => setFolderFilter(e.target.value)}>
+        <select
+          className="tvp-vault-select"
+          value={folderFilter}
+          onChange={(e) => setFolderFilter(e.target.value)}
+        >
           <option value="__all">Folder: All</option>
-          {folders.map((f) => <option key={f.id} value={f.folder_name}>{f.folder_name}</option>)}
+          {folders.map((f) => (
+            <option key={f.id} value={f.folder_name}>
+              {f.folder_name}
+            </option>
+          ))}
         </select>
         <div className="tvp-view-switch" role="tablist" aria-label="Shared folder view">
           <button
@@ -720,115 +839,152 @@ function SharedDocumentsView() {
       </div>
 
       {!docsVisible && (
-      <div className="tvp-card tvp-panel">
-        <div className="tvp-panel-head">
-          <div>
-            <h2 className="tvp-h2">Agency Shared Folder</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              {folders.length} folder{folders.length === 1 ? "" : "s"} · {data.documents.length} document{data.documents.length === 1 ? "" : "s"}
+        <div className="tvp-card tvp-panel">
+          <div className="tvp-panel-head">
+            <div>
+              <h2 className="tvp-h2">Agency Shared Folder</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                {folders.length} folder{folders.length === 1 ? "" : "s"} · {data.documents.length}{" "}
+                document{data.documents.length === 1 ? "" : "s"}
+              </p>
+            </div>
+            <span className="tvp-lock-note">
+              <Lock className="h-3 w-3" /> Folder structure locked by Manager
+            </span>
+          </div>
+          {data.read_until && (
+            <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 12 }}>
+              This connection has ended. You can view and download these items, read-only, for 10
+              years from the date the relationship ended — until{" "}
+              {new Date(data.read_until).toLocaleDateString("en-ZA", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+              .
             </p>
-          </div>
-          <span className="tvp-lock-note"><Lock className="h-3 w-3" /> Folder structure locked by Manager</span>
-        </div>
-        {data.read_until && (
-          <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 12 }}>
-            This connection has ended. You can view and download these items, read-only, for 10 years from the date the relationship ended — until{" "}
-            {new Date(data.read_until).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}.
-          </p>
-        )}
-        {folders.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13 }}>Your Manager hasn't provisioned any shared folders yet.</p>
-        ) : (
-          <div className="tvp-folder-tree">
-            {folders.map((f, i) => {
-              const count = data.documents.filter((d) => d.folder === f.folder_name).length;
-              const tone = SHARED_TONES[i % SHARED_TONES.length];
-              return (
-                <div key={f.id} className="tvp-folder-card">
-                  <div className="tvp-folder-head tvp-static">
-                    <span className={`tvp-kpi-icon tvp-bg-${tone}`} style={{ width: 40, height: 40 }}>
-                      <FolderOpen className="h-4 w-4" />
-                    </span>
-                    <span style={{ minWidth: 0 }}>
-                      <span className="tvp-folder-name" style={{ display: "block" }}>{f.folder_name}</span>
-                      <span className="tvp-folder-meta" style={{ display: "block" }}>
-                        {count} doc{count === 1 ? "" : "s"}
-                        {f.retention_years != null
-                          ? ` · retention ${f.retention_years} yr${f.retention_years === 1 ? "" : "s"}`
-                          : ""}
+          )}
+          {folders.length === 0 ? (
+            <p className="tvp-muted" style={{ fontSize: 13 }}>
+              Your Manager hasn't provisioned any shared folders yet.
+            </p>
+          ) : (
+            <div className="tvp-folder-tree">
+              {folders.map((f, i) => {
+                const count = data.documents.filter((d) => d.folder === f.folder_name).length;
+                const tone = SHARED_TONES[i % SHARED_TONES.length];
+                return (
+                  <div key={f.id} className="tvp-folder-card">
+                    <div className="tvp-folder-head tvp-static">
+                      <span
+                        className={`tvp-kpi-icon tvp-bg-${tone}`}
+                        style={{ width: 40, height: 40 }}
+                      >
+                        <FolderOpen className="h-4 w-4" />
                       </span>
-                    </span>
-                    <Lock className="h-4 w-4 tvp-folder-chevron" />
+                      <span style={{ minWidth: 0 }}>
+                        <span className="tvp-folder-name" style={{ display: "block" }}>
+                          {f.folder_name}
+                        </span>
+                        <span className="tvp-folder-meta" style={{ display: "block" }}>
+                          {count} doc{count === 1 ? "" : "s"}
+                          {f.retention_years != null
+                            ? ` · retention ${f.retention_years} yr${f.retention_years === 1 ? "" : "s"}`
+                            : ""}
+                        </span>
+                      </span>
+                      <Lock className="h-4 w-4 tvp-folder-chevron" />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {docsVisible && (
-      <div className="tvp-card">
+        <div className="tvp-card">
+          <div className="tvp-panel-head">
+            <div>
+              <h2 className="tvp-h2">All shared documents</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+                {docs.length === data.documents.length
+                  ? `${docs.length} document${docs.length === 1 ? "" : "s"} across all folders`
+                  : `${docs.length} of ${data.documents.length} document${data.documents.length === 1 ? "" : "s"} match`}
+              </p>
+            </div>
+          </div>
 
-        <div className="tvp-panel-head">
-          <div>
-            <h2 className="tvp-h2">All shared documents</h2>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              {docs.length === data.documents.length
-                ? `${docs.length} document${docs.length === 1 ? "" : "s"} across all folders`
-                : `${docs.length} of ${data.documents.length} document${data.documents.length === 1 ? "" : "s"} match`}
+          {docs.length === 0 ? (
+            <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
+              {data.documents.length === 0
+                ? "Your Manager hasn't shared any documents with you yet."
+                : "No documents match your search or folder filter — clear them to see everything."}
             </p>
-          </div>
-        </div>
-
-        {docs.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
-            {data.documents.length === 0
-              ? "Your Manager hasn't shared any documents with you yet."
-              : "No documents match your search or folder filter — clear them to see everything."}
-          </p>
-
-        ) : (
-          <div className="tvp-table-wrap">
-            <table className="tvp-table">
-              <thead><tr><th>Document</th><th>Folder</th><th>Status</th><th>Expires</th><th></th></tr></thead>
-              <tbody>
-                {docs.map((d) => (
-                  <tr key={d.id}>
-                    <td>
-                      <strong>{d.name}</strong>
-                      {d.pending_review && (
-                        <span className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}>
-                          {statusLabel("document", "pending_review")}
-                        </span>
-                      )}
-                    </td>
-                    <td>{d.folder}</td>
-                    <td><span className={`tvp-status tvp-${statusTone(d.status)}`}>{d.status.replace(/_/g, " ")}</span></td>
-                    <td>{d.validity_expires_at ? new Date(d.validity_expires_at).toLocaleDateString("en-GB") : "—"}</td>
-                    <td>
-                      <div className="tvp-row-actions">
-                        {d.storage_path ? (
-
-                          <button title="Download document" className="tvp-mini-btn" onClick={() => onDownload(d.id)} aria-label="Download">
-                            <Download className="h-4 w-4" />
-                          </button>
-                        ) : (
-                          <span className="tvp-muted" style={{ fontSize: 11 }}>No file</span>
-                        )}
-                      </div>
-                    </td>
+          ) : (
+            <div className="tvp-table-wrap">
+              <table className="tvp-table">
+                <thead>
+                  <tr>
+                    <th>Document</th>
+                    <th>Folder</th>
+                    <th>Status</th>
+                    <th>Expires</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {docs.map((d) => (
+                    <tr key={d.id}>
+                      <td>
+                        <strong>{d.name}</strong>
+                        {d.pending_review && (
+                          <span
+                            className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}
+                          >
+                            {statusLabel("document", "pending_review")}
+                          </span>
+                        )}
+                      </td>
+                      <td>{d.folder}</td>
+                      <td>
+                        <span className={`tvp-status tvp-${statusTone(d.status)}`}>
+                          {d.status.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td>
+                        {d.validity_expires_at
+                          ? new Date(d.validity_expires_at).toLocaleDateString("en-GB")
+                          : "—"}
+                      </td>
+                      <td>
+                        <div className="tvp-row-actions">
+                          {d.storage_path ? (
+                            <button
+                              title="Download document"
+                              className="tvp-mini-btn"
+                              onClick={() => onDownload(d.id)}
+                              aria-label="Download"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                          ) : (
+                            <span className="tvp-muted" style={{ fontSize: 11 }}>
+                              No file
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
     </>
-
   );
 }
 
@@ -858,7 +1014,11 @@ function ManagerRequests() {
       const { signedUrl, path } = await reserve({
         data: { request_id: requestId, filename: file.name, mime_type: file.type || undefined },
       });
-      const put = await fetch(signedUrl, { method: "PUT", body: file, headers: file.type ? { "Content-Type": file.type } : undefined });
+      const put = await fetch(signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: file.type ? { "Content-Type": file.type } : undefined,
+      });
       if (!put.ok) throw new Error("Upload failed");
       await submit({
         data: {
@@ -880,8 +1040,18 @@ function ManagerRequests() {
     }
   }
 
-  if (isLoading) return <div className="tvp-card tvp-panel"><p className="tvp-muted">Loading requests…</p></div>;
-  if (isError) return <div className="tvp-card tvp-panel"><p className="tvp-warn">Failed to load: {(error as Error)?.message}</p></div>;
+  if (isLoading)
+    return (
+      <div className="tvp-card tvp-panel">
+        <p className="tvp-muted">Loading requests…</p>
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="tvp-card tvp-panel">
+        <p className="tvp-warn">Failed to load: {(error as Error)?.message}</p>
+      </div>
+    );
   if (!data?.link) {
     return (
       <div className="tvp-card tvp-panel">
@@ -893,21 +1063,25 @@ function ManagerRequests() {
     );
   }
 
-  const open = (data.requests ?? []).filter((r: any) =>
-    r.status === "pending" || r.status === "resubmission_required" || r.status === "submitted",
+  const open = (data.requests ?? []).filter(
+    (r: any) =>
+      r.status === "pending" || r.status === "resubmission_required" || r.status === "submitted",
   );
-  const closed = (data.requests ?? []).filter((r: any) =>
-    r.status === "completed" || r.status === "cancelled",
+  const closed = (data.requests ?? []).filter(
+    (r: any) => r.status === "completed" || r.status === "cancelled",
   );
 
   return (
     <>
       <div className="tvp-callout">
-        <div className="tvp-callout-icon"><Inbox className="h-4 w-4" /></div>
+        <div className="tvp-callout-icon">
+          <Inbox className="h-4 w-4" />
+        </div>
         <div>
           <strong>Requests from your Manager.</strong>{" "}
           <span className="tvp-muted">
-            Upload the requested document; it lands in your Agency Shared Folder and your Manager reviews it. Previous submissions are kept in history — nothing is deleted.
+            Upload the requested document; it lands in your Agency Shared Folder and your Manager
+            reviews it. Previous submissions are kept in history — nothing is deleted.
           </span>
         </div>
       </div>
@@ -915,17 +1089,32 @@ function ManagerRequests() {
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Open requests</h2>
-          <span className="tvp-muted" style={{ fontSize: 12 }}>{open.length} open</span>
+          <span className="tvp-muted" style={{ fontSize: 12 }}>
+            {open.length} open
+          </span>
         </div>
         {open.length === 0 ? (
-          <p className="tvp-muted" style={{ fontSize: 13 }}>Nothing waiting on you right now — you're all caught up.</p>
+          <p className="tvp-muted" style={{ fontSize: 13 }}>
+            Nothing waiting on you right now — you're all caught up.
+          </p>
         ) : (
           <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
             {open.map((r: any) => (
-              <div key={r.id} className="tvp-doc-card" style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+              <div
+                key={r.id}
+                className="tvp-doc-card"
+                style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10 }}
+              >
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 38, height: 38, flexShrink: 0 }}>
-                    {r.status === "resubmission_required" ? <AlertCircle className="h-4 w-4" /> : <ClockIcon className="h-4 w-4" />}
+                  <div
+                    className="tvp-kpi-icon tvp-bg-amber"
+                    style={{ width: 38, height: 38, flexShrink: 0 }}
+                  >
+                    {r.status === "resubmission_required" ? (
+                      <AlertCircle className="h-4 w-4" />
+                    ) : (
+                      <ClockIcon className="h-4 w-4" />
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <strong>{r.title}</strong>
@@ -934,27 +1123,43 @@ function ManagerRequests() {
                       {r.due_date && <> · Due {new Date(r.due_date).toLocaleDateString("en-GB")}</>}
                     </div>
                     {r.instructions && (
-                      <div style={{ fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>{r.instructions}</div>
+                      <div style={{ fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>
+                        {r.instructions}
+                      </div>
                     )}
                     {r.status === "resubmission_required" && (r.review_notes || r.reason_code) && (
-                      <div className="tvp-callout" style={{ marginTop: 8, background: "#FFF7ED", borderColor: "#F6C99D" }}>
-                        <div className="tvp-callout-icon" style={{ background: "var(--tvp-amber-bg)", color: "var(--tvp-amber)" }}>
+                      <div
+                        className="tvp-callout"
+                        style={{ marginTop: 8, background: "#FFF7ED", borderColor: "#F6C99D" }}
+                      >
+                        <div
+                          className="tvp-callout-icon"
+                          style={{ background: "var(--tvp-amber-bg)", color: "var(--tvp-amber)" }}
+                        >
                           <AlertCircle className="h-4 w-4" />
                         </div>
                         <div style={{ fontSize: 12 }}>
                           <strong>Manager requested a resubmission</strong>
                           {r.reason_code && <> · reason: {r.reason_code.replace(/_/g, " ")}</>}
-                          {r.review_notes && <div className="tvp-muted" style={{ marginTop: 2 }}>{r.review_notes}</div>}
+                          {r.review_notes && (
+                            <div className="tvp-muted" style={{ marginTop: 2 }}>
+                              {r.review_notes}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
-                  <span className={`tvp-status tvp-${statusChipTone(r.status)}`}>{r.status.replace(/_/g, " ")}</span>
+                  <span className={`tvp-status tvp-${statusChipTone(r.status)}`}>
+                    {r.status.replace(/_/g, " ")}
+                  </span>
                 </div>
                 {r.status !== "submitted" && (
                   <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                     <input
-                      ref={(el) => { fileRefs.current[r.id] = el; }}
+                      ref={(el) => {
+                        fileRefs.current[r.id] = el;
+                      }}
                       type="file"
                       style={{ display: "none" }}
                       onChange={(e) => {
@@ -969,12 +1174,18 @@ function ManagerRequests() {
                       onClick={() => fileRefs.current[r.id]?.click()}
                     >
                       <Upload className="h-4 w-4" />
-                      {uploadingId === r.id ? "Uploading…" : r.status === "resubmission_required" ? "Resubmit" : "Upload response"}
+                      {uploadingId === r.id
+                        ? "Uploading…"
+                        : r.status === "resubmission_required"
+                          ? "Resubmit"
+                          : "Upload response"}
                     </button>
                   </div>
                 )}
                 {r.status === "submitted" && (
-                  <div className="tvp-muted" style={{ fontSize: 12, textAlign: "right" }}>Awaiting Manager review.</div>
+                  <div className="tvp-muted" style={{ fontSize: 12, textAlign: "right" }}>
+                    Awaiting Manager review.
+                  </div>
                 )}
               </div>
             ))}
@@ -1002,7 +1213,11 @@ function ManagerRequests() {
               return (
                 <li key={r.id} className="tvp-history-row">
                   <span className={`tvp-history-dot${done ? " tvp-green" : " tvp-grey"}`}>
-                    {done ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                    {done ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4" />
+                    )}
                   </span>
                   <div className="tvp-history-main">
                     <div className="tvp-history-title">
@@ -1012,9 +1227,14 @@ function ManagerRequests() {
                       </span>
                     </div>
                     <div className="tvp-history-meta">
-                      <span><FolderOpen className="h-3 w-3" /> {r.folder}</span>
+                      <span>
+                        <FolderOpen className="h-3 w-3" /> {r.folder}
+                      </span>
                       {r.reviewed_at && (
-                        <span><ClockIcon className="h-3 w-3" /> Reviewed {new Date(r.reviewed_at).toLocaleDateString("en-GB")}</span>
+                        <span>
+                          <ClockIcon className="h-3 w-3" /> Reviewed{" "}
+                          {new Date(r.reviewed_at).toLocaleDateString("en-GB")}
+                        </span>
                       )}
                     </div>
                     {r.reason_code && (
@@ -1029,10 +1249,6 @@ function ManagerRequests() {
           </ul>
         </div>
       )}
-
     </>
   );
 }
-
-
-

@@ -61,16 +61,27 @@ export function isPending(status: AnalysisStatus | null | undefined) {
   return status === "queued" || status === "processing";
 }
 
-export function resultToPatch(r: AdapterResult): Partial<AnalysisRow> & { completed_at?: string | null } {
+export function resultToPatch(
+  r: AdapterResult,
+): Partial<AnalysisRow> & { completed_at?: string | null } {
   switch (r.status) {
     case "completed":
-      return { status: "completed", suggestion: r.suggestion, error_code: null, completed_at: new Date().toISOString() };
+      return {
+        status: "completed",
+        suggestion: r.suggestion,
+        error_code: null,
+        completed_at: new Date().toISOString(),
+      };
     case "processing":
       return { status: "processing", provider_ref: r.providerRef, error_code: null };
     case "failed":
       return { status: "failed", error_code: r.errorCode, completed_at: new Date().toISOString() };
     case "unavailable":
-      return { status: "unavailable", error_code: r.errorCode, completed_at: new Date().toISOString() };
+      return {
+        status: "unavailable",
+        error_code: r.errorCode,
+        completed_at: new Date().toISOString(),
+      };
   }
 }
 
@@ -144,7 +155,10 @@ export async function applyAiPreferenceChange(next: boolean, deps: PreferenceCha
 }
 
 /** "Analyse with AI" is offered only to someone with the switch on, for a pending document. */
-export function canAnalyseWithAi(aiEnabled: boolean | undefined, pendingReview: boolean | undefined) {
+export function canAnalyseWithAi(
+  aiEnabled: boolean | undefined,
+  pendingReview: boolean | undefined,
+) {
   return aiEnabled === true && pendingReview === true;
 }
 
@@ -168,7 +182,8 @@ export function checkAiSources(input: {
     return "AI filing is switched off for your account, so values can't be saved as AI-suggested.";
   }
   const s = input.analysis?.status === "completed" ? input.analysis.suggestion : null;
-  if (!s) return "No completed AI analysis exists for this document, so values can't be saved as AI-suggested.";
+  if (!s)
+    return "No completed AI analysis exists for this document, so values can't be saved as AI-suggested.";
   if (wantsFolder && (!s.folder_id || s.folder_id !== input.destination)) {
     return "The folder doesn't match the AI suggestion, so it can't be saved as AI-suggested.";
   }

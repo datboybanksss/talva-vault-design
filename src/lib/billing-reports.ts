@@ -15,7 +15,13 @@ export type BillingReportRow = {
   status: string;
 };
 
-export type PeriodKey = "this_month" | "last_month" | "this_quarter" | "this_year" | "custom" | "all";
+export type PeriodKey =
+  | "this_month"
+  | "last_month"
+  | "this_quarter"
+  | "this_year"
+  | "custom"
+  | "all";
 
 export const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: "this_month", label: "This month" },
@@ -43,8 +49,18 @@ const iso = (d: Date) => {
 };
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 export function fmtDayLabel(isoDate: string) {
@@ -70,7 +86,12 @@ export function resolvePeriod(
     case "last_month": {
       const start = new Date(y, m - 1, 1);
       const end = new Date(y, m, 1);
-      return { key, start: iso(start), end: iso(end), label: `${MONTHS[start.getMonth()]} ${start.getFullYear()}` };
+      return {
+        key,
+        start: iso(start),
+        end: iso(end),
+        label: `${MONTHS[start.getMonth()]} ${start.getFullYear()}`,
+      };
     }
     case "this_quarter": {
       const q = Math.floor(m / 3);
@@ -149,7 +170,15 @@ function bucket(map: Map<string, ReportBucket>, name: string) {
   const key = name.toLowerCase();
   let b = map.get(key);
   if (!b) {
-    b = { key, name, quotedCents: 0, invoicedCents: 0, receivedCents: 0, outstandingCents: 0, docCount: 0 };
+    b = {
+      key,
+      name,
+      quotedCents: 0,
+      invoicedCents: 0,
+      receivedCents: 0,
+      outstandingCents: 0,
+      docCount: 0,
+    };
     map.set(key, b);
   }
   return b;
@@ -170,11 +199,19 @@ export function buildBillingReport(
   const report: BillingReport = {
     currency: rows[0]?.currency ?? "ZAR",
     period,
-    quotedCents: 0, quotedCount: 0,
-    invoicedCents: 0, invoicedCount: 0,
-    receivedCents: 0, receivedCount: 0,
-    outstandingCents: 0, outstandingCount: 0, overdueCount: 0,
-    byTalent: [], byClient: [], trend: [], lineItems: [],
+    quotedCents: 0,
+    quotedCount: 0,
+    invoicedCents: 0,
+    invoicedCount: 0,
+    receivedCents: 0,
+    receivedCount: 0,
+    outstandingCents: 0,
+    outstandingCount: 0,
+    overdueCount: 0,
+    byTalent: [],
+    byClient: [],
+    trend: [],
+    lineItems: [],
   };
 
   const talentMap = new Map<string, ReportBucket>();
@@ -183,7 +220,10 @@ export function buildBillingReport(
   const trendMap = new Map<string, { invoicedCents: number; receivedCents: number }>();
   for (let i = trendMonths - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    trendMap.set(`${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}`, { invoicedCents: 0, receivedCents: 0 });
+    trendMap.set(`${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}`, {
+      invoicedCents: 0,
+      receivedCents: 0,
+    });
   }
 
   for (const r of rows) {
@@ -216,8 +256,10 @@ export function buildBillingReport(
       if (!issuedIn) continue;
       report.quotedCents += r.total_cents;
       report.quotedCount += 1;
-      tb.quotedCents += r.total_cents; cb.quotedCents += r.total_cents;
-      tb.docCount += 1; cb.docCount += 1;
+      tb.quotedCents += r.total_cents;
+      cb.quotedCents += r.total_cents;
+      tb.docCount += 1;
+      cb.docCount += 1;
       report.lineItems.push(r);
       continue;
     }
@@ -225,20 +267,24 @@ export function buildBillingReport(
     if (issuedIn) {
       report.invoicedCents += r.total_cents;
       report.invoicedCount += 1;
-      tb.invoicedCents += r.total_cents; cb.invoicedCents += r.total_cents;
+      tb.invoicedCents += r.total_cents;
+      cb.invoicedCents += r.total_cents;
       if (isOutstanding) {
         report.outstandingCents += r.total_cents;
         report.outstandingCount += 1;
         if (r.status === "overdue") report.overdueCount += 1;
-        tb.outstandingCents += r.total_cents; cb.outstandingCents += r.total_cents;
+        tb.outstandingCents += r.total_cents;
+        cb.outstandingCents += r.total_cents;
       }
     }
     if (paidIn) {
       report.receivedCents += r.total_cents;
       report.receivedCount += 1;
-      tb.receivedCents += r.total_cents; cb.receivedCents += r.total_cents;
+      tb.receivedCents += r.total_cents;
+      cb.receivedCents += r.total_cents;
     }
-    tb.docCount += 1; cb.docCount += 1;
+    tb.docCount += 1;
+    cb.docCount += 1;
     report.lineItems.push(r);
   }
 
@@ -267,12 +313,17 @@ export function sortBuckets(list: ReportBucket[], key: BucketSortKey, dir: "asc"
   const mul = dir === "asc" ? 1 : -1;
   return [...list].sort((a, b) => {
     switch (key) {
-      case "name": return mul * a.name.localeCompare(b.name);
-      case "quoted": return mul * (a.quotedCents - b.quotedCents);
-      case "invoiced": return mul * (a.invoicedCents - b.invoicedCents);
-      case "received": return mul * (a.receivedCents - b.receivedCents);
+      case "name":
+        return mul * a.name.localeCompare(b.name);
+      case "quoted":
+        return mul * (a.quotedCents - b.quotedCents);
+      case "invoiced":
+        return mul * (a.invoicedCents - b.invoicedCents);
+      case "received":
+        return mul * (a.receivedCents - b.receivedCents);
       case "outstanding":
-      default: return mul * (a.outstandingCents - b.outstandingCents);
+      default:
+        return mul * (a.outstandingCents - b.outstandingCents);
     }
   });
 }
@@ -289,20 +340,37 @@ export function buildReportCsv(report: BillingReport, agencyName: string) {
   lines.push(csvCell(`${agencyName} — financial report`));
   lines.push(csvCell(`Period: ${report.period.label}`));
   lines.push("");
-  lines.push(["Type", "Number", "Talent", "Client", "Status", "Issued", "Due", "Paid", "Currency", "Amount"].join(","));
+  lines.push(
+    [
+      "Type",
+      "Number",
+      "Talent",
+      "Client",
+      "Status",
+      "Issued",
+      "Due",
+      "Paid",
+      "Currency",
+      "Amount",
+    ].join(","),
+  );
   for (const r of report.lineItems) {
-    lines.push([
-      r.kind === "quote" ? "Quote" : "Invoice",
-      r.number,
-      r.talent_name ?? "Unassigned",
-      r.client_name ?? "",
-      r.status,
-      r.issued_at.slice(0, 10),
-      r.due_date?.slice(0, 10) ?? "",
-      r.status === "paid" ? (r.paid_at ?? r.issued_at).slice(0, 10) : "",
-      r.currency,
-      (r.total_cents / 100).toFixed(2),
-    ].map(csvCell).join(","));
+    lines.push(
+      [
+        r.kind === "quote" ? "Quote" : "Invoice",
+        r.number,
+        r.talent_name ?? "Unassigned",
+        r.client_name ?? "",
+        r.status,
+        r.issued_at.slice(0, 10),
+        r.due_date?.slice(0, 10) ?? "",
+        r.status === "paid" ? (r.paid_at ?? r.issued_at).slice(0, 10) : "",
+        r.currency,
+        (r.total_cents / 100).toFixed(2),
+      ]
+        .map(csvCell)
+        .join(","),
+    );
   }
   return lines.join("\n");
 }
@@ -319,8 +387,7 @@ export function downloadCsv(filename: string, csv: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const esc = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export function buildReportHtml(
   report: BillingReport,
@@ -330,27 +397,45 @@ export function buildReportHtml(
   const cur = report.currency;
   const table = (title: string, rows: ReportBucket[], head: string) => `
     <h2>${esc(title)}</h2>
-    ${rows.length === 0
-      ? `<p class="empty">No activity in this period.</p>`
-      : `<table>
+    ${
+      rows.length === 0
+        ? `<p class="empty">No activity in this period.</p>`
+        : `<table>
       <thead><tr><th>${esc(head)}</th><th>Quoted</th><th>Invoiced</th><th>Received</th><th>Outstanding</th></tr></thead>
       <tbody>
-      ${rows.map((r) => `<tr>
+      ${rows
+        .map(
+          (r) => `<tr>
         <td>${esc(r.name)}</td>
         <td class="n">${money(r.quotedCents, cur)}</td>
         <td class="n">${money(r.invoicedCents, cur)}</td>
         <td class="n">${money(r.receivedCents, cur)}</td>
         <td class="n">${money(r.outstandingCents, cur)}</td>
-      </tr>`).join("")}
+      </tr>`,
+        )
+        .join("")}
       </tbody>
       <tfoot><tr>
         <td>Total</td>
-        <td class="n">${money(rows.reduce((s, r) => s + r.quotedCents, 0), cur)}</td>
-        <td class="n">${money(rows.reduce((s, r) => s + r.invoicedCents, 0), cur)}</td>
-        <td class="n">${money(rows.reduce((s, r) => s + r.receivedCents, 0), cur)}</td>
-        <td class="n">${money(rows.reduce((s, r) => s + r.outstandingCents, 0), cur)}</td>
+        <td class="n">${money(
+          rows.reduce((s, r) => s + r.quotedCents, 0),
+          cur,
+        )}</td>
+        <td class="n">${money(
+          rows.reduce((s, r) => s + r.invoicedCents, 0),
+          cur,
+        )}</td>
+        <td class="n">${money(
+          rows.reduce((s, r) => s + r.receivedCents, 0),
+          cur,
+        )}</td>
+        <td class="n">${money(
+          rows.reduce((s, r) => s + r.outstandingCents, 0),
+          cur,
+        )}</td>
       </tr></tfoot>
-    </table>`}`;
+    </table>`
+    }`;
 
   return `<!doctype html><html><head><meta charset="utf-8" />
 <title>${esc(agencyName)} — financial report — ${esc(report.period.label)}</title>
@@ -392,7 +477,8 @@ ${table("Breakdown by client", report.byClient, "Client")}
 export function printHtmlDocument(html: string) {
   const frame = document.createElement("iframe");
   frame.setAttribute("aria-hidden", "true");
-  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  frame.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
   frame.srcdoc = html;
 
   let cleaned = false;

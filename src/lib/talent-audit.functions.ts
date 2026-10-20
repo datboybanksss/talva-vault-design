@@ -47,7 +47,13 @@ export const logTalentPasswordChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context as any;
-    return writeTalentAudit(supabase, userId, claims?.email, "password_changed", "Account password");
+    return writeTalentAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "password_changed",
+      "Account password",
+    );
   });
 
 export const logTalentMfaEnrolled = createServerFn({ method: "POST" })
@@ -55,16 +61,29 @@ export const logTalentMfaEnrolled = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ factor_type: z.string().max(40) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    return writeTalentAudit(supabase, userId, claims?.email, "mfa_enrolled", "Two-factor authentication", {
-      factor_type: data.factor_type,
-    });
+    return writeTalentAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "mfa_enrolled",
+      "Two-factor authentication",
+      {
+        factor_type: data.factor_type,
+      },
+    );
   });
 
 export const logTalentMfaDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context as any;
-    return writeTalentAudit(supabase, userId, claims?.email, "mfa_disabled", "Two-factor authentication");
+    return writeTalentAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "mfa_disabled",
+      "Two-factor authentication",
+    );
   });
 
 /**
@@ -75,9 +94,8 @@ export const logTalentSignIn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context as any;
-    const { recordTalentActivity, TALENT_LOGIN_ACTION } = await import(
-      "@/lib/talent-activity.server"
-    );
+    const { recordTalentActivity, TALENT_LOGIN_ACTION } =
+      await import("@/lib/talent-activity.server");
     const meta = extractRequestMeta();
     const { deviceLabel, deviceKey } = await import("@/lib/device");
     const label = deviceLabel(meta.user_agent);

@@ -25,7 +25,9 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
 
         const { data: share } = await supabaseAdmin
           .from("loved_one_shares")
-          .select("id, scope, created_by, expires_at, revoked_at, is_active, locked_at, access_code_hash, permission")
+          .select(
+            "id, scope, created_by, expires_at, revoked_at, is_active, locked_at, access_code_hash, permission",
+          )
           .eq("token", token)
           .maybeSingle();
 
@@ -57,10 +59,13 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
           share.created_by as string | null,
         );
         const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
-        const inScope = docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
+        const inScope =
+          docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
         if (!inScope) return new Response("Forbidden", { status: 403 });
 
-        const { data: file, error } = await supabaseAdmin.storage.from(BUCKET).download(doc.storage_path);
+        const { data: file, error } = await supabaseAdmin.storage
+          .from(BUCKET)
+          .download(doc.storage_path);
         if (error || !file) return new Response("File unavailable", { status: 404 });
 
         const safeName = doc.name.replace(/["\\\r\n]/g, "_");

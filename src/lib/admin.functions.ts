@@ -59,7 +59,6 @@ const phoneSchema = z
   .refine((v) => v === "" || isValidPhone(v), { message: PHONE_FORMAT_MESSAGE })
   .optional();
 
-
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
@@ -94,9 +93,9 @@ async function adminPermissionLevel(supabase: any, userId: string) {
   const isMainAdmin = !!row?.is_main_admin;
   return {
     isMainAdmin,
-    permissionLevel: (isMainAdmin
+    permissionLevel: isMainAdmin
       ? HIGHEST_ADMIN_PERMISSION
-      : ((row?.permission_level ?? "view_only") as string)),
+      : ((row?.permission_level ?? "view_only") as string),
   };
 }
 
@@ -108,9 +107,7 @@ async function assertAdminCanSupportAgencies(supabase: any, userId: string) {
   await assertAdmin(supabase, userId);
   const { permissionLevel } = await adminPermissionLevel(supabase, userId);
   if (!canSupportAgencies(permissionLevel)) {
-    throw new Error(
-      "Forbidden: view-only administrators cannot perform this action.",
-    );
+    throw new Error("Forbidden: view-only administrators cannot perform this action.");
   }
   return permissionLevel;
 }
@@ -154,16 +151,16 @@ async function assertCanInviteAdministrator(supabase: any, userId: string) {
 function assertGrantablePermission(inviterLevel: string, requested: string) {
   const allowed = grantableAdminPermissions(inviterLevel).some((p) => p.value === requested);
   if (!allowed) {
-    throw new Error(
-      "Forbidden: you cannot grant a permission level above your own.",
-    );
+    throw new Error("Forbidden: you cannot grant a permission level above your own.");
   }
 }
 
-
 /** Agency talent invitations that can never be accepted; excluded from admin counts. */
 async function inertInvitationIds(supabase: any): Promise<Set<string>> {
-  const { data } = await supabase.from("talent_invite_private").select("invitation_id").eq("kind", "inert");
+  const { data } = await supabase
+    .from("talent_invite_private")
+    .select("invitation_id")
+    .eq("kind", "inert");
   return new Set(((data ?? []) as any[]).map((r) => r.invitation_id as string));
 }
 
@@ -233,12 +230,16 @@ export const whoami = createServerFn({ method: "GET" })
 
 export const updateOwnProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         first_name: z.string().trim().max(80).optional().default(""),
         last_name: z.string().trim().max(80).optional().default(""),
         designation: z.string().trim().max(120).optional().default(""),
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -258,9 +259,7 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
     const requestedDesignation = data.designation || null;
     const designationChanged = requestedDesignation !== currentDesignation;
     if (designationChanged && !isMain) {
-      throw new Error(
-        "Forbidden: only the Main Administrator can change the designation field.",
-      );
+      throw new Error("Forbidden: only the Main Administrator can change the designation field.");
     }
     // Non-main admins can save name changes; keep existing designation intact.
     const nextDesignation = isMain ? requestedDesignation : currentDesignation;
@@ -352,13 +351,15 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
       // see them); inert invitations are not requests.
       (supabase as any)
         .from("talent_invite_private")
-        .select("invitation_id, talent_invitations!inner(status, expires_at)", { count: "exact", head: true })
+        .select("invitation_id, talent_invitations!inner(status, expires_at)", {
+          count: "exact",
+          head: true,
+        })
         .eq("kind", "link_request")
         .eq("state", "pending")
         .eq("talent_invitations.status", "pending")
         .gt("talent_invitations.expires_at", nowIso),
     ]);
-
 
     const statusCounts: Record<string, number> = {
       incomplete: 0,
@@ -376,8 +377,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     const totalTalent = talentSplit.total;
     const totalDocs =
       (docs.data ?? []).reduce(
-        (sum: number, d: any) =>
-          sum + (d.shared_folder_count ?? 0) + (d.private_vault_count ?? 0),
+        (sum: number, d: any) => sum + (d.shared_folder_count ?? 0) + (d.private_vault_count ?? 0),
         0,
       ) ?? 0;
     const activeShares = shares.count ?? 0;
@@ -418,10 +418,11 @@ export const listAgencies = createServerFn({ method: "GET" })
       talentByAgency.set(t.agency_id, (talentByAgency.get(t.agency_id) ?? 0) + 1);
     }
 
-
     const { data: invitations } = await supabase
       .from("agency_invitations")
-      .select("id, agency_id, agency_name, contact_person, email, token, status, expires_at, last_sent_at, send_count")
+      .select(
+        "id, agency_id, agency_name, contact_person, email, token, status, expires_at, last_sent_at, send_count",
+      )
       .neq("status", "accepted")
       .neq("status", "revoked")
       .order("created_at", { ascending: false });
@@ -462,21 +463,15 @@ export const getAgencyById = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    await logAudit(
-      supabase,
-      userId,
-      claims?.email,
-      "view_agency",
-      "agency",
-      data.id,
-      agency?.name,
-    );
+    await logAudit(supabase, userId, claims?.email, "view_agency", "agency", data.id, agency?.name);
     return agency;
   });
 
 export const suspendAgency = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string(), reason: z.string().min(3) }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ id: z.string(), reason: z.string().min(3) }), d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -609,25 +604,24 @@ export const dismissNotification = createServerFn({ method: "POST" })
 
 export const dismissComputedNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ kind: z.string(), snapshot: z.number().int().nonnegative() }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ kind: z.string(), snapshot: z.number().int().nonnegative() }), d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
-    const { error } = await supabase
-      .from("admin_notification_dismissals")
-      .upsert(
-        {
-          user_id: userId,
-          kind: data.kind,
-          snapshot: data.snapshot,
-          dismissed_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,kind" },
-      );
+    const { error } = await supabase.from("admin_notification_dismissals").upsert(
+      {
+        user_id: userId,
+        kind: data.kind,
+        snapshot: data.snapshot,
+        dismissed_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,kind" },
+    );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-
 
 // -----------------------------------------------------------------------------
 // Invitations
@@ -683,9 +677,7 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
       const term = data.search.trim();
       if (term) {
         const like = `%${term.replace(/[%,()]/g, "")}%`;
-        out = out.or(
-          `agency_name.ilike.${like},email.ilike.${like},contact_person.ilike.${like}`,
-        );
+        out = out.or(`agency_name.ilike.${like},email.ilike.${like},contact_person.ilike.${like}`);
       }
       return out;
     };
@@ -704,7 +696,11 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
       counts[t] = countResults[i]?.count ?? 0;
     });
 
-    const { data: rows, error, count } = await applyFilters(
+    const {
+      data: rows,
+      error,
+      count,
+    } = await applyFilters(
       supabase.from("agency_invitations").select("*", { count: "exact" }),
       data.status,
     )
@@ -722,14 +718,18 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
 // Create as DRAFT — admin must upload compliance docs then call finalize.
 export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         agency_name: z.string().min(1),
         contact_person: z.string().optional(),
         email: z.string().email(),
         business_type: z.enum(["formal", "informal"]),
         expiry_days: z.number().int().min(1).max(60).default(14),
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -759,9 +759,7 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
       );
     }
 
-    const expiresAt = new Date(
-      Date.now() + data.expiry_days * 24 * 3600 * 1000,
-    ).toISOString();
+    const expiresAt = new Date(Date.now() + data.expiry_days * 24 * 3600 * 1000).toISOString();
 
     const { data: agency, error: agencyErr } = await supabase
       .from("agencies")
@@ -809,8 +807,9 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
 // Update an existing DRAFT — stays editable until it is finalised.
 export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         id: z.string(),
         agency_name: z.string().min(1).optional(),
         contact_person: z.string().optional(),
@@ -819,7 +818,10 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
         expiry_days: z.number().int().min(1).max(60).optional(),
         registered_contact_number: phoneSchema,
         registered_mobile_number: phoneSchema,
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -867,8 +869,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
 
     const patch: Record<string, unknown> = {};
     if (data.agency_name !== undefined) patch.agency_name = data.agency_name;
-    if (data.contact_person !== undefined)
-      patch.contact_person = data.contact_person || null;
+    if (data.contact_person !== undefined) patch.contact_person = data.contact_person || null;
     if (data.email !== undefined) patch.email = data.email;
     if (data.business_type !== undefined) patch.business_type = data.business_type;
     if (data.registered_contact_number !== undefined)
@@ -876,9 +877,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
     if (data.registered_mobile_number !== undefined)
       patch.registered_mobile_number = data.registered_mobile_number || null;
     if (data.expiry_days !== undefined) {
-      patch.expires_at = new Date(
-        Date.now() + data.expiry_days * 24 * 3600 * 1000,
-      ).toISOString();
+      patch.expires_at = new Date(Date.now() + data.expiry_days * 24 * 3600 * 1000).toISOString();
     }
     patch.updated_at = new Date().toISOString();
 
@@ -896,8 +895,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
       if (data.email !== undefined) agencyPatch.contact_email = nextEmail;
       if (data.contact_person !== undefined)
         agencyPatch.contact_person = data.contact_person || null;
-      if (data.business_type !== undefined)
-        agencyPatch.business_type = data.business_type;
+      if (data.business_type !== undefined) agencyPatch.business_type = data.business_type;
       if (Object.keys(agencyPatch).length > 0) {
         await supabase.from("agencies").update(agencyPatch).eq("id", inv.agency_id);
       }
@@ -916,8 +914,6 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
     return updated;
   });
 
-
-
 // Finalize: move draft -> pending after compliance docs uploaded.
 const REQUIRED_FILE_SLOTS: Record<"formal" | "informal", string[]> = {
   formal: ["cipc", "director_id", "proof_of_address"],
@@ -926,13 +922,17 @@ const REQUIRED_FILE_SLOTS: Record<"formal" | "informal", string[]> = {
 
 export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         id: z.string(),
         registered_contact_number: phoneSchema,
         registered_mobile_number: phoneSchema,
         expiry_days: z.number().int().min(1).max(60).default(14),
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -969,9 +969,7 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
       throw new Error("Registered mobile number is required.");
     }
 
-    const expiresAt = new Date(
-      Date.now() + data.expiry_days * 24 * 3600 * 1000,
-    ).toISOString();
+    const expiresAt = new Date(Date.now() + data.expiry_days * 24 * 3600 * 1000).toISOString();
     const { data: updated, error: uErr } = await supabase
       .from("agency_invitations")
       .update({
@@ -1017,15 +1015,19 @@ export const listComplianceDocuments = createServerFn({ method: "GET" })
 
 export const recordComplianceDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         invitation_id: z.string(),
         doc_slot: z.string().min(1),
         file_name: z.string().min(1),
         storage_path: z.string().min(1),
         mime_type: z.string().optional(),
         size_bytes: z.number().optional(),
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -1048,7 +1050,6 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
       path: data.storage_path,
       claimedMime: data.mime_type ?? null,
     });
-
 
     // A given file name may only be uploaded once per agency onboarding record,
     // across every document slot. Compared case-insensitively.
@@ -1111,10 +1112,7 @@ export const deleteComplianceDocument = createServerFn({ method: "POST" })
       .single();
     if (fErr) throw new Error(fErr.message);
     await supabase.storage.from("agency-compliance-docs").remove([doc.storage_path]);
-    const { error } = await supabase
-      .from("agency_compliance_documents")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await supabase.from("agency_compliance_documents").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     await logAudit(
       supabase,
@@ -1182,10 +1180,7 @@ export const deleteAgencyInvitation = createServerFn({ method: "POST" })
       }
     }
 
-    const { error: delErr } = await supabase
-      .from("agency_invitations")
-      .delete()
-      .eq("id", data.id);
+    const { error: delErr } = await supabase.from("agency_invitations").delete().eq("id", data.id);
     if (delErr) throw new Error(delErr.message);
 
     await logAudit(
@@ -1213,13 +1208,13 @@ export const createAgencyInvitation = createAgencyInvitationDraft;
 
 export const resendInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string(), extend_days: z.number().default(14) }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ id: z.string(), extend_days: z.number().default(14) }), d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanSupportAgencies(supabase, userId);
-    const expires_at = new Date(
-      Date.now() + data.extend_days * 24 * 3600 * 1000,
-    ).toISOString();
+    const expires_at = new Date(Date.now() + data.extend_days * 24 * 3600 * 1000).toISOString();
     const { data: current } = await supabase
       .from("agency_invitations")
       .select("send_count, agency_name, status")
@@ -1289,7 +1284,9 @@ export const revokeInvitation = createServerFn({ method: "POST" })
 
 export const updateInvitationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string(), email: z.string().email() }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ id: z.string(), email: z.string().email() }), d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanSupportAgencies(supabase, userId);
@@ -1381,14 +1378,18 @@ export const logTalentInviteCopyLink = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 export const listAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         limit: z.number().int().min(1).max(100).default(10),
         offset: z.number().int().min(0).default(0),
         search: z.string().default(""),
         actions: z.array(z.string()).optional(),
         excludeActions: z.array(z.string()).optional(),
-      }), d ?? {}))
+      }),
+      d ?? {},
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
@@ -1398,12 +1399,11 @@ export const listAuditLog = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
     if (data.actions?.length) q = q.in("action", data.actions);
-    if (data.excludeActions?.length) q = q.not("action", "in", `(${data.excludeActions.join(",")})`);
+    if (data.excludeActions?.length)
+      q = q.not("action", "in", `(${data.excludeActions.join(",")})`);
     if (data.search.trim()) {
       const s = data.search.trim().replace(/[%,()]/g, " ");
-      q = q.or(
-        `actor_email.ilike.%${s}%,action.ilike.%${s}%,target_label.ilike.%${s}%`,
-      );
+      q = q.or(`actor_email.ilike.%${s}%,action.ilike.%${s}%,target_label.ilike.%${s}%`);
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
@@ -1466,7 +1466,9 @@ export const listBillingDocs = createServerFn({ method: "GET" })
 
 export const logBillingExport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ scope: z.string(), row_count: z.number() }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ scope: z.string(), row_count: z.number() }), d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -1493,7 +1495,9 @@ export const listAdministrators = createServerFn({ method: "GET" })
     await assertAdmin(supabase, userId);
     const { data: roles, error } = await supabase
       .from("user_roles")
-      .select("user_id, role, is_main_admin, permission_level, created_at, suspended, suspended_at, suspended_reason")
+      .select(
+        "user_id, role, is_main_admin, permission_level, created_at, suspended, suspended_at, suspended_reason",
+      )
       .eq("role", "admin");
     if (error) throw new Error(error.message);
     const ids = (roles ?? []).map((r: any) => r.user_id);
@@ -1535,19 +1539,22 @@ export const listAdminInvitations = createServerFn({ method: "GET" })
 
 export const inviteAdministrator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         email: z.string().email(),
         permission_level: ADMIN_PERMISSION_ENUM,
         expiry_days: z.number().int().min(1).max(60).default(14),
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     // Any administrator at the highest permission level may invite colleagues;
     // the Main Administrator retains this ability too. Enforced server-side.
     const inviter = await assertCanInviteAdministrator(supabase, userId);
     assertGrantablePermission(inviter.permissionLevel, data.permission_level);
-
 
     // Reject if email is already an admin
     const { data: existingProfile } = await supabase
@@ -1584,9 +1591,7 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
       );
     }
 
-    const expiresAt = new Date(
-      Date.now() + data.expiry_days * 24 * 3600 * 1000,
-    ).toISOString();
+    const expiresAt = new Date(Date.now() + data.expiry_days * 24 * 3600 * 1000).toISOString();
 
     const { data: inv, error } = await supabase
       .from("admin_invitations")
@@ -1626,11 +1631,15 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
  */
 export const updateAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         id: z.string(),
         permission_level: ADMIN_PERMISSION_ENUM,
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const editor = await assertCanInviteAdministrator(supabase, userId);
@@ -1680,7 +1689,6 @@ export const updateAdminInvitation = createServerFn({ method: "POST" })
   });
 
 export const revokeAdminInvitation = createServerFn({ method: "POST" })
-
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
   .handler(async ({ data, context }) => {
@@ -1720,7 +1728,9 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
  */
 export const resendAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string(), extend_days: z.number().default(14) }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ id: z.string(), extend_days: z.number().default(14) }), d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertCanInviteAdministrator(supabase, userId);
@@ -1738,9 +1748,7 @@ export const resendAdminInvitation = createServerFn({ method: "POST" })
       );
     }
 
-    const expires_at = new Date(
-      Date.now() + data.extend_days * 24 * 3600 * 1000,
-    ).toISOString();
+    const expires_at = new Date(Date.now() + data.extend_days * 24 * 3600 * 1000).toISOString();
 
     const { data: inv, error } = await supabase
       .from("admin_invitations")
@@ -1848,32 +1856,31 @@ export const listNotifications = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
 
     // Computed live signals
-    const [expiring, expired, incomplete, talentPending, suspended] =
-      await Promise.all([
-        supabase
-          .from("agency_invitations")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pending")
-          .lte("expires_at", in3days)
-          .gt("expires_at", now.toISOString()),
-        supabase
-          .from("agency_invitations")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pending")
-          .lt("expires_at", now.toISOString()),
-        supabase
-          .from("agencies")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "incomplete"),
-        supabase
-          .from("talent_invitations")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pending"),
-        supabase
-          .from("agencies")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "suspended"),
-      ]);
+    const [expiring, expired, incomplete, talentPending, suspended] = await Promise.all([
+      supabase
+        .from("agency_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .lte("expires_at", in3days)
+        .gt("expires_at", now.toISOString()),
+      supabase
+        .from("agency_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .lt("expires_at", now.toISOString()),
+      supabase
+        .from("agencies")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "incomplete"),
+      supabase
+        .from("talent_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending"),
+      supabase
+        .from("agencies")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "suspended"),
+    ]);
 
     const computed: Array<{
       id: string;
@@ -1957,21 +1964,19 @@ export const listNotifications = createServerFn({ method: "GET" })
     const dismissedMap = new Map<string, number>(
       (dismissals ?? []).map((d: any) => [d.kind, d.snapshot]),
     );
-    const visibleComputed = computed.filter(
-      (c) => dismissedMap.get(c.kind) !== c.snapshot,
-    );
+    const visibleComputed = computed.filter((c) => dismissedMap.get(c.kind) !== c.snapshot);
 
     return { persisted: persisted ?? [], computed: visibleComputed };
   });
-
-
 
 // -----------------------------------------------------------------------------
 // MFA audit-log (never accepts or logs codes or secrets)
 // -----------------------------------------------------------------------------
 export const logMfaEnrolled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ factor_type: z.string().default("email_code") }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ factor_type: z.string().default("email_code") }), d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -2011,12 +2016,16 @@ export const logMfaDisabled = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 export const updateAdministrator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         user_id: z.string().uuid(),
         designation: z.string().trim().max(120).nullable().optional(),
         permission_level: ADMIN_PERMISSION_ENUM.optional(),
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertMainAdmin(supabase, userId);
@@ -2039,17 +2048,14 @@ export const updateAdministrator = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const targetLabel =
-      (targetProfile?.display_name as string) ||
-      (targetProfile?.email as string) ||
-      data.user_id;
+      (targetProfile?.display_name as string) || (targetProfile?.email as string) || data.user_id;
 
     const changes: Record<string, { from: string | null; to: string | null }> = {};
 
     // Designation
     if (data.designation !== undefined) {
-      const nextDesignation = data.designation && data.designation.length > 0
-        ? data.designation
-        : null;
+      const nextDesignation =
+        data.designation && data.designation.length > 0 ? data.designation : null;
       const currentDesignation = (targetProfile?.designation as string | null) ?? null;
       if (nextDesignation !== currentDesignation) {
         const { error: pErr } = await supabase
@@ -2101,12 +2107,16 @@ export const updateAdministrator = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 export const setAdministratorSuspended = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z
-      .object({
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
         user_id: z.string().uuid(),
         suspended: z.boolean(),
         reason: z.string().trim().max(400).nullable().optional(),
-      }), d))
+      }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertMainAdmin(supabase, userId);
@@ -2128,7 +2138,10 @@ export const setAdministratorSuspended = createServerFn({ method: "POST" })
     }
 
     const { data: prof } = await supabase
-      .from("profiles").select("email, display_name").eq("id", data.user_id).maybeSingle();
+      .from("profiles")
+      .select("email, display_name")
+      .eq("id", data.user_id)
+      .maybeSingle();
 
     const { error: uErr } = await supabase
       .from("user_roles")
@@ -2143,9 +2156,12 @@ export const setAdministratorSuspended = createServerFn({ method: "POST" })
     if (uErr) throw new Error(uErr.message);
 
     await logAudit(
-      supabase, userId, claims?.email,
+      supabase,
+      userId,
+      claims?.email,
       data.suspended ? "suspend_administrator" : "restore_administrator",
-      "user", data.user_id,
+      "user",
+      data.user_id,
       (prof?.display_name as string) || (prof?.email as string) || data.user_id,
       { reason: data.reason ?? null, permission_level: target.permission_level },
     );
@@ -2176,7 +2192,10 @@ export const removeAdministrator = createServerFn({ method: "POST" })
     }
 
     const { data: prof } = await supabase
-      .from("profiles").select("email, display_name").eq("id", data.user_id).maybeSingle();
+      .from("profiles")
+      .select("email, display_name")
+      .eq("id", data.user_id)
+      .maybeSingle();
 
     const { error: dErr } = await supabase
       .from("user_roles")
@@ -2186,14 +2205,17 @@ export const removeAdministrator = createServerFn({ method: "POST" })
     if (dErr) throw new Error(dErr.message);
 
     await logAudit(
-      supabase, userId, claims?.email,
-      "remove_administrator", "user", data.user_id,
+      supabase,
+      userId,
+      claims?.email,
+      "remove_administrator",
+      "user",
+      data.user_id,
       (prof?.display_name as string) || (prof?.email as string) || data.user_id,
       { permission_level: target.permission_level },
     );
     return { ok: true };
   });
-
 
 // Single administrator invitation, used by the invitation email composer.
 export const getAdminInvitationById = createServerFn({ method: "GET" })

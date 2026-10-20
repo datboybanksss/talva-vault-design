@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+  queryOptions,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Plus, Trash2, Pencil, Info, FileText, Folder } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +32,6 @@ type Rule = {
   documentLabel: string | null;
   documentFolder: string | null;
 };
-
 
 export const documentRulesQO = queryOptions({
   queryKey: ["agency", "retention", "rules"],
@@ -82,7 +87,9 @@ export function DocumentRulesPanel() {
     <>
       <div className="tvp-topbar">
         <div>
-          <h2 className="tvp-h2" data-tour="document-rules">Document Rules</h2>
+          <h2 className="tvp-h2" data-tour="document-rules">
+            Document Rules
+          </h2>
           <div className="tvp-subtitle">
             Retention rules lock documents from deletion for compliance windows.
           </div>
@@ -91,50 +98,65 @@ export function DocumentRulesPanel() {
           <button
             className="tvp-primary"
             disabled={!isOwner}
-            title={isOwner ? "Add a folder or per-document retention rule" : "Only agency owners can manage retention rules"}
+            title={
+              isOwner
+                ? "Add a folder or per-document retention rule"
+                : "Only agency owners can manage retention rules"
+            }
             onClick={() => setEditing({ scope: "folder", retentionYears: 5 })}
           >
-            <Plus className="h-4 w-4" />New retention rule
+            <Plus className="h-4 w-4" />
+            New retention rule
           </button>
         </div>
       </div>
 
       <div className="tvp-callout">
-        <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
+        <div className="tvp-callout-icon">
+          <Info className="h-4 w-4" />
+        </div>
         <div>
-          <strong>How retention works.</strong> Each document is stamped with the retention period in
-          force when it was uploaded, measured from its upload date, and cannot be deleted by anyone in
-          the agency until that period elapses. Changing a rule applies to documents uploaded from then
-          on; it never shortens a period already stamped on an existing document, and deleting a rule
-          does not release documents already locked. A longer period can be applied at any time and
-          will extend existing locks.
+          <strong>How retention works.</strong> Each document is stamped with the retention period
+          in force when it was uploaded, measured from its upload date, and cannot be deleted by
+          anyone in the agency until that period elapses. Changing a rule applies to documents
+          uploaded from then on; it never shortens a period already stamped on an existing document,
+          and deleting a rule does not release documents already locked. A longer period can be
+          applied at any time and will extend existing locks.
         </div>
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-teal"><ShieldCheck className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{folderRules.length}</div>
             <div className="tvp-kpi-label">Folder rules</div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-purple"><FileText className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-purple">
+            <FileText className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{docRules.length}</div>
             <div className="tvp-kpi-label">Per-document overrides</div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-amber"><Folder className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-amber">
+            <Folder className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{locked.length}</div>
             <div className="tvp-kpi-label">Documents currently locked</div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-blue"><Folder className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-blue">
+            <Folder className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{unlockingSoon.length}</div>
             <div className="tvp-kpi-label">Unlocking in 90 days</div>
@@ -143,8 +165,6 @@ export function DocumentRulesPanel() {
       </div>
 
       <ExpiryNoticePanel />
-
-
 
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
@@ -167,19 +187,28 @@ export function DocumentRulesPanel() {
             <tbody>
               {folderRules.map((r) => (
                 <tr key={r.id}>
-                  <td><strong>{r.scopeValue}</strong></td>
+                  <td>
+                    <strong>{r.scopeValue}</strong>
+                  </td>
                   <td>{r.retentionYears}</td>
                   <td className="tvp-muted">{r.description ?? "—"}</td>
                   <td>
                     <div className="flex gap-1 justify-end">
-                      <button className="tvp-mini-btn" disabled={!isOwner} title="Edit" onClick={() => setEditing(r)}>
+                      <button
+                        className="tvp-mini-btn"
+                        disabled={!isOwner}
+                        title="Edit"
+                        onClick={() => setEditing(r)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         className="tvp-mini-btn"
                         disabled={!isOwner || deleteMut.isPending}
                         title="Delete"
-                        onClick={() => confirm(`Delete rule for "${r.scopeValue}"?`) && deleteMut.mutate(r.id)}
+                        onClick={() =>
+                          confirm(`Delete rule for "${r.scopeValue}"?`) && deleteMut.mutate(r.id)
+                        }
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -213,7 +242,9 @@ export function DocumentRulesPanel() {
             <tbody>
               {docRules.map((r) => (
                 <tr key={r.id}>
-                  <td><strong>{r.documentLabel}</strong></td>
+                  <td>
+                    <strong>{r.documentLabel}</strong>
+                  </td>
                   <td>{r.documentFolder ?? "—"}</td>
                   <td>{r.retentionYears}</td>
                   <td>
@@ -222,7 +253,9 @@ export function DocumentRulesPanel() {
                         className="tvp-mini-btn"
                         disabled={!isOwner || deleteMut.isPending}
                         title="Remove override"
-                        onClick={() => confirm("Remove this per-document override?") && deleteMut.mutate(r.id)}
+                        onClick={() =>
+                          confirm("Remove this per-document override?") && deleteMut.mutate(r.id)
+                        }
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -271,7 +304,7 @@ function RuleDialog({
   const folderOptions = useFolderNames();
   const [scope, setScope] = useState<"folder" | "document">(initial.scope ?? "folder");
   const [scopeValue, setScopeValue] = useState<string>(initial.scopeValue ?? "");
-  const [documentId, setDocumentId] = useState<string>(initial.documentId ?? (docs[0]?.id ?? ""));
+  const [documentId, setDocumentId] = useState<string>(initial.documentId ?? docs[0]?.id ?? "");
   const [years, setYears] = useState<number>(initial.retentionYears ?? 5);
   const [description, setDescription] = useState<string>(initial.description ?? "");
   const [busy, setBusy] = useState(false);
@@ -307,8 +340,13 @@ function RuleDialog({
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)",
-        display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
       }}
     >
       <form
@@ -319,7 +357,9 @@ function RuleDialog({
       >
         <h2 className="tvp-h2">{initial.id ? "Edit retention rule" : "Add retention rule"}</h2>
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Scope</label>
+        <label className="tvp-muted" style={{ fontSize: 13 }}>
+          Scope
+        </label>
         <select
           className="tvp-select"
           value={scope}
@@ -332,23 +372,43 @@ function RuleDialog({
 
         {scope === "folder" ? (
           <>
-            <label className="tvp-muted" style={{ fontSize: 13 }}>Folder</label>
-            <select className="tvp-select" value={scopeValue} onChange={(e) => setScopeValue(e.target.value)}>
-              {allFolders.map((f) => <option key={f} value={f}>{f}</option>)}
+            <label className="tvp-muted" style={{ fontSize: 13 }}>
+              Folder
+            </label>
+            <select
+              className="tvp-select"
+              value={scopeValue}
+              onChange={(e) => setScopeValue(e.target.value)}
+            >
+              {allFolders.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
             </select>
           </>
         ) : (
           <>
-            <label className="tvp-muted" style={{ fontSize: 13 }}>Document</label>
-            <select className="tvp-select" value={documentId} onChange={(e) => setDocumentId(e.target.value)}>
+            <label className="tvp-muted" style={{ fontSize: 13 }}>
+              Document
+            </label>
+            <select
+              className="tvp-select"
+              value={documentId}
+              onChange={(e) => setDocumentId(e.target.value)}
+            >
               {docs.map((d: any) => (
-                <option key={d.id} value={d.id}>{d.name} — {d.talentName}</option>
+                <option key={d.id} value={d.id}>
+                  {d.name} — {d.talentName}
+                </option>
               ))}
             </select>
           </>
         )}
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Retention (years)</label>
+        <label className="tvp-muted" style={{ fontSize: 13 }}>
+          Retention (years)
+        </label>
         <input
           className="tvp-select"
           type="number"
@@ -359,7 +419,9 @@ function RuleDialog({
           required
         />
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>Description (optional)</label>
+        <label className="tvp-muted" style={{ fontSize: 13 }}>
+          Description (optional)
+        </label>
         <input
           className="tvp-select"
           value={description}
@@ -368,8 +430,12 @@ function RuleDialog({
         />
 
         <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="submit" className="tvp-primary" disabled={busy}>Save rule</button>
+          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button type="submit" className="tvp-primary" disabled={busy}>
+            Save rule
+          </button>
         </div>
       </form>
     </div>
@@ -417,8 +483,8 @@ function ExpiryNoticePanel() {
       </div>
       <div style={{ padding: 16 }}>
         <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 12 }}>
-          How far ahead should a shared document be flagged as expiring? This drives the
-          dashboard warning banner and the Vault Documents tile.
+          How far ahead should a shared document be flagged as expiring? This drives the dashboard
+          warning banner and the Vault Documents tile.
         </p>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
           <div className="tvp-form-group" style={{ maxWidth: 200 }}>
@@ -450,4 +516,3 @@ function ExpiryNoticePanel() {
     </div>
   );
 }
-

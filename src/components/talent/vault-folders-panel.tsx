@@ -41,7 +41,6 @@ export function VaultFoldersPanel() {
 
   const activeCount = categories.filter((c) => present.has(c.name)).length;
 
-
   async function toggle(name: string, on: boolean) {
     setBusy(name);
     try {
@@ -87,25 +86,34 @@ export function VaultFoldersPanel() {
         <div>
           <h2 className="tvp-h2">Manage folders</h2>
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-            New vaults start with {starterCount} everyday categories. Switch on any of
-            the other {Math.max(categories.length - starterCount, 0)} whenever you need
-
-            them — turning one on provisions its full subfolder set; turning it off hides it
-            (documents are kept and return if you switch it back on).
+            New vaults start with {starterCount} everyday categories. Switch on any of the other{" "}
+            {Math.max(categories.length - starterCount, 0)} whenever you need them — turning one on
+            provisions its full subfolder set; turning it off hides it (documents are kept and
+            return if you switch it back on).
           </p>
         </div>
         <div className="tvp-row-actions">
-          <button className="tvp-secondary" onClick={() => setAll(false)} disabled={busy !== null || activeCount === 0}>
+          <button
+            className="tvp-secondary"
+            onClick={() => setAll(false)}
+            disabled={busy !== null || activeCount === 0}
+          >
             Deselect all
           </button>
-          <button className="tvp-primary" onClick={() => setAll(true)} disabled={busy !== null || categories.length === 0 || activeCount === categories.length}>
+          <button
+            className="tvp-primary"
+            onClick={() => setAll(true)}
+            disabled={busy !== null || categories.length === 0 || activeCount === categories.length}
+          >
             <FolderPlus className="h-4 w-4" /> Select all
           </button>
         </div>
       </div>
 
       {isLoading ? (
-        <p className="tvp-muted" style={{ fontSize: 13 }}>Loading your vault…</p>
+        <p className="tvp-muted" style={{ fontSize: 13 }}>
+          Loading your vault…
+        </p>
       ) : (
         <>
           <p className="tvp-muted" style={{ fontSize: 12, margin: "6px 0 12px" }}>
@@ -113,7 +121,6 @@ export function VaultFoldersPanel() {
           </p>
           <div className="tvp-folder-tree">
             {categories.map((c) => {
-
               const active = present.has(c.name);
               const isBusy = busy === c.name || busy === "__all";
               return (
@@ -136,13 +143,19 @@ export function VaultFoldersPanel() {
                     onChange={(e) => toggle(c.name, e.target.checked)}
                     style={{ width: 16, height: 16, accentColor: "var(--tvp-teal)" }}
                   />
-                  <span className={`tvp-kpi-icon tvp-bg-${c.tone}`} style={{ width: 36, height: 36 }}>
+                  <span
+                    className={`tvp-kpi-icon tvp-bg-${c.tone}`}
+                    style={{ width: 36, height: 36 }}
+                  >
                     <FolderPlus className="h-4 w-4" />
                   </span>
                   <span style={{ minWidth: 0 }}>
-                    <span className="tvp-folder-name" style={{ display: "block" }}>{c.name}</span>
+                    <span className="tvp-folder-name" style={{ display: "block" }}>
+                      {c.name}
+                    </span>
                     <span className="tvp-folder-meta" style={{ display: "block" }}>
-                      {subfolderCount(catalogue, c.slug)} subfolders · {active ? "Active" : "Hidden"}
+                      {subfolderCount(catalogue, c.slug)} subfolders ·{" "}
+                      {active ? "Active" : "Hidden"}
                     </span>
                   </span>
                 </label>

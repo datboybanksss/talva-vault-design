@@ -150,7 +150,10 @@ export function ClientsPanel() {
   const dismissedFn = useServerFn(listAgencyDismissedNotices);
   const dismissFn = useServerFn(dismissAgencyReminder);
 
-  const staff = useQuery({ queryKey: ["agency", "staff"], queryFn: () => staffFn() as Promise<any[]> });
+  const staff = useQuery({
+    queryKey: ["agency", "staff"],
+    queryFn: () => staffFn() as Promise<any[]>,
+  });
   const dismissals = useQuery({
     queryKey: ["agency", "dismissed-notices"],
     queryFn: () => dismissedFn() as Promise<{ kinds: string[] }>,
@@ -255,7 +258,9 @@ export function ClientsPanel() {
 
       {clients.length > 0 && (
         <div style={{ marginTop: 14, maxWidth: 360 }}>
-          <Label htmlFor="client-search" className="tvp-entity-stat-label">Search</Label>
+          <Label htmlFor="client-search" className="tvp-entity-stat-label">
+            Search
+          </Label>
           <Input
             id="client-search"
             value={search}
@@ -275,7 +280,12 @@ export function ClientsPanel() {
             <p className="tvp-muted" style={{ marginTop: 6 }}>
               {(error as Error)?.message ?? "Something went wrong."}
             </p>
-            <button type="button" className="tvp-secondary" style={{ marginTop: 12 }} onClick={() => refetch()}>
+            <button
+              type="button"
+              className="tvp-secondary"
+              style={{ marginTop: 12 }}
+              onClick={() => refetch()}
+            >
               Try again
             </button>
           </div>
@@ -299,7 +309,9 @@ export function ClientsPanel() {
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 16px" }}>
             <h3 className="tvp-h3">No clients match your search</h3>
-            <p className="tvp-muted" style={{ marginTop: 6 }}>Try a different name, contact or VAT number.</p>
+            <p className="tvp-muted" style={{ marginTop: 6 }}>
+              Try a different name, contact or VAT number.
+            </p>
           </div>
         ) : (
           <>
@@ -313,9 +325,14 @@ export function ClientsPanel() {
                   <EntityCard
                     key={c.id}
                     name={c.name}
-                    subtitle={[c.client_type, c.payment_terms_days != null ? `${c.payment_terms_days}-day terms` : null]
-                      .filter(Boolean)
-                      .join(" · ") || "Client type not set"}
+                    subtitle={
+                      [
+                        c.client_type,
+                        c.payment_terms_days != null ? `${c.payment_terms_days}-day terms` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Client type not set"
+                    }
                     meta={
                       c.contact_person
                         ? `${c.contact_person}${c.contact_title ? ` · ${c.contact_title}` : ""}`
@@ -423,7 +440,12 @@ export function ClientsPanel() {
             <h2 className="tvp-h2" id="client-form-title">
               {form.id ? "Edit client" : "New client"}
             </h2>
-            <button type="button" title="Close" className="tvp-mini-btn" onClick={() => setForm(null)}>
+            <button
+              type="button"
+              title="Close"
+              className="tvp-mini-btn"
+              onClick={() => setForm(null)}
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -460,7 +482,9 @@ export function ClientsPanel() {
                 </SelectTrigger>
                 <SelectContent>
                   {CLIENT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -559,9 +583,7 @@ export function ClientsPanel() {
                 id="client-reg"
                 value={form.company_registration_number}
                 maxLength={80}
-                onChange={(e) =>
-                  setForm({ ...form, company_registration_number: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, company_registration_number: e.target.value })}
               />
             </div>
             <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
@@ -578,7 +600,9 @@ export function ClientsPanel() {
                 <SelectContent>
                   <SelectItem value="none">Not assigned</SelectItem>
                   {(staff.data ?? []).map((m: any) => (
-                    <SelectItem key={m.userId} value={m.userId}>{m.name}</SelectItem>
+                    <SelectItem key={m.userId} value={m.userId}>
+                      {m.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -613,7 +637,11 @@ export function ClientsPanel() {
       )}
 
       {confirmRemove && (
-        <ModalShell onClose={() => setConfirmRemove(null)} maxWidth={460} labelledBy="client-remove-title">
+        <ModalShell
+          onClose={() => setConfirmRemove(null)}
+          maxWidth={460}
+          labelledBy="client-remove-title"
+        >
           <h2 className="tvp-h2" id="client-remove-title">
             Remove {confirmRemove.name}?
           </h2>

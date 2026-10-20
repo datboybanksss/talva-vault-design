@@ -2,7 +2,17 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Clock, Receipt, FileSpreadsheet, Image as ImageIcon, Landmark, Palette, Save, Trash2, Upload } from "lucide-react";
+import {
+  Clock,
+  Receipt,
+  FileSpreadsheet,
+  Image as ImageIcon,
+  Landmark,
+  Palette,
+  Save,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import {
   getAgencyBillingSettings,
   updateAgencyBillingSettings,
@@ -120,7 +130,11 @@ export function QuotesInvoicesSettingsPanel() {
   }
 
   if (isLoading || !form) {
-    return <div className="tvp-muted" style={{ padding: 16 }}>Loading settings…</div>;
+    return (
+      <div className="tvp-muted" style={{ padding: 16 }}>
+        Loading settings…
+      </div>
+    );
   }
 
   const update = (k: string, v: any) => setForm({ ...form, [k]: v });
@@ -146,12 +160,15 @@ export function QuotesInvoicesSettingsPanel() {
 
         <div className="tvp-card tvp-panel">
           <h3 className="tvp-h3 tvp-qi-head">
-            <Clock aria-hidden />Quote acceptance
+            <Clock aria-hidden />
+            Quote acceptance
           </h3>
           <div className="tvp-form-group">
             <label>Default acceptance window (days)</label>
             <Input
-              type="number" min={1} max={365}
+              type="number"
+              min={1}
+              max={365}
               value={form.default_quote_acceptance_days}
               onChange={(e) => update("default_quote_acceptance_days", e.target.value)}
             />
@@ -159,7 +176,9 @@ export function QuotesInvoicesSettingsPanel() {
           <div className="tvp-form-group">
             <label>Reminder cadence (days before expiry)</label>
             <Input
-              type="number" min={1} max={365}
+              type="number"
+              min={1}
+              max={365}
               value={form.default_quote_reminder_days}
               onChange={(e) => update("default_quote_reminder_days", e.target.value)}
             />
@@ -168,12 +187,15 @@ export function QuotesInvoicesSettingsPanel() {
 
         <div className="tvp-card tvp-panel">
           <h3 className="tvp-h3 tvp-qi-head">
-            <Receipt aria-hidden />Invoice payment
+            <Receipt aria-hidden />
+            Invoice payment
           </h3>
           <div className="tvp-form-group">
             <label>Default payment terms (days)</label>
             <Input
-              type="number" min={1} max={365}
+              type="number"
+              min={1}
+              max={365}
               value={form.default_invoice_payment_days}
               onChange={(e) => update("default_invoice_payment_days", e.target.value)}
             />
@@ -181,7 +203,9 @@ export function QuotesInvoicesSettingsPanel() {
           <div className="tvp-form-group">
             <label>Overdue grace period (days)</label>
             <Input
-              type="number" min={0} max={365}
+              type="number"
+              min={0}
+              max={365}
               value={form.invoice_overdue_grace_days}
               onChange={(e) => update("invoice_overdue_grace_days", e.target.value)}
             />
@@ -193,7 +217,8 @@ export function QuotesInvoicesSettingsPanel() {
 
         <div className="tvp-card tvp-panel">
           <h3 className="tvp-h3 tvp-qi-head">
-            <FileSpreadsheet aria-hidden />VAT / Tax
+            <FileSpreadsheet aria-hidden />
+            VAT / Tax
           </h3>
           <div className="tvp-form-group">
             <div className="flex items-center gap-2">
@@ -219,7 +244,10 @@ export function QuotesInvoicesSettingsPanel() {
           <div className="tvp-form-group">
             <label>Default VAT rate (%)</label>
             <Input
-              type="number" min={0} max={100} step={0.01}
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
               value={(form.default_vat_rate_bp / 100).toFixed(2)}
               onChange={(e) =>
                 update("default_vat_rate_bp", Math.round(Number(e.target.value) * 100))
@@ -230,10 +258,12 @@ export function QuotesInvoicesSettingsPanel() {
 
         <div className="tvp-card tvp-panel">
           <h3 className="tvp-h3 tvp-qi-head">
-            <Landmark aria-hidden />Banking details
+            <Landmark aria-hidden />
+            Banking details
           </h3>
           <p className="tvp-qi-desc">
-            All optional. Shown together in a "Payment details" block on invoices only — never on quotations.
+            All optional. Shown together in a "Payment details" block on invoices only — never on
+            quotations.
           </p>
           <div className="tvp-form-group">
             <label>Bank name</label>
@@ -280,7 +310,8 @@ export function QuotesInvoicesSettingsPanel() {
 
         <div className="tvp-card tvp-panel">
           <h3 className="tvp-h3 tvp-qi-head">
-            <ImageIcon aria-hidden />Branding
+            <ImageIcon aria-hidden />
+            Branding
           </h3>
           <div className="tvp-form-group">
             <label>Billing address (appears on documents)</label>
@@ -295,11 +326,7 @@ export function QuotesInvoicesSettingsPanel() {
             <label>Agency logo</label>
             <div className="tvp-qi-inline">
               {data?.logo_url ? (
-                <img
-                  src={data.logo_url}
-                  alt="Agency logo"
-                  className="tvp-qi-logo"
-                />
+                <img src={data.logo_url} alt="Agency logo" className="tvp-qi-logo" />
               ) : (
                 <span className="tvp-muted tvp-small">No logo uploaded</span>
               )}
@@ -319,7 +346,8 @@ export function QuotesInvoicesSettingsPanel() {
                 disabled={uploading}
                 onClick={() => fileRef.current?.click()}
               >
-                <Upload className="h-4 w-4" />{uploading ? "Uploading…" : data?.logo_url ? "Replace" : "Upload"}
+                <Upload className="h-4 w-4" />
+                {uploading ? "Uploading…" : data?.logo_url ? "Replace" : "Upload"}
               </button>
               {data?.logo_url && (
                 <button className="tvp-mini-btn" title="Remove logo" onClick={removeLogo}>
@@ -333,7 +361,8 @@ export function QuotesInvoicesSettingsPanel() {
           </div>
           <div className="tvp-form-group">
             <label className="tvp-qi-head">
-              <Palette aria-hidden />Accent colour
+              <Palette aria-hidden />
+              Accent colour
             </label>
             <div className="tvp-qi-inline">
               {ACCENT_PRESETS.map((p) => (
@@ -363,7 +392,8 @@ export function QuotesInvoicesSettingsPanel() {
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
         <button className="tvp-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-          <Save className="h-4 w-4" />{save.isPending ? "Saving…" : "Save settings"}
+          <Save className="h-4 w-4" />
+          {save.isPending ? "Saving…" : "Save settings"}
         </button>
       </div>
     </>

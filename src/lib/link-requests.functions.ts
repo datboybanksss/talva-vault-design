@@ -20,9 +20,7 @@ export const listMyLinkRequests = createServerFn({ method: "GET" })
 
 export const respondToLinkRequest = createServerFn({ method: "POST" })
   .middleware([requireTalentTermsAccepted])
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string().uuid(), accept: z.boolean() }).parse(d),
-  )
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), accept: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const { error } = await supabase.rpc("respond_link_request", {

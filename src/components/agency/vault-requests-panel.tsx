@@ -14,10 +14,27 @@ import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+  queryOptions,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  ClipboardList, Plus, CheckCircle2, AlertTriangle, XCircle, Clock, X, Save, History as HistoryIcon, Inbox, ShieldCheck, Info,
+  ClipboardList,
+  Plus,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Clock,
+  X,
+  Save,
+  History as HistoryIcon,
+  Inbox,
+  ShieldCheck,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -61,7 +78,8 @@ function statusPill(status: string) {
   const Icon = m.Icon;
   return (
     <span className={`tvp-status tvp-${m.tone} inline-flex items-center gap-1`}>
-      <Icon className="h-3.5 w-3.5" />{m.label}
+      <Icon className="h-3.5 w-3.5" />
+      {m.label}
     </span>
   );
 }
@@ -89,18 +107,22 @@ export function VaultRequestsPanel({
 
   const filtered = useMemo(() => {
     if (statusFilter === "all") return rows;
-    if (statusFilter === "action") return rows.filter(r => r.status === "submitted" || r.status === "pending");
-    return rows.filter(r => r.status === statusFilter);
+    if (statusFilter === "action")
+      return rows.filter((r) => r.status === "submitted" || r.status === "pending");
+    return rows.filter((r) => r.status === statusFilter);
   }, [rows, statusFilter]);
 
   const page = usePagedList(filtered, { resetKey: statusFilter });
 
-  const counts = useMemo(() => ({
-    total: rows.length,
-    pending: rows.filter(r => r.status === "pending").length,
-    submitted: rows.filter(r => r.status === "submitted").length,
-    resub: rows.filter(r => r.status === "resubmission_required").length,
-  }), [rows]);
+  const counts = useMemo(
+    () => ({
+      total: rows.length,
+      pending: rows.filter((r) => r.status === "pending").length,
+      submitted: rows.filter((r) => r.status === "submitted").length,
+      resub: rows.filter((r) => r.status === "resubmission_required").length,
+    }),
+    [rows],
+  );
 
   return (
     <>
@@ -122,17 +144,22 @@ export function VaultRequestsPanel({
           <div className="tvp-small" style={{ color: "var(--tvp-ink)" }}>
             <strong>Incoming from talent.</strong>{" "}
             <span className="tvp-muted">
-              Ask a talent for a specific document, then review the submission.
-              Talent see your request in their portal and upload directly to it.
-              Previous submissions are always retained.
+              Ask a talent for a specific document, then review the submission. Talent see your
+              request in their portal and upload directly to it. Previous submissions are always
+              retained.
             </span>
           </div>
         </div>
-        <button className="tvp-accent" data-tour="vault-new-request" onClick={() => setShowNew(true)} style={{ flexShrink: 0 }}>
-          <Plus className="h-4 w-4" />New request
+        <button
+          className="tvp-accent"
+          data-tour="vault-new-request"
+          onClick={() => setShowNew(true)}
+          style={{ flexShrink: 0 }}
+        >
+          <Plus className="h-4 w-4" />
+          New request
         </button>
       </div>
-
 
       <div className="tvp-tabs" style={{ marginTop: 0, marginBottom: 12 }}>
         {[
@@ -142,7 +169,7 @@ export function VaultRequestsPanel({
           { key: "resubmission_required", label: `Resubmission (${counts.resub})` },
           { key: "completed", label: "Completed" },
           { key: "cancelled", label: "Cancelled" },
-        ].map(t => (
+        ].map((t) => (
           <button
             key={t.key}
             className={`tvp-tab${statusFilter === t.key ? " tvp-active" : ""}`}
@@ -156,26 +183,35 @@ export function VaultRequestsPanel({
       <div className="tvp-card">
         {filtered.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
-            No document requests in this view — request a document from talent to start tracking it here.
+            No document requests in this view — request a document from talent to start tracking it
+            here.
           </div>
         ) : (
           <table className="tvp-table" data-tour="vault-requests-table">
             <thead>
               <tr>
-                <th>Title</th><th>Talent</th><th>Folder</th>
-                <th>Due</th><th>Status</th><th></th>
+                <th>Title</th>
+                <th>Talent</th>
+                <th>Folder</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              {page.visible.map(r => (
+              {page.visible.map((r) => (
                 <tr key={r.id}>
-                  <td><strong>{r.title}</strong></td>
+                  <td>
+                    <strong>{r.title}</strong>
+                  </td>
                   <td>{r.talentName}</td>
                   <td>{r.folder}</td>
                   <td className="tvp-muted">{r.dueDate ?? "—"}</td>
                   <td>{statusPill(r.status)}</td>
                   <td>
-                    <button className="tvp-secondary" onClick={() => setReviewing(r)}>Review</button>
+                    <button className="tvp-secondary" onClick={() => setReviewing(r)}>
+                      Review
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -217,7 +253,9 @@ export function VaultRequestsPanel({
 }
 
 function NewRequestDialog({
-  talent, onClose, onDone,
+  talent,
+  onClose,
+  onDone,
 }: {
   talent: { id: string; displayName: string }[];
   onClose: () => void;
@@ -244,54 +282,73 @@ function NewRequestDialog({
 
   const folderRule = useMemo(() => {
     const rules = rulesQ.data ?? [];
-    return rules.find(
-      (r: any) => r.scope === "folder" && r.scopeValue === f.folder,
-    ) as { retentionYears: number; description: string | null } | undefined;
+    return rules.find((r: any) => r.scope === "folder" && r.scopeValue === f.folder) as
+      | { retentionYears: number; description: string | null }
+      | undefined;
   }, [rulesQ.data, f.folder]);
 
   const mut = useMutation({
-    mutationFn: () => createFn({
-      data: {
-        talent_link_id: f.talent_link_id,
-        title: f.title,
-        folder: f.folder,
-        instructions: f.instructions || null,
-        due_date: f.due_date || null,
-      },
-    }),
-    onSuccess: () => { toast.success("Request created"); onDone(); },
+    mutationFn: () =>
+      createFn({
+        data: {
+          talent_link_id: f.talent_link_id,
+          title: f.title,
+          folder: f.folder,
+          instructions: f.instructions || null,
+          due_date: f.due_date || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Request created");
+      onDone();
+    },
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
   return (
     <ModalShell onClose={onClose} labelledBy="new-document-request-title">
-        <div className="tvp-modal-head">
-          <h3 className="tvp-h2" id="new-document-request-title">New document request</h3>
-          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-            <X />
-          </Button>
-        </div>
-        <div className="tvp-modal-body">
-          <div className="tvp-form-grid">
-
+      <div className="tvp-modal-head">
+        <h3 className="tvp-h2" id="new-document-request-title">
+          New document request
+        </h3>
+        <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+          <X />
+        </Button>
+      </div>
+      <div className="tvp-modal-body">
+        <div className="tvp-form-grid">
           <div className="tvp-form-group" data-tour="request-talent">
             <Label htmlFor="request-talent">Talent</Label>
-            <Select value={f.talent_link_id} onValueChange={(value) => setF(s => ({ ...s, talent_link_id: value }))}>
+            <Select
+              value={f.talent_link_id}
+              onValueChange={(value) => setF((s) => ({ ...s, talent_link_id: value }))}
+            >
               <SelectTrigger id="request-talent" className="tvp-modal-control">
                 <SelectValue placeholder="Select talent" />
               </SelectTrigger>
               <SelectContent>
-                {talent.map(t => <SelectItem key={t.id} value={t.id}>{t.displayName}</SelectItem>)}
+                {talent.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.displayName}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="tvp-form-group">
             <Label htmlFor="request-folder">Folder</Label>
-            <Select value={f.folder} onValueChange={(value) => setF(s => ({ ...s, folder: value }))}>
+            <Select
+              value={f.folder}
+              onValueChange={(value) => setF((s) => ({ ...s, folder: value }))}
+            >
               <SelectTrigger id="request-folder" className="tvp-modal-control">
                 <SelectValue placeholder="Select folder" />
               </SelectTrigger>
               <SelectContent>
-                {folders.map((x: string) => <SelectItem key={x} value={x}>{x}</SelectItem>)}
+                {folders.map((x: string) => (
+                  <SelectItem key={x} value={x}>
+                    {x}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -302,21 +359,31 @@ function NewRequestDialog({
               <div className="tvp-small tvp-muted">Checking retention rule…</div>
             ) : folderRule ? (
               <div className="tvp-modal-callout tvp-modal-callout--retention">
-                <span className="tvp-modal-callout-icon"><ShieldCheck className="h-4 w-4" /></span>
+                <span className="tvp-modal-callout-icon">
+                  <ShieldCheck className="h-4 w-4" />
+                </span>
                 <div className="tvp-small">
-                  <strong>Retention: {folderRule.retentionYears} {folderRule.retentionYears === 1 ? "year" : "years"}.</strong>{" "}
+                  <strong>
+                    Retention: {folderRule.retentionYears}{" "}
+                    {folderRule.retentionYears === 1 ? "year" : "years"}.
+                  </strong>{" "}
                   <span className="tvp-muted">
-                    Once submitted, this document will be locked and cannot be deleted for {folderRule.retentionYears} {folderRule.retentionYears === 1 ? "year" : "years"}, per your <strong>{f.folder}</strong> folder retention rule
+                    Once submitted, this document will be locked and cannot be deleted for{" "}
+                    {folderRule.retentionYears} {folderRule.retentionYears === 1 ? "year" : "years"}
+                    , per your <strong>{f.folder}</strong> folder retention rule
                     {folderRule.description ? ` (${folderRule.description})` : ""}.
                   </span>
                 </div>
               </div>
             ) : (
               <div className="tvp-modal-callout">
-                <span className="tvp-modal-callout-icon"><Info className="h-4 w-4" /></span>
+                <span className="tvp-modal-callout-icon">
+                  <Info className="h-4 w-4" />
+                </span>
                 <div className="tvp-small tvp-muted">
-                  <strong>No retention rule applies to the {f.folder} folder.</strong>{" "}
-                  The submitted document won't be auto-locked. Set a rule in Settings → Document Rules to enforce retention.
+                  <strong>No retention rule applies to the {f.folder} folder.</strong> The submitted
+                  document won't be auto-locked. Set a rule in Settings → Document Rules to enforce
+                  retention.
                 </div>
               </div>
             )}
@@ -329,32 +396,52 @@ function NewRequestDialog({
               className="tvp-modal-control"
               placeholder="e.g. Updated passport scan"
               value={f.title}
-              onChange={e => setF(s => ({ ...s, title: e.target.value }))}
+              onChange={(e) => setF((s) => ({ ...s, title: e.target.value }))}
             />
           </div>
           <div className="tvp-form-group">
             <Label htmlFor="request-due-date">Due date</Label>
-            <Input id="request-due-date" className="tvp-modal-control" type="date" value={f.due_date} onChange={e => setF(s => ({ ...s, due_date: e.target.value }))} />
+            <Input
+              id="request-due-date"
+              className="tvp-modal-control"
+              type="date"
+              value={f.due_date}
+              onChange={(e) => setF((s) => ({ ...s, due_date: e.target.value }))}
+            />
           </div>
           <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
             <Label htmlFor="request-instructions">Instructions</Label>
-            <Textarea id="request-instructions" className="tvp-modal-control" rows={3} value={f.instructions} onChange={e => setF(s => ({ ...s, instructions: e.target.value }))} />
-          </div>
+            <Textarea
+              id="request-instructions"
+              className="tvp-modal-control"
+              rows={3}
+              value={f.instructions}
+              onChange={(e) => setF((s) => ({ ...s, instructions: e.target.value }))}
+            />
           </div>
         </div>
-        <div className="tvp-modal-foot">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="button" disabled={!f.talent_link_id || !f.title || mut.isPending} onClick={() => mut.mutate()}>
-            <Save />{mut.isPending ? "Creating…" : "Create request"}
-          </Button>
-        </div>
-
+      </div>
+      <div className="tvp-modal-foot">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          disabled={!f.talent_link_id || !f.title || mut.isPending}
+          onClick={() => mut.mutate()}
+        >
+          <Save />
+          {mut.isPending ? "Creating…" : "Create request"}
+        </Button>
+      </div>
     </ModalShell>
   );
 }
 
 function ReviewDialog({
-  request, onClose, onDone,
+  request,
+  onClose,
+  onDone,
 }: {
   request: Row;
   onClose: () => void;
@@ -366,24 +453,29 @@ function ReviewDialog({
     queryKey: ["agency", "doc-request", request.id],
     queryFn: () => getFn({ data: { id: request.id } }),
   });
-  const [outcome, setOutcome] = useState<"completed" | "resubmission_required" | "cancelled">("completed");
+  const [outcome, setOutcome] = useState<"completed" | "resubmission_required" | "cancelled">(
+    "completed",
+  );
   const [reason, setReason] = useState<string>("illegible");
   const [notes, setNotes] = useState("");
 
   const mut = useMutation({
-    mutationFn: () => reviewFn({
-      data: {
-        id: request.id,
-        outcome,
-        reason_code: outcome === "resubmission_required" ? (reason as any) : undefined,
-        notes: notes || undefined,
-      },
-    }),
+    mutationFn: () =>
+      reviewFn({
+        data: {
+          id: request.id,
+          outcome,
+          reason_code: outcome === "resubmission_required" ? (reason as any) : undefined,
+          notes: notes || undefined,
+        },
+      }),
     onSuccess: () => {
       toast.success(
-        outcome === "completed" ? "Marked complete"
-        : outcome === "resubmission_required" ? "Resubmission requested"
-        : "Request cancelled"
+        outcome === "completed"
+          ? "Marked complete"
+          : outcome === "resubmission_required"
+            ? "Resubmission requested"
+            : "Request cancelled",
       );
       onDone();
     },
@@ -392,93 +484,132 @@ function ReviewDialog({
 
   return (
     <ModalShell onClose={onClose} maxWidth={720}>
-        <div className="tvp-modal-head">
-          <div>
-            <h3 className="tvp-h2">Review: {request.title}</h3>
-            <div className="tvp-muted tvp-small">{request.talentName} · {request.folder}</div>
+      <div className="tvp-modal-head">
+        <div>
+          <h3 className="tvp-h2">Review: {request.title}</h3>
+          <div className="tvp-muted tvp-small">
+            {request.talentName} · {request.folder}
           </div>
-          <button title="Close" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+        </div>
+        <button title="Close" className="tvp-mini-btn" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div style={{ padding: 16 }}>
+        <div className="tvp-review-grid" style={{ marginBottom: 12 }}>
+          <div className="tvp-review-item">
+            <span className="tvp-muted tvp-small">Current status</span>
+            {statusPill(request.status)}
+          </div>
+          <div className="tvp-review-item">
+            <span className="tvp-muted tvp-small">Due</span>
+            <strong>{request.dueDate ?? "—"}</strong>
+          </div>
+          <div className="tvp-review-item" style={{ gridColumn: "1 / -1" }}>
+            <span className="tvp-muted tvp-small">Instructions</span>
+            <div>{request.instructions || <span className="tvp-muted">None</span>}</div>
+          </div>
         </div>
 
-        <div style={{ padding: 16 }}>
-          <div className="tvp-review-grid" style={{ marginBottom: 12 }}>
-            <div className="tvp-review-item"><span className="tvp-muted tvp-small">Current status</span>{statusPill(request.status)}</div>
-            <div className="tvp-review-item"><span className="tvp-muted tvp-small">Due</span><strong>{request.dueDate ?? "—"}</strong></div>
-            <div className="tvp-review-item" style={{ gridColumn: "1 / -1" }}>
-              <span className="tvp-muted tvp-small">Instructions</span>
-              <div>{request.instructions || <span className="tvp-muted">None</span>}</div>
-            </div>
-          </div>
+        <h4 className="tvp-h3" data-tour="request-outcome">
+          Outcome
+        </h4>
+        <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr", marginTop: 8 }}>
+          {[
+            { key: "completed", label: "Complete", icon: CheckCircle2, tone: "green" },
+            {
+              key: "resubmission_required",
+              label: "Resubmission required",
+              icon: AlertTriangle,
+              tone: "amber",
+            },
+            { key: "cancelled", label: "Cancel request", icon: XCircle, tone: "red" },
+          ].map((o) => {
+            const Icon = o.icon;
+            return (
+              <button
+                key={o.key}
+                type="button"
+                onClick={() => setOutcome(o.key as any)}
+                className={`tvp-rule-card ${outcome === o.key ? "tvp-active" : ""}`}
+                style={{ flexDirection: "column", alignItems: "flex-start", cursor: "pointer" }}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Icon className="h-4 w-4" />
+                  <strong>{o.label}</strong>
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-          <h4 className="tvp-h3" data-tour="request-outcome">Outcome</h4>
-          <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr", marginTop: 8 }}>
-            {[
-              { key: "completed", label: "Complete", icon: CheckCircle2, tone: "green" },
-              { key: "resubmission_required", label: "Resubmission required", icon: AlertTriangle, tone: "amber" },
-              { key: "cancelled", label: "Cancel request", icon: XCircle, tone: "red" },
-            ].map(o => {
-              const Icon = o.icon;
-              return (
-                <button
-                  key={o.key}
-                  type="button"
-                  onClick={() => setOutcome(o.key as any)}
-                  className={`tvp-rule-card ${outcome === o.key ? "tvp-active" : ""}`}
-                  style={{ flexDirection: "column", alignItems: "flex-start", cursor: "pointer" }}
-                >
-                  <span className="inline-flex items-center gap-2"><Icon className="h-4 w-4" /><strong>{o.label}</strong></span>
-                </button>
-              );
-            })}
-          </div>
-
-          {outcome === "resubmission_required" && (
-            <div className="tvp-form-group" style={{ marginTop: 12 }}>
-              <label>Reason (required)</label>
-              <select value={reason} onChange={e => setReason(e.target.value)}>
-                {REASONS.map(r => <option key={r.code} value={r.code}>{r.label}</option>)}
-              </select>
-            </div>
-          )}
+        {outcome === "resubmission_required" && (
           <div className="tvp-form-group" style={{ marginTop: 12 }}>
-            <label>Notes {outcome === "resubmission_required" && <span className="tvp-muted">(shown to talent)</span>}</label>
-            <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} />
-          </div>
-
-          <h4 className="tvp-h3" style={{ marginTop: 16 }}>
-            <HistoryIcon className="inline h-4 w-4 mr-1" />Submission history
-          </h4>
-          {detail.data?.history.length === 0 ? (
-            <p className="tvp-muted tvp-small">No history yet — this request hasn't moved since it was created.</p>
-          ) : (
-            <div className="tvp-list" style={{ marginTop: 6 }}>
-              {detail.data?.history.map((h: any) => (
-                <div key={h.id} className="tvp-list-item">
-                  <ClipboardList className="h-4 w-4 text-[var(--tvp-muted)]" />
-                  <div>
-                    <strong>{h.event.replace(/_/g, " ")}</strong>
-                    {h.reason_code && <span className="tvp-muted"> · {h.reason_code}</span>}
-                    <div className="tvp-muted tvp-small">
-                      {new Date(h.created_at).toLocaleString()} · {h.actor_email ?? "System"}
-                    </div>
-                    {h.notes && <div className="tvp-small" style={{ marginTop: 4 }}>{h.notes}</div>}
-                  </div>
-                </div>
+            <label>Reason (required)</label>
+            <select value={reason} onChange={(e) => setReason(e.target.value)}>
+              {REASONS.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.label}
+                </option>
               ))}
-            </div>
-          )}
+            </select>
+          </div>
+        )}
+        <div className="tvp-form-group" style={{ marginTop: 12 }}>
+          <label>
+            Notes{" "}
+            {outcome === "resubmission_required" && (
+              <span className="tvp-muted">(shown to talent)</span>
+            )}
+          </label>
+          <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
-        <div className="tvp-modal-foot">
-          <button className="tvp-secondary" onClick={onClose}>Cancel</button>
-          <button
-            className="tvp-primary"
-            disabled={mut.isPending || (outcome === "resubmission_required" && !reason)}
-            onClick={() => mut.mutate()}
-          >
-            <Save className="h-4 w-4" />Submit outcome
-          </button>
-        </div>
+        <h4 className="tvp-h3" style={{ marginTop: 16 }}>
+          <HistoryIcon className="inline h-4 w-4 mr-1" />
+          Submission history
+        </h4>
+        {detail.data?.history.length === 0 ? (
+          <p className="tvp-muted tvp-small">
+            No history yet — this request hasn't moved since it was created.
+          </p>
+        ) : (
+          <div className="tvp-list" style={{ marginTop: 6 }}>
+            {detail.data?.history.map((h: any) => (
+              <div key={h.id} className="tvp-list-item">
+                <ClipboardList className="h-4 w-4 text-[var(--tvp-muted)]" />
+                <div>
+                  <strong>{h.event.replace(/_/g, " ")}</strong>
+                  {h.reason_code && <span className="tvp-muted"> · {h.reason_code}</span>}
+                  <div className="tvp-muted tvp-small">
+                    {new Date(h.created_at).toLocaleString()} · {h.actor_email ?? "System"}
+                  </div>
+                  {h.notes && (
+                    <div className="tvp-small" style={{ marginTop: 4 }}>
+                      {h.notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="tvp-modal-foot">
+        <button className="tvp-secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          className="tvp-primary"
+          disabled={mut.isPending || (outcome === "resubmission_required" && !reason)}
+          onClick={() => mut.mutate()}
+        >
+          <Save className="h-4 w-4" />
+          Submit outcome
+        </button>
+      </div>
     </ModalShell>
   );
 }

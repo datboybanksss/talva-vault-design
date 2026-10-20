@@ -56,7 +56,9 @@ export function useTalentLinkRowActions(opts: {
   const endMut = useMutation({
     mutationFn: (id: string) => endFn({ data: { id } }),
     onSuccess: () => {
-      toast.success("Relationship ended. Existing documents remain accessible; new uploads are blocked.");
+      toast.success(
+        "Relationship ended. Existing documents remain accessible; new uploads are blocked.",
+      );
       invalidate();
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not end the relationship"),
@@ -90,7 +92,9 @@ export function useTalentLinkRowActions(opts: {
   const copyLink = async (r: TalentLinkRowLike) => {
     if (!r.inviteToken || !r.talentInvitationId) return;
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/invite/talent/${r.inviteToken}`);
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/invite/talent/${r.inviteToken}`,
+      );
       await logCopyFn({ data: { id: r.talentInvitationId, type: "talent" } });
       toast.success("Link copied. Copy does not extend expiry.");
     } catch {
@@ -111,23 +115,31 @@ export function useTalentLinkRowActions(opts: {
     for (const a of allowed) {
       switch (a) {
         case "resend":
-          if (hasInvite) out.push({
-            key: "resend", label: "Resend invitation", icon: RefreshCw,
-            title: "Refreshes expiry and logs a new send",
-            disabled: resendMut.isPending,
-            onSelect: () => resendMut.mutate(r.talentInvitationId!),
-          });
+          if (hasInvite)
+            out.push({
+              key: "resend",
+              label: "Resend invitation",
+              icon: RefreshCw,
+              title: "Refreshes expiry and logs a new send",
+              disabled: resendMut.isPending,
+              onSelect: () => resendMut.mutate(r.talentInvitationId!),
+            });
           break;
         case "copy_link":
-          if (hasInvite && r.inviteToken) out.push({
-            key: "copy", label: "Copy invite link", icon: Link2,
-            title: "Copying does not extend expiry",
-            onSelect: () => copyLink(r),
-          });
+          if (hasInvite && r.inviteToken)
+            out.push({
+              key: "copy",
+              label: "Copy invite link",
+              icon: Link2,
+              title: "Copying does not extend expiry",
+              onSelect: () => copyLink(r),
+            });
           break;
         case "reinvite":
           out.push({
-            key: "reinvite", label: "Reinvite", icon: Send,
+            key: "reinvite",
+            label: "Reinvite",
+            icon: Send,
             onSelect: () => {
               // An invitation that is still stored as open just needs a fresh
               // expiry; otherwise start a new invitation through the same flow.
@@ -137,47 +149,65 @@ export function useTalentLinkRowActions(opts: {
           });
           break;
         case "change_type":
-          if (opts.onChangeType) out.push({
-            key: "type", label: "Change talent type", icon: Tags,
-            onSelect: () => opts.onChangeType!(r),
-          });
+          if (opts.onChangeType)
+            out.push({
+              key: "type",
+              label: "Change talent type",
+              icon: Tags,
+              onSelect: () => opts.onChangeType!(r),
+            });
           break;
         case "assign_manager":
-          if (opts.onAssignManager) out.push({
-            key: "manager", label: r.managerUserId ? "Change manager" : "Assign manager", icon: UserCog,
-            onSelect: () => opts.onAssignManager!(r),
-          });
+          if (opts.onAssignManager)
+            out.push({
+              key: "manager",
+              label: r.managerUserId ? "Change manager" : "Assign manager",
+              icon: UserCog,
+              onSelect: () => opts.onAssignManager!(r),
+            });
           break;
         case "reactivate":
           out.push({
-            key: "reactivate", label: "Reactivate relationship", icon: RotateCcw,
+            key: "reactivate",
+            label: "Reactivate relationship",
+            icon: RotateCcw,
             disabled: reactivateMut.isPending,
             onSelect: () => {
-              if (confirm(`Reactivate relationship with ${r.displayName}?`)) reactivateMut.mutate(r.id);
+              if (confirm(`Reactivate relationship with ${r.displayName}?`))
+                reactivateMut.mutate(r.id);
             },
           });
           break;
         case "revoke":
-          if (hasInvite) out.push({
-            key: "revoke", label: "Revoke invitation", icon: Ban,
-            destructive: true, separatorBefore: true,
-            disabled: revokeMut.isPending,
-            onSelect: () => {
-              if (confirm(`Revoke the invitation to ${r.displayName}?`)) revokeMut.mutate(r.talentInvitationId!);
-            },
-          });
+          if (hasInvite)
+            out.push({
+              key: "revoke",
+              label: "Revoke invitation",
+              icon: Ban,
+              destructive: true,
+              separatorBefore: true,
+              disabled: revokeMut.isPending,
+              onSelect: () => {
+                if (confirm(`Revoke the invitation to ${r.displayName}?`))
+                  revokeMut.mutate(r.talentInvitationId!);
+              },
+            });
           break;
         case "end_relationship":
           out.push({
-            key: "end", label: "End relationship", icon: CircleStop,
-            destructive: true, separatorBefore: true,
+            key: "end",
+            label: "End relationship",
+            icon: CircleStop,
+            destructive: true,
+            separatorBefore: true,
             disabled: endMut.isPending,
             onSelect: () => {
               if (
                 confirm(
                   `End working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`,
                 )
-              ) endMut.mutate(r.id);
+              )
+                endMut.mutate(r.id);
             },
           });
           break;

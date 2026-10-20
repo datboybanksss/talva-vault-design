@@ -9,8 +9,7 @@ export const Route = createFileRoute("/agency")({
       { title: "Agency · TalVault" },
       {
         name: "description",
-        content:
-          "Agency workspace — Talent, Invitations, Vault, Quotes & Invoices.",
+        content: "Agency workspace — Talent, Invitations, Vault, Quotes & Invoices.",
       },
       { name: "robots", content: "noindex" },
     ],
