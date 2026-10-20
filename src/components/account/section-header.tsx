@@ -13,10 +13,7 @@ export function SectionHeader({
 }) {
   return (
     <div className="tvp-section-header">
-      <div
-        className={`tvp-kpi-icon tvp-bg-${tone} tvp-section-header-icon`}
-        aria-hidden
-      >
+      <div className={`tvp-kpi-icon tvp-bg-${tone} tvp-section-header-icon`} aria-hidden>
         {icon}
       </div>
       <div className="tvp-section-header-text">

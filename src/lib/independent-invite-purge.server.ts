@@ -22,7 +22,10 @@ export async function purgeIndependentInviteDocuments(
     const { error } = await supabaseAdmin.storage.from(BUCKET).remove(paths);
     if (error) throw new Error(`Could not remove invitation files: ${error.message}`);
   }
-  await supabaseAdmin.from("talent_invitation_documents").delete().eq("invitation_id", invitationId);
+  await supabaseAdmin
+    .from("talent_invitation_documents")
+    .delete()
+    .eq("invitation_id", invitationId);
 
   const { data: inv } = await supabaseAdmin
     .from("independent_talent_invitations")

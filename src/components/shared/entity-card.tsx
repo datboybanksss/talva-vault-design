@@ -97,13 +97,22 @@ export function EntityCard({
   const body = (
     <>
       <div className="tvp-entity-head">
-        <EntityAvatar name={name} seed={avatarSeed} photoUrl={photoUrl} size={compact ? "sm" : "md"} />
+        <EntityAvatar
+          name={name}
+          seed={avatarSeed}
+          photoUrl={photoUrl}
+          size={compact ? "sm" : "md"}
+        />
         <div className="tvp-entity-identity">
           <p className="tvp-entity-name">{name}</p>
           {subtitle ? <p className="tvp-entity-sub">{subtitle}</p> : null}
           {meta ? <p className="tvp-entity-meta">{meta}</p> : null}
         </div>
-        {actions ? <div className="tvp-entity-actions" onClick={(e) => e.stopPropagation()}>{actions}</div> : null}
+        {actions ? (
+          <div className="tvp-entity-actions" onClick={(e) => e.stopPropagation()}>
+            {actions}
+          </div>
+        ) : null}
       </div>
       {pills ? <div className="tvp-entity-pills">{pills}</div> : null}
       {stats && stats.length > 0 ? (

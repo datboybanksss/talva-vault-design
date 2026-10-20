@@ -4,14 +4,32 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { getTalentDashboard, dismissTalentReminder, dismissTalentNotification } from "@/lib/talent.functions";
-import { Lock, FileStack, Inbox, Clock, Share2, ArrowRight, AlertCircle, Maximize2, Minimize2, X } from "lucide-react";
+import {
+  getTalentDashboard,
+  dismissTalentReminder,
+  dismissTalentNotification,
+} from "@/lib/talent.functions";
+import {
+  Lock,
+  FileStack,
+  Inbox,
+  Clock,
+  Share2,
+  ArrowRight,
+  AlertCircle,
+  Maximize2,
+  Minimize2,
+  X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/talent/")({
   head: () => ({
     meta: [
       { title: "Dashboard · TalVault Talent" },
-      { name: "description", content: "Your Private Vault, Agency Shared Folder and Manager requests at a glance." },
+      {
+        name: "description",
+        content: "Your Private Vault, Agency Shared Folder and Manager requests at a glance.",
+      },
     ],
   }),
   component: TalentDashboard,
@@ -51,18 +69,49 @@ function TalentDashboard() {
     dismissM.mutate(item);
   };
 
-
-  const rootMatch = useRouterState({ select: (s) => s.matches.find((m) => m.routeId === "/talent") });
-  const ctx = (rootMatch?.loaderData ?? null) as
-    | { profile: { full_name: string } | null; agency: { name: string } | null }
-    | null;
+  const rootMatch = useRouterState({
+    select: (s) => s.matches.find((m) => m.routeId === "/talent"),
+  });
+  const ctx = (rootMatch?.loaderData ?? null) as {
+    profile: { full_name: string } | null;
+    agency: { name: string } | null;
+  } | null;
   const firstName = (ctx?.profile?.full_name ?? "there").split(/\s+/)[0];
 
   const kpis = [
-    { to: "/talent/vault", tone: "teal", Icon: Lock, value: data?.privateDocs ?? 0, label: "Private Docs", sub: "Only visible to you" },
-    { to: "/talent/vault", tone: "blue", Icon: FileStack, value: data?.sharedDocs ?? 0, label: "Agency Shared", sub: "Visible to your Manager" },
-    { to: "/talent/vault", tone: "amber", Icon: Clock, value: data?.expiringSoon ?? 0, label: "Expiring soon", sub: "Shared items due for renewal" },
-    { to: "/talent/vault", search: { tab: "agency", view: "requests" }, tone: "purple", Icon: Inbox, value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0), label: "Manager Requests", sub: `${data?.resubRequests ?? 0} need resubmission` },
+    {
+      to: "/talent/vault",
+      tone: "teal",
+      Icon: Lock,
+      value: data?.privateDocs ?? 0,
+      label: "Private Docs",
+      sub: "Only visible to you",
+    },
+    {
+      to: "/talent/vault",
+      tone: "blue",
+      Icon: FileStack,
+      value: data?.sharedDocs ?? 0,
+      label: "Agency Shared",
+      sub: "Visible to your Manager",
+    },
+    {
+      to: "/talent/vault",
+      tone: "amber",
+      Icon: Clock,
+      value: data?.expiringSoon ?? 0,
+      label: "Expiring soon",
+      sub: "Shared items due for renewal",
+    },
+    {
+      to: "/talent/vault",
+      search: { tab: "agency", view: "requests" },
+      tone: "purple",
+      Icon: Inbox,
+      value: (data?.openRequests ?? 0) + (data?.resubRequests ?? 0),
+      label: "Manager Requests",
+      sub: `${data?.resubRequests ?? 0} need resubmission`,
+    },
   ];
 
   return (
@@ -89,9 +138,13 @@ function TalentDashboard() {
               title={showAllAttention ? "Show fewer" : "Show all"}
             >
               {showAllAttention ? (
-                <><Minimize2 className="h-3.5 w-3.5" /> Show less</>
+                <>
+                  <Minimize2 className="h-3.5 w-3.5" /> Show less
+                </>
               ) : (
-                <><Maximize2 className="h-3.5 w-3.5" /> Show all ({attention.length})</>
+                <>
+                  <Maximize2 className="h-3.5 w-3.5" /> Show all ({attention.length})
+                </>
               )}
             </button>
           )}
@@ -117,7 +170,11 @@ function TalentDashboard() {
                 >
                   <span className={`tvp-review-icon tvp-bg-${item.tone}`}>
                     {item.type === "request" ? (
-                      item.tone === "amber" ? <AlertCircle className="h-3.5 w-3.5" /> : <Inbox className="h-3.5 w-3.5" />
+                      item.tone === "amber" ? (
+                        <AlertCircle className="h-3.5 w-3.5" />
+                      ) : (
+                        <Inbox className="h-3.5 w-3.5" />
+                      )
                     ) : (
                       <Clock className="h-3.5 w-3.5" />
                     )}
@@ -144,11 +201,17 @@ function TalentDashboard() {
         )}
       </div>
 
-
-      <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))", marginBottom: 22 }}>
-
+      <div
+        className="tvp-grid"
+        style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))", marginBottom: 22 }}
+      >
         {kpis.map((k) => (
-          <Link key={k.label} to={k.to} search={(k as any).search} className="tvp-card tvp-kpi tvp-clickable">
+          <Link
+            key={k.label}
+            to={k.to}
+            search={(k as any).search}
+            className="tvp-card tvp-kpi tvp-clickable"
+          >
             <div className={`tvp-kpi-icon tvp-bg-${k.tone}`}>
               <k.Icon className="h-5 w-5" />
             </div>
@@ -161,38 +224,56 @@ function TalentDashboard() {
         ))}
       </div>
 
-
-
-
       <div className="tvp-card tvp-panel" style={{ marginBottom: 22 }}>
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Vault overview</h2>
-          <Link to="/talent/vault" className="tvp-link">Open Vault →</Link>
+          <Link to="/talent/vault" className="tvp-link">
+            Open Vault →
+          </Link>
         </div>
-        <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(2, minmax(0,1fr))", marginTop: 14 }}>
-          <Link to="/talent/vault" search={{ tab: "private" }} className="tvp-doc-card tvp-clickable" style={{ alignItems: "flex-start" }}>
-            <div className="tvp-kpi-icon tvp-bg-teal" style={{ width: 40, height: 40 }}><Lock className="h-4 w-4" /></div>
+        <div
+          className="tvp-grid"
+          style={{ gridTemplateColumns: "repeat(2, minmax(0,1fr))", marginTop: 14 }}
+        >
+          <Link
+            to="/talent/vault"
+            search={{ tab: "private" }}
+            className="tvp-doc-card tvp-clickable"
+            style={{ alignItems: "flex-start" }}
+          >
+            <div className="tvp-kpi-icon tvp-bg-teal" style={{ width: 40, height: 40 }}>
+              <Lock className="h-4 w-4" />
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <strong>Private Vault</strong>
               <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
                 Personal documents. Not visible to the Agency.
               </div>
               <div className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                {data?.privateFolders ?? 0} folder{(data?.privateFolders ?? 0) === 1 ? "" : "s"} · {data?.privateDocs ?? 0} document{(data?.privateDocs ?? 0) === 1 ? "" : "s"}
+                {data?.privateFolders ?? 0} folder{(data?.privateFolders ?? 0) === 1 ? "" : "s"} ·{" "}
+                {data?.privateDocs ?? 0} document{(data?.privateDocs ?? 0) === 1 ? "" : "s"}
               </div>
             </div>
             <span className="tvp-status tvp-green">Private</span>
           </Link>
 
-          <Link to="/talent/vault" search={{ tab: "agency" }} className="tvp-doc-card tvp-clickable" style={{ alignItems: "flex-start" }}>
-            <div className="tvp-kpi-icon tvp-bg-blue" style={{ width: 40, height: 40 }}><FileStack className="h-4 w-4" /></div>
+          <Link
+            to="/talent/vault"
+            search={{ tab: "agency" }}
+            className="tvp-doc-card tvp-clickable"
+            style={{ alignItems: "flex-start" }}
+          >
+            <div className="tvp-kpi-icon tvp-bg-blue" style={{ width: 40, height: 40 }}>
+              <FileStack className="h-4 w-4" />
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <strong>Agency Shared Folder</strong>
               <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
                 Documents deliberately shared with your Agency.
               </div>
               <div className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
-                {data?.sharedFolders ?? 0} folder{(data?.sharedFolders ?? 0) === 1 ? "" : "s"} · {data?.sharedDocs ?? 0} document{(data?.sharedDocs ?? 0) === 1 ? "" : "s"}
+                {data?.sharedFolders ?? 0} folder{(data?.sharedFolders ?? 0) === 1 ? "" : "s"} ·{" "}
+                {data?.sharedDocs ?? 0} document{(data?.sharedDocs ?? 0) === 1 ? "" : "s"}
               </div>
             </div>
             <span className="tvp-status tvp-blue">Shared</span>
@@ -210,8 +291,19 @@ function TalentDashboard() {
             justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: "1 1 320px" }}>
-            <div className="tvp-kpi-icon tvp-bg-purple" style={{ width: 40, height: 40, flexShrink: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              minWidth: 0,
+              flex: "1 1 320px",
+            }}
+          >
+            <div
+              className="tvp-kpi-icon tvp-bg-purple"
+              style={{ width: 40, height: 40, flexShrink: 0 }}
+            >
               <Share2 className="h-4 w-4" />
             </div>
             <div style={{ minWidth: 0 }}>
@@ -235,7 +327,6 @@ function TalentDashboard() {
           </div>
         </div>
       </div>
-
     </>
   );
 }

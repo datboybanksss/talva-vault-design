@@ -54,9 +54,7 @@ export async function fetchOnboardedTalentLinks(
   // Exclude test and soft-deleted talent. A link whose talent has no profile
   // row yet has not completed onboarding, so it is excluded too.
   const eligible = new Set(
-    (profiles ?? [])
-      .filter((p: any) => !p.is_test && !p.deleted_at)
-      .map((p: any) => p.user_id),
+    (profiles ?? []).filter((p: any) => !p.is_test && !p.deleted_at).map((p: any) => p.user_id),
   );
   return links.filter((l) => eligible.has(l.talent_user_id));
 }
@@ -74,7 +72,6 @@ export async function fetchOnboardedTalent(
     return true;
   });
 }
-
 
 /** Convenience wrapper for dashboards that only need the headline number. */
 export async function countOnboardedTalent(client: any, toIso?: string): Promise<number> {

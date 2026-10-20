@@ -15,7 +15,11 @@ async function admin() {
 /** A person's own "Organise documents with AI" switch (default on). */
 export async function userAiEnabled(userId: string): Promise<boolean> {
   const db = await admin();
-  const { data } = await db.from("profiles").select("ai_filing_enabled").eq("id", userId).maybeSingle();
+  const { data } = await db
+    .from("profiles")
+    .select("ai_filing_enabled")
+    .eq("id", userId)
+    .maybeSingle();
   return data?.ai_filing_enabled !== false;
 }
 
@@ -118,7 +122,8 @@ export async function advanceDocumentAnalysis(input: {
       await where(db.from("document_ai_analyses").update(patch));
     },
     analyse: () => analyseDocument({ scope: input.scope, documentId: input.documentId }),
-    poll: (ref) => pollAnalysis({ scope: input.scope, documentId: input.documentId, providerRef: ref }),
+    poll: (ref) =>
+      pollAnalysis({ scope: input.scope, documentId: input.documentId, providerRef: ref }),
   });
 
   return { status: next.status, suggestion: next.suggestion, error_code: next.error_code };

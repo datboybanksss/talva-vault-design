@@ -8,8 +8,7 @@ import wordWhite from "@/assets/talvault-word-white.png.asset.json";
  * relative asset paths). Falls back to the stable project URL.
  */
 export const PUBLIC_SITE_URL = (
-  process.env.PUBLIC_SITE_URL ??
-  "https://project--f47b509e-a49f-44ed-abf5-85631a6dc162.lovable.app"
+  process.env.PUBLIC_SITE_URL ?? "https://project--f47b509e-a49f-44ed-abf5-85631a6dc162.lovable.app"
 ).replace(/\/$/, "");
 
 export const EMAIL_LOGO_WHITE_URL = `${PUBLIC_SITE_URL}${lockupWhite.url}`;

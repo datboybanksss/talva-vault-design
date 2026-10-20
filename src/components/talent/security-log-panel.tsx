@@ -45,7 +45,8 @@ export function SecurityLogPanel() {
           </p>
         </div>
         <span className="tvp-status tvp-teal">
-          <ShieldCheck className="h-3.5 w-3.5" /> {rows.length}{q.hasNextPage ? "+" : ""} event{rows.length === 1 ? "" : "s"}
+          <ShieldCheck className="h-3.5 w-3.5" /> {rows.length}
+          {q.hasNextPage ? "+" : ""} event{rows.length === 1 ? "" : "s"}
         </span>
       </div>
 
@@ -53,19 +54,37 @@ export function SecurityLogPanel() {
         <table className="tvp-table">
           <thead>
             <tr>
-              <th>Time</th><th>Action</th><th>Target</th><th>IP address</th><th>Device</th>
+              <th>Time</th>
+              <th>Action</th>
+              <th>Target</th>
+              <th>IP address</th>
+              <th>Device</th>
             </tr>
           </thead>
           <tbody>
-            {q.isPending && <tr><td colSpan={5} className="tvp-muted">Loading events…</td></tr>}
+            {q.isPending && (
+              <tr>
+                <td colSpan={5} className="tvp-muted">
+                  Loading events…
+                </td>
+              </tr>
+            )}
             {!q.isPending && rows.length === 0 && (
-              <tr><td colSpan={5} className="tvp-muted">No security events yet — sign-ins, password changes and 2FA activity appear here.</td></tr>
+              <tr>
+                <td colSpan={5} className="tvp-muted">
+                  No security events yet — sign-ins, password changes and 2FA activity appear here.
+                </td>
+              </tr>
             )}
             {rows.map((e: any) => (
               <tr key={e.id}>
                 <td>
                   {new Date(e.created_at).toLocaleString("en-GB", {
-                    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </td>
                 <td>

@@ -57,8 +57,7 @@ export const getMfaStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     const sessionVerified =
       !!verified &&
-      Date.now() - new Date(verified.verified_at).getTime() <
-        VERIFICATION_TTL_HOURS * 3_600_000;
+      Date.now() - new Date(verified.verified_at).getTime() < VERIFICATION_TTL_HOURS * 3_600_000;
 
     const email = typeof claims["email"] === "string" ? (claims["email"] as string) : null;
 
@@ -114,15 +113,13 @@ export const requestSignInCode = createServerFn({ method: "POST" })
     };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { callerIp, throttleMessage } = await import("@/lib/rate-limit.server");
-    const { generateCode, hashCode, buildSignInCodeEmail, CODE_TTL_MINUTES } = await import(
-      "@/lib/mfa.server"
-    );
+    const { generateCode, hashCode, buildSignInCodeEmail, CODE_TTL_MINUTES } =
+      await import("@/lib/mfa.server");
 
     const email =
       (typeof claims["email"] === "string" ? (claims["email"] as string) : null) ??
-      (
-        await supabaseAdmin.from("profiles").select("email").eq("id", userId).maybeSingle()
-      ).data?.email ??
+      (await supabaseAdmin.from("profiles").select("email").eq("id", userId).maybeSingle()).data
+        ?.email ??
       null;
 
     if (!email) {

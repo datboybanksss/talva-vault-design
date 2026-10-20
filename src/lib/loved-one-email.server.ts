@@ -122,8 +122,9 @@ export function buildRegeneratedCodeEmail(input: {
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );
 }
 
@@ -132,7 +133,10 @@ function escapeHtml(s: string) {
  * Returns { sent:false, reason } when email infrastructure isn't set up yet,
  * so the caller can fall back to "copy the link and send it yourself".
  */
-export async function sendShareEmail(to: string, mail: { subject: string; html: string; text: string }) {
+export async function sendShareEmail(
+  to: string,
+  mail: { subject: string; html: string; text: string },
+) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
   if (!apiKey || !from) {
@@ -146,11 +150,19 @@ export async function sendShareEmail(to: string, mail: { subject: string; html: 
       Authorization: `Bearer ${lovableKey}`,
       "X-Connection-Api-Key": apiKey,
     },
-    body: JSON.stringify({ from, to: [to], subject: mail.subject, html: mail.html, text: mail.text }),
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
+    }),
   });
   if (!res.ok) {
     const body = await res.text();
-    console.error(`${SHARE_RECIPIENT_TERM_CAPITALISED} share email failed [${res.status}]: ${body}`);
+    console.error(
+      `${SHARE_RECIPIENT_TERM_CAPITALISED} share email failed [${res.status}]: ${body}`,
+    );
     return { sent: false as const, reason: "send_failed" as const, detail: body };
   }
   return { sent: true as const };

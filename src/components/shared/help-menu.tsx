@@ -30,7 +30,10 @@ function GuideGroup({
     setSelected((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]));
 
   return (
-    <div className="tvp-help-group" style={{ borderTop: "1px solid var(--tvp-border)", padding: "8px 0" }}>
+    <div
+      className="tvp-help-group"
+      style={{ borderTop: "1px solid var(--tvp-border)", padding: "8px 0" }}
+    >
       <button
         type="button"
         className="tvp-link"

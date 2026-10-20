@@ -20,13 +20,41 @@ type CatalogItem = { id: string; label: string };
 
 /** Keyword → folder-name fragments we try to match against the live catalogue. */
 const KEYWORD_RULES: { keywords: string[]; folderHints: string[]; label: string }[] = [
-  { keywords: ["passport", "visa", "permit"], folderHints: ["travel", "visa", "identity"], label: "travel or identity" },
-  { keywords: ["id", "identity", "idcard", "id-card", "birth"], folderHints: ["identity", "personal"], label: "identity" },
-  { keywords: ["contract", "agreement", "addendum", "nda"], folderHints: ["contract", "agreement"], label: "contracts" },
-  { keywords: ["invoice", "quote", "statement", "payslip", "bank", "tax", "irp5", "vat"], folderHints: ["bank", "tax", "financial", "invoice"], label: "banking or tax" },
-  { keywords: ["licence", "license", "certificate", "certified", "compliance"], folderHints: ["licence", "rights", "compliance"], label: "licences or compliance" },
-  { keywords: ["insurance", "medical", "health"], folderHints: ["medical", "health", "insurance"], label: "medical or insurance" },
-  { keywords: ["sponsor", "endorsement", "brand", "media"], folderHints: ["brand", "sponsor", "media"], label: "brand or sponsorship" },
+  {
+    keywords: ["passport", "visa", "permit"],
+    folderHints: ["travel", "visa", "identity"],
+    label: "travel or identity",
+  },
+  {
+    keywords: ["id", "identity", "idcard", "id-card", "birth"],
+    folderHints: ["identity", "personal"],
+    label: "identity",
+  },
+  {
+    keywords: ["contract", "agreement", "addendum", "nda"],
+    folderHints: ["contract", "agreement"],
+    label: "contracts",
+  },
+  {
+    keywords: ["invoice", "quote", "statement", "payslip", "bank", "tax", "irp5", "vat"],
+    folderHints: ["bank", "tax", "financial", "invoice"],
+    label: "banking or tax",
+  },
+  {
+    keywords: ["licence", "license", "certificate", "certified", "compliance"],
+    folderHints: ["licence", "rights", "compliance"],
+    label: "licences or compliance",
+  },
+  {
+    keywords: ["insurance", "medical", "health"],
+    folderHints: ["medical", "health", "insurance"],
+    label: "medical or insurance",
+  },
+  {
+    keywords: ["sponsor", "endorsement", "brand", "media"],
+    folderHints: ["brand", "sponsor", "media"],
+    label: "brand or sponsorship",
+  },
 ];
 
 function normalise(value: string) {
@@ -67,15 +95,19 @@ export function suggestFromFileName(
   for (const rule of KEYWORD_RULES) {
     const hit = rule.keywords.find((k) => words.has(k) || name.includes(k));
     if (!hit) continue;
-    const deepest = [...catalog].sort((a, b) => b.label.split(" → ").length - a.label.split(" → ").length);
+    const deepest = [...catalog].sort(
+      (a, b) => b.label.split(" → ").length - a.label.split(" → ").length,
+    );
     const direct = deepest.find((c) => {
       const leaf = normalise(c.label.split(" → ").pop() ?? "");
       return leaf.split(/\s+/).some((word) => word === hit || word === `${hit}s`);
     });
-    const match = direct ?? deepest.find((c) => {
-      const label = c.label.toLowerCase();
-      return rule.folderHints.some((h) => label.includes(h));
-    });
+    const match =
+      direct ??
+      deepest.find((c) => {
+        const label = c.label.toLowerCase();
+        return rule.folderHints.some((h) => label.includes(h));
+      });
     if (match) {
       folderId = match.id;
       matchedKeyword = hit;
@@ -95,7 +127,10 @@ export function suggestFromFileName(
     folder_id: folderId,
     expiry_date: expiry?.date ?? null,
     confidence,
-    rationale: [folderReason, expiry ? `A date "${expiry.matched}" in the filename was read as the expiry.` : ""]
+    rationale: [
+      folderReason,
+      expiry ? `A date "${expiry.matched}" in the filename was read as the expiry.` : "",
+    ]
       .filter(Boolean)
       .join(" "),
     folder_source_text: folderId ? `Filename keyword: "${matchedKeyword}" in ${fileName}` : null,

@@ -1,9 +1,7 @@
 import { SHARE_TERM } from "@/lib/terms";
 import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import {
-  useTalentInvitationActions,
-} from "@/components/admin/talent-invitation-actions";
+import { useTalentInvitationActions } from "@/components/admin/talent-invitation-actions";
 import { listIndependentTalentInvitations } from "@/lib/independent-talent.functions";
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -23,16 +21,16 @@ import {
   Ban,
   RefreshCw,
 } from "lucide-react";
-import {
-  getDashboardMetrics,
-  listAgencies,
-} from "@/lib/admin.functions";
+import { getDashboardMetrics, listAgencies } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
     meta: [
       { title: "Platform overview · TalVault Admin" },
-      { name: "description", content: "Agencies, talent, invitations and sharing across TalVault at a glance." },
+      {
+        name: "description",
+        content: "Agencies, talent, invitations and sharing across TalVault at a glance.",
+      },
     ],
   }),
   component: AdminDashboard,
@@ -72,7 +70,12 @@ function AdminDashboard() {
   const agencyPage = usePagedList<any>(visible, { resetKey: filter });
 
   const counts = metrics.data?.statusCounts ?? {
-    incomplete: 0, invited: 0, accepted: 0, expired: 0, declined: 0, suspended: 0,
+    incomplete: 0,
+    invited: 0,
+    accepted: 0,
+    expired: 0,
+    declined: 0,
+    suspended: 0,
   };
 
   const freshnessLabel = useMemo(() => {
@@ -97,7 +100,8 @@ function AdminDashboard() {
         <div>
           <h1 className="tvp-h1">Platform overview</h1>
           <div className="tvp-subtitle">
-            A consolidated reporting view across agencies, talent, documents and invitation activity.
+            A consolidated reporting view across agencies, talent, documents and invitation
+            activity.
           </div>
         </div>
         <div className="tvp-actions">
@@ -107,17 +111,21 @@ function AdminDashboard() {
             Refresh
           </button>
           <Link to="/admin/invitations/new" className="tvp-secondary">
-            <Send className="h-4 w-4" />Invite an agency
+            <Send className="h-4 w-4" />
+            Invite an agency
           </Link>
           <Link to="/admin/invitations/talent/new" className="tvp-primary">
-            <UserPlus className="h-4 w-4" />Invite talent
+            <UserPlus className="h-4 w-4" />
+            Invite talent
           </Link>
         </div>
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
         <Link to="/admin/agencies" className="tvp-card tvp-kpi tvp-clickable">
-          <div className="tvp-kpi-icon tvp-bg-teal"><Building2 className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <Building2 className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalAgencies ?? "—"}</div>
             <div className="tvp-kpi-label">Total Agencies</div>
@@ -127,27 +135,37 @@ function AdminDashboard() {
           </div>
         </Link>
         <Link to="/admin/invitations" className="tvp-card tvp-kpi tvp-clickable">
-          <div className="tvp-kpi-icon tvp-bg-amber"><Mail className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-amber">
+            <Mail className="h-5 w-5" />
+          </div>
           <div>
-            <div className="tvp-kpi-value">{counts.invited + (metrics.data?.openTalentInvites ?? 0)}</div>
+            <div className="tvp-kpi-value">
+              {counts.invited + (metrics.data?.openTalentInvites ?? 0)}
+            </div>
             <div className="tvp-kpi-label">Open invitations</div>
             <div className="tvp-kpi-sub">
-              {counts.invited} {counts.invited === 1 ? "agency" : "agencies"} · {metrics.data?.openTalentInvites ?? 0} talent
+              {counts.invited} {counts.invited === 1 ? "agency" : "agencies"} ·{" "}
+              {metrics.data?.openTalentInvites ?? 0} talent
             </div>
           </div>
         </Link>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-green">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalTalent ?? "—"}</div>
             <div className="tvp-kpi-label">Talent onboarded</div>
             <div className="tvp-kpi-sub tvp-neutral">
-              {metrics.data?.agencyLinkedTalent ?? 0} agency-linked · {metrics.data?.independentTalent ?? 0} independent
+              {metrics.data?.agencyLinkedTalent ?? 0} agency-linked ·{" "}
+              {metrics.data?.independentTalent ?? 0} independent
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-amber"><Link2 className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-amber">
+            <Link2 className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.pendingLinkRequests ?? "—"}</div>
             <div className="tvp-kpi-label">Pending link requests</div>
@@ -155,24 +173,32 @@ function AdminDashboard() {
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-blue"><FileText className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-blue">
+            <FileText className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.totalDocuments ?? "—"}</div>
             <div className="tvp-kpi-label">Total Documents Uploaded</div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-purple"><Share2 className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-purple">
+            <Share2 className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.activeShares ?? "—"}</div>
             <div className="tvp-kpi-label">Active {SHARE_TERM} shares</div>
-            <div className={`tvp-kpi-sub${(metrics.data?.activeShares ?? 0) > 0 ? "" : " tvp-neutral"}`}>
+            <div
+              className={`tvp-kpi-sub${(metrics.data?.activeShares ?? 0) > 0 ? "" : " tvp-neutral"}`}
+            >
               Shares currently open
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-red"><Ban className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-red">
+            <Ban className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{counts.suspended}</div>
             <div className="tvp-kpi-label">Suspended Agencies</div>
@@ -183,11 +209,12 @@ function AdminDashboard() {
         </div>
       </div>
 
-
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Agency invitations</h2>
-          <Link to="/admin/agencies" className="tvp-link">View all agencies →</Link>
+          <Link to="/admin/agencies" className="tvp-link">
+            View all agencies →
+          </Link>
         </div>
 
         <div className="tvp-life-chips">
@@ -203,27 +230,43 @@ function AdminDashboard() {
           ))}
         </div>
         <div className="tvp-small" style={{ margin: "-4px 0 14px 2px" }}>
-          {filter === "all" ? "Showing all agencies" : `Filtered by ${statusLabel("agency", filter)}`}
+          {filter === "all"
+            ? "Showing all agencies"
+            : `Filtered by ${statusLabel("agency", filter)}`}
         </div>
 
         <div className="tvp-table-wrap">
           <table className="tvp-table">
             <thead>
               <tr>
-                <th>Agency</th><th>Status</th><th>Contact</th><th>Country</th><th>Created</th>
+                <th>Agency</th>
+                <th>Status</th>
+                <th>Contact</th>
+                <th>Country</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>
               {agencies.isLoading && (
-                <tr><td colSpan={5} className="tvp-muted">Loading agencies…</td></tr>
+                <tr>
+                  <td colSpan={5} className="tvp-muted">
+                    Loading agencies…
+                  </td>
+                </tr>
               )}
               {!agencies.isLoading && visible.length === 0 && (
-                <tr><td colSpan={5} className="tvp-muted">
-                  No agencies on the platform yet.{" "}
-                  <Link to="/admin/invitations/new" className="tvp-link">Invite an agency</Link>
-                  {" · "}
-                  <Link to="/admin/invitations/talent/new" className="tvp-link">Invite talent</Link>
-                </td></tr>
+                <tr>
+                  <td colSpan={5} className="tvp-muted">
+                    No agencies on the platform yet.{" "}
+                    <Link to="/admin/invitations/new" className="tvp-link">
+                      Invite an agency
+                    </Link>
+                    {" · "}
+                    <Link to="/admin/invitations/talent/new" className="tvp-link">
+                      Invite talent
+                    </Link>
+                  </td>
+                </tr>
               )}
               {agencyPage.visible.map((r: any) => (
                 <tr key={r.id}>
@@ -239,7 +282,13 @@ function AdminDashboard() {
                   </td>
                   <td>{r.contact_person ?? r.contact_email ?? "—"}</td>
                   <td>{r.country ?? "—"}</td>
-                  <td>{new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</td>
+                  <td>
+                    {new Date(r.created_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
                 </tr>
               ))}
               <LoadMoreRow
@@ -254,34 +303,60 @@ function AdminDashboard() {
           </table>
         </div>
       </div>
-      <div className="tvp-card tvp-panel" style={{ marginTop: 16 }} data-tour="admin-talent-invitations">
+      <div
+        className="tvp-card tvp-panel"
+        style={{ marginTop: 16 }}
+        data-tour="admin-talent-invitations"
+      >
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Talent invitations</h2>
-          <Link to="/admin/invitations" className="tvp-link">View all invitations →</Link>
+          <Link to="/admin/invitations" className="tvp-link">
+            View all invitations →
+          </Link>
         </div>
         <div className="tvp-table-wrap">
           <table className="tvp-table">
             <thead>
               <tr>
-                <th>Talent name</th><th>Email</th><th>Status</th><th>Sent</th><th>Expires</th><th>Documents</th><th></th>
+                <th>Talent name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Sent</th>
+                <th>Expires</th>
+                <th>Documents</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {talentInvites.isLoading && (
-                <tr><td colSpan={7} className="tvp-muted">Loading talent invitations…</td></tr>
+                <tr>
+                  <td colSpan={7} className="tvp-muted">
+                    Loading talent invitations…
+                  </td>
+                </tr>
               )}
               {!talentInvites.isLoading && (talentInvites.data ?? []).length === 0 && (
-                <tr><td colSpan={7} className="tvp-muted">
-                  No talent invitations yet.{" "}
-                  <Link to="/admin/invitations/new" className="tvp-link">Invite an agency</Link>
-                  {" · "}
-                  <Link to="/admin/invitations/talent/new" className="tvp-link">Invite talent</Link>
-                </td></tr>
+                <tr>
+                  <td colSpan={7} className="tvp-muted">
+                    No talent invitations yet.{" "}
+                    <Link to="/admin/invitations/new" className="tvp-link">
+                      Invite an agency
+                    </Link>
+                    {" · "}
+                    <Link to="/admin/invitations/talent/new" className="tvp-link">
+                      Invite talent
+                    </Link>
+                  </td>
+                </tr>
               )}
               {talentPage.visible.map((r: any) => (
                 <tr key={r.id}>
                   <td>
-                    <Link to="/admin/invitations/talent/$id" params={{ id: r.id }} className="text-ink">
+                    <Link
+                      to="/admin/invitations/talent/$id"
+                      params={{ id: r.id }}
+                      className="text-ink"
+                    >
                       <strong>{r.talent_name}</strong>
                     </Link>
                   </td>
@@ -292,9 +367,13 @@ function AdminDashboard() {
                     </span>
                   </td>
                   <td>{r.last_sent_at ? fmt(r.last_sent_at) : "—"}</td>
-                  <td>{r.status === "pending" || r.status === "expired" ? fmt(r.expires_at) : "—"}</td>
+                  <td>
+                    {r.status === "pending" || r.status === "expired" ? fmt(r.expires_at) : "—"}
+                  </td>
                   <td>{r.doc_count}/2</td>
-                  <td><RowActionsMenu actions={talentActions(r)} /></td>
+                  <td>
+                    <RowActionsMenu actions={talentActions(r)} />
+                  </td>
                 </tr>
               ))}
               <LoadMoreRow
@@ -314,5 +393,9 @@ function AdminDashboard() {
 }
 
 function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }

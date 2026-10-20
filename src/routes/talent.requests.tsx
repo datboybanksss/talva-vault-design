@@ -12,7 +12,8 @@ export const Route = createFileRoute("/talent/requests")({
       { title: "Connection requests · TalVault Talent" },
       {
         name: "description",
-        content: "Agencies that would like to connect with your TalVault. Accept or decline each request.",
+        content:
+          "Agencies that would like to connect with your TalVault. Accept or decline each request.",
       },
     ],
   }),
@@ -20,7 +21,9 @@ export const Route = createFileRoute("/talent/requests")({
 });
 
 const fmt = (v: string | null) =>
-  v ? new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "—";
+  v
+    ? new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : "—";
 
 function RequestsPage() {
   const qc = useQueryClient();
@@ -30,7 +33,11 @@ function RequestsPage() {
   const m = useMutation({
     mutationFn: (v: { id: string; accept: boolean }) => respondFn({ data: v }),
     onSuccess: (_r, v) => {
-      toast.success(v.accept ? "Connected. Your shared folders are ready." : "Request declined. Nothing was shared.");
+      toast.success(
+        v.accept
+          ? "Connected. Your shared folders are ready."
+          : "Request declined. Nothing was shared.",
+      );
       qc.invalidateQueries({ queryKey: ["talent"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Something went wrong."),
@@ -55,22 +62,35 @@ function RequestsPage() {
         ) : (
           <table className="tvp-table">
             <thead>
-              <tr><th>Agency</th><th>Received</th><th>Expires</th><th></th></tr>
+              <tr>
+                <th>Agency</th>
+                <th>Received</th>
+                <th>Expires</th>
+                <th></th>
+              </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td><strong>{r.agencyName}</strong></td>
+                  <td>
+                    <strong>{r.agencyName}</strong>
+                  </td>
                   <td>{fmt(r.requestedAt)}</td>
                   <td>{fmt(r.expiresAt)}</td>
                   <td>
                     <div className="flex gap-2" style={{ justifyContent: "flex-end" }}>
-                      <button className="tvp-secondary" disabled={m.isPending}
-                        onClick={() => m.mutate({ id: r.id, accept: false })}>
+                      <button
+                        className="tvp-secondary"
+                        disabled={m.isPending}
+                        onClick={() => m.mutate({ id: r.id, accept: false })}
+                      >
                         <X className="h-4 w-4" /> Decline
                       </button>
-                      <button className="tvp-primary" disabled={m.isPending}
-                        onClick={() => m.mutate({ id: r.id, accept: true })}>
+                      <button
+                        className="tvp-primary"
+                        disabled={m.isPending}
+                        onClick={() => m.mutate({ id: r.id, accept: true })}
+                      >
                         <Check className="h-4 w-4" /> Accept
                       </button>
                     </div>

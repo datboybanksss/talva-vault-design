@@ -46,24 +46,29 @@ export type BillingDocRecord = {
 };
 
 const cellHead: React.CSSProperties = {
-  padding: "8px 10px", textAlign: "left", fontSize: 11,
-  textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700,
+  padding: "8px 10px",
+  textAlign: "left",
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: 0.5,
+  fontWeight: 700,
 };
 const cell: React.CSSProperties = { padding: "8px 10px", verticalAlign: "top" };
 
 export function BillingDocument({
-  doc, lines, agency,
-}: { doc: BillingDocRecord; lines: BillingLine[]; agency: BillingDocAgency }) {
+  doc,
+  lines,
+  agency,
+}: {
+  doc: BillingDocRecord;
+  lines: BillingLine[];
+  agency: BillingDocAgency;
+}) {
   const totals = computeTotals(lines);
   const accent = agency.accent_color || "#064E58";
   const isVat = !!agency.is_vat_registered;
   const showVatCol = lines.some((l) => l.vat_rate_bp > 0);
-  const heading =
-    doc.kind === "quote"
-      ? "Quotation"
-      : isVat
-      ? "Tax Invoice"
-      : "Invoice";
+  const heading = doc.kind === "quote" ? "Quotation" : isVat ? "Tax Invoice" : "Invoice";
   const isDraft = doc.number.startsWith("DRAFT-");
   const hasPaymentDetails = !!(
     agency.bank_name ||
@@ -124,9 +129,7 @@ export function BillingDocument({
               style={{ maxHeight: 72, maxWidth: 240, marginBottom: 8, objectFit: "contain" }}
             />
           ) : (
-            <div style={{ fontSize: 22, fontWeight: 800, color: accent }}>
-              {agency.name}
-            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: accent }}>{agency.name}</div>
           )}
           {agency.logo_url && (
             <div style={{ fontSize: 13, fontWeight: 700, color: accent, marginTop: 4 }}>
@@ -159,19 +162,14 @@ export function BillingDocument({
           >
             {heading}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>
-            {doc.number}
-          </div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>{doc.number}</div>
           <div style={{ fontSize: 12, color: "#555", marginTop: 8 }}>
             <div>
               <strong>Issued:</strong> {doc.issued_at}
             </div>
             {doc.due_date && (
               <div>
-                <strong>
-                  {doc.kind === "quote" ? "Valid until" : "Due"}:
-                </strong>{" "}
-                {doc.due_date}
+                <strong>{doc.kind === "quote" ? "Valid until" : "Due"}:</strong> {doc.due_date}
               </div>
             )}
           </div>
@@ -276,15 +274,9 @@ export function BillingDocument({
           <tr style={{ background: accent, color: "#fff" }}>
             <th style={cellHead}>Description</th>
             <th style={{ ...cellHead, textAlign: "right", width: 60 }}>Qty</th>
-            <th style={{ ...cellHead, textAlign: "right", width: 110 }}>
-              Unit price (excl.)
-            </th>
-            {showVatCol && (
-              <th style={{ ...cellHead, textAlign: "right", width: 70 }}>VAT %</th>
-            )}
-            <th style={{ ...cellHead, textAlign: "right", width: 120 }}>
-              Line total (excl.)
-            </th>
+            <th style={{ ...cellHead, textAlign: "right", width: 110 }}>Unit price (excl.)</th>
+            {showVatCol && <th style={{ ...cellHead, textAlign: "right", width: 70 }}>VAT %</th>}
+            <th style={{ ...cellHead, textAlign: "right", width: 120 }}>Line total (excl.)</th>
           </tr>
         </thead>
         <tbody>
@@ -302,9 +294,7 @@ export function BillingDocument({
                     {(l.vat_rate_bp / 100).toFixed(2)}%
                   </td>
                 )}
-                <td style={{ ...cell, textAlign: "right" }}>
-                  {fmtMoney(line, doc.currency)}
-                </td>
+                <td style={{ ...cell, textAlign: "right" }}>{fmtMoney(line, doc.currency)}</td>
               </tr>
             );
           })}
@@ -321,9 +311,7 @@ export function BillingDocument({
         <table style={{ fontSize: 13, minWidth: 320 }}>
           <tbody>
             <tr>
-              <td style={{ padding: "4px 12px", color: "#555" }}>
-                Subtotal (excl. VAT)
-              </td>
+              <td style={{ padding: "4px 12px", color: "#555" }}>Subtotal (excl. VAT)</td>
               <td
                 style={{
                   padding: "4px 0",
@@ -360,8 +348,7 @@ export function BillingDocument({
                   color: accent,
                 }}
               >
-                Total{" "}
-                {isVat && totals.vat_cents > 0 ? "(incl. VAT)" : ""}
+                Total {isVat && totals.vat_cents > 0 ? "(incl. VAT)" : ""}
               </td>
               <td
                 style={{
@@ -407,10 +394,26 @@ export function BillingDocument({
         >
           <div style={{ fontWeight: 700, marginBottom: 6, color: accent }}>Payment details</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 24px" }}>
-            {agency.bank_name && (<div><strong>Bank:</strong> {agency.bank_name}</div>)}
-            {agency.bank_account_holder && (<div><strong>Account holder:</strong> {agency.bank_account_holder}</div>)}
-            {agency.bank_account_number && (<div><strong>Account number:</strong> {agency.bank_account_number}</div>)}
-            {agency.bank_branch_code && (<div><strong>Branch code:</strong> {agency.bank_branch_code}</div>)}
+            {agency.bank_name && (
+              <div>
+                <strong>Bank:</strong> {agency.bank_name}
+              </div>
+            )}
+            {agency.bank_account_holder && (
+              <div>
+                <strong>Account holder:</strong> {agency.bank_account_holder}
+              </div>
+            )}
+            {agency.bank_account_number && (
+              <div>
+                <strong>Account number:</strong> {agency.bank_account_number}
+              </div>
+            )}
+            {agency.bank_branch_code && (
+              <div>
+                <strong>Branch code:</strong> {agency.bank_branch_code}
+              </div>
+            )}
           </div>
           {agency.payment_instructions && (
             <div style={{ marginTop: 6, whiteSpace: "pre-line", color: "#555" }}>
@@ -435,19 +438,13 @@ export function BillingDocument({
       >
         {doc.kind === "quote"
           ? `This quotation is valid for ${
-              doc.acceptance_window_days ??
-              agency.default_quote_acceptance_days ??
-              14
+              doc.acceptance_window_days ?? agency.default_quote_acceptance_days ?? 14
             } days from the issue date.`
           : `Payment is due within ${
-              doc.payment_terms_days ??
-              agency.default_invoice_payment_days ??
-              30
+              doc.payment_terms_days ?? agency.default_invoice_payment_days ?? 30
             } days of the issue date.`}
         {isVat && doc.kind === "invoice" && agency.vat_number && (
-          <div style={{ marginTop: 4 }}>
-            Registered for VAT — VAT number {agency.vat_number}
-          </div>
+          <div style={{ marginTop: 4 }}>Registered for VAT — VAT number {agency.vat_number}</div>
         )}
       </footer>
     </div>

@@ -3,7 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, AlertCircle, Upload, Trash2, FileText, Link2, RefreshCw, Ban } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  Upload,
+  Trash2,
+  FileText,
+  Link2,
+  RefreshCw,
+  Ban,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   createIndependentTalentDraft,
@@ -175,7 +185,10 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
     if (!draftId) return;
     const norm = (n: string) => n.trim().toLowerCase();
     if (docs.some((d) => norm(d.file_name ?? "") === norm(file.name))) {
-      setSlotErrors((p) => ({ ...p, [slotKey]: `A document named "${file.name}" has already been uploaded for this invitation.` }));
+      setSlotErrors((p) => ({
+        ...p,
+        [slotKey]: `A document named "${file.name}" has already been uploaded for this invitation.`,
+      }));
       return;
     }
     const pre = preflightUpload(file);
@@ -192,10 +205,19 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
     try {
       const safe = file.name.replace(/[^A-Za-z0-9._-]/g, "_");
       const path = `${draftId}/${slotKey}/${Date.now()}-${safe}`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false, contentType: file.type });
+      const { error } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, file, { upsert: false, contentType: file.type });
       if (error) throw error;
       await recordFn({
-        data: { invitation_id: draftId, doc_slot: slotKey as any, file_name: file.name, storage_path: path, mime_type: file.type, size_bytes: file.size },
+        data: {
+          invitation_id: draftId,
+          doc_slot: slotKey as any,
+          file_name: file.name,
+          storage_path: path,
+          mime_type: file.type,
+          size_bytes: file.size,
+        },
       });
       invQ.refetch();
       refresh();
@@ -231,7 +253,8 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
   const uploaded = new Set(docs.map((d) => d.doc_slot));
   const missing = SLOTS.filter((s) => !uploaded.has(s.key));
   const saving = createM.isPending || updateM.isPending;
-  const canSend = !!draftId && isDraft && detailsComplete && missing.length === 0 && !finalizeM.isPending;
+  const canSend =
+    !!draftId && isDraft && detailsComplete && missing.length === 0 && !finalizeM.isPending;
   const outstanding = [
     ...(detailsComplete ? [] : ["talent details"]),
     ...missing.map((s) => s.label.toLowerCase()),
@@ -241,14 +264,23 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/admin/invitations" className="tvp-link" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+          <Link
+            to="/admin/invitations"
+            className="tvp-link"
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}
+          >
             <ArrowLeft className="h-3 w-3" /> Back to invitations
           </Link>
           <h1 className="tvp-h1" style={{ marginTop: 4 }}>
-            {!draftId ? "Invite talent" : isDraft ? "Continue talent invitation" : "Talent invitation"}
+            {!draftId
+              ? "Invite talent"
+              : isDraft
+                ? "Continue talent invitation"
+                : "Talent invitation"}
           </h1>
           <div className="tvp-subtitle">
-            Independent talent join TalVault without an agency. Save a draft at any point; everything stays editable until you send.
+            Independent talent join TalVault without an agency. Save a draft at any point;
+            everything stays editable until you send.
           </div>
         </div>
         {draftId && !isDraft && (
@@ -256,13 +288,30 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
             <span className="tvp-status tvp-blue">{statusLabel[status] ?? status}</span>
             {status === "pending" && (
               <>
-                <button className="tvp-secondary" onClick={copyLink}><Link2 className="h-4 w-4" />Copy invite link</button>
-                <button className="tvp-secondary" disabled={resendM.isPending} onClick={() => resendM.mutate()}><RefreshCw className="h-4 w-4" />Resend</button>
+                <button className="tvp-secondary" onClick={copyLink}>
+                  <Link2 className="h-4 w-4" />
+                  Copy invite link
+                </button>
+                <button
+                  className="tvp-secondary"
+                  disabled={resendM.isPending}
+                  onClick={() => resendM.mutate()}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Resend
+                </button>
                 <button
                   className="tvp-secondary"
                   disabled={revokeM.isPending}
-                  onClick={() => confirm(`Revoke the invitation to ${name}? Their ID document and proof of talent will be deleted.`) && revokeM.mutate()}
-                ><Ban className="h-4 w-4" />Revoke</button>
+                  onClick={() =>
+                    confirm(
+                      `Revoke the invitation to ${name}? Their ID document and proof of talent will be deleted.`,
+                    ) && revokeM.mutate()
+                  }
+                >
+                  <Ban className="h-4 w-4" />
+                  Revoke
+                </button>
               </>
             )}
           </div>
@@ -273,29 +322,55 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
         <fieldset disabled={!isDraft} style={{ border: "none", padding: 0, margin: 0 }}>
           <div className="tvp-form-group">
             <label>Full name *</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Thandi Mokoena" />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Thandi Mokoena"
+            />
           </div>
           <div className="tvp-form-group">
             <label>Email *</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+            />
           </div>
           <div className="tvp-form-group">
             <label>Talent type</label>
             <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
               <option value="">Not specified</option>
               {typeOptions.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </div>
           <div className="tvp-form-group">
             <label>Date of birth *</label>
-            <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} aria-invalid={!!dobError || undefined} />
-            {dobError && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tvp-red)" }}>{dobError}</div>}
+            <input
+              type="date"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+              aria-invalid={!!dobError || undefined}
+            />
+            {dobError && (
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tvp-red)" }}>
+                {dobError}
+              </div>
+            )}
           </div>
           <div className="tvp-form-group">
             <label>Invitation expiry (days)</label>
-            <input type="number" min={1} max={60} value={expiryDays} onChange={(e) => setExpiryDays(Number(e.target.value) || 14)} />
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={expiryDays}
+              onChange={(e) => setExpiryDays(Number(e.target.value) || 14)}
+            />
           </div>
         </fieldset>
 
@@ -307,12 +382,18 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
                   type="button"
                   className="tvp-secondary"
                   disabled={deleteDraftM.isPending}
-                  onClick={() => confirm("Delete this draft and its documents? This cannot be undone.") && deleteDraftM.mutate()}
+                  onClick={() =>
+                    confirm("Delete this draft and its documents? This cannot be undone.") &&
+                    deleteDraftM.mutate()
+                  }
                 >
-                  <Trash2 className="h-4 w-4" />Delete draft
+                  <Trash2 className="h-4 w-4" />
+                  Delete draft
                 </button>
               )}
-              <Link to="/admin/invitations" className="tvp-secondary">{draftId ? "Close" : "Cancel"}</Link>
+              <Link to="/admin/invitations" className="tvp-secondary">
+                {draftId ? "Close" : "Cancel"}
+              </Link>
               <button
                 className="tvp-primary"
                 type="button"
@@ -332,10 +413,16 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       </div>
 
       {draftId && (isDraft || docs.length > 0) && (
-        <div className="tvp-card tvp-panel" style={{ marginTop: 16 }} data-tour="admin-talent-invite-docs">
+        <div
+          className="tvp-card tvp-panel"
+          style={{ marginTop: 16 }}
+          data-tour="admin-talent-invite-docs"
+        >
           <h2 className="tvp-h2">Documents</h2>
           <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 14 }}>
-            One file per slot. Both are required before the invitation can be sent. Documents are stored privately, are visible only to administrators, and are deleted if the invitation is revoked or expires.
+            One file per slot. Both are required before the invitation can be sent. Documents are
+            stored privately, are visible only to administrators, and are deleted if the invitation
+            is revoked or expires.
           </p>
           <div style={{ display: "grid", gap: 10 }}>
             {SLOTS.map((slot) => {
@@ -353,11 +440,24 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
                     background: "var(--tvp-surface)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                    }}
+                  >
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {has ? <CheckCircle2 className="h-4 w-4" style={{ color: "var(--tvp-green)" }} /> : <AlertCircle className="h-4 w-4" style={{ color: "var(--tvp-amber)" }} />}
+                      {has ? (
+                        <CheckCircle2 className="h-4 w-4" style={{ color: "var(--tvp-green)" }} />
+                      ) : (
+                        <AlertCircle className="h-4 w-4" style={{ color: "var(--tvp-amber)" }} />
+                      )}
                       <strong style={{ fontSize: 14 }}>{slot.label}</strong>
-                      <span className="tvp-muted" style={{ fontSize: 12 }}>{has ? "Uploaded" : "Required"}</span>
+                      <span className="tvp-muted" style={{ fontSize: 12 }}>
+                        {has ? "Uploaded" : "Required"}
+                      </span>
                     </div>
                     {isDraft && !has && (
                       <label className="tvp-secondary" style={{ cursor: "pointer" }}>
@@ -378,15 +478,38 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
                     )}
                   </div>
                   {slotErrors[slot.key] && (
-                    <p role="alert" style={{ margin: "8px 0 0", fontSize: 12, color: "var(--tvp-red)" }}>{slotErrors[slot.key]}</p>
+                    <p
+                      role="alert"
+                      style={{ margin: "8px 0 0", fontSize: 12, color: "var(--tvp-red)" }}
+                    >
+                      {slotErrors[slot.key]}
+                    </p>
                   )}
                   {files.map((u) => (
-                    <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "6px 0 0" }}>
+                    <div
+                      key={u.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontSize: 13,
+                        padding: "6px 0 0",
+                      }}
+                    >
                       <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
-                      <button type="button" className="tvp-link" onClick={() => openDoc(u.id)}>{u.file_name}</button>
-                      <span className="tvp-muted" style={{ fontSize: 11 }}>{u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}</span>
+                      <button type="button" className="tvp-link" onClick={() => openDoc(u.id)}>
+                        {u.file_name}
+                      </button>
+                      <span className="tvp-muted" style={{ fontSize: 11 }}>
+                        {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
+                      </span>
                       {isDraft && (
-                        <button className="tvp-mini-btn" title="Remove" style={{ marginLeft: "auto" }} onClick={() => deleteDocM.mutate(u.id)}>
+                        <button
+                          className="tvp-mini-btn"
+                          title="Remove"
+                          style={{ marginLeft: "auto" }}
+                          onClick={() => deleteDocM.mutate(u.id)}
+                        >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -400,8 +523,15 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
           {isDraft && (
             <>
               <div className="tvp-footer-actions">
-                <Link to="/admin/invitations" className="tvp-secondary">Save & close</Link>
-                <button type="button" className="tvp-primary" disabled={!canSend} onClick={() => finalizeM.mutate()}>
+                <Link to="/admin/invitations" className="tvp-secondary">
+                  Save & close
+                </Link>
+                <button
+                  type="button"
+                  className="tvp-primary"
+                  disabled={!canSend}
+                  onClick={() => finalizeM.mutate()}
+                >
                   {finalizeM.isPending ? "Sending…" : "Send invitation"}
                 </button>
               </div>

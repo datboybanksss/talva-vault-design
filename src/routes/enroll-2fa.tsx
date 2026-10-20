@@ -142,7 +142,6 @@ function EnrollTwoFactorPage() {
     }
   };
 
-
   const signOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
@@ -164,9 +163,9 @@ function EnrollTwoFactorPage() {
         <div>
           <h1 className="tv-auth-headline">One more step before your workspace opens.</h1>
           <p className="tv-auth-sub">
-            TalVault holds sensitive personal and financial records, so a password
-            on its own isn't enough. From now on we'll also email you a short code
-            when you sign in. It takes under a minute to set up.
+            TalVault holds sensitive personal and financial records, so a password on its own isn't
+            enough. From now on we'll also email you a short code when you sign in. It takes under a
+            minute to set up.
           </p>
 
           <ul className="tv-auth-points">
@@ -213,21 +212,20 @@ function EnrollTwoFactorPage() {
           ) : step === "explainer" ? (
             <div style={{ marginTop: 20 }}>
               <div className="tv-auth-hint">
-                <strong>What is this?</strong> Two-step sign-in means your password
-                is only half of what's needed to open your account. The other half
-                is a short number we send you at the moment you sign in.
+                <strong>What is this?</strong> Two-step sign-in means your password is only half of
+                what's needed to open your account. The other half is a short number we send you at
+                the moment you sign in.
               </div>
               <div className="tv-auth-hint" style={{ marginTop: 12 }}>
-                <strong>Why do we require it?</strong> Your vault holds identity
-                documents, contracts and financial records. If someone ever learned
-                your password, this second step still keeps them out.
+                <strong>Why do we require it?</strong> Your vault holds identity documents,
+                contracts and financial records. If someone ever learned your password, this second
+                step still keeps them out.
               </div>
               <div className="tv-auth-hint" style={{ marginTop: 12 }}>
-                <strong>How does it work?</strong> Each time you sign in we email a
-                6-digit code to{" "}
-                <strong>{email || "your email address"}</strong>. You type it into
-                the box on the sign-in page. The code lasts 10 minutes and works
-                once. There's nothing to install and nothing to remember.
+                <strong>How does it work?</strong> Each time you sign in we email a 6-digit code to{" "}
+                <strong>{email || "your email address"}</strong>. You type it into the box on the
+                sign-in page. The code lasts 10 minutes and works once. There's nothing to install
+                and nothing to remember.
               </div>
 
               {error && <div className="tv-auth-alert">{error}</div>}
@@ -269,18 +267,12 @@ function EnrollTwoFactorPage() {
                   placeholder="123456"
                   autoFocus
                 />
-                <div className="tv-auth-hint">
-                  Can't see it? Check your junk or spam folder.
-                </div>
+                <div className="tv-auth-hint">Can't see it? Check your junk or spam folder.</div>
               </div>
 
               {error && <div className="tv-auth-alert">{error}</div>}
 
-              <button
-                type="submit"
-                className="tv-auth-submit"
-                disabled={busy || code.length !== 6}
-              >
+              <button type="submit" className="tv-auth-submit" disabled={busy || code.length !== 6}>
                 {busy ? "Verifying…" : "Verify & finish set-up"}
               </button>
 

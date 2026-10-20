@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
@@ -20,9 +20,7 @@ export const listMyLinkRequests = createServerFn({ method: "GET" })
 
 export const respondToLinkRequest = createServerFn({ method: "POST" })
   .middleware([requireTalentTermsAccepted])
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string().uuid(), accept: z.boolean() }).parse(d),
-  )
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), accept: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
     const { error } = await supabase.rpc("respond_link_request", {

@@ -5,7 +5,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ModalShell } from "@/components/shared/modal-shell";
 import { LegalDocumentView } from "@/components/shared/legal-document-view";
-import { acceptCurrentTerms, getMyTermsStatus, type TermsPortal } from "@/lib/terms-acceptance.functions";
+import {
+  acceptCurrentTerms,
+  getMyTermsStatus,
+  type TermsPortal,
+} from "@/lib/terms-acceptance.functions";
 
 /**
  * Blocks the portal until the signed-in user has accepted the current Terms
@@ -31,7 +35,9 @@ export function TermsGate({ portal, children }: { portal: TermsPortal; children:
     setBusy(true);
     try {
       const res = await acceptFn({ data: { portal, document_id: doc.id } });
-      toast.success(res.proof_ref ? `Thank you. Your proof reference is ${res.proof_ref}.` : "Thank you.");
+      toast.success(
+        res.proof_ref ? `Thank you. Your proof reference is ${res.proof_ref}.` : "Thank you.",
+      );
       // Everything refused before acceptance (bell, counts, pages) reloads now.
       await qc.invalidateQueries();
     } catch (e: any) {
@@ -42,16 +48,25 @@ export function TermsGate({ portal, children }: { portal: TermsPortal; children:
   }
 
   return (
-    <ModalShell onClose={() => undefined} closeOnBackdrop={false} maxWidth={720} labelledBy="terms-gate-title">
+    <ModalShell
+      onClose={() => undefined}
+      closeOnBackdrop={false}
+      maxWidth={720}
+      labelledBy="terms-gate-title"
+    >
       <div style={{ padding: 24 }}>
         <h2 id="terms-gate-title" className="tvp-h2" style={{ margin: 0 }}>
-          {hadPrevious ? "Our Terms & Conditions have been updated" : "Please accept our Terms & Conditions"}
+          {hadPrevious
+            ? "Our Terms & Conditions have been updated"
+            : "Please accept our Terms & Conditions"}
         </h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
           {doc.title} · version {doc.version}. Please read them before you continue to your portal.
         </p>
         <LegalDocumentView body={doc.body} maxHeight={380} />
-        <label style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 14, fontSize: 14 }}>
+        <label
+          style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 14, fontSize: 14 }}
+        >
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
           <span>I have read and accept these Terms & Conditions (version {doc.version}).</span>
         </label>

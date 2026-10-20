@@ -4,7 +4,20 @@ import { useSessionReady } from "@/hooks/use-session-ready";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, ShieldCheck, UserPlus, X, Pencil, Mail, Link2, Ban, SlidersHorizontal, RefreshCw, Trash2, CalendarX } from "lucide-react";
+import {
+  Users,
+  ShieldCheck,
+  UserPlus,
+  X,
+  Pencil,
+  Mail,
+  Link2,
+  Ban,
+  SlidersHorizontal,
+  RefreshCw,
+  Trash2,
+  CalendarX,
+} from "lucide-react";
 import {
   listAdministrators,
   whoami,
@@ -28,7 +41,6 @@ import { sendAdminInvitationEmail } from "@/lib/invitation-email.functions";
 import {
   HIGHEST_ADMIN_PERMISSION,
   ADMIN_PERMISSION_LEVELS,
-
   adminPermission,
   canInviteAdministrators,
   grantableAdminPermissions,
@@ -88,7 +100,6 @@ function AdminsPage() {
   const canInvite = isMain || canInviteAdministrators(myPermission);
   const grantable = grantableAdminPermissions(myPermission);
 
-
   const invite = useMutation({
     mutationFn: (input: { email: string; permission_level: AdminPermissionLevel }) =>
       inviteFn({ data: input }),
@@ -144,7 +155,9 @@ function AdminsPage() {
         // attempted, so a failed send must not read as a total failure.
         const newExpiry = inv?.expires_at
           ? new Date(inv.expires_at).toLocaleDateString("en-GB", {
-              day: "numeric", month: "short", year: "numeric",
+              day: "numeric",
+              month: "short",
+              year: "numeric",
             })
           : "the new date";
         toast.warning(
@@ -189,7 +202,6 @@ function AdminsPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePerm, setInvitePerm] = useState<AdminPermissionLevel>("edit");
-
 
   // Per-row edit (Main-admin only)
   const [editAdmin, setEditAdmin] = useState<any | null>(null);
@@ -244,8 +256,6 @@ function AdminsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to remove administrator"),
   });
 
-
-
   const list = useMemo(() => admins.data ?? [], [admins.data]);
   const stats = useMemo(() => {
     return {
@@ -259,61 +269,86 @@ function AdminsPage() {
 
   // `status` is the effective status (a stored "pending" whose expiry has
   // passed reads as "expired"), so a lapsed invite never counts as pending.
-  const pendingInvites = (invitations.data ?? []).filter(
-    (i: any) => i.status === "pending",
-  );
-  const expiredInvites = (invitations.data ?? []).filter(
-    (i: any) => i.status === "expired",
-  );
+  const pendingInvites = (invitations.data ?? []).filter((i: any) => i.status === "pending");
+  const expiredInvites = (invitations.data ?? []).filter((i: any) => i.status === "expired");
 
   return (
     <>
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Administrators</h1>
-          <div className="tvp-subtitle">
-            Platform administrators and their access levels.
-          </div>
+          <div className="tvp-subtitle">Platform administrators and their access levels.</div>
         </div>
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-teal"><Users className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <Users className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{stats.total}</div>
             <div className="tvp-kpi-label">Total Administrators</div>
-            <div className="tvp-kpi-sub" style={{ color: stats.total > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: stats.total > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+            >
               {stats.total > 0 ? "Active platform seats" : "None yet"}
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-purple"><ShieldCheck className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-purple">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{stats.main}</div>
             <div className="tvp-kpi-label">Main Administrators</div>
-            <div className="tvp-kpi-sub" style={{ color: stats.main === 1 ? "var(--tvp-green)" : stats.main > 1 ? "var(--tvp-amber)" : "var(--tvp-red)" }}>
-              {stats.main === 1 ? "Single owner (recommended)" : stats.main > 1 ? "Multiple owners" : "Missing — assign one"}
+            <div
+              className="tvp-kpi-sub"
+              style={{
+                color:
+                  stats.main === 1
+                    ? "var(--tvp-green)"
+                    : stats.main > 1
+                      ? "var(--tvp-amber)"
+                      : "var(--tvp-red)",
+              }}
+            >
+              {stats.main === 1
+                ? "Single owner (recommended)"
+                : stats.main > 1
+                  ? "Multiple owners"
+                  : "Missing — assign one"}
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-amber"><UserPlus className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-amber">
+            <UserPlus className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{pendingInvites.length}</div>
             <div className="tvp-kpi-label">Pending Admin Invites</div>
-            <div className="tvp-kpi-sub tvp-warn" style={{ color: pendingInvites.length > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub tvp-warn"
+              style={{ color: pendingInvites.length > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}
+            >
               {pendingInvites.length > 0 ? "Awaiting sign-up" : "None outstanding"}
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-red"><CalendarX className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-red">
+            <CalendarX className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{expiredInvites.length}</div>
             <div className="tvp-kpi-label">Expired / Lapsed</div>
-            <div className="tvp-kpi-sub" style={{ color: expiredInvites.length > 0 ? "var(--tvp-red)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: expiredInvites.length > 0 ? "var(--tvp-red)" : "var(--tvp-muted)" }}
+            >
               {expiredInvites.length > 0 ? "Resend to reopen" : "None lapsed"}
             </div>
           </div>
@@ -321,70 +356,83 @@ function AdminsPage() {
       </div>
 
       <>
-
-          <div className="tvp-card">
-            <div className="tvp-toolbar">
-              <h2 className="tvp-h2">Administrators</h2>
-            </div>
-            <div className="tvp-table-wrap">
-              <table className="tvp-table">
-                <thead>
+        <div className="tvp-card">
+          <div className="tvp-toolbar">
+            <h2 className="tvp-h2">Administrators</h2>
+          </div>
+          <div className="tvp-table-wrap">
+            <table className="tvp-table">
+              <thead>
+                <tr>
+                  <th>Administrator</th>
+                  <th>Email</th>
+                  <th>Designation</th>
+                  <th>Role</th>
+                  <th>Access</th>
+                  <th>Granted</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {admins.isLoading && (
                   <tr>
-                    <th>Administrator</th><th>Email</th><th>Designation</th><th>Role</th><th>Access</th><th>Granted</th><th></th>
+                    <td colSpan={7} className="tvp-muted">
+                      Loading…
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {admins.isLoading && (
-                    <tr><td colSpan={7} className="tvp-muted">Loading…</td></tr>
-                  )}
-                  {adminPage.visible.map((a: any) => (
-                    <tr key={a.user_id}>
-                      <td>
-                        <strong>{a.display_name || a.email.split("@")[0]}</strong>
-                        {a.user_id === me.data?.userId && (
-                          <span className="tvp-status tvp-blue" style={{ marginLeft: 8 }}>
-                            You
-                          </span>
-                        )}
-                      </td>
-                      <td>{a.email}</td>
-                      <td className="tvp-muted">{a.designation || "—"}</td>
-                      <td>
-                        <span
-                          className={`tvp-status tvp-${a.is_main_admin ? "purple" : "blue"}`}
-                        >
-                          {a.is_main_admin ? "Main Administrator" : "Administrator"}
+                )}
+                {adminPage.visible.map((a: any) => (
+                  <tr key={a.user_id}>
+                    <td>
+                      <strong>{a.display_name || a.email.split("@")[0]}</strong>
+                      {a.user_id === me.data?.userId && (
+                        <span className="tvp-status tvp-blue" style={{ marginLeft: 8 }}>
+                          You
                         </span>
-                      </td>
-                      <td>
+                      )}
+                    </td>
+                    <td>{a.email}</td>
+                    <td className="tvp-muted">{a.designation || "—"}</td>
+                    <td>
+                      <span className={`tvp-status tvp-${a.is_main_admin ? "purple" : "blue"}`}>
+                        {a.is_main_admin ? "Main Administrator" : "Administrator"}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={`tvp-status tvp-${adminPermission(a.permission_level)?.tone ?? "amber"}`}
+                      >
+                        {adminPermission(a.permission_level)?.label ?? "—"}
+                      </span>
+                      {a.suspended && (
                         <span
-                          className={`tvp-status tvp-${adminPermission(a.permission_level)?.tone ?? "amber"}`}
+                          className={statusPillClass("member", "suspended")}
+                          style={{ marginLeft: 6 }}
                         >
-                          {adminPermission(a.permission_level)?.label ?? "—"}
+                          {statusLabel("member", "suspended")}
                         </span>
-                        {a.suspended && (
-                          <span className={statusPillClass("member", "suspended")} style={{ marginLeft: 6 }}>
-                            {statusLabel("member", "suspended")}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {new Date(a.created_at).toLocaleDateString("en-GB", {
-                          day: "numeric", month: "short", year: "numeric",
-                        })}
-                      </td>
-                      <td>
-                        {isMain && (
-                          <RowActionsMenu
-                            label={`Actions for ${a.display_name || a.email}`}
-                            actions={[
-                              {
-                                key: "edit",
-                                label: "Edit designation & access",
-                                icon: Pencil,
-                                onSelect: () => setEditAdmin(a),
-                              },
-                              !a.is_main_admin && a.user_id !== me.data?.userId && {
+                      )}
+                    </td>
+                    <td>
+                      {new Date(a.created_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td>
+                      {isMain && (
+                        <RowActionsMenu
+                          label={`Actions for ${a.display_name || a.email}`}
+                          actions={[
+                            {
+                              key: "edit",
+                              label: "Edit designation & access",
+                              icon: Pencil,
+                              onSelect: () => setEditAdmin(a),
+                            },
+                            !a.is_main_admin &&
+                              a.user_id !== me.data?.userId && {
                                 key: "suspend",
                                 label: a.suspended ? "Restore access" : "Suspend access",
                                 icon: Ban,
@@ -400,7 +448,8 @@ function AdminsPage() {
                                     suspended: !a.suspended,
                                   }),
                               },
-                              !a.is_main_admin && a.user_id !== me.data?.userId && {
+                            !a.is_main_admin &&
+                              a.user_id !== me.data?.userId && {
                                 key: "remove",
                                 label: "Remove administrator",
                                 icon: Trash2,
@@ -408,230 +457,263 @@ function AdminsPage() {
                                 disabled: removeAdminMut.isPending,
                                 onSelect: () => setConfirmRemoveAdmin(a),
                               },
-                            ]}
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  <LoadMoreRow
-                    colSpan={7}
-                    noun="administrators"
-                    shown={adminPage.shown}
-                    total={adminPage.total}
-                    hasMore={adminPage.hasMore}
-                    onLoadMore={adminPage.loadMore}
-                  />
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="tvp-card" style={{ marginTop: 16 }}>
-            <div className="tvp-toolbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div>
-                <h2 className="tvp-h2">Administrator invitations</h2>
-                <span className="tvp-muted" style={{ fontSize: 12 }}>
-                  Sent invites become active when the invitee signs up with the matching email.
-                </span>
-              </div>
-              {canInvite && !inviteOpen && (
-                <button className="tvp-primary" onClick={() => setInviteOpen(true)}>
-                  <UserPlus className="h-4 w-4" style={{ marginRight: 6 }} />
-                  Add
-                </button>
-              )}
-            </div>
-            {canInvite && inviteOpen && (
-              <div
-                className="tvp-card tvp-invite-panel"
-                style={{ margin: "0 0 16px", background: "var(--tvp-muted-bg, #f8fafc)" }}
-              >
-                <div className="tvp-panel-head">
-                  <h3 className="tvp-h3">New invitation</h3>
-                  <button title="Close"
-                    className="tvp-mini-btn"
-                    onClick={() => setInviteOpen(false)}
-                    aria-label="Close"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <p className="tvp-muted tvp-invite-desc" style={{ fontSize: 12 }}>
-                  The invitee becomes an administrator at the selected permission level as
-                  soon as they sign up with this email. You may only grant a level at or
-                  below your own, and only the Main Administrator can designate another
-                  Main Administrator. This action is recorded in the audit log.
-                </p>
-                <div className="tvp-invite-form-row">
-                  <div className="tvp-form-group">
-                    <label>Email address</label>
-                    <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="name@email.com"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="tvp-form-group">
-                    <label>Access level</label>
-                    <select
-                      value={invitePerm}
-                      onChange={(e) => setInvitePerm(e.target.value as any)}
-                    >
-                      {grantable.map((p) => (
-                        <option key={p.value} value={p.value}>
-                          {p.optionLabel}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <span className="tvp-muted tvp-invite-hint">
-                  {adminPermission(invitePerm)?.description}
-                </span>
-
-                <div className="tvp-footer-actions">
-                  <button className="tvp-secondary" onClick={() => setInviteOpen(false)}>
-                    Cancel
-                  </button>
-                  {(() => {
-                    const valid = /.+@.+\..+/.test(inviteEmail.trim()) && !!invitePerm;
-                    return (
-                      <button
-                        className="tvp-primary"
-                        onClick={() =>
-                          invite.mutate({
-                            email: inviteEmail.trim(),
-                            permission_level: invitePerm,
-                          })
-                        }
-                        disabled={invite.isPending || !valid}
-                      >
-                        {invite.isPending ? "Sending…" : valid ? "Invite" : "Add"}
-                      </button>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-
-            <table className="tvp-table">
-              <thead>
-                <tr>
-                  <th>Email</th><th>Access</th><th>Status</th><th>Expires</th><th>Invited by</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(invitations.data ?? []).length === 0 && !invitations.isLoading && (
-                  <tr><td colSpan={6} className="tvp-muted">No administrator invitations yet — invite a colleague to give them platform access.</td></tr>
-                )}
-                {invitePage.visible.map((i: any) => (
-                  <tr key={i.id}>
-                    <td><strong>{i.email}</strong></td>
-                    <td>
-                      <span
-                        className={`tvp-status tvp-${adminPermission(i.permission_level)?.tone ?? "amber"}`}
-                      >
-                        {adminPermission(i.permission_level)?.label ?? "—"}
-                      </span>
-
-                    </td>
-                    <td>
-                      <span className={statusPillClass("invitation", i.status)}>
-                        {statusLabel("invitation", i.status)}
-                      </span>
-                    </td>
-                    <td>
-                      {new Date(i.expires_at).toLocaleDateString("en-GB", {
-                        day: "numeric", month: "short", year: "numeric",
-                      })}
-                    </td>
-                    <td className="tvp-muted">{i.invited_by_email ?? "—"}</td>
-                    <td>
-                      {canInvite && i.status !== "accepted" && (() => {
-                        // Still open = stored pending, whether or not it lapsed.
-                        const open = (i.stored_status ?? i.status) === "pending";
-                        return (
-                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                          <RowActionsMenu
-                            actions={[
-                              ...(open ? [
-                              {
-                                key: "access", label: "Edit access level", icon: SlidersHorizontal,
-                                title: "Change the level this invitation grants",
-                                onSelect: () => setEditInvite(i),
-                              },
-                              {
-                                key: "email", label: "Edit & send email", icon: Mail,
-                                onSelect: () =>
-                                  navigate({
-                                    to: "/admin/administrators/$id/email-preview",
-                                    params: { id: i.id },
-                                  }),
-                              },
-                              {
-                                key: "resend", label: "Resend invitation", icon: RefreshCw,
-                                title: "Refresh the expiry and email the invitation again",
-                                onSelect: () => resend.mutate(i.id),
-                              },
-                              {
-                                key: "copy", label: "Copy invite link", icon: Link2,
-                                title: "Copying does not extend expiry",
-                                onSelect: async () => {
-                                  try {
-                                    await navigator.clipboard.writeText(
-                                      `${window.location.origin}/invite/admin/${i.token}`,
-                                    );
-                                    toast.success("Invite link copied.");
-                                  } catch {
-                                    toast.error("Copy failed");
-                                  }
-                                },
-                              },
-                              {
-                                key: "revoke", label: "Revoke invitation", icon: Ban,
-                                destructive: true, separatorBefore: true,
-                                onSelect: () => {
-                                  if (confirm(`Revoke invitation to ${i.email}?`)) revoke.mutate(i.id);
-                                },
-                              },
-                              ] : []),
-                              {
-                                key: "delete", label: "Delete invitation", icon: Trash2,
-                                destructive: true, separatorBefore: open,
-                                title: "Permanently remove this invitation from the list",
-                                onSelect: () => {
-                                  if (confirm(`Permanently delete the invitation to ${i.email}?`))
-                                    deleteInvite.mutate(i.id);
-                                },
-                              },
-                            ]}
-                          />
-                        </div>
-                        );
-                      })()}
+                          ]}
+                        />
+                      )}
                     </td>
                   </tr>
                 ))}
                 <LoadMoreRow
-                  colSpan={6}
-                  noun="invitations"
-                  shown={invitePage.shown}
-                  total={invitePage.total}
-                  hasMore={invitePage.hasMore}
-                  onLoadMore={invitePage.loadMore}
+                  colSpan={7}
+                  noun="administrators"
+                  shown={adminPage.shown}
+                  total={adminPage.total}
+                  hasMore={adminPage.hasMore}
+                  onLoadMore={adminPage.loadMore}
                 />
               </tbody>
             </table>
           </div>
-        </>
+        </div>
 
+        <div className="tvp-card" style={{ marginTop: 16 }}>
+          <div
+            className="tvp-toolbar"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div>
+              <h2 className="tvp-h2">Administrator invitations</h2>
+              <span className="tvp-muted" style={{ fontSize: 12 }}>
+                Sent invites become active when the invitee signs up with the matching email.
+              </span>
+            </div>
+            {canInvite && !inviteOpen && (
+              <button className="tvp-primary" onClick={() => setInviteOpen(true)}>
+                <UserPlus className="h-4 w-4" style={{ marginRight: 6 }} />
+                Add
+              </button>
+            )}
+          </div>
+          {canInvite && inviteOpen && (
+            <div
+              className="tvp-card tvp-invite-panel"
+              style={{ margin: "0 0 16px", background: "var(--tvp-muted-bg, #f8fafc)" }}
+            >
+              <div className="tvp-panel-head">
+                <h3 className="tvp-h3">New invitation</h3>
+                <button
+                  title="Close"
+                  className="tvp-mini-btn"
+                  onClick={() => setInviteOpen(false)}
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="tvp-muted tvp-invite-desc" style={{ fontSize: 12 }}>
+                The invitee becomes an administrator at the selected permission level as soon as
+                they sign up with this email. You may only grant a level at or below your own, and
+                only the Main Administrator can designate another Main Administrator. This action is
+                recorded in the audit log.
+              </p>
+              <div className="tvp-invite-form-row">
+                <div className="tvp-form-group">
+                  <label>Email address</label>
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="name@email.com"
+                    autoFocus
+                  />
+                </div>
+                <div className="tvp-form-group">
+                  <label>Access level</label>
+                  <select value={invitePerm} onChange={(e) => setInvitePerm(e.target.value as any)}>
+                    {grantable.map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.optionLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <span className="tvp-muted tvp-invite-hint">
+                {adminPermission(invitePerm)?.description}
+              </span>
 
+              <div className="tvp-footer-actions">
+                <button className="tvp-secondary" onClick={() => setInviteOpen(false)}>
+                  Cancel
+                </button>
+                {(() => {
+                  const valid = /.+@.+\..+/.test(inviteEmail.trim()) && !!invitePerm;
+                  return (
+                    <button
+                      className="tvp-primary"
+                      onClick={() =>
+                        invite.mutate({
+                          email: inviteEmail.trim(),
+                          permission_level: invitePerm,
+                        })
+                      }
+                      disabled={invite.isPending || !valid}
+                    >
+                      {invite.isPending ? "Sending…" : valid ? "Invite" : "Add"}
+                    </button>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
 
-
-
+          <table className="tvp-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Access</th>
+                <th>Status</th>
+                <th>Expires</th>
+                <th>Invited by</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(invitations.data ?? []).length === 0 && !invitations.isLoading && (
+                <tr>
+                  <td colSpan={6} className="tvp-muted">
+                    No administrator invitations yet — invite a colleague to give them platform
+                    access.
+                  </td>
+                </tr>
+              )}
+              {invitePage.visible.map((i: any) => (
+                <tr key={i.id}>
+                  <td>
+                    <strong>{i.email}</strong>
+                  </td>
+                  <td>
+                    <span
+                      className={`tvp-status tvp-${adminPermission(i.permission_level)?.tone ?? "amber"}`}
+                    >
+                      {adminPermission(i.permission_level)?.label ?? "—"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={statusPillClass("invitation", i.status)}>
+                      {statusLabel("invitation", i.status)}
+                    </span>
+                  </td>
+                  <td>
+                    {new Date(i.expires_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td className="tvp-muted">{i.invited_by_email ?? "—"}</td>
+                  <td>
+                    {canInvite &&
+                      i.status !== "accepted" &&
+                      (() => {
+                        // Still open = stored pending, whether or not it lapsed.
+                        const open = (i.stored_status ?? i.status) === "pending";
+                        return (
+                          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                            <RowActionsMenu
+                              actions={[
+                                ...(open
+                                  ? [
+                                      {
+                                        key: "access",
+                                        label: "Edit access level",
+                                        icon: SlidersHorizontal,
+                                        title: "Change the level this invitation grants",
+                                        onSelect: () => setEditInvite(i),
+                                      },
+                                      {
+                                        key: "email",
+                                        label: "Edit & send email",
+                                        icon: Mail,
+                                        onSelect: () =>
+                                          navigate({
+                                            to: "/admin/administrators/$id/email-preview",
+                                            params: { id: i.id },
+                                          }),
+                                      },
+                                      {
+                                        key: "resend",
+                                        label: "Resend invitation",
+                                        icon: RefreshCw,
+                                        title: "Refresh the expiry and email the invitation again",
+                                        onSelect: () => resend.mutate(i.id),
+                                      },
+                                      {
+                                        key: "copy",
+                                        label: "Copy invite link",
+                                        icon: Link2,
+                                        title: "Copying does not extend expiry",
+                                        onSelect: async () => {
+                                          try {
+                                            await navigator.clipboard.writeText(
+                                              `${window.location.origin}/invite/admin/${i.token}`,
+                                            );
+                                            toast.success("Invite link copied.");
+                                          } catch {
+                                            toast.error("Copy failed");
+                                          }
+                                        },
+                                      },
+                                      {
+                                        key: "revoke",
+                                        label: "Revoke invitation",
+                                        icon: Ban,
+                                        destructive: true,
+                                        separatorBefore: true,
+                                        onSelect: () => {
+                                          if (confirm(`Revoke invitation to ${i.email}?`))
+                                            revoke.mutate(i.id);
+                                        },
+                                      },
+                                    ]
+                                  : []),
+                                {
+                                  key: "delete",
+                                  label: "Delete invitation",
+                                  icon: Trash2,
+                                  destructive: true,
+                                  separatorBefore: open,
+                                  title: "Permanently remove this invitation from the list",
+                                  onSelect: () => {
+                                    if (confirm(`Permanently delete the invitation to ${i.email}?`))
+                                      deleteInvite.mutate(i.id);
+                                  },
+                                },
+                              ]}
+                            />
+                          </div>
+                        );
+                      })()}
+                  </td>
+                </tr>
+              ))}
+              <LoadMoreRow
+                colSpan={6}
+                noun="invitations"
+                shown={invitePage.shown}
+                total={invitePage.total}
+                hasMore={invitePage.hasMore}
+                onLoadMore={invitePage.loadMore}
+              />
+            </tbody>
+          </table>
+        </div>
+      </>
 
       {editAdmin && (
         <div
@@ -657,7 +739,8 @@ function AdminsPage() {
               <h2 className="tvp-h2">
                 Edit administrator — {editAdmin.display_name || editAdmin.email}
               </h2>
-              <button title="Close"
+              <button
+                title="Close"
                 className="tvp-mini-btn"
                 onClick={() => setEditAdmin(null)}
                 aria-label="Close"
@@ -667,8 +750,8 @@ function AdminsPage() {
               </button>
             </div>
             <p className="tvp-muted" style={{ fontSize: 12 }}>
-              Only the Main Administrator can change these fields. Every change
-              is written to the audit log.
+              Only the Main Administrator can change these fields. Every change is written to the
+              audit log.
             </p>
             <div className="tvp-form-group">
               <label>Designation / title</label>
@@ -692,7 +775,6 @@ function AdminsPage() {
                     {p.optionLabel}
                   </option>
                 ))}
-
               </select>
               {editAdmin.is_main_admin && (
                 <span
@@ -751,9 +833,8 @@ function AdminsPage() {
           </div>
           <div className="tvp-modal-body">
             <p className="tvp-muted" style={{ fontSize: 12, margin: "0 0 14px" }}>
-              Changes the level this invitation will grant when it is accepted.
-              You may only set a level at or below your own, and the change is
-              recorded in the audit log.
+              Changes the level this invitation will grant when it is accepted. You may only set a
+              level at or below your own, and the change is recorded in the audit log.
             </p>
             <div className="tvp-form-group">
               <label>Access level</label>
@@ -789,10 +870,7 @@ function AdminsPage() {
                   permission_level: editInvitePerm,
                 })
               }
-              disabled={
-                updateInviteMut.isPending ||
-                editInvitePerm === editInvite.permission_level
-              }
+              disabled={updateInviteMut.isPending || editInvitePerm === editInvite.permission_level}
             >
               {updateInviteMut.isPending ? "Saving…" : "Save access level"}
             </button>
@@ -833,6 +911,5 @@ function AdminsPage() {
         </ModalShell>
       )}
     </>
-
   );
 }

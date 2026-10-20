@@ -53,8 +53,8 @@ function BudgetPage() {
         <h2 className="tvp-h2">Coming soon</h2>
         <p className="tvp-muted" style={{ marginTop: 8, maxWidth: 460, marginInline: "auto" }}>
           Budget &amp; Income isn't ready yet. When it opens, you'll be able to follow the quotes
-          and invoices your Manager shares with you — amounts, dates and payment status — all in
-          one private, read-only place.
+          and invoices your Manager shares with you — amounts, dates and payment status — all in one
+          private, read-only place.
         </p>
       </div>
     </>

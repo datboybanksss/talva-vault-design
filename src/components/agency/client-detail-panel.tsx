@@ -74,7 +74,12 @@ export function ClientDetailPanel({
             <p className="tvp-muted" style={{ marginTop: 6 }}>
               {(error as Error)?.message ?? "Something went wrong."}
             </p>
-            <button type="button" className="tvp-secondary" style={{ marginTop: 12 }} onClick={() => refetch()}>
+            <button
+              type="button"
+              className="tvp-secondary"
+              style={{ marginTop: 12 }}
+              onClick={() => refetch()}
+            >
               Try again
             </button>
           </div>
@@ -83,7 +88,9 @@ export function ClientDetailPanel({
             <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
               <EntityAvatar name={client.name} size="lg" />
               <div>
-                <div className="tvp-entity-name" style={{ fontSize: 18 }}>{client.name}</div>
+                <div className="tvp-entity-name" style={{ fontSize: 18 }}>
+                  {client.name}
+                </div>
                 <div className="tvp-entity-sub">
                   {client.client_type || "Client type not set"}
                   {client.trading_name ? ` · trading as ${client.trading_name}` : ""}
@@ -100,7 +107,9 @@ export function ClientDetailPanel({
                 <span className="tvp-entity-stat-label">Invoiced</span>
               </div>
               <div className="tvp-entity-stat">
-                <span className="tvp-entity-stat-value tvp-entity-stat-green">{money(stats?.paidCents ?? 0)}</span>
+                <span className="tvp-entity-stat-value tvp-entity-stat-green">
+                  {money(stats?.paidCents ?? 0)}
+                </span>
                 <span className="tvp-entity-stat-label">Paid</span>
               </div>
               <div className="tvp-entity-stat">
@@ -141,9 +150,7 @@ export function ClientDetailPanel({
                   <Row
                     label="Payment terms"
                     value={
-                      client.payment_terms_days != null
-                        ? `${client.payment_terms_days} days`
-                        : null
+                      client.payment_terms_days != null ? `${client.payment_terms_days} days` : null
                     }
                   />
                   <Row label="Billing address" value={client.address} />
@@ -187,7 +194,9 @@ export function ClientDetailPanel({
                               {d.kind === "quote" ? "Quote" : "Invoice"} {d.number}
                             </Link>
                             {d.description ? (
-                              <div className="tvp-muted" style={{ fontSize: 12 }}>{d.description}</div>
+                              <div className="tvp-muted" style={{ fontSize: 12 }}>
+                                {d.description}
+                              </div>
                             ) : null}
                           </td>
                           <td>{fmtDate(d.issuedAt) ?? "—"}</td>
@@ -212,7 +221,9 @@ export function ClientDetailPanel({
       </div>
 
       <div className="tvp-modal-foot">
-        <Button type="button" variant="outline" onClick={onClose}>Close</Button>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Close
+        </Button>
         {client && (
           <Button type="button" onClick={() => onEdit(client.id)}>
             <Pencil className="h-4 w-4" /> Edit client

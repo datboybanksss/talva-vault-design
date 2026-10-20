@@ -1,7 +1,7 @@
 import { TalVaultIcon } from "@/components/brand/talvault-logo";
 import { type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, ChevronLeft, Search, ShieldCheck } from "lucide-react";
+import { Bell, ChevronLeft, Search } from "lucide-react";
 import { useState } from "react";
 
 export type NavItem = {
@@ -76,9 +76,7 @@ export function PortalShell({
             </div>
             {!collapsed && (
               <div className="min-w-0">
-                <div className="text-[15px] font-black tracking-tight truncate">
-                  {brand}
-                </div>
+                <div className="text-[15px] font-black tracking-tight truncate">{brand}</div>
                 <div
                   className="text-[11px] font-bold uppercase tracking-wider truncate"
                   style={{ color: "var(--sidebar-muted)" }}
@@ -88,7 +86,8 @@ export function PortalShell({
               </div>
             )}
           </Link>
-          <button title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          <button
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             onClick={() => setCollapsed((c) => !c)}
             className="tv-focus-ring grid place-items-center h-8 w-8 rounded-lg hover:bg-white/10"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -102,8 +101,7 @@ export function PortalShell({
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
           {nav.map((item) => {
             const active =
-              pathname === item.to ||
-              (item.to !== "/" && pathname.startsWith(item.to + "/"));
+              pathname === item.to || (item.to !== "/" && pathname.startsWith(item.to + "/"));
             return (
               <Link
                 key={item.to}
@@ -116,16 +114,12 @@ export function PortalShell({
                 }}
               >
                 <span className="shrink-0">{item.icon}</span>
-                {!collapsed && (
-                  <span className="truncate text-[14px]">{item.label}</span>
-                )}
+                {!collapsed && <span className="truncate text-[14px]">{item.label}</span>}
                 {!collapsed && item.badge !== undefined && (
                   <span
                     className="ml-auto text-[11px] font-black px-2 py-0.5 rounded-full"
                     style={{
-                      background: active
-                        ? "rgba(255,255,255,0.18)"
-                        : "rgba(255,255,255,0.10)",
+                      background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.10)",
                       color: "#fff",
                     }}
                   >
@@ -154,10 +148,7 @@ export function PortalShell({
           {!collapsed && (
             <div className="min-w-0">
               <div className="text-[13px] font-black truncate">{user.name}</div>
-              <div
-                className="text-[11px] truncate"
-                style={{ color: "var(--sidebar-muted)" }}
-              >
+              <div className="text-[11px] truncate" style={{ color: "var(--sidebar-muted)" }}>
                 {user.meta}
               </div>
             </div>
@@ -202,9 +193,7 @@ export function PortalShell({
                   style={{ boxShadow: "var(--shadow-tv-card)" }}
                 >
                   <div className="px-4 py-3 border-b border-line flex items-center justify-between">
-                    <div className="text-[14px] font-black text-ink">
-                      Notifications
-                    </div>
+                    <div className="text-[14px] font-black text-ink">Notifications</div>
                     <span className="text-[11px] text-muted-fg font-bold">
                       {notifications.length} active
                     </span>
@@ -213,9 +202,7 @@ export function PortalShell({
                     {notifications.map((n) => (
                       <li key={n.id} className="px-4 py-3 hover:bg-surface-soft">
                         <div className="flex items-start gap-3">
-                          <span
-                            className={`tv-pill ${toneClasses[n.tone]} shrink-0`}
-                          >
+                          <span className={`tv-pill ${toneClasses[n.tone]} shrink-0`}>
                             {n.tone === "purple"
                               ? "AI"
                               : n.tone === "red"
@@ -230,12 +217,8 @@ export function PortalShell({
                             <div className="text-[13px] font-black text-ink leading-tight">
                               {n.title}
                             </div>
-                            <div className="text-[12px] text-muted-fg mt-0.5">
-                              {n.detail}
-                            </div>
-                            <div className="text-[11px] text-muted-fg mt-1 font-bold">
-                              {n.time}
-                            </div>
+                            <div className="text-[12px] text-muted-fg mt-0.5">{n.detail}</div>
+                            <div className="text-[11px] text-muted-fg mt-1 font-bold">{n.time}</div>
                           </div>
                         </div>
                       </li>
@@ -247,9 +230,7 @@ export function PortalShell({
           </div>
         </header>
 
-        <main className="flex-1 px-5 md:px-9 py-7 md:py-9 pb-24">
-          {children}
-        </main>
+        <main className="flex-1 px-5 md:px-9 py-7 md:py-9 pb-24">{children}</main>
       </div>
     </div>
   );
@@ -281,15 +262,9 @@ export function PageHeader({
         <h1 className="text-[26px] md:text-[30px] font-black text-ink leading-tight truncate">
           {title}
         </h1>
-        {subtitle && (
-          <p className="text-[14px] text-muted-fg mt-1.5 max-w-2xl">
-            {subtitle}
-          </p>
-        )}
+        {subtitle && <p className="text-[14px] text-muted-fg mt-1.5 max-w-2xl">{subtitle}</p>}
       </div>
-      {actions && (
-        <div className="flex items-center gap-2 shrink-0">{actions}</div>
-      )}
+      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </div>
   );
 }
@@ -317,23 +292,11 @@ export function MetricCard({
   return (
     <div className="tv-card p-5">
       <div className="flex items-center gap-3 mb-4">
-        <div
-          className={`grid place-items-center rounded-xl h-11 w-11 ${toneBg[tone]}`}
-        >
-          {icon}
-        </div>
-        <div className="text-[12px] font-black uppercase tracking-wider text-muted-fg">
-          {label}
-        </div>
+        <div className={`grid place-items-center rounded-xl h-11 w-11 ${toneBg[tone]}`}>{icon}</div>
+        <div className="text-[12px] font-black uppercase tracking-wider text-muted-fg">{label}</div>
       </div>
-      <div className="text-[30px] font-black text-ink leading-none">
-        {value}
-      </div>
-      {helper && (
-        <div className="text-[12px] text-muted-fg mt-2 font-semibold">
-          {helper}
-        </div>
-      )}
+      <div className="text-[30px] font-black text-ink leading-none">{value}</div>
+      {helper && <div className="text-[12px] text-muted-fg mt-2 font-semibold">{helper}</div>}
     </div>
   );
 }
@@ -396,9 +359,7 @@ export function Callout({
         <div className="text-[14px] font-black" style={{ color: s.fg }}>
           {title}
         </div>
-        <div className="text-[13px] text-text-body mt-1 leading-relaxed">
-          {children}
-        </div>
+        <div className="text-[13px] text-text-body mt-1 leading-relaxed">{children}</div>
       </div>
     </div>
   );

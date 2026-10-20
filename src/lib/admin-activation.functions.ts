@@ -36,8 +36,7 @@ export const resolveAdminInvitationToken = createServerFn({ method: "POST" })
     if (inv.status === "accepted") return { ok: false, reason: "accepted" };
     if (inv.status === "revoked") return { ok: false, reason: "revoked" };
     if (inv.status !== "pending") return { ok: false, reason: "not_found" };
-    if (new Date(inv.expires_at).getTime() < Date.now())
-      return { ok: false, reason: "expired" };
+    if (new Date(inv.expires_at).getTime() < Date.now()) return { ok: false, reason: "expired" };
 
     return {
       ok: true,
@@ -83,8 +82,7 @@ export const activateAdminInvitation = createServerFn({ method: "POST" })
       perIp: { max: 10, windowSeconds: 900, blockSeconds: 1800 },
       perToken: { max: 6, windowSeconds: 900, blockSeconds: 1800 },
     });
-    if (!guard.allowed)
-      return { ok: false, code: "throttled", message: throttleMessage(guard) };
+    if (!guard.allowed) return { ok: false, code: "throttled", message: throttleMessage(guard) };
 
     const pwErr = validateNewPassword(data.password);
     if (pwErr) return { ok: false, code: "weak_password", message: pwErr };
@@ -100,15 +98,31 @@ export const activateAdminInvitation = createServerFn({ method: "POST" })
     if (invErr || !inv)
       return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
     if (inv.status === "accepted")
-      return { ok: false, code: "already_accepted", message: "This invitation has already been accepted. Please sign in instead." };
+      return {
+        ok: false,
+        code: "already_accepted",
+        message: "This invitation has already been accepted. Please sign in instead.",
+      };
     if (inv.status === "revoked")
-      return { ok: false, code: "revoked", message: "This invitation has been revoked. Contact the Main Administrator for a new one." };
+      return {
+        ok: false,
+        code: "revoked",
+        message: "This invitation has been revoked. Contact the Main Administrator for a new one.",
+      };
     if (inv.status !== "pending")
       return { ok: false, code: "invalid_token", message: "This invitation is no longer valid." };
     if (new Date(inv.expires_at).getTime() < Date.now())
-      return { ok: false, code: "expired", message: "This invitation has expired. Contact the Main Administrator for a fresh invite." };
+      return {
+        ok: false,
+        code: "expired",
+        message: "This invitation has expired. Contact the Main Administrator for a fresh invite.",
+      };
     if (data.email.trim().toLowerCase() !== inv.email.trim().toLowerCase())
-      return { ok: false, code: "email_mismatch", message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact the Main Administrator.` };
+      return {
+        ok: false,
+        code: "email_mismatch",
+        message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact the Main Administrator.`,
+      };
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: inv.email,

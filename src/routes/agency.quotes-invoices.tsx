@@ -1,10 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+  queryOptions,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Plus, Trash2, Pencil, X, Save, ArrowRightLeft, Link2, Eye, Send,
-  FileText, CheckCircle2, AlertCircle, Search, Wallet, Lock,
+  Plus,
+  Trash2,
+  Pencil,
+  X,
+  Save,
+  ArrowRightLeft,
+  Link2,
+  Eye,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  Search,
+  Wallet,
+  Lock,
 } from "lucide-react";
 import { InvoicePaymentsDialog } from "@/components/agency/invoice-payments-dialog";
 import { toast } from "sonner";
@@ -29,13 +47,22 @@ import { BillingPreviewDialog } from "@/components/agency/billing-preview-dialog
 import { EmailChipsInput } from "@/components/shared/email-chips-input";
 import { useAgencyClients, type AgencyClient } from "@/components/agency/clients-panel";
 import { BillingSummaryCards } from "@/components/agency/billing-summary-cards";
-import { BillingPeriodSelector, type PeriodState } from "@/components/agency/billing-period-selector";
+import {
+  BillingPeriodSelector,
+  type PeriodState,
+} from "@/components/agency/billing-period-selector";
 import { BillingReportsPanel } from "@/components/agency/billing-reports-panel";
 import { buildBillingReport, resolvePeriod } from "@/lib/billing-reports";
 
 import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Radix Select cannot hold an empty string value, so "no talent" uses a sentinel.
 const NO_TALENT = "__none__";
@@ -72,7 +99,11 @@ export const Route = createFileRoute("/agency/quotes-invoices")({
   head: () => ({
     meta: [
       { title: "Quotes & Invoices · TalVault" },
-      { name: "description", content: "Manage quotes and invoices for your talent roster — SARS-compliant invoicing with itemized VAT and previews." },
+      {
+        name: "description",
+        content:
+          "Manage quotes and invoices for your talent roster — SARS-compliant invoicing with itemized VAT and previews.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -94,22 +125,33 @@ const STATUS_LABEL = BILLING_DOC_STATUS_LABEL as Record<Row["status"], string>;
 
 type ChipKey = "quote_draft" | "invoice_draft" | "quote_sent" | "accepted" | "partial" | "late";
 const CHIPS: Array<{ key: ChipKey; label: string; tone: string }> = [
-  { key: "quote_draft",   label: "Quote drafts",   tone: "teal" },
+  { key: "quote_draft", label: "Quote drafts", tone: "teal" },
   { key: "invoice_draft", label: "Invoice drafts", tone: "purple" },
-  { key: "quote_sent",    label: "Quotes sent",    tone: "blue" },
-  { key: "accepted",      label: "Accepted",       tone: "green" },
-  { key: "partial",       label: "Partial",        tone: "amber" },
-  { key: "late",          label: "Late",           tone: "red" },
+  { key: "quote_sent", label: "Quotes sent", tone: "blue" },
+  { key: "accepted", label: "Accepted", tone: "green" },
+  { key: "partial", label: "Partial", tone: "amber" },
+  { key: "late", label: "Late", tone: "red" },
 ];
 
 function matchesChip(r: Row, key: ChipKey): boolean {
   switch (key) {
-    case "quote_draft":   return r.kind === "quote"   && r.status === "draft";
-    case "invoice_draft": return r.kind === "invoice" && r.status === "draft";
-    case "quote_sent":    return r.kind === "quote"   && r.status === "sent";
-    case "accepted":      return r.status === "accepted";
-    case "partial":       return r.kind === "invoice" && (r.status === "partial" || (r.allow_partial_payment && (r.status === "sent" || r.status === "overdue" || r.status === "paid")));
-    case "late":          return r.kind === "invoice" && r.status === "overdue";
+    case "quote_draft":
+      return r.kind === "quote" && r.status === "draft";
+    case "invoice_draft":
+      return r.kind === "invoice" && r.status === "draft";
+    case "quote_sent":
+      return r.kind === "quote" && r.status === "sent";
+    case "accepted":
+      return r.status === "accepted";
+    case "partial":
+      return (
+        r.kind === "invoice" &&
+        (r.status === "partial" ||
+          (r.allow_partial_payment &&
+            (r.status === "sent" || r.status === "overdue" || r.status === "paid")))
+      );
+    case "late":
+      return r.kind === "invoice" && r.status === "overdue";
   }
 }
 
@@ -173,7 +215,12 @@ type EditorState = {
   lines: BillingLine[];
 };
 
-function emptyEditor(kind: "quote" | "invoice", defaultVatBp = 1500, defaultAcceptDays = 14, defaultPayDays = 30): EditorState {
+function emptyEditor(
+  kind: "quote" | "invoice",
+  defaultVatBp = 1500,
+  defaultAcceptDays = 14,
+  defaultPayDays = 30,
+): EditorState {
   return {
     kind,
     number: "",
@@ -265,16 +312,25 @@ function QIPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const [view, setView] = useState<"overview" | "reports">("overview");
-  const [period, setPeriod] = useState<PeriodState>({ key: "this_month", custom: { from: "", to: "" } });
+  const [period, setPeriod] = useState<PeriodState>({
+    key: "this_month",
+    custom: { from: "", to: "" },
+  });
 
   const talents = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.talent_name).filter((n): n is string => !!n))).sort(),
+    () =>
+      Array.from(new Set(rows.map((r) => r.talent_name).filter((n): n is string => !!n))).sort(),
     [rows],
   );
 
   const chipCounts = useMemo(() => {
     const c: Record<ChipKey, number> = {
-      quote_draft: 0, invoice_draft: 0, quote_sent: 0, accepted: 0, partial: 0, late: 0,
+      quote_draft: 0,
+      invoice_draft: 0,
+      quote_sent: 0,
+      accepted: 0,
+      partial: 0,
+      late: 0,
     };
     for (const r of rows) for (const chip of CHIPS) if (matchesChip(r, chip.key)) c[chip.key] += 1;
     return c;
@@ -282,7 +338,9 @@ function QIPage() {
 
   const kpis = useMemo(() => {
     const convertedQuoteIds = new Set(
-      rows.filter((r) => r.kind === "invoice" && r.converted_from_quote_id).map((r) => r.converted_from_quote_id!),
+      rows
+        .filter((r) => r.kind === "invoice" && r.converted_from_quote_id)
+        .map((r) => r.converted_from_quote_id!),
     );
     const acceptedUnconverted = rows.filter(
       (r) => r.kind === "quote" && r.status === "accepted" && !convertedQuoteIds.has(r.id),
@@ -309,25 +367,31 @@ function QIPage() {
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let list = rows.filter((r) =>
-      (typeFilter === "all" || r.kind === typeFilter) &&
-      (statusFilter === "all" || r.status === statusFilter) &&
-      (chipFilter === "all" || matchesChip(r, chipFilter)) &&
-      (talentFilter === "all" || r.talent_name === talentFilter) &&
-      (!q ||
-        r.number.toLowerCase().includes(q) ||
-        (r.description ?? "").toLowerCase().includes(q) ||
-        (r.client_name ?? "").toLowerCase().includes(q) ||
-        (r.talent_name ?? "").toLowerCase().includes(q)),
+    let list = rows.filter(
+      (r) =>
+        (typeFilter === "all" || r.kind === typeFilter) &&
+        (statusFilter === "all" || r.status === statusFilter) &&
+        (chipFilter === "all" || matchesChip(r, chipFilter)) &&
+        (talentFilter === "all" || r.talent_name === talentFilter) &&
+        (!q ||
+          r.number.toLowerCase().includes(q) ||
+          (r.description ?? "").toLowerCase().includes(q) ||
+          (r.client_name ?? "").toLowerCase().includes(q) ||
+          (r.talent_name ?? "").toLowerCase().includes(q)),
     );
     list = [...list].sort((a, b) => {
       switch (sort) {
-        case "oldest":      return a.issued_at.localeCompare(b.issued_at);
-        case "amount_desc": return b.total_cents - a.total_cents;
-        case "amount_asc":  return a.total_cents - b.total_cents;
-        case "due":         return (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999");
+        case "oldest":
+          return a.issued_at.localeCompare(b.issued_at);
+        case "amount_desc":
+          return b.total_cents - a.total_cents;
+        case "amount_asc":
+          return a.total_cents - b.total_cents;
+        case "due":
+          return (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999");
         case "newest":
-        default:            return b.issued_at.localeCompare(a.issued_at);
+        default:
+          return b.issued_at.localeCompare(a.issued_at);
       }
     });
     return list;
@@ -339,17 +403,26 @@ function QIPage() {
   const visible = page.visible;
 
   const filtersActive =
-    !!search || typeFilter !== "all" || statusFilter !== "all" ||
-    chipFilter !== "all" || talentFilter !== "all" || sort !== "newest";
+    !!search ||
+    typeFilter !== "all" ||
+    statusFilter !== "all" ||
+    chipFilter !== "all" ||
+    talentFilter !== "all" ||
+    sort !== "newest";
 
   function resetFilters() {
-    setSearch(""); setTypeFilter("all"); setStatusFilter("all");
-    setChipFilter("all"); setTalentFilter("all"); setSort("newest");
+    setSearch("");
+    setTypeFilter("all");
+    setStatusFilter("all");
+    setChipFilter("all");
+    setTalentFilter("all");
+    setSort("newest");
   }
 
   const quoteToInvoice = useMemo(() => {
     const m = new Map<string, Row>();
-    for (const r of rows) if (r.kind === "invoice" && r.converted_from_quote_id) m.set(r.converted_from_quote_id, r);
+    for (const r of rows)
+      if (r.kind === "invoice" && r.converted_from_quote_id) m.set(r.converted_from_quote_id, r);
     return m;
   }, [rows]);
   const rowById = useMemo(() => {
@@ -359,12 +432,14 @@ function QIPage() {
   }, [rows]);
 
   function openNew(kind: "quote" | "invoice") {
-    setEditor(emptyEditor(
-      kind,
-      settings?.default_vat_rate_bp ?? 1500,
-      settings?.default_quote_acceptance_days ?? 14,
-      settings?.default_invoice_payment_days ?? 30,
-    ));
+    setEditor(
+      emptyEditor(
+        kind,
+        settings?.default_vat_rate_bp ?? 1500,
+        settings?.default_quote_acceptance_days ?? 14,
+        settings?.default_invoice_payment_days ?? 30,
+      ),
+    );
     setEditorOpen(true);
   }
 
@@ -400,8 +475,12 @@ function QIPage() {
         allow_partial_payment: !!full.doc.allow_partial_payment,
         recipient_address: full.doc.recipient_address ?? "",
         recipient_vat_number: full.doc.recipient_vat_number ?? "",
-        recipient_emails: (full.doc.recipient_emails as string[] | null) ?? (full.doc.recipient_email ? [full.doc.recipient_email] : []),
-        acceptance_window_days: full.doc.acceptance_window_days ? String(full.doc.acceptance_window_days) : "",
+        recipient_emails:
+          (full.doc.recipient_emails as string[] | null) ??
+          (full.doc.recipient_email ? [full.doc.recipient_email] : []),
+        acceptance_window_days: full.doc.acceptance_window_days
+          ? String(full.doc.acceptance_window_days)
+          : "",
         payment_terms_days: full.doc.payment_terms_days ? String(full.doc.payment_terms_days) : "",
         lines: lines.length > 0 ? lines : [emptyLine(0, settings?.default_vat_rate_bp ?? 1500)],
       });
@@ -453,10 +532,14 @@ function QIPage() {
           recipient_vat_number: editor.recipient_vat_number.trim() || null,
           recipient_email: editor.recipient_emails[0] ?? null,
           recipient_emails: editor.recipient_emails,
-          acceptance_window_days: editor.kind === "quote" && editor.acceptance_window_days
-            ? Number(editor.acceptance_window_days) : null,
-          payment_terms_days: editor.kind === "invoice" && editor.payment_terms_days
-            ? Number(editor.payment_terms_days) : null,
+          acceptance_window_days:
+            editor.kind === "quote" && editor.acceptance_window_days
+              ? Number(editor.acceptance_window_days)
+              : null,
+          payment_terms_days:
+            editor.kind === "invoice" && editor.payment_terms_days
+              ? Number(editor.payment_terms_days)
+              : null,
           lines: validLines.map((l, i) => ({
             id: l.id,
             description: l.description.trim(),
@@ -479,7 +562,8 @@ function QIPage() {
   const send = useMutation({
     mutationFn: async () => {
       if (!editor.id) throw new Error("Save the record first");
-      if (editor.recipient_emails.length === 0) throw new Error("Add at least one recipient email address");
+      if (editor.recipient_emails.length === 0)
+        throw new Error("Add at least one recipient email address");
       return sendFn({ data: { id: editor.id, recipients: editor.recipient_emails } });
     },
     onSuccess: (res: any) => {
@@ -499,7 +583,8 @@ function QIPage() {
   });
 
   const changeStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: Row["status"] }) => statusFn({ data: { id, status } }),
+    mutationFn: ({ id, status }: { id: string; status: Row["status"] }) =>
+      statusFn({ data: { id, status } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success("Status updated");
@@ -514,9 +599,7 @@ function QIPage() {
     },
     onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
-      toast.success(
-        `${editor.kind === "quote" ? "Quotation" : "Invoice"} marked as sent manually`,
-      );
+      toast.success(`${editor.kind === "quote" ? "Quotation" : "Invoice"} marked as sent manually`);
       setEditor((prev) => ({ ...prev, number: res.number, status: "sent" }));
       setPreviewOpen(false);
       setEditorOpen(false);
@@ -534,8 +617,11 @@ function QIPage() {
   });
 
   const toggleShare = useMutation({
-    mutationFn: ({ id, shared }: { id: string; shared: boolean }) => shareFn({ data: { id, shared } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["agency", "billing"] }); },
+    mutationFn: ({ id, shared }: { id: string; shared: boolean }) =>
+      shareFn({ data: { id, shared } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agency", "billing"] });
+    },
     onError: (e: any) => toast.error(e.message ?? "Failed"),
   });
 
@@ -550,7 +636,9 @@ function QIPage() {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success("Invoice created from quote");
     },
-    onError: (e: any) => { if (e.message !== "Cancelled") toast.error(e.message ?? "Conversion failed"); },
+    onError: (e: any) => {
+      if (e.message !== "Cancelled") toast.error(e.message ?? "Conversion failed");
+    },
   });
 
   function updateLine(idx: number, patch: Partial<BillingLine>) {
@@ -605,14 +693,30 @@ function QIPage() {
           <h1 className="tvp-h1">Quotes & Invoices</h1>
         </div>
         <div className="tvp-actions" data-tour="billing-new">
-          <button className="tvp-secondary" onClick={() => openNew("quote")}><Plus className="h-4 w-4" />New Quote</button>
-          <button className="tvp-primary" onClick={() => openNew("invoice")}><Plus className="h-4 w-4" />New Invoice</button>
+          <button className="tvp-secondary" onClick={() => openNew("quote")}>
+            <Plus className="h-4 w-4" />
+            New Quote
+          </button>
+          <button className="tvp-primary" onClick={() => openNew("invoice")}>
+            <Plus className="h-4 w-4" />
+            New Invoice
+          </button>
         </div>
       </div>
 
       <div className="tvp-subtabs" data-tour="billing-subtabs">
-        <button className={`tvp-subtab${view === "overview" ? " tvp-active" : ""}`} onClick={() => setView("overview")}>Overview</button>
-        <button className={`tvp-subtab${view === "reports" ? " tvp-active" : ""}`} onClick={() => setView("reports")}>Reports</button>
+        <button
+          className={`tvp-subtab${view === "overview" ? " tvp-active" : ""}`}
+          onClick={() => setView("overview")}
+        >
+          Overview
+        </button>
+        <button
+          className={`tvp-subtab${view === "reports" ? " tvp-active" : ""}`}
+          onClick={() => setView("reports")}
+        >
+          Reports
+        </button>
       </div>
 
       {view === "reports" ? (
@@ -623,220 +727,417 @@ function QIPage() {
           agencyName={settings?.name ?? "Your agency"}
         />
       ) : (
-      <>
-      <div className="tvp-card" style={{ marginBottom: 14 }}>
-        <BillingPeriodSelector value={period} onChange={setPeriod} label={resolvedPeriod.label} />
-      </div>
-
-      <div data-tour="billing-summary">
-        <BillingSummaryCards report={report} />
-      </div>
-
-      <div className="tvp-grid tvp-kpi-grid">
-
-        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => { resetFilters(); setChipFilter("quote_draft"); }}>
-          <div className="tvp-kpi-icon tvp-bg-teal"><Pencil className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">{kpis.quoteDrafts}</div>
-            <div className="tvp-kpi-label">Quote Drafts</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.quoteDrafts > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
-              {kpis.quoteDrafts > 0 ? "Continue editing" : "Nothing in progress"}
-            </div>
-          </div>
-        </button>
-        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => { resetFilters(); setChipFilter("invoice_draft"); }}>
-          <div className="tvp-kpi-icon tvp-bg-purple"><FileText className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">{kpis.invoiceDrafts}</div>
-            <div className="tvp-kpi-label">Invoice Drafts</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.invoiceDrafts > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
-              {kpis.invoiceDrafts > 0 ? "Ready to complete" : "No drafts pending"}
-            </div>
-          </div>
-        </button>
-        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => { resetFilters(); setChipFilter("accepted"); }}>
-          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">{kpis.quotesAccepted}</div>
-            <div className="tvp-kpi-label">Quotes Accepted</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.acceptedUnconverted > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
-              {kpis.acceptedUnconverted > 0 ? `${kpis.acceptedUnconverted} ready to convert` : "All converted"}
-            </div>
-          </div>
-        </button>
-        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => { resetFilters(); setChipFilter("late"); }}>
-          <div className="tvp-kpi-icon tvp-bg-red"><AlertCircle className="h-5 w-5" /></div>
-          <div>
-            <div className="tvp-kpi-value">{kpis.lateInvoices}</div>
-            <div className="tvp-kpi-label">Late Invoices</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.lateInvoices > 0 ? "var(--tvp-red)" : "var(--tvp-muted)" }}>
-              {kpis.lateInvoices > 0 ? "Needs follow-up" : "All on schedule"}
-            </div>
-          </div>
-        </button>
-      </div>
-
-      <div className="tvp-card">
-        <div className="tvp-panel-head" style={{ padding: "16px 18px 0", margin: 0 }}>
-          <h2 className="tvp-h2">Quotes & Invoices Workspace</h2>
-          {filtersActive && <button className="tvp-link" onClick={resetFilters}>Reset filters</button>}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3" style={{ padding: "14px 18px" }}>
-          <div style={{ position: "relative", flex: "1 1 260px", minWidth: 200 }}>
-            <Search className="h-4 w-4" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--tvp-muted)" }} />
-            <input className="tvp-search-top" style={{ paddingLeft: 34, width: "100%" }} placeholder="Search by client, talent or reference..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <select className="tvp-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All statuses</option>
-            {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-          </select>
-          <select className="tvp-select" value={talentFilter} onChange={(e) => setTalentFilter(e.target.value)}>
-            <option value="all">All talent</option>
-            {talents.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <select className="tvp-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-            <option value="all">All types</option><option value="quote">Quote</option><option value="invoice">Invoice</option>
-          </select>
-          <select className="tvp-select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-            <option value="newest">Sort: Newest</option>
-            <option value="oldest">Sort: Oldest</option>
-            <option value="amount_desc">Sort: Amount ↓</option>
-            <option value="amount_asc">Sort: Amount ↑</option>
-            <option value="due">Sort: Due date</option>
-          </select>
-        </div>
-
-        <div className="tvp-life-chips" style={{ padding: "0 18px 14px" }}>
-          {CHIPS.map((c) => (
-            <button key={c.key} className={`tvp-life-chip${chipFilter === c.key ? " tvp-active-filter" : ""} tvp-bg-${c.tone}`}
-              onClick={() => setChipFilter(chipFilter === c.key ? "all" : c.key)}>
-              <div className="tvp-label">{c.label}</div>
-              <div className="tvp-num">{chipCounts[c.key]}</div>
-            </button>
-          ))}
-        </div>
-
-        <table className="tvp-table" data-tour="billing-table">
-          <thead>
-            <tr>
-              <th>Reference</th><th>Type</th><th>Talent</th><th>Client</th><th>Status</th>
-              <th>Acceptance / Due Rule</th><th>Amount</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.length === 0 && (
-              <tr><td colSpan={8} className="tvp-muted" style={{ padding: 24 }}>
-                {rows.length === 0 ? "Nothing billed yet — start with New Quote or New Invoice." : "No quotes or invoices match these filters — try clearing them."}
-              </td></tr>
-            )}
-            {visible.map((r) => {
-              const linkedInvoice = r.kind === "quote" ? quoteToInvoice.get(r.id) : null;
-              const sourceQuote = r.kind === "invoice" && r.converted_from_quote_id ? rowById.get(r.converted_from_quote_id) : null;
-              return (
-                <tr key={r.id}>
-                  <td>
-                    <strong>{r.number}</strong>
-                    {r.description && <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>{r.description}</div>}
-                    {(linkedInvoice || sourceQuote) && (
-                      <div style={{ marginTop: 4 }}>
-                        {linkedInvoice && (
-                          <span className="tvp-status tvp-green" title={`Converted to invoice ${linkedInvoice.number}`}>
-                            <Link2 className="h-3 w-3 inline mr-1" />→ {linkedInvoice.number}
-                          </span>
-                        )}
-                        {sourceQuote && (
-                          <span className="tvp-status tvp-blue" title={`From quote ${sourceQuote.number}`}>
-                            <Link2 className="h-3 w-3 inline mr-1" />← {sourceQuote.number}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`tvp-status tvp-${r.kind === "quote" ? "teal" : "purple"}`}>
-                      {r.kind === "quote" ? "Quote" : "Invoice"}
-                    </span>
-                  </td>
-                  <td>
-                    {r.talent_name ?? "—"}
-                    {!r.talent_link_id && (
-                      <div style={{ marginTop: 4, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                        <span className="tvp-status tvp-amber" title="Not linked to a talent on your roster, so the talent may not see it">Not linked</span>
-                        {linkingId === r.id ? (
-                          <select className="tvp-select" style={{ height: 28, fontSize: 12 }} defaultValue=""
-                            disabled={linkDoc.isPending}
-                            onChange={(e) => e.target.value && linkDoc.mutate({ doc_id: r.id, talent_link_id: e.target.value })}
-                            onBlur={() => !linkDoc.isPending && setLinkingId(null)} autoFocus>
-                            <option value="" disabled>Choose talent…</option>
-                            {roster.map((t: any) => (
-                              <option key={t.id} value={t.id}>{t.displayName}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <button type="button" className="tvp-link" style={{ fontSize: 12 }} onClick={() => setLinkingId(r.id)}>
-                            Link to talent
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td>{r.client_name ?? "—"}</td>
-                  <td>
-                    <select className={`tvp-select tvp-status-select tvp-${STATUS_TONE[r.status]}`}
-                      value={r.status}
-                      onChange={(e) => changeStatus.mutate({ id: r.id, status: e.target.value as Row["status"] })}
-                      style={{ minWidth: 110, height: 32, fontSize: 12, fontWeight: 800 }}>
-                      {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
-                        <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td><span className="tvp-muted" style={{ fontSize: 12 }}>{ruleText(r)}</span></td>
-                  <td>{fmtMoney(r.total_cents, r.currency)}</td>
-                  <td>
-                    <div className="flex gap-1" style={{ justifyContent: "flex-end" }}>
-                      <button className="tvp-mini-btn" title={r.talent_name ? (r.shared_with_talent ? "Shared with talent — click to hide" : "Share with linked talent") : "Set a talent to enable sharing"}
-                        onClick={() => r.talent_name && toggleShare.mutate({ id: r.id, shared: !r.shared_with_talent })}
-                        disabled={!r.talent_name}
-                        style={{ opacity: r.talent_name ? 1 : 0.4, color: r.shared_with_talent ? "var(--tvp-green)" : undefined }}>
-                        <Link2 className="h-4 w-4" />
-                      </button>
-                      {r.kind === "quote" && !linkedInvoice && (
-                        <button className="tvp-mini-btn" data-tour="billing-convert" title="Convert to invoice" onClick={() => convert.mutate(r)}>
-                          <ArrowRightLeft className="h-4 w-4" />
-                        </button>
-                      )}
-                      {r.kind === "invoice" && r.status !== "draft" && (
-                        <button
-                          className="tvp-mini-btn"
-                          title="Payments received"
-                          onClick={() => setPaymentsDocId(r.id)}
-                        >
-                          <Wallet className="h-4 w-4" />
-                        </button>
-                      )}
-                      <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></button>
-                      <button className="tvp-mini-btn" title="Delete" onClick={() => { if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            <LoadMoreRow
-              colSpan={8}
-              noun="documents"
-              shown={page.shown}
-              total={page.total}
-              hasMore={page.hasMore}
-              onLoadMore={page.loadMore}
+        <>
+          <div className="tvp-card" style={{ marginBottom: 14 }}>
+            <BillingPeriodSelector
+              value={period}
+              onChange={setPeriod}
+              label={resolvedPeriod.label}
             />
-          </tbody>
-        </table>
-      </div>
-      </>
+          </div>
+
+          <div data-tour="billing-summary">
+            <BillingSummaryCards report={report} />
+          </div>
+
+          <div className="tvp-grid tvp-kpi-grid">
+            <button
+              className="tvp-card tvp-kpi tvp-clickable"
+              onClick={() => {
+                resetFilters();
+                setChipFilter("quote_draft");
+              }}
+            >
+              <div className="tvp-kpi-icon tvp-bg-teal">
+                <Pencil className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="tvp-kpi-value">{kpis.quoteDrafts}</div>
+                <div className="tvp-kpi-label">Quote Drafts</div>
+                <div
+                  className="tvp-kpi-sub"
+                  style={{ color: kpis.quoteDrafts > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+                >
+                  {kpis.quoteDrafts > 0 ? "Continue editing" : "Nothing in progress"}
+                </div>
+              </div>
+            </button>
+            <button
+              className="tvp-card tvp-kpi tvp-clickable"
+              onClick={() => {
+                resetFilters();
+                setChipFilter("invoice_draft");
+              }}
+            >
+              <div className="tvp-kpi-icon tvp-bg-purple">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="tvp-kpi-value">{kpis.invoiceDrafts}</div>
+                <div className="tvp-kpi-label">Invoice Drafts</div>
+                <div
+                  className="tvp-kpi-sub"
+                  style={{
+                    color: kpis.invoiceDrafts > 0 ? "var(--tvp-green)" : "var(--tvp-muted)",
+                  }}
+                >
+                  {kpis.invoiceDrafts > 0 ? "Ready to complete" : "No drafts pending"}
+                </div>
+              </div>
+            </button>
+            <button
+              className="tvp-card tvp-kpi tvp-clickable"
+              onClick={() => {
+                resetFilters();
+                setChipFilter("accepted");
+              }}
+            >
+              <div className="tvp-kpi-icon tvp-bg-green">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="tvp-kpi-value">{kpis.quotesAccepted}</div>
+                <div className="tvp-kpi-label">Quotes Accepted</div>
+                <div
+                  className="tvp-kpi-sub"
+                  style={{
+                    color: kpis.acceptedUnconverted > 0 ? "var(--tvp-green)" : "var(--tvp-muted)",
+                  }}
+                >
+                  {kpis.acceptedUnconverted > 0
+                    ? `${kpis.acceptedUnconverted} ready to convert`
+                    : "All converted"}
+                </div>
+              </div>
+            </button>
+            <button
+              className="tvp-card tvp-kpi tvp-clickable"
+              onClick={() => {
+                resetFilters();
+                setChipFilter("late");
+              }}
+            >
+              <div className="tvp-kpi-icon tvp-bg-red">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="tvp-kpi-value">{kpis.lateInvoices}</div>
+                <div className="tvp-kpi-label">Late Invoices</div>
+                <div
+                  className="tvp-kpi-sub"
+                  style={{ color: kpis.lateInvoices > 0 ? "var(--tvp-red)" : "var(--tvp-muted)" }}
+                >
+                  {kpis.lateInvoices > 0 ? "Needs follow-up" : "All on schedule"}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div className="tvp-card">
+            <div className="tvp-panel-head" style={{ padding: "16px 18px 0", margin: 0 }}>
+              <h2 className="tvp-h2">Quotes & Invoices Workspace</h2>
+              {filtersActive && (
+                <button className="tvp-link" onClick={resetFilters}>
+                  Reset filters
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3" style={{ padding: "14px 18px" }}>
+              <div style={{ position: "relative", flex: "1 1 260px", minWidth: 200 }}>
+                <Search
+                  className="h-4 w-4"
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "var(--tvp-muted)",
+                  }}
+                />
+                <input
+                  className="tvp-search-top"
+                  style={{ paddingLeft: 34, width: "100%" }}
+                  placeholder="Search by client, talent or reference..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <select
+                className="tvp-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All statuses</option>
+                {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="tvp-select"
+                value={talentFilter}
+                onChange={(e) => setTalentFilter(e.target.value)}
+              >
+                <option value="all">All talent</option>
+                {talents.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="tvp-select"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="all">All types</option>
+                <option value="quote">Quote</option>
+                <option value="invoice">Invoice</option>
+              </select>
+              <select
+                className="tvp-select"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortKey)}
+              >
+                <option value="newest">Sort: Newest</option>
+                <option value="oldest">Sort: Oldest</option>
+                <option value="amount_desc">Sort: Amount ↓</option>
+                <option value="amount_asc">Sort: Amount ↑</option>
+                <option value="due">Sort: Due date</option>
+              </select>
+            </div>
+
+            <div className="tvp-life-chips" style={{ padding: "0 18px 14px" }}>
+              {CHIPS.map((c) => (
+                <button
+                  key={c.key}
+                  className={`tvp-life-chip${chipFilter === c.key ? " tvp-active-filter" : ""} tvp-bg-${c.tone}`}
+                  onClick={() => setChipFilter(chipFilter === c.key ? "all" : c.key)}
+                >
+                  <div className="tvp-label">{c.label}</div>
+                  <div className="tvp-num">{chipCounts[c.key]}</div>
+                </button>
+              ))}
+            </div>
+
+            <table className="tvp-table" data-tour="billing-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Type</th>
+                  <th>Talent</th>
+                  <th>Client</th>
+                  <th>Status</th>
+                  <th>Acceptance / Due Rule</th>
+                  <th>Amount</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="tvp-muted" style={{ padding: 24 }}>
+                      {rows.length === 0
+                        ? "Nothing billed yet — start with New Quote or New Invoice."
+                        : "No quotes or invoices match these filters — try clearing them."}
+                    </td>
+                  </tr>
+                )}
+                {visible.map((r) => {
+                  const linkedInvoice = r.kind === "quote" ? quoteToInvoice.get(r.id) : null;
+                  const sourceQuote =
+                    r.kind === "invoice" && r.converted_from_quote_id
+                      ? rowById.get(r.converted_from_quote_id)
+                      : null;
+                  return (
+                    <tr key={r.id}>
+                      <td>
+                        <strong>{r.number}</strong>
+                        {r.description && (
+                          <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                            {r.description}
+                          </div>
+                        )}
+                        {(linkedInvoice || sourceQuote) && (
+                          <div style={{ marginTop: 4 }}>
+                            {linkedInvoice && (
+                              <span
+                                className="tvp-status tvp-green"
+                                title={`Converted to invoice ${linkedInvoice.number}`}
+                              >
+                                <Link2 className="h-3 w-3 inline mr-1" />→ {linkedInvoice.number}
+                              </span>
+                            )}
+                            {sourceQuote && (
+                              <span
+                                className="tvp-status tvp-blue"
+                                title={`From quote ${sourceQuote.number}`}
+                              >
+                                <Link2 className="h-3 w-3 inline mr-1" />← {sourceQuote.number}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={`tvp-status tvp-${r.kind === "quote" ? "teal" : "purple"}`}
+                        >
+                          {r.kind === "quote" ? "Quote" : "Invoice"}
+                        </span>
+                      </td>
+                      <td>
+                        {r.talent_name ?? "—"}
+                        {!r.talent_link_id && (
+                          <div
+                            style={{
+                              marginTop: 4,
+                              display: "flex",
+                              gap: 6,
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <span
+                              className="tvp-status tvp-amber"
+                              title="Not linked to a talent on your roster, so the talent may not see it"
+                            >
+                              Not linked
+                            </span>
+                            {linkingId === r.id ? (
+                              <select
+                                className="tvp-select"
+                                style={{ height: 28, fontSize: 12 }}
+                                defaultValue=""
+                                disabled={linkDoc.isPending}
+                                onChange={(e) =>
+                                  e.target.value &&
+                                  linkDoc.mutate({ doc_id: r.id, talent_link_id: e.target.value })
+                                }
+                                onBlur={() => !linkDoc.isPending && setLinkingId(null)}
+                                autoFocus
+                              >
+                                <option value="" disabled>
+                                  Choose talent…
+                                </option>
+                                {roster.map((t: any) => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.displayName}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <button
+                                type="button"
+                                className="tvp-link"
+                                style={{ fontSize: 12 }}
+                                onClick={() => setLinkingId(r.id)}
+                              >
+                                Link to talent
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td>{r.client_name ?? "—"}</td>
+                      <td>
+                        <select
+                          className={`tvp-select tvp-status-select tvp-${STATUS_TONE[r.status]}`}
+                          value={r.status}
+                          onChange={(e) =>
+                            changeStatus.mutate({
+                              id: r.id,
+                              status: e.target.value as Row["status"],
+                            })
+                          }
+                          style={{ minWidth: 110, height: 32, fontSize: 12, fontWeight: 800 }}
+                        >
+                          {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
+                            <option key={s} value={s}>
+                              {STATUS_LABEL[s]}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <span className="tvp-muted" style={{ fontSize: 12 }}>
+                          {ruleText(r)}
+                        </span>
+                      </td>
+                      <td>{fmtMoney(r.total_cents, r.currency)}</td>
+                      <td>
+                        <div className="flex gap-1" style={{ justifyContent: "flex-end" }}>
+                          <button
+                            className="tvp-mini-btn"
+                            title={
+                              r.talent_name
+                                ? r.shared_with_talent
+                                  ? "Shared with talent — click to hide"
+                                  : "Share with linked talent"
+                                : "Set a talent to enable sharing"
+                            }
+                            onClick={() =>
+                              r.talent_name &&
+                              toggleShare.mutate({ id: r.id, shared: !r.shared_with_talent })
+                            }
+                            disabled={!r.talent_name}
+                            style={{
+                              opacity: r.talent_name ? 1 : 0.4,
+                              color: r.shared_with_talent ? "var(--tvp-green)" : undefined,
+                            }}
+                          >
+                            <Link2 className="h-4 w-4" />
+                          </button>
+                          {r.kind === "quote" && !linkedInvoice && (
+                            <button
+                              className="tvp-mini-btn"
+                              data-tour="billing-convert"
+                              title="Convert to invoice"
+                              onClick={() => convert.mutate(r)}
+                            >
+                              <ArrowRightLeft className="h-4 w-4" />
+                            </button>
+                          )}
+                          {r.kind === "invoice" && r.status !== "draft" && (
+                            <button
+                              className="tvp-mini-btn"
+                              title="Payments received"
+                              onClick={() => setPaymentsDocId(r.id)}
+                            >
+                              <Wallet className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(r)}>
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="tvp-mini-btn"
+                            title="Delete"
+                            onClick={() => {
+                              if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                <LoadMoreRow
+                  colSpan={8}
+                  noun="documents"
+                  shown={page.shown}
+                  total={page.total}
+                  hasMore={page.hasMore}
+                  onLoadMore={page.loadMore}
+                />
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {paymentsDocId && (
@@ -844,42 +1145,100 @@ function QIPage() {
       )}
 
       {editorOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={() => setEditorOpen(false)}>
-          <div className="tvp-card" style={{ maxWidth: 820, width: "100%", maxHeight: "92vh", overflow: "auto", padding: 24, marginTop: 16 }} onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 50,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            padding: 16,
+            overflowY: "auto",
+          }}
+          onClick={() => setEditorOpen(false)}
+        >
+          <div
+            className="tvp-card"
+            style={{
+              maxWidth: 820,
+              width: "100%",
+              maxHeight: "92vh",
+              overflow: "auto",
+              padding: 24,
+              marginTop: 16,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center" style={{ marginBottom: 16 }}>
               <h2 className="tvp-h2">{editor.id ? `Edit ${editor.kind}` : `New ${editor.kind}`}</h2>
-              <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}><X className="h-4 w-4" /></button>
+              <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}>
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
             {loadingEditor ? (
-              <div className="tvp-muted" style={{ padding: 32, textAlign: "center" }}>Loading…</div>
+              <div className="tvp-muted" style={{ padding: 32, textAlign: "center" }}>
+                Loading…
+              </div>
             ) : (
               <>
                 {financialsLocked && (
-                  <div className="tvp-ai-box" style={{ marginBottom: 14, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div
+                    className="tvp-ai-box"
+                    style={{ marginBottom: 14, display: "flex", gap: 10, alignItems: "flex-start" }}
+                  >
                     <Lock className="h-4 w-4 mt-0.5 shrink-0" />
                     <div className="tvp-small">
                       {editor.number} has already been issued, so its number, amounts, dates and
-                      line items are fixed. You can still update the notes, sharing and status —
-                      to change the money, cancel this one and raise a new {editor.kind}.
+                      line items are fixed. You can still update the notes, sharing and status — to
+                      change the money, cancel this one and raise a new {editor.kind}.
                     </div>
                   </div>
                 )}
                 <div className="tvp-rule-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div className="tvp-form-group">
                     <label>Type</label>
-                    <select value={editor.kind} onChange={(e) => setEditor({ ...editor, kind: e.target.value as "quote" | "invoice" })} disabled={!!editor.id}>
+                    <select
+                      value={editor.kind}
+                      onChange={(e) =>
+                        setEditor({ ...editor, kind: e.target.value as "quote" | "invoice" })
+                      }
+                      disabled={!!editor.id}
+                    >
                       <option value="quote">Quote</option>
                       <option value="invoice">Invoice</option>
                     </select>
                   </div>
                   <div className="tvp-form-group">
-                    <label>Number {!editor.number && <span className="tvp-muted" style={{ fontSize: 11 }}>(auto on send)</span>}</label>
-                    <input value={editor.number} disabled={financialsLocked} onChange={(e) => setEditor({ ...editor, number: e.target.value })} placeholder={editor.kind === "quote" ? "QT-2026-0001" : "INV-2026-0001"} />
+                    <label>
+                      Number{" "}
+                      {!editor.number && (
+                        <span className="tvp-muted" style={{ fontSize: 11 }}>
+                          (auto on send)
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      value={editor.number}
+                      disabled={financialsLocked}
+                      onChange={(e) => setEditor({ ...editor, number: e.target.value })}
+                      placeholder={editor.kind === "quote" ? "QT-2026-0001" : "INV-2026-0001"}
+                    />
                   </div>
-                  <div className="tvp-form-group" data-tour="editor-ref" style={{ gridColumn: "1 / -1" }}>
+                  <div
+                    className="tvp-form-group"
+                    data-tour="editor-ref"
+                    style={{ gridColumn: "1 / -1" }}
+                  >
                     <label>Reference / description</label>
-                    <input value={editor.description} onChange={(e) => setEditor({ ...editor, description: e.target.value })} placeholder="e.g. Brand campaign — Autumn 2026" maxLength={200} />
+                    <input
+                      value={editor.description}
+                      onChange={(e) => setEditor({ ...editor, description: e.target.value })}
+                      placeholder="e.g. Brand campaign — Autumn 2026"
+                      maxLength={200}
+                    />
                   </div>
                   <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
                     <label htmlFor="editor-saved-client">Saved client</label>
@@ -908,7 +1267,9 @@ function QIPage() {
                         <SelectValue placeholder="One-off client (enter manually)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={ONE_OFF_CLIENT}>One-off client (enter manually)</SelectItem>
+                        <SelectItem value={ONE_OFF_CLIENT}>
+                          One-off client (enter manually)
+                        </SelectItem>
                         {savedClients.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.name}
@@ -920,14 +1281,20 @@ function QIPage() {
                     {savedClients.length === 0 ? (
                       <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
                         You haven't saved any clients yet. Add them once in{" "}
-                        <Link to="/agency/settings" search={{ tab: "clients" }}>Settings › Clients</Link>{" "}
-                        and they'll be a click away here — or just type the details below for a one-off client.
+                        <Link to="/agency/settings" search={{ tab: "clients" }}>
+                          Settings › Clients
+                        </Link>{" "}
+                        and they'll be a click away here — or just type the details below for a
+                        one-off client.
                       </div>
                     ) : (
                       <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
-                        Choosing a saved client fills in their name, contact person, address, VAT number and
-                        email addresses. Manage them in{" "}
-                        <Link to="/agency/settings" search={{ tab: "clients" }}>Settings › Clients</Link>.
+                        Choosing a saved client fills in their name, contact person, address, VAT
+                        number and email addresses. Manage them in{" "}
+                        <Link to="/agency/settings" search={{ tab: "clients" }}>
+                          Settings › Clients
+                        </Link>
+                        .
                       </div>
                     )}
                   </div>
@@ -935,7 +1302,9 @@ function QIPage() {
                     <label>Client / recipient name</label>
                     <input
                       value={editor.client_name}
-                      onChange={(e) => setEditor({ ...editor, client_name: e.target.value, client_id: null })}
+                      onChange={(e) =>
+                        setEditor({ ...editor, client_name: e.target.value, client_id: null })
+                      }
                     />
                   </div>
                   <div className="tvp-form-group">
@@ -944,12 +1313,16 @@ function QIPage() {
                       value={editor.recipient_contact_person}
                       maxLength={200}
                       placeholder="Who the document is addressed to"
-                      onChange={(e) => setEditor({ ...editor, recipient_contact_person: e.target.value })}
+                      onChange={(e) =>
+                        setEditor({ ...editor, recipient_contact_person: e.target.value })
+                      }
                     />
                   </div>
                   {!editor.client_id && editor.client_name.trim() !== "" && (
                     <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}>
+                      <label
+                        style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}
+                      >
                         <input
                           type="checkbox"
                           checked={editor.save_client}
@@ -967,7 +1340,9 @@ function QIPage() {
                     <label htmlFor="editor-talent">Talent</label>
                     <Select
                       value={editor.talent_name.trim() ? editor.talent_name : NO_TALENT}
-                      onValueChange={(v: string) => setEditor({ ...editor, talent_name: v === NO_TALENT ? "" : v })}
+                      onValueChange={(v: string) =>
+                        setEditor({ ...editor, talent_name: v === NO_TALENT ? "" : v })
+                      }
                     >
                       <SelectTrigger id="editor-talent">
                         <SelectValue placeholder="No talent (client-only)" />
@@ -975,13 +1350,16 @@ function QIPage() {
                       <SelectContent>
                         <SelectItem value={NO_TALENT}>No talent (client-only)</SelectItem>
                         {roster.map((t: any) => (
-                          <SelectItem key={t.id} value={t.displayName}>{t.displayName}</SelectItem>
-                        ))}
-                        {editor.talent_name.trim() && !rosterNames.has(editor.talent_name.trim().toLowerCase()) && (
-                          <SelectItem value={editor.talent_name}>
-                            {editor.talent_name} (no longer on your roster)
+                          <SelectItem key={t.id} value={t.displayName}>
+                            {t.displayName}
                           </SelectItem>
-                        )}
+                        ))}
+                        {editor.talent_name.trim() &&
+                          !rosterNames.has(editor.talent_name.trim().toLowerCase()) && (
+                            <SelectItem value={editor.talent_name}>
+                              {editor.talent_name} (no longer on your roster)
+                            </SelectItem>
+                          )}
                       </SelectContent>
                     </Select>
                     <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
@@ -994,9 +1372,18 @@ function QIPage() {
                   </div>
                   <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
                     <label>Recipient billing address</label>
-                    <textarea rows={2} value={editor.recipient_address} onChange={(e) => setEditor({ ...editor, recipient_address: e.target.value })} placeholder="Required by SARS for invoices over R5,000" />
+                    <textarea
+                      rows={2}
+                      value={editor.recipient_address}
+                      onChange={(e) => setEditor({ ...editor, recipient_address: e.target.value })}
+                      placeholder="Required by SARS for invoices over R5,000"
+                    />
                   </div>
-                  <div className="tvp-form-group" data-tour="editor-recipients" style={{ gridColumn: "1 / -1" }}>
+                  <div
+                    className="tvp-form-group"
+                    data-tour="editor-recipients"
+                    style={{ gridColumn: "1 / -1" }}
+                  >
                     <label>Recipient emails</label>
                     <EmailChipsInput
                       value={editor.recipient_emails}
@@ -1005,35 +1392,82 @@ function QIPage() {
                   </div>
                   <div className="tvp-form-group">
                     <label>Recipient VAT number</label>
-                    <input value={editor.recipient_vat_number} onChange={(e) => setEditor({ ...editor, recipient_vat_number: e.target.value })} />
+                    <input
+                      value={editor.recipient_vat_number}
+                      onChange={(e) =>
+                        setEditor({ ...editor, recipient_vat_number: e.target.value })
+                      }
+                    />
                   </div>
                   <div className="tvp-form-group">
                     <label>Issued</label>
-                    <input type="date" disabled={financialsLocked} value={editor.issued_at} onChange={(e) => setEditor({ ...editor, issued_at: e.target.value })} />
+                    <input
+                      type="date"
+                      disabled={financialsLocked}
+                      value={editor.issued_at}
+                      onChange={(e) => setEditor({ ...editor, issued_at: e.target.value })}
+                    />
                   </div>
                   <div className="tvp-form-group">
                     <label>{editor.kind === "quote" ? "Valid until" : "Due"}</label>
-                    <input type="date" disabled={financialsLocked} value={editor.due_date} onChange={(e) => setEditor({ ...editor, due_date: e.target.value })} />
+                    <input
+                      type="date"
+                      disabled={financialsLocked}
+                      value={editor.due_date}
+                      onChange={(e) => setEditor({ ...editor, due_date: e.target.value })}
+                    />
                   </div>
                   <div className="tvp-form-group">
                     <label>Currency</label>
-                    <input value={editor.currency} maxLength={3} disabled={financialsLocked} onChange={(e) => setEditor({ ...editor, currency: e.target.value.toUpperCase() })} />
+                    <input
+                      value={editor.currency}
+                      maxLength={3}
+                      disabled={financialsLocked}
+                      onChange={(e) =>
+                        setEditor({ ...editor, currency: e.target.value.toUpperCase() })
+                      }
+                    />
                   </div>
                   {editor.kind === "quote" ? (
                     <div className="tvp-form-group">
                       <label>Acceptance window (days)</label>
-                      <input type="number" min={1} max={365} value={editor.acceptance_window_days} onChange={(e) => setEditor({ ...editor, acceptance_window_days: e.target.value })} />
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={editor.acceptance_window_days}
+                        onChange={(e) =>
+                          setEditor({ ...editor, acceptance_window_days: e.target.value })
+                        }
+                      />
                     </div>
                   ) : (
                     <div className="tvp-form-group">
                       <label>Payment terms (days)</label>
-                      <input type="number" min={1} max={365} value={editor.payment_terms_days} onChange={(e) => setEditor({ ...editor, payment_terms_days: e.target.value })} />
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={editor.payment_terms_days}
+                        onChange={(e) =>
+                          setEditor({ ...editor, payment_terms_days: e.target.value })
+                        }
+                      />
                     </div>
                   )}
                   <div className="tvp-form-group">
                     <label>Status</label>
-                    <select value={editor.status} onChange={(e) => setEditor({ ...editor, status: e.target.value as Row["status"] })}>
-                      {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                    <select
+                      value={editor.status}
+                      onChange={(e) =>
+                        setEditor({ ...editor, status: e.target.value as Row["status"] })
+                      }
+                    >
+                      {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
+                        <option key={s} value={s}>
+                          {STATUS_LABEL[s]}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -1041,46 +1475,162 @@ function QIPage() {
                 {/* Line items */}
                 <div style={{ marginTop: 20 }}>
                   <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
-                    <h3 className="tvp-h3" style={{ margin: 0 }}>Line items</h3>
-                    <button className="tvp-secondary" type="button" data-tour="editor-add-line" disabled={financialsLocked} onClick={addLine}><Plus className="h-4 w-4" />Add line</button>
+                    <h3 className="tvp-h3" style={{ margin: 0 }}>
+                      Line items
+                    </h3>
+                    <button
+                      className="tvp-secondary"
+                      type="button"
+                      data-tour="editor-add-line"
+                      disabled={financialsLocked}
+                      onClick={addLine}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add line
+                    </button>
                   </div>
-                  <div style={{ border: "1px solid var(--tvp-line)", borderRadius: 6, overflow: "hidden" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", background: "var(--surface-soft)", fontSize: 11, textTransform: "uppercase", color: "var(--tvp-muted)", fontWeight: 700 }}>
-                      <div>Description</div><div style={{ textAlign: "right" }}>Qty</div>
+                  <div
+                    style={{
+                      border: "1px solid var(--tvp-line)",
+                      borderRadius: 6,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 70px 130px 90px 130px 34px",
+                        gap: 8,
+                        padding: "8px 10px",
+                        background: "var(--surface-soft)",
+                        fontSize: 11,
+                        textTransform: "uppercase",
+                        color: "var(--tvp-muted)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      <div>Description</div>
+                      <div style={{ textAlign: "right" }}>Qty</div>
                       <div style={{ textAlign: "right" }}>Unit price (excl.)</div>
                       <div style={{ textAlign: "right" }}>VAT %</div>
                       <div style={{ textAlign: "right" }}>Line total</div>
                       <div />
                     </div>
                     {editor.lines.map((l, i) => {
-                      const line = Math.round((Number(l.quantity) || 0) * (Number(l.unit_price_cents) || 0));
+                      const line = Math.round(
+                        (Number(l.quantity) || 0) * (Number(l.unit_price_cents) || 0),
+                      );
                       return (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 130px 90px 130px 34px", gap: 8, padding: "8px 10px", borderTop: "1px solid var(--tvp-line)", alignItems: "center" }}>
-                          <input value={l.description} disabled={financialsLocked} onChange={(e) => updateLine(i, { description: e.target.value })} placeholder="e.g. Full-day shoot" />
-                          <input type="number" min={0} step="0.01" disabled={financialsLocked} value={l.quantity} onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })} style={{ textAlign: "right" }} />
-                          <input type="number" min={0} step="0.01" disabled={financialsLocked} value={(l.unit_price_cents / 100).toString()} onChange={(e) => updateLine(i, { unit_price_cents: Math.round(Number(e.target.value) * 100) })} style={{ textAlign: "right" }} />
-                          <input type="number" min={0} max={100} step="0.01" disabled={financialsLocked} value={(l.vat_rate_bp / 100).toString()} onChange={(e) => updateLine(i, { vat_rate_bp: Math.round(Number(e.target.value) * 100) })} style={{ textAlign: "right" }} />
-                          <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtMoney(line, editor.currency)}</div>
-                          <button className="tvp-mini-btn" type="button" onClick={() => removeLine(i)} disabled={financialsLocked || editor.lines.length === 1} title="Remove line"><Trash2 className="h-4 w-4" /></button>
+                        <div
+                          key={i}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 70px 130px 90px 130px 34px",
+                            gap: 8,
+                            padding: "8px 10px",
+                            borderTop: "1px solid var(--tvp-line)",
+                            alignItems: "center",
+                          }}
+                        >
+                          <input
+                            value={l.description}
+                            disabled={financialsLocked}
+                            onChange={(e) => updateLine(i, { description: e.target.value })}
+                            placeholder="e.g. Full-day shoot"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            disabled={financialsLocked}
+                            value={l.quantity}
+                            onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })}
+                            style={{ textAlign: "right" }}
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            disabled={financialsLocked}
+                            value={(l.unit_price_cents / 100).toString()}
+                            onChange={(e) =>
+                              updateLine(i, {
+                                unit_price_cents: Math.round(Number(e.target.value) * 100),
+                              })
+                            }
+                            style={{ textAlign: "right" }}
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="0.01"
+                            disabled={financialsLocked}
+                            value={(l.vat_rate_bp / 100).toString()}
+                            onChange={(e) =>
+                              updateLine(i, {
+                                vat_rate_bp: Math.round(Number(e.target.value) * 100),
+                              })
+                            }
+                            style={{ textAlign: "right" }}
+                          />
+                          <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                            {fmtMoney(line, editor.currency)}
+                          </div>
+                          <button
+                            className="tvp-mini-btn"
+                            type="button"
+                            onClick={() => removeLine(i)}
+                            disabled={financialsLocked || editor.lines.length === 1}
+                            title="Remove line"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       );
                     })}
-                    <div data-tour="editor-totals" style={{ padding: "10px 12px", borderTop: "2px solid var(--tvp-line-strong)", background: "var(--surface-soft)", display: "grid", gridTemplateColumns: "1fr 260px", gap: 8, fontSize: 13 }}>
+                    <div
+                      data-tour="editor-totals"
+                      style={{
+                        padding: "10px 12px",
+                        borderTop: "2px solid var(--tvp-line-strong)",
+                        background: "var(--surface-soft)",
+                        display: "grid",
+                        gridTemplateColumns: "1fr 260px",
+                        gap: 8,
+                        fontSize: 13,
+                      }}
+                    >
                       <div className="tvp-muted" style={{ fontSize: 11 }}>
-                        Totals calculated from lines. Subtotal is VAT-exclusive; VAT is applied per line.
+                        Totals calculated from lines. Subtotal is VAT-exclusive; VAT is applied per
+                        line.
                       </div>
                       <div>
                         <div style={{ display: "flex", justifyContent: "space-between" }}>
                           <span className="tvp-muted">Subtotal (excl.)</span>
-                          <strong style={{ fontVariantNumeric: "tabular-nums" }}>{fmtMoney(editorTotals.subtotal_cents, editor.currency)}</strong>
+                          <strong style={{ fontVariantNumeric: "tabular-nums" }}>
+                            {fmtMoney(editorTotals.subtotal_cents, editor.currency)}
+                          </strong>
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between" }}>
                           <span className="tvp-muted">VAT</span>
-                          <strong style={{ fontVariantNumeric: "tabular-nums" }}>{fmtMoney(editorTotals.vat_cents, editor.currency)}</strong>
+                          <strong style={{ fontVariantNumeric: "tabular-nums" }}>
+                            {fmtMoney(editorTotals.vat_cents, editor.currency)}
+                          </strong>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #ddd", paddingTop: 4, marginTop: 4 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            borderTop: "1px solid #ddd",
+                            paddingTop: 4,
+                            marginTop: 4,
+                          }}
+                        >
                           <span style={{ fontWeight: 800 }}>Total</span>
-                          <strong style={{ fontVariantNumeric: "tabular-nums", fontSize: 15 }}>{fmtMoney(editorTotals.total_cents, editor.currency)}</strong>
+                          <strong style={{ fontVariantNumeric: "tabular-nums", fontSize: 15 }}>
+                            {fmtMoney(editorTotals.total_cents, editor.currency)}
+                          </strong>
                         </div>
                       </div>
                     </div>
@@ -1089,40 +1639,71 @@ function QIPage() {
 
                 <div className="tvp-form-group" style={{ marginTop: 12 }}>
                   <label>Notes / terms</label>
-                  <textarea value={editor.notes} onChange={(e) => setEditor({ ...editor, notes: e.target.value })} rows={3} placeholder="Additional terms or notes shown on the document" />
+                  <textarea
+                    value={editor.notes}
+                    onChange={(e) => setEditor({ ...editor, notes: e.target.value })}
+                    rows={3}
+                    placeholder="Additional terms or notes shown on the document"
+                  />
                 </div>
 
                 {editor.kind === "invoice" && (
                   <div className="tvp-form-group" style={{ marginTop: 12 }}>
                     <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                      <input type="checkbox" checked={editor.allow_partial_payment} onChange={(e) => setEditor({ ...editor, allow_partial_payment: e.target.checked })} />
+                      <input
+                        type="checkbox"
+                        checked={editor.allow_partial_payment}
+                        onChange={(e) =>
+                          setEditor({ ...editor, allow_partial_payment: e.target.checked })
+                        }
+                      />
                       Allow partial payment
                     </label>
                   </div>
                 )}
                 <div className="tvp-form-group" style={{ marginTop: 12 }}>
                   <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <input type="checkbox" checked={editor.shared_with_talent} onChange={(e) => setEditor({ ...editor, shared_with_talent: e.target.checked })} />
+                    <input
+                      type="checkbox"
+                      checked={editor.shared_with_talent}
+                      onChange={(e) =>
+                        setEditor({ ...editor, shared_with_talent: e.target.checked })
+                      }
+                    />
                     Share with linked talent
                   </label>
                 </div>
 
-                <div className="flex justify-between items-center gap-2" data-tour="editor-actions" style={{ marginTop: 20, flexWrap: "wrap" }}>
+                <div
+                  className="flex justify-between items-center gap-2"
+                  data-tour="editor-actions"
+                  style={{ marginTop: 20, flexWrap: "wrap" }}
+                >
                   <div>
                     <button
                       className="tvp-secondary"
                       type="button"
                       disabled={!previewAgency || save.isPending}
                       onClick={() => setPreviewOpen(true)}
-                      title={!previewAgency ? "Loading agency settings…" : "Preview as it will be sent"}
+                      title={
+                        !previewAgency ? "Loading agency settings…" : "Preview as it will be sent"
+                      }
                     >
-                      <Eye className="h-4 w-4" />Preview
+                      <Eye className="h-4 w-4" />
+                      Preview
                     </button>
                   </div>
                   <div className="flex gap-2">
-                    <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>Cancel</button>
-                    <button className="tvp-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-                      <Save className="h-4 w-4" />{save.isPending ? "Saving…" : "Save draft"}
+                    <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>
+                      Cancel
+                    </button>
+                    <button
+                      className="tvp-primary"
+                      onClick={() => save.mutate()}
+                      disabled={save.isPending}
+                    >
+                      <Save className="h-4 w-4" />
+                      {save.isPending ? "Saving…" : "Save draft"}
                     </button>
                   </div>
                 </div>
@@ -1151,8 +1732,12 @@ function QIPage() {
             currency: editor.currency.toUpperCase(),
             notes: editor.notes || null,
             status: editor.status,
-            acceptance_window_days: editor.acceptance_window_days ? Number(editor.acceptance_window_days) : null,
-            payment_terms_days: editor.payment_terms_days ? Number(editor.payment_terms_days) : null,
+            acceptance_window_days: editor.acceptance_window_days
+              ? Number(editor.acceptance_window_days)
+              : null,
+            payment_terms_days: editor.payment_terms_days
+              ? Number(editor.payment_terms_days)
+              : null,
           }}
           lines={editor.lines.filter((l) => l.description.trim())}
           agency={previewAgency}
@@ -1170,13 +1755,12 @@ function QIPage() {
               ? "Save this draft first before sending."
               : editor.recipient_emails.length === 0
                 ? "Add at least one recipient email address before sending."
-                : (!settings?.billing_from_verified_at || !settings?.billing_from_email)
+                : !settings?.billing_from_verified_at || !settings?.billing_from_email
                   ? "Verify a sending address in Quotes & Invoices Settings before sending."
                   : "This record has already been sent."
           }
           canMarkSent={
-            !!editor.id &&
-            (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
+            !!editor.id && (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
           }
           markSentDisabledReason={
             !editor.id ? "Save this draft first." : "This record has already been sent."

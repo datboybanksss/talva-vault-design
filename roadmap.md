@@ -64,3 +64,10 @@
 - [x] Audit every membership and verify analysis read permissions.
 - [x] Bring filing, preview, pending pills and AI switch onto shared tokens/controls.
 - [x] Run tests and verify light/dark layouts; report remaining click-through checks.
+
+## Separate lint clean-up — 20 October 2026
+- [x] Apply formatting-only pass without touching managed integration files.
+- [x] Triage remaining rules and fix behaviour-preserving cases.
+- [x] Make CI lint failures blocking.
+- [x] Run tests and inspect automatic validation; report approval-required lint debt.
+- [ ] Resolve remaining lint debt — awaiting approval for type refactors, draft hydration effects and mixed-export refactors; see LINT-TRIAGE.md.

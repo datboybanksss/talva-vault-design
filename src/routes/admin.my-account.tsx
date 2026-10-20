@@ -34,15 +34,13 @@ function MyAccountPage() {
 
   const logPwFn = useServerFn(logOwnPasswordChange);
 
-
   return (
     <div className="tvp-settings-tight">
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">My Account</h1>
           <div className="tvp-subtitle">
-            Your personal admin profile, email and password. Changes only affect
-            your own account.
+            Your personal admin profile, email and password. Changes only affect your own account.
           </div>
         </div>
       </div>
@@ -55,10 +53,7 @@ function MyAccountPage() {
             <ProfileCard me={me.data} />
           </div>
           <EmailCard me={me.data} />
-          <PasswordCard
-            email={me.data.email}
-            logPasswordChange={() => logPwFn()}
-          />
+          <PasswordCard email={me.data.email} logPasswordChange={() => logPwFn()} />
           <div className="tvp-account-full">
             <TwoFactorCard contextLabel="administrator" />
           </div>
@@ -164,11 +159,7 @@ function ProfileCard({ me }: { me: any }) {
         </div>
 
         <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-          <button
-            type="submit"
-            className="tvp-primary"
-            disabled={!dirty || save.isPending}
-          >
+          <button type="submit" className="tvp-primary" disabled={!dirty || save.isPending}>
             {save.isPending ? "Saving…" : "Save profile"}
           </button>
         </div>
@@ -234,8 +225,8 @@ function EmailCard({ me }: { me: any }) {
             autoComplete="email"
           />
           <div className="tv-auth-hint">
-            We'll send a confirmation link to the new address. Your current
-            email stays active until you click it.
+            We'll send a confirmation link to the new address. Your current email stays active until
+            you click it.
           </div>
         </div>
 
@@ -243,11 +234,7 @@ function EmailCard({ me }: { me: any }) {
         {info && <div className="tv-form-alert tv-form-alert-info">{info}</div>}
 
         <div style={{ marginTop: 10 }}>
-          <button
-            type="submit"
-            className="tvp-primary"
-            disabled={!dirty || busy}
-          >
+          <button type="submit" className="tvp-primary" disabled={!dirty || busy}>
             {busy ? "Sending…" : "Request email change"}
           </button>
         </div>

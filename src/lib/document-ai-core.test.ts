@@ -93,20 +93,28 @@ describe("document AI — 'ai' source rule", () => {
 
   it("refuses 'ai' without a completed analysis", () => {
     expect(checkAiSources({ ...base, analysis: null })).toMatch(/No completed AI analysis/);
-    expect(checkAiSources({ ...base, analysis: { status: "processing", suggestion: null } })).toMatch(/No completed/);
+    expect(
+      checkAiSources({ ...base, analysis: { status: "processing", suggestion: null } }),
+    ).toMatch(/No completed/);
   });
   it("refuses 'ai' when the value differs from what the analysis returned", () => {
     expect(checkAiSources({ ...base, destination: "f2", analysis: completed })).toMatch(/folder/);
-    expect(checkAiSources({ ...base, expiresAt: "2031-01-01T00:00:00.000Z", analysis: completed })).toMatch(/expiry/);
+    expect(
+      checkAiSources({ ...base, expiresAt: "2031-01-01T00:00:00.000Z", analysis: completed }),
+    ).toMatch(/expiry/);
   });
   it("refuses 'ai' when the switch is off", () => {
-    expect(checkAiSources({ ...base, aiEnabled: false, analysis: completed })).toMatch(/switched off/);
+    expect(checkAiSources({ ...base, aiEnabled: false, analysis: completed })).toMatch(
+      /switched off/,
+    );
   });
   it("accepts matching values from a completed analysis", () => {
     expect(checkAiSources({ ...base, analysis: completed })).toBeNull();
   });
   it("accepts 'user' and 'filename' sources without any analysis", () => {
-    expect(checkAiSources({ ...base, folderSource: "user", expirySource: "filename", analysis: null })).toBeNull();
+    expect(
+      checkAiSources({ ...base, folderSource: "user", expirySource: "filename", analysis: null }),
+    ).toBeNull();
   });
 });
 

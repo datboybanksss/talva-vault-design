@@ -1,29 +1,16 @@
-import {
-  useFolderCatalogue,
-  resolveSubfolders,
-  talentTypesFrom,
-} from "@/lib/folder-catalogue";
+import { useFolderCatalogue, resolveSubfolders, talentTypesFrom } from "@/lib/folder-catalogue";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  Send,
-  Sparkles,
-  Check,
-  Settings2,
-  ShieldCheck,
-  Lock,
-} from "lucide-react";
+import { ArrowLeft, Send, Check, Settings2, ShieldCheck, Lock } from "lucide-react";
 import {
   agencyWhoami,
   listAgencyTalent,
   listAgencyFolderSettings,
   createTalentInvitationMine,
 } from "@/lib/agency.functions";
-
 
 export const Route = createFileRoute("/agency/talent/invite")({
   head: () => ({ meta: [{ title: "Invite talent · TalVault" }] }),
@@ -154,7 +141,10 @@ function InviteTalent() {
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/agency/talent" className="tvp-link inline-flex items-center gap-1"><ArrowLeft className="h-4 w-4" />Back to talent</Link>
+          <Link to="/agency/talent" className="tvp-link inline-flex items-center gap-1">
+            <ArrowLeft className="h-4 w-4" />
+            Back to talent
+          </Link>
           <h1 className="tvp-h1 mt-2">Invite talent</h1>
           <div className="tvp-subtitle">Create a talent profile and send a secure invitation.</div>
         </div>
@@ -163,7 +153,10 @@ function InviteTalent() {
       <div className="tvp-card tvp-panel">
         <div className="tvp-stepper">
           {steps.map((s) => (
-            <div key={s.num} className={`tvp-step${step === s.num ? " tvp-active" : step > s.num ? " tvp-done" : ""}`}>
+            <div
+              key={s.num}
+              className={`tvp-step${step === s.num ? " tvp-active" : step > s.num ? " tvp-done" : ""}`}
+            >
               <div className="tvp-step-num">{s.num}</div>
               <div>
                 <div className="tvp-step-title">{s.title}</div>
@@ -201,7 +194,9 @@ function InviteTalent() {
                     <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
                       <option value="">Not specified</option>
                       {talentTypeOptions.map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -212,7 +207,9 @@ function InviteTalent() {
                       min={1}
                       max={60}
                       value={expiryDays}
-                      onChange={(e) => setExpiryDays(Math.max(1, Math.min(60, Number(e.target.value) || 14)))}
+                      onChange={(e) =>
+                        setExpiryDays(Math.max(1, Math.min(60, Number(e.target.value) || 14)))
+                      }
                     />
                   </div>
                 </div>
@@ -232,19 +229,38 @@ function InviteTalent() {
                 >
                   <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
                   <div className="tvp-small">
-                    Roster Shared Folder is visible to both you and the talent. It is separate
-                    from the talent's Private Vault, which only they can see.
+                    Roster Shared Folder is visible to both you and the talent. It is separate from
+                    the talent's Private Vault, which only they can see.
                   </div>
                 </div>
 
-                <div className="tvp-onboard-choice" style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 16 }}>
+                <div
+                  className="tvp-onboard-choice"
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    gridTemplateColumns: "1fr 1fr",
+                    marginTop: 16,
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => setFolderMode("standard")}
                     className={`tvp-rule-card ${folderMode === "standard" ? "tvp-active" : ""}`}
-                    style={{ textAlign: "left", flexDirection: "column", alignItems: "stretch", cursor: "pointer" }}
+                    style={{
+                      textAlign: "left",
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                      cursor: "pointer",
+                    }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
                       <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         <Check className="h-4 w-4" /> Use my standard set
                       </strong>
@@ -252,11 +268,14 @@ function InviteTalent() {
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                       {defaultFolders.map((f) => (
-                        <span key={f} className="tvp-badge">{f}</span>
+                        <span key={f} className="tvp-badge">
+                          {f}
+                        </span>
                       ))}
                     </div>
                     <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
-                      One click. The same {defaultFolders.length} folder{defaultFolders.length === 1 ? "" : "s"} you use across the roster.
+                      One click. The same {defaultFolders.length} folder
+                      {defaultFolders.length === 1 ? "" : "s"} you use across the roster.
                     </div>
                   </button>
 
@@ -264,7 +283,12 @@ function InviteTalent() {
                     type="button"
                     onClick={() => setFolderMode("custom")}
                     className={`tvp-rule-card ${folderMode === "custom" ? "tvp-active" : ""}`}
-                    style={{ textAlign: "left", flexDirection: "column", alignItems: "stretch", cursor: "pointer" }}
+                    style={{
+                      textAlign: "left",
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                      cursor: "pointer",
+                    }}
                   >
                     <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                       <Settings2 className="h-4 w-4" /> Customise for this talent
@@ -275,7 +299,10 @@ function InviteTalent() {
                   </button>
                 </div>
 
-                <div className="tvp-ai-box" style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <div
+                  className="tvp-ai-box"
+                  style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "flex-start" }}
+                >
                   <Lock className="h-4 w-4 mt-0.5 shrink-0" />
                   <div className="tvp-small">
                     The talent's Private Vault stays private — nothing you configure here grants
@@ -289,7 +316,11 @@ function InviteTalent() {
                       const on = customSelection.includes(f);
                       const rec = defaultFolders.includes(f);
                       return (
-                        <label key={f} className="tvp-rule-card" style={{ alignItems: "flex-start" }}>
+                        <label
+                          key={f}
+                          className="tvp-rule-card"
+                          style={{ alignItems: "flex-start" }}
+                        >
                           <span>
                             <input type="checkbox" checked={on} onChange={() => toggle(f)} /> {f}
                             {on && (
@@ -310,7 +341,11 @@ function InviteTalent() {
               </div>
             )}
             <div className="tvp-footer-actions">
-              {step > 1 && <button className="tvp-secondary" onClick={() => setStep(step - 1)}>Back</button>}
+              {step > 1 && (
+                <button className="tvp-secondary" onClick={() => setStep(step - 1)}>
+                  Back
+                </button>
+              )}
               {step < 2 ? (
                 <button
                   className="tvp-primary"

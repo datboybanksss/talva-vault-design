@@ -25,7 +25,15 @@ async function assertAdminCanEdit(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: view-only administrators cannot perform this action.");
 }
 
-async function audit(supabase: any, userId: string, email: string | undefined, action: string, id: string, label: string, detail: Record<string, unknown> = {}) {
+async function audit(
+  supabase: any,
+  userId: string,
+  email: string | undefined,
+  action: string,
+  id: string,
+  label: string,
+  detail: Record<string, unknown> = {},
+) {
   await supabase.from("admin_audit_log").insert({
     actor_id: userId,
     actor_email: email ?? null,
@@ -51,8 +59,15 @@ async function inviteUrlFor(token: string) {
 async function assertEmailFree(email: string, excludeId?: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const nowIso = new Date().toISOString();
-  const { data: prof } = await supabaseAdmin.from("profiles").select("id").ilike("email", email).maybeSingle();
-  if (prof?.id) throw new Error(`${email} already has a TalVault account. An agency can request to connect with existing talent.`);
+  const { data: prof } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+  if (prof?.id)
+    throw new Error(
+      `${email} already has a TalVault account. An agency can request to connect with existing talent.`,
+    );
   let q = supabaseAdmin
     .from("independent_talent_invitations")
     .select("id, status")
@@ -69,7 +84,9 @@ async function assertEmailFree(email: string, excludeId?: string) {
     .gt("expires_at", nowIso)
     .limit(1);
   if ((openInd ?? []).length || (openAg ?? []).length) {
-    throw new Error(`There is already an open invitation for ${email}. Revoke or delete it before inviting again.`);
+    throw new Error(
+      `There is already an open invitation for ${email}. Revoke or delete it before inviting again.`,
+    );
   }
 }
 
@@ -87,12 +104,15 @@ export const listIndependentTalentInvitations = createServerFn({ method: "GET" }
     const [{ data: rows }, { data: docs }] = await Promise.all([
       supabase
         .from("independent_talent_invitations")
-        .select("id, talent_name, email, talent_type, status, expires_at, created_at, accepted_at, last_sent_at, send_count, email_sent_at")
+        .select(
+          "id, talent_name, email, talent_type, status, expires_at, created_at, accepted_at, last_sent_at, send_count, email_sent_at",
+        )
         .order("created_at", { ascending: false }),
       supabase.from("talent_invitation_documents").select("invitation_id, doc_slot"),
     ]);
     const docCount = new Map<string, number>();
-    for (const d of docs ?? []) docCount.set(d.invitation_id, (docCount.get(d.invitation_id) ?? 0) + 1);
+    for (const d of docs ?? [])
+      docCount.set(d.invitation_id, (docCount.get(d.invitation_id) ?? 0) + 1);
     return (rows ?? []).map((r: any) => ({
       ...r,
       status: effectiveStatus(r),
@@ -156,7 +176,15 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error("We couldn't save the draft. Please try again.");
-    await audit(supabase, userId, claims?.email, "create_independent_talent_draft", inv.id, data.talent_name, { email: data.email });
+    await audit(
+      supabase,
+      userId,
+      claims?.email,
+      "create_independent_talent_draft",
+      inv.id,
+      data.talent_name,
+      { email: data.email },
+    );
     return { id: inv.id as string };
   });
 
@@ -183,8 +211,10 @@ export const updateIndependentTalentDraft = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (!inv) throw new Error("Invitation not found.");
-    if (inv.status !== "draft") throw new Error(`This invitation is already ${inv.status} and can no longer be edited.`);
-    if (data.email.toLowerCase() !== inv.email.toLowerCase()) await assertEmailFree(data.email, data.id);
+    if (inv.status !== "draft")
+      throw new Error(`This invitation is already ${inv.status} and can no longer be edited.`);
+    if (data.email.toLowerCase() !== inv.email.toLowerCase())
+      await assertEmailFree(data.email, data.id);
     const { error } = await supabase
       .from("independent_talent_invitations")
       .update({
@@ -195,7 +225,14 @@ export const updateIndependentTalentDraft = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error("We couldn't save the draft. Please try again.");
-    await audit(supabase, userId, claims?.email, "update_independent_talent_draft", data.id, data.talent_name);
+    await audit(
+      supabase,
+      userId,
+      claims?.email,
+      "update_independent_talent_draft",
+      data.id,
+      data.talent_name,
+    );
     return { ok: true };
   });
 
@@ -234,7 +271,11 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
 
     // The declared name/type/size come from the browser — verify the stored bytes.
     const { validateStoredUpload } = await import("@/lib/file-validation.server");
-    await validateStoredUpload({ bucket: BUCKET, path: data.storage_path, claimedMime: data.mime_type ?? null });
+    await validateStoredUpload({
+      bucket: BUCKET,
+      path: data.storage_path,
+      claimedMime: data.mime_type ?? null,
+    });
 
     const norm = (n: string) => n.trim().toLowerCase();
     const { data: existing } = await supabase
@@ -243,7 +284,9 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
       .eq("invitation_id", data.invitation_id);
     if ((existing ?? []).some((d: any) => norm(d.file_name) === norm(data.file_name))) {
       await removeOrphan();
-      throw new Error(`A document named "${data.file_name}" has already been uploaded for this invitation.`);
+      throw new Error(
+        `A document named "${data.file_name}" has already been uploaded for this invitation.`,
+      );
     }
     if ((existing ?? []).some((d: any) => d.doc_slot === data.doc_slot)) {
       await removeOrphan();
@@ -267,7 +310,15 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
       await removeOrphan();
       throw new Error("We couldn't attach that document. Please try again.");
     }
-    await audit(supabase, userId, claims?.email, "upload_independent_talent_doc", data.invitation_id, inv.talent_name, { slot: data.doc_slot });
+    await audit(
+      supabase,
+      userId,
+      claims?.email,
+      "upload_independent_talent_doc",
+      data.invitation_id,
+      inv.talent_name,
+      { slot: data.doc_slot },
+    );
     return { id: row.id as string };
   });
 
@@ -288,10 +339,19 @@ export const deleteIndependentTalentDocument = createServerFn({ method: "POST" }
       .select("status, talent_name")
       .eq("id", doc.invitation_id)
       .maybeSingle();
-    if (inv?.status !== "draft") throw new Error("Documents can only be changed while the invitation is a draft.");
+    if (inv?.status !== "draft")
+      throw new Error("Documents can only be changed while the invitation is a draft.");
     await supabase.storage.from(BUCKET).remove([doc.storage_path]);
     await supabase.from("talent_invitation_documents").delete().eq("id", data.id);
-    await audit(supabase, userId, claims?.email, "delete_independent_talent_doc", doc.invitation_id, inv?.talent_name ?? "", { slot: doc.doc_slot });
+    await audit(
+      supabase,
+      userId,
+      claims?.email,
+      "delete_independent_talent_doc",
+      doc.invitation_id,
+      inv?.talent_name ?? "",
+      { slot: doc.doc_slot },
+    );
     return { ok: true };
   });
 
@@ -307,14 +367,25 @@ export const getIndependentTalentDocumentUrl = createServerFn({ method: "POST" }
       .eq("id", data.id)
       .maybeSingle();
     if (!doc) throw new Error("Document not found.");
-    const { data: signed, error } = await supabase.storage.from(BUCKET).createSignedUrl(doc.storage_path, 60);
+    const { data: signed, error } = await supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(doc.storage_path, 60);
     if (error || !signed) throw new Error("We couldn't open that document.");
     return { url: signed.signedUrl as string };
   });
 
-async function sendInviteEmail(inv: { id: string; email: string; talent_name: string; token: string; expires_at: string }) {
-  const { buildInvitationEmail, DEFAULT_INDEPENDENT_TALENT_INVITATION_BODY, DEFAULT_INDEPENDENT_TALENT_INVITATION_SUBJECT } =
-    await import("@/lib/invitation-email");
+async function sendInviteEmail(inv: {
+  id: string;
+  email: string;
+  talent_name: string;
+  token: string;
+  expires_at: string;
+}) {
+  const {
+    buildInvitationEmail,
+    DEFAULT_INDEPENDENT_TALENT_INVITATION_BODY,
+    DEFAULT_INDEPENDENT_TALENT_INVITATION_SUBJECT,
+  } = await import("@/lib/invitation-email");
   const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
   const { fmtLongDate } = await import("@/lib/notice-email");
   const url = await inviteUrlFor(inv.token);
@@ -327,14 +398,22 @@ async function sendInviteEmail(inv: { id: string; email: string; talent_name: st
     inviteUrl: url,
     expiryDate: fmtLongDate(inv.expires_at),
   });
-  const result = await sendInvitationEmail(inv.email, mail, `independent-invite-${inv.id}-${Date.now()}`, "independent_talent_invitation");
+  const result = await sendInvitationEmail(
+    inv.email,
+    mail,
+    `independent-invite-${inv.id}-${Date.now()}`,
+    "independent_talent_invitation",
+  );
   return { url, result };
 }
 
 export const finalizeIndependentTalentInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    parseInput(z.object({ id: z.string().uuid(), expiry_days: z.number().int().min(1).max(60).default(14) }), d),
+    parseInput(
+      z.object({ id: z.string().uuid(), expiry_days: z.number().int().min(1).max(60).default(14) }),
+      d,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -354,33 +433,56 @@ export const finalizeIndependentTalentInvitation = createServerFn({ method: "POS
     const missing = INDEPENDENT_DOC_SLOTS.filter((s) => !have.has(s));
     if (missing.length) throw new Error("Attach the ID document and proof of talent to send.");
     if (inv.date_of_birth && ageOn(inv.date_of_birth) < MINIMUM_TALENT_AGE) {
-      throw new Error("TalVault is for adults (18 and over) at this stage, so this invitation can't be sent.");
+      throw new Error(
+        "TalVault is for adults (18 and over) at this stage, so this invitation can't be sent.",
+      );
     }
     await assertEmailFree(inv.email, inv.id);
 
     const expires_at = new Date(Date.now() + data.expiry_days * 86400000).toISOString();
     const { error } = await supabase
       .from("independent_talent_invitations")
-      .update({ status: "pending", expires_at, last_sent_at: new Date().toISOString(), send_count: (inv.send_count ?? 0) + 1 })
+      .update({
+        status: "pending",
+        expires_at,
+        last_sent_at: new Date().toISOString(),
+        send_count: (inv.send_count ?? 0) + 1,
+      })
       .eq("id", data.id);
     if (error) throw new Error("We couldn't send the invitation. Please try again.");
 
     const { url, result } = await sendInviteEmail({ ...inv, expires_at });
     if (result.sent) {
-      await supabase.from("independent_talent_invitations").update({ email_sent_at: new Date().toISOString() }).eq("id", data.id);
+      await supabase
+        .from("independent_talent_invitations")
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq("id", data.id);
     }
-    await audit(supabase, userId, claims?.email, "send_independent_talent_invitation", data.id, inv.talent_name, {
-      email: inv.email,
-      expires_at,
-      email_sent: result.sent,
-      reason: result.sent ? null : result.reason,
-    });
+    await audit(
+      supabase,
+      userId,
+      claims?.email,
+      "send_independent_talent_invitation",
+      data.id,
+      inv.talent_name,
+      {
+        email: inv.email,
+        expires_at,
+        email_sent: result.sent,
+        reason: result.sent ? null : result.reason,
+      },
+    );
     return { invite_url: url, email_sent: result.sent, reason: result.sent ? null : result.reason };
   });
 
 export const resendIndependentTalentInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid(), extend_days: z.number().int().min(1).max(60).default(14) }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({ id: z.string().uuid(), extend_days: z.number().int().min(1).max(60).default(14) }),
+      d,
+    ),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
@@ -400,13 +502,29 @@ export const resendIndependentTalentInvitation = createServerFn({ method: "POST"
     const expires_at = new Date(Date.now() + data.extend_days * 86400000).toISOString();
     await supabase
       .from("independent_talent_invitations")
-      .update({ expires_at, last_sent_at: new Date().toISOString(), send_count: (inv.send_count ?? 0) + 1, reminder_sent_at: null })
+      .update({
+        expires_at,
+        last_sent_at: new Date().toISOString(),
+        send_count: (inv.send_count ?? 0) + 1,
+        reminder_sent_at: null,
+      })
       .eq("id", data.id);
     const { url, result } = await sendInviteEmail({ ...inv, expires_at });
     if (result.sent) {
-      await supabase.from("independent_talent_invitations").update({ email_sent_at: new Date().toISOString() }).eq("id", data.id);
+      await supabase
+        .from("independent_talent_invitations")
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq("id", data.id);
     }
-    await audit(supabase, userId, claims?.email, "resend_independent_talent_invitation", data.id, inv.talent_name, { expires_at, email_sent: result.sent });
+    await audit(
+      supabase,
+      userId,
+      claims?.email,
+      "resend_independent_talent_invitation",
+      data.id,
+      inv.talent_name,
+      { expires_at, email_sent: result.sent },
+    );
     return { invite_url: url, email_sent: result.sent, reason: result.sent ? null : result.reason };
   });
 
@@ -422,11 +540,19 @@ export const revokeIndependentTalentInvitation = createServerFn({ method: "POST"
       .eq("id", data.id)
       .maybeSingle();
     if (!inv) throw new Error("Invitation not found.");
-    if (inv.status !== "pending") throw new Error(`Only a pending invitation can be revoked (this one is ${inv.status}).`);
-    await supabase.from("independent_talent_invitations").update({ status: "revoked" }).eq("id", data.id);
+    if (inv.status !== "pending")
+      throw new Error(`Only a pending invitation can be revoked (this one is ${inv.status}).`);
+    await supabase
+      .from("independent_talent_invitations")
+      .update({ status: "revoked" })
+      .eq("id", data.id);
     // Gap 1: the ID and proof-of-talent files are deleted on revoke.
-    const { purgeIndependentInviteDocuments } = await import("@/lib/independent-invite-purge.server");
-    await purgeIndependentInviteDocuments(data.id, "revoked", { id: userId, email: claims?.email ?? null });
+    const { purgeIndependentInviteDocuments } =
+      await import("@/lib/independent-invite-purge.server");
+    await purgeIndependentInviteDocuments(data.id, "revoked", {
+      id: userId,
+      email: claims?.email ?? null,
+    });
 
     // E3 (revoked). Best effort — the domain may still be unverified.
     const { buildNoticeEmail } = await import("@/lib/notice-email");
@@ -434,11 +560,27 @@ export const revokeIndependentTalentInvitation = createServerFn({ method: "POST"
     const mail = buildNoticeEmail({
       subject: "Your TalVault invitation is no longer active",
       heading: "This invitation has closed",
-      paragraphs: [`Hi ${inv.talent_name.split(" ")[0]},`, "The TalVault team has withdrawn this invitation. No account was created and no details were kept."],
+      paragraphs: [
+        `Hi ${inv.talent_name.split(" ")[0]},`,
+        "The TalVault team has withdrawn this invitation. No account was created and no details were kept.",
+      ],
       recipientEmail: inv.email,
     });
-    const result = await sendInvitationEmail(inv.email, mail, `independent-revoked-${inv.id}`, "invitation_notice");
-    await audit(supabase, userId, claims?.email, "revoke_independent_talent_invitation", data.id, inv.talent_name, { email_sent: result.sent });
+    const result = await sendInvitationEmail(
+      inv.email,
+      mail,
+      `independent-revoked-${inv.id}`,
+      "invitation_notice",
+    );
+    await audit(
+      supabase,
+      userId,
+      claims?.email,
+      "revoke_independent_talent_invitation",
+      data.id,
+      inv.talent_name,
+      { email_sent: result.sent },
+    );
     return { ok: true };
   });
 
@@ -464,6 +606,13 @@ export const deleteIndependentTalentDraft = createServerFn({ method: "POST" })
     const paths = (docs ?? []).map((d: any) => d.storage_path);
     if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
     await supabase.from("independent_talent_invitations").delete().eq("id", data.id);
-    await audit(supabase, userId, claims?.email, "delete_independent_talent_invitation", data.id, inv.talent_name);
+    await audit(
+      supabase,
+      userId,
+      claims?.email,
+      "delete_independent_talent_invitation",
+      data.id,
+      inv.talent_name,
+    );
     return { ok: true };
   });

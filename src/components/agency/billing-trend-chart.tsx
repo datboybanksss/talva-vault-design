@@ -1,4 +1,13 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { fmtMoney } from "@/lib/billing";
 
 type TrendPoint = { label: string; invoicedCents: number; receivedCents: number };
@@ -19,7 +28,12 @@ export default function BillingTrendChart({
       <ResponsiveContainer>
         <BarChart data={trend} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--tvp-line)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--tvp-muted)" }} tickLine={false} axisLine={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 11, fill: "var(--tvp-muted)" }}
+            tickLine={false}
+            axisLine={false}
+          />
           <YAxis
             tick={{ fontSize: 11, fill: "var(--tvp-muted)" }}
             tickLine={false}
@@ -37,8 +51,18 @@ export default function BillingTrendChart({
             }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="invoicedCents" name="Invoiced" fill="var(--teal-700, #0f766e)" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="receivedCents" name="Received" fill="var(--teal-300, #5eead4)" radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="invoicedCents"
+            name="Invoiced"
+            fill="var(--teal-700, #0f766e)"
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            dataKey="receivedCents"
+            name="Received"
+            fill="var(--teal-300, #5eead4)"
+            radius={[4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

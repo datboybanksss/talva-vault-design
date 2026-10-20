@@ -5,13 +5,7 @@ import { useMemo } from "react";
  * as light Markdown (## headings, - bullets, blank-line paragraphs, **bold**).
  * Deliberately dependency-free so it can render on the public invite pages.
  */
-export function LegalDocumentView({
-  body,
-  maxHeight = 260,
-}: {
-  body: string;
-  maxHeight?: number;
-}) {
+export function LegalDocumentView({ body, maxHeight = 260 }: { body: string; maxHeight?: number }) {
   const blocks = useMemo(() => parseBlocks(body), [body]);
 
   return (
@@ -47,11 +41,15 @@ export function LegalDocumentView({
         ) : b.kind === "list" ? (
           <ul key={i} style={{ margin: "0 0 8px", paddingLeft: 18, listStyle: "disc" }}>
             {b.items.map((it, j) => (
-              <li key={j} style={{ marginBottom: 3 }}>{inline(it)}</li>
+              <li key={j} style={{ marginBottom: 3 }}>
+                {inline(it)}
+              </li>
             ))}
           </ul>
         ) : (
-          <p key={i} style={{ margin: "0 0 8px" }}>{inline(b.text)}</p>
+          <p key={i} style={{ margin: "0 0 8px" }}>
+            {inline(b.text)}
+          </p>
         ),
       )}
     </div>
@@ -75,7 +73,10 @@ function parseBlocks(body: string): Block[] {
 
   for (const raw of (body ?? "").split("\n")) {
     const line = raw.trim();
-    if (!line) { flush(); continue; }
+    if (!line) {
+      flush();
+      continue;
+    }
     if (/^#{1,6}\s+/.test(line)) {
       flush();
       out.push({ kind: "heading", text: line.replace(/^#{1,6}\s+/, "") });
@@ -98,7 +99,9 @@ function inline(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
   return parts.map((p, i) =>
     p.startsWith("**") && p.endsWith("**") ? (
-      <strong key={i} style={{ color: "var(--fg)" }}>{p.slice(2, -2)}</strong>
+      <strong key={i} style={{ color: "var(--fg)" }}>
+        {p.slice(2, -2)}
+      </strong>
     ) : (
       <span key={i}>{p}</span>
     ),

@@ -26,7 +26,9 @@ export function useHideWriteControls(root: RefObject<HTMLElement | null>, readOn
     const el = root.current;
     if (!el) return;
     const sweep = () => {
-      el.querySelectorAll<HTMLElement>("button, a[role='button'], a.tvp-btn, a[class*='btn']").forEach((b) => {
+      el.querySelectorAll<HTMLElement>(
+        "button, a[role='button'], a.tvp-btn, a[class*='btn']",
+      ).forEach((b) => {
         if (b.closest("[data-read-only-safe]")) return;
         const label = b.getAttribute("aria-label") || b.getAttribute("title") || b.textContent;
         const hide = readOnly && isWriteLabel(label);

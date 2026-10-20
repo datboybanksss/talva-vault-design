@@ -19,7 +19,8 @@ export const Route = createFileRoute("/talent/notifications")({
       { title: "All reminders · TalVault Talent" },
       {
         name: "description",
-        content: "Every reminder TalVault has raised for you — expiring documents, shared access and new sign-ins.",
+        content:
+          "Every reminder TalVault has raised for you — expiring documents, shared access and new sign-ins.",
       },
     ],
   }),
@@ -86,8 +87,8 @@ function NotificationsPage() {
         <div>
           <h1 className="tvp-h1">All reminders</h1>
           <div className="tvp-subtitle">
-            Everything TalVault has flagged for you — expiring documents, shared access and new sign-ins.
-            Clearing the bell marks a reminder as read; nothing is removed from this list.
+            Everything TalVault has flagged for you — expiring documents, shared access and new
+            sign-ins. Clearing the bell marks a reminder as read; nothing is removed from this list.
           </div>
         </div>
         <div className="tvp-actions">
@@ -129,7 +130,11 @@ function NotificationsPage() {
             </thead>
             <tbody>
               {q.isPending && (
-                <tr><td colSpan={6} className="tvp-muted">Loading reminders…</td></tr>
+                <tr>
+                  <td colSpan={6} className="tvp-muted">
+                    Loading reminders…
+                  </td>
+                </tr>
               )}
               {!q.isPending && rows.length === 0 && (
                 <tr>
@@ -145,7 +150,10 @@ function NotificationsPage() {
                   <td>
                     <strong>{n.title}</strong>
                     {n.detail && (
-                      <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2, fontWeight: 400 }}>
+                      <div
+                        className="tvp-muted"
+                        style={{ fontSize: 12, marginTop: 2, fontWeight: 400 }}
+                      >
                         {n.detail}
                       </div>
                     )}
@@ -154,17 +162,27 @@ function NotificationsPage() {
                   <td className="tvp-muted">
                     {n.due_at ? (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <Clock className="h-3 w-3" /> {new Date(n.due_at).toLocaleDateString("en-GB")}
+                        <Clock className="h-3 w-3" />{" "}
+                        {new Date(n.due_at).toLocaleDateString("en-GB")}
                       </span>
                     ) : (
                       "—"
                     )}
                   </td>
-                  <td className="tvp-muted" title={n.email_sent_at ? "Emailed to you" : "Not emailed"}>
-                    {n.email_sent_at ? <Mail className="h-3.5 w-3.5" /> : <MailX className="h-3.5 w-3.5" />}
+                  <td
+                    className="tvp-muted"
+                    title={n.email_sent_at ? "Emailed to you" : "Not emailed"}
+                  >
+                    {n.email_sent_at ? (
+                      <Mail className="h-3.5 w-3.5" />
+                    ) : (
+                      <MailX className="h-3.5 w-3.5" />
+                    )}
                   </td>
                   <td>
-                    <span className={`tvp-status tvp-${n.read_at ? "neutral" : (n.tone === "purple" ? "purple" : "amber")}`}>
+                    <span
+                      className={`tvp-status tvp-${n.read_at ? "neutral" : n.tone === "purple" ? "purple" : "amber"}`}
+                    >
                       {n.read_at ? "Read" : "Unread"}
                     </span>
                   </td>
@@ -175,7 +193,11 @@ function NotificationsPage() {
                       title={n.read_at ? "Mark as unread" : "Mark as read"}
                       aria-label={n.read_at ? "Mark as unread" : "Mark as read"}
                     >
-                      {n.read_at ? <Bell className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                      {n.read_at ? (
+                        <Bell className="h-3.5 w-3.5" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
                     </button>
                   </td>
                 </tr>

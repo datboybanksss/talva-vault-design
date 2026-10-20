@@ -47,8 +47,8 @@ export function SuspendAgencyDialog({
           </button>
         </div>
         <p className="tvp-muted" style={{ fontSize: 12 }}>
-          Suspending <strong>{agencyName}</strong> blocks active actions but preserves
-          read-only access and export. The reason is recorded in the audit log.
+          Suspending <strong>{agencyName}</strong> blocks active actions but preserves read-only
+          access and export. The reason is recorded in the audit log.
         </p>
         <div className="tvp-form-group">
           <label>Reason (minimum 3 characters)</label>

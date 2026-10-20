@@ -3,7 +3,7 @@ import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import { ShieldCheck } from "lucide-react";
+import "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/password-input";
 import {
@@ -91,8 +91,7 @@ function ResetPasswordPage() {
     setError(null);
     const v = validateNewPassword(password);
     if (v) return setError(v);
-    if (password !== confirm)
-      return setError("New password and confirmation do not match.");
+    if (password !== confirm) return setError("New password and confirmation do not match.");
 
     setBusy(true);
     try {
@@ -122,8 +121,8 @@ function ResetPasswordPage() {
         <div className="tv-auth-eyebrow">Account recovery</div>
         <h1 className="tv-auth-title">Set a new password</h1>
         <p className="tv-auth-tag">
-          Choose a strong password you don&apos;t use anywhere else. You&apos;ll be
-          returned to the {portal} sign-in page afterwards.
+          Choose a strong password you don&apos;t use anywhere else. You&apos;ll be returned to the{" "}
+          {portal} sign-in page afterwards.
         </p>
 
         {!ready ? (
@@ -136,11 +135,7 @@ function ResetPasswordPage() {
               This reset link is invalid or has expired. Request a new one to continue.
             </div>
             <div className="tv-auth-switch">
-              <Link
-                to="/forgot-password"
-                search={{ next }}
-                className="tv-auth-link"
-              >
+              <Link to="/forgot-password" search={{ next }} className="tv-auth-link">
                 Request a new reset link
               </Link>
             </div>
@@ -170,9 +165,7 @@ function ResetPasswordPage() {
                     <li className={req.lower ? "ok" : ""}>
                       {req.lower ? "✓" : "•"} A lowercase letter
                     </li>
-                    <li className={req.number ? "ok" : ""}>
-                      {req.number ? "✓" : "•"} A number
-                    </li>
+                    <li className={req.number ? "ok" : ""}>{req.number ? "✓" : "•"} A number</li>
                     <li className={req.special ? "ok" : ""}>
                       {req.special ? "✓" : "•"} A special character
                     </li>

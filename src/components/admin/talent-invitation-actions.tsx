@@ -52,7 +52,12 @@ export function useTalentInvitationActions() {
     }
   };
 
-  return (row: { id: string; status: string; stored_status?: string | null; talent_name: string }): RowAction[] => {
+  return (row: {
+    id: string;
+    status: string;
+    stored_status?: string | null;
+    talent_name: string;
+  }): RowAction[] => {
     const allowed = invitationActions({
       status: row.status,
       storedStatus: row.stored_status,
@@ -103,7 +108,11 @@ export function useTalentInvitationActions() {
         separatorBefore: true,
         title: "Also deletes the ID document and proof of talent",
         onSelect: () => {
-          if (confirm(`Revoke the invitation to ${row.talent_name}? Their ID document and proof of talent will be deleted.`)) {
+          if (
+            confirm(
+              `Revoke the invitation to ${row.talent_name}? Their ID document and proof of talent will be deleted.`,
+            )
+          ) {
             revokeM.mutate(row.id);
           }
         },

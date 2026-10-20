@@ -2,7 +2,24 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { agencyActions, invitationActions } from "@/lib/status-actions";
-import { Download, Plus, Lock, Ban, RotateCcw, Building2, CheckCircle2, Mail, Ban as BanIcon, Link2, RefreshCw, Pencil, X, Trash2, FileEdit, Send } from "lucide-react";
+import {
+  Download,
+  Plus,
+  Lock,
+  Ban,
+  RotateCcw,
+  Building2,
+  CheckCircle2,
+  Mail,
+  Ban as BanIcon,
+  Link2,
+  RefreshCw,
+  Pencil,
+  X,
+  Trash2,
+  FileEdit,
+  Send,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -52,8 +69,7 @@ function AgenciesPage() {
   });
 
   const suspendM = useMutation({
-    mutationFn: (v: { id: string; reason: string }) =>
-      suspendFn({ data: v }),
+    mutationFn: (v: { id: string; reason: string }) => suspendFn({ data: v }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Agency suspended and logged.");
@@ -103,16 +119,18 @@ function AgenciesPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
   });
-  const [pendingDelete, setPendingDelete] = useState<{ inviteId: string; agencyName: string; email: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    inviteId: string;
+    agencyName: string;
+    email: string;
+  } | null>(null);
   const deleteM = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: (res: any) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       setPendingDelete(null);
       toast.success(
-        res?.agency_deleted
-          ? "Invitation and agency shell deleted."
-          : "Invitation deleted.",
+        res?.agency_deleted ? "Invitation and agency shell deleted." : "Invitation deleted.",
       );
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
@@ -121,7 +139,11 @@ function AgenciesPage() {
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [suspendTarget, setSuspendTarget] = useState<{ id: string; name: string } | null>(null);
-  const [editingInvite, setEditingInvite] = useState<{ id: string; email: string; agencyName: string } | null>(null);
+  const [editingInvite, setEditingInvite] = useState<{
+    id: string;
+    email: string;
+    agencyName: string;
+  } | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
 
   const list = useMemo(() => agencies.data ?? [], [agencies.data]);
@@ -139,14 +161,27 @@ function AgenciesPage() {
   const counts = useMemo(() => {
     const c: Record<string, number> = {
       all: list.length,
-      incomplete: 0, invited: 0, accepted: 0, expired: 0, declined: 0, suspended: 0,
+      incomplete: 0,
+      invited: 0,
+      accepted: 0,
+      expired: 0,
+      declined: 0,
+      suspended: 0,
     };
     for (const a of list) c[a.status] = (c[a.status] ?? 0) + 1;
     return c;
   }, [list]);
 
   const exportCsv = () => {
-    const headers = ["Agency", "Status", "Contact person", "Contact email", "Country", "Talent", "Created"];
+    const headers = [
+      "Agency",
+      "Status",
+      "Contact person",
+      "Contact email",
+      "Country",
+      "Talent",
+      "Created",
+    ];
     const rows = filteredRows.map((a: any) => [
       a.name,
       statusLabel("agency", a.status),
@@ -187,7 +222,10 @@ function AgenciesPage() {
   };
 
   const filtersActive = tab !== "all" || !!search;
-  const resetFilters = () => { setTab("all"); setSearch(""); };
+  const resetFilters = () => {
+    setTab("all");
+    setSearch("");
+  };
 
   const totalCount = counts.all ?? 0;
   const acceptedCount = counts.accepted ?? 0;
@@ -203,64 +241,74 @@ function AgenciesPage() {
         </div>
         <div className="tvp-actions" data-tour="admin-agency-actions">
           <button className="tvp-secondary" onClick={exportCsv}>
-            <Download className="h-4 w-4" />Export
+            <Download className="h-4 w-4" />
+            Export
           </button>
           <Link to="/admin/invitations/new" className="tvp-primary">
-            <Plus className="h-4 w-4" />Invite Agency
+            <Plus className="h-4 w-4" />
+            Invite Agency
           </Link>
         </div>
       </div>
 
       {/* KPI row */}
       <div className="tvp-grid tvp-kpi-grid">
-        <button
-          className="tvp-card tvp-kpi tvp-clickable"
-          onClick={() => setTab("all")}
-        >
-          <div className="tvp-kpi-icon tvp-bg-teal"><Building2 className="h-5 w-5" /></div>
+        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("all")}>
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <Building2 className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{totalCount}</div>
             <div className="tvp-kpi-label">Total Agencies</div>
-            <div className="tvp-kpi-sub" style={{ color: totalCount > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: totalCount > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+            >
               {totalCount > 0 ? "Across all statuses" : "None yet"}
             </div>
           </div>
         </button>
-        <button
-          className="tvp-card tvp-kpi tvp-clickable"
-          onClick={() => setTab("accepted")}
-        >
-          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
+        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("accepted")}>
+          <div className="tvp-kpi-icon tvp-bg-green">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{acceptedCount}</div>
             <div className="tvp-kpi-label">Accepted</div>
-            <div className="tvp-kpi-sub" style={{ color: acceptedCount > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: acceptedCount > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+            >
               {acceptedCount > 0 ? "Active workspaces" : "No active accounts"}
             </div>
           </div>
         </button>
-        <button
-          className="tvp-card tvp-kpi tvp-clickable"
-          onClick={() => setTab("invited")}
-        >
-          <div className="tvp-kpi-icon tvp-bg-amber"><Mail className="h-5 w-5" /></div>
+        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("invited")}>
+          <div className="tvp-kpi-icon tvp-bg-amber">
+            <Mail className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{invitedCount}</div>
             <div className="tvp-kpi-label">Invited</div>
-            <div className="tvp-kpi-sub tvp-warn" style={{ color: invitedCount > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub tvp-warn"
+              style={{ color: invitedCount > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}
+            >
               {invitedCount > 0 ? "Awaiting acceptance" : "No outstanding invites"}
             </div>
           </div>
         </button>
-        <button
-          className="tvp-card tvp-kpi tvp-clickable"
-          onClick={() => setTab("suspended")}
-        >
-          <div className="tvp-kpi-icon tvp-bg-red"><BanIcon className="h-5 w-5" /></div>
+        <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("suspended")}>
+          <div className="tvp-kpi-icon tvp-bg-red">
+            <BanIcon className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{suspendedCount}</div>
             <div className="tvp-kpi-label">Suspended</div>
-            <div className="tvp-kpi-sub" style={{ color: suspendedCount > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: suspendedCount > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}
+            >
               {suspendedCount > 0 ? "Read-only / export only" : "None suspended"}
             </div>
           </div>
@@ -269,16 +317,18 @@ function AgenciesPage() {
 
       {/* Life chip row */}
       <div className="tvp-life-chips">
-        {(["all", "accepted", "invited", "incomplete", "suspended", "expired"] as const).map((k) => (
-          <button
-            key={k}
-            className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} ${k === "all" ? "tvp-bg-teal" : `tvp-bg-st-${statusToken("agency", k)}`}`}
-            onClick={() => setTab(k)}
-          >
-            <div className="tvp-label">{k === "all" ? "All" : statusLabel("agency", k)}</div>
-            <div className="tvp-num">{counts[k] ?? 0}</div>
-          </button>
-        ))}
+        {(["all", "accepted", "invited", "incomplete", "suspended", "expired"] as const).map(
+          (k) => (
+            <button
+              key={k}
+              className={`tvp-life-chip${tab === k ? " tvp-active-filter" : ""} ${k === "all" ? "tvp-bg-teal" : `tvp-bg-st-${statusToken("agency", k)}`}`}
+              onClick={() => setTab(k)}
+            >
+              <div className="tvp-label">{k === "all" ? "All" : statusLabel("agency", k)}</div>
+              <div className="tvp-num">{counts[k] ?? 0}</div>
+            </button>
+          ),
+        )}
       </div>
 
       <div className="tvp-card">
@@ -290,30 +340,49 @@ function AgenciesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
           {filtersActive && (
-            <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
+            <button className="tvp-link" onClick={resetFilters}>
+              Reset filters
+            </button>
           )}
         </div>
         <div className="tvp-table-wrap">
           <table className="tvp-table" data-tour="admin-agency-table">
             <thead>
               <tr>
-                <th>Agency</th><th>Status</th><th>Contact</th><th>Country</th><th>Talent</th><th>Created</th><th></th>
+                <th>Agency</th>
+                <th>Status</th>
+                <th>Contact</th>
+                <th>Country</th>
+                <th>Talent</th>
+                <th>Created</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {agencies.isLoading && (
-                <tr><td colSpan={7} className="tvp-muted">Loading agencies…</td></tr>
+                <tr>
+                  <td colSpan={7} className="tvp-muted">
+                    Loading agencies…
+                  </td>
+                </tr>
               )}
               {!agencies.isLoading && visible.length === 0 && (
-                <tr><td colSpan={7} className="tvp-muted">
-                  No agencies here yet — the first one starts with an invitation. <Link to="/admin/invitations/new" className="tvp-link">Invite an agency →</Link>
-                </td></tr>
+                <tr>
+                  <td colSpan={7} className="tvp-muted">
+                    No agencies here yet — the first one starts with an invitation.{" "}
+                    <Link to="/admin/invitations/new" className="tvp-link">
+                      Invite an agency →
+                    </Link>
+                  </td>
+                </tr>
               )}
               {visible.map((a: any) => {
                 const invitation = a.invitation;
                 const inviteEmail = invitation?.email ?? a.contact_email;
-                const isDraftInvite = a.status === "invited" && !!invitation && invitation.status === "draft";
-                const isSentInvite = a.status === "invited" && !!invitation && invitation.status !== "draft";
+                const isDraftInvite =
+                  a.status === "invited" && !!invitation && invitation.status === "draft";
+                const isSentInvite =
+                  a.status === "invited" && !!invitation && invitation.status !== "draft";
                 const invAllowed = invitation
                   ? invitationActions({
                       status: effectiveInvitationStatus(invitation.status, invitation.expires_at),
@@ -345,7 +414,13 @@ function AgenciesPage() {
                         <span
                           className="tvp-muted"
                           title="Active actions blocked, read-only / export preserved"
-                          style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, fontSize: 11 }}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            marginLeft: 6,
+                            fontSize: 11,
+                          }}
                         >
                           <Lock className="h-3 w-3" /> read-only
                         </span>
@@ -356,11 +431,20 @@ function AgenciesPage() {
                     <td>{a.talent_count}</td>
                     <td>
                       {new Date(a.created_at).toLocaleDateString("en-GB", {
-                        day: "numeric", month: "short", year: "numeric",
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
                       })}
                     </td>
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          justifyContent: "flex-end",
+                        }}
+                      >
                         {a.status === "invited" && !invitation && inviteEmail && (
                           <Link
                             to="/admin/invitations"
@@ -375,55 +459,83 @@ function AgenciesPage() {
                         <RowActionsMenu
                           actions={[
                             isDraftInvite && {
-                              key: "continue", label: "Continue draft", icon: FileEdit,
+                              key: "continue",
+                              label: "Continue draft",
+                              icon: FileEdit,
                               onSelect: () =>
-                                nav({ to: "/admin/invitations/new", search: { draft: invitation!.id } as any }),
+                                nav({
+                                  to: "/admin/invitations/new",
+                                  search: { draft: invitation!.id } as any,
+                                }),
                             },
                             isSentInvite && {
-                              key: "preview", label: "Preview branded email", icon: Mail,
+                              key: "preview",
+                              label: "Preview branded email",
+                              icon: Mail,
                               to: "/admin/invitations/$id/email-preview",
                               params: { id: invitation?.id ?? "" },
                             },
                             inviteOpen && {
-                              key: "copy", label: "Copy invite link", icon: Link2,
+                              key: "copy",
+                              label: "Copy invite link",
+                              icon: Link2,
                               title: "Copying does not extend expiry",
                               onSelect: () => copyInviteLink(invitation!),
                             },
                             inviteOpen && {
-                              key: "edit", label: "Correct invite email", icon: Pencil,
+                              key: "edit",
+                              label: "Correct invite email",
+                              icon: Pencil,
                               onSelect: () => {
-                                setEditingInvite({ id: invitation!.id, email: invitation!.email, agencyName: a.name });
+                                setEditingInvite({
+                                  id: invitation!.id,
+                                  email: invitation!.email,
+                                  agencyName: a.name,
+                                });
                                 setEmailDraft(invitation!.email);
                               },
                             },
                             inviteOpen && {
-                              key: "resend", label: "Resend invite", icon: RefreshCw,
+                              key: "resend",
+                              label: "Resend invite",
+                              icon: RefreshCw,
                               title: "Refreshes the expiry date",
                               onSelect: () => resendM.mutate(invitation!.id),
                             },
-                            isSentInvite && invAllowed.includes("reinvite") && {
-                              key: "reinvite", label: "Reinvite", icon: Send,
-                              onSelect: () =>
-                                invitation!.status === "pending"
-                                  ? resendM.mutate(invitation!.id)
-                                  : nav({ to: "/admin/invitations/new" }),
-                            },
+                            isSentInvite &&
+                              invAllowed.includes("reinvite") && {
+                                key: "reinvite",
+                                label: "Reinvite",
+                                icon: Send,
+                                onSelect: () =>
+                                  invitation!.status === "pending"
+                                    ? resendM.mutate(invitation!.id)
+                                    : nav({ to: "/admin/invitations/new" }),
+                              },
                             agencyAllowed.includes("reinstate")
                               ? {
-                                  key: "reinstate", label: "Reinstate agency", icon: RotateCcw,
+                                  key: "reinstate",
+                                  label: "Reinstate agency",
+                                  icon: RotateCcw,
                                   separatorBefore: true,
                                   onSelect: () => unsuspendM.mutate(a.id),
                                 }
                               : {
-                                  key: "suspend", label: "Suspend agency", icon: Ban,
-                                  destructive: true, separatorBefore: true,
+                                  key: "suspend",
+                                  label: "Suspend agency",
+                                  icon: Ban,
+                                  destructive: true,
+                                  separatorBefore: true,
                                   onSelect: () => doSuspend(a.id, a.name),
                                 },
                             inviteOpen && {
-                              key: "revoke", label: "Revoke invitation", icon: Ban,
+                              key: "revoke",
+                              label: "Revoke invitation",
+                              icon: Ban,
                               destructive: true,
                               onSelect: () => {
-                                if (confirm(`Revoke invitation to ${a.name}?`)) revokeM.mutate(invitation!.id);
+                                if (confirm(`Revoke invitation to ${a.name}?`))
+                                  revokeM.mutate(invitation!.id);
                               },
                             },
                             (isDraftInvite || isSentInvite) && {
@@ -481,8 +593,13 @@ function AgenciesPage() {
           aria-modal="true"
           onClick={() => setEditingInvite(null)}
           style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
           }}
         >
           <div
@@ -514,7 +631,9 @@ function AgenciesPage() {
               <button
                 className="tvp-primary"
                 onClick={() => updateEmailM.mutate({ id: editingInvite.id, email: emailDraft })}
-                disabled={!emailDraft || emailDraft === editingInvite.email || updateEmailM.isPending}
+                disabled={
+                  !emailDraft || emailDraft === editingInvite.email || updateEmailM.isPending
+                }
               >
                 Save & log
               </button>
@@ -529,8 +648,13 @@ function AgenciesPage() {
           aria-modal="true"
           onClick={() => setPendingDelete(null)}
           style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
           }}
         >
           <div
@@ -551,7 +675,8 @@ function AgenciesPage() {
               agency record too. This cannot be undone.
             </p>
             <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
-              Prefer <strong>Revoke</strong> if you need to keep an audit trail of a cancelled invite.
+              Prefer <strong>Revoke</strong> if you need to keep an audit trail of a cancelled
+              invite.
             </p>
             <div className="tvp-footer-actions">
               <button className="tvp-secondary" onClick={() => setPendingDelete(null)}>

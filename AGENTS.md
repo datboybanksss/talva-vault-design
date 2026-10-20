@@ -36,3 +36,5 @@ block plus a toggle. See the note at the top of `src/styles.css`.
 - Document preview and filing use DocumentModal with Radix focus containment and portal-independent tvp tokens. Why: modal accessibility and light/dark styles must survive portalling outside the shell.
 - Every AI preference surface uses syncAiFilingPreference for cache transitions. Why: the popup, Settings and pending-row actions must agree and discard old suggestions.
 - Reminder date eligibility and wording use document-reminder-core. Why: explicit reminders, expiry windows and ended-link exclusions need testable shared rules.
+
+- CI lint is blocking and excludes only managed/generated integration output; unresolved authored-code findings stay enabled. Why: do not hide lint debt or rewrite regenerated files.

@@ -1,6 +1,6 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ShieldCheck, ScrollText, FileText, Bell, Check, ArrowLeft, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +29,10 @@ export const Route = createFileRoute("/invite/admin/$token")({
   head: () => ({
     meta: [
       { title: "Activate your Administrator account · TalVault" },
-      { name: "description", content: "Accept your TalVault administrator invitation and set up your account." },
+      {
+        name: "description",
+        content: "Accept your TalVault administrator invitation and set up your account.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -55,9 +58,15 @@ function AdminInvitePage() {
           {inviteQ.isLoading ? (
             <div className="tv-auth-tag">Loading your invitation…</div>
           ) : !inviteQ.data ? (
-            <TerminalError title="Something went wrong" body="We couldn't load this invitation. Please try again or contact the Main Administrator." />
+            <TerminalError
+              title="Something went wrong"
+              body="We couldn't load this invitation. Please try again or contact the Main Administrator."
+            />
           ) : inviteQ.data.ok === false ? (
-            <TerminalError title={terminalTitle(inviteQ.data.reason)} body={terminalBody(inviteQ.data.reason)} />
+            <TerminalError
+              title={terminalTitle(inviteQ.data.reason)}
+              body={terminalBody(inviteQ.data.reason)}
+            />
           ) : (
             <InviteBody invite={inviteQ.data} token={token} onDone={() => nav({ to: "/admin" })} />
           )}
@@ -99,25 +108,34 @@ function InviteBody({
   return <Wizard invite={invite} token={token} onDone={onDone} />;
 }
 
-
 type Reason = Exclude<ResolvedAdminInvitation, { ok: true }>["reason"];
 
 function terminalTitle(reason: Reason): string {
   switch (reason) {
-    case "expired": return "This invitation has expired";
-    case "accepted": return "Invitation already accepted";
-    case "revoked": return "Invitation revoked";
-    case "throttled": return "Too many attempts";
-    default: return "Invitation not found";
+    case "expired":
+      return "This invitation has expired";
+    case "accepted":
+      return "Invitation already accepted";
+    case "revoked":
+      return "Invitation revoked";
+    case "throttled":
+      return "Too many attempts";
+    default:
+      return "Invitation not found";
   }
 }
 function terminalBody(reason: Reason): string {
   switch (reason) {
-    case "expired": return "Contact the Main Administrator to receive a fresh invitation link.";
-    case "accepted": return "This invitation has already been used. Sign in to your account instead.";
-    case "revoked": return "This invitation has been withdrawn. Contact the Main Administrator for a new one.";
-    case "throttled": return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact the Main Administrator.";
-    default: return "The link you followed doesn't match any active invitation. Double-check the URL or contact the Main Administrator.";
+    case "expired":
+      return "Contact the Main Administrator to receive a fresh invitation link.";
+    case "accepted":
+      return "This invitation has already been used. Sign in to your account instead.";
+    case "revoked":
+      return "This invitation has been withdrawn. Contact the Main Administrator for a new one.";
+    case "throttled":
+      return "We've paused this link for a few minutes after too many attempts. Please wait and try again, or contact the Main Administrator.";
+    default:
+      return "The link you followed doesn't match any active invitation. Double-check the URL or contact the Main Administrator.";
   }
 }
 
@@ -128,7 +146,9 @@ function TerminalError({ title, body }: { title: string; body: string }) {
       <h2 className="tv-auth-title">{title}</h2>
       <p className="tv-auth-tag">{body}</p>
       <div className="tv-auth-back" style={{ marginTop: 24 }}>
-        <Link to="/auth" className="tv-auth-link">Go to sign in →</Link>
+        <Link to="/auth" className="tv-auth-link">
+          Go to sign in →
+        </Link>
       </div>
     </>
   );
@@ -200,23 +220,37 @@ function Wizard({
     }
     if (step === 3) {
       const v = validateNewPassword(password);
-      if (v) { setError(v); return; }
-      if (password !== confirmPw) { setError("Passwords do not match."); return; }
+      if (v) {
+        setError(v);
+        return;
+      }
+      if (password !== confirmPw) {
+        setError("Passwords do not match.");
+        return;
+      }
     }
     setStep((s) => (s < 4 ? ((s + 1) as StepKey) : s));
   };
-  const goBack = () => { setError(null); setStep((s) => (s > 1 ? ((s - 1) as StepKey) : s)); };
+  const goBack = () => {
+    setError(null);
+    setStep((s) => (s > 1 ? ((s - 1) as StepKey) : s));
+  };
 
   const submit = () => {
     setError(null);
-    if (!terms) { setError("You must accept the Terms & Conditions to continue."); return; }
+    if (!terms) {
+      setError("You must accept the Terms & Conditions to continue.");
+      return;
+    }
     activate.mutate();
   };
 
   return (
     <>
       <ProgressBar step={step} />
-      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>Administrator Activation · Step {step} of 4</div>
+      <div className="tv-auth-eyebrow" style={{ marginTop: 4 }}>
+        Administrator Activation · Step {step} of 4
+      </div>
 
       {step === 1 && <Step1 invite={invite} onContinue={goNext} />}
       {step === 2 && (
@@ -279,14 +313,21 @@ function ProgressBar({ step }: { step: number }) {
 /* ------------------------------- Steps ------------------------------------ */
 
 function Step1({
-  invite, onContinue,
-}: { invite: Extract<ResolvedAdminInvitation, { ok: true }>; onContinue: () => void }) {
+  invite,
+  onContinue,
+}: {
+  invite: Extract<ResolvedAdminInvitation, { ok: true }>;
+  onContinue: () => void;
+}) {
   return (
     <>
       <h2 className="tv-auth-title">Accept Administrator Invite</h2>
       <p className="tv-auth-tag">
         You've been invited to administer TalVault with{" "}
-        <strong style={{ color: "var(--ink-900)" }}>{permissionLabel(invite.permission_level)}</strong> access.
+        <strong style={{ color: "var(--ink-900)" }}>
+          {permissionLabel(invite.permission_level)}
+        </strong>{" "}
+        access.
       </p>
       <div className="tv-auth-field" style={{ marginTop: 20 }}>
         <label htmlFor="invited-email" style={{ fontWeight: 700, color: "var(--ink-900)" }}>
@@ -299,7 +340,11 @@ function Step1({
           readOnly
           disabled
           aria-readonly="true"
-          style={{ background: "var(--surface-soft)", color: "var(--ink-900)", cursor: "not-allowed" }}
+          style={{
+            background: "var(--surface-soft)",
+            color: "var(--ink-900)",
+            cursor: "not-allowed",
+          }}
         />
       </div>
       <div
@@ -329,7 +374,13 @@ function Step1({
           type="button"
           className="tv-auth-submit"
           onClick={onContinue}
-          style={{ width: "auto", marginTop: 0, padding: "0 28px", height: 46, borderRadius: "var(--r-sm)" }}
+          style={{
+            width: "auto",
+            marginTop: 0,
+            padding: "0 28px",
+            height: 46,
+            borderRadius: "var(--r-sm)",
+          }}
         >
           Continue
         </button>
@@ -339,11 +390,21 @@ function Step1({
 }
 
 function Step2({
-  displayName, setDisplayName, designation, setDesignation, onBack, onContinue, error,
+  displayName,
+  setDisplayName,
+  designation,
+  setDesignation,
+  onBack,
+  onContinue,
+  error,
 }: {
-  displayName: string; setDisplayName: (v: string) => void;
-  designation: string; setDesignation: (v: string) => void;
-  onBack: () => void; onContinue: () => void; error: string | null;
+  displayName: string;
+  setDisplayName: (v: string) => void;
+  designation: string;
+  setDesignation: (v: string) => void;
+  onBack: () => void;
+  onContinue: () => void;
+  error: string | null;
 }) {
   return (
     <>
@@ -375,12 +436,22 @@ function Step2({
 }
 
 function Step3({
-  password, setPassword, confirmPw, setConfirmPw, strength, req, onBack, onContinue, error,
+  password,
+  setPassword,
+  confirmPw,
+  setConfirmPw,
+  strength,
+  req,
+  onBack,
+  onContinue,
+  error,
 }: any) {
   return (
     <>
       <h2 className="tv-auth-title">Create your password</h2>
-      <p className="tv-auth-tag">Choose a strong password. You'll use this to sign in from now on.</p>
+      <p className="tv-auth-tag">
+        Choose a strong password. You'll use this to sign in from now on.
+      </p>
       <div className="tv-auth-field">
         <label htmlFor="password">Password</label>
         <PasswordInput
@@ -395,15 +466,22 @@ function Step3({
         {password.length > 0 && (
           <>
             <ul className="tv-auth-reqs" aria-live="polite">
-              <li className={req.length ? "ok" : ""}>{req.length ? "✓" : "•"} At least {MIN_PW_LENGTH} characters</li>
+              <li className={req.length ? "ok" : ""}>
+                {req.length ? "✓" : "•"} At least {MIN_PW_LENGTH} characters
+              </li>
               <li className={req.upper ? "ok" : ""}>{req.upper ? "✓" : "•"} An uppercase letter</li>
               <li className={req.lower ? "ok" : ""}>{req.lower ? "✓" : "•"} A lowercase letter</li>
               <li className={req.number ? "ok" : ""}>{req.number ? "✓" : "•"} A number</li>
-              <li className={req.special ? "ok" : ""}>{req.special ? "✓" : "•"} A special character</li>
+              <li className={req.special ? "ok" : ""}>
+                {req.special ? "✓" : "•"} A special character
+              </li>
             </ul>
             <div className="tv-auth-strength" aria-live="polite">
               <div className="tv-auth-strength-bar">
-                <div className="tv-auth-strength-fill" style={{ width: `${strength.pct}%`, background: strength.color }} />
+                <div
+                  className="tv-auth-strength-fill"
+                  style={{ width: `${strength.pct}%`, background: strength.color }}
+                />
               </div>
               <div className="tv-auth-strength-row">
                 <span className="tv-auth-strength-label">Strength</span>
@@ -431,10 +509,19 @@ function Step3({
 }
 
 function Step4({
-  terms, setTerms, onBack, onSubmit, busy, error,
+  terms,
+  setTerms,
+  onBack,
+  onSubmit,
+  busy,
+  error,
 }: {
-  terms: boolean; setTerms: (v: boolean) => void;
-  onBack: () => void; onSubmit: () => void; busy: boolean; error: string | null;
+  terms: boolean;
+  setTerms: (v: boolean) => void;
+  onBack: () => void;
+  onSubmit: () => void;
+  busy: boolean;
+  error: string | null;
 }) {
   return (
     <>
@@ -456,9 +543,18 @@ function Step4({
           background: "var(--surface-soft)",
         }}
       >
-        <p><strong>TalVault Administrator Terms of Service (Summary)</strong></p>
-        <p>As a TalVault administrator you agree to access agency and talent data only for legitimate platform administration, to respect the permission level assigned to your account, and to keep your credentials confidential.</p>
-        <p>You acknowledge that all administrator actions are audit logged and that this log is reviewable at any time.</p>
+        <p>
+          <strong>TalVault Administrator Terms of Service (Summary)</strong>
+        </p>
+        <p>
+          As a TalVault administrator you agree to access agency and talent data only for legitimate
+          platform administration, to respect the permission level assigned to your account, and to
+          keep your credentials confidential.
+        </p>
+        <p>
+          You acknowledge that all administrator actions are audit logged and that this log is
+          reviewable at any time.
+        </p>
       </div>
       <label
         style={{
@@ -477,10 +573,22 @@ function Step4({
           style={{ marginTop: 3, width: 16, height: 16 }}
         />
         <span>
-          I have read and accept the <a href="/legal/terms" target="_blank" rel="noreferrer" className="tv-auth-link">Terms &amp; Conditions</a> and <a href="/legal/privacy" target="_blank" rel="noreferrer" className="tv-auth-link">Privacy Policy</a>.
+          I have read and accept the{" "}
+          <a href="/legal/terms" target="_blank" rel="noreferrer" className="tv-auth-link">
+            Terms &amp; Conditions
+          </a>{" "}
+          and{" "}
+          <a href="/legal/privacy" target="_blank" rel="noreferrer" className="tv-auth-link">
+            Privacy Policy
+          </a>
+          .
         </span>
       </label>
-      {error && <div className="tv-auth-alert" style={{ marginTop: 12 }}>{error}</div>}
+      {error && (
+        <div className="tv-auth-alert" style={{ marginTop: 12 }}>
+          {error}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10, marginTop: 20, alignItems: "stretch" }}>
         <button
           type="button"
@@ -496,7 +604,15 @@ function Step4({
           className="tv-auth-submit"
           onClick={onSubmit}
           disabled={!terms || busy}
-          style={{ flex: 1, marginTop: 0, height: 46, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          style={{
+            flex: 1,
+            marginTop: 0,
+            height: 46,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
         >
           {busy ? (
             "Setting up your account…"
@@ -523,7 +639,12 @@ function StepButtons({ onBack, onContinue }: { onBack: () => void; onContinue: (
       >
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
-      <button type="button" className="tv-auth-submit" onClick={onContinue} style={{ flex: 1, marginTop: 0, height: 46 }}>
+      <button
+        type="button"
+        className="tv-auth-submit"
+        onClick={onContinue}
+        style={{ flex: 1, marginTop: 0, height: 46 }}
+      >
         Continue
       </button>
     </div>
@@ -536,7 +657,9 @@ function BrandingPanel() {
   return (
     <aside className="tv-auth-hero">
       <div className="tv-auth-brand">
-        <div className="tv-auth-mark"><TalVaultIcon variant="white" style={{ height: 24, width: 24 }} /></div>
+        <div className="tv-auth-mark">
+          <TalVaultIcon variant="white" style={{ height: 24, width: 24 }} />
+        </div>
         <div>
           <TalVaultWordmark variant="white" style={{ height: 20 }} />
           <div className="tv-auth-brand-sub">ADMINISTRATOR</div>
@@ -545,14 +668,34 @@ function BrandingPanel() {
       <div>
         <h1 className="tv-auth-headline">Set up your Administrator account</h1>
         <p className="tv-auth-sub">
-          Accept your invite, confirm your details and create a password to access
-          the TalVault control centre.
+          Accept your invite, confirm your details and create a password to access the TalVault
+          control centre.
         </p>
         <ul className="tv-auth-points">
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><ShieldCheck className="h-4 w-4 text-white" /></span>Agency oversight</li>
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><ScrollText className="h-4 w-4 text-white" /></span>Compliance &amp; audit log</li>
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><FileText className="h-4 w-4 text-white" /></span>Quotes &amp; invoicing reports</li>
-          <li className="tv-auth-point"><span className="tv-auth-point-dot"><Bell className="h-4 w-4 text-white" /></span>Platform-wide notifications</li>
+          <li className="tv-auth-point">
+            <span className="tv-auth-point-dot">
+              <ShieldCheck className="h-4 w-4 text-white" />
+            </span>
+            Agency oversight
+          </li>
+          <li className="tv-auth-point">
+            <span className="tv-auth-point-dot">
+              <ScrollText className="h-4 w-4 text-white" />
+            </span>
+            Compliance &amp; audit log
+          </li>
+          <li className="tv-auth-point">
+            <span className="tv-auth-point-dot">
+              <FileText className="h-4 w-4 text-white" />
+            </span>
+            Quotes &amp; invoicing reports
+          </li>
+          <li className="tv-auth-point">
+            <span className="tv-auth-point-dot">
+              <Bell className="h-4 w-4 text-white" />
+            </span>
+            Platform-wide notifications
+          </li>
         </ul>
       </div>
       <div className="tv-auth-footnote">TalVault Platform</div>

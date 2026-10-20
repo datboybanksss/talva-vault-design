@@ -55,8 +55,7 @@ export function useInviteAccountGate({
         const email = session.user.email ?? "";
         if (!alive) return;
         const matches =
-          invitedEmail != null &&
-          email.trim().toLowerCase() === invitedEmail.trim().toLowerCase();
+          invitedEmail != null && email.trim().toLowerCase() === invitedEmail.trim().toLowerCase();
         if (!matches) {
           // Somebody else's session is lingering in this browser. The
           // invitation link is the journey that should open, so clear the
@@ -146,7 +145,9 @@ export function InviteAccountGatePanel({
       <>
         <div className="tv-auth-eyebrow">{eyebrow}</div>
         <h2 className="tv-auth-title">
-          {error ? "We couldn't link this invitation" : "This invitation is for a different account"}
+          {error
+            ? "We couldn't link this invitation"
+            : "This invitation is for a different account"}
         </h2>
         <p className="tv-auth-tag">
           {error ??
@@ -170,12 +171,18 @@ export function InviteAccountGatePanel({
       <div className="tv-auth-eyebrow">{eyebrow}</div>
       <h2 className="tv-auth-title">{existingTitle ?? "You already have a TalVault account"}</h2>
       <p className="tv-auth-tag">
-        {existingBody ?? (invitedEmail
-          ? `An account already exists for ${invitedEmail}. Log in and we'll add this invitation to it automatically — there's nothing else to set up.`
-          : "An account already exists for this address. Log in and we'll add this invitation to it automatically.")}
+        {existingBody ??
+          (invitedEmail
+            ? `An account already exists for ${invitedEmail}. Log in and we'll add this invitation to it automatically — there's nothing else to set up.`
+            : "An account already exists for this address. Log in and we'll add this invitation to it automatically.")}
       </p>
       <div style={{ marginTop: 24, display: "grid", gap: 12 }}>
-        <Link to="/auth" search={loginSearch} className="tv-auth-submit" style={{ textAlign: "center" }}>
+        <Link
+          to="/auth"
+          search={loginSearch}
+          className="tv-auth-submit"
+          style={{ textAlign: "center" }}
+        >
           Log in instead
         </Link>
       </div>

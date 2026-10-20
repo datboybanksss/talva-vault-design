@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
@@ -51,9 +51,11 @@ export const createPrivateFolder = createServerFn({ method: "POST" })
       .from("talent_private_folders")
       .select("sort_order")
       .eq("user_id", userId);
-    const { data: maxRow } = await (data.parent_id
-      ? parentFilter.eq("parent_id", data.parent_id)
-      : parentFilter.is("parent_id", null))
+    const { data: maxRow } = await (
+      data.parent_id
+        ? parentFilter.eq("parent_id", data.parent_id)
+        : parentFilter.is("parent_id", null)
+    )
       .order("sort_order", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -126,10 +128,7 @@ export const deletePrivateFolder = createServerFn({ method: "POST" })
       throw new Error("This folder still contains documents. Delete or move them first.");
     }
 
-    const { error } = await supabase
-      .from("talent_private_folders")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await supabase.from("talent_private_folders").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true, soft: false };
   });
@@ -138,7 +137,13 @@ const CreateUploadUrlInput = z.object({
   file_name: z.string().trim().min(1).max(240),
   folder_id: z.string().uuid().nullable().optional(),
   mime_type: z.string().trim().max(160).nullable().optional(),
-  size_bytes: z.number().int().nonnegative().max(50 * 1024 * 1024).nullable().optional(),
+  size_bytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(50 * 1024 * 1024)
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -186,9 +191,7 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
  */
 export const finalisePrivateUpload = createServerFn({ method: "POST" })
   .middleware([requireTalentTermsAccepted])
-  .inputValidator((input: unknown) =>
-    z.object({ document_id: z.string().uuid() }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ document_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { userId, supabase, claims } = context as any;
 
@@ -201,9 +204,7 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
     if (doc.user_id !== userId) throw new Error("Forbidden");
     if (!doc.storage_path) throw new Error("No file attached.");
 
-    const { validateStoredUpload, UploadRejected } = await import(
-      "@/lib/file-validation.server"
-    );
+    const { validateStoredUpload, UploadRejected } = await import("@/lib/file-validation.server");
     try {
       const result = await validateStoredUpload({
         bucket: BUCKET,
@@ -237,8 +238,6 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
       throw e;
     }
   });
-
-
 
 const DocIdInput = z.object({ id: z.string().uuid() });
 
@@ -275,10 +274,7 @@ export const deletePrivateDocument = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
 
-    const { error } = await supabase
-      .from("talent_private_documents")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await supabase.from("talent_private_documents").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
 
     if (doc.storage_path) {
@@ -458,4 +454,3 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
 
     return { id: top.id, restored: true };
   });
-

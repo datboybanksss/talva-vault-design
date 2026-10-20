@@ -1,9 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { Users, FileText, Mail, FileSpreadsheet, Info, UserPlus, Settings, FolderCog, Sparkles, Activity, ShieldCheck, ClipboardCheck, CalendarClock, ArrowRight } from "lucide-react";
+import {
+  Users,
+  FileText,
+  Mail,
+  FileSpreadsheet,
+  Info,
+  UserPlus,
+  Settings,
+  FolderCog,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 import {
   agencyWhoami,
   getAgencyDashboardMetrics,
@@ -33,10 +44,38 @@ const ACTIVITY_ACTION_LABELS: Record<string, string> = {
 
 const ACTIVITY_FILTERS: Array<{ key: string; label: string; actions: string[] }> = [
   { key: "all", label: "All activity", actions: [] },
-  { key: "invitations", label: "Invitations", actions: ["create_talent_invitation", "resend_talent_invitation", "revoke_talent_invitation", "create_staff_invitation"] },
-  { key: "documents", label: "Documents", actions: ["upload_vault_document", "delete_vault_document", "update_vault_document"] },
-  { key: "billing", label: "Quotes & invoices", actions: ["create_billing_doc", "update_billing_doc", "delete_billing_doc", "share_billing_doc", "unshare_billing_doc", "convert_quote_to_invoice"] },
-  { key: "roster", label: "Roster changes", actions: ["end_talent_relationship", "reactivate_talent_relationship"] },
+  {
+    key: "invitations",
+    label: "Invitations",
+    actions: [
+      "create_talent_invitation",
+      "resend_talent_invitation",
+      "revoke_talent_invitation",
+      "create_staff_invitation",
+    ],
+  },
+  {
+    key: "documents",
+    label: "Documents",
+    actions: ["upload_vault_document", "delete_vault_document", "update_vault_document"],
+  },
+  {
+    key: "billing",
+    label: "Quotes & invoices",
+    actions: [
+      "create_billing_doc",
+      "update_billing_doc",
+      "delete_billing_doc",
+      "share_billing_doc",
+      "unshare_billing_doc",
+      "convert_quote_to_invoice",
+    ],
+  },
+  {
+    key: "roster",
+    label: "Roster changes",
+    actions: ["end_talent_relationship", "reactivate_talent_relationship"],
+  },
 ];
 
 function formatRelative(iso: string) {
@@ -113,9 +152,10 @@ function AgencyDashboard() {
   const activityRows: any[] = useMemo(() => activity.data ?? [], [activity.data]);
   const filteredActivity = useMemo(() => {
     const f = ACTIVITY_FILTERS.find((x) => x.key === activityFilter);
-    const list = !f || f.actions.length === 0
-      ? activityRows
-      : activityRows.filter((r) => f.actions.includes(r.action));
+    const list =
+      !f || f.actions.length === 0
+        ? activityRows
+        : activityRows.filter((r) => f.actions.includes(r.action));
     return list.slice(0, 8);
   }, [activityRows, activityFilter]);
 
@@ -139,7 +179,6 @@ function AgencyDashboard() {
   };
   const rows: TalentRow[] = useMemo(() => (talent.data ?? []) as TalentRow[], [talent.data]);
 
-
   const managerOptions = useMemo(
     () => Array.from(new Set(rows.map((r) => r.managerName).filter(Boolean))),
     [rows],
@@ -148,7 +187,6 @@ function AgencyDashboard() {
     () => Array.from(new Set(rows.map((r) => r.talentType).filter(Boolean) as string[])),
     [rows],
   );
-
 
   const chips = useMemo(() => {
     const counts = new Map<string, number>();
@@ -183,8 +221,8 @@ function AgencyDashboard() {
 
   const talentCount = metrics.data?.talentCount ?? rows.length;
   const invitesPending = metrics.data?.invitationsNeedAction ?? 0;
-  const isEmpty = !metrics.isLoading && !talent.isLoading && talentCount === 0 && invitesPending === 0;
-
+  const isEmpty =
+    !metrics.isLoading && !talent.isLoading && talentCount === 0 && invitesPending === 0;
 
   return (
     <>
@@ -201,11 +239,14 @@ function AgencyDashboard() {
         <div className="tvp-card tvp-panel" style={{ padding: 28, marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
             <Sparkles className="h-5 w-5" style={{ color: "var(--tvp-teal)" }} />
-            <h2 className="tvp-h2" style={{ margin: 0 }}>No talent yet</h2>
+            <h2 className="tvp-h2" style={{ margin: 0 }}>
+              No talent yet
+            </h2>
           </div>
           <p className="tvp-muted" style={{ maxWidth: 640, marginBottom: 20 }}>
-            Your Talent Roster is empty. Choose how you'd like to begin — invite your first talent now,
-            or set up agency defaults first so every new talent inherits a consistent folder structure and document rules.
+            Your Talent Roster is empty. Choose how you'd like to begin — invite your first talent
+            now, or set up agency defaults first so every new talent inherits a consistent folder
+            structure and document rules.
           </p>
           <div className="flex flex-wrap gap-3" style={{ marginBottom: 28 }}>
             <Link to="/agency/talent/invite" className="tvp-primary">
@@ -217,14 +258,18 @@ function AgencyDashboard() {
               Set up agency defaults first
             </Link>
           </div>
-          <div className="tvp-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+          <div
+            className="tvp-grid"
+            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}
+          >
             <div className="tvp-card" style={{ padding: 16 }}>
               <div className="tvp-kpi-icon tvp-bg-teal" style={{ marginBottom: 10 }}>
                 <UserPlus className="h-5 w-5" />
               </div>
               <div style={{ fontWeight: 600, marginBottom: 4 }}>1. Invite talent</div>
               <div className="tvp-muted" style={{ fontSize: 13 }}>
-                Send an invite — they accept, and their Roster Shared Folder is provisioned automatically.
+                Send an invite — they accept, and their Roster Shared Folder is provisioned
+                automatically.
               </div>
             </div>
             <div className="tvp-card" style={{ padding: 16 }}>
@@ -233,7 +278,8 @@ function AgencyDashboard() {
               </div>
               <div style={{ fontWeight: 600, marginBottom: 4 }}>2. Request documents</div>
               <div className="tvp-muted" style={{ fontSize: 13 }}>
-                Ask talent for specific documents — ID, contracts, tax forms — and track submissions in one place.
+                Ask talent for specific documents — ID, contracts, tax forms — and track submissions
+                in one place.
               </div>
             </div>
             <div className="tvp-card" style={{ padding: 16 }}>
@@ -242,17 +288,19 @@ function AgencyDashboard() {
               </div>
               <div style={{ fontWeight: 600, marginBottom: 4 }}>3. Manage compliance</div>
               <div className="tvp-muted" style={{ fontSize: 13 }}>
-                Watch expirations, request resubmissions, and keep the Roster Shared Folder audit-ready.
+                Watch expirations, request resubmissions, and keep the Roster Shared Folder
+                audit-ready.
               </div>
             </div>
           </div>
         </div>
       )}
 
-
       <div className="tvp-grid tvp-kpi-grid">
         <Link to="/agency/talent" className="tvp-card tvp-kpi tvp-clickable">
-          <div className="tvp-kpi-icon tvp-bg-teal"><Users className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <Users className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.talentCount ?? "—"}</div>
             <div className="tvp-kpi-label">Talent Profiles</div>
@@ -264,7 +312,9 @@ function AgencyDashboard() {
           </div>
         </Link>
         <Link to="/agency/document-vault" className="tvp-card tvp-kpi tvp-clickable">
-          <div className="tvp-kpi-icon tvp-bg-blue"><FileText className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-blue">
+            <FileText className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.vaultDocumentsCount ?? "—"}</div>
             <div className="tvp-kpi-label">Vault Documents</div>
@@ -276,7 +326,9 @@ function AgencyDashboard() {
           </div>
         </Link>
         <Link to="/agency/invitations" className="tvp-card tvp-kpi tvp-clickable">
-          <div className="tvp-kpi-icon tvp-bg-amber"><Mail className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-amber">
+            <Mail className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.invitationsCount ?? "—"}</div>
             <div className="tvp-kpi-label">Invitations</div>
@@ -288,7 +340,9 @@ function AgencyDashboard() {
           </div>
         </Link>
         <Link to="/agency/quotes-invoices" className="tvp-card tvp-kpi tvp-clickable">
-          <div className="tvp-kpi-icon tvp-bg-purple"><FileSpreadsheet className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-purple">
+            <FileSpreadsheet className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{metrics.data?.billingDocsCount ?? "—"}</div>
             <div className="tvp-kpi-label">Quotes &amp; Invoices</div>
@@ -304,7 +358,9 @@ function AgencyDashboard() {
       <div className="tvp-card tvp-panel" style={{ marginTop: 20 }}>
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Talent Workspace Overview</h2>
-          <Link to="/agency/talent" className="tvp-link">View full roster →</Link>
+          <Link to="/agency/talent" className="tvp-link">
+            View full roster →
+          </Link>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 pb-3">
@@ -315,7 +371,9 @@ function AgencyDashboard() {
           >
             <option value="all">All statuses</option>
             {CHIP_ORDER.map((c) => (
-              <option key={c.key} value={c.key}>{STATUS_LABEL[c.key]}</option>
+              <option key={c.key} value={c.key}>
+                {STATUS_LABEL[c.key]}
+              </option>
             ))}
           </select>
           <select
@@ -325,21 +383,25 @@ function AgencyDashboard() {
           >
             <option value="all">All managers</option>
             {managerOptions.map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>
+                {m}
+              </option>
             ))}
           </select>
-          <select
-            className="tvp-select"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
+          <select className="tvp-select" value={type} onChange={(e) => setType(e.target.value)}>
             <option value="all">All talent types</option>
             {typeOptions.map((t) => (
-              <option key={t} value={t}>{t}</option>
+              <option key={t} value={t}>
+                {t}
+              </option>
             ))}
           </select>
           {(statusFilter !== "all" || manager !== "all" || type !== "all") && (
-            <button className="tvp-select" onClick={reset} style={{ cursor: "pointer", fontWeight: 700 }}>
+            <button
+              className="tvp-select"
+              onClick={reset}
+              style={{ cursor: "pointer", fontWeight: 700 }}
+            >
               Reset filters
             </button>
           )}
@@ -372,7 +434,11 @@ function AgencyDashboard() {
             </thead>
             <tbody>
               {talent.isLoading && (
-                <tr><td colSpan={6} className="tvp-muted">Loading talent…</td></tr>
+                <tr>
+                  <td colSpan={6} className="tvp-muted">
+                    Loading talent…
+                  </td>
+                </tr>
               )}
               {!talent.isLoading && filtered.length === 0 && (
                 <tr>
@@ -408,7 +474,11 @@ function AgencyDashboard() {
                     </td>
                     <td style={{ position: "relative", whiteSpace: "nowrap" }}>
                       <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13, height: 32 }}>
+                        <Link
+                          to="/agency/talent"
+                          className="tvp-secondary"
+                          style={{ padding: "4px 10px", fontSize: 13, height: 32 }}
+                        >
                           Open <ArrowRight className="inline h-3 w-3" />
                         </Link>
                         <RowActionsMenu
@@ -435,13 +505,15 @@ function classifyTalent(r: {
 }): "needs_review" | "action_needed" | "compliant" | "other" {
   if (r.status === "needs_review") return "needs_review";
   if (r.status === "active" && !r.nextAction && r.expiringDocsCount === 0) return "compliant";
-  if (r.nextAction || r.expiringDocsCount > 0 || r.status === "expired" || r.status === "invited") return "action_needed";
+  if (r.nextAction || r.expiringDocsCount > 0 || r.status === "expired" || r.status === "invited")
+    return "action_needed";
   return "other";
 }
 
 function pendingLabel(r: { status: string; nextAction: string | null; expiringDocsCount: number }) {
   if (r.status === "needs_review") return "Awaiting review";
-  if (r.expiringDocsCount > 0) return `${r.expiringDocsCount} doc${r.expiringDocsCount === 1 ? "" : "s"} expiring soon`;
+  if (r.expiringDocsCount > 0)
+    return `${r.expiringDocsCount} doc${r.expiringDocsCount === 1 ? "" : "s"} expiring soon`;
   if (r.status === "invited") return "Invitation pending";
   if (r.status === "expired") return "Access expired";
   if (r.nextAction) return r.nextAction;
@@ -449,14 +521,25 @@ function pendingLabel(r: { status: string; nextAction: string | null; expiringDo
 }
 
 function RecentTalentActivity({
-  rows, isLoading, isOwner,
+  rows,
+  isLoading,
+  isOwner,
 }: {
   rows: Array<{
-    id: string; displayName: string; status: string; talentType: string | null;
-    managerName: string; nextAction: string | null; docCount: number;
-    expiringDocsCount: number; lastDocumentAt: string | null;
-    createdAt: string; updatedAt: string;
-    talentInvitationId?: string | null; inviteToken?: string | null; inviteStatus?: string | null;
+    id: string;
+    displayName: string;
+    status: string;
+    talentType: string | null;
+    managerName: string;
+    nextAction: string | null;
+    docCount: number;
+    expiringDocsCount: number;
+    lastDocumentAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    talentInvitationId?: string | null;
+    inviteToken?: string | null;
+    inviteStatus?: string | null;
   }>;
   isLoading: boolean;
   isOwner: boolean;
@@ -477,9 +560,7 @@ function RecentTalentActivity({
 
   const filtered = useMemo(() => {
     const withKey = rows.map((r) => ({ r, k: classifyTalent(r) }));
-    const list = chip === "all"
-      ? withKey
-      : withKey.filter((x) => x.k === chip);
+    const list = chip === "all" ? withKey : withKey.filter((x) => x.k === chip);
     // Sort by last activity desc
     return list
       .map(({ r }) => r)
@@ -504,7 +585,9 @@ function RecentTalentActivity({
         <h2 className="tvp-h2">
           Recent talent activity <Info className="inline h-4 w-4 text-[var(--tvp-muted)]" />
         </h2>
-        <Link to="/agency/talent" className="tvp-link">View full roster →</Link>
+        <Link to="/agency/talent" className="tvp-link">
+          View full roster →
+        </Link>
       </div>
 
       <div className="flex flex-wrap gap-2 pb-3">
@@ -513,7 +596,11 @@ function RecentTalentActivity({
             key={c.key}
             className={`tvp-life-chip${chip === c.key ? " tvp-active-filter" : ""}`}
             onClick={() => setChip(c.key)}
-            style={{ background: `var(--tvp-${c.tone}-bg)`, color: `var(--tvp-${c.tone})`, padding: "6px 12px" }}
+            style={{
+              background: `var(--tvp-${c.tone}-bg)`,
+              color: `var(--tvp-${c.tone})`,
+              padding: "6px 12px",
+            }}
           >
             <div className="tvp-label">{c.label}</div>
             <div className="tvp-num">{c.count}</div>
@@ -533,7 +620,11 @@ function RecentTalentActivity({
         </thead>
         <tbody>
           {isLoading && (
-            <tr><td colSpan={5} className="tvp-muted">Loading talent…</td></tr>
+            <tr>
+              <td colSpan={5} className="tvp-muted">
+                Loading talent…
+              </td>
+            </tr>
           )}
           {!isLoading && filtered.length === 0 && (
             <tr>
@@ -569,7 +660,11 @@ function RecentTalentActivity({
                 </td>
                 <td style={{ position: "relative", whiteSpace: "nowrap" }}>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Link to="/agency/talent" className="tvp-secondary" style={{ padding: "4px 10px", fontSize: 13, height: 32 }}>
+                    <Link
+                      to="/agency/talent"
+                      className="tvp-secondary"
+                      style={{ padding: "4px 10px", fontSize: 13, height: 32 }}
+                    >
                       Open <ArrowRight className="inline h-3 w-3" />
                     </Link>
                     <RowActionsMenu
@@ -584,9 +679,9 @@ function RecentTalentActivity({
         </tbody>
       </table>
       <div className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
-        Status badges apply only to manager-led documents · Talent's Private Vault items are not counted.
+        Status badges apply only to manager-led documents · Talent's Private Vault items are not
+        counted.
       </div>
     </div>
   );
 }
-

@@ -11,19 +11,39 @@ import {
   agencyWhoami,
 } from "@/lib/agency.functions";
 
-type Template = { id: string; name: string; description: string | null; is_default: boolean; created_at: string; updated_at: string };
-type Item = { id: string; template_id: string; folder_name: string; sort_order: number; default_retention_years: number | null };
+type Template = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+};
+type Item = {
+  id: string;
+  template_id: string;
+  folder_name: string;
+  sort_order: number;
+  default_retention_years: number | null;
+};
 
 export const folderTemplatesListQO = queryOptions({
   queryKey: ["agency", "folder-templates"],
-  queryFn: () => listAgencyFolderTemplates() as Promise<{ role: string; templates: Template[]; items: Item[] }>,
+  queryFn: () =>
+    listAgencyFolderTemplates() as Promise<{ role: string; templates: Template[]; items: Item[] }>,
 });
 export const folderTemplatesMeQO = queryOptions({
   queryKey: ["agency", "whoami"],
   queryFn: () => agencyWhoami(),
 });
 
-type EditorItem = { key: string; id?: string; folder_name: string; sort_order: number; default_retention_years: number | null };
+type EditorItem = {
+  key: string;
+  id?: string;
+  folder_name: string;
+  sort_order: number;
+  default_retention_years: number | null;
+};
 
 export function FolderTemplatesPanel() {
   const qc = useQueryClient();
@@ -61,7 +81,9 @@ export function FolderTemplatesPanel() {
     setName("");
     setDescription("");
     setIsDefault(false);
-    setItems([{ key: crypto.randomUUID(), folder_name: "", sort_order: 0, default_retention_years: null }]);
+    setItems([
+      { key: crypto.randomUUID(), folder_name: "", sort_order: 0, default_retention_years: null },
+    ]);
     setEditorOpen(true);
   }
 
@@ -77,7 +99,18 @@ export function FolderTemplatesPanel() {
       sort_order: i.sort_order,
       default_retention_years: i.default_retention_years,
     }));
-    setItems(its.length ? its : [{ key: crypto.randomUUID(), folder_name: "", sort_order: 0, default_retention_years: null }]);
+    setItems(
+      its.length
+        ? its
+        : [
+            {
+              key: crypto.randomUUID(),
+              folder_name: "",
+              sort_order: 0,
+              default_retention_years: null,
+            },
+          ],
+    );
     setEditorOpen(true);
   }
 
@@ -134,27 +167,68 @@ export function FolderTemplatesPanel() {
       <div className="tvp-topbar">
         <div>
           <h2 className="tvp-h2">Manage Folders</h2>
-          <div className="tvp-subtitle">Reusable folder sets that apply your retention rules automatically.</div>
+          <div className="tvp-subtitle">
+            Reusable folder sets that apply your retention rules automatically.
+          </div>
         </div>
         <div className="tvp-actions">
           {isOwner && (
-            <button className="tvp-primary" onClick={openNew}><Plus className="h-4 w-4" />New Template</button>
+            <button className="tvp-primary" onClick={openNew}>
+              <Plus className="h-4 w-4" />
+              New Template
+            </button>
           )}
         </div>
       </div>
 
       <div className="tvp-callout">
-        <div className="tvp-callout-icon"><Info className="h-4 w-4" /></div>
+        <div className="tvp-callout-icon">
+          <Info className="h-4 w-4" />
+        </div>
         <div>
-          <strong>How folder templates work.</strong> Owners define reusable folder sets and per-folder default retention (in years). Applying a template creates or updates matching folder-scope retention rules for this agency.
+          <strong>How folder templates work.</strong> Owners define reusable folder sets and
+          per-folder default retention (in years). Applying a template creates or updates matching
+          folder-scope retention rules for this agency.
         </div>
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
-        <div className="tvp-card tvp-kpi"><div className="tvp-kpi-icon tvp-bg-teal"><Folder className="h-5 w-5" /></div><div><div className="tvp-kpi-value">{data.templates.length}</div><div className="tvp-kpi-label">Templates</div></div></div>
-        <div className="tvp-card tvp-kpi"><div className="tvp-kpi-icon tvp-bg-purple"><Plus className="h-5 w-5" /></div><div><div className="tvp-kpi-value">{totalItems}</div><div className="tvp-kpi-label">Total Folder Entries</div></div></div>
-        <div className="tvp-card tvp-kpi"><div className="tvp-kpi-icon tvp-bg-green"><Folder className="h-5 w-5" /></div><div><div className="tvp-kpi-value">{distinctFolders}</div><div className="tvp-kpi-label">Distinct Folders</div></div></div>
-        <div className="tvp-card tvp-kpi"><div className="tvp-kpi-icon tvp-bg-blue"><Folder className="h-5 w-5" /></div><div><div className="tvp-kpi-value">{withRetention}</div><div className="tvp-kpi-label">With Retention</div></div></div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <Folder className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="tvp-kpi-value">{data.templates.length}</div>
+            <div className="tvp-kpi-label">Templates</div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-purple">
+            <Plus className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="tvp-kpi-value">{totalItems}</div>
+            <div className="tvp-kpi-label">Total Folder Entries</div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-green">
+            <Folder className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="tvp-kpi-value">{distinctFolders}</div>
+            <div className="tvp-kpi-label">Distinct Folders</div>
+          </div>
+        </div>
+        <div className="tvp-card tvp-kpi">
+          <div className="tvp-kpi-icon tvp-bg-blue">
+            <Folder className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="tvp-kpi-value">{withRetention}</div>
+            <div className="tvp-kpi-label">With Retention</div>
+          </div>
+        </div>
       </div>
 
       <div className="tvp-card tvp-panel">
@@ -163,29 +237,70 @@ export function FolderTemplatesPanel() {
         </div>
         {data.templates.length === 0 ? (
           <p className="tvp-muted" style={{ padding: 16 }}>
-            No folder templates yet.{isOwner ? " Click New Template to create one." : " Only owners can create templates."}
+            No folder templates yet.
+            {isOwner ? " Click New Template to create one." : " Only owners can create templates."}
           </p>
         ) : (
           <table className="tvp-table" style={{ marginTop: 12 }}>
-            <thead><tr><th>Name</th><th>Description</th><th>Folders</th><th>Default retentions</th><th>Default?</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Folders</th>
+                <th>Default retentions</th>
+                <th>Default?</th>
+                <th></th>
+              </tr>
+            </thead>
             <tbody>
               {data.templates.map((t) => {
                 const its = itemsByTemplate.get(t.id) ?? [];
                 const withR = its.filter((i) => (i.default_retention_years ?? 0) > 0).length;
                 return (
                   <tr key={t.id}>
-                    <td><strong>{t.name}</strong></td>
+                    <td>
+                      <strong>{t.name}</strong>
+                    </td>
                     <td className="tvp-muted">{t.description ?? "—"}</td>
                     <td>{its.length}</td>
-                    <td>{withR} of {its.length}</td>
-                    <td>{t.is_default ? <span className="tvp-status tvp-green">Default</span> : <span className="tvp-status tvp-neutral">—</span>}</td>
+                    <td>
+                      {withR} of {its.length}
+                    </td>
+                    <td>
+                      {t.is_default ? (
+                        <span className="tvp-status tvp-green">Default</span>
+                      ) : (
+                        <span className="tvp-status tvp-neutral">—</span>
+                      )}
+                    </td>
                     <td>
                       <div className="flex gap-2">
                         {isOwner && (
                           <>
-                            <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></button>
-                            <button className="tvp-mini-btn" title="Apply template (creates retention rules)" onClick={() => apply.mutate(t.id)} disabled={apply.isPending}><PlayCircle className="h-4 w-4" /></button>
-                            <button className="tvp-mini-btn" title="Delete" onClick={() => { if (confirm(`Delete template "${t.name}"?`)) del.mutate(t.id); }}><Trash2 className="h-4 w-4" /></button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Edit"
+                              onClick={() => openEdit(t)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Apply template (creates retention rules)"
+                              onClick={() => apply.mutate(t.id)}
+                              disabled={apply.isPending}
+                            >
+                              <PlayCircle className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="tvp-mini-btn"
+                              title="Delete"
+                              onClick={() => {
+                                if (confirm(`Delete template "${t.name}"?`)) del.mutate(t.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </>
                         )}
                       </div>
@@ -199,23 +314,59 @@ export function FolderTemplatesPanel() {
       </div>
 
       {editorOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setEditorOpen(false)}>
-          <div className="tvp-card" style={{ maxWidth: 720, width: "100%", maxHeight: "90vh", overflow: "auto", padding: 24 }} onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setEditorOpen(false)}
+        >
+          <div
+            className="tvp-card"
+            style={{
+              maxWidth: 720,
+              width: "100%",
+              maxHeight: "90vh",
+              overflow: "auto",
+              padding: 24,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center" style={{ marginBottom: 16 }}>
               <h2 className="tvp-h2">{editingId ? "Edit template" : "New template"}</h2>
-              <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}><X className="h-4 w-4" /></button>
+              <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}>
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <div className="tvp-form-group">
               <label>Name</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Standard onboarding folders" />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Standard onboarding folders"
+              />
             </div>
             <div className="tvp-form-group">
               <label>Description</label>
-              <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional"
+              />
             </div>
             <div className="tvp-form-group">
               <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={isDefault}
+                  onChange={(e) => setIsDefault(e.target.checked)}
+                />
                 Mark as default template
               </label>
             </div>
@@ -223,28 +374,69 @@ export function FolderTemplatesPanel() {
             <div style={{ marginTop: 16 }}>
               <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
                 <strong>Folders</strong>
-                <button className="tvp-secondary" onClick={() => setItems([...items, { key: crypto.randomUUID(), folder_name: "", sort_order: items.length, default_retention_years: null }])}>
-                  <Plus className="h-4 w-4" />Add folder
+                <button
+                  className="tvp-secondary"
+                  onClick={() =>
+                    setItems([
+                      ...items,
+                      {
+                        key: crypto.randomUUID(),
+                        folder_name: "",
+                        sort_order: items.length,
+                        default_retention_years: null,
+                      },
+                    ])
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                  Add folder
                 </button>
               </div>
               <table className="tvp-table">
-                <thead><tr><th>Folder name</th><th style={{ width: 160 }}>Retention (years)</th><th style={{ width: 40 }}></th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Folder name</th>
+                    <th style={{ width: 160 }}>Retention (years)</th>
+                    <th style={{ width: 40 }}></th>
+                  </tr>
+                </thead>
                 <tbody>
                   {items.map((it, idx) => (
                     <tr key={it.key}>
                       <td>
-                        <input value={it.folder_name} placeholder="e.g. Contracts &amp; Agreements" onChange={(e) => {
-                          const copy = [...items]; copy[idx] = { ...it, folder_name: e.target.value }; setItems(copy);
-                        }} />
+                        <input
+                          value={it.folder_name}
+                          placeholder="e.g. Contracts &amp; Agreements"
+                          onChange={(e) => {
+                            const copy = [...items];
+                            copy[idx] = { ...it, folder_name: e.target.value };
+                            setItems(copy);
+                          }}
+                        />
                       </td>
                       <td>
-                        <input type="number" min={0} max={100} value={it.default_retention_years ?? ""} placeholder="—" onChange={(e) => {
-                          const v = e.target.value === "" ? null : Number(e.target.value);
-                          const copy = [...items]; copy[idx] = { ...it, default_retention_years: v }; setItems(copy);
-                        }} />
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={it.default_retention_years ?? ""}
+                          placeholder="—"
+                          onChange={(e) => {
+                            const v = e.target.value === "" ? null : Number(e.target.value);
+                            const copy = [...items];
+                            copy[idx] = { ...it, default_retention_years: v };
+                            setItems(copy);
+                          }}
+                        />
                       </td>
                       <td>
-                        <button title="Remove row" className="tvp-mini-btn" onClick={() => setItems(items.filter((_, i) => i !== idx))}><Trash2 className="h-4 w-4" /></button>
+                        <button
+                          title="Remove row"
+                          className="tvp-mini-btn"
+                          onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -253,9 +445,16 @@ export function FolderTemplatesPanel() {
             </div>
 
             <div className="flex justify-end gap-2" style={{ marginTop: 16 }}>
-              <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>Cancel</button>
-              <button className="tvp-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-                <Save className="h-4 w-4" />{save.isPending ? "Saving…" : "Save template"}
+              <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="tvp-primary"
+                onClick={() => save.mutate()}
+                disabled={save.isPending}
+              >
+                <Save className="h-4 w-4" />
+                {save.isPending ? "Saving…" : "Save template"}
               </button>
             </div>
           </div>

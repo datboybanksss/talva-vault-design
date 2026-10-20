@@ -5,7 +5,10 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Send, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { getTalentInvitationByIdMine, getStaffInvitationByIdMine } from "@/lib/agency.functions";
-import { sendTalentInvitationEmail, sendStaffInvitationEmail } from "@/lib/invitation-email.functions";
+import {
+  sendTalentInvitationEmail,
+  sendStaffInvitationEmail,
+} from "@/lib/invitation-email.functions";
 import {
   DEFAULT_TALENT_INVITATION_SUBJECT,
   DEFAULT_TALENT_INVITATION_BODY,
@@ -27,9 +30,15 @@ export const Route = createFileRoute("/agency/invitations/$id/email-preview")({
   head: () => ({
     meta: [
       { title: "Invitation email · TalVault" },
-      { name: "description", content: "Edit, preview and send the invitation email for a talent or staff invite." },
+      {
+        name: "description",
+        content: "Edit, preview and send the invitation email for a talent or staff invite.",
+      },
       { property: "og:title", content: "Invitation email · TalVault" },
-      { property: "og:description", content: "Edit, preview and send the invitation email for a talent or staff invite." },
+      {
+        property: "og:description",
+        content: "Edit, preview and send the invitation email for a talent or staff invite.",
+      },
     ],
   }),
   component: EmailPreviewPage,
@@ -51,7 +60,9 @@ function EmailPreviewPage() {
   });
   const inv = q.data as any;
 
-  const defaultSubject = isStaff ? DEFAULT_STAFF_INVITATION_SUBJECT : DEFAULT_TALENT_INVITATION_SUBJECT;
+  const defaultSubject = isStaff
+    ? DEFAULT_STAFF_INVITATION_SUBJECT
+    : DEFAULT_TALENT_INVITATION_SUBJECT;
   const defaultBody = isStaff ? DEFAULT_STAFF_INVITATION_BODY : DEFAULT_TALENT_INVITATION_BODY;
 
   const [subject, setSubject] = useState(defaultSubject);
@@ -70,7 +81,9 @@ function EmailPreviewPage() {
     : "";
   const expiryDate = inv
     ? new Date(inv.expires_at).toLocaleDateString("en-GB", {
-        day: "numeric", month: "long", year: "numeric",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       })
     : "";
 
@@ -114,28 +127,43 @@ function EmailPreviewPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/agency/invitations" className="tvp-link"
-            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+          <Link
+            to="/agency/invitations"
+            className="tvp-link"
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}
+          >
             <ArrowLeft className="h-3 w-3" /> Back to invitations
           </Link>
           <h1 className="tvp-h1" style={{ marginTop: 4 }}>
             {isStaff ? "Staff invitation email" : "Talent invitation email"}
           </h1>
           <div className="tvp-subtitle">
-            Edit the subject and message, preview it exactly as your {isStaff ? "staff member" : "talent"} sees it, then send.
-            Tokens available: {isStaff ? "{{contact_person}}" : "{{talent_name}}"}, {"{{agency_name}}"}, {"{{email}}"}, {"{{expiry_date}}"}.
+            Edit the subject and message, preview it exactly as your{" "}
+            {isStaff ? "staff member" : "talent"} sees it, then send. Tokens available:{" "}
+            {isStaff ? "{{contact_person}}" : "{{talent_name}}"}, {"{{agency_name}}"}, {"{{email}}"}
+            , {"{{expiry_date}}"}.
           </div>
         </div>
         <div className="tvp-actions">
-          <button className="tvp-secondary" onClick={copyLink} disabled={!inv} title="Copy the unique invite link">
-            <Copy className="h-4 w-4" />Copy link
+          <button
+            className="tvp-secondary"
+            onClick={copyLink}
+            disabled={!inv}
+            title="Copy the unique invite link"
+          >
+            <Copy className="h-4 w-4" />
+            Copy link
           </button>
           <button
             className="tvp-primary"
             disabled={!inv || sendM.isPending || !subject.trim() || !body.trim()}
-            onClick={() => { setStatus(null); sendM.mutate(); }}
+            onClick={() => {
+              setStatus(null);
+              sendM.mutate();
+            }}
           >
-            <Send className="h-4 w-4" />{sendM.isPending ? "Sending…" : "Send email"}
+            <Send className="h-4 w-4" />
+            {sendM.isPending ? "Sending…" : "Send email"}
           </button>
         </div>
       </div>

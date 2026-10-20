@@ -11,10 +11,11 @@ function extractRequestMeta(): { ip_address: string | null; user_agent: string |
     const req = getRequest();
     const h = req?.headers;
     if (!h) return { ip_address: null, user_agent: null };
-    const fwd = h.get("cf-connecting-ip")
-      || h.get("x-real-ip")
-      || (h.get("x-forwarded-for") ?? "").split(",")[0].trim()
-      || null;
+    const fwd =
+      h.get("cf-connecting-ip") ||
+      h.get("x-real-ip") ||
+      (h.get("x-forwarded-for") ?? "").split(",")[0].trim() ||
+      null;
     return {
       ip_address: fwd || null,
       user_agent: h.get("user-agent") || null,
@@ -49,7 +50,6 @@ async function logAgencyAudit(
     user_agent,
   });
 }
-
 
 /**
  * Records that someone at the agency looked at a specific talent's shared
@@ -98,7 +98,7 @@ async function logTalentVaultView(
       VAULT_VIEW_ACTION,
       "talent_link",
       talentLinkId,
-      link?.display_name ?? null as any,
+      link?.display_name ?? (null as any),
     );
   } catch {
     /* activity logging is best-effort */
@@ -156,7 +156,11 @@ async function getAgencyReadOnlyUntil(supabase: any, agencyId: string): Promise<
 }
 
 function agencyReadOnlyNotice(untilIso: string) {
-  const date = new Date(untilIso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const date = new Date(untilIso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
   return `Your agency's TalVault access has ended. You can view and download existing documents until ${date}.`;
 }
 
@@ -187,7 +191,6 @@ async function assertLinkNotEnded(supabase: any, talentLinkId: string | null | u
     );
   }
 }
-
 
 // -----------------------------------------------------------------------------
 // whoami — agency variant. Returns caller identity + agency context.
@@ -260,7 +263,11 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
     const windowIso = new Date(Date.now() + expiryNoticeDays * 86400000).toISOString();
 
     const [needsReviewRes, expiringRes, overdueRes, talentInvRes, staffInvRes] = await Promise.all([
-      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "needs_review"),
+      supabase
+        .from("agency_talent_links")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("status", "needs_review"),
       supabase
         .from("talent_shared_documents")
         .select("id", { count: "exact", head: true })
@@ -268,11 +275,26 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
         .not("validity_expires_at", "is", null)
         .gte("validity_expires_at", nowIso)
         .lte("validity_expires_at", windowIso),
-      supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "overdue"),
+      supabase
+        .from("agency_billing_docs")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("status", "overdue"),
       // "Pending" rows that have sailed past their expiry read as Expired on the
       // Invitations page, so they must not count as open invitations here either.
-      supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending").gt("expires_at", nowIso),
-      supabase.from("agency_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("kind", "staff").eq("status", "pending").gt("expires_at", nowIso),
+      supabase
+        .from("talent_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("status", "pending")
+        .gt("expires_at", nowIso),
+      supabase
+        .from("agency_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("kind", "staff")
+        .eq("status", "pending")
+        .gt("expires_at", nowIso),
     ]);
 
     const needsReview = needsReviewRes.count ?? 0;
@@ -283,9 +305,14 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
 
     const breakdown: string[] = [];
     if (needsReview > 0) breakdown.push(`${needsReview} talent needing review`);
-    if (expiringSoon > 0) breakdown.push(`${expiringSoon} document${expiringSoon === 1 ? "" : "s"} expiring in ${expiryNoticeDays} day${expiryNoticeDays === 1 ? "" : "s"}`);
-    if (overdueInvoices > 0) breakdown.push(`${overdueInvoices} invoice${overdueInvoices === 1 ? "" : "s"} overdue`);
-    if (invitesPending > 0) breakdown.push(`${invitesPending} invitation${invitesPending === 1 ? "" : "s"} pending`);
+    if (expiringSoon > 0)
+      breakdown.push(
+        `${expiringSoon} document${expiringSoon === 1 ? "" : "s"} expiring in ${expiryNoticeDays} day${expiryNoticeDays === 1 ? "" : "s"}`,
+      );
+    if (overdueInvoices > 0)
+      breakdown.push(`${overdueInvoices} invoice${overdueInvoices === 1 ? "" : "s"} overdue`);
+    if (invitesPending > 0)
+      breakdown.push(`${invitesPending} invitation${invitesPending === 1 ? "" : "s"} pending`);
 
     const target =
       needsReview > 0
@@ -361,7 +388,6 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       computed: computed.filter((i) => {
         const d = dismissed.get(i.key) as number | undefined | null;
         return d === undefined || d === null || d < i.snapshot;
-
       }),
       persisted: [] as any[],
     };
@@ -370,7 +396,9 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
 export const dismissAgencyReminder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ kind: z.string().min(1).max(60), snapshot: z.number().int().nonnegative() }).parse(d),
+    z
+      .object({ kind: z.string().min(1).max(60), snapshot: z.number().int().nonnegative() })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -400,9 +428,6 @@ export const listAgencyDismissedNotices = createServerFn({ method: "GET" })
     return { kinds: (data ?? []).map((d: any) => d.kind as string) };
   });
 
-
-
-
 // -----------------------------------------------------------------------------
 // Dashboard metrics — real counts scoped to caller's agency.
 // -----------------------------------------------------------------------------
@@ -430,18 +455,51 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
     const over48hIso = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
 
     const [
-      talentRes, docsRes, talentInvRes, staffInvRes, billingRes,
-      needsReviewRes, expiringRes, overdueRes,
-      newThisMonthRes, activeRes, needsReviewOver48Res, expiringLinkIdsRes,
+      talentRes,
+      docsRes,
+      talentInvRes,
+      staffInvRes,
+      billingRes,
+      needsReviewRes,
+      expiringRes,
+      overdueRes,
+      newThisMonthRes,
+      activeRes,
+      needsReviewOver48Res,
+      expiringLinkIdsRes,
     ] = await Promise.all([
-      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
-      supabase.from("talent_shared_documents").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
+      supabase
+        .from("agency_talent_links")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId),
+      supabase
+        .from("talent_shared_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId),
       // "Pending" rows that have sailed past their expiry read as Expired on the
       // Invitations page, so they must not count as open invitations here either.
-      supabase.from("talent_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "pending").gt("expires_at", nowIso),
-      supabase.from("agency_invitations").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("kind", "staff").eq("status", "pending").gt("expires_at", nowIso),
-      supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId),
-      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "needs_review"),
+      supabase
+        .from("talent_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("status", "pending")
+        .gt("expires_at", nowIso),
+      supabase
+        .from("agency_invitations")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("kind", "staff")
+        .eq("status", "pending")
+        .gt("expires_at", nowIso),
+      supabase
+        .from("agency_billing_docs")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId),
+      supabase
+        .from("agency_talent_links")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("status", "needs_review"),
       supabase
         .from("talent_shared_documents")
         .select("id", { count: "exact", head: true })
@@ -449,10 +507,27 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
         .not("validity_expires_at", "is", null)
         .gte("validity_expires_at", nowIso)
         .lte("validity_expires_at", in30d),
-      supabase.from("agency_billing_docs").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "overdue"),
-      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).gte("created_at", startOfMonthIso),
-      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "active"),
-      supabase.from("agency_talent_links").select("id", { count: "exact", head: true }).eq("agency_id", agencyId).eq("status", "needs_review").lte("updated_at", over48hIso),
+      supabase
+        .from("agency_billing_docs")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("status", "overdue"),
+      supabase
+        .from("agency_talent_links")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .gte("created_at", startOfMonthIso),
+      supabase
+        .from("agency_talent_links")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("status", "active"),
+      supabase
+        .from("agency_talent_links")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_id", agencyId)
+        .eq("status", "needs_review")
+        .lte("updated_at", over48hIso),
       supabase
         .from("talent_shared_documents")
         .select("talent_link_id")
@@ -486,11 +561,8 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
       fullyCompliantCount,
       activeTalentCount: activeCount,
       expiryNoticeDays,
-
     };
-
   });
-
 
 // Roster rows created at invite time stay "invited" until the invitation is
 // accepted. Lapsed or revoked invitations are reflected on the roster here so
@@ -501,7 +573,10 @@ async function syncInvitedTalentLinks(supabase: any, agencyId: string, rows: any
   const { data: invs } = await supabase
     .from("talent_invitations")
     .select("id, status, expires_at")
-    .in("id", invited.map((r) => r.talent_invitation_id));
+    .in(
+      "id",
+      invited.map((r) => r.talent_invitation_id),
+    );
   const byId = new Map<string, any>((invs ?? []).map((i: any) => [i.id, i]));
   const now = Date.now();
   const updates: Array<{ id: string; status: string }> = [];
@@ -510,7 +585,11 @@ async function syncInvitedTalentLinks(supabase: any, agencyId: string, rows: any
     if (!inv) continue;
     let next: string | null = null;
     if (inv.status === "revoked" || inv.status === "declined") next = "revoked";
-    else if (inv.status === "expired" || (inv.status === "pending" && new Date(inv.expires_at).getTime() < now)) next = "expired";
+    else if (
+      inv.status === "expired" ||
+      (inv.status === "pending" && new Date(inv.expires_at).getTime() < now)
+    )
+      next = "expired";
     if (next) {
       row.status = next;
       updates.push({ id: row.id, status: next });
@@ -540,22 +619,17 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
 
     const { data: links, error } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name, status, talent_type, manager_user_id, talent_user_id, next_action, created_at, updated_at, talent_invitation_id")
+      .select(
+        "id, display_name, status, talent_type, manager_user_id, talent_user_id, next_action, created_at, updated_at, talent_invitation_id",
+      )
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
     const rows = links ?? [];
     await syncInvitedTalentLinks(supabase, agencyId, rows);
-    const managerIds = Array.from(
-      new Set(rows.map((r: any) => r.manager_user_id).filter(Boolean)),
-    );
     const profileIds = Array.from(
-      new Set(
-        rows
-          .flatMap((r: any) => [r.manager_user_id, r.talent_user_id])
-          .filter(Boolean),
-      ),
+      new Set(rows.flatMap((r: any) => [r.manager_user_id, r.talent_user_id]).filter(Boolean)),
     );
     const linkIds = rows.map((r: any) => r.id);
 
@@ -594,7 +668,10 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     const inviteIds = rows
       .filter((r: any) => r.status === "invited" && r.talent_invitation_id)
       .map((r: any) => r.talent_invitation_id as string);
-    const inviteMap = new Map<string, { token: string; expires_at: string | null; status: string }>();
+    const inviteMap = new Map<
+      string,
+      { token: string; expires_at: string | null; status: string }
+    >();
     if (inviteIds.length) {
       const { data: invs } = await supabase
         .from("talent_invitations")
@@ -644,17 +721,20 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       }
     }
 
-
-
     return rows.map((r: any) => ({
       id: r.id as string,
       displayName: r.display_name as string,
       status: r.status as string,
       talentType: (r.talent_type as string) ?? null,
       // Nothing from the talent's own profile is shown before they accept.
-      avatarUrl: r.talent_user_id && r.status !== "invited" ? avatarMap.get(r.talent_user_id) ?? null : null,
+      avatarUrl:
+        r.talent_user_id && r.status !== "invited"
+          ? (avatarMap.get(r.talent_user_id) ?? null)
+          : null,
       managerUserId: (r.manager_user_id as string) ?? null,
-      managerName: r.manager_user_id ? managerMap.get(r.manager_user_id) ?? "Unassigned" : "Unassigned",
+      managerName: r.manager_user_id
+        ? (managerMap.get(r.manager_user_id) ?? "Unassigned")
+        : "Unassigned",
       nextAction: (r.next_action as string) ?? null,
       docCount: docCount.get(r.id) ?? 0,
       awaitingCount: awaitingCount.get(r.id) ?? 0,
@@ -663,16 +743,18 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       createdAt: r.created_at as string,
       updatedAt: r.updated_at as string,
       talentInvitationId: (r.talent_invitation_id as string) ?? null,
-      inviteToken: r.talent_invitation_id ? inviteMap.get(r.talent_invitation_id)?.token ?? null : null,
-      inviteStatus: r.talent_invitation_id && inviteMap.has(r.talent_invitation_id)
-        ? effectiveInvitationStatus(
-            inviteMap.get(r.talent_invitation_id)!.status,
-            inviteMap.get(r.talent_invitation_id)!.expires_at,
-          )
+      inviteToken: r.talent_invitation_id
+        ? (inviteMap.get(r.talent_invitation_id)?.token ?? null)
         : null,
+      inviteStatus:
+        r.talent_invitation_id && inviteMap.has(r.talent_invitation_id)
+          ? effectiveInvitationStatus(
+              inviteMap.get(r.talent_invitation_id)!.status,
+              inviteMap.get(r.talent_invitation_id)!.expires_at,
+            )
+          : null,
     }));
   });
-
 
 // -----------------------------------------------------------------------------
 // Invitations — talent + staff, scoped to caller's agency
@@ -702,12 +784,16 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
     const [talentRes, staffRes] = await Promise.all([
       supabase
         .from("talent_invitations")
-        .select("id, talent_name, email, status, token, invited_by, last_sent_at, expires_at, send_count, created_at")
+        .select(
+          "id, talent_name, email, status, token, invited_by, last_sent_at, expires_at, send_count, created_at",
+        )
         .eq("agency_id", agencyId)
         .order("created_at", { ascending: false }),
       supabase
         .from("agency_invitations")
-        .select("id, contact_person, email, status, token, invited_by, last_sent_at, expires_at, send_count, created_at, role")
+        .select(
+          "id, contact_person, email, status, token, invited_by, last_sent_at, expires_at, send_count, created_at, role",
+        )
         .eq("agency_id", agencyId)
         .eq("kind", "staff")
         .order("created_at", { ascending: false }),
@@ -738,27 +824,39 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
       }
     }
     const labelFor = (id: string | null) =>
-      !id ? "—" : id === userId ? "You" : inviterMap.get(id) ?? "Team member";
+      !id ? "—" : id === userId ? "You" : (inviterMap.get(id) ?? "Team member");
 
     const talent: InviteRow[] = (talentRes.data ?? []).map((r: any) => ({
-      id: r.id, type: "talent", recipient_name: r.talent_name ?? null,
+      id: r.id,
+      type: "talent",
+      recipient_name: r.talent_name ?? null,
       email: r.email,
       status: effectiveInvitationStatus(r.status, r.expires_at),
       stored_status: r.status,
       token: r.token,
-      invited_by: r.invited_by, invited_by_label: labelFor(r.invited_by),
-      last_sent_at: r.last_sent_at, expires_at: r.expires_at,
-      send_count: r.send_count, created_at: r.created_at, role: null,
+      invited_by: r.invited_by,
+      invited_by_label: labelFor(r.invited_by),
+      last_sent_at: r.last_sent_at,
+      expires_at: r.expires_at,
+      send_count: r.send_count,
+      created_at: r.created_at,
+      role: null,
     }));
     const staff: InviteRow[] = (staffRes.data ?? []).map((r: any) => ({
-      id: r.id, type: "staff", recipient_name: r.contact_person ?? null,
+      id: r.id,
+      type: "staff",
+      recipient_name: r.contact_person ?? null,
       email: r.email,
       status: effectiveInvitationStatus(r.status, r.expires_at),
       stored_status: r.status,
       token: r.token,
-      invited_by: r.invited_by, invited_by_label: labelFor(r.invited_by),
-      last_sent_at: r.last_sent_at, expires_at: r.expires_at,
-      send_count: r.send_count, created_at: r.created_at, role: r.role ?? "staff",
+      invited_by: r.invited_by,
+      invited_by_label: labelFor(r.invited_by),
+      last_sent_at: r.last_sent_at,
+      expires_at: r.expires_at,
+      send_count: r.send_count,
+      created_at: r.created_at,
+      role: r.role ?? "staff",
     }));
 
     const rows = [...talent, ...staff].sort(
@@ -818,15 +916,17 @@ export const listAgencyStaff = createServerFn({ method: "GET" })
 export const createTalentInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      talent_name: z.string().min(1),
-      email: z.string().email(),
-      expiry_days: z.number().int().min(1).max(60).default(14),
-      folder_mode: z.enum(["standard", "custom"]).default("standard"),
-      folder_selection: z.array(folderSelectionItem).default([]),
-      manager_user_id: z.string().uuid().nullable().optional(),
-      talent_type: z.string().max(60).nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        talent_name: z.string().min(1),
+        email: z.string().email(),
+        expiry_days: z.number().int().min(1).max(60).default(14),
+        folder_mode: z.enum(["standard", "custom"]).default("standard"),
+        folder_selection: z.array(folderSelectionItem).default([]),
+        manager_user_id: z.string().uuid().nullable().optional(),
+        talent_type: z.string().max(60).nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -870,24 +970,25 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     if (error) throw new Error("We couldn't create the invitation. Please try again.");
 
     // Place the talent on the roster straight away with an "Invited" status.
-    const { error: linkErr } = await supabase
-      .from("agency_talent_links")
-      .insert({
-        agency_id: agencyId,
-        talent_invitation_id: inv.id,
-        display_name: data.talent_name,
-        status: "invited",
-        manager_user_id: data.manager_user_id ?? null,
-        talent_type: data.talent_type ?? null,
-      });
+    const { error: linkErr } = await supabase.from("agency_talent_links").insert({
+      agency_id: agencyId,
+      talent_invitation_id: inv.id,
+      display_name: data.talent_name,
+      status: "invited",
+      manager_user_id: data.manager_user_id ?? null,
+      talent_type: data.talent_type ?? null,
+    });
     if (linkErr) throw new Error("We couldn't add this talent to your roster. Please try again.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: outcome, error: attachErr } = await (supabaseAdmin as any).rpc("attach_talent_invite_private", {
-      _invitation_id: inv.id,
-      _actor: userId,
-      _actor_email: claims?.email ?? null,
-    });
+    const { data: outcome, error: attachErr } = await (supabaseAdmin as any).rpc(
+      "attach_talent_invite_private",
+      {
+        _invitation_id: inv.id,
+        _actor: userId,
+        _actor_email: claims?.email ?? null,
+      },
+    );
     if (attachErr) throw new Error("We couldn't create the invitation. Please try again.");
     const result = String(outcome ?? "");
 
@@ -903,12 +1004,19 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
         emailSent = (await simulatedInvitationSend()).sent;
       } else {
         // E4 — new person.
-        const { buildInvitationEmail, DEFAULT_TALENT_INVITATION_BODY, DEFAULT_TALENT_INVITATION_SUBJECT } =
-          await import("@/lib/invitation-email");
+        const {
+          buildInvitationEmail,
+          DEFAULT_TALENT_INVITATION_BODY,
+          DEFAULT_TALENT_INVITATION_SUBJECT,
+        } = await import("@/lib/invitation-email");
         const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
         const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
         const { fmtLongDate } = await import("@/lib/notice-email");
-        const { data: ag } = await supabase.from("agencies").select("name").eq("id", agencyId).maybeSingle();
+        const { data: ag } = await supabase
+          .from("agencies")
+          .select("name")
+          .eq("id", agencyId)
+          .maybeSingle();
         const mail = buildInvitationEmail({
           variant: "talent",
           subject: DEFAULT_TALENT_INVITATION_SUBJECT,
@@ -919,37 +1027,55 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
           inviteUrl: `${PUBLIC_SITE_URL}/invite/talent/${inv.token}`,
           expiryDate: fmtLongDate(expires_at),
         });
-        const r = await sendInvitationEmail(data.email, mail, `talent-invite-${inv.id}`, "talent_invitation");
+        const r = await sendInvitationEmail(
+          data.email,
+          mail,
+          `talent-invite-${inv.id}`,
+          "talent_invitation",
+        );
         emailSent = r.sent;
       }
     } catch {
       emailSent = false;
     }
     if (emailSent) {
-      await supabase.from("talent_invitations").update({ email_sent_at: new Date().toISOString() }).eq("id", inv.id);
+      await supabase
+        .from("talent_invitations")
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq("id", inv.id);
     }
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "create_talent_invitation", "talent_invitation", inv.id, data.talent_name,
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "create_talent_invitation",
+      "talent_invitation",
+      inv.id,
+      data.talent_name,
       {
         email: data.email,
         expires_at,
         folder_mode: data.folder_mode,
         folder_count: selection.length,
         email_sent: emailSent,
-      });
+      },
+    );
     return NEUTRAL;
   });
 
 export const createStaffInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      contact_person: z.string().optional(),
-      email: z.string().email(),
-      role: z.string().default("staff"),
-      expiry_days: z.number().int().min(1).max(60).default(14),
-    }).parse(d),
+    z
+      .object({
+        contact_person: z.string().optional(),
+        email: z.string().email(),
+        role: z.string().default("staff"),
+        expiry_days: z.number().int().min(1).max(60).default(14),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -957,8 +1083,7 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
     await assertAgencyOwner(supabase, userId, agencyId);
 
     // Fetch agency name (needed for NOT NULL agency_name column)
-    const { data: ag } = await supabase
-      .from("agencies").select("name").eq("id", agencyId).single();
+    const { data: ag } = await supabase.from("agencies").select("name").eq("id", agencyId).single();
     if (!ag) throw new Error("Agency not found");
 
     const expires_at = new Date(Date.now() + data.expiry_days * 86400000).toISOString();
@@ -978,10 +1103,17 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "create_staff_invitation", "agency_invitation", inv.id,
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "create_staff_invitation",
+      "agency_invitation",
+      inv.id,
       data.contact_person ?? data.email,
-      { email: data.email, role: data.role, expires_at });
+      { email: data.email, role: data.role, expires_at },
+    );
     return inv;
   });
 
@@ -998,7 +1130,11 @@ async function resolveBillingTalentLink(
 ): Promise<string | null> {
   if (explicitId) {
     const { data } = await supabase
-      .from("agency_talent_links").select("id").eq("id", explicitId).eq("agency_id", agencyId).maybeSingle();
+      .from("agency_talent_links")
+      .select("id")
+      .eq("id", explicitId)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
     return (data?.id as string) ?? null;
   }
   const name = (talentName ?? "").trim().toLowerCase();
@@ -1007,18 +1143,22 @@ async function resolveBillingTalentLink(
     .from("agency_talent_links")
     .select("id, display_name")
     .eq("agency_id", agencyId);
-  const rows = (data ?? []).filter((r: any) => (r.display_name ?? "").trim().toLowerCase() === name);
+  const rows = (data ?? []).filter(
+    (r: any) => (r.display_name ?? "").trim().toLowerCase() === name,
+  );
   return rows.length === 1 ? (rows[0].id as string) : null;
 }
 
 export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string(),
-      type: z.enum(["talent", "staff"]),
-      extend_days: z.number().int().min(1).max(60).default(14),
-    }).parse(d),
+    z
+      .object({
+        id: z.string(),
+        type: z.enum(["talent", "staff"]),
+        extend_days: z.number().int().min(1).max(60).default(14),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -1066,10 +1206,17 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
       await (supabaseAdmin as any).rpc("reopen_talent_invite_private", { _invitation_id: data.id });
     }
 
-
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      `resend_${data.type}_invitation`, `${data.type}_invitation`, data.id, cur?.email,
-      { new_expires_at: expires_at });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      `resend_${data.type}_invitation`,
+      `${data.type}_invitation`,
+      data.id,
+      cur?.email,
+      { new_expires_at: expires_at },
+    );
     return inv;
   });
 
@@ -1084,8 +1231,12 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
     await assertAgencyOwner(supabase, userId, agencyId);
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
     const { data: inv, error } = await supabase
-      .from(table).update({ status: "revoked" }).eq("id", data.id).eq("status", "pending")
-      .select().maybeSingle();
+      .from(table)
+      .update({ status: "revoked" })
+      .eq("id", data.id)
+      .eq("status", "pending")
+      .select()
+      .maybeSingle();
     if (error) throw new Error(error.message);
     if (!inv) throw new Error("Only an open invitation can be revoked.");
 
@@ -1098,16 +1249,25 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
         .eq("talent_invitation_id", data.id)
         .in("status", ["invited", "expired"]);
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: closedLink } = await (supabaseAdmin as any).rpc("close_talent_invite_private", { _invitation_id: data.id });
+      const { data: closedLink } = await (supabaseAdmin as any).rpc("close_talent_invite_private", {
+        _invitation_id: data.id,
+      });
       if (closedLink) {
         const { emailLinkCancelled } = await import("@/lib/link-notify.server");
         await emailLinkCancelled(closedLink as string).catch(() => undefined);
       }
     }
 
-
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      `revoke_${data.type}_invitation`, `${data.type}_invitation`, data.id, inv?.email);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      `revoke_${data.type}_invitation`,
+      `${data.type}_invitation`,
+      data.id,
+      inv?.email,
+    );
     return inv;
   });
 
@@ -1119,8 +1279,15 @@ export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      `copy_${data.type}_invitation_link`, `${data.type}_invitation`, data.id);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      `copy_${data.type}_invitation_link`,
+      `${data.type}_invitation`,
+      data.id,
+    );
     return { ok: true };
   });
 
@@ -1232,9 +1399,7 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
         (ids.length ? `,talent_link_id.in.(${ids.join(",")})` : "");
     }
 
-    let listQ = applyFilters(
-      supabase.from("talent_shared_documents").select(VAULT_DOC_COLUMNS),
-    );
+    let listQ = applyFilters(supabase.from("talent_shared_documents").select(VAULT_DOC_COLUMNS));
     let countQ = applyFilters(
       supabase.from("talent_shared_documents").select("id", { count: "exact", head: true }),
     );
@@ -1244,7 +1409,9 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
     }
 
     const [{ data: docs, error }, { count, error: countErr }] = await Promise.all([
-      listQ.order("created_at", { ascending: false }).range(data.offset, data.offset + data.limit - 1),
+      listQ
+        .order("created_at", { ascending: false })
+        .range(data.offset, data.offset + data.limit - 1),
       countQ,
     ]);
     if (error) throw new Error(error.message);
@@ -1259,7 +1426,11 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
 export const listAgencyVaultExpiring = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ days: z.number().int().min(1).max(365).default(180), limit: z.number().int().min(1).max(50).default(5) })
+    z
+      .object({
+        days: z.number().int().min(1).max(365).default(180),
+        limit: z.number().int().min(1).max(50).default(5),
+      })
       .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
@@ -1286,7 +1457,9 @@ export const getAgencyVaultTalentSummary = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
-    const { data, error } = await supabase.rpc("agency_vault_talent_summary", { _agency_id: agencyId });
+    const { data, error } = await supabase.rpc("agency_vault_talent_summary", {
+      _agency_id: agencyId,
+    });
     if (error) throw new Error(error.message);
     return (data ?? []).map((r: any) => ({
       talentLinkId: r.talent_link_id as string,
@@ -1342,7 +1515,6 @@ export const getAgencyVaultLockCounts = createServerFn({ method: "GET" })
     return { locked: locked.count ?? 0, unlockingSoon: soon.count ?? 0 };
   });
 
-
 export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -1375,7 +1547,10 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
       status: r.status as string,
       talentType: (r.talent_type as string) ?? null,
       // Nothing from the talent's own profile is shown before they accept.
-      avatarUrl: r.talent_user_id && r.status !== "invited" ? avatarMap.get(r.talent_user_id) ?? null : null,
+      avatarUrl:
+        r.talent_user_id && r.status !== "invited"
+          ? (avatarMap.get(r.talent_user_id) ?? null)
+          : null,
     }));
   });
 
@@ -1440,8 +1615,6 @@ export const listAllAgencyProvisionedFolders = createServerFn({ method: "POST" }
     }));
   });
 
-
-
 // End / reactivate a talent relationship. Owner-only.
 export const endTalentRelationship = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1478,9 +1651,17 @@ export const endTalentRelationship = createServerFn({ method: "POST" })
     const { notifyRelationshipEnded } = await import("@/lib/link-notify.server");
     await notifyRelationshipEnded(data.id).catch(() => undefined);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "end_talent_relationship", "agency_talent_link", data.id, link.display_name,
-      { previous_status: link.status });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "end_talent_relationship",
+      "agency_talent_link",
+      data.id,
+      link.display_name,
+      { previous_status: link.status },
+    );
     return updated;
   });
 
@@ -1515,24 +1696,33 @@ export const reactivateTalentRelationship = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "reactivate_talent_relationship", "agency_talent_link", data.id, link.display_name);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "reactivate_talent_relationship",
+      "agency_talent_link",
+      data.id,
+      link.display_name,
+    );
     return updated;
   });
 
 export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      name: z.string().min(1),
-      folder: z.string().min(1),
-      storage_path: z.string().min(1),
-      talent_link_id: z.string().uuid().nullable().optional(),
-      status: z.enum(["ai_suggested", "filed", "needs_review"]).default("needs_review"),
-      validity_expires_at: z.string().nullable().optional(),
-      mime_type: z.string().max(160).nullable().optional(),
-
-    }).parse(d),
+    z
+      .object({
+        name: z.string().min(1),
+        folder: z.string().min(1),
+        storage_path: z.string().min(1),
+        talent_link_id: z.string().uuid().nullable().optional(),
+        status: z.enum(["ai_suggested", "filed", "needs_review"]).default("needs_review"),
+        validity_expires_at: z.string().nullable().optional(),
+        mime_type: z.string().max(160).nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -1553,7 +1743,9 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
       if (linkErr) throw new Error(linkErr.message);
       if (!link || link.agency_id !== agencyId) throw new Error("Invalid talent for this agency.");
       if (link.status === "ended") {
-        throw new Error("RELATIONSHIP_ENDED: this talent relationship has ended — new uploads are blocked. Reactivate the relationship to share new documents.");
+        throw new Error(
+          "RELATIONSHIP_ENDED: this talent relationship has ended — new uploads are blocked. Reactivate the relationship to share new documents.",
+        );
       }
     }
 
@@ -1565,9 +1757,6 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
       path: data.storage_path,
       claimedMime: data.mime_type ?? null,
     });
-
-
-
 
     const { data: inserted, error } = await supabase
       .from("talent_shared_documents")
@@ -1587,14 +1776,27 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "upload_vault_document", "talent_shared_document", inserted.id, data.name,
-      { folder: data.folder, talent_link_id: data.talent_link_id ?? null });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "upload_vault_document",
+      "talent_shared_document",
+      inserted.id,
+      data.name,
+      { folder: data.folder, talent_link_id: data.talent_link_id ?? null },
+    );
 
     // Document AI: this staff member's own switch decides, read on the server.
     try {
       const { recordUploadAnalysis } = await import("@/lib/document-ai.server");
-      await recordUploadAnalysis({ scope: "agency", documentId: inserted.id, uploaderId: userId, agencyId });
+      await recordUploadAnalysis({
+        scope: "agency",
+        documentId: inserted.id,
+        uploaderId: userId,
+        agencyId,
+      });
     } catch (e) {
       console.error("[document-ai] could not record analysis", e);
     }
@@ -1604,10 +1806,12 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
 export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid(),
-      disposition: z.enum(["inline", "attachment"]).default("attachment"),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid(),
+        disposition: z.enum(["inline", "attachment"]).default("attachment"),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -1627,9 +1831,10 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
       await logTalentVaultView(supabase, agencyId, userId, claims?.email, row.talent_link_id);
     }
 
-    const options = data.disposition === "attachment" ? { download: row.name as string } : undefined;
-    const { data: signed, error: sErr } = await supabase
-      .storage.from("talent-documents")
+    const options =
+      data.disposition === "attachment" ? { download: row.name as string } : undefined;
+    const { data: signed, error: sErr } = await supabase.storage
+      .from("talent-documents")
       .createSignedUrl(row.storage_path, 60 * 30, options);
     if (sErr) throw new Error(sErr.message);
     return { url: signed.signedUrl as string, name: row.name as string };
@@ -1663,8 +1868,10 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       .eq("document_id", row.id);
     const paths = Array.from(
       new Set(
-        [row.storage_path as string | null, ...(versions ?? []).map((v: any) => v.storage_path)]
-          .filter(Boolean) as string[],
+        [
+          row.storage_path as string | null,
+          ...(versions ?? []).map((v: any) => v.storage_path),
+        ].filter(Boolean) as string[],
       ),
     );
     if (paths.length) {
@@ -1672,12 +1879,22 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       if (rmErr) throw new Error(rmErr.message);
     }
     const { error: dErr } = await supabase
-      .from("talent_shared_documents").delete().eq("id", row.id);
+      .from("talent_shared_documents")
+      .delete()
+      .eq("id", row.id);
     if (dErr) throw new Error(dErr.message);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "delete_vault_document", "talent_shared_document", row.id, row.name,
-      { folder: row.folder, storage_path: row.storage_path });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "delete_vault_document",
+      "talent_shared_document",
+      row.id,
+      row.name,
+      { folder: row.folder, storage_path: row.storage_path },
+    );
     return { ok: true };
   });
 
@@ -1691,7 +1908,9 @@ export const listAgencyRetentionRules = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_retention_rules")
-      .select("id, scope, scope_value, document_id, retention_years, description, created_at, updated_at")
+      .select(
+        "id, scope, scope_value, document_id, retention_years, description, created_at, updated_at",
+      )
       .eq("agency_id", agencyId)
       .order("scope", { ascending: true })
       .order("scope_value", { ascending: true });
@@ -1716,22 +1935,24 @@ export const listAgencyRetentionRules = createServerFn({ method: "GET" })
       description: (r.description as string) ?? null,
       createdAt: r.created_at as string,
       updatedAt: r.updated_at as string,
-      documentLabel: r.document_id ? docMap.get(r.document_id)?.name ?? "—" : null,
-      documentFolder: r.document_id ? docMap.get(r.document_id)?.folder ?? null : null,
+      documentLabel: r.document_id ? (docMap.get(r.document_id)?.name ?? "—") : null,
+      documentFolder: r.document_id ? (docMap.get(r.document_id)?.folder ?? null) : null,
     }));
   });
 
 export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      scope: z.enum(["folder", "document"]),
-      scope_value: z.string().min(1).nullable().optional(),
-      document_id: z.string().uuid().nullable().optional(),
-      retention_years: z.number().int().min(0).max(100),
-      description: z.string().nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        scope: z.enum(["folder", "document"]),
+        scope_value: z.string().min(1).nullable().optional(),
+        document_id: z.string().uuid().nullable().optional(),
+        retention_years: z.number().int().min(0).max(100),
+        description: z.string().nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -1741,8 +1962,8 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
     const payload: Record<string, unknown> = {
       agency_id: agencyId,
       scope: data.scope,
-      scope_value: data.scope === "folder" ? data.scope_value ?? null : null,
-      document_id: data.scope === "document" ? data.document_id ?? null : null,
+      scope_value: data.scope === "folder" ? (data.scope_value ?? null) : null,
+      document_id: data.scope === "document" ? (data.document_id ?? null) : null,
       retention_years: data.retention_years,
       description: data.description ?? null,
       created_by: userId,
@@ -1751,22 +1972,35 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
     let row: any;
     if (data.id) {
       const { data: r, error } = await supabase
-        .from("agency_retention_rules").update(payload)
-        .eq("id", data.id).eq("agency_id", agencyId).select().single();
+        .from("agency_retention_rules")
+        .update(payload)
+        .eq("id", data.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       row = r;
     } else {
       const { data: r, error } = await supabase
-        .from("agency_retention_rules").insert(payload).select().single();
+        .from("agency_retention_rules")
+        .insert(payload)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       row = r;
     }
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
       data.id ? "update_retention_rule" : "create_retention_rule",
-      "agency_retention_rule", row.id,
-      data.scope === "folder" ? data.scope_value ?? "" : data.document_id ?? "",
-      { scope: data.scope, retention_years: data.retention_years });
+      "agency_retention_rule",
+      row.id,
+      data.scope === "folder" ? (data.scope_value ?? "") : (data.document_id ?? ""),
+      { scope: data.scope, retention_years: data.retention_years },
+    );
     return row;
   });
 
@@ -1778,11 +2012,23 @@ export const deleteAgencyRetentionRule = createServerFn({ method: "POST" })
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const { data: row, error } = await supabase
-      .from("agency_retention_rules").delete()
-      .eq("id", data.id).eq("agency_id", agencyId).select().single();
+      .from("agency_retention_rules")
+      .delete()
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "delete_retention_rule", "agency_retention_rule", row.id, row.scope_value ?? row.document_id);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "delete_retention_rule",
+      "agency_retention_rule",
+      row.id,
+      row.scope_value ?? row.document_id,
+    );
     return { ok: true };
   });
 
@@ -1799,13 +2045,16 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
     const { data: doc, error: dErr } = await supabase
       .from("talent_shared_documents")
       .select("id, agency_id, name, storage_path, current_version_id")
-      .eq("id", data.document_id).single();
+      .eq("id", data.document_id)
+      .single();
     if (dErr) throw new Error(dErr.message);
     if (doc.agency_id !== agencyId) throw new Error("Forbidden");
 
     const { data: versions, error } = await supabase
       .from("talent_shared_document_versions")
-      .select("id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at")
+      .select(
+        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at",
+      )
       .eq("document_id", data.document_id)
       .order("version_number", { ascending: false });
     if (error) throw new Error(error.message);
@@ -1819,13 +2068,15 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
 export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      document_id: z.string().uuid(),
-      storage_path: z.string().min(1),
-      name: z.string().min(1),
-      size_bytes: z.number().int().nullable().optional(),
-      mime_type: z.string().nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        document_id: z.string().uuid(),
+        storage_path: z.string().min(1),
+        name: z.string().min(1),
+        size_bytes: z.number().int().nullable().optional(),
+        mime_type: z.string().nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -1843,12 +2094,11 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
       claimedMime: data.mime_type ?? null,
     });
 
-
-
     const { data: doc, error: dErr } = await supabase
       .from("talent_shared_documents")
       .select("id, agency_id, storage_path, name, talent_link_id")
-      .eq("id", data.document_id).single();
+      .eq("id", data.document_id)
+      .single();
     if (dErr) throw new Error(dErr.message);
     if (doc.agency_id !== agencyId) throw new Error("Forbidden");
 
@@ -1859,7 +2109,9 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
         .eq("id", doc.talent_link_id)
         .maybeSingle();
       if (link?.status === "ended") {
-        throw new Error("RELATIONSHIP_ENDED: this talent relationship has ended — new versions are blocked. Reactivate the relationship to share new documents.");
+        throw new Error(
+          "RELATIONSHIP_ENDED: this talent relationship has ended — new versions are blocked. Reactivate the relationship to share new documents.",
+        );
       }
     }
 
@@ -1868,7 +2120,8 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
       .select("version_number")
       .eq("document_id", data.document_id)
       .order("version_number", { ascending: false })
-      .limit(1).maybeSingle();
+      .limit(1)
+      .maybeSingle();
 
     let nextNumber = ((last?.version_number as number | undefined) ?? 0) + 1;
     if (!last && doc.storage_path && doc.storage_path !== data.storage_path) {
@@ -1893,7 +2146,8 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
         mime_type: data.mime_type ?? null,
         uploaded_by: userId,
       })
-      .select().single();
+      .select()
+      .single();
     if (error) throw new Error(error.message);
 
     await supabase
@@ -1905,19 +2159,29 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
       })
       .eq("id", data.document_id);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "upload_document_version", "talent_shared_document", data.document_id, data.name,
-      { version_number: nextNumber });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "upload_document_version",
+      "talent_shared_document",
+      data.document_id,
+      data.name,
+      { version_number: nextNumber },
+    );
     return version;
   });
 
 export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      version_id: z.string().uuid(),
-      disposition: z.enum(["inline", "attachment"]).default("inline"),
-    }).parse(d),
+    z
+      .object({
+        version_id: z.string().uuid(),
+        disposition: z.enum(["inline", "attachment"]).default("inline"),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -1926,7 +2190,8 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
     const { data: v, error } = await supabase
       .from("talent_shared_document_versions")
       .select("storage_path, name, document_id, talent_shared_documents!inner(agency_id)")
-      .eq("id", data.version_id).single();
+      .eq("id", data.version_id)
+      .single();
     if (error) throw new Error(error.message);
     if ((v as any).talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
 
@@ -1979,13 +2244,15 @@ export const listAgencyFolderTemplates = createServerFn({ method: "GET" })
 export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      name: z.string().min(1).max(120),
-      description: z.string().max(500).nullable().optional(),
-      is_default: z.boolean().optional(),
-      items: z.array(templateItemSchema).default([]),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        name: z.string().min(1).max(120),
+        description: z.string().max(500).nullable().optional(),
+        is_default: z.boolean().optional(),
+        items: z.array(templateItemSchema).default([]),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -2013,7 +2280,8 @@ export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
           description: data.description ?? null,
           is_default: data.is_default ?? false,
         })
-        .select("id").single();
+        .select("id")
+        .single();
       if (error) throw new Error(error.message);
       templateId = row.id;
     }
@@ -2032,10 +2300,17 @@ export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
       data.id ? "update_folder_template" : "create_folder_template",
-      "agency_folder_template", templateId, data.name,
-      { item_count: data.items.length });
+      "agency_folder_template",
+      templateId,
+      data.name,
+      { item_count: data.items.length },
+    );
 
     return { id: templateId };
   });
@@ -2051,12 +2326,22 @@ export const deleteAgencyFolderTemplate = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("agency_folder_templates")
       .delete()
-      .eq("id", data.id).eq("agency_id", agencyId)
-      .select("id, name").single();
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select("id, name")
+      .single();
     if (error) throw new Error(error.message);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "delete_folder_template", "agency_folder_template", row.id, row.name);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "delete_folder_template",
+      "agency_folder_template",
+      row.id,
+      row.name,
+    );
     return { ok: true };
   });
 
@@ -2071,7 +2356,8 @@ export const applyAgencyFolderTemplate = createServerFn({ method: "POST" })
     const { data: tmpl, error: tErr } = await supabase
       .from("agency_folder_templates")
       .select("id, name, agency_id")
-      .eq("id", data.template_id).single();
+      .eq("id", data.template_id)
+      .single();
     if (tErr) throw new Error(tErr.message);
     if (tmpl.agency_id !== agencyId) throw new Error("Forbidden");
 
@@ -2092,7 +2378,8 @@ export const applyAgencyFolderTemplate = createServerFn({ method: "POST" })
         .eq("scope_value", it.folder_name)
         .maybeSingle();
       if (existing) {
-        await supabase.from("agency_retention_rules")
+        await supabase
+          .from("agency_retention_rules")
           .update({ retention_years: it.default_retention_years })
           .eq("id", existing.id);
       } else {
@@ -2108,9 +2395,17 @@ export const applyAgencyFolderTemplate = createServerFn({ method: "POST" })
       }
     }
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "apply_folder_template", "agency_folder_template", tmpl.id, tmpl.name,
-      { rules_created: created });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "apply_folder_template",
+      "agency_folder_template",
+      tmpl.id,
+      tmpl.name,
+      { rules_created: created },
+    );
 
     return { ok: true, rules_created: created };
   });
@@ -2134,7 +2429,9 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
 
     const { data, error } = await supabase
       .from("agency_billing_docs")
-      .select("id, kind, number, client_name, talent_name, talent_link_id, issued_at, due_date, paid_at, currency, total_cents, status, notes, shared_with_talent, converted_from_quote_id, description, allow_partial_payment, created_at, updated_at")
+      .select(
+        "id, kind, number, client_name, talent_name, talent_link_id, issued_at, due_date, paid_at, currency, total_cents, status, notes, shared_with_talent, converted_from_quote_id, description, allow_partial_payment, created_at, updated_at",
+      )
       .eq("agency_id", agencyId)
       .order("issued_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -2144,22 +2441,24 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
 export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      id: z.string().uuid().optional(),
-      kind: billingKind,
-      number: z.string().min(1).max(64),
-      client_name: z.string().max(200).nullable().optional(),
-      talent_name: z.string().max(200).nullable().optional(),
-      issued_at: z.string().min(10),
-      due_date: z.string().min(10).nullable().optional(),
-      currency: z.string().min(3).max(3).default("ZAR"),
-      total_cents: z.number().int().min(0),
-      status: billingStatus.default("draft"),
-      notes: z.string().max(2000).nullable().optional(),
-      shared_with_talent: z.boolean().optional(),
-      description: z.string().max(200).nullable().optional(),
-      allow_partial_payment: z.boolean().optional(),
-    }).parse(d),
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        kind: billingKind,
+        number: z.string().min(1).max(64),
+        client_name: z.string().max(200).nullable().optional(),
+        talent_name: z.string().max(200).nullable().optional(),
+        issued_at: z.string().min(10),
+        due_date: z.string().min(10).nullable().optional(),
+        currency: z.string().min(3).max(3).default("ZAR"),
+        total_cents: z.number().int().min(0),
+        status: billingStatus.default("draft"),
+        notes: z.string().max(2000).nullable().optional(),
+        shared_with_talent: z.boolean().optional(),
+        description: z.string().max(200).nullable().optional(),
+        allow_partial_payment: z.boolean().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -2190,7 +2489,8 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
       const { data: existing } = await supabase
         .from("agency_billing_docs")
         .select("status, number, total_cents, currency, issued_at, due_date, kind")
-        .eq("id", data.id).eq("agency_id", agencyId)
+        .eq("id", data.id)
+        .eq("agency_id", agencyId)
         .maybeSingle();
       if (existing && existing.status !== "draft") {
         const changed =
@@ -2210,23 +2510,33 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
       const { data: r, error } = await supabase
         .from("agency_billing_docs")
         .update(payload)
-        .eq("id", data.id).eq("agency_id", agencyId)
-        .select().single();
+        .eq("id", data.id)
+        .eq("agency_id", agencyId)
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       row = r;
     } else {
       const { data: r, error } = await supabase
         .from("agency_billing_docs")
         .insert(payload)
-        .select().single();
+        .select()
+        .single();
       if (error) throw new Error(error.message);
       row = r;
     }
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
       data.id ? "update_billing_doc" : "create_billing_doc",
-      "agency_billing_doc", row.id, `${row.kind.toUpperCase()} ${row.number}`,
-      { status: row.status, total_cents: row.total_cents });
+      "agency_billing_doc",
+      row.id,
+      `${row.kind.toUpperCase()} ${row.number}`,
+      { status: row.status, total_cents: row.total_cents },
+    );
 
     return row;
   });
@@ -2242,12 +2552,22 @@ export const updateAgencyBillingDocStatus = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("agency_billing_docs")
       .update({ status: data.status })
-      .eq("id", data.id).eq("agency_id", agencyId)
-      .select().single();
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "update_billing_doc_status", "agency_billing_doc", row.id,
-      `${row.kind.toUpperCase()} ${row.number}`, { new_status: data.status });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "update_billing_doc_status",
+      "agency_billing_doc",
+      row.id,
+      `${row.kind.toUpperCase()} ${row.number}`,
+      { new_status: data.status },
+    );
     return row;
   });
 
@@ -2273,44 +2593,62 @@ export const deleteAgencyBillingDoc = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("agency_billing_docs")
       .delete()
-      .eq("id", data.id).eq("agency_id", agencyId)
-      .select("id, kind, number").single();
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select("id, kind, number")
+      .single();
     if (error) throw new Error(error.message);
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "delete_billing_doc", "agency_billing_doc", row.id,
-      `${row.kind.toUpperCase()} ${row.number}`);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "delete_billing_doc",
+      "agency_billing_doc",
+      row.id,
+      `${row.kind.toUpperCase()} ${row.number}`,
+    );
     return { ok: true };
   });
 
 export const setBillingDocShared = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string().uuid(), shared: z.boolean() }).parse(d),
-  )
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), shared: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: row, error } = await supabase
       .from("agency_billing_docs")
       .update({ shared_with_talent: data.shared })
-      .eq("id", data.id).eq("agency_id", agencyId)
-      .select().single();
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
       data.shared ? "share_billing_doc" : "unshare_billing_doc",
-      "agency_billing_doc", row.id, `${row.kind.toUpperCase()} ${row.number}`);
+      "agency_billing_doc",
+      row.id,
+      `${row.kind.toUpperCase()} ${row.number}`,
+    );
     return row;
   });
 
 export const convertQuoteToInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      quote_id: z.string().uuid(),
-      invoice_number: z.string().min(1).max(64),
-      issued_at: z.string().min(10).optional(),
-      due_date: z.string().min(10).nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        quote_id: z.string().uuid(),
+        invoice_number: z.string().min(1).max(64),
+        issued_at: z.string().min(10).optional(),
+        due_date: z.string().min(10).nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -2319,7 +2657,9 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
     const { data: quote, error: qErr } = await supabase
       .from("agency_billing_docs")
       .select("*")
-      .eq("id", data.quote_id).eq("agency_id", agencyId).eq("kind", "quote")
+      .eq("id", data.quote_id)
+      .eq("agency_id", agencyId)
+      .eq("kind", "quote")
       .single();
     if (qErr) throw new Error(qErr.message);
     if (!quote) throw new Error("Quote not found");
@@ -2342,7 +2682,9 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
         number: data.invoice_number,
         client_name: quote.client_name,
         talent_name: quote.talent_name,
-        talent_link_id: quote.talent_link_id ?? (await resolveBillingTalentLink(supabase, agencyId, quote.talent_name)),
+        talent_link_id:
+          quote.talent_link_id ??
+          (await resolveBillingTalentLink(supabase, agencyId, quote.talent_name)),
         issued_at: data.issued_at ?? today,
         due_date: data.due_date ?? null,
         currency: quote.currency,
@@ -2352,19 +2694,28 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
         shared_with_talent: quote.shared_with_talent,
         converted_from_quote_id: quote.id,
       })
-      .select().single();
+      .select()
+      .single();
     if (iErr) throw new Error(iErr.message);
 
     // Mark quote as accepted (conversion implies acceptance)
     await supabase
       .from("agency_billing_docs")
       .update({ status: "accepted" })
-      .eq("id", quote.id).eq("agency_id", agencyId);
+      .eq("id", quote.id)
+      .eq("agency_id", agencyId);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "convert_quote_to_invoice", "agency_billing_doc", invoice.id,
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "convert_quote_to_invoice",
+      "agency_billing_doc",
+      invoice.id,
       `${quote.number} → ${invoice.number}`,
-      { quote_id: quote.id, invoice_id: invoice.id });
+      { quote_id: quote.id, invoice_id: invoice.id },
+    );
 
     return invoice;
   });
@@ -2375,16 +2726,18 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
 export const listAgencyAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      action: z.string().optional(),
-      target_type: z.string().optional(),
-      actor_id: z.string().optional(),
-      since: z.string().optional(),
-      actions: z.array(z.string()).optional(),
-      excludeActions: z.array(z.string()).optional(),
-      limit: z.number().int().min(1).max(1000).default(500),
-      offset: z.number().int().min(0).default(0),
-    }).parse(d ?? {}),
+    z
+      .object({
+        action: z.string().optional(),
+        target_type: z.string().optional(),
+        actor_id: z.string().optional(),
+        since: z.string().optional(),
+        actions: z.array(z.string()).optional(),
+        excludeActions: z.array(z.string()).optional(),
+        limit: z.number().int().min(1).max(1000).default(500),
+        offset: z.number().int().min(0).default(0),
+      })
+      .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -2392,7 +2745,9 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
 
     let q = supabase
       .from("agency_audit_log")
-      .select("id, actor_id, actor_email, action, target_type, target_id, target_label, detail, ip_address, user_agent, created_at")
+      .select(
+        "id, actor_id, actor_email, action, target_type, target_id, target_label, detail, ip_address, user_agent, created_at",
+      )
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
@@ -2403,7 +2758,6 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
     if (data.target_type) q = q.eq("target_type", data.target_type);
     if (data.actor_id) q = q.eq("actor_id", data.actor_id);
     if (data.since) q = q.gte("created_at", data.since);
-
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
@@ -2429,7 +2783,9 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
     return (rows ?? []).map((r: any) => ({
       id: r.id as string,
       actorId: (r.actor_id as string) ?? null,
-      actorName: r.actor_id ? actorMap.get(r.actor_id) ?? (r.actor_email as string) ?? "Team member" : "System",
+      actorName: r.actor_id
+        ? (actorMap.get(r.actor_id) ?? (r.actor_email as string) ?? "Team member")
+        : "System",
       actorEmail: (r.actor_email as string) ?? null,
       action: r.action as string,
       targetType: (r.target_type as string) ?? null,
@@ -2458,7 +2814,8 @@ export const countAgencyAuditByAction = createServerFn({ method: "GET" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     const byAction: Record<string, number> = {};
-    for (const r of rows ?? []) byAction[r.action as string] = (byAction[r.action as string] ?? 0) + 1;
+    for (const r of rows ?? [])
+      byAction[r.action as string] = (byAction[r.action as string] ?? 0) + 1;
     return { total: (rows ?? []).length, byAction };
   });
 
@@ -2473,10 +2830,11 @@ export const listAgencyAuditActions = createServerFn({ method: "GET" })
       .eq("agency_id", agencyId)
       .limit(1000);
     if (error) throw new Error(error.message);
-    const actions = Array.from(new Set((data ?? []).map((r: any) => r.action as string))) as string[];
+    const actions = Array.from(
+      new Set((data ?? []).map((r: any) => r.action as string)),
+    ) as string[];
     return actions.sort();
   });
-
 
 // -----------------------------------------------------------------------------
 // M6 — Contract detail (contracts live in talent_shared_documents, folder='Contracts & Agreements')
@@ -2490,21 +2848,30 @@ export const getAgencyContract = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: doc, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, agency_id, name, folder, status, storage_path, talent_link_id, validity_expires_at, contract_client_name, contract_start_date, contract_end_date, contract_total_cents, contract_currency, contract_notes, created_at, updated_at")
-      .eq("id", data.id).eq("agency_id", agencyId).maybeSingle();
+      .select(
+        "id, agency_id, name, folder, status, storage_path, talent_link_id, validity_expires_at, contract_client_name, contract_start_date, contract_end_date, contract_total_cents, contract_currency, contract_notes, created_at, updated_at",
+      )
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
     if (error) throw new Error(error.message);
     if (!doc) throw new Error("Contract not found");
 
     let talentName = "Unassigned";
     if (doc.talent_link_id) {
       const { data: link } = await supabase
-        .from("agency_talent_links").select("display_name").eq("id", doc.talent_link_id).maybeSingle();
+        .from("agency_talent_links")
+        .select("display_name")
+        .eq("id", doc.talent_link_id)
+        .maybeSingle();
       if (link) talentName = link.display_name as string;
     }
 
     const { data: invoices } = await supabase
       .from("agency_billing_docs")
-      .select("id, kind, number, issued_at, due_date, currency, total_cents, status, shared_with_talent")
+      .select(
+        "id, kind, number, issued_at, due_date, currency, total_cents, status, shared_with_talent",
+      )
       .eq("agency_id", agencyId)
       .eq("contract_document_id", data.id)
       .order("issued_at", { ascending: false });
@@ -2527,25 +2894,34 @@ export const getAgencyContract = createServerFn({ method: "GET" })
       createdAt: doc.created_at as string,
       updatedAt: doc.updated_at as string,
       invoices: (invoices ?? []).map((r: any) => ({
-        id: r.id, kind: r.kind, number: r.number,
-        issuedAt: r.issued_at, dueDate: r.due_date,
-        currency: r.currency, totalCents: r.total_cents,
-        status: r.status, sharedWithTalent: r.shared_with_talent,
+        id: r.id,
+        kind: r.kind,
+        number: r.number,
+        issuedAt: r.issued_at,
+        dueDate: r.due_date,
+        currency: r.currency,
+        totalCents: r.total_cents,
+        status: r.status,
+        sharedWithTalent: r.shared_with_talent,
       })),
     };
   });
 
 export const updateAgencyContractMeta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    id: z.string().uuid(),
-    contract_client_name: z.string().max(200).nullable().optional(),
-    contract_start_date: z.string().nullable().optional(),
-    contract_end_date: z.string().nullable().optional(),
-    contract_total_cents: z.number().int().min(0).nullable().optional(),
-    contract_currency: z.string().min(3).max(3).nullable().optional(),
-    contract_notes: z.string().max(4000).nullable().optional(),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        contract_client_name: z.string().max(200).nullable().optional(),
+        contract_start_date: z.string().nullable().optional(),
+        contract_end_date: z.string().nullable().optional(),
+        contract_total_cents: z.number().int().min(0).nullable().optional(),
+        contract_currency: z.string().min(3).max(3).nullable().optional(),
+        contract_notes: z.string().max(4000).nullable().optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
@@ -2553,24 +2929,38 @@ export const updateAgencyContractMeta = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
       .update(rest)
-      .eq("id", id).eq("agency_id", agencyId)
-      .select("id, name").single();
+      .eq("id", id)
+      .eq("agency_id", agencyId)
+      .select("id, name")
+      .single();
     if (error) throw new Error(error.message);
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "update_contract_meta", "talent_shared_document", row.id, row.name);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "update_contract_meta",
+      "talent_shared_document",
+      row.id,
+      row.name,
+    );
     return row;
   });
 
 export const createInvoiceForContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    contract_id: z.string().uuid(),
-    number: z.string().min(1).max(64),
-    total_cents: z.number().int().min(0),
-    issued_at: z.string().min(10).optional(),
-    due_date: z.string().min(10).nullable().optional(),
-    notes: z.string().max(2000).nullable().optional(),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        contract_id: z.string().uuid(),
+        number: z.string().min(1).max(64),
+        total_cents: z.number().int().min(0),
+        issued_at: z.string().min(10).optional(),
+        due_date: z.string().min(10).nullable().optional(),
+        notes: z.string().max(2000).nullable().optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
@@ -2578,14 +2968,19 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
     const { data: contract, error: cErr } = await supabase
       .from("talent_shared_documents")
       .select("id, name, talent_link_id, contract_client_name, contract_currency")
-      .eq("id", data.contract_id).eq("agency_id", agencyId).maybeSingle();
+      .eq("id", data.contract_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
     if (cErr) throw new Error(cErr.message);
     if (!contract) throw new Error("Contract not found");
 
     let talentName: string | null = null;
     if (contract.talent_link_id) {
       const { data: link } = await supabase
-        .from("agency_talent_links").select("display_name").eq("id", contract.talent_link_id).maybeSingle();
+        .from("agency_talent_links")
+        .select("display_name")
+        .eq("id", contract.talent_link_id)
+        .maybeSingle();
       talentName = link?.display_name ?? null;
     }
 
@@ -2607,12 +3002,21 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
         notes: data.notes ?? null,
         contract_document_id: contract.id,
       })
-      .select().single();
+      .select()
+      .single();
     if (error) throw new Error(error.message);
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "create_contract_invoice", "agency_billing_doc", invoice.id,
-      `${invoice.number} for ${contract.name}`, { contract_id: contract.id });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "create_contract_invoice",
+      "agency_billing_doc",
+      invoice.id,
+      `${invoice.number} for ${contract.name}`,
+      { contract_id: contract.id },
+    );
 
     return invoice;
   });
@@ -2622,7 +3026,12 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 
 const reviewReasonCodes = z.enum([
-  "illegible", "wrong_document", "expired", "incomplete", "wrong_person", "other",
+  "illegible",
+  "wrong_document",
+  "expired",
+  "incomplete",
+  "wrong_person",
+  "other",
 ]);
 
 export const listAgencyDocumentRequests = createServerFn({ method: "GET" })
@@ -2632,26 +3041,39 @@ export const listAgencyDocumentRequests = createServerFn({ method: "GET" })
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_document_requests")
-      .select("id, talent_link_id, title, folder, instructions, status, due_date, reason_code, review_notes, reviewed_at, created_at, updated_at, current_document_id")
+      .select(
+        "id, talent_link_id, title, folder, instructions, status, due_date, reason_code, review_notes, reviewed_at, created_at, updated_at, current_document_id",
+      )
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const linkIds = Array.from(new Set((rows ?? []).map((r: any) => r.talent_link_id).filter(Boolean)));
+    const linkIds = Array.from(
+      new Set((rows ?? []).map((r: any) => r.talent_link_id).filter(Boolean)),
+    );
     const talentMap = new Map<string, string>();
     if (linkIds.length) {
       const { data: links } = await supabase
-        .from("agency_talent_links").select("id, display_name").in("id", linkIds);
+        .from("agency_talent_links")
+        .select("id, display_name")
+        .in("id", linkIds);
       for (const l of links ?? []) talentMap.set(l.id as string, l.display_name as string);
     }
 
     return (rows ?? []).map((r: any) => ({
-      id: r.id, talentLinkId: r.talent_link_id,
+      id: r.id,
+      talentLinkId: r.talent_link_id,
       talentName: talentMap.get(r.talent_link_id) ?? "Unknown",
-      title: r.title, folder: r.folder, instructions: r.instructions,
-      status: r.status, dueDate: r.due_date,
-      reasonCode: r.reason_code, reviewNotes: r.review_notes,
-      reviewedAt: r.reviewed_at, createdAt: r.created_at, updatedAt: r.updated_at,
+      title: r.title,
+      folder: r.folder,
+      instructions: r.instructions,
+      status: r.status,
+      dueDate: r.due_date,
+      reasonCode: r.reason_code,
+      reviewNotes: r.review_notes,
+      reviewedAt: r.reviewed_at,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
       currentDocumentId: r.current_document_id,
     }));
   });
@@ -2665,7 +3087,9 @@ export const getAgencyDocumentRequest = createServerFn({ method: "GET" })
     const { data: req, error } = await supabase
       .from("agency_document_requests")
       .select("*")
-      .eq("id", data.id).eq("agency_id", agencyId).maybeSingle();
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
     if (error) throw new Error(error.message);
     if (!req) throw new Error("Request not found");
 
@@ -2680,13 +3104,17 @@ export const getAgencyDocumentRequest = createServerFn({ method: "GET" })
 
 export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    talent_link_id: z.string().uuid(),
-    title: z.string().min(1).max(200),
-    folder: z.string().min(1).max(100),
-    instructions: z.string().max(2000).nullable().optional(),
-    due_date: z.string().nullable().optional(),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        talent_link_id: z.string().uuid(),
+        title: z.string().min(1).max(200),
+        folder: z.string().min(1).max(100),
+        instructions: z.string().max(2000).nullable().optional(),
+        due_date: z.string().nullable().optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
@@ -2702,21 +3130,34 @@ export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
         instructions: data.instructions ?? null,
         due_date: data.due_date ?? null,
       })
-      .select().single();
+      .select()
+      .single();
     if (error) throw new Error(error.message);
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "create_document_request", "agency_document_request", row.id, data.title);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "create_document_request",
+      "agency_document_request",
+      row.id,
+      data.title,
+    );
     return row;
   });
 
 export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    id: z.string().uuid(),
-    outcome: z.enum(["completed", "resubmission_required", "cancelled"]),
-    reason_code: reviewReasonCodes.optional(),
-    notes: z.string().max(2000).optional(),
-  }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        outcome: z.enum(["completed", "resubmission_required", "cancelled"]),
+        reason_code: reviewReasonCodes.optional(),
+        notes: z.string().max(2000).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
@@ -2728,7 +3169,9 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
     const { data: req, error: rErr } = await supabase
       .from("agency_document_requests")
       .select("id, title, current_document_id, talent_link_id")
-      .eq("id", data.id).eq("agency_id", agencyId).maybeSingle();
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
     if (rErr) throw new Error(rErr.message);
     if (!req) throw new Error("Request not found");
     await assertLinkNotEnded(supabase, req.talent_link_id);
@@ -2742,8 +3185,10 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
         reviewed_by: userId,
         reviewed_at: new Date().toISOString(),
       })
-      .eq("id", data.id).eq("agency_id", agencyId)
-      .select().single();
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select()
+      .single();
     if (error) throw new Error(error.message);
 
     // History row — never delete previous submissions.
@@ -2758,9 +3203,17 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
       actor_email: claims?.email ?? null,
     });
 
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      `review_document_request_${data.outcome}`, "agency_document_request",
-      req.id, req.title, { reason_code: data.reason_code ?? null });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      `review_document_request_${data.outcome}`,
+      "agency_document_request",
+      req.id,
+      req.title,
+      { reason_code: data.reason_code ?? null },
+    );
 
     return updated;
   });
@@ -2771,10 +3224,12 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
 export const updateOwnAgencyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      first_name: z.string().trim().max(80).optional().default(""),
-      last_name: z.string().trim().max(80).optional().default(""),
-    }).parse(d),
+    z
+      .object({
+        first_name: z.string().trim().max(80).optional().default(""),
+        last_name: z.string().trim().max(80).optional().default(""),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -2797,8 +3252,13 @@ export const updateOwnAgencyProfile = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "update_own_profile", "user", userId,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "update_own_profile",
+      "user",
+      userId,
       display_name ?? claims?.email ?? "self",
       { first_name: data.first_name || null, last_name: data.last_name || null },
     );
@@ -2812,9 +3272,15 @@ export const logOwnAgencyEmailChangeRequest = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "request_own_email_change", "user", userId,
-      claims?.email ?? "self", { new_email: data.new_email },
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "request_own_email_change",
+      "user",
+      userId,
+      claims?.email ?? "self",
+      { new_email: data.new_email },
     );
     return { ok: true };
   });
@@ -2825,8 +3291,15 @@ export const logOwnAgencyPasswordChange = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "change_own_password", "user", userId, claims?.email ?? "self", {},
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "change_own_password",
+      "user",
+      userId,
+      claims?.email ?? "self",
+      {},
     );
     return { ok: true };
   });
@@ -2840,8 +3313,14 @@ export const logOwnAgencyMfaEnrolled = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "enroll_mfa", "user", userId, claims?.email ?? "self",
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "enroll_mfa",
+      "user",
+      userId,
+      claims?.email ?? "self",
       { factor_type: data.factor_type },
     );
     return { ok: true };
@@ -2853,8 +3332,15 @@ export const logOwnAgencyMfaDisabled = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "disable_mfa", "user", userId, claims?.email ?? "self", {},
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "disable_mfa",
+      "user",
+      userId,
+      claims?.email ?? "self",
+      {},
     );
     return { ok: true };
   });
@@ -2881,12 +3367,14 @@ export const getMyAgencyProfile = createServerFn({ method: "GET" })
 export const updateMyAgencyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      name: z.string().trim().min(1).max(200),
-      business_type: z.string().trim().max(80).optional().nullable(),
-      country: z.string().trim().max(120).optional().nullable(),
-      contact_email: z.string().trim().email().max(200),
-    }).parse(d),
+    z
+      .object({
+        name: z.string().trim().min(1).max(200),
+        business_type: z.string().trim().max(80).optional().nullable(),
+        country: z.string().trim().max(120).optional().nullable(),
+        contact_email: z.string().trim().email().max(200),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -2905,8 +3393,15 @@ export const updateMyAgencyProfile = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!updated) throw new Error("You do not have permission to update this agency profile.");
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "update_agency_profile", "agency", agencyId, data.name, {},
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "update_agency_profile",
+      "agency",
+      agencyId,
+      data.name,
+      {},
     );
     return updated;
   });
@@ -2914,12 +3409,14 @@ export const updateMyAgencyProfile = createServerFn({ method: "POST" })
 export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      first_name: z.string().trim().max(80),
-      last_name: z.string().trim().max(80),
-      email: z.string().trim().email().max(200),
-      phone: z.string().trim().max(40),
-    }).parse(d),
+    z
+      .object({
+        first_name: z.string().trim().max(80),
+        last_name: z.string().trim().max(80),
+        email: z.string().trim().email().max(200),
+        phone: z.string().trim().max(40),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -2938,8 +3435,13 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!updated) throw new Error("You do not have permission to update the main contact.");
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "update_agency_main_contact", "agency", agencyId,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "update_agency_main_contact",
+      "agency",
+      agencyId,
       [data.first_name, data.last_name].filter(Boolean).join(" ") || data.email,
       { email: data.email, phone: data.phone },
     );
@@ -2979,13 +3481,18 @@ export const updateAgencyNotificationSettings = createServerFn({ method: "POST" 
       .single();
     if (error) throw new Error(error.message);
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "update_notification_settings", "agency", agencyId, undefined,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "update_notification_settings",
+      "agency",
+      agencyId,
+      undefined,
       { expiry_notice_days: data.expiry_notice_days },
     );
     return updated;
   });
-
 
 // =============================================================================
 // Billing settings, branding, itemized lines, preview and send.
@@ -3050,8 +3557,14 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "update_billing_settings", "agency", agencyId, undefined,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "update_billing_settings",
+      "agency",
+      agencyId,
+      undefined,
       { is_vat_registered: data.is_vat_registered, default_vat_rate_bp: data.default_vat_rate_bp },
     );
     return updated;
@@ -3059,9 +3572,7 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
 
 export const updateAgencyLogoPath = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z.object({ storage_path: z.string().nullable() }).parse(d),
-  )
+  .inputValidator((d: unknown) => z.object({ storage_path: z.string().nullable() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
@@ -3080,7 +3591,6 @@ export const updateAgencyLogoPath = createServerFn({ method: "POST" })
       });
     }
 
-
     const { data: cur } = await supabase
       .from("agencies")
       .select("logo_path")
@@ -3096,9 +3606,13 @@ export const updateAgencyLogoPath = createServerFn({ method: "POST" })
       .eq("id", agencyId);
     if (error) throw new Error(error.message);
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
       data.storage_path ? "upload_agency_logo" : "remove_agency_logo",
-      "agency", agencyId,
+      "agency",
+      agencyId,
     );
     return { ok: true };
   });
@@ -3162,7 +3676,16 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
         due_date: z.string().min(10).nullable(),
         currency: z.string().min(3).max(3).default("ZAR"),
         status: z
-          .enum(["draft", "sent", "accepted", "declined", "partial", "paid", "overdue", "cancelled"])
+          .enum([
+            "draft",
+            "sent",
+            "accepted",
+            "declined",
+            "partial",
+            "paid",
+            "overdue",
+            "cancelled",
+          ])
           .default("draft"),
         notes: z.string().max(2000).nullable(),
         shared_with_talent: z.boolean(),
@@ -3199,12 +3722,10 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
     for (const l of data.lines) {
       rateCount.set(l.vat_rate_bp, (rateCount.get(l.vat_rate_bp) ?? 0) + 1);
     }
-    const primaryRate =
-      [...rateCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
+    const primaryRate = [...rateCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
 
     const number =
-      data.number?.trim() ||
-      `DRAFT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      data.number?.trim() || `DRAFT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const payload: any = {
       agency_id: agencyId,
@@ -3231,7 +3752,12 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
 
       acceptance_window_days: data.acceptance_window_days,
       payment_terms_days: data.payment_terms_days,
-      talent_link_id: await resolveBillingTalentLink(supabase, agencyId, data.talent_name, data.talent_link_id ?? null),
+      talent_link_id: await resolveBillingTalentLink(
+        supabase,
+        agencyId,
+        data.talent_name,
+        data.talent_link_id ?? null,
+      ),
       subtotal_cents: subtotal,
       vat_cents: vat,
       vat_rate_bp: primaryRate,
@@ -3281,9 +3807,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       vat_rate_bp: l.vat_rate_bp,
       sort_order: l.sort_order ?? i,
     }));
-    const { error: lErr } = await supabase
-      .from("agency_billing_doc_lines")
-      .insert(insertLines);
+    const { error: lErr } = await supabase.from("agency_billing_doc_lines").insert(insertLines);
     if (lErr) throw new Error(lErr.message);
 
     // "Save this client for next time" on a manually typed recipient: create the
@@ -3311,18 +3835,28 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
           .eq("id", docId)
           .eq("agency_id", agencyId);
         await logAgencyAudit(
-          supabase, agencyId, userId, claims?.email,
-          "create_agency_client", "agency_client", created.id,
-          (data.client_name ?? "").trim(), { from: "billing_editor" },
+          supabase,
+          agencyId,
+          userId,
+          claims?.email,
+          "create_agency_client",
+          "agency_client",
+          created.id,
+          (data.client_name ?? "").trim(),
+          { from: "billing_editor" },
         );
       }
     }
 
-
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
       data.id ? "update_billing_doc" : "create_billing_doc",
-      "agency_billing_doc", docId, `${data.kind.toUpperCase()} ${number}`,
+      "agency_billing_doc",
+      docId,
+      `${data.kind.toUpperCase()} ${number}`,
       { status: data.status, total_cents: total },
     );
 
@@ -3339,9 +3873,14 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
 
       if (Object.keys(changes).length > 0) {
         await logAgencyAudit(
-          supabase, agencyId, userId, claims?.email,
+          supabase,
+          agencyId,
+          userId,
+          claims?.email,
           "edit_shared_billing_doc",
-          "agency_billing_doc", docId, `${data.kind.toUpperCase()} ${number}`,
+          "agency_billing_doc",
+          docId,
+          `${data.kind.toUpperCase()} ${number}`,
           { was_shared: prev.shared_with_talent === true, previous_status: prev.status, changes },
         );
 
@@ -3384,8 +3923,6 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       }
     }
 
-
-
     return { id: docId };
   });
 
@@ -3404,7 +3941,9 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: doc, error: dErr } = await supabase
       .from("agency_billing_docs")
-      .select("id, kind, number, status, client_name, currency, total_cents, issued_at, due_date, notes, recipient_address, recipient_vat_number, recipient_emails, recipient_email")
+      .select(
+        "id, kind, number, status, client_name, currency, total_cents, issued_at, due_date, notes, recipient_address, recipient_vat_number, recipient_emails, recipient_email",
+      )
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .single();
@@ -3413,7 +3952,8 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
 
     const rawRecipients: string[] =
       (data.recipients as string[] | undefined) ??
-      ((doc.recipient_emails as string[] | null) ?? (doc.recipient_email ? [doc.recipient_email as string] : []));
+      (doc.recipient_emails as string[] | null) ??
+      (doc.recipient_email ? [doc.recipient_email as string] : []);
     const recipients: string[] = Array.from(
       new Set(rawRecipients.map((e) => e.trim().toLowerCase()).filter(Boolean)),
     );
@@ -3422,16 +3962,18 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
 
     const { data: agency } = await supabase
       .from("agencies")
-      .select("name, billing_from_email, billing_from_name, billing_from_verified_at, contact_email, phone, billing_address, is_vat_registered, vat_number, accent_color, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions")
+      .select(
+        "name, billing_from_email, billing_from_name, billing_from_verified_at, contact_email, phone, billing_address, is_vat_registered, vat_number, accent_color, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions",
+      )
       .eq("id", agencyId)
       .single();
 
     let number: string = doc.number;
     if (!number || number.startsWith("DRAFT-")) {
-      const { data: minted, error: mErr } = await supabase.rpc(
-        "mint_billing_doc_number",
-        { _agency_id: agencyId, _kind: doc.kind },
-      );
+      const { data: minted, error: mErr } = await supabase.rpc("mint_billing_doc_number", {
+        _agency_id: agencyId,
+        _kind: doc.kind,
+      });
       if (mErr) throw new Error(mErr.message);
       number = minted as string;
     }
@@ -3441,11 +3983,13 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     const senderVerified = !!agency?.billing_from_verified_at && !!agency?.billing_from_email;
     const docLabel = doc.kind === "quote" ? "quotation" : "invoice";
     if (!senderVerified) {
-      throw new Error(`Verify your sending address in Quotes & Invoices Settings before sending this ${docLabel}`);
+      throw new Error(
+        `Verify your sending address in Quotes & Invoices Settings before sending this ${docLabel}`,
+      );
     }
     const senderName = agency?.billing_from_name?.trim() || agency?.name;
     const from = billingFromHeader(senderName, senderVerified, agency?.billing_from_email);
-    const replyTo = senderVerified ? agency!.billing_from_email : agency?.contact_email ?? null;
+    const replyTo = senderVerified ? agency!.billing_from_email : (agency?.contact_email ?? null);
 
     const { data: lineRows, error: lineErr } = await supabase
       .from("agency_billing_doc_lines")
@@ -3487,13 +4031,16 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
           vatNumber: agency?.vat_number ?? null,
           accentColor: agency?.accent_color ?? null,
           // Banking details belong on invoices only — never on quotations.
-          paymentDetails: doc.kind === "invoice" ? {
-            bankName: agency?.bank_name ?? null,
-            accountHolder: agency?.bank_account_holder ?? null,
-            accountNumber: agency?.bank_account_number ?? null,
-            branchCode: agency?.bank_branch_code ?? null,
-            instructions: agency?.payment_instructions ?? null,
-          } : null,
+          paymentDetails:
+            doc.kind === "invoice"
+              ? {
+                  bankName: agency?.bank_name ?? null,
+                  accountHolder: agency?.bank_account_holder ?? null,
+                  accountNumber: agency?.bank_account_number ?? null,
+                  branchCode: agency?.bank_branch_code ?? null,
+                  instructions: agency?.payment_instructions ?? null,
+                }
+              : null,
         },
         idempotencyKey: `billing-${doc.id}-${number}-${to}`,
       });
@@ -3503,17 +4050,30 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     if (deliveredTo.length !== recipients.length) {
       const failed = results.filter((r) => !r.sent);
       await logAgencyAudit(
-        supabase, agencyId, userId, claims?.email,
-        "send_billing_doc_failed", "agency_billing_doc", data.id,
+        supabase,
+        agencyId,
+        userId,
+        claims?.email,
+        "send_billing_doc_failed",
+        "agency_billing_doc",
+        data.id,
         `${doc.kind.toUpperCase()} ${number}`,
-        { recipients, delivered: deliveredTo, failed: failed.map((r) => ({ to: r.to, reason: r.reason })), from, reply_to: replyTo },
+        {
+          recipients,
+          delivered: deliveredTo,
+          failed: failed.map((r) => ({ to: r.to, reason: r.reason })),
+          from,
+          reply_to: replyTo,
+        },
       );
       const reason = failed.some((r) => r.reason === "domain_unverified")
         ? "The TalVault sending domain is not ready yet"
         : failed.some((r) => r.reason === "email_not_configured")
           ? "Email delivery is not configured"
           : `The email provider could not deliver the ${docLabel}`;
-      throw new Error(`${reason}. The ${docLabel} was not marked as sent; please try again or use Mark as sent if you deliver it outside TalVault.`);
+      throw new Error(
+        `${reason}. The ${docLabel} was not marked as sent; please try again or use Mark as sent if you deliver it outside TalVault.`,
+      );
     }
 
     const { data: updated, error } = await supabase
@@ -3533,8 +4093,13 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "send_billing_doc", "agency_billing_doc", data.id,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "send_billing_doc",
+      "agency_billing_doc",
+      data.id,
       `${doc.kind.toUpperCase()} ${number}`,
       { recipients, delivered: deliveredTo, from, reply_to: replyTo },
     );
@@ -3567,10 +4132,10 @@ export const markAgencyBillingDocSentManually = createServerFn({ method: "POST" 
 
     let number = billingDoc.number;
     if (!number || number.startsWith("DRAFT-")) {
-      const { data: minted, error: mintError } = await supabase.rpc(
-        "mint_billing_doc_number",
-        { _agency_id: agencyId, _kind: billingDoc.kind },
-      );
+      const { data: minted, error: mintError } = await supabase.rpc("mint_billing_doc_number", {
+        _agency_id: agencyId,
+        _kind: billingDoc.kind,
+      });
       if (mintError) throw new Error(mintError.message);
       number = minted as string;
     }
@@ -3587,8 +4152,13 @@ export const markAgencyBillingDocSentManually = createServerFn({ method: "POST" 
     if (!updated) throw new Error(`You do not have permission to update this ${label}`);
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "mark_billing_doc_sent_manually", "agency_billing_doc", data.id,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "mark_billing_doc_sent_manually",
+      "agency_billing_doc",
+      data.id,
       `${billingDoc.kind.toUpperCase()} ${number}`,
       { status: "sent", sent_at: sentAt, email_attempted: false },
     );
@@ -3642,10 +4212,21 @@ export const setAgencyBillingSender = createServerFn({ method: "POST" })
     await assertAgencyOwner(supabase, userId, agencyId);
 
     const email = data.email.trim().toLowerCase();
-    const result = await issueSenderVerification(supabase, agencyId, email, data.display_name ?? null);
+    const result = await issueSenderVerification(
+      supabase,
+      agencyId,
+      email,
+      data.display_name ?? null,
+    );
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "billing_sender_verification_requested", "agency", agencyId, email,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "billing_sender_verification_requested",
+      "agency",
+      agencyId,
+      email,
       { sent: result.sent, reason: result.sent ? null : result.reason },
     );
     return result;
@@ -3667,11 +4248,20 @@ export const resendAgencyBillingSenderVerification = createServerFn({ method: "P
     if (agency.billing_from_verified_at) return { sent: true as const };
 
     const result = await issueSenderVerification(
-      supabase, agencyId, agency.billing_from_email, agency.billing_from_name ?? null,
+      supabase,
+      agencyId,
+      agency.billing_from_email,
+      agency.billing_from_name ?? null,
     );
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "billing_sender_verification_resent", "agency", agencyId, agency.billing_from_email,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "billing_sender_verification_resent",
+      "agency",
+      agencyId,
+      agency.billing_from_email,
     );
     return result;
   });
@@ -3694,12 +4284,16 @@ export const clearAgencyBillingSender = createServerFn({ method: "POST" })
       .eq("id", agencyId);
     if (error) throw new Error(error.message);
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "billing_sender_cleared", "agency", agencyId,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "billing_sender_cleared",
+      "agency",
+      agencyId,
     );
     return { ok: true };
   });
-
 
 // ---------------------------------------------------------------------------
 // Manage Folders — per-agency folder configuration (agency_folder_settings)
@@ -3725,13 +4319,15 @@ export const listAgencyFolderSettings = createServerFn({ method: "GET" })
 export const upsertAgencyFolderSetting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      folder_name: z.string().min(1).max(120),
-      applied_by_default: z.boolean().optional(),
-      ai_filing_allowed: z.boolean().optional(),
-      default_validity_rule: z.string().min(1).max(200).optional(),
-      can_untick_during_onboarding: z.boolean().optional(),
-    }).parse(d),
+    z
+      .object({
+        folder_name: z.string().min(1).max(120),
+        applied_by_default: z.boolean().optional(),
+        ai_filing_allowed: z.boolean().optional(),
+        default_validity_rule: z.string().min(1).max(200).optional(),
+        can_untick_during_onboarding: z.boolean().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -3741,7 +4337,8 @@ export const upsertAgencyFolderSetting = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = {};
     if (data.applied_by_default !== undefined) patch.applied_by_default = data.applied_by_default;
     if (data.ai_filing_allowed !== undefined) patch.ai_filing_allowed = data.ai_filing_allowed;
-    if (data.default_validity_rule !== undefined) patch.default_validity_rule = data.default_validity_rule;
+    if (data.default_validity_rule !== undefined)
+      patch.default_validity_rule = data.default_validity_rule;
     if (data.can_untick_during_onboarding !== undefined)
       patch.can_untick_during_onboarding = data.can_untick_during_onboarding;
 
@@ -3766,8 +4363,14 @@ export const upsertAgencyFolderSetting = createServerFn({ method: "POST" })
     }
 
     await logAgencyAudit(
-      supabase, agencyId, userId, (context as any).claims?.email,
-      "update_folder_setting", "folder", data.folder_name, data.folder_name,
+      supabase,
+      agencyId,
+      userId,
+      (context as any).claims?.email,
+      "update_folder_setting",
+      "folder",
+      data.folder_name,
+      data.folder_name,
     );
     return { ok: true };
   });
@@ -3786,8 +4389,14 @@ export const resetAgencyFolderSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     await logAgencyAudit(
-      supabase, agencyId, userId, (context as any).claims?.email,
-      "reset_folder_settings", "agency", agencyId, "Folder defaults reset",
+      supabase,
+      agencyId,
+      userId,
+      (context as any).claims?.email,
+      "reset_folder_settings",
+      "agency",
+      agencyId,
+      "Folder defaults reset",
     );
     return { ok: true };
   });
@@ -3809,7 +4418,10 @@ export const getTalentInvitationByIdMine = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!inv) return null;
     const { data: agency } = await supabase
-      .from("agencies").select("name").eq("id", agencyId).maybeSingle();
+      .from("agencies")
+      .select("name")
+      .eq("id", agencyId)
+      .maybeSingle();
     return { ...inv, agency_name: agency?.name ?? null };
   });
 
@@ -3928,8 +4540,15 @@ export const upsertAgencySubfolderSetting = createServerFn({ method: "POST" })
     }
 
     await logAgencyAudit(
-      supabase, agencyId, userId, (context as any).claims?.email,
-      "update_subfolder_setting", "folder", data.category_slug, data.name, patch,
+      supabase,
+      agencyId,
+      userId,
+      (context as any).claims?.email,
+      "update_subfolder_setting",
+      "folder",
+      data.category_slug,
+      data.name,
+      patch,
     );
     return { ok: true };
   });
@@ -3960,10 +4579,12 @@ export const deleteAgencySubfolderSetting = createServerFn({ method: "POST" })
 export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      talent_link_id: z.string().uuid(),
-      talent_type: z.string().min(1).max(60),
-    }).parse(d),
+    z
+      .object({
+        talent_link_id: z.string().uuid(),
+        talent_type: z.string().min(1).max(60),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -3987,15 +4608,21 @@ export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
       .eq("id", link.id);
     if (error) throw new Error(error.message);
 
-    const { data: flagged, error: rpcErr } = await supabase.rpc(
-      "reconcile_talent_type_folders",
-      { _talent_link_id: link.id, _new_talent_type: data.talent_type },
-    );
+    const { data: flagged, error: rpcErr } = await supabase.rpc("reconcile_talent_type_folders", {
+      _talent_link_id: link.id,
+      _new_talent_type: data.talent_type,
+    });
     if (rpcErr) throw new Error(rpcErr.message);
 
     await logAgencyAudit(
-      supabase, agencyId, userId, (context as any).claims?.email,
-      "update_talent_type", "talent", link.id, link.display_name,
+      supabase,
+      agencyId,
+      userId,
+      (context as any).claims?.email,
+      "update_talent_type",
+      "talent",
+      link.id,
+      link.display_name,
       { from: link.talent_type, to: data.talent_type, flagged_for_review: flagged ?? 0 },
     );
 
@@ -4031,10 +4658,7 @@ export const listInvoicePayments = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const received = (rows ?? []).reduce(
-      (n: number, r: any) => n + Number(r.amount_cents ?? 0),
-      0,
-    );
+    const received = (rows ?? []).reduce((n: number, r: any) => n + Number(r.amount_cents ?? 0), 0);
     return {
       doc,
       payments: rows ?? [],
@@ -4105,11 +4729,17 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       .select("id, amount_cents, paid_on")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!row) throw new Error("The payment could not be recorded. Check your access and try again.");
+    if (!row)
+      throw new Error("The payment could not be recorded. Check your access and try again.");
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "record_invoice_payment", "agency_billing_doc", doc.id,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "record_invoice_payment",
+      "agency_billing_doc",
+      doc.id,
       `INVOICE ${doc.number}`,
       { amount_cents: data.amount_cents, paid_on: data.paid_on },
     );
@@ -4131,11 +4761,18 @@ export const deleteInvoicePayment = createServerFn({ method: "POST" })
       .select("id, doc_id, amount_cents")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!row) throw new Error("That payment could not be removed. Check your access and try again.");
+    if (!row)
+      throw new Error("That payment could not be removed. Check your access and try again.");
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "delete_invoice_payment", "agency_billing_doc", row.doc_id, undefined,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "delete_invoice_payment",
+      "agency_billing_doc",
+      row.doc_id,
+      undefined,
       { amount_cents: row.amount_cents },
     );
     return { ok: true };
@@ -4229,8 +4866,14 @@ export const updateAgencyStaffRole = createServerFn({ method: "POST" })
     if (!updated) throw new Error("Role could not be updated — you may not have permission.");
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "update_staff_role", "agency_member", member.id, member.user_id,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "update_staff_role",
+      "agency_member",
+      member.id,
+      member.user_id,
       { from: member.role, to: data.role },
     );
     return updated;
@@ -4270,8 +4913,14 @@ export const removeAgencyStaffMember = createServerFn({ method: "POST" })
     if (!removed) throw new Error("Removal failed — you may not have permission.");
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "remove_staff_member", "agency_member", member.id, member.user_id,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "remove_staff_member",
+      "agency_member",
+      member.id,
+      member.user_id,
       { role: member.role },
     );
     return { ok: true };
@@ -4294,7 +4943,10 @@ export const getStaffInvitationByIdMine = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!inv) return null;
     const { data: agency } = await supabase
-      .from("agencies").select("name").eq("id", agencyId).maybeSingle();
+      .from("agencies")
+      .select("name")
+      .eq("id", agencyId)
+      .maybeSingle();
     return { ...inv, agency_name: agency?.name ?? null };
   });
 
@@ -4303,9 +4955,7 @@ export const getStaffInvitationByIdMine = createServerFn({ method: "GET" })
 // -----------------------------------------------------------------------------
 
 function normaliseEmails(emails: string[] | undefined): string[] {
-  return Array.from(
-    new Set((emails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean)),
-  );
+  return Array.from(new Set((emails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean)));
 }
 
 const CLIENT_COLUMNS =
@@ -4345,9 +4995,7 @@ async function loadClientRollups(supabase: any, agencyId: string) {
   if (error) throw new Error(error.message);
   const rows = docs ?? [];
 
-  const invoiceIds = rows
-    .filter((d: any) => d.kind === "invoice")
-    .map((d: any) => d.id as string);
+  const invoiceIds = rows.filter((d: any) => d.kind === "invoice").map((d: any) => d.id as string);
   const paidByDoc = new Map<string, number>();
   for (let i = 0; i < invoiceIds.length; i += 200) {
     const slice = invoiceIds.slice(i, i + 200);
@@ -4429,7 +5077,7 @@ export const listAgencyClients = createServerFn({ method: "GET" })
       clients: clients.map((c: any) => ({
         ...c,
         relationship_manager_name: c.relationship_manager_user_id
-          ? managerNames.get(c.relationship_manager_user_id) ?? null
+          ? (managerNames.get(c.relationship_manager_user_id) ?? null)
           : null,
         stats: rollups.get(c.id as string) ?? emptyRollup(),
       })),
@@ -4572,9 +5220,15 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
     }
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
       data.id ? "update_agency_client" : "create_agency_client",
-      "agency_client", clientId, data.name, {},
+      "agency_client",
+      clientId,
+      data.name,
+      {},
     );
 
     return { id: clientId };
@@ -4605,8 +5259,15 @@ export const removeAgencyClient = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
-      "remove_agency_client", "agency_client", data.id, existing.name, {},
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "remove_agency_client",
+      "agency_client",
+      data.id,
+      existing.name,
+      {},
     );
 
     return { ok: true };
@@ -4667,12 +5328,18 @@ export const setTalentManager = createServerFn({ method: "POST" })
       .select("id, manager_user_id")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!updated) throw new Error("The manager could not be updated — you may not have permission.");
+    if (!updated)
+      throw new Error("The manager could not be updated — you may not have permission.");
 
     await logAgencyAudit(
-      supabase, agencyId, userId, claims?.email,
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
       data.manager_user_id ? "assign_talent_manager" : "clear_talent_manager",
-      "talent_link", link.id, link.display_name,
+      "talent_link",
+      link.id,
+      link.display_name,
       { from: link.manager_user_id ?? null, to: data.manager_user_id ?? null },
     );
     return updated;
@@ -4704,10 +5371,25 @@ export const linkBillingDocToTalent = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = { talent_link_id: link.id };
     if (!doc.talent_name) patch.talent_name = link.display_name;
     const { error } = await supabase
-      .from("agency_billing_docs").update(patch).eq("id", doc.id).eq("agency_id", agencyId);
+      .from("agency_billing_docs")
+      .update(patch)
+      .eq("id", doc.id)
+      .eq("agency_id", agencyId);
     if (error) throw new Error("We couldn't link this document. Please try again.");
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email,
-      "link_billing_doc_to_talent", "agency_billing_doc", doc.id, `${String(doc.kind).toUpperCase()} ${doc.number}`,
-      { talent_link_id: link.id, talent: link.display_name, previous_link: doc.talent_link_id ?? null });
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "link_billing_doc_to_talent",
+      "agency_billing_doc",
+      doc.id,
+      `${String(doc.kind).toUpperCase()} ${doc.number}`,
+      {
+        talent_link_id: link.id,
+        talent: link.display_name,
+        previous_link: doc.talent_link_id ?? null,
+      },
+    );
     return { ok: true };
   });

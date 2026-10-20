@@ -16,10 +16,7 @@ export function buildNoticeEmail(input: {
   recipientEmail: string;
 }) {
   const paras = input.paragraphs
-    .map(
-      (p) =>
-        `<p style="font-size:15px;line-height:1.55;margin:0 0 14px;">${escapeHtml(p)}</p>`,
-    )
+    .map((p) => `<p style="font-size:15px;line-height:1.55;margin:0 0 14px;">${escapeHtml(p)}</p>`)
     .join("");
   const cta =
     input.ctaLabel && input.ctaUrl
@@ -49,5 +46,9 @@ export function buildNoticeEmail(input: {
 }
 
 export function fmtLongDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }

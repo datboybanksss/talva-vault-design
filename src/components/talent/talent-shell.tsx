@@ -44,7 +44,11 @@ type NavItem = {
   match?: string;
 };
 
-const buildManageNav = (vaultBadge: number, sharesBadge: number, reminderBadge: number): NavItem[] => [
+const buildManageNav = (
+  vaultBadge: number,
+  sharesBadge: number,
+  reminderBadge: number,
+): NavItem[] => [
   {
     to: "/talent",
     label: "Dashboard",
@@ -53,14 +57,26 @@ const buildManageNav = (vaultBadge: number, sharesBadge: number, reminderBadge: 
     ...(reminderBadge > 0 ? { badge: reminderBadge } : {}),
   },
   { to: "/talent/vault", label: "Vault", icon: <Lock />, badge: vaultBadge },
-  { to: "/talent/sharing", label: SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED, icon: <Share2 />, badge: sharesBadge },
-  { to: "/talent/budget", label: <>Budget &<br />Income</>, icon: <Wallet /> },
+  {
+    to: "/talent/sharing",
+    label: SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED,
+    icon: <Share2 />,
+    badge: sharesBadge,
+  },
+  {
+    to: "/talent/budget",
+    label: (
+      <>
+        Budget &<br />
+        Income
+      </>
+    ),
+    icon: <Wallet />,
+  },
   { to: "/talent/requests", label: "Requests", icon: <UserPlus /> },
 ];
 
-const settings: NavItem[] = [
-  { to: "/talent/settings", label: "Settings", icon: <SettingsIcon /> },
-];
+const settings: NavItem[] = [{ to: "/talent/settings", label: "Settings", icon: <SettingsIcon /> }];
 
 export function TalentShell({ children }: { children: ReactNode }) {
   useIdleSignOut();
@@ -138,7 +154,9 @@ export function TalentShell({ children }: { children: ReactNode }) {
       to: "/talent/vault",
       search: { tab: "agency" as const, view: "folder" as const },
     },
-  ].filter(Boolean).filter((n: any) => dismissedMap.get(n.kind) !== n.snapshot) as {
+  ]
+    .filter(Boolean)
+    .filter((n: any) => dismissedMap.get(n.kind) !== n.snapshot) as {
     kind: string;
     snapshot: number;
     tone: string;
@@ -167,17 +185,19 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
   });
-  const ctx = (rootMatch?.loaderData ?? null) as
-    | { profile: { full_name: string; email: string | null } | null; agency: { name: string } | null }
-    | null;
+  const ctx = (rootMatch?.loaderData ?? null) as {
+    profile: { full_name: string; email: string | null } | null;
+    agency: { name: string } | null;
+  } | null;
   const displayName = ctx?.profile?.full_name ?? "Talent";
-  const initials = displayName
-    .split(/\s+/)
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase() || "T";
+  const initials =
+    displayName
+      .split(/\s+/)
+      .map((p) => p[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "T";
   const agencyName = ctx?.agency?.name ?? "Talent Vault";
 
   async function handleSignOut() {
@@ -226,7 +246,8 @@ export function TalentShell({ children }: { children: ReactNode }) {
         aria-hidden="true"
       />
       <aside className="tvp-sidebar">
-        <button title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        <button
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="tvp-collapse-btn"
           onClick={() => setCollapsed((c) => !c)}
           aria-label="Toggle sidebar"
@@ -270,7 +291,12 @@ export function TalentShell({ children }: { children: ReactNode }) {
             <div className="tvp-profile-name">{displayName}</div>
             <div className="tvp-profile-role">{agencyName}</div>
           </Link>
-          <button title="Log out" className="tvp-logout" aria-label="Log out" onClick={handleSignOut}>
+          <button
+            title="Log out"
+            className="tvp-logout"
+            aria-label="Log out"
+            onClick={handleSignOut}
+          >
             <LogOut className="h-4 w-4" />
           </button>
         </div>
@@ -278,7 +304,8 @@ export function TalentShell({ children }: { children: ReactNode }) {
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
-          <button title="Open navigation"
+          <button
+            title="Open navigation"
             type="button"
             className="tvp-mobile-menu-btn"
             aria-label="Open navigation"
@@ -329,7 +356,10 @@ export function TalentShell({ children }: { children: ReactNode }) {
                         className="tvp-notification-item"
                         onClick={() => setBellOpen(false)}
                       >
-                        <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
+                        <div
+                          className={`tvp-kpi-icon tvp-bg-${n.tone}`}
+                          style={{ width: 32, height: 32 }}
+                        >
                           <n.Icon className="h-4 w-4" />
                         </div>
                         <div style={{ paddingRight: 20 }}>

@@ -63,7 +63,10 @@ async function parserlyPoll(
 }
 
 export class ParserlyError extends Error {
-  constructor(public code: string, message?: string) {
+  constructor(
+    public code: string,
+    message?: string,
+  ) {
     super(message ?? code);
   }
 }
@@ -80,9 +83,12 @@ export function isParserlyConfigured() {
 }
 
 export function toSuggestion(raw: ParserlyRaw, catalogue: CatalogueItem[]): FilingSuggestion {
-  const lead = typeof raw.reminder_lead_days === "number" && raw.reminder_lead_days >= 1 && raw.reminder_lead_days <= 365
-    ? Math.round(raw.reminder_lead_days)
-    : null;
+  const lead =
+    typeof raw.reminder_lead_days === "number" &&
+    raw.reminder_lead_days >= 1 &&
+    raw.reminder_lead_days <= 365
+      ? Math.round(raw.reminder_lead_days)
+      : null;
   const folderId = mapFolderToCatalogue(raw.folder ?? null, catalogue);
   const expiry = normaliseExpiry(raw.expiry_date ?? null);
   return {
@@ -122,7 +128,13 @@ async function loadDocument(scope: AnalysisScope, documentId: string) {
       }
       return { id: r.id, label: parts.join(" → ") };
     });
-    return { bucket: "talent-private-documents", path: doc.storage_path, name: doc.name, mime: doc.mime_type, catalogue };
+    return {
+      bucket: "talent-private-documents",
+      path: doc.storage_path,
+      name: doc.name,
+      mime: doc.mime_type,
+      catalogue,
+    };
   }
   const { data: doc } = await supabaseAdmin
     .from("talent_shared_documents")
@@ -135,11 +147,23 @@ async function loadDocument(scope: AnalysisScope, documentId: string) {
     .select("folder_name")
     .eq("agency_id", doc.agency_id)
     .eq("talent_link_id", doc.talent_link_id as string);
-  const catalogue = ((folders ?? []) as { folder_name: string }[]).map((f) => ({ id: f.folder_name, label: f.folder_name }));
-  return { bucket: "talent-documents", path: doc.storage_path, name: doc.name, mime: null, catalogue };
+  const catalogue = ((folders ?? []) as { folder_name: string }[]).map((f) => ({
+    id: f.folder_name,
+    label: f.folder_name,
+  }));
+  return {
+    bucket: "talent-documents",
+    path: doc.storage_path,
+    name: doc.name,
+    mime: null,
+    catalogue,
+  };
 }
 
-export async function analyseDocument(input: { scope: AnalysisScope; documentId: string }): Promise<AdapterResult> {
+export async function analyseDocument(input: {
+  scope: AnalysisScope;
+  documentId: string;
+}): Promise<AdapterResult> {
   const cfg = config();
   if (!cfg) return { status: "unavailable", errorCode: "not_configured" };
 

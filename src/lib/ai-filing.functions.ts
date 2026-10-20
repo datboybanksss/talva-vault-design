@@ -75,7 +75,10 @@ async function writableAgencyId(supabase: any, userId: string) {
   const agencyId = await callerAgencyId(supabase, userId);
   const { data: ok, error } = await supabase.rpc("agency_is_writable", { _agency_id: agencyId });
   if (error) throw new Error(error.message);
-  if (!ok) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended. Existing documents are view and download only.");
+  if (!ok)
+    throw new Error(
+      "AGENCY_READ_ONLY: your agency's TalVault access has ended. Existing documents are view and download only.",
+    );
   return agencyId;
 }
 
@@ -87,7 +90,12 @@ async function assertSourcesAllowed(
   aiEnabled: boolean,
   scope: "talent" | "agency",
   documentId: string,
-  data: { folder_source: string | null; expiry_source: string | null; destination: string | null; expires_at: string | null },
+  data: {
+    folder_source: string | null;
+    expiry_source: string | null;
+    destination: string | null;
+    expires_at: string | null;
+  },
 ) {
   if (data.folder_source !== "ai" && data.expiry_source !== "ai") return;
   const { readAnalysis } = await import("@/lib/document-ai.server");
@@ -341,8 +349,6 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-
-
 // -----------------------------------------------------------------------------
 // skipDocumentFiling — defer the decision, leave the document exactly as uploaded
 // -----------------------------------------------------------------------------
@@ -408,9 +414,7 @@ export const getAiFilingPreference = createServerFn({ method: "GET" })
 
 export const setAiFilingPreference = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ ai_filing_enabled: z.boolean() }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ ai_filing_enabled: z.boolean() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { error } = await supabase
@@ -439,9 +443,13 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
           target_label: "Organise documents with AI",
           detail: { ai_filing_enabled: next, changed_at: new Date().toISOString() },
         };
-        const agencyIds = [...new Set((memberships ?? []).map((m: { agency_id: string }) => m.agency_id))];
+        const agencyIds = [
+          ...new Set((memberships ?? []).map((m: { agency_id: string }) => m.agency_id)),
+        ];
         const { error: auditErr } = agencyIds.length
-          ? await (supabaseAdmin as any).from("agency_audit_log").insert(agencyIds.map((agency_id) => ({ ...entry, agency_id })))
+          ? await (supabaseAdmin as any)
+              .from("agency_audit_log")
+              .insert(agencyIds.map((agency_id) => ({ ...entry, agency_id })))
           : await (supabaseAdmin as any).from("talent_audit_log").insert(entry);
         if (auditErr) throw new Error(auditErr.message);
       },
@@ -463,7 +471,11 @@ export const getDocumentAnalysis = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     await authoriseForDocument(supabase, userId, data.scope, data.document_id);
     const { advanceDocumentAnalysis } = await import("@/lib/document-ai.server");
-    return advanceDocumentAnalysis({ scope: data.scope, documentId: data.document_id, requesterId: userId });
+    return advanceDocumentAnalysis({
+      scope: data.scope,
+      documentId: data.document_id,
+      requesterId: userId,
+    });
   });
 
 /** Retry, "Analyse with AI", or switching AI on from the popup. */

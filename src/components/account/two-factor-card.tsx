@@ -15,11 +15,7 @@ import { SectionHeader } from "./section-header";
  * step is required on every TalVault account — so this card simply reports the
  * current state and explains the flow in plain language.
  */
-export function TwoFactorCard({
-  contextLabel = "account",
-}: {
-  contextLabel?: string;
-}) {
+export function TwoFactorCard({ contextLabel = "account" }: { contextLabel?: string }) {
   const getStatus = useServerFn(getMfaStatus);
 
   const status = useQuery({
@@ -49,27 +45,24 @@ export function TwoFactorCard({
           <div className="tvp-muted">Checking your account…</div>
         ) : enrolled ? (
           <div className="tv-form-alert tv-form-alert-info">
-            Two-step sign-in is <strong>enabled</strong> on this{" "}
-            {contextLabel} account. After your password is accepted we email a
-            6-digit code
+            Two-step sign-in is <strong>enabled</strong> on this {contextLabel} account. After your
+            password is accepted we email a 6-digit code
             {email ? (
               <>
                 {" "}
                 to <strong>{email}</strong>
               </>
             ) : null}
-            . Type it in to finish signing in. The code expires in 10 minutes
-            and works once — there's nothing to install and nothing to remember.
+            . Type it in to finish signing in. The code expires in 10 minutes and works once —
+            there's nothing to install and nothing to remember.
             <div style={{ marginTop: 6 }}>
-              Two-step sign-in is required for every TalVault account and can't
-              be turned off.
+              Two-step sign-in is required for every TalVault account and can't be turned off.
             </div>
           </div>
         ) : (
           <div className="tv-form-alert tv-form-alert-info">
-            Two-step sign-in isn't set up on this account yet. The next time you
-            sign in you'll be emailed a 6-digit code to enter after your
-            password — there's nothing to install.
+            Two-step sign-in isn't set up on this account yet. The next time you sign in you'll be
+            emailed a 6-digit code to enter after your password — there's nothing to install.
           </div>
         )}
       </div>

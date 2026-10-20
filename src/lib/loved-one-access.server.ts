@@ -17,7 +17,9 @@ export function normaliseCode(input: string): string {
 
 /** One-way hash of the code, salted with the share token so hashes aren't portable. */
 export function hashAccessCode(code: string, token: string): string {
-  return createHash("sha256").update(`${normaliseCode(code)}:${token}`, "utf8").digest("hex");
+  return createHash("sha256")
+    .update(`${normaliseCode(code)}:${token}`, "utf8")
+    .digest("hex");
 }
 
 export function accessCodeMatches(input: string, storedHash: string, token: string): boolean {

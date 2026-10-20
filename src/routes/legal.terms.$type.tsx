@@ -45,7 +45,11 @@ function TermsPage() {
         {doc ? (
           <LegalDocumentView body={doc.body} />
         ) : (
-          <p>{q.isLoading ? "Loading the Terms & Conditions…" : "We couldn't load the Terms & Conditions just now. Please try again."}</p>
+          <p>
+            {q.isLoading
+              ? "Loading the Terms & Conditions…"
+              : "We couldn't load the Terms & Conditions just now. Please try again."}
+          </p>
         )}
         <footer className="tvp-legal-foot">
           <Link to="/">Back to TalVault</Link>

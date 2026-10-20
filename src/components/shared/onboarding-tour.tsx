@@ -48,7 +48,10 @@ async function markSeen(guide: TourGuide) {
     const next = seen.includes(guide.id) ? seen : [...seen, guide.id];
     const patch: Record<string, unknown> = { seen_tours: next };
     if (guide.kind === "overview") patch.has_seen_onboarding = true;
-    await supabase.from("profiles").update(patch as any).eq("id", uid);
+    await supabase
+      .from("profiles")
+      .update(patch as any)
+      .eq("id", uid);
   } catch {
     /* non-blocking */
   }
@@ -276,8 +279,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     // A step is "cross-page" when it moves somewhere different from where the
     // previous step left us (or when it is the very first step). Steps that stay
     // put must not fade at all — the spotlight simply glides.
-    const crossPage =
-      isFirst || (targetRoute !== null && targetRoute !== currentRouteRef.current);
+    const crossPage = isFirst || (targetRoute !== null && targetRoute !== currentRouteRef.current);
 
     setReady(false);
     settlingRef.current = true;
@@ -343,37 +345,39 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guide?.id, idx, step?.key]);
 
-
   /* --------------------------------------------------- measurement ------- */
-  const measure = useCallback((force = false) => {
-    if (!open || !step) return;
-    if (!ready && !force) return;
-    const el = document.querySelector(step.selector) as HTMLElement | null;
-    if (!el || !isVisible(el)) {
-      rectRef.current = null;
-      setRect(null);
-      return;
-    }
-    const r = el.getBoundingClientRect();
-    if (r.width === 0 || r.height === 0) {
-      rectRef.current = null;
-      setRect(null);
-      return;
-    }
-    const next = { top: r.top, left: r.left, width: r.width, height: r.height };
-    const prev = rectRef.current;
-    if (
-      prev &&
-      Math.abs(prev.top - next.top) < 0.5 &&
-      Math.abs(prev.left - next.left) < 0.5 &&
-      Math.abs(prev.width - next.width) < 0.5 &&
-      Math.abs(prev.height - next.height) < 0.5
-    ) {
-      return; // no meaningful change — don't churn state
-    }
-    rectRef.current = next;
-    setRect(next);
-  }, [open, ready, step]);
+  const measure = useCallback(
+    (force = false) => {
+      if (!open || !step) return;
+      if (!ready && !force) return;
+      const el = document.querySelector(step.selector) as HTMLElement | null;
+      if (!el || !isVisible(el)) {
+        rectRef.current = null;
+        setRect(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) {
+        rectRef.current = null;
+        setRect(null);
+        return;
+      }
+      const next = { top: r.top, left: r.left, width: r.width, height: r.height };
+      const prev = rectRef.current;
+      if (
+        prev &&
+        Math.abs(prev.top - next.top) < 0.5 &&
+        Math.abs(prev.left - next.left) < 0.5 &&
+        Math.abs(prev.width - next.width) < 0.5 &&
+        Math.abs(prev.height - next.height) < 0.5
+      ) {
+        return; // no meaningful change — don't churn state
+      }
+      rectRef.current = next;
+      setRect(next);
+    },
+    [open, ready, step],
+  );
 
   measureRef.current = measure;
 

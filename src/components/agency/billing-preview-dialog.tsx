@@ -3,7 +3,21 @@ import { BillingDocument, type BillingDocAgency, type BillingDocRecord } from ".
 import type { BillingLine } from "@/lib/billing";
 
 export function BillingPreviewDialog({
-  open, onClose, doc, lines, agency, canSend, canMarkSent, sendDisabledReason, markSentDisabledReason, onSend, sending, onMarkSent, markingSent, sendFrom, recipients,
+  open,
+  onClose,
+  doc,
+  lines,
+  agency,
+  canSend,
+  canMarkSent,
+  sendDisabledReason,
+  markSentDisabledReason,
+  onSend,
+  sending,
+  onMarkSent,
+  markingSent,
+  sendFrom,
+  recipients,
 }: {
   open: boolean;
   onClose: () => void;
@@ -26,9 +40,15 @@ export function BillingPreviewDialog({
     <div
       className="billing-preview-overlay"
       style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
-        zIndex: 60, display: "flex", alignItems: "flex-start",
-        justifyContent: "center", padding: 24, overflowY: "auto",
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.55)",
+        zIndex: 60,
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        padding: 24,
+        overflowY: "auto",
       }}
       onClick={onClose}
     >
@@ -39,24 +59,42 @@ export function BillingPreviewDialog({
         <div
           className="billing-preview-toolbar"
           style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            gap: 8, padding: "12px 16px", borderBottom: "1px solid #eee",
-            position: "sticky", top: 0, background: "#fff", borderRadius: "8px 8px 0 0", zIndex: 1,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 8,
+            padding: "12px 16px",
+            borderBottom: "1px solid #eee",
+            position: "sticky",
+            top: 0,
+            background: "#fff",
+            borderRadius: "8px 8px 0 0",
+            zIndex: 1,
           }}
         >
           <div style={{ fontWeight: 700 }}>
-            Preview {doc.kind === "quote" ? "quotation" : agency.is_vat_registered ? "tax invoice" : "invoice"}
+            Preview{" "}
+            {doc.kind === "quote"
+              ? "quotation"
+              : agency.is_vat_registered
+                ? "tax invoice"
+                : "invoice"}
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button className="tvp-secondary" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" />Print / Save PDF
+              <Printer className="h-4 w-4" />
+              Print / Save PDF
             </button>
             {onSend && (
               <button
                 className="tvp-primary"
                 onClick={canSend ? onSend : undefined}
                 disabled={!canSend || sending}
-                title={canSend ? `Email this ${doc.kind === "quote" ? "quotation" : "invoice"} to the recipients` : (sendDisabledReason ?? "Save this draft first before sending.")}
+                title={
+                  canSend
+                    ? `Email this ${doc.kind === "quote" ? "quotation" : "invoice"} to the recipients`
+                    : (sendDisabledReason ?? "Save this draft first before sending.")
+                }
               >
                 <Send className="h-4 w-4" />
                 {sending ? "Sending…" : doc.kind === "quote" ? "Send quote" : "Send invoice"}
@@ -67,23 +105,40 @@ export function BillingPreviewDialog({
                 className="tvp-secondary"
                 onClick={onMarkSent}
                 disabled={!canMarkSent || markingSent || sending}
-                title={canMarkSent ? "Mark as sent without emailing the client" : (markSentDisabledReason ?? "Save this draft first.")}
+                title={
+                  canMarkSent
+                    ? "Mark as sent without emailing the client"
+                    : (markSentDisabledReason ?? "Save this draft first.")
+                }
               >
                 {markingSent ? "Updating…" : "Mark as sent"}
               </button>
             )}
-            <button title="Close preview" className="tvp-mini-btn" onClick={onClose}><X className="h-4 w-4" /></button>
+            <button title="Close preview" className="tvp-mini-btn" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
         {(sendFrom || (recipients && recipients.length > 0)) && (
           <div
             className="billing-preview-toolbar"
-            style={{ padding: "8px 16px", borderBottom: "1px solid #eee", fontSize: 12, color: "#5b5850" }}
+            style={{
+              padding: "8px 16px",
+              borderBottom: "1px solid #eee",
+              fontSize: 12,
+              color: "#5b5850",
+            }}
           >
-            {sendFrom && (<div><strong>From:</strong> {sendFrom}</div>)}
+            {sendFrom && (
+              <div>
+                <strong>From:</strong> {sendFrom}
+              </div>
+            )}
             <div>
               <strong>To:</strong>{" "}
-              {recipients && recipients.length > 0 ? recipients.join(", ") : "No recipients added yet"}
+              {recipients && recipients.length > 0
+                ? recipients.join(", ")
+                : "No recipients added yet"}
             </div>
           </div>
         )}

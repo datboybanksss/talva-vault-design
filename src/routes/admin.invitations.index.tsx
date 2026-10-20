@@ -1,7 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
 import { invitationActions } from "@/lib/status-actions";
-import { Send, Link2, RefreshCw, Ban, Pencil, X, Mail, Clock, CheckCircle2, AlertCircle, Trash2, FileEdit } from "lucide-react";
+import {
+  Send,
+  Link2,
+  RefreshCw,
+  Ban,
+  Pencil,
+  X,
+  Mail,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Trash2,
+  FileEdit,
+} from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -29,14 +42,19 @@ import { listIndependentTalentInvitations } from "@/lib/independent-talent.funct
 import { useTalentInvitationActions } from "@/components/admin/talent-invitation-actions";
 
 export const Route = createFileRoute("/admin/invitations/")({
-  validateSearch: (raw: Record<string, unknown>): { email?: string; type?: "agency" | "talent" } => ({
+  validateSearch: (
+    raw: Record<string, unknown>,
+  ): { email?: string; type?: "agency" | "talent" } => ({
     ...(typeof raw.email === "string" && raw.email ? { email: raw.email } : {}),
     ...(raw.type === "agency" || raw.type === "talent" ? { type: raw.type } : {}),
   }),
   head: () => ({
     meta: [
       { title: "Invitations · TalVault Admin" },
-      { name: "description", content: "Agency and talent invitations in one list, with status, expiry and actions." },
+      {
+        name: "description",
+        content: "Agency and talent invitations in one list, with status, expiry and actions.",
+      },
     ],
   }),
   component: InvitationsPage,
@@ -44,7 +62,9 @@ export const Route = createFileRoute("/admin/invitations/")({
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 function daysBetween(iso: string) {
@@ -68,7 +88,10 @@ function InvitationsPage() {
   const [tab, setTab] = useState<string>("all");
   const [type, setType] = useState<"all" | "agency" | "talent">(typeParam ?? "all");
   const listTalentFn = useServerFn(listIndependentTalentInvitations);
-  const talentQ = useQuery({ queryKey: ["admin", "talent-invitations"], queryFn: () => listTalentFn() });
+  const talentQ = useQuery({
+    queryKey: ["admin", "talent-invitations"],
+    queryFn: () => listTalentFn(),
+  });
   const talentActions = useTalentInvitationActions();
   const [search, setSearch] = useState(emailParam ?? "");
 
@@ -110,8 +133,7 @@ function InvitationsPage() {
     onError: (e: any) => toast.error(e.message ?? "Failed to revoke"),
   });
   const updateEmailM = useMutation({
-    mutationFn: (v: { id: string; email: string }) =>
-      updateEmailFn({ data: v }),
+    mutationFn: (v: { id: string; email: string }) => updateEmailFn({ data: v }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       setEditing(null);
@@ -126,9 +148,7 @@ function InvitationsPage() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       setPendingDelete(null);
       toast.success(
-        res?.agency_deleted
-          ? "Invitation and agency shell deleted."
-          : "Invitation deleted.",
+        res?.agency_deleted ? "Invitation and agency shell deleted." : "Invitation deleted.",
       );
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
@@ -146,9 +166,7 @@ function InvitationsPage() {
     setSearch(emailParam);
     const match = (invites.data.pages ?? [])
       .flatMap((p: any) => p.rows ?? [])
-      .find(
-      (i: any) => (i.email ?? "").toLowerCase() === emailParam.toLowerCase(),
-    );
+      .find((i: any) => (i.email ?? "").toLowerCase() === emailParam.toLowerCase());
     if (!match) return;
     setHighlightId(match.id);
     // Wait a tick so the filtered row is rendered.
@@ -156,18 +174,21 @@ function InvitationsPage() {
       rowRefs.current[match.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 50);
     const clear = setTimeout(() => setHighlightId(null), 2400);
-    return () => { clearTimeout(t); clearTimeout(clear); };
+    return () => {
+      clearTimeout(t);
+      clearTimeout(clear);
+    };
   }, [emailParam, invites.data]);
 
-  const pages = invites.data?.pages ?? [];
+  const pages = useMemo(() => invites.data?.pages ?? [], [invites.data?.pages]);
   const visible = useMemo(() => pages.flatMap((p: any) => p.rows ?? []), [pages]);
   // Tab counts are counted in the database, not derived from loaded rows.
-  const agencyCounts: Record<string, number> = (pages[0] as any)?.counts ?? {};
+  const agencyCounts: Record<string, number> = useMemo(() => pages[0]?.counts ?? {}, [pages]);
   const total = (pages[0] as any)?.total ?? 0;
 
   // Admin-sent talent invitations are few, so they are filtered here; the
   // agency list stays filtered and paged by the database.
-  const talentAll: any[] = talentQ.data ?? [];
+  const talentAll: any[] = useMemo(() => talentQ.data ?? [], [talentQ.data]);
   const talentCounts = useMemo(() => {
     const c: Record<string, number> = { all: talentAll.length };
     for (const t of talentAll) c[t.status] = (c[t.status] ?? 0) + 1;
@@ -177,7 +198,9 @@ function InvitationsPage() {
     const keys = new Set([...Object.keys(agencyCounts), ...Object.keys(talentCounts)]);
     const out: Record<string, number> = {};
     for (const k of keys) {
-      out[k] = (type !== "talent" ? agencyCounts[k] ?? 0 : 0) + (type !== "agency" ? talentCounts[k] ?? 0 : 0);
+      out[k] =
+        (type !== "talent" ? (agencyCounts[k] ?? 0) : 0) +
+        (type !== "agency" ? (talentCounts[k] ?? 0) : 0);
     }
     return out;
   }, [agencyCounts, talentCounts, type]);
@@ -193,7 +216,11 @@ function InvitationsPage() {
   const agencyRows = type === "talent" ? [] : visible;
 
   const filtersActive = tab !== "all" || !!search || type !== "all";
-  const resetFilters = () => { setTab("all"); setSearch(""); setType("all"); };
+  const resetFilters = () => {
+    setTab("all");
+    setSearch("");
+    setType("all");
+  };
 
   const copyLink = async (inv: any) => {
     const url = `${window.location.origin}/invite/${inv.token}`;
@@ -218,10 +245,12 @@ function InvitationsPage() {
         </div>
         <div className="tvp-actions" data-tour="admin-invite-actions">
           <Link to="/admin/invitations/new" className="tvp-primary">
-            <Send className="h-4 w-4" />Invite an agency
+            <Send className="h-4 w-4" />
+            Invite an agency
           </Link>
           <Link to="/admin/invitations/talent/new" className="tvp-primary">
-            <UserPlus className="h-4 w-4" />Invite talent
+            <UserPlus className="h-4 w-4" />
+            Invite talent
           </Link>
         </div>
       </div>
@@ -229,41 +258,63 @@ function InvitationsPage() {
       {/* KPI row */}
       <div className="tvp-grid tvp-kpi-grid" data-tour="admin-invite-kpis">
         <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("all")}>
-          <div className="tvp-kpi-icon tvp-bg-teal"><Mail className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <Mail className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{counts.all}</div>
             <div className="tvp-kpi-label">Total Invitations</div>
-            <div className="tvp-kpi-sub" style={{ color: counts.all > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: counts.all > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+            >
               {counts.all > 0 ? "Across all statuses" : "None sent yet"}
             </div>
           </div>
         </button>
         <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("pending")}>
-          <div className="tvp-kpi-icon tvp-bg-amber"><Clock className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-amber">
+            <Clock className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{counts.pending ?? 0}</div>
             <div className="tvp-kpi-label">Awaiting Acceptance</div>
-            <div className="tvp-kpi-sub tvp-warn" style={{ color: (counts.pending ?? 0) > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub tvp-warn"
+              style={{ color: (counts.pending ?? 0) > 0 ? "var(--tvp-amber)" : "var(--tvp-muted)" }}
+            >
               {(counts.pending ?? 0) > 0 ? "Follow up if stale" : "No outstanding invites"}
             </div>
           </div>
         </button>
         <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("accepted")}>
-          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-green">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{counts.accepted ?? 0}</div>
             <div className="tvp-kpi-label">Accepted</div>
-            <div className="tvp-kpi-sub" style={{ color: (counts.accepted ?? 0) > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{
+                color: (counts.accepted ?? 0) > 0 ? "var(--tvp-green)" : "var(--tvp-muted)",
+              }}
+            >
               {(counts.accepted ?? 0) > 0 ? "Onboarded successfully" : "None yet"}
             </div>
           </div>
         </button>
         <button className="tvp-card tvp-kpi tvp-clickable" onClick={() => setTab("expired")}>
-          <div className="tvp-kpi-icon tvp-bg-red"><AlertCircle className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-red">
+            <AlertCircle className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{counts.expired ?? 0}</div>
             <div className="tvp-kpi-label">Expired / Lapsed</div>
-            <div className="tvp-kpi-sub" style={{ color: (counts.expired ?? 0) > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: (counts.expired ?? 0) > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}
+            >
               {(counts.expired ?? 0) > 0 ? "Resend to reopen" : "All fresh"}
             </div>
           </div>
@@ -304,7 +355,9 @@ function InvitationsPage() {
             <option value="talent">Talent</option>
           </select>
           {filtersActive && (
-            <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
+            <button className="tvp-link" onClick={resetFilters}>
+              Reset filters
+            </button>
           )}
         </div>
         <div className="tvp-table-wrap">
@@ -323,24 +376,40 @@ function InvitationsPage() {
             </thead>
             <tbody>
               {invites.isLoading && (
-                <tr><td colSpan={8} className="tvp-muted">Loading…</td></tr>
+                <tr>
+                  <td colSpan={8} className="tvp-muted">
+                    Loading…
+                  </td>
+                </tr>
               )}
               {!invites.isLoading && agencyRows.length === 0 && talentVisible.length === 0 && (
-                <tr><td colSpan={8} className="tvp-muted">
-                  No invitations match.{" "}
-                  <Link to="/admin/invitations/new" className="tvp-link">Invite an agency</Link>
-                  {" · "}
-                  <Link to="/admin/invitations/talent/new" className="tvp-link">Invite talent</Link>
-                </td></tr>
+                <tr>
+                  <td colSpan={8} className="tvp-muted">
+                    No invitations match.{" "}
+                    <Link to="/admin/invitations/new" className="tvp-link">
+                      Invite an agency
+                    </Link>
+                    {" · "}
+                    <Link to="/admin/invitations/talent/new" className="tvp-link">
+                      Invite talent
+                    </Link>
+                  </td>
+                </tr>
               )}
               {talentVisible.map((t: any) => {
                 const dLeft = daysBetween(t.expires_at);
                 const isOpen = t.status === "pending";
                 return (
                   <tr key={`talent-${t.id}`}>
-                    <td><span className="tvp-status tvp-neutral">Talent</span></td>
                     <td>
-                      <Link to="/admin/invitations/talent/$id" params={{ id: t.id }} className="text-ink">
+                      <span className="tvp-status tvp-neutral">Talent</span>
+                    </td>
+                    <td>
+                      <Link
+                        to="/admin/invitations/talent/$id"
+                        params={{ id: t.id }}
+                        className="text-ink"
+                      >
                         <strong>{t.talent_name}</strong>
                       </Link>
                       <br />
@@ -354,7 +423,9 @@ function InvitationsPage() {
                     </td>
                     <td>{t.last_sent_at ? fmtDate(t.last_sent_at) : "—"}</td>
                     <td>
-                      <span className={`tvp-status tvp-${isOpen && dLeft <= 3 ? "amber" : "neutral"}`}>
+                      <span
+                        className={`tvp-status tvp-${isOpen && dLeft <= 3 ? "amber" : "neutral"}`}
+                      >
                         {isOpen ? `${dLeft} day${dLeft === 1 ? "" : "s"}` : "—"}
                       </span>
                     </td>
@@ -371,27 +442,29 @@ function InvitationsPage() {
                 const dLeft = daysBetween(i.expires_at);
                 const isOpen = (i.stored_status ?? i.status) === "pending";
                 const expiryTone =
-                  isOpen && dLeft < 0
-                    ? "red"
-                    : isOpen && dLeft <= 3
-                      ? "amber"
-                      : "neutral";
-                const expiryLabel =
-                  !isOpen
-                    ? "—"
-                    : dLeft < 0
-                      ? "Expired"
-                      : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
+                  isOpen && dLeft < 0 ? "red" : isOpen && dLeft <= 3 ? "amber" : "neutral";
+                const expiryLabel = !isOpen
+                  ? "—"
+                  : dLeft < 0
+                    ? "Expired"
+                    : `${dLeft} day${dLeft === 1 ? "" : "s"}`;
                 const allowed = invitationActions({
-                  status: i.status, storedStatus: i.stored_status, viewer: "admin", canWrite: true,
+                  status: i.status,
+                  storedStatus: i.stored_status,
+                  viewer: "admin",
+                  canWrite: true,
                 });
                 return (
                   <tr
                     key={i.id}
-                    ref={(el) => { rowRefs.current[i.id] = el; }}
+                    ref={(el) => {
+                      rowRefs.current[i.id] = el;
+                    }}
                     className={highlightId === i.id ? "tvp-row-flash" : undefined}
                   >
-                    <td><span className="tvp-status tvp-neutral">Agency</span></td>
+                    <td>
+                      <span className="tvp-status tvp-neutral">Agency</span>
+                    </td>
                     <td>
                       <strong>{i.agency_name}</strong>
                       {i.contact_person && (
@@ -417,46 +490,75 @@ function InvitationsPage() {
                         <RowActionsMenu
                           actions={[
                             allowed.includes("continue_draft") && {
-                              key: "continue", label: "Continue draft", icon: FileEdit,
+                              key: "continue",
+                              label: "Continue draft",
+                              icon: FileEdit,
                               title: "Add compliance documents and send",
-                              onSelect: () => nav({ to: "/admin/invitations/new", search: { draft: i.id } as any }),
+                              onSelect: () =>
+                                nav({
+                                  to: "/admin/invitations/new",
+                                  search: { draft: i.id } as any,
+                                }),
                             },
                             i.status !== "draft" && {
-                              key: "preview", label: "Preview branded email", icon: Mail,
-                              to: "/admin/invitations/$id/email-preview", params: { id: i.id },
+                              key: "preview",
+                              label: "Preview branded email",
+                              icon: Mail,
+                              to: "/admin/invitations/$id/email-preview",
+                              params: { id: i.id },
                             },
                             allowed.includes("copy_link") && {
-                              key: "copy", label: "Copy invite link", icon: Link2,
+                              key: "copy",
+                              label: "Copy invite link",
+                              icon: Link2,
                               title: "Copying does not extend expiry",
                               onSelect: () => copyLink(i),
                             },
                             allowed.includes("edit_email") && {
-                              key: "edit", label: "Edit email address", icon: Pencil,
+                              key: "edit",
+                              label: "Edit email address",
+                              icon: Pencil,
                               title: "Only possible before the invitation is accepted",
-                              onSelect: () => { setEditing(i); setEmailDraft(i.email); },
+                              onSelect: () => {
+                                setEditing(i);
+                                setEmailDraft(i.email);
+                              },
                             },
                             allowed.includes("resend") && {
-                              key: "resend", label: "Resend invitation", icon: RefreshCw,
+                              key: "resend",
+                              label: "Resend invitation",
+                              icon: RefreshCw,
                               title: "Logs a new send and refreshes expiry",
                               onSelect: () => resendM.mutate(i.id),
                             },
                             allowed.includes("reinvite") && {
-                              key: "reinvite", label: "Reinvite", icon: Send,
-                              onSelect: () => (isOpen ? resendM.mutate(i.id) : nav({ to: "/admin/invitations/new" })),
+                              key: "reinvite",
+                              label: "Reinvite",
+                              icon: Send,
+                              onSelect: () =>
+                                isOpen
+                                  ? resendM.mutate(i.id)
+                                  : nav({ to: "/admin/invitations/new" }),
                             },
                             allowed.includes("revoke") && {
-                              key: "revoke", label: "Revoke invitation", icon: Ban,
-                              destructive: true, separatorBefore: true,
+                              key: "revoke",
+                              label: "Revoke invitation",
+                              icon: Ban,
+                              destructive: true,
+                              separatorBefore: true,
                               onSelect: () => {
-                                if (confirm(`Revoke invitation to ${i.agency_name}?`)) revokeM.mutate(i.id);
+                                if (confirm(`Revoke invitation to ${i.agency_name}?`))
+                                  revokeM.mutate(i.id);
                               },
                             },
                             (allowed.includes("delete") || i.status === "pending") && {
                               key: "delete",
                               label: i.status === "draft" ? "Delete draft" : "Delete invitation",
-                              icon: Trash2, destructive: true,
+                              icon: Trash2,
+                              destructive: true,
                               separatorBefore: i.status === "draft",
-                              title: "Removes compliance documents, and the shell agency if it has no members",
+                              title:
+                                "Removes compliance documents, and the shell agency if it has no members",
                               onSelect: () => setPendingDelete(i),
                             },
                           ]}
@@ -466,15 +568,17 @@ function InvitationsPage() {
                   </tr>
                 );
               })}
-              {type !== "talent" && <LoadMoreRow
-                colSpan={8}
-                noun="agency invitations"
-                shown={visible.length}
-                total={total}
-                hasMore={!!invites.hasNextPage}
-                loading={invites.isFetchingNextPage}
-                onLoadMore={() => invites.fetchNextPage()}
-              />}
+              {type !== "talent" && (
+                <LoadMoreRow
+                  colSpan={8}
+                  noun="agency invitations"
+                  shown={visible.length}
+                  total={total}
+                  hasMore={!!invites.hasNextPage}
+                  loading={invites.isFetchingNextPage}
+                  onLoadMore={() => invites.fetchNextPage()}
+                />
+              )}
             </tbody>
           </table>
         </div>
@@ -486,8 +590,13 @@ function InvitationsPage() {
           aria-modal="true"
           onClick={() => setEditing(null)}
           style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
           }}
         >
           <div
@@ -502,7 +611,8 @@ function InvitationsPage() {
               </button>
             </div>
             <p className="tvp-muted" style={{ fontSize: 12 }}>
-              Editing is only allowed before acceptance. After acceptance, updates go through account settings.
+              Editing is only allowed before acceptance. After acceptance, updates go through
+              account settings.
             </p>
             <div className="tvp-form-group">
               <label>Recipient email</label>
@@ -518,12 +628,8 @@ function InvitationsPage() {
               </button>
               <button
                 className="tvp-primary"
-                onClick={() =>
-                  updateEmailM.mutate({ id: editing.id, email: emailDraft })
-                }
-                disabled={
-                  !emailDraft || emailDraft === editing.email || updateEmailM.isPending
-                }
+                onClick={() => updateEmailM.mutate({ id: editing.id, email: emailDraft })}
+                disabled={!emailDraft || emailDraft === editing.email || updateEmailM.isPending}
               >
                 Save & log
               </button>
@@ -538,8 +644,13 @@ function InvitationsPage() {
           aria-modal="true"
           onClick={() => setPendingDelete(null)}
           style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
           }}
         >
           <div
@@ -554,13 +665,15 @@ function InvitationsPage() {
               </button>
             </div>
             <p style={{ fontSize: 14, lineHeight: 1.5 }}>
-              This permanently removes the invitation to <strong>{pendingDelete.agency_name}</strong>{" "}
-              (<span className="tvp-muted">{pendingDelete.email}</span>), deletes any uploaded
+              This permanently removes the invitation to{" "}
+              <strong>{pendingDelete.agency_name}</strong> (
+              <span className="tvp-muted">{pendingDelete.email}</span>), deletes any uploaded
               compliance documents, and — if the agency shell has no members yet — removes the
               agency record too. This cannot be undone.
             </p>
             <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
-              Prefer <strong>Revoke</strong> if you need to keep an audit trail of a cancelled invite.
+              Prefer <strong>Revoke</strong> if you need to keep an audit trail of a cancelled
+              invite.
             </p>
             <div className="tvp-footer-actions">
               <button className="tvp-secondary" onClick={() => setPendingDelete(null)}>

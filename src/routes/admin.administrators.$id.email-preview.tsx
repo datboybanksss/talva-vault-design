@@ -36,8 +36,7 @@ function AdminEmailPreviewPage() {
 
   // A lapsed invitation carries a dead link: sending it again would just email
   // a link that fails on arrival, so the expiry has to be refreshed first.
-  const isExpired =
-    !!inv && effectiveInvitationStatus(inv.status, inv.expires_at) === "expired";
+  const isExpired = !!inv && effectiveInvitationStatus(inv.status, inv.expires_at) === "expired";
 
   const resendM = useMutation({
     mutationFn: () => resendFn({ data: { id, extend_days: 14 } }),
@@ -62,7 +61,9 @@ function AdminEmailPreviewPage() {
   const inviteUrl = inv ? `${origin}/invite/admin/${inv.token}` : "";
   const expiryDate = inv
     ? new Date(inv.expires_at).toLocaleDateString("en-GB", {
-        day: "numeric", month: "long", year: "numeric",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       })
     : "";
 
@@ -103,24 +104,38 @@ function AdminEmailPreviewPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/admin/administrators" className="tvp-link"
-            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+          <Link
+            to="/admin/administrators"
+            className="tvp-link"
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}
+          >
             <ArrowLeft className="h-3 w-3" /> Back to administrators
           </Link>
-          <h1 className="tvp-h1" style={{ marginTop: 4 }}>Administrator invitation email</h1>
+          <h1 className="tvp-h1" style={{ marginTop: 4 }}>
+            Administrator invitation email
+          </h1>
           <div className="tvp-subtitle">
             Edit the subject and message, preview it exactly as the recipient sees it, then send.
             Tokens available: {"{{email}}"}, {"{{permission_level}}"}, {"{{expiry_date}}"}.
           </div>
         </div>
         <div className="tvp-actions">
-          <button className="tvp-secondary" onClick={copyLink} disabled={!inv} title="Copy the unique invite link">
-            <Copy className="h-4 w-4" />Copy link
+          <button
+            className="tvp-secondary"
+            onClick={copyLink}
+            disabled={!inv}
+            title="Copy the unique invite link"
+          >
+            <Copy className="h-4 w-4" />
+            Copy link
           </button>
           {isExpired && (
             <button
               className="tvp-secondary"
-              onClick={() => { setStatus(null); resendM.mutate(); }}
+              onClick={() => {
+                setStatus(null);
+                resendM.mutate();
+              }}
               disabled={resendM.isPending}
               title="Extend the expiry by 14 days so the link works again"
             >
@@ -136,9 +151,13 @@ function AdminEmailPreviewPage() {
                 ? "This invitation has lapsed — refresh the expiry before sending."
                 : "Send this invitation email"
             }
-            onClick={() => { setStatus(null); sendM.mutate(); }}
+            onClick={() => {
+              setStatus(null);
+              sendM.mutate();
+            }}
           >
-            <Send className="h-4 w-4" />{sendM.isPending ? "Sending…" : "Send email"}
+            <Send className="h-4 w-4" />
+            {sendM.isPending ? "Sending…" : "Send email"}
           </button>
         </div>
       </div>
@@ -147,9 +166,9 @@ function AdminEmailPreviewPage() {
         <div className="tvp-card" style={{ borderLeft: "3px solid var(--tvp-red)" }}>
           <strong>This invitation has lapsed.</strong>{" "}
           <span className="tvp-muted">
-            Its link no longer works, so sending it now would land the recipient on
-            an expired page. Use “Resend &amp; refresh expiry” to reopen it for a
-            further 14 days, then send the email.
+            Its link no longer works, so sending it now would land the recipient on an expired page.
+            Use “Resend &amp; refresh expiry” to reopen it for a further 14 days, then send the
+            email.
           </span>
         </div>
       )}

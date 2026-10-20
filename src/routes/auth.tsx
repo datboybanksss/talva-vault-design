@@ -1,21 +1,23 @@
-import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_PLURAL } from "@/lib/terms";
+import {
+  SHARE_RECIPIENT_TERM,
+  SHARE_RECIPIENT_TERM_CAPITALISED,
+  SHARE_RECIPIENT_TERM_PLURAL,
+} from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MFA_ENFORCED, PORTAL_FOR_DENIED_CODE, checkPortalAccess, resolvePortalHome } from "@/lib/portal-access";
+import {
+  MFA_ENFORCED,
+  PORTAL_FOR_DENIED_CODE,
+  checkPortalAccess,
+  resolvePortalHome,
+} from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
-import { ShieldCheck, Lock, FileCheck2, Users } from "lucide-react";
+import { Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
 import { PasswordInput } from "@/components/password-input";
-import {
-  MIN_PW_LENGTH,
-  PW_POLICY_HINT,
-  checkRequirements,
-  scorePassword,
-  validateNewPassword,
-  friendlyAuthError,
-} from "@/lib/password";
+import { friendlyAuthError } from "@/lib/password";
 import {
   INVITE_KINDS,
   claimInvitation,
@@ -42,7 +44,10 @@ const searchSchema = z.object({
   denied: z.string().optional(),
   invite: z.string().optional(),
   invite_kind: z.enum(INVITE_KINDS).optional(),
-  reset: z.union([z.string(), z.number(), z.boolean()]).optional().transform((v) => (v === undefined ? undefined : String(v))),
+  reset: z
+    .union([z.string(), z.number(), z.boolean()])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : String(v))),
 });
 
 /**
@@ -99,8 +104,7 @@ const PORTAL_HERO: Record<
 > = {
   platform: {
     headline: "One secure home for the documents that matter.",
-    sub:
-      "Sign in once and TalVault takes you to your own workspace — agency, talent or platform — with everything protected end to end.",
+    sub: "Sign in once and TalVault takes you to your own workspace — agency, talent or platform — with everything protected end to end.",
     points: [
       "Role-based access with row-level security",
       "Every document and share, protected end to end",
@@ -147,23 +151,27 @@ const PORTAL_HERO: Record<
 
 type PortalContext = {
   key: "platform" | "admin" | "agency" | "talent" | "loved-one";
-  name: string;      // Display label for the selected portal
+  name: string; // Display label for the selected portal
   workspace: string; // "admin portal", "agency workspace", ...
-  home: string;      // default landing route
+  home: string; // default landing route
 };
 
 function portalFromNext(next?: string): PortalContext {
   const path = next && next.startsWith("/") && !next.startsWith("//") ? next : "";
   // No destination in the URL: this is the single front-door sign-in page.
   // Where the account lands is resolved from its own records after sign-in.
-  if (!path)
-    return { key: "platform", name: "TalVault", workspace: "workspace", home: "/" };
+  if (!path) return { key: "platform", name: "TalVault", workspace: "workspace", home: "/" };
   if (path.startsWith("/agency"))
     return { key: "agency", name: "Agency", workspace: "agency workspace", home: "/agency" };
   if (path.startsWith("/talent"))
     return { key: "talent", name: "Talent", workspace: "talent workspace", home: "/talent" };
   if (path.startsWith("/loved-one"))
-    return { key: "loved-one", name: SHARE_RECIPIENT_TERM_CAPITALISED, workspace: `${SHARE_RECIPIENT_TERM} workspace`, home: "/loved-one" };
+    return {
+      key: "loved-one",
+      name: SHARE_RECIPIENT_TERM_CAPITALISED,
+      workspace: `${SHARE_RECIPIENT_TERM} workspace`,
+      home: "/loved-one",
+    };
   return { key: "admin", name: "Admin", workspace: "admin portal", home: "/admin" };
 }
 
@@ -265,7 +273,6 @@ function AuthPage() {
     };
   }, [search.denied, search.next, search.reset, deniedPortal, nav]);
 
-
   const denied = useMemo(
     () =>
       search.denied && deniedState === "confirmed"
@@ -324,7 +331,6 @@ function AuthPage() {
     }
   }, [pendingInvite, nav]);
 
-
   // Where to send a signed-in user. An explicit `next` wins; otherwise the
   // destination is resolved from the account's real access rather than assumed
   // to be /admin (that assumption is what manufactured phantom denials).
@@ -358,7 +364,6 @@ function AuthPage() {
     },
     [search.next, search.invite, search.invite_kind, nav],
   );
-
 
   // Sends (or resends) the one-time code and shows the code step.
   const startCodeChallenge = useCallback(async (silent = false) => {
@@ -427,7 +432,6 @@ function AuthPage() {
     };
   }, []);
 
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -477,7 +481,6 @@ function AuthPage() {
       setBusy(false);
     }
   };
-
 
   const resendCode = async () => {
     setResending(true);
@@ -564,7 +567,9 @@ function AuthPage() {
         <div className="tv-auth-card">
           <div className="tv-auth-eyebrow">Welcome back</div>
           <h2 className="tv-auth-title">
-            {portal.key === "platform" ? "Sign in to TalVault" : `Sign in to TalVault ${portal.name}`}
+            {portal.key === "platform"
+              ? "Sign in to TalVault"
+              : `Sign in to TalVault ${portal.name}`}
           </h2>
           <p className="tv-auth-tag">
             Use your work email or continue with Google. We'll take you to your own workspace.
@@ -585,8 +590,8 @@ function AuthPage() {
                   ? "talent"
                   : "administrator"}{" "}
               invitation
-              {pendingInvite.label ? ` from ${pendingInvite.label}` : ""} waiting for
-              this account. Accept it to finish setting up your access.
+              {pendingInvite.label ? ` from ${pendingInvite.label}` : ""} waiting for this account.
+              Accept it to finish setting up your access.
               <div style={{ marginTop: 10 }}>
                 <button
                   type="button"
@@ -626,8 +631,6 @@ function AuthPage() {
             </div>
           )}
 
-
-
           {!codeStage && (
             <>
               <div style={{ marginTop: 22 }}>
@@ -648,9 +651,8 @@ function AuthPage() {
           {codeStage ? (
             <form onSubmit={verifyMfa} noValidate>
               <div className="tv-auth-hint" style={{ marginTop: 8 }}>
-                For your security we've emailed you a 6-digit code. Enter it
-                below to finish signing in. It expires in 10 minutes and can
-                only be used once.
+                For your security we've emailed you a 6-digit code. Enter it below to finish signing
+                in. It expires in 10 minutes and can only be used once.
               </div>
               <div className="tv-auth-field">
                 <label htmlFor="mfa-code">Sign-in code</label>
@@ -661,9 +663,7 @@ function AuthPage() {
                   pattern="[0-9]{6}"
                   maxLength={6}
                   value={mfaCode}
-                  onChange={(e) =>
-                    setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="123456"
                   autoFocus
                 />
@@ -686,68 +686,62 @@ function AuthPage() {
                 >
                   {resending ? "Sending…" : "Send a new code"}
                 </button>
-                <button
-                  className="tv-auth-link"
-                  type="button"
-                  onClick={cancelMfa}
-                  disabled={busy}
-                >
+                <button className="tv-auth-link" type="button" onClick={cancelMfa} disabled={busy}>
                   Cancel and sign out
                 </button>
               </div>
             </form>
           ) : (
-          <form onSubmit={submit} noValidate>
-            <div className="tv-auth-field">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@email.com"
-              />
-            </div>
-            <div className="tv-auth-field">
-              <div className="tv-auth-label-row">
-                <label htmlFor="password">Password</label>
-                {(
-                  <Link
-                    to="/forgot-password"
-                    search={{ next: sanitizeNext(search.next) }}
-                    className="tv-auth-link"
-                  >
-                    Forgot password?
-                  </Link>
-                )}
+            <form onSubmit={submit} noValidate>
+              <div className="tv-auth-field">
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@email.com"
+                />
               </div>
-              <PasswordInput
-                id="password"
-                value={password}
-                onChange={setPassword}
-                autoComplete="current-password"
-                placeholder="Your password"
-                minLength={1}
-              />
-            </div>
+              <div className="tv-auth-field">
+                <div className="tv-auth-label-row">
+                  <label htmlFor="password">Password</label>
+                  {
+                    <Link
+                      to="/forgot-password"
+                      search={{ next: sanitizeNext(search.next) }}
+                      className="tv-auth-link"
+                    >
+                      Forgot password?
+                    </Link>
+                  }
+                </div>
+                <PasswordInput
+                  id="password"
+                  value={password}
+                  onChange={setPassword}
+                  autoComplete="current-password"
+                  placeholder="Your password"
+                  minLength={1}
+                />
+              </div>
 
-            {error && <div className="tv-auth-alert">{error}</div>}
-            {info && <div className="tv-auth-alert tv-info">{info}</div>}
+              {error && <div className="tv-auth-alert">{error}</div>}
+              {info && <div className="tv-auth-alert tv-info">{info}</div>}
 
-            <button type="submit" className="tv-auth-submit" disabled={busy}>
-              {busy ? "Please wait…" : "Sign in"}
-            </button>
-          </form>
+              <button type="submit" className="tv-auth-submit" disabled={busy}>
+                {busy ? "Please wait…" : "Sign in"}
+              </button>
+            </form>
           )}
 
           {!codeStage && (
             <div className="tv-auth-switch">
-              No account yet? TalVault accounts are created from an invitation
-              only, on the exact email address it was sent to. Open the link in
-              your invitation email, or ask your agency or administrator to
-              invite you.
+              No account yet? TalVault accounts are created from an invitation only, on the exact
+              email address it was sent to. Open the link in your invitation email, or ask your
+              agency or administrator to invite you.
             </div>
           )}
 
@@ -764,14 +758,25 @@ function AuthPage() {
 
 /* --------------------------------- helpers -------------------------------- */
 
-
 function GoogleGlyph() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
     </svg>
   );
 }

@@ -12,14 +12,7 @@ import {
   deleteComplianceDocument,
 } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Upload,
-  Trash2,
-  FileText,
-  AlertCircle,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Upload, Trash2, FileText, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { phoneError } from "@/lib/phone";
 import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
@@ -191,14 +184,14 @@ function NewInvitationPage() {
           invite_url: `${window.location.origin}/invite/${inv.token}`,
         },
       }).catch(() => ({ sent: false }));
-      if (res?.sent) toast.success("Invitation sent. The recipient will receive the branded email.");
+      if (res?.sent)
+        toast.success("Invitation sent. The recipient will receive the branded email.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
 
       nav({ to: "/admin/invitations" });
     },
     onError: (e: any) => toast.error(e.message ?? "Failed to send invitation"),
   });
-
 
   const deleteDocM = useMutation({
     mutationFn: (id: string) => deleteDocFn({ data: { id } }),
@@ -222,9 +215,7 @@ function NewInvitationPage() {
   async function uploadForSlot(slotKey: string, file: File) {
     if (!draftId) return;
     const normalise = (n: string) => n.trim().toLowerCase();
-    const duplicate = docs.some(
-      (d: any) => normalise(d.file_name ?? "") === normalise(file.name),
-    );
+    const duplicate = docs.some((d: any) => normalise(d.file_name ?? "") === normalise(file.name));
     if (duplicate) {
       setSlotErrors((prev) => ({
         ...prev,
@@ -310,8 +301,8 @@ function NewInvitationPage() {
           </h1>
           <div className="tvp-subtitle">
             Save your progress as a draft at any point and come back to it. Everything stays
-            editable until you finalise and send. The invited agency does not upload the
-            compliance documents — you do.
+            editable until you finalise and send. The invited agency does not upload the compliance
+            documents — you do.
           </div>
         </div>
       </div>
@@ -381,9 +372,7 @@ function NewInvitationPage() {
                       textAlign: "left",
                       padding: 14,
                       cursor: "pointer",
-                      border: active
-                        ? "2px solid var(--tvp-teal)"
-                        : "1px solid var(--tvp-border)",
+                      border: active ? "2px solid var(--tvp-teal)" : "1px solid var(--tvp-border)",
                       background: active ? "rgba(6,78,88,0.06)" : "var(--tvp-surface)",
                     }}
                   >
@@ -546,7 +535,13 @@ function NewInvitationPage() {
                 {staleDocs.map((u) => (
                   <li
                     key={u.id}
-                    style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "4px 0" }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: 13,
+                      padding: "4px 0",
+                    }}
                   >
                     <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
                     <span>{u.file_name}</span>

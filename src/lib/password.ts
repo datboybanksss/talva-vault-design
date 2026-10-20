@@ -9,16 +9,34 @@ export const MIN_PW_LENGTH = 12;
 
 // Small in-app blocklist of extremely common / trivially-guessable passwords.
 export const COMMON_PASSWORDS = new Set([
-  "password", "password1", "password12", "password123", "password1234",
-  "passw0rd", "p@ssword", "p@ssw0rd", "qwerty123456", "qwertyuiop12",
-  "123456789012", "1234567890123", "iloveyou1234", "letmein12345",
-  "welcome12345", "adminadmin12", "administrator", "trustno1234",
-  "abcdefghijkl", "aaaaaaaaaaaa", "monkey123456",
-  "Password123!", "Password1234!", "Password!23", "Qwerty123!",
+  "password",
+  "password1",
+  "password12",
+  "password123",
+  "password1234",
+  "passw0rd",
+  "p@ssword",
+  "p@ssw0rd",
+  "qwerty123456",
+  "qwertyuiop12",
+  "123456789012",
+  "1234567890123",
+  "iloveyou1234",
+  "letmein12345",
+  "welcome12345",
+  "adminadmin12",
+  "administrator",
+  "trustno1234",
+  "abcdefghijkl",
+  "aaaaaaaaaaaa",
+  "monkey123456",
+  "Password123!",
+  "Password1234!",
+  "Password!23",
+  "Qwerty123!",
 ]);
 
-export const PW_POLICY_HINT =
-  `At least ${MIN_PW_LENGTH} characters, and must include uppercase, lowercase, a number, and a special character.`;
+export const PW_POLICY_HINT = `At least ${MIN_PW_LENGTH} characters, and must include uppercase, lowercase, a number, and a special character.`;
 
 export type PasswordRequirements = {
   length: boolean;
@@ -56,10 +74,8 @@ export function scorePassword(pw: string): StrengthResult {
 
   const req = checkRequirements(pw);
   const pool =
-    (req.lower ? 26 : 0) +
-    (req.upper ? 26 : 0) +
-    (req.number ? 10 : 0) +
-    (req.special ? 32 : 0) || 26;
+    (req.lower ? 26 : 0) + (req.upper ? 26 : 0) + (req.number ? 10 : 0) + (req.special ? 32 : 0) ||
+    26;
   let entropy = pw.length * Math.log2(pool);
   const uniq = new Set(pw).size;
   if (uniq < 4) entropy *= 0.55;
@@ -69,8 +85,7 @@ export function scorePassword(pw: string): StrengthResult {
   const pct = Math.max(4, Math.min(100, Math.round((entropy / 80) * 100)));
 
   // If any required class is missing, cap at weak — the form won't accept it either.
-  if (!allRequirementsMet(pw))
-    return { tier: "weak", label: "Weak", pct, color: "var(--red)" };
+  if (!allRequirementsMet(pw)) return { tier: "weak", label: "Weak", pct, color: "var(--red)" };
   if (entropy < 48) return { tier: "fair", label: "Fair", pct, color: "var(--amber)" };
   if (entropy < 64) return { tier: "good", label: "Good", pct, color: "var(--teal-2)" };
   return { tier: "strong", label: "Strong", pct, color: "var(--green)" };

@@ -85,14 +85,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "TalVault" },
       {
         name: "description",
-        content:
-          `Secure document vault and operations workspace for talent, managers and ${SHARE_RECIPIENT_TERM_PLURAL}.`,
+        content: `Secure document vault and operations workspace for talent, managers and ${SHARE_RECIPIENT_TERM_PLURAL}.`,
       },
       { property: "og:title", content: "TalVault" },
       {
         property: "og:description",
-        content:
-          `Secure document vault and operations workspace for talent, managers and ${SHARE_RECIPIENT_TERM_PLURAL}.`,
+        content: `Secure document vault and operations workspace for talent, managers and ${SHARE_RECIPIENT_TERM_PLURAL}.`,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -135,7 +133,6 @@ function RootShell({ children }: { children: ReactNode }) {
         <Toaster position="top-right" richColors closeButton />
         <Scripts />
       </body>
-
     </html>
   );
 }
@@ -146,12 +143,7 @@ function RootComponent() {
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (
-        event !== "SIGNED_IN" &&
-        event !== "SIGNED_OUT" &&
-        event !== "USER_UPDATED"
-      )
-        return;
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });

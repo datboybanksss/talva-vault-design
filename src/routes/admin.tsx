@@ -10,8 +10,7 @@ export const Route = createFileRoute("/admin")({
       { title: "Admin · TalVault" },
       {
         name: "description",
-        content:
-          "Platform operations console — agencies, invites, audit and administrators.",
+        content: "Platform operations console — agencies, invites, audit and administrators.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -36,7 +35,6 @@ export const Route = createFileRoute("/admin")({
     if (!userRes.user) {
       throw redirect({ to: "/auth", search: { next: location.href } });
     }
-
 
     // Two-factor authentication is mandatory for every account, with no
     // permission-level exemption. The enrolment page must stay reachable.

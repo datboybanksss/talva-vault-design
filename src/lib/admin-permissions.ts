@@ -55,9 +55,7 @@ export function adminPermissionRank(level?: string | null): number {
 }
 
 /** Levels an inviter at `inviterLevel` is authorised to grant. */
-export function grantableAdminPermissions(
-  inviterLevel?: string | null,
-): AdminPermissionDef[] {
+export function grantableAdminPermissions(inviterLevel?: string | null): AdminPermissionDef[] {
   const cap = adminPermissionRank(inviterLevel);
   return ADMIN_PERMISSION_LEVELS.filter((p) => p.rank <= cap);
 }

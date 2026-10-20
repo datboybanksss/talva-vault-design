@@ -1,5 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, FileDown, Eye, Lock, Wallet, CheckCircle2, AlertCircle, FileText } from "lucide-react";
+import {
+  Download,
+  FileDown,
+  Eye,
+  Lock,
+  Wallet,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
 import { printHtmlDocument } from "@/lib/billing-reports";
 import { buildAdminBillingHtml } from "@/lib/admin-print";
 import { useMemo, useState } from "react";
@@ -16,10 +25,20 @@ export const Route = createFileRoute("/admin/quotes-invoices")({
 });
 
 const statusTone: Record<string, string> = {
-  draft: "neutral", sent: "blue", accepted: "green", paid: "green", overdue: "red", cancelled: "neutral",
+  draft: "neutral",
+  sent: "blue",
+  accepted: "green",
+  paid: "green",
+  overdue: "red",
+  cancelled: "neutral",
 };
 const statusLabel: Record<string, string> = {
-  draft: "Draft", sent: "Sent", accepted: "Accepted", paid: "Paid", overdue: "Overdue", cancelled: "Cancelled",
+  draft: "Draft",
+  sent: "Sent",
+  accepted: "Accepted",
+  paid: "Paid",
+  overdue: "Overdue",
+  cancelled: "Cancelled",
 };
 
 type ChipKey = "all" | "draft" | "sent" | "accepted" | "paid" | "overdue";
@@ -34,7 +53,9 @@ const CHIPS: Array<{ key: ChipKey; label: string; tone: string }> = [
 
 function fmtMoney(cents: number, ccy: string) {
   return new Intl.NumberFormat("en-ZA", {
-    style: "currency", currency: ccy, maximumFractionDigits: 0,
+    style: "currency",
+    currency: ccy,
+    maximumFractionDigits: 0,
   }).format(cents / 100);
 }
 
@@ -63,7 +84,12 @@ function QuotesInvoicesPage() {
 
   const chipCounts = useMemo(() => {
     const c: Record<ChipKey, number> = {
-      all: rows.length, draft: 0, sent: 0, accepted: 0, paid: 0, overdue: 0,
+      all: rows.length,
+      draft: 0,
+      sent: 0,
+      accepted: 0,
+      paid: 0,
+      overdue: 0,
     };
     for (const r of rows) {
       if (r.status in c) c[r.status as ChipKey] = (c[r.status as ChipKey] ?? 0) + 1;
@@ -108,7 +134,8 @@ function QuotesInvoicesPage() {
           !(r.number ?? "").toLowerCase().includes(s) &&
           !(r.client_name ?? "").toLowerCase().includes(s) &&
           !(r.agency_name ?? "").toLowerCase().includes(s)
-        ) return false;
+        )
+          return false;
       }
       return true;
     });
@@ -129,15 +156,20 @@ function QuotesInvoicesPage() {
   };
 
   const logExport = useMutation({
-    mutationFn: (scope: string) =>
-      logExportFn({ data: { scope, row_count: filteredRows.length } }),
+    mutationFn: (scope: string) => logExportFn({ data: { scope, row_count: filteredRows.length } }),
   });
 
   const exportCsv = () => {
     const headers = ["Agency", "Type", "Number", "Client", "Issued", "Currency", "Total", "Status"];
     const csvRows = filteredRows.map((r: any) => [
-      r.agency_name, r.kind, r.number, r.client_name ?? "",
-      r.issued_at, r.currency, String(r.total_cents / 100), r.status,
+      r.agency_name,
+      r.kind,
+      r.number,
+      r.client_name ?? "",
+      r.issued_at,
+      r.currency,
+      String(r.total_cents / 100),
+      r.status,
     ]);
     const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
     const csv = [headers, ...csvRows].map((r) => r.map(esc).join(",")).join("\n");
@@ -155,7 +187,13 @@ function QuotesInvoicesPage() {
   const filterLabel = useMemo(() => {
     const parts: string[] = [];
     parts.push(agencyFilter === "all" ? "All agencies" : agencyFilter);
-    parts.push(typeFilter === "all" ? "Quotes and invoices" : typeFilter === "quote" ? "Quotes only" : "Invoices only");
+    parts.push(
+      typeFilter === "all"
+        ? "Quotes and invoices"
+        : typeFilter === "quote"
+          ? "Quotes only"
+          : "Invoices only",
+    );
     parts.push(chipFilter === "all" ? "All statuses" : (statusLabel[chipFilter] ?? chipFilter));
     if (search.trim()) parts.push(`Search: "${search.trim()}"`);
     parts.push(`${filteredRows.length} record${filteredRows.length === 1 ? "" : "s"}`);
@@ -183,10 +221,12 @@ function QuotesInvoicesPage() {
         </div>
         <div className="tvp-actions">
           <button className="tvp-secondary" onClick={exportCsv} disabled={visible.length === 0}>
-            <Download className="h-4 w-4" />Export
+            <Download className="h-4 w-4" />
+            Export
           </button>
           <button className="tvp-secondary" onClick={printPdf} disabled={filteredRows.length === 0}>
-            <FileDown className="h-4 w-4" />Print / Save PDF
+            <FileDown className="h-4 w-4" />
+            Print / Save PDF
           </button>
         </div>
       </div>
@@ -194,7 +234,9 @@ function QuotesInvoicesPage() {
       {/* KPI row — platform-level rollups */}
       <div className="tvp-grid tvp-kpi-grid" data-tour="admin-billing-kpis">
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-teal"><FileText className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-teal">
+            <FileText className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{kpis.total}</div>
             <div className="tvp-kpi-label">Total Records</div>
@@ -204,32 +246,53 @@ function QuotesInvoicesPage() {
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-amber"><Wallet className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-amber">
+            <Wallet className="h-5 w-5" />
+          </div>
           <div>
-            <div className="tvp-kpi-value" style={{ fontSize: 22 }}>{fmtMoney(kpis.outstanding, "ZAR")}</div>
+            <div className="tvp-kpi-value" style={{ fontSize: 22 }}>
+              {fmtMoney(kpis.outstanding, "ZAR")}
+            </div>
             <div className="tvp-kpi-label">Outstanding</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.outstanding > 0 ? "var(--tvp-amber)" : "var(--tvp-green)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: kpis.outstanding > 0 ? "var(--tvp-amber)" : "var(--tvp-green)" }}
+            >
               {kpis.outstanding > 0 ? "Sent / overdue invoices" : "Nothing outstanding"}
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-green"><CheckCircle2 className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-green">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
           <div>
-            <div className="tvp-kpi-value" style={{ fontSize: 22 }}>{fmtMoney(kpis.paid30, "ZAR")}</div>
+            <div className="tvp-kpi-value" style={{ fontSize: 22 }}>
+              {fmtMoney(kpis.paid30, "ZAR")}
+            </div>
             <div className="tvp-kpi-label">Paid (last 30d)</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.paid30 > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}>
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: kpis.paid30 > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
+            >
               {kpis.paid30 > 0 ? "Recent settlements" : "No recent payments"}
             </div>
           </div>
         </div>
         <div className="tvp-card tvp-kpi">
-          <div className="tvp-kpi-icon tvp-bg-red"><AlertCircle className="h-5 w-5" /></div>
+          <div className="tvp-kpi-icon tvp-bg-red">
+            <AlertCircle className="h-5 w-5" />
+          </div>
           <div>
             <div className="tvp-kpi-value">{kpis.overdueCount}</div>
             <div className="tvp-kpi-label">Overdue Invoices</div>
-            <div className="tvp-kpi-sub" style={{ color: kpis.overdueCount > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}>
-              {kpis.overdueCount > 0 ? fmtMoney(kpis.overdueAmt, "ZAR") + " overdue" : "None overdue"}
+            <div
+              className="tvp-kpi-sub"
+              style={{ color: kpis.overdueCount > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}
+            >
+              {kpis.overdueCount > 0
+                ? fmtMoney(kpis.overdueAmt, "ZAR") + " overdue"
+                : "None overdue"}
             </div>
           </div>
         </div>
@@ -265,7 +328,9 @@ function QuotesInvoicesPage() {
             >
               <option value="all">Agency: All</option>
               {agencies.map((a) => (
-                <option key={a} value={a}>{a}</option>
+                <option key={a} value={a}>
+                  {a}
+                </option>
               ))}
             </select>
             <select
@@ -278,7 +343,9 @@ function QuotesInvoicesPage() {
               <option value="invoice">Invoice</option>
             </select>
             {filtersActive && (
-              <button className="tvp-link" onClick={resetFilters}>Reset filters</button>
+              <button className="tvp-link" onClick={resetFilters}>
+                Reset filters
+              </button>
             )}
           </div>
         </div>
@@ -286,28 +353,47 @@ function QuotesInvoicesPage() {
           <table className="tvp-table" data-tour="admin-billing-table">
             <thead>
               <tr>
-                <th>Agency</th><th>Type</th><th>Number</th><th>Client</th>
-                <th>Issued</th><th>Total</th><th>Status</th><th></th>
+                <th>Agency</th>
+                <th>Type</th>
+                <th>Number</th>
+                <th>Client</th>
+                <th>Issued</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {q.isLoading && (
-                <tr><td colSpan={8} className="tvp-muted">Loading…</td></tr>
+                <tr>
+                  <td colSpan={8} className="tvp-muted">
+                    Loading…
+                  </td>
+                </tr>
               )}
               {!q.isLoading && visible.length === 0 && (
-                <tr><td colSpan={8} className="tvp-muted">
-                  No quotes or invoices yet — records appear here as soon as agencies start creating them.
-                </td></tr>
+                <tr>
+                  <td colSpan={8} className="tvp-muted">
+                    No quotes or invoices yet — records appear here as soon as agencies start
+                    creating them.
+                  </td>
+                </tr>
               )}
               {visible.map((r: any) => (
                 <tr key={r.id}>
-                  <td><strong>{r.agency_name}</strong></td>
+                  <td>
+                    <strong>{r.agency_name}</strong>
+                  </td>
                   <td style={{ textTransform: "capitalize" }}>{r.kind}</td>
                   <td>{r.number}</td>
                   <td>{r.client_name ?? "—"}</td>
                   <td>{r.issued_at}</td>
                   <td>{fmtMoney(r.total_cents, r.currency)}</td>
-                  <td><span className={`tvp-status tvp-${statusTone[r.status] ?? "neutral"}`}>{statusLabel[r.status] ?? r.status}</span></td>
+                  <td>
+                    <span className={`tvp-status tvp-${statusTone[r.status] ?? "neutral"}`}>
+                      {statusLabel[r.status] ?? r.status}
+                    </span>
+                  </td>
                   <td>
                     <button
                       className="tvp-mini-btn"

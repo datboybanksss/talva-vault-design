@@ -27,7 +27,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { OnboardingTour } from "@/components/shared/onboarding-tour";
 import { useIdleSignOut } from "@/hooks/use-idle-signout";
-import { whoami, listNotifications, dismissNotification, dismissComputedNotification } from "@/lib/admin.functions";
+import {
+  whoami,
+  listNotifications,
+  dismissNotification,
+  dismissComputedNotification,
+} from "@/lib/admin.functions";
 import { PortalFooter } from "@/components/shared/portal-footer";
 
 type NavItem = {
@@ -63,7 +68,17 @@ const manage: NavItem[] = [
     icon: <FileText />,
   },
   { to: "/admin/audit", label: "Audit & Support Log", icon: <ScrollText /> },
-  { to: "/admin/terms-acceptances", label: <>Terms<br />acceptances</>, icon: <FileText /> },
+  {
+    to: "/admin/terms-acceptances",
+    label: (
+      <>
+        Terms
+        <br />
+        acceptances
+      </>
+    ),
+    icon: <FileText />,
+  },
 ];
 
 const settings: NavItem[] = [
@@ -141,7 +156,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
     })),
   ];
 
-
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setBellOpen(false);
@@ -193,7 +207,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
         aria-hidden="true"
       />
       <aside className="tvp-sidebar">
-        <button title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        <button
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="tvp-collapse-btn"
           onClick={() => setCollapsed((c) => !c)}
           aria-label="Toggle sidebar"
@@ -229,7 +244,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
               {me?.isMainAdmin ? "Main Administrator" : me?.isAdmin ? "Administrator" : ""}
             </div>
           </div>
-          <button title="Log out" className="tvp-logout" aria-label="Log out" onClick={handleSignOut}>
+          <button
+            title="Log out"
+            className="tvp-logout"
+            aria-label="Log out"
+            onClick={handleSignOut}
+          >
             <LogOut className="h-4 w-4" />
           </button>
         </div>
@@ -237,7 +257,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
       <main className="tvp-main">
         <div className="flex items-center gap-3 justify-end mb-2" ref={wrapRef}>
-          <button title="Open navigation"
+          <button
+            title="Open navigation"
             type="button"
             className="tvp-mobile-menu-btn"
             aria-label="Open navigation"
@@ -261,7 +282,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 : "View only — no edit access"}
             </span>
           )}
-          
+
           <ThemeToggle />
           <HelpMenu portal="admin" />
           <div className="tvp-notification-wrap">
@@ -334,7 +355,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
                       >
                         <X className="h-3 w-3" />
                       </button>
-
                     </div>
                   );
                 })}
