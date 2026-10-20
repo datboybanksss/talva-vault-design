@@ -3,8 +3,6 @@ import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 
-const BUCKET = "talent-private-documents";
-
 async function ensureTalentProfile(supabase: any, userId: string) {
   const { data } = await supabase
     .from("talent_profiles")

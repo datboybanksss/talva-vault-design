@@ -188,7 +188,7 @@ function InvitationsPage() {
 
   // Admin-sent talent invitations are few, so they are filtered here; the
   // agency list stays filtered and paged by the database.
-  const talentAll = useMemo(() => talentQ.data ?? [], [talentQ.data]);
+  const talentAll: any[] = useMemo(() => talentQ.data ?? [], [talentQ.data]);
   const talentCounts = useMemo(() => {
     const c: Record<string, number> = { all: talentAll.length };
     for (const t of talentAll) c[t.status] = (c[t.status] ?? 0) + 1;

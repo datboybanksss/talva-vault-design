@@ -34,7 +34,7 @@ export function AiFilingPreferenceCard() {
       await syncAiFilingPreference(qc, next);
       toast.success(next ? "Filing suggestions switched on." : "Filing suggestions switched off.");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not save this preference."),
+    onError: (e) => toast.error(e?.message ?? "Could not save this preference."),
   });
 
   return (

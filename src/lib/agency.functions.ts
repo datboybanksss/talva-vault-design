@@ -628,7 +628,6 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
 
     const rows = links ?? [];
     await syncInvitedTalentLinks(supabase, agencyId, rows);
-    const managerIds = Array.from(new Set(rows.map((r: any) => r.manager_user_id).filter(Boolean)));
     const profileIds = Array.from(
       new Set(rows.flatMap((r: any) => [r.manager_user_id, r.talent_user_id]).filter(Boolean)),
     );
