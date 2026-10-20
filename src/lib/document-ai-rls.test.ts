@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 describe.skipIf(!process.env.SUPABASE_DB_URL)("live analysis read policy", () => {
   it("inherits document RLS rather than granting the uploader unconditional access", () => {
-    const result = spawnSync("psql", ["-v", "ON_ERROR_STOP=1", "-At"], {
+    const result = spawnSync("psql", [process.env.SUPABASE_DB_URL ?? "", "-v", "ON_ERROR_STOP=1", "-At"], {
       env: { ...process.env, PGDATABASE: process.env.SUPABASE_DB_URL },
       input: `SELECT json_build_object('roles',roles,'qual',qual,'cmd',cmd) FROM pg_policies
         WHERE schemaname='public' AND tablename='document_ai_analyses';`, encoding: "utf8",
@@ -18,7 +18,7 @@ describe.skipIf(!process.env.SUPABASE_DB_URL)("live analysis read policy", () =>
     expect(policies[0].qual).not.toContain("requested_by");
   });
   it("document readers retain the shared suspension and post-end helpers", () => {
-    const result = spawnSync("psql", ["-v", "ON_ERROR_STOP=1", "-At"], {
+    const result = spawnSync("psql", [process.env.SUPABASE_DB_URL ?? "", "-v", "ON_ERROR_STOP=1", "-At"], {
       env: { ...process.env, PGDATABASE: process.env.SUPABASE_DB_URL },
       input: `SELECT qual FROM pg_policies WHERE tablename='talent_shared_documents' AND cmd='SELECT';
         SELECT pg_get_functiondef('public.is_agency_member(uuid,uuid)'::regprocedure);
