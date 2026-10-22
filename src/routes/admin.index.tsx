@@ -61,7 +61,7 @@ function AdminDashboard() {
         if (merged.itype && merged.itype !== "all") out.itype = merged.itype;
         if (merged.istatus && merged.istatus !== "all") out.istatus = merged.istatus;
         if (merged.iaccounts && merged.iaccounts !== "all") out.iaccounts = merged.iaccounts;
-        if (searchParam(merged.iq)) out.iq = searchParam(merged.iq);
+        { const iq = searchParam(merged.iq); if (iq) out.iq = iq; }
         return out as any;
       },
       replace: true,
