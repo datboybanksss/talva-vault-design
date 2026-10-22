@@ -115,7 +115,7 @@ export const Route = createFileRoute("/agency/quotes-invoices")({
   },
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
-      <h1 className="tvp-h1">Quotes & Invoices</h1>
+      <h1 className="tvp-h1">Quotes & invoices</h1>
       <p className="tvp-muted">Failed to load: {(error as Error)?.message}</p>
     </div>
   ),
@@ -693,7 +693,7 @@ function QIPage() {
     <>
       <div className="tvp-topbar" style={{ alignItems: "center" }}>
         <div>
-          <h1 className="tvp-h1">Quotes & Invoices</h1>
+          <h1 className="tvp-h1">Quotes & invoices</h1>
         </div>
         <div className="tvp-actions" data-tour="billing-new">
           <button className="tvp-secondary" onClick={() => openNew("quote")}>

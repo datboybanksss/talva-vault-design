@@ -206,7 +206,7 @@ function QuotesInvoicesPage() {
     <>
       <div className="tvp-topbar" data-tour="admin-billing-header">
         <div>
-          <h1 className="tvp-h1">Quotes & Invoices</h1>
+          <h1 className="tvp-h1">Quotes & invoices</h1>
           <div
             className="tvp-subtitle"
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
