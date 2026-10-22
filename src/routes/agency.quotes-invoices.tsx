@@ -1175,7 +1175,6 @@ function QIPage() {
                       maxLength={200}
                     />
                   </div>
-                  <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
                   <div
                     className="tvp-form-group"
                     data-tour="editor-client"
@@ -1264,7 +1263,7 @@ function QIPage() {
                           : "No longer on your roster — sharing won't reach this talent."}
                     </div>
                   </div>
-                  <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
+                  <div className="tvp-form-group">
                     <label>Issued</label>
                     <input
                       type="date"
