@@ -732,14 +732,14 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/settings", search: { tab: "document-rules" } },
         selector: '[data-tour="document-rules"]',
         title: "Step 4 — folder retention rules",
-        body: 'On Document Rules, click add on "Folder retention rules". Scope: "Entire folder"; Folder: "Contracts"; set the retention years and a description like "Statutory 10-year contract retention"; "Save rule". Documents under that rule cannot be deleted until the period lapses — the "Documents currently locked" tile counts them.',
+        body: 'On Document Rules, click add on "Folder retention rules". Scope: "Entire folder"; Folder: "Contracts"; set the retention years and a description like "Statutory 10-year contract retention"; "Save rule". It applies to documents uploaded from now on; existing documents keep the rule they were uploaded under. Protected documents can't be deleted by anyone until the period lapses, but you can upload a new version — the earlier versions are kept.',
       },
       {
         key: "overrides",
         route: { to: "/agency/settings", search: { tab: "document-rules" } },
         selector: '[data-tour="document-rules"]',
-        title: "Step 5 — per-document overrides",
-        body: 'For a single exception, add a rule with Scope "Specific document" and pick the document. It appears under "Per-document overrides" and beats the folder rule for that one file; remove the override and the folder rule applies again. Only the agency owner can edit or delete either.',
+        title: "Step 5 — no overrides",
+        body: 'Rules can\'t be overridden for a single document, by anyone. Any older per-document rules are listed for the record and stay as they were.',
         optional: true,
       },
       {
