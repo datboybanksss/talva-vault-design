@@ -70,7 +70,14 @@ export type StToken =
   | "suspended"
   | "neutral";
 
-export type StatusFamily = "talentLink" | "invitation" | "agency" | "member" | "share" | "document";
+export type StatusFamily =
+  | "talentLink"
+  | "invitation"
+  | "agency"
+  | "talentAccount"
+  | "member"
+  | "share"
+  | "document";
 
 type Entry = { label: string; st: StToken };
 
