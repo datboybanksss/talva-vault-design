@@ -11,7 +11,11 @@ export const ACCOUNT_TYPE_LABEL: Record<AccountType, string> = {
 };
 
 /** Agency statuses: the database `agency_status` enum, never retyped. */
-export const AGENCY_ACCOUNT_STATUSES: string[] = [...Constants.public.Enums.agency_status];
+export const AGENCY_ACCOUNT_STATUSES: string[] = [
+  ...Constants.public.Enums.agency_status,
+  // Pause overlays any stored status (agencies.paused_at).
+  "paused",
+];
 /**
  * Talent profiles have no status column; their status is derived from
  * `talent_profiles.activation_completed_at` (see talentAccountStatus).
@@ -26,8 +30,18 @@ export const ACCOUNT_STATUSES: string[] = [
 export const TALENT_LINK_FILTERS = ["linked", "independent"] as const;
 export type TalentLinkFilter = (typeof TALENT_LINK_FILTERS)[number] | "all";
 
-export function talentAccountStatus(activationCompletedAt: string | null | undefined): string {
+export function talentAccountStatus(
+  activationCompletedAt: string | null | undefined,
+  state?: { paused_at?: string | null; suspended_at?: string | null },
+): string {
+  if (state?.paused_at) return "paused";
+  if (state?.suspended_at) return "suspended";
   return activationCompletedAt ? "active" : "incomplete";
+}
+
+/** Agency status shown in lists: a pause overlays the stored status. */
+export function agencyAccountStatus(a: { status: string; paused_at?: string | null }): string {
+  return a.paused_at ? "paused" : a.status;
 }
 
 export function normaliseAccountType(v: unknown): AccountType | "all" {
