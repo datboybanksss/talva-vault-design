@@ -732,7 +732,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/settings", search: { tab: "document-rules" } },
         selector: '[data-tour="document-rules"]',
         title: "Step 4 — folder retention rules",
-        body: 'On Document Rules, click add on "Folder retention rules". Scope: "Entire folder"; Folder: "Contracts"; set the retention years and a description like "Statutory 10-year contract retention"; "Save rule". It applies to documents uploaded from now on; existing documents keep the rule they were uploaded under. Protected documents can't be deleted by anyone until the period lapses, but you can upload a new version — the earlier versions are kept.',
+        body: 'On Document Rules, click add on "Folder retention rules". Scope: "Entire folder"; Folder: "Contracts"; set the retention years and a description like "Statutory 10-year contract retention"; "Save rule". It applies to documents uploaded from now on; existing documents keep the rule they were uploaded under. Protected documents cannot be deleted by anyone until the period lapses, but you can upload a new version — the earlier versions are kept.',
       },
       {
         key: "overrides",
