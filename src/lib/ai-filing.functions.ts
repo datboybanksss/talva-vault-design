@@ -154,6 +154,7 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
     let fileName = "";
 
     if (data.scope === "talent") {
+      await assertTalentWritable(supabase, userId);
       const { data: doc, error } = await supabase
         .from("talent_private_documents")
         .select("id, user_id, name, folder_id, expires_at")
@@ -252,6 +253,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
     await assertSourcesAllowed(aiEnabled, data.scope, data.document_id, data);
 
     if (data.scope === "talent") {
+      await assertTalentWritable(supabase, userId);
       const { data: doc } = await supabase
         .from("talent_private_documents")
         .select("id, user_id, name")
@@ -359,6 +361,7 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
 
     if (data.scope === "talent") {
+      await assertTalentWritable(supabase, userId);
       const { data: doc } = await supabase
         .from("talent_private_documents")
         .select("id, user_id")
