@@ -2022,8 +2022,8 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
     const payload: Record<string, unknown> = {
       agency_id: agencyId,
       scope: data.scope,
-      scope_value: data.scope === "folder" ? (data.scope_value ?? null) : null,
-      document_id: data.scope === "document" ? (data.document_id ?? null) : null,
+      scope_value: data.scope_value ?? null,
+      document_id: null,
       retention_years: data.retention_years,
       description: data.description ?? null,
       created_by: userId,
