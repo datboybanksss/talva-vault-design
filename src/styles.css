@@ -4981,6 +4981,7 @@ a.tvp-entity-card:focus-visible {
   overflow-wrap: anywhere;
 }
 .tvp-legal-document[data-max-height="360"] { max-height: 360px; }
+.tvp-legal-document[data-max-height="380"] { max-height: 380px; }
 .tvp-legal-document[data-max-height="480"] { max-height: 480px; }
 .tvp-terms-modal .tvp-legal-document { margin: 0; max-height: 45dvh; flex: 1 1 auto; }
 .tvp-legal-document:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
