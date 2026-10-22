@@ -2,7 +2,8 @@ import { searchParam } from "@/lib/search";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
-import { agencyActions, invitationActions } from "@/lib/status-actions";
+import { invitationActions } from "@/lib/status-actions";
+import { useAccountStateActions } from "@/components/admin/account-state-actions";
 import {
   Download,
   Plus,
@@ -28,8 +29,6 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   listAccounts,
   setAccountTest,
-  suspendAgency,
-  unsuspendAgency,
   resendInvitation,
   revokeInvitation,
   updateInvitationEmail,
@@ -43,7 +42,6 @@ import {
   DEFAULT_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
-import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 import { PAGE_SIZE } from "@/lib/pagination";
 import {
   ACCOUNT_STATUSES,
@@ -90,8 +88,7 @@ export const Route = createFileRoute("/admin/accounts")({
 
 function AccountsPage() {
   const listFn = useServerFn(listAccounts);
-  const suspendFn = useServerFn(suspendAgency);
-  const unsuspendFn = useServerFn(unsuspendAgency);
+  const accountState = useAccountStateActions();
   const resendFn = useServerFn(resendInvitation);
   const sendAgencyEmailFn = useServerFn(sendAgencyInvitationEmail);
   const revokeFn = useServerFn(revokeInvitation);
@@ -164,22 +161,6 @@ function AccountsPage() {
     onSelect: () => toggleTest(type, a.id, a.name, !a.is_test),
   });
 
-  const suspendM = useMutation({
-    mutationFn: (v: { id: string; reason: string }) => suspendFn({ data: v }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Agency suspended and logged.");
-    },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to suspend")),
-  });
-  const unsuspendM = useMutation({
-    mutationFn: (id: string) => unsuspendFn({ data: { id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Agency reinstated.");
-    },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to reinstate")),
-  });
   const resendM = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
     onSuccess: async (inv: any) => {
@@ -232,7 +213,6 @@ function AccountsPage() {
     onError: (e: any) => toast.error(friendlyError(e, "Failed to delete")),
   });
 
-  const [suspendTarget, setSuspendTarget] = useState<{ id: string; name: string } | null>(null);
   const [editingInvite, setEditingInvite] = useState<{
     id: string;
     email: string;
@@ -261,9 +241,6 @@ function AccountsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const doSuspend = (id: string, name: string) => {
-    setSuspendTarget({ id, name });
-  };
 
   const copyInviteLink = async (invitation: any) => {
     if (!invitation?.token) {
@@ -440,7 +417,18 @@ function AccountsPage() {
                       <td>{linkedLabel(a)}</td>
                       <td>{fmtDate(a.joined_at)}</td>
                       <td>
-                        <RowActionsMenu actions={[testAction("talent", a)]} />
+                        <RowActionsMenu
+                          actions={[
+                            ...accountState.actionsFor({
+                              type: "talent",
+                              id: a.id,
+                              name: a.name,
+                              paused: !!a.is_paused,
+                              suspended: !!a.is_suspended,
+                            }),
+                            { ...testAction("talent", a), separatorBefore: true },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );
@@ -459,7 +447,6 @@ function AccountsPage() {
                       canWrite: true,
                     })
                   : [];
-                const agencyAllowed = agencyActions({ status: a.status, canEdit: true });
                 const inviteOpen = isSentInvite && invAllowed.includes("resend");
                 return (
                   <tr key={a.key}>
@@ -482,7 +469,7 @@ function AccountsPage() {
                       <span className={statusPillClass("agency", a.status)}>
                         {statusLabel("agency", a.status)}
                       </span>
-                      {a.status === "suspended" && (
+                      {a.is_suspended && !a.is_paused && (
                         <span
                           className="tvp-muted"
                           title="Active actions blocked, read-only / export preserved"
@@ -580,22 +567,16 @@ function AccountsPage() {
                                         search: { type: "agency" },
                                       }),
                               },
-                            agencyAllowed.includes("reinstate")
-                              ? {
-                                  key: "reinstate",
-                                  label: "Reinstate agency",
-                                  icon: RotateCcw,
-                                  separatorBefore: true,
-                                  onSelect: () => unsuspendM.mutate(a.id),
-                                }
-                              : {
-                                  key: "suspend",
-                                  label: "Suspend agency",
-                                  icon: Ban,
-                                  destructive: true,
-                                  separatorBefore: true,
-                                  onSelect: () => doSuspend(a.id, a.name),
-                                },
+                            ...accountState.actionsFor(
+                              {
+                                type: "agency",
+                                id: a.id,
+                                name: a.name,
+                                paused: !!a.is_paused,
+                                suspended: !!a.is_suspended,
+                              },
+                              { separatorBefore: true },
+                            ),
                             testAction("agency", a),
                             inviteOpen && {
                               key: "revoke",
@@ -643,19 +624,7 @@ function AccountsPage() {
         </div>
       </div>
 
-      {suspendTarget && (
-        <SuspendAgencyDialog
-          agencyName={suspendTarget.name}
-          isPending={suspendM.isPending}
-          onCancel={() => setSuspendTarget(null)}
-          onConfirm={(reason) => {
-            suspendM.mutate(
-              { id: suspendTarget.id, reason },
-              { onSuccess: () => setSuspendTarget(null) },
-            );
-          }}
-        />
-      )}
+      {accountState.dialog}
 
       {editingInvite && (
         <div
