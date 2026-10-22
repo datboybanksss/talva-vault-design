@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { isUuid } from "@/lib/ids";
 import { TalentInviteForm } from "@/components/admin/talent-invite-form";
 
 export const Route = createFileRoute("/admin/invitations/talent/$id")({
@@ -11,6 +12,10 @@ export const Route = createFileRoute("/admin/invitations/talent/$id")({
       },
     ],
   }),
+  beforeLoad: ({ params }) => {
+    if (!isUuid(params.id)) throw notFound();
+  },
+  notFoundComponent: () => <p className="tvp-muted">This invitation could not be found.</p>,
   component: TalentInvitePage,
 });
 

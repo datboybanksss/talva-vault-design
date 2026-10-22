@@ -322,6 +322,7 @@ function RuleDialog({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (scope === "document" && !documentId) return;
     setBusy(true);
     try {
       await onSave({
@@ -434,7 +435,11 @@ function RuleDialog({
           <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          <button type="submit" className="tvp-primary" disabled={busy}>
+          <button
+            type="submit"
+            className="tvp-primary"
+            disabled={busy || (scope === "document" && !documentId)}
+          >
             Save rule
           </button>
         </div>

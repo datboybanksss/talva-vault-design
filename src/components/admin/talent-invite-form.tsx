@@ -88,7 +88,8 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
   const inv: any = invQ.data?.invitation;
   const docs: any[] = invQ.data?.documents ?? [];
   const status: string = inv?.status ?? "draft";
-  const isDraft = !draftId || status === "draft";
+  // An existing draft is only editable once it has loaded successfully.
+  const isDraft = !draftId || (invQ.isSuccess && status === "draft");
 
   useEffect(() => {
     if (!inv) return;
@@ -255,7 +256,13 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
   const missing = SLOTS.filter((s) => !uploaded.has(s.key));
   const saving = createM.isPending || updateM.isPending;
   const canSend =
-    !!draftId && isDraft && detailsComplete && missing.length === 0 && !finalizeM.isPending;
+    !!draftId &&
+    isDraft &&
+    detailsComplete &&
+    missing.length === 0 &&
+    !saving &&
+    !invQ.isFetching &&
+    !finalizeM.isPending;
   const outstanding = [
     ...(detailsComplete ? [] : ["talent details"]),
     ...missing.map((s) => s.label.toLowerCase()),

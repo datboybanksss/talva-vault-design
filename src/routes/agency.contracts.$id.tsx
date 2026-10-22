@@ -1,5 +1,6 @@
 import { ModalShell } from "@/components/shared/modal-shell";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { isUuid } from "@/lib/ids";
 import { useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -21,12 +22,13 @@ const contractQO = (id: string) =>
 export const Route = createFileRoute("/agency/contracts/$id")({
   head: () => ({ meta: [{ title: "Contract · TalVault" }] }),
   loader: async ({ context, params }) => {
+    if (!isUuid(params.id)) throw notFound();
     await context.queryClient.ensureQueryData(contractQO(params.id));
   },
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Contract</h1>
-      <p className="tvp-muted">Failed to load: {(error as Error)?.message}</p>
+      <p className="tvp-muted">{friendlyError(error, "We couldn't load this contract. Please try again.")}</p>
       <Link to="/agency/document-vault" className="tvp-link">
         ← Back to Roster Shared Folder
       </Link>
