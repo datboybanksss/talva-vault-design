@@ -28,7 +28,8 @@ const Filters = z.object({
   offerOffset: z.number().int().min(0).max(5000).default(0),
   termsOffset: z.number().int().min(0).max(5000).default(0),
   outstandingOffset: z.number().int().min(0).max(5000).default(0),
-  limit: z.number().int().min(1).max(500).default(10),
+  // CSV export asks for every row with the same rules as the screen.
+  limit: z.number().int().min(1).max(5000).default(10),
 });
 
 function check<T>(res: { data: T | null; error: any }): T {
@@ -245,19 +246,3 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     };
   });
 
-/** Full, unpaged rows for CSV export — same rules as the on-screen report. */
-export const exportLaunchReport = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    Filters.extend({ report: z.enum(["offer", "terms", "outstanding"]) }).parse(d),
-  )
-  .handler(async ({ data, context }) => {
-    const res: any = await getLaunchReportsHandler(data, context);
-    return res;
-  });
-
-async function getLaunchReportsHandler(data: any, context: any) {
-  // Re-run the report with a page size covering every row.
-  const all: any = await (getLaunchReports as any).__executeServer?.({ data: { ...data, limit: 500 }, context });
-  return all;
-}
