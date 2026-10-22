@@ -62,7 +62,6 @@ import {
   listAgencyDocumentVersions,
   registerAgencyDocumentVersion,
   getAgencyVersionSignedUrl,
-  upsertAgencyRetentionRule,
 } from "@/lib/agency.functions";
 import { useFolderCatalogue, useFolderNames, type CatalogueCategory } from "@/lib/folder-catalogue";
 import { supabase } from "@/integrations/supabase/client";
@@ -357,13 +356,12 @@ function VaultPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
   const [versionsFor, setVersionsFor] = useState<VaultDoc | null>(null);
+  const [versionsCanUpload, setVersionsCanUpload] = useState(false);
   const [newVersionFor, setNewVersionFor] = useState<VaultDoc | null>(null);
-  const [overrideFor, setOverrideFor] = useState<VaultDoc | null>(null);
   const [aiReviewFor, setAiReviewFor] = useState<{ id: string; name: string } | null>(null);
   const aiRow = useAnalyseWithAi("agency");
 
   const isOwner = me?.role === "owner";
-  const upsertRuleFn = useServerFn(upsertAgencyRetentionRule);
 
   const registerFn = useServerFn(registerAgencyVaultDocument);
   const signedFn = useServerFn(getAgencyVaultSignedUrl);
@@ -999,7 +997,10 @@ function VaultPage() {
                                     label: "Version history",
                                     icon: History,
                                     separatorBefore: true,
-                                    onSelect: () => setVersionsFor(d),
+                                    onSelect: () => {
+                                      setVersionsCanUpload(!readOnly && !changeBlock);
+                                      setVersionsFor(d);
+                                    },
                                   },
                                   !readOnly && {
                                     key: "newversion",
@@ -1008,13 +1009,6 @@ function VaultPage() {
                                     disabledReason: changeBlock ? blockText(changeBlock) : null,
                                     onSelect: () => setNewVersionFor(d),
                                   },
-                                  !readOnly &&
-                                    isOwner && {
-                                      key: "retention",
-                                      label: "Set retention override",
-                                      icon: ShieldPlus,
-                                      onSelect: () => setOverrideFor(d),
-                                    },
                                   !readOnly && {
                                     key: "delete",
                                     label: "Delete document",
@@ -1088,7 +1082,21 @@ function VaultPage() {
         <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />
       )}
 
-      {versionsFor && <VersionsDialog doc={versionsFor} onClose={() => setVersionsFor(null)} />}
+      {versionsFor && (
+        <VersionsDialog
+          doc={versionsFor}
+          onClose={() => setVersionsFor(null)}
+          onNewVersion={
+            versionsCanUpload
+              ? () => {
+                  const d = versionsFor;
+                  setVersionsFor(null);
+                  setNewVersionFor(d);
+                }
+              : undefined
+          }
+        />
+      )}
 
       {!readOnly && newVersionFor && (
         <NewVersionDialog
@@ -1102,30 +1110,6 @@ function VaultPage() {
         />
       )}
 
-      {!readOnly && overrideFor && (
-        <OverrideDialog
-          doc={overrideFor}
-          onClose={() => setOverrideFor(null)}
-          onSave={async (years, description) => {
-            try {
-              await upsertRuleFn({
-                data: {
-                  scope: "document",
-                  document_id: overrideFor.id,
-                  retention_years: years,
-                  description: description || null,
-                },
-              });
-              toast.success("Retention override set");
-              qc.invalidateQueries({ queryKey: ["agency", "vault"] });
-              qc.invalidateQueries({ queryKey: ["agency", "retention"] });
-              setOverrideFor(null);
-            } catch (e: any) {
-              toast.error(friendlyError(e, "Failed"));
-            }
-          }}
-        />
-      )}
     </>
   );
 }
@@ -1672,7 +1656,15 @@ function UploadDialog({
 // ---------------------------------------------------------------------------
 // Version history dialog
 // ---------------------------------------------------------------------------
-function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }) {
+function VersionsDialog({
+  doc,
+  onClose,
+  onNewVersion,
+}: {
+  doc: VaultDoc;
+  onClose: () => void;
+  onNewVersion?: () => void;
+}) {
   const listFn = useServerFn(listAgencyDocumentVersions);
   const signedFn = useServerFn(getAgencyVersionSignedUrl);
   const { data, isLoading } = useQuery({
@@ -1719,9 +1711,16 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
               {doc.name}
             </div>
           </div>
-          <button className="tvp-mini-btn" onClick={onClose} title="Close">
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex gap-2 items-center">
+            {onNewVersion && (
+              <button className="tvp-secondary" onClick={onNewVersion}>
+                <Upload className="h-4 w-4" /> Upload new version
+              </button>
+            )}
+            <button className="tvp-mini-btn" onClick={onClose} title="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -1739,7 +1738,9 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
               <tr>
                 <th>#</th>
                 <th>File name</th>
+                <th>Uploaded by</th>
                 <th>Uploaded</th>
+                <th>Protected until</th>
                 <th style={{ width: 140 }}></th>
               </tr>
             </thead>
@@ -1751,7 +1752,11 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
                     {data?.currentVersionId === v.id ? " · current" : ""}
                   </td>
                   <td>{v.name}</td>
-                  <td className="tvp-muted">{new Date(v.created_at).toLocaleString()}</td>
+                  <td>{v.uploaded_by_name ?? "—"}</td>
+                  <td className="tvp-muted">{new Date(v.created_at).toLocaleString("en-GB")}</td>
+                  <td className="tvp-muted">
+                    {v.locked_until ? fmtLongDate(v.locked_until) : "No rule"}
+                  </td>
                   <td>
                     <div className="flex gap-1 justify-end">
                       <button
@@ -1876,81 +1881,4 @@ function NewVersionDialog({
 }
 
 // ---------------------------------------------------------------------------
-// Per-document retention override dialog
 // ---------------------------------------------------------------------------
-function OverrideDialog({
-  doc,
-  onClose,
-  onSave,
-}: {
-  doc: VaultDoc;
-  onClose: () => void;
-  onSave: (years: number, description: string) => Promise<void>;
-}) {
-  const [years, setYears] = useState<number>(5);
-  const [description, setDescription] = useState<string>("");
-  const [busy, setBusy] = useState(false);
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-      }}
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setBusy(true);
-          try {
-            await onSave(Number(years), description);
-          } finally {
-            setBusy(false);
-          }
-        }}
-        className="tvp-card"
-        style={{ width: 480, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
-      >
-        <h2 className="tvp-h2">Set retention override</h2>
-        <p className="tvp-muted" style={{ fontSize: 13 }}>
-          Locks "{doc.name}" from deletion for the specified number of years from its upload date.
-          This overrides any folder-level rule for this document.
-        </p>
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
-          Retention (years)
-        </label>
-        <input
-          className="tvp-select"
-          type="number"
-          min={0}
-          max={100}
-          value={years}
-          onChange={(e) => setYears(Number(e.target.value))}
-          required
-        />
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
-          Description (optional)
-        </label>
-        <input
-          className="tvp-select"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-          <button type="submit" className="tvp-primary" disabled={busy}>
-            Set override
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}

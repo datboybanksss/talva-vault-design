@@ -9,6 +9,8 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldCheck, Plus, Trash2, Pencil, Info, FileText, Folder } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/use-confirm";
+import { RULE_CHANGE_NOTE } from "@/lib/document-blocks";
 import {
   listAgencyRetentionRules,
   upsertAgencyRetentionRule,
@@ -63,6 +65,7 @@ export function DocumentRulesPanel() {
   const [editing, setEditing] = useState<Partial<Rule> | null>(null);
 
   const upsertFn = useServerFn(upsertAgencyRetentionRule);
+  const { confirm: confirmDlg, dialog: confirmDialog } = useConfirm();
   const deleteFn = useServerFn(deleteAgencyRetentionRule);
 
   const deleteMut = useMutation({
@@ -86,6 +89,7 @@ export function DocumentRulesPanel() {
 
   return (
     <>
+      {confirmDialog}
       <div className="tvp-topbar">
         <div>
           <h2 className="tvp-h2" data-tour="document-rules">
@@ -207,9 +211,15 @@ export function DocumentRulesPanel() {
                         className="tvp-mini-btn"
                         disabled={!isOwner || deleteMut.isPending}
                         title="Delete"
-                        onClick={() =>
-                          confirm(`Delete rule for "${r.scopeValue}"?`) && deleteMut.mutate(r.id)
-                        }
+                        onClick={async () => {
+                          const ok = await confirmDlg({
+                            title: `Delete the rule for "${r.scopeValue}"?`,
+                            body: RULE_CHANGE_NOTE,
+                            confirmLabel: "Delete rule",
+                            destructive: true,
+                          });
+                          if (ok) deleteMut.mutate(r.id);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -228,7 +238,7 @@ export function DocumentRulesPanel() {
         </div>
         {docRules.length === 0 ? (
           <p className="tvp-muted" style={{ fontSize: 13 }}>
-            None. You can add an override from the Roster Shared Folder row menu, or below.
+            None. Per-document overrides aren't available — rules apply by folder.
           </p>
         ) : (
           <table className="tvp-table" style={{ marginTop: 12 }}>
@@ -249,18 +259,7 @@ export function DocumentRulesPanel() {
                   <td>{r.documentFolder ?? "—"}</td>
                   <td>{r.retentionYears}</td>
                   <td>
-                    <div className="flex gap-1 justify-end">
-                      <button
-                        className="tvp-mini-btn"
-                        disabled={!isOwner || deleteMut.isPending}
-                        title="Remove override"
-                        onClick={() =>
-                          confirm("Remove this per-document override?") && deleteMut.mutate(r.id)
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                    <span className="tvp-muted">Kept as recorded</span>
                   </td>
                 </tr>
               ))}
@@ -303,7 +302,7 @@ function RuleDialog({
   onSave: (p: any) => Promise<void>;
 }) {
   const folderOptions = useFolderNames();
-  const [scope, setScope] = useState<"folder" | "document">(initial.scope ?? "folder");
+  const scope = "folder" as "folder" | "document";
   const [scopeValue, setScopeValue] = useState<string>(initial.scopeValue ?? "");
   const [documentId, setDocumentId] = useState<string>(initial.documentId ?? docs[0]?.id ?? "");
   const [years, setYears] = useState<number>(initial.retentionYears ?? 5);
@@ -362,15 +361,9 @@ function RuleDialog({
         <label className="tvp-muted" style={{ fontSize: 13 }}>
           Scope
         </label>
-        <select
-          className="tvp-select"
-          value={scope}
-          onChange={(e) => setScope(e.target.value as "folder" | "document")}
-          disabled={!!initial.id}
-        >
-          <option value="folder">Entire folder</option>
-          <option value="document">Specific document</option>
-        </select>
+        <div className="tvp-muted" style={{ fontSize: 13 }}>
+          Entire folder
+        </div>
 
         {scope === "folder" ? (
           <>
@@ -430,6 +423,10 @@ function RuleDialog({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="e.g. Statutory 10-year contract retention"
         />
+
+        <p className="tvp-field-hint" role="note">
+          {RULE_CHANGE_NOTE}
+        </p>
 
         <div className="flex gap-2 mt-2 justify-end">
           <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>

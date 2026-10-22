@@ -1872,7 +1872,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
     if (!row || row.agency_id !== agencyId) {
       throw new Error("This document is no longer in your vault. Refresh the page to see the latest list.");
     }
-    const { agencyDocumentDeleteBlock, blockText, NO_FOLDER_ACCESS } = await import(
+    const { agencyDocumentDeleteBlock, blockText, NO_FOLDER_ACCESS, latestLock } = await import(
       "@/lib/document-blocks"
     );
     let linkStatus: string | null = null;
@@ -1886,10 +1886,19 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       linkStatus = (link?.status as string) ?? null;
       talentName = (link?.display_name as string) ?? null;
     }
+    // Every version keeps its own rule; the document is protected while any is.
+    const { data: versions } = await supabase
+      .from("talent_shared_document_versions")
+      .select("storage_path, locked_until")
+      .eq("document_id", row.id);
+    const effectiveLock = latestLock([
+      row.locked_until as string | null,
+      ...(versions ?? []).map((v: any) => v.locked_until as string | null),
+    ]);
     const block = agencyDocumentDeleteBlock({
       originator: row.originator,
       talentName,
-      lockedUntil: row.locked_until,
+      lockedUntil: effectiveLock,
       linkStatus,
       agencyReadOnly: false,
     });
@@ -1912,22 +1921,17 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
         const again = agencyDocumentDeleteBlock({
           originator: "agency",
           talentName,
-          lockedUntil: (fresh?.locked_until as string) ?? row.locked_until,
+          lockedUntil: latestLock([(fresh?.locked_until as string) ?? null, effectiveLock]),
           linkStatus: null,
           agencyReadOnly: false,
         });
         throw new Error(
-          again ? blockText(again) : "This document is under a retention period, so it can't be deleted.",
+          again ? blockText(again) : "This document is protected, so it can't be deleted. You can upload a new version instead.",
         );
       }
       throw new Error(dErr.message);
     }
     if (!deleted || deleted.length === 0) throw new Error(blockText(NO_FOLDER_ACCESS));
-
-    const { data: versions } = await supabase
-      .from("talent_shared_document_versions")
-      .select("storage_path")
-      .eq("document_id", row.id);
     const paths = Array.from(
       new Set(
         [
@@ -2014,12 +2018,16 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
+    if (data.scope === "document") {
+      const { NO_OVERRIDE_MESSAGE } = await import("@/lib/document-blocks");
+      throw new Error(NO_OVERRIDE_MESSAGE);
+    }
 
     const payload: Record<string, unknown> = {
       agency_id: agencyId,
       scope: data.scope,
-      scope_value: data.scope === "folder" ? (data.scope_value ?? null) : null,
-      document_id: data.scope === "document" ? (data.document_id ?? null) : null,
+      scope_value: data.scope_value ?? null,
+      document_id: null,
       retention_years: data.retention_years,
       description: data.description ?? null,
       created_by: userId,
@@ -2109,15 +2117,27 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
     const { data: versions, error } = await supabase
       .from("talent_shared_document_versions")
       .select(
-        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at",
+        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at, locked_until",
       )
       .eq("document_id", data.document_id)
       .order("version_number", { ascending: false });
     if (error) throw new Error(error.message);
+    const ids = Array.from(new Set((versions ?? []).map((v: any) => v.uploaded_by).filter(Boolean)));
+    const names = new Map<string, string>();
+    if (ids.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      for (const p of profs ?? []) names.set(p.id, p.full_name || p.email || "");
+    }
     return {
       currentVersionId: (doc.current_version_id as string) ?? null,
       currentStoragePath: (doc.storage_path as string) ?? null,
-      versions: versions ?? [],
+      versions: (versions ?? []).map((v: any) => ({
+        ...v,
+        uploaded_by_name: names.get(v.uploaded_by) || null,
+      })),
     };
   });
 
@@ -2256,6 +2276,17 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
       .from("talent-documents")
       .createSignedUrl(v.storage_path as string, 60 * 30, options);
     if (sErr) throw new Error(sErr.message);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      (context as any).claims?.email,
+      data.disposition === "attachment" ? "download_document_version" : "view_document_version",
+      "talent_shared_document",
+      v.document_id as string,
+      v.name as string,
+      { version_id: data.version_id },
+    );
     return { url: signed.signedUrl as string, name: v.name as string };
   });
 
