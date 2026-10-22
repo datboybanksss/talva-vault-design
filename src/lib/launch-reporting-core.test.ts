@@ -167,3 +167,25 @@ describe("CSV", () => {
     expect(toCsv([["a,b", 'say "hi"', null, 3]])).toBe('"a,b","say ""hi""",,3');
   });
 });
+
+describe("test accounts and launch offer places", () => {
+  it("never gives a test account a launch offer place", async () => {
+    const { launchOffer: offer } = await import("./launch-reporting-core");
+    const c = (id: string, sent: string, is_test: boolean) => ({
+      id, type: "agency" as const, name: id, email: `${id}@x.com`,
+      first_sent_at: sent, accepted_at: sent, status: "accepted", is_test,
+    });
+    const r = offer(
+      [c("test1", "2026-11-17T08:00:00Z", true), c("real1", "2026-11-18T08:00:00Z", false)],
+      { ...S, offer_agency_places: 1 },
+    );
+    expect(r.agency.rows.map((x) => x.id)).toEqual(["real1"]);
+    expect(r.agency.used).toBe(1);
+  });
+  it("does not count sign-ups before the launch date", async () => {
+    const { inLaunchWindow } = await import("./launch-reporting-core");
+    const s = { ...S, launch_date: "2026-11-17", window_months: 3 };
+    expect(inLaunchWindow("2026-11-16T21:59:59.999Z", s)).toBe(false); // 23:59 SAST 16 Nov
+    expect(inLaunchWindow("2026-11-16T22:00:00.000Z", s)).toBe(true); // 00:00 SAST 17 Nov
+  });
+});
