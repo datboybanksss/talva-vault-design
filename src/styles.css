@@ -5307,3 +5307,84 @@ a.tvp-entity-card:focus-visible {
   text-decoration: underline;
   margin-left: var(--sp-1);
 }
+
+/* Admin overview — combined invitation filters */
+.tvp-portal .tvp-invite-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+  margin: 0 0 var(--sp-16);
+}
+.tvp-portal .tvp-invite-filters .tvp-roster-tabs {
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+/* New invitation — "Who are you inviting?" */
+.tvp-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: 13px;
+  margin-bottom: var(--sp-4);
+}
+.tvp-invite-type {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--sp-20);
+  min-width: 0;
+}
+.tvp-invite-type-legend {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--tvp-ink);
+  margin-bottom: var(--sp-8);
+}
+.tvp-invite-type-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-12);
+}
+@media (max-width: 720px) {
+  .tvp-invite-type-options {
+    grid-template-columns: 1fr;
+  }
+}
+.tvp-invite-type-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-12);
+  padding: var(--sp-16);
+  border: 1px solid var(--line-200);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--tvp-ink);
+  cursor: pointer;
+}
+.tvp-invite-type-card > span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.tvp-invite-type-card input {
+  margin-top: 2px;
+  accent-color: var(--tvp-teal);
+}
+.tvp-invite-type-card:hover {
+  border-color: var(--tvp-teal);
+}
+.tvp-invite-type-card:focus-within {
+  outline: 2px solid var(--tvp-teal);
+  outline-offset: 2px;
+}
+.tvp-invite-type-card.is-checked {
+  border-color: var(--tvp-teal);
+  background: var(--surface-soft);
+}
+.tvp-invite-type-locked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-8);
+}
