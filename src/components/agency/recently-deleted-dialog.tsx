@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { RotateCcw, X } from "lucide-react";
 import { friendlyError } from "@/lib/friendly-error";
 import { fmtLongDate } from "@/lib/document-blocks";
+import { listRecentlyDeletedDocuments, restoreDeletedDocument } from "@/lib/agency.functions";
 
 export type DeletedRow = {
   id: string;
@@ -86,12 +87,13 @@ export function RecentlyDeletedList({
 }
 
 export function RecentlyDeletedDialog({ onClose }: { onClose: () => void }) {
-  // Imported lazily-safe: server function stubs are fine in client code.
-  const { listRecentlyDeletedDocuments, restoreDeletedDocument } = agencyFns;
   const listFn = useServerFn(listRecentlyDeletedDocuments);
   const restoreFn = useServerFn(restoreDeletedDocument);
   return (
-    <div className="tvp-modal-backdrop" onClick={onClose}>
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24 }}
+    >
       <div
         className="tvp-card"
         role="dialog"
@@ -118,5 +120,3 @@ export function RecentlyDeletedDialog({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
-
-import * as agencyFns from "@/lib/agency.functions";
