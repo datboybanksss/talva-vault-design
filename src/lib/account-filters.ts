@@ -57,12 +57,15 @@ export type AccountRow = {
   status: string;
   /** Talent only: agency names of live links; empty = independent. */
   linked_agencies?: string[];
+  is_test?: boolean;
 };
 
 export type AccountFilters = {
   type: AccountType | "all";
   status: string;
   link: TalentLinkFilter;
+  /** Real/test accounts; omitted = all. */
+  scope?: "real" | "test" | "all";
 };
 
 function linkMatches(r: AccountRow, link: TalentLinkFilter) {
@@ -78,6 +81,7 @@ export function filterAccounts<T extends AccountRow>(rows: T[], f: AccountFilter
     (r) =>
       (f.type === "all" || r.type === f.type) &&
       (f.status === "all" || r.status === f.status) &&
+      (!f.scope || f.scope === "all" || (f.scope === "test") === !!r.is_test) &&
       linkMatches(r, link),
   );
 }
@@ -96,5 +100,29 @@ export function accountOptionCounts(rows: AccountRow[], f: AccountFilters) {
   for (const l of ["all", ...TALENT_LINK_FILTERS] as const) {
     link[l] = filterAccounts(rows, { ...f, type: "talent", link: l }).length;
   }
-  return { type, status, link };
+  const scope: Record<string, number> = {};
+  for (const sc of ["real", "test", "all"] as const) {
+    scope[sc] = filterAccounts(rows, { ...f, scope: sc }).length;
+  }
+  return { type, status, link, scope };
+}
+
+// -----------------------------------------------------------------------------
+// Real vs test accounts
+// -----------------------------------------------------------------------------
+
+/** "Accounts" filter: real only, test only, or all. Reports default to real. */
+export const ACCOUNT_SCOPES = ["real", "test", "all"] as const;
+export type AccountScope = (typeof ACCOUNT_SCOPES)[number];
+export const ACCOUNT_SCOPE_LABEL: Record<AccountScope, string> = {
+  real: "Real only",
+  test: "Test only",
+  all: "All accounts",
+};
+export function normaliseAccountScope(v: unknown, fallback: AccountScope): AccountScope {
+  return v === "real" || v === "test" || v === "all" ? v : fallback;
+}
+export function matchesScope(isTest: boolean | null | undefined, scope: AccountScope): boolean {
+  if (scope === "all") return true;
+  return scope === "test" ? !!isTest : !isTest;
 }
