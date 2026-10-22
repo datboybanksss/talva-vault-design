@@ -1,0 +1,229 @@
+import { Link } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { statusLabel, statusPillClass } from "@/lib/status-labels";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { useTalentInvitationActions } from "@/components/admin/talent-invitation-actions";
+import { useAgencyInvitationActions } from "@/components/admin/agency-invitation-actions";
+import { PAGE_SIZE } from "@/lib/pagination";
+import { LoadMoreRow } from "@/components/shared/load-more";
+import { listCombinedInvitations } from "@/lib/admin.functions";
+import {
+  INVITATION_STATUSES,
+  INVITATION_TYPES,
+  statusOptionCounts,
+  typeOptionCounts,
+  type InvitationType,
+} from "@/lib/invitation-filters";
+
+const INVITATION_TYPE_LABEL: Record<InvitationType, string> = {
+  agency: "Agency",
+  talent: "Talent",
+};
+
+/**
+ * The one Admin invitations list (agency + talent), shared by the overview
+ * section and the Invitations page. Filters are owned by the caller (URL).
+ */
+export function CombinedInvitationsList({
+  type,
+  status,
+  email,
+  onFilterChange,
+  onClear,
+  viewAllSearch,
+  tourId,
+}: {
+  type: InvitationType | "all";
+  status: string;
+  email?: string;
+  onFilterChange: (next: { type?: string; status?: string }) => void;
+  onClear: () => void;
+  /** When set, shows "View all invitations" linking to the Invitations page with these filters. */
+  viewAllSearch?: Record<string, string>;
+  tourId?: string;
+}) {
+  const listFn = useServerFn(listCombinedInvitations);
+  const invites = useInfiniteQuery({
+    queryKey: ["admin", "combined-invitations", type, status, email ?? ""],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      listFn({
+        data: {
+          type,
+          status,
+          email: email ?? "",
+          limit: PAGE_SIZE,
+          offset: pageParam as number,
+        },
+      }),
+    getNextPageParam: (last: any, all: any[]) => {
+      const loaded = all.reduce((n, p: any) => n + (p.rows?.length ?? 0), 0);
+      return loaded < (last?.total ?? 0) && loaded < 500 ? loaded : undefined;
+    },
+  });
+  const rows = useMemo(
+    () => (invites.data?.pages ?? []).flatMap((p: any) => p.rows ?? []),
+    [invites.data?.pages],
+  );
+  const firstPage: any = invites.data?.pages?.[0];
+  const total = firstPage?.total ?? 0;
+  const rawCounts = firstPage?.counts ?? { agency: {}, talent: {} };
+  const typeCounts = typeOptionCounts(rawCounts, status);
+  const statusCounts = statusOptionCounts(rawCounts, type);
+  const filtersActive = type !== "all" || status !== "all" || !!email;
+  const activeFilterText = [
+    type !== "all" ? `Type: ${INVITATION_TYPE_LABEL[type]}` : null,
+    status !== "all" ? `Status: ${statusLabel("invitation", status)}` : null,
+    email ? `Email: ${email}` : null,
+  ]
+    .filter(Boolean)
+    .join(" and ");
+
+  const talentActions = useTalentInvitationActions();
+  const agencyActions = useAgencyInvitationActions();
+
+  return (
+    <div className="tvp-card tvp-panel" data-tour={tourId}>
+      <div className="tvp-panel-head">
+        <h2 className="tvp-h2">Invitations</h2>
+        {viewAllSearch && (
+          <Link to="/admin/invitations" search={viewAllSearch as any} className="tvp-link">
+            View all invitations →
+          </Link>
+        )}
+      </div>
+
+      <div className="tvp-invite-filters">
+        <div className="tvp-roster-tabs" role="group" aria-label="Type">
+          {(["all", ...INVITATION_TYPES] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={type === t}
+              className={`tvp-tab${type === t ? " tvp-active" : ""}`}
+              onClick={() => onFilterChange({ type: t })}
+            >
+              {t === "all" ? "All types" : INVITATION_TYPE_LABEL[t]} · {typeCounts[t]}
+            </button>
+          ))}
+        </div>
+        <div className="tvp-roster-tabs" role="group" aria-label="Status">
+          {["all", ...INVITATION_STATUSES].map((s) => (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={status === s}
+              className={`tvp-tab${status === s ? " tvp-active" : ""}`}
+              onClick={() => onFilterChange({ status: s })}
+            >
+              {s === "all" ? "All statuses" : statusLabel("invitation", s)} · {statusCounts[s] ?? 0}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="tvp-table-wrap">
+        <table className="tvp-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Sent</th>
+              <th>Expires</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {invites.isLoading && (
+              <tr>
+                <td colSpan={7} className="tvp-muted">
+                  Loading invitations…
+                </td>
+              </tr>
+            )}
+            {!invites.isLoading && rows.length === 0 && (
+              <tr>
+                <td colSpan={7} className="tvp-muted">
+                  {filtersActive ? (
+                    <>
+                      No invitations match {activeFilterText}.{" "}
+                      <button type="button" className="tvp-link" onClick={onClear}>
+                        Clear filters
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      No invitations yet.{" "}
+                      <Link to="/admin/invitations/new" className="tvp-link">
+                        New invitation
+                      </Link>
+                    </>
+                  )}
+                </td>
+              </tr>
+            )}
+            {rows.map((r: any) => (
+              <tr key={`${r.type}-${r.id}`}>
+                <td>
+                  {r.type === "talent" ? (
+                    <Link
+                      to="/admin/invitations/talent/$id"
+                      params={{ id: r.id }}
+                      className="text-ink"
+                    >
+                      <strong>{r.name}</strong>
+                    </Link>
+                  ) : (
+                    <strong>{r.name}</strong>
+                  )}
+                </td>
+                <td>{r.email}</td>
+                <td>
+                  <span className="tvp-status st-neutral">
+                    {INVITATION_TYPE_LABEL[r.type as InvitationType]}
+                  </span>
+                </td>
+                <td>
+                  <span className={statusPillClass("invitation", r.status)}>
+                    {statusLabel("invitation", r.status)}
+                  </span>
+                </td>
+                <td>{r.last_sent_at ? fmt(r.last_sent_at) : "—"}</td>
+                <td>
+                  {r.status === "pending" || r.status === "expired" ? fmt(r.expires_at) : "—"}
+                </td>
+                <td>
+                  <RowActionsMenu
+                    actions={r.type === "talent" ? talentActions(r) : agencyActions.actionsFor(r)}
+                  />
+                </td>
+              </tr>
+            ))}
+            <LoadMoreRow
+              colSpan={7}
+              noun="invitations"
+              shown={rows.length}
+              total={total}
+              hasMore={!!invites.hasNextPage}
+              loading={invites.isFetchingNextPage}
+              onLoadMore={() => invites.fetchNextPage()}
+            />
+          </tbody>
+        </table>
+      </div>
+      {agencyActions.dialogs}
+    </div>
+  );
+}
+
+function fmt(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}

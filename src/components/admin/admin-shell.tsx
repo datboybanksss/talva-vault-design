@@ -45,16 +45,10 @@ type NavItem = {
 const manage: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
   { to: "/admin/reporting", label: "Reporting", icon: <BarChart3 /> },
-  { to: "/admin/agencies", label: "Agencies", icon: <Building2 /> },
+  { to: "/admin/accounts", label: "Accounts", icon: <Building2 /> },
   {
     to: "/admin/invitations",
-    label: (
-      <>
-        Agency
-        <br />
-        Invitations
-      </>
-    ),
+    label: "Invitations",
     icon: <Send />,
   },
   {
@@ -166,6 +160,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const isActive = (item: NavItem) => {
     if (item.match === "exact") return pathname === item.to;
+    // Agency detail pages live under the old /admin/agencies path.
+    if (item.to === "/admin/accounts" && pathname.startsWith("/admin/agencies")) return true;
     return pathname === item.to || pathname.startsWith(item.to + "/");
   };
 

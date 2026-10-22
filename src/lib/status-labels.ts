@@ -70,7 +70,14 @@ export type StToken =
   | "suspended"
   | "neutral";
 
-export type StatusFamily = "talentLink" | "invitation" | "agency" | "member" | "share" | "document";
+export type StatusFamily =
+  | "talentLink"
+  | "invitation"
+  | "agency"
+  | "talentAccount"
+  | "member"
+  | "share"
+  | "document";
 
 type Entry = { label: string; st: StToken };
 
@@ -105,6 +112,11 @@ export const LIFECYCLE_STATUS: Record<StatusFamily, Record<string, Entry>> = {
     expired: { label: "Expired", st: "expired" },
     declined: { label: "Declined", st: "declined" },
     suspended: { label: "Suspended", st: "suspended" },
+  },
+  /** Talent account, derived from talent_profiles.activation_completed_at */
+  talentAccount: {
+    active: { label: "Active", st: "accepted" },
+    incomplete: { label: "Incomplete", st: "incomplete" },
   },
   /** agency_members.suspended / user_roles.suspended_at */
   member: {

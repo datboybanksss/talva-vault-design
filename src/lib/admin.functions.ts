@@ -10,6 +10,14 @@ import {
   normaliseInvitationType,
 } from "@/lib/invitation-filters";
 import { fetchOnboardedTalentLinks, fetchTalentSplit } from "@/lib/onboarded-talent";
+import {
+  accountOptionCounts,
+  filterAccounts,
+  normaliseAccountStatus,
+  normaliseAccountType,
+  normaliseTalentLink,
+  talentAccountStatus,
+} from "@/lib/account-filters";
 
 import {
   HIGHEST_ADMIN_PERMISSION,
@@ -406,55 +414,140 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
 // -----------------------------------------------------------------------------
 // Agencies
 // -----------------------------------------------------------------------------
+async function loadAgenciesWithInvitations(supabase: any) {
+  const { data, error } = await supabase
+    .from("agencies")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+
+  // talent counts per agency — same definition as the dashboard and Reporting
+  const talent = await fetchOnboardedTalentLinks(supabase);
+  const talentByAgency = new Map<string, number>();
+  for (const t of talent) {
+    talentByAgency.set(t.agency_id, (talentByAgency.get(t.agency_id) ?? 0) + 1);
+  }
+
+  const { data: invitations } = await supabase
+    .from("agency_invitations")
+    .select(
+      "id, agency_id, agency_name, contact_person, email, token, status, expires_at, last_sent_at, send_count",
+    )
+    .neq("status", "accepted")
+    .neq("status", "revoked")
+    .order("created_at", { ascending: false });
+
+  const invitationByAgencyId = new Map<string, any>();
+  const invitationByEmail = new Map<string, any>();
+  const invitationByName = new Map<string, any>();
+  for (const inv of invitations ?? []) {
+    if (inv.agency_id && !invitationByAgencyId.has(inv.agency_id)) {
+      invitationByAgencyId.set(inv.agency_id, inv);
+    }
+    const emailKey = String(inv.email ?? "").toLowerCase();
+    if (emailKey && !invitationByEmail.has(emailKey)) invitationByEmail.set(emailKey, inv);
+    const nameKey = String(inv.agency_name ?? "").toLowerCase();
+    if (nameKey && !invitationByName.has(nameKey)) invitationByName.set(nameKey, inv);
+  }
+
+  return (data ?? []).map((a: any) => ({
+    ...a,
+    talent_count: talentByAgency.get(a.id) ?? 0,
+    invitation:
+      invitationByAgencyId.get(a.id) ??
+      invitationByEmail.get(String(a.contact_email ?? "").toLowerCase()) ??
+      invitationByName.get(String(a.name ?? "").toLowerCase()) ??
+      null,
+  }));
+}
+
 export const listAgencies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
-    const { data, error } = await supabase
-      .from("agencies")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    return loadAgenciesWithInvitations(supabase);
+  });
 
-    // talent counts per agency — same definition as the dashboard and Reporting
-    const talent = await fetchOnboardedTalentLinks(supabase);
-    const talentByAgency = new Map<string, number>();
-    for (const t of talent) {
-      talentByAgency.set(t.agency_id, (talentByAgency.get(t.agency_id) ?? 0) + 1);
-    }
+/**
+ * Admin Accounts: agencies and talent in one list. Filtering, counting and
+ * windowing happen here on the server; the browser receives one page.
+ */
+export const listAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
+        type: z.string().default("all"),
+        status: z.string().default("all"),
+        link: z.string().default("all"),
+        limit: z.number().int().min(1).max(50).default(10),
+        offset: z.number().int().min(0).max(5000).default(0),
+      }),
+      d,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const filters = {
+      type: normaliseAccountType(data.type),
+      status: normaliseAccountStatus(data.status),
+      link: normaliseTalentLink(data.link),
+    };
+    const agencies = await loadAgenciesWithInvitations(supabase);
+    const agencyName = new Map<string, string>(agencies.map((a: any) => [a.id, a.name]));
 
-    const { data: invitations } = await supabase
-      .from("agency_invitations")
-      .select(
-        "id, agency_id, agency_name, contact_person, email, token, status, expires_at, last_sent_at, send_count",
-      )
-      .neq("status", "accepted")
-      .neq("status", "revoked")
-      .order("created_at", { ascending: false });
-
-    const invitationByAgencyId = new Map<string, any>();
-    const invitationByEmail = new Map<string, any>();
-    const invitationByName = new Map<string, any>();
-    for (const inv of invitations ?? []) {
-      if (inv.agency_id && !invitationByAgencyId.has(inv.agency_id)) {
-        invitationByAgencyId.set(inv.agency_id, inv);
+    const { data: profiles, error: pErr } = await supabase
+      .from("talent_profiles")
+      .select("id, user_id, full_name, email, created_at, activation_completed_at")
+      .eq("is_test", false)
+      .is("deleted_at", null);
+    if (pErr) throw new Error(pErr.message);
+    const userIds = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
+    const linksByUser = new Map<string, string[]>();
+    if (userIds.length) {
+      const { data: links, error: lErr } = await supabase
+        .from("agency_talent_links")
+        .select("talent_user_id, agency_id, status")
+        .in("talent_user_id", userIds)
+        .in("status", ["active", "needs_review"]);
+      if (lErr) throw new Error(lErr.message);
+      for (const l of links ?? []) {
+        const name = agencyName.get(l.agency_id);
+        if (!name) continue;
+        const list = linksByUser.get(l.talent_user_id) ?? [];
+        if (!list.includes(name)) list.push(name);
+        linksByUser.set(l.talent_user_id, list);
       }
-      const emailKey = String(inv.email ?? "").toLowerCase();
-      if (emailKey && !invitationByEmail.has(emailKey)) invitationByEmail.set(emailKey, inv);
-      const nameKey = String(inv.agency_name ?? "").toLowerCase();
-      if (nameKey && !invitationByName.has(nameKey)) invitationByName.set(nameKey, inv);
     }
 
-    return (data ?? []).map((a: any) => ({
-      ...a,
-      talent_count: talentByAgency.get(a.id) ?? 0,
-      invitation:
-        invitationByAgencyId.get(a.id) ??
-        invitationByEmail.get(String(a.contact_email ?? "").toLowerCase()) ??
-        invitationByName.get(String(a.name ?? "").toLowerCase()) ??
-        null,
-    }));
+    const all = [
+      ...agencies.map((a: any) => ({
+        ...a,
+        key: `agency-${a.id}`,
+        type: "agency" as const,
+        joined_at: a.created_at,
+      })),
+      ...(profiles ?? []).map((p: any) => ({
+        key: `talent-${p.id}`,
+        id: p.id,
+        user_id: p.user_id,
+        type: "talent" as const,
+        name: p.full_name || p.email || "Unnamed talent",
+        email: p.email,
+        status: talentAccountStatus(p.activation_completed_at),
+        linked_agencies: linksByUser.get(p.user_id) ?? [],
+        joined_at: p.activation_completed_at ?? p.created_at,
+      })),
+    ].sort((a: any, b: any) => (a.joined_at < b.joined_at ? 1 : -1));
+
+    const matching = filterAccounts(all, filters);
+    return {
+      rows: matching.slice(data.offset, data.offset + data.limit),
+      total: matching.length,
+      counts: accountOptionCounts(all, filters),
+    };
   });
 
 export const getAgencyById = createServerFn({ method: "GET" })
@@ -734,6 +827,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       z.object({
         type: z.string().default("all"),
         status: z.string().default("all"),
+        email: z.string().max(320).default(""),
         limit: z.number().int().min(1).max(50).default(10),
         offset: z.number().int().min(0).max(500).default(0),
       }),
@@ -745,6 +839,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     await assertAdmin(supabase, userId);
     const type = normaliseInvitationType(data.type);
     const status = normaliseInvitationStatus(data.status);
+    const email = data.email.trim().replace(/[%_,()]/g, "");
     const nowIso = new Date().toISOString();
     const TABLE = {
       agency: {
@@ -756,7 +851,8 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         cols: "id, talent_name, email, status, expires_at, created_at, last_sent_at, send_count",
       },
     } as const;
-    const byStatus = (q: any, s: string) => {
+    const byStatus = (q0: any, s: string) => {
+      const q = email ? q0.ilike("email", `%${email}%`) : q0;
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
       if (s !== "all") return q.eq("status", s);
