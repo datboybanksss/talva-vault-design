@@ -47,7 +47,9 @@ export function FilterBar({
             </label>
             <Select value={f.value} onValueChange={(v) => onChange(f.key, v)}>
               <SelectTrigger id={id} className="tvp-filter-control">
-                <SelectValue />
+                <SelectValue>
+                  {f.options.find((o) => o.value === f.value)?.label ?? f.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="tvp-filter-menu">
                 {f.options.map((o) => (
