@@ -1,4 +1,11 @@
 import { useId } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type FilterOption = { value: string; label: string; count?: number };
 export type FilterDef = {
@@ -8,9 +15,11 @@ export type FilterDef = {
   options: FilterOption[];
 };
 
+const optionText = (o: FilterOption) => `${o.label}${o.count !== undefined ? ` (${o.count})` : ""}`;
+
 /**
- * Shared compact filter bar: one labelled dropdown per filter on a single
- * wrapping row, plus "Clear filters" only when something is active.
+ * Shared filter bar: one labelled Select (the app's standard Select component)
+ * per filter, plus "Clear filters" only when something is active.
  * Used by the Admin Invitations list (overview + page) and Accounts.
  */
 export function FilterBar({
@@ -32,17 +41,23 @@ export function FilterBar({
       {filters.map((f) => {
         const id = `${baseId}-${f.key}`;
         return (
-          <label key={f.key} className="tvp-filter-field" htmlFor={id}>
-            <span className="tvp-filter-label">{f.label}:</span>
-            <select id={id} value={f.value} onChange={(e) => onChange(f.key, e.target.value)}>
-              {f.options.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                  {o.count !== undefined ? ` (${o.count})` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div key={f.key} className="tvp-filter-field">
+            <label className="tvp-filter-label" htmlFor={id}>
+              {f.label}
+            </label>
+            <Select value={f.value} onValueChange={(v) => onChange(f.key, v)}>
+              <SelectTrigger id={id} className="tvp-filter-control">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="tvp-filter-menu">
+                {f.options.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {optionText(o)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         );
       })}
       {active && (

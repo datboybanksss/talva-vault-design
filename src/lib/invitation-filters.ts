@@ -4,6 +4,9 @@ import { LIFECYCLE_STATUS } from "@/lib/status-labels";
 export const INVITATION_TYPES = ["agency", "talent"] as const;
 export type InvitationType = (typeof INVITATION_TYPES)[number];
 
+/** agency_invitations.kind for Admin agency invitations (staff invites excluded). */
+export const ADMIN_AGENCY_INVITATION_KIND = "agency_onboarding";
+
 /**
  * Every status an agency/talent invitation can have: the database
  * `invitation_status` values plus the read-time "expired" state, taken from the
