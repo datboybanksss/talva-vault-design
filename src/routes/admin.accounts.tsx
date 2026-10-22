@@ -314,8 +314,8 @@ function AccountsPage() {
                   className={`tvp-tab${link === l ? " tvp-active" : ""}`}
                   onClick={() => setFilters({ link: l })}
                 >
-                  {l === "all" ? "All talent" : l === "linked" ? "Agency-linked" : "Independent"}{" "}
-                  · {counts.link[l] ?? 0}
+                  {l === "all" ? "All talent" : l === "linked" ? "Agency-linked" : "Independent"} ·{" "}
+                  {counts.link[l] ?? 0}
                 </button>
               ))}
             </div>

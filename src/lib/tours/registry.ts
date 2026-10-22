@@ -957,7 +957,8 @@ export const GUIDES: TourGuide[] = [
     portal: "admin",
     kind: "module",
     title: "Managing accounts",
-    description: "Find an agency or talent account, inspect it, and suspend or reinstate agencies properly.",
+    description:
+      "Find an agency or talent account, inspect it, and suspend or reinstate agencies properly.",
     match: ["/admin/accounts", "/admin/agencies"],
     steps: [
       {

@@ -118,8 +118,7 @@ export function CombinedInvitationsList({
               className={`tvp-tab${status === s ? " tvp-active" : ""}`}
               onClick={() => onFilterChange({ status: s })}
             >
-              {s === "all" ? "All statuses" : statusLabel("invitation", s)} ·{" "}
-              {statusCounts[s] ?? 0}
+              {s === "all" ? "All statuses" : statusLabel("invitation", s)} · {statusCounts[s] ?? 0}
             </button>
           ))}
         </div>
@@ -194,7 +193,9 @@ export function CombinedInvitationsList({
                   </span>
                 </td>
                 <td>{r.last_sent_at ? fmt(r.last_sent_at) : "—"}</td>
-                <td>{r.status === "pending" || r.status === "expired" ? fmt(r.expires_at) : "—"}</td>
+                <td>
+                  {r.status === "pending" || r.status === "expired" ? fmt(r.expires_at) : "—"}
+                </td>
                 <td>
                   <RowActionsMenu
                     actions={r.type === "talent" ? talentActions(r) : agencyActions.actionsFor(r)}

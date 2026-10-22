@@ -115,7 +115,11 @@ function AdminDashboard() {
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
-        <Link to="/admin/accounts" search={{ type: "agency" }} className="tvp-card tvp-kpi tvp-clickable">
+        <Link
+          to="/admin/accounts"
+          search={{ type: "agency" }}
+          className="tvp-card tvp-kpi tvp-clickable"
+        >
           <div className="tvp-kpi-icon tvp-bg-teal">
             <Building2 className="h-5 w-5" />
           </div>

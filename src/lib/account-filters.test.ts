@@ -37,10 +37,14 @@ describe("admin accounts filters", () => {
     expect(normaliseTalentLink("x")).toBe("all");
   });
   it("Suspended agencies filter returns only suspended agencies", () => {
-    expect(filterAccounts(rows, { type: "agency", status: "suspended", link: "all" })).toHaveLength(1);
+    expect(filterAccounts(rows, { type: "agency", status: "suspended", link: "all" })).toHaveLength(
+      1,
+    );
   });
   it("independent talent filter excludes agency-linked talent", () => {
-    expect(filterAccounts(rows, { type: "talent", status: "all", link: "independent" })).toHaveLength(2);
+    expect(
+      filterAccounts(rows, { type: "talent", status: "all", link: "independent" }),
+    ).toHaveLength(2);
   });
   it("link filter is ignored unless type is talent", () => {
     expect(filterAccounts(rows, { type: "all", status: "all", link: "linked" })).toHaveLength(5);
