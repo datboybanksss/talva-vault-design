@@ -205,19 +205,16 @@ export function ClientsPanel() {
       all.filter((c) => {
         if (status === "active" && c.archived_at) return false;
         if (status === "archived" && !c.archived_at) return false;
-        return matchesSearch(search, [
-          c.name,
-          c.trading_name,
-          c.contact_person,
-          c.vat_number,
-          ...(c.emails ?? []),
-        ]);
+        return matchesSearch(
+          [c.name, c.trading_name, c.contact_person, c.vat_number, ...(c.emails ?? [])],
+          search,
+        );
       }),
     [all, search, status],
   );
   const counts = useMemo(() => {
     const searched = all.filter((c) =>
-      matchesSearch(search, [c.name, c.trading_name, c.contact_person, c.vat_number, ...(c.emails ?? [])]),
+      matchesSearch([c.name, c.trading_name, c.contact_person, c.vat_number, ...(c.emails ?? [])], search),
     );
     return {
       active: searched.filter((c) => !c.archived_at).length,
@@ -276,7 +273,7 @@ export function ClientsPanel() {
         </div>
       </div>
 
-      <div className="tvp-card tvp-panel-pad">
+      <div className="tvp-card tvp-panel">
         <FilterBar
           tourId="clients-filters"
           search={{
