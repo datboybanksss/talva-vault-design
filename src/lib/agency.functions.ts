@@ -1872,7 +1872,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
     if (!row || row.agency_id !== agencyId) {
       throw new Error("This document is no longer in your vault. Refresh the page to see the latest list.");
     }
-    const { agencyDocumentDeleteBlock, blockText, NO_FOLDER_ACCESS } = await import(
+    const { agencyDocumentDeleteBlock, blockText, NO_FOLDER_ACCESS, latestLock } = await import(
       "@/lib/document-blocks"
     );
     let linkStatus: string | null = null;
@@ -1886,10 +1886,19 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       linkStatus = (link?.status as string) ?? null;
       talentName = (link?.display_name as string) ?? null;
     }
+    // Every version keeps its own rule; the document is protected while any is.
+    const { data: versions } = await supabase
+      .from("talent_shared_document_versions")
+      .select("storage_path, locked_until")
+      .eq("document_id", row.id);
+    const effectiveLock = latestLock([
+      row.locked_until as string | null,
+      ...(versions ?? []).map((v: any) => v.locked_until as string | null),
+    ]);
     const block = agencyDocumentDeleteBlock({
       originator: row.originator,
       talentName,
-      lockedUntil: row.locked_until,
+      lockedUntil: effectiveLock,
       linkStatus,
       agencyReadOnly: false,
     });
@@ -1912,22 +1921,17 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
         const again = agencyDocumentDeleteBlock({
           originator: "agency",
           talentName,
-          lockedUntil: (fresh?.locked_until as string) ?? row.locked_until,
+          lockedUntil: latestLock([(fresh?.locked_until as string) ?? null, effectiveLock]),
           linkStatus: null,
           agencyReadOnly: false,
         });
         throw new Error(
-          again ? blockText(again) : "This document is under a retention period, so it can't be deleted.",
+          again ? blockText(again) : "This document is protected, so it can't be deleted. You can upload a new version instead.",
         );
       }
       throw new Error(dErr.message);
     }
     if (!deleted || deleted.length === 0) throw new Error(blockText(NO_FOLDER_ACCESS));
-
-    const { data: versions } = await supabase
-      .from("talent_shared_document_versions")
-      .select("storage_path")
-      .eq("document_id", row.id);
     const paths = Array.from(
       new Set(
         [

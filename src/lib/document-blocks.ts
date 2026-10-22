@@ -89,3 +89,10 @@ export const RULE_CHANGE_NOTE =
 
 export const NO_OVERRIDE_MESSAGE =
   "Per-document retention overrides aren't available. Retention rules apply by folder to documents uploaded from now on.";
+
+/** Latest of several retention end dates (each document version keeps its own). */
+export function latestLock(dates: Array<string | null | undefined>): string | null {
+  let best: string | null = null;
+  for (const d of dates) if (d && (!best || new Date(d) > new Date(best))) best = d;
+  return best;
+}
