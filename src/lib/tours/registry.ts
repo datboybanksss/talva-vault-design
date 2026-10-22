@@ -973,7 +973,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/accounts" },
         selector: '[data-tour="admin-agency-table"]',
         title: "Step 2 — open it and check the facts",
-        body: 'Click an agency's name to open its detail page — members, talent count and compliance state. Do this before any action: the Talent number tells you how many people a suspension will affect. If a row is still Invited, the "Find matching invitation" action jumps you to the invitation instead.',
+        body: 'Click an agency name to open its detail page — members, talent count and compliance state. Do this before any action: the Talent number tells you how many people a suspension will affect. If a row is still Invited, the "Find matching invitation" action jumps you to the invitation instead.',
         optional: true,
       },
       {
