@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Live database checks, run inside a transaction that is always rolled back:
- * nothing is changed. Picks a real talent with Private Vault documents and a
+ * nothing is changed. Needs a privileged connection (it switches to the
+ * authenticated role), so it runs only when RLS_TEST_DB_URL is set. Picks a real talent with Private Vault documents and a
  * real agency staff member whose agency holds shared documents.
  */
 function runAs(sql: string): string {
-  const result = spawnSync("psql", [process.env.SUPABASE_DB_URL ?? "", "-v", "ON_ERROR_STOP=1", "-At", "-q"], {
+  const result = spawnSync("psql", [process.env.RLS_TEST_DB_URL ?? "", "-v", "ON_ERROR_STOP=1", "-At", "-q"], {
     input: sql,
     encoding: "utf8",
   });
@@ -30,7 +31,7 @@ const actAs = (who: string) => `
   SELECT set_config('request.jwt.claims', json_build_object('sub', (SELECT u FROM pick), 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;`;
 
-describe.skipIf(!process.env.SUPABASE_DB_URL)("live: pause and suspend enforced in the database", () => {
+describe.skipIf(!process.env.RLS_TEST_DB_URL)("live: pause and suspend enforced in the database", () => {
   it("a paused talent can read nothing; unpausing restores the same rows", () => {
     const out = runAs(`
       BEGIN;
