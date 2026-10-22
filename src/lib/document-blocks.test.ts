@@ -61,3 +61,38 @@ describe("friendlyError keeps refusal reasons", () => {
     expect(friendlyError(new Error("new row violates row-level security policy"), "x")).toBe("x");
   });
 });
+
+import { latestLock, NO_OVERRIDE_MESSAGE, RULE_CHANGE_NOTE } from "./document-blocks";
+import { readFileSync } from "node:fs";
+
+describe("document rules: no override, versions, non-retroactive", () => {
+  it("protected delete points to a new version, never a way round", () => {
+    const b = agencyDocumentDeleteBlock({
+      originator: "agency", talentName: "A", lockedUntil: "2031-03-12T00:00:00Z",
+      linkStatus: "active", agencyReadOnly: false,
+    }, new Date("2026-10-22"));
+    expect(blockText(b!)).toBe(
+      "This document is protected until 12 March 2031, so it can't be deleted. You can upload a new version instead.",
+    );
+  });
+  it("a document is protected while any version is", () => {
+    expect(latestLock(["2030-01-01", null, "2031-03-12"])).toBe("2031-03-12");
+    expect(latestLock([null, undefined])).toBeNull();
+  });
+  it("rule-change confirmation wording", () => {
+    expect(RULE_CHANGE_NOTE).toBe(
+      "This applies to documents uploaded from now on. Existing documents keep their current rules.",
+    );
+  });
+  it("no override path exists in the server or the vault", () => {
+    const server = readFileSync("src/lib/agency.functions.ts", "utf8");
+    expect(server).toContain('if (data.scope === "document")');
+    expect(NO_OVERRIDE_MESSAGE).toMatch(/aren't available/);
+    const vault = readFileSync("src/routes/agency.document-vault.tsx", "utf8");
+    expect(vault).not.toMatch(/retention override|force delete/i);
+    const sql = readFileSync("supabase/migrations/20261022230000_non_retroactive_rules_and_versions.sql", "utf8");
+    expect(sql).toContain("NO_RULE_OVERRIDE");
+    expect(sql).toContain("VERSION_IMMUTABLE");
+    expect(sql).toMatch(/retention_rule_refresh_docs[\s\S]*no-op/);
+  });
+});
