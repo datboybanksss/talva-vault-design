@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -364,38 +365,7 @@ function AgencyDashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 pb-3">
-          <select
-            className="tvp-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All statuses</option>
-            {CHIP_ORDER.map((c) => (
-              <option key={c.key} value={c.key}>
-                {STATUS_LABEL[c.key]}
-              </option>
-            ))}
-          </select>
-          <select
-            className="tvp-select"
-            value={manager}
-            onChange={(e) => setManager(e.target.value)}
-          >
-            <option value="all">All managers</option>
-            {managerOptions.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <select className="tvp-select" value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="all">All talent types</option>
-            {typeOptions.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
+          <FilterBar onChange={(k, v) => (k === "status" ? setStatusFilter(v) : k === "manager" ? setManager(v) : setType(v))} filters={[{ key: "status", label: "Status", value: statusFilter, options: [{ value: "all", label: "All statuses" }, ...CHIP_ORDER.map((c) => ({ value: c.key, label: STATUS_LABEL[c.key] }))] },{ key: "manager", label: "Manager", value: manager, options: [{ value: "all", label: "All managers" }, ...managerOptions.map((m) => ({ value: m, label: m }))] },{ key: "type", label: "Talent type", value: type, options: [{ value: "all", label: "All talent types" }, ...typeOptions.map((t) => ({ value: t, label: t }))] }]} />
           {(statusFilter !== "all" || manager !== "all" || type !== "all") && (
             <button
               className="tvp-select"

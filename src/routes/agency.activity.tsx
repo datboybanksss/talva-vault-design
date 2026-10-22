@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactElement } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -426,18 +427,7 @@ function AgencyActivityLog() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <select
-            className="tvp-select"
-            value={range}
-            onChange={(e) => setRange(e.target.value)}
-            aria-label="Date range"
-          >
-            {RANGE_OPTIONS.map((o) => (
-              <option key={o.key} value={o.key}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <FilterBar onChange={(_, v) => setRange(v)} filters={[{ key: "range", label: "Date range", value: range, options: RANGE_OPTIONS.map((o) => ({ value: o.key, label: o.label })) }]} />
           <button className="tvp-secondary" onClick={handleExport} disabled={!filtered.length}>
             <Download className="inline h-4 w-4" style={{ marginRight: 6, verticalAlign: -3 }} />
             Export CSV
@@ -447,28 +437,7 @@ function AgencyActivityLog() {
 
       <div className="tvp-card tvp-panel">
         <div className="flex flex-wrap gap-2 pb-4">
-          {CATEGORY_CHIPS.map((chip) => {
-            const active = category === chip.key;
-            const n = counts[chip.key] ?? 0;
-            return (
-              <button
-                key={chip.key}
-                onClick={() => setCategory(chip.key)}
-                className={`tvp-chip${active ? " tvp-chip-active" : ""}`}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 999,
-                  border: "1px solid var(--tvp-border, #e5e7eb)",
-                  background: active ? "var(--tvp-primary, #2563eb)" : "transparent",
-                  color: active ? "#fff" : "inherit",
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                {chip.label} <span style={{ opacity: 0.7, marginLeft: 4 }}>({n})</span>
-              </button>
-            );
-          })}
+          <FilterBar onChange={(_, v) => setCategory(v)} filters={[{ key: "category", label: "Category", value: category, options: CATEGORY_CHIPS.map((c) => ({ value: c.key, label: c.label, count: counts[c.key] ?? 0 })) }]} />
           <div
             className="tvp-muted"
             style={{ alignSelf: "center", fontSize: 12, marginLeft: "auto" }}

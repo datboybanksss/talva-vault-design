@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -357,22 +358,7 @@ function PrivateVault() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          className="tvp-vault-select"
-          value={filterFolder}
-          onChange={(e) => setFilterFolder(e.target.value)}
-        >
-          <option value="__all">Folder: All</option>
-          <option value="__unfiled">Unfiled</option>
-          <option value="__pending">
-            Pending review{pendingCount ? ` (${pendingCount})` : ""}
-          </option>
-          {topFolders.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
+        <FilterBar onChange={(_, v) => setFilterFolder(v)} filters={[{ key: "folder", label: "Folder", value: filterFolder, options: [{ value: "__all", label: "All folders" }, { value: "__unfiled", label: "Unfiled" }, { value: "__pending", label: "Pending review", count: pendingCount || undefined }, ...topFolders.map((x) => ({ value: x.id, label: x.name }))] }]} />
         <div className="tvp-view-switch" role="tablist" aria-label="Private vault view">
           <button
             type="button"
@@ -803,18 +789,7 @@ function SharedDocumentsView() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          className="tvp-vault-select"
-          value={folderFilter}
-          onChange={(e) => setFolderFilter(e.target.value)}
-        >
-          <option value="__all">Folder: All</option>
-          {folders.map((f) => (
-            <option key={f.id} value={f.folder_name}>
-              {f.folder_name}
-            </option>
-          ))}
-        </select>
+        <FilterBar onChange={(_, v) => setFolderFilter(v)} filters={[{ key: "folder", label: "Folder", value: folderFilter, options: [{ value: "__all", label: "All folders" }, ...folders.map((x) => ({ value: x.folder_name, label: x.folder_name }))] }]} />
         <div className="tvp-view-switch" role="tablist" aria-label="Shared folder view">
           <button
             type="button"

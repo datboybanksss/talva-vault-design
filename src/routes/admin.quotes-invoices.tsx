@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Download,
@@ -321,27 +322,7 @@ function QuotesInvoicesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
           <div className="tvp-row-actions" style={{ flexWrap: "wrap" }}>
-            <select
-              className="tvp-select"
-              value={agencyFilter}
-              onChange={(e) => setAgencyFilter(e.target.value)}
-            >
-              <option value="all">Agency: All</option>
-              {agencies.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-            <select
-              className="tvp-select"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              <option value="all">Type: All</option>
-              <option value="quote">Quote</option>
-              <option value="invoice">Invoice</option>
-            </select>
+            <FilterBar onChange={(k, v) => (k === "agency" ? setAgencyFilter(v) : setTypeFilter(v))} filters={[{ key: "agency", label: "Agency", value: agencyFilter, options: [{ value: "all", label: "All agencies" }, ...agencies.map((a) => ({ value: a, label: a }))] },{ key: "type", label: "Type", value: typeFilter, options: [{ value: "all", label: "All types" }, { value: "quote", label: "Quote" }, { value: "invoice", label: "Invoice" }] }]} />
             {filtersActive && (
               <button className="tvp-link" onClick={resetFilters}>
                 Reset filters

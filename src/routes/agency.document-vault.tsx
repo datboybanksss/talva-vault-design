@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -856,30 +857,7 @@ function VaultPage() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                   <div className="flex gap-2">
-                    <select
-                      className="tvp-select"
-                      value={folderFilter}
-                      onChange={(e) => setFolderFilter(e.target.value)}
-                    >
-                      <option value="all">Folder: All</option>
-                      {folderOptions.map((f: string) => (
-                        <option key={f} value={f}>
-                          {f}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      className="tvp-select"
-                      value={talentFilter}
-                      onChange={(e) => setTalentFilter(e.target.value)}
-                    >
-                      <option value="all">Talent: All</option>
-                      {talentLinks.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.displayName}
-                        </option>
-                      ))}
-                    </select>
+                    <FilterBar onChange={(k, v) => (k === "folder" ? setFolderFilter(v) : setTalentFilter(v))} filters={[{ key: "folder", label: "Folder", value: folderFilter, options: [{ value: "all", label: "All folders" }, ...folderOptions.map((x: string) => ({ value: x, label: x }))] },{ key: "talent", label: "Talent", value: talentFilter, options: [{ value: "all", label: "All talent" }, ...talentLinks.map((l) => ({ value: l.id, label: l.displayName }))] }]} />
                   </div>
                 </div>
               )}
