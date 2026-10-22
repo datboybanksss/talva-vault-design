@@ -21,6 +21,7 @@ import {
   normaliseAccountScope,
   normaliseTalentLink,
   talentAccountStatus,
+  agencyAccountStatus,
 } from "@/lib/account-filters";
 
 import {
@@ -534,7 +535,7 @@ export const listAccounts = createServerFn({ method: "GET" })
 
     const { data: profiles, error: pErr } = await supabase
       .from("talent_profiles")
-      .select("id, user_id, full_name, email, created_at, activation_completed_at, is_test")
+      .select("id, user_id, full_name, email, created_at, activation_completed_at, is_test, paused_at, suspended_at")
       .is("deleted_at", null);
     if (pErr) throw new Error(pErr.message);
     const userIds = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
@@ -560,6 +561,10 @@ export const listAccounts = createServerFn({ method: "GET" })
         ...a,
         key: `agency-${a.id}`,
         type: "agency" as const,
+        stored_status: a.status,
+        status: agencyAccountStatus(a),
+        is_paused: !!a.paused_at,
+        is_suspended: a.status === "suspended",
         is_test: !!a.is_test,
         joined_at: a.created_at,
         search_text: [
@@ -579,7 +584,9 @@ export const listAccounts = createServerFn({ method: "GET" })
         type: "talent" as const,
         name: p.full_name || p.email || "Unnamed talent",
         email: p.email,
-        status: talentAccountStatus(p.activation_completed_at),
+        status: talentAccountStatus(p.activation_completed_at, p),
+        is_paused: !!p.paused_at,
+        is_suspended: !!p.suspended_at,
         linked_agencies: linksByUser.get(p.user_id) ?? [],
         is_test: !!p.is_test,
         joined_at: p.activation_completed_at ?? p.created_at,
