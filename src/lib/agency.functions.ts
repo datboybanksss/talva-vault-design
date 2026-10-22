@@ -4967,7 +4967,7 @@ function normaliseEmails(emails: string[] | undefined): string[] {
 }
 
 const CLIENT_COLUMNS =
-  "id, name, trading_name, client_type, contact_person, contact_title, emails, phone, address, vat_number, company_registration_number, payment_terms_days, relationship_manager_user_id, city, country, notes, created_at, updated_at";
+  "id, name, trading_name, client_type, contact_person, contact_title, emails, phone, address, address_suburb, province, postal_code, vat_number, company_registration_number, payment_terms_days, relationship_manager_user_id, city, country, notes, archived_at, created_at, updated_at";
 
 type ClientRollup = {
   docCount: number;
@@ -4976,6 +4976,7 @@ type ClientRollup = {
   outstandingCents: number;
   overdueCents: number;
   overdueCount: number;
+  lastUsedAt: string | null;
 };
 
 function emptyRollup(): ClientRollup {
@@ -4986,6 +4987,7 @@ function emptyRollup(): ClientRollup {
     outstandingCents: 0,
     overdueCents: 0,
     overdueCount: 0,
+    lastUsedAt: null,
   };
 }
 
