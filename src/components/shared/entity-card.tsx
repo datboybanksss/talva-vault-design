@@ -69,7 +69,8 @@ export type EntityCardProps = {
   name: string;
   avatarSeed?: string;
   photoUrl?: string | null;
-  subtitle?: string | null;
+  /** A list renders as parts separated by "·" only when they share a line. */
+  subtitle?: string | string[] | null;
   meta?: string | null;
   pills?: ReactNode;
   stats?: EntityStat[];

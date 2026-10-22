@@ -4580,7 +4580,7 @@
 /* --- Shared entity cards (talent roster, vault talent picker, clients) --- */
 .tvp-entity-grid {
   display: grid;
-  gap: 22px;
+  gap: var(--sp-5);
   align-items: start;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -4601,9 +4601,9 @@
 .tvp-entity-card {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--sp-3);
   width: 100%;
-  padding: 20px;
+  padding: var(--sp-5);
   text-align: left;
   font: inherit;
   border: 1px solid var(--line-200);
@@ -4653,7 +4653,7 @@ a.tvp-entity-card:focus-visible {
 
 .tvp-entity-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   min-width: 0;
 }
@@ -4690,8 +4690,8 @@ a.tvp-entity-card:focus-visible {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 1px;
+  gap: var(--sp-2) var(--sp-3);
+  margin-top: 0;
   min-height: 0;
 }
 .tvp-entity-since {
@@ -4703,6 +4703,30 @@ a.tvp-entity-card:focus-visible {
 .tvp-entity-actions {
   align-self: flex-start;
   flex: 0 0 auto;
+  /* Centre the kebab on the name's first line (avatar stays top-aligned). */
+  margin-top: calc((15.5px * 1.25 - 32px) / 2);
+}
+.tvp-entity-head > .tvp-entity-identity {
+  align-self: center;
+}
+/* Subtitle parts: "·" sits in a clipped gutter, so a part that starts a new
+   line never shows a separator and no line ends with one. */
+.tvp-entity-sub.tvp-entity-sub-parts {
+  overflow: hidden;
+}
+.tvp-entity-sub-parts > p {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 0 -1.25em;
+}
+.tvp-entity-sub-part {
+  position: relative;
+  padding-left: 1.25em;
+}
+.tvp-entity-sub-part::before {
+  content: "·";
+  position: absolute;
+  left: 0.45em;
 }
 
 .tvp-entity-avatar {
@@ -4736,10 +4760,10 @@ a.tvp-entity-card:focus-visible {
 .tvp-entity-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--sp-3);
   border-top: 1px solid var(--line-200);
-  padding-top: 13px;
-  margin-top: 4px;
+  padding-top: var(--sp-3);
+  margin-top: 0;
 }
 .tvp-entity-stat {
   min-width: 0;
@@ -4763,16 +4787,16 @@ a.tvp-entity-card:focus-visible {
 }
 .tvp-entity-stat-label {
   display: block;
-  margin-top: 5px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  margin-top: var(--sp-1);
+  font-size: 12px;
+  font-weight: 700;
   color: var(--tvp-muted);
   line-height: 1.3;
   text-align: center;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  /* Wrap only between words, never mid-word. */
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
 }
 
 /* Talent roster uses a raised segmented control rather than badge-style tabs. */
@@ -5532,7 +5556,14 @@ a.tvp-entity-card:focus-visible {
   }
 }
 :is(.tv-app, .tvp-modal) .tvp-filter-search {
-  width: 300px;
+  /* Search takes the flexible space; dropdowns keep their fixed width. */
+  flex: 1 1 260px;
+  width: auto;
+  min-width: 220px;
+}
+:is(.tv-app, .tvp-modal) .tvp-filter-field:not(.tvp-filter-search) {
+  flex: 0 1 220px;
+  min-width: 180px;
 }
 :is(.tv-app, .tvp-modal) .tvp-filter-search-wrap {
   position: relative;
