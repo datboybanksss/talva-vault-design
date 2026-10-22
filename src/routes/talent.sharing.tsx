@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/use-confirm";
 import {
   Share2,
   Key,
@@ -95,7 +96,13 @@ function SharingPage() {
   });
 
   async function onRevoke(id: string) {
-    if (!confirm("Revoke this share? The magic link will stop working immediately.")) return;
+    const ok = await confirm({
+      title: "Revoke this share?",
+      body: "The link stops working immediately.",
+      confirmLabel: "Revoke share",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await revoke({ data: { id } });
       toast.success("Share revoked");
@@ -106,7 +113,12 @@ function SharingPage() {
   }
 
   async function onRegen(s: any) {
-    if (!confirm("Issue a new access code? The previous code stops working immediately.")) return;
+    const ok = await confirm({
+      title: "Issue a new access code?",
+      body: "The previous code stops working immediately.",
+      confirmLabel: "Issue new code",
+    });
+    if (!ok) return;
     try {
       const res: any = await regen({ data: { id: s.id } });
       const email = (res?.email ?? { sent: false }) as { sent: boolean; reason?: string };
