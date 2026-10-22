@@ -1,21 +1,25 @@
 import { Building2, UserRound } from "lucide-react";
 import type { InvitationType } from "@/lib/invitation-filters";
 
-const OPTIONS: Array<{ value: InvitationType; label: string; hint: string; icon: typeof Building2 }> =
-  [
-    {
-      value: "agency",
-      label: "Agency",
-      hint: "A talent management agency, with its compliance documents.",
-      icon: Building2,
-    },
-    {
-      value: "talent",
-      label: "Talent",
-      hint: "Independent talent joining without an agency, with ID and proof of talent.",
-      icon: UserRound,
-    },
-  ];
+const OPTIONS: Array<{
+  value: InvitationType;
+  label: string;
+  hint: string;
+  icon: typeof Building2;
+}> = [
+  {
+    value: "agency",
+    label: "Agency",
+    hint: "A talent management agency, with its compliance documents.",
+    icon: Building2,
+  },
+  {
+    value: "talent",
+    label: "Talent",
+    hint: "Independent talent joining without an agency, with ID and proof of talent.",
+    icon: UserRound,
+  },
+];
 
 /**
  * First field of the New invitation form. Required and never pre-selected;

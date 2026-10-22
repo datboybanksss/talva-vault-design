@@ -5313,7 +5313,7 @@ a.tvp-entity-card:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2);
-  margin: 0 0 var(--sp-1);
+  margin: 0 0 var(--sp-4);
 }
 .tvp-portal .tvp-invite-filters .tvp-roster-tabs {
   margin: 0;
@@ -5355,7 +5355,7 @@ a.tvp-entity-card:focus-visible {
   display: flex;
   align-items: flex-start;
   gap: var(--sp-3);
-  padding: var(--sp-1);
+  padding: var(--sp-4);
   border: 1px solid var(--line-200);
   border-radius: var(--r-md);
   background: var(--surface);

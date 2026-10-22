@@ -515,7 +515,10 @@ function AgenciesPage() {
                                 onSelect: () =>
                                   invitation!.status === "pending"
                                     ? resendM.mutate(invitation!.id)
-                                    : nav({ to: "/admin/invitations/new", search: { type: "agency" } }),
+                                    : nav({
+                                        to: "/admin/invitations/new",
+                                        search: { type: "agency" },
+                                      }),
                               },
                             agencyAllowed.includes("reinstate")
                               ? {

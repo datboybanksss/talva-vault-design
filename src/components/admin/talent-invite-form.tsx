@@ -291,11 +291,7 @@ export function TalentInviteForm({
             <ArrowLeft className="h-3 w-3" /> Back to invitations
           </Link>
           <h1 className="tvp-h1" style={{ marginTop: 4 }}>
-            {!draftId
-              ? "New invitation"
-              : isDraft
-                ? "Continue invitation"
-                : "Talent invitation"}
+            {!draftId ? "New invitation" : isDraft ? "Continue invitation" : "Talent invitation"}
           </h1>
           <div className="tvp-subtitle">
             Independent talent join TalVault without an agency. Save a draft at any point;

@@ -9,7 +9,17 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Building2, Mail, CheckCircle2, FileText, Share2, Link2, Send, Ban, RefreshCw } from "lucide-react";
+import {
+  Building2,
+  Mail,
+  CheckCircle2,
+  FileText,
+  Share2,
+  Link2,
+  Send,
+  Ban,
+  RefreshCw,
+} from "lucide-react";
 import { getDashboardMetrics, listCombinedInvitations } from "@/lib/admin.functions";
 import {
   INVITATION_STATUSES,
@@ -273,7 +283,8 @@ function AdminDashboard() {
                 className={`tvp-tab${istatus === s ? " tvp-active" : ""}`}
                 onClick={() => setFilters({ istatus: s })}
               >
-                {s === "all" ? "All statuses" : statusLabel("invitation", s)} · {statusCounts[s] ?? 0}
+                {s === "all" ? "All statuses" : statusLabel("invitation", s)} ·{" "}
+                {statusCounts[s] ?? 0}
               </button>
             ))}
           </div>
@@ -338,7 +349,9 @@ function AdminDashboard() {
                   </td>
                   <td>{r.email}</td>
                   <td>
-                    <span className="tvp-status st-neutral">{TYPE_LABEL[r.type as InvitationType]}</span>
+                    <span className="tvp-status st-neutral">
+                      {TYPE_LABEL[r.type as InvitationType]}
+                    </span>
                   </td>
                   <td>
                     <span className={statusPillClass("invitation", r.status)}>
@@ -351,9 +364,7 @@ function AdminDashboard() {
                   </td>
                   <td>
                     <RowActionsMenu
-                      actions={
-                        r.type === "talent" ? talentActions(r) : agencyActions.actionsFor(r)
-                      }
+                      actions={r.type === "talent" ? talentActions(r) : agencyActions.actionsFor(r)}
                     />
                   </td>
                 </tr>
