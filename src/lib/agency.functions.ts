@@ -1860,7 +1860,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: row, error } = await supabase
@@ -1929,7 +1929,6 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
         throw new Error("This document is no longer in your vault. Refresh the page to see the latest list.");
       throw new Error(m);
     }
-    void claims;
     return { ok: true, purgeAfter: (purgeAfter as string | null) ?? null };
   });
 
