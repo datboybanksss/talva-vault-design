@@ -3,6 +3,7 @@ import {
   ACCOUNT_STATUSES,
   accountOptionCounts,
   filterAccounts,
+  normaliseAccountScope,
   normaliseAccountStatus,
   normaliseTalentLink,
   talentAccountStatus,
