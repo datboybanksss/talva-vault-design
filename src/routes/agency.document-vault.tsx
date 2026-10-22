@@ -62,7 +62,6 @@ import {
   listAgencyDocumentVersions,
   registerAgencyDocumentVersion,
   getAgencyVersionSignedUrl,
-  upsertAgencyRetentionRule,
 } from "@/lib/agency.functions";
 import { useFolderCatalogue, useFolderNames, type CatalogueCategory } from "@/lib/folder-catalogue";
 import { supabase } from "@/integrations/supabase/client";
