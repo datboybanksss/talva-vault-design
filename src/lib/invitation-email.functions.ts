@@ -25,7 +25,7 @@ function fmtExpiry(iso: string) {
  */
 export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => sendInput.parse(d))
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
 
@@ -38,32 +38,16 @@ export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
 
     const { data: inv, error } = await supabase
       .from("agency_invitations")
-      .select("id, email, agency_name, contact_person, expires_at, status")
+      .select("id, email, status")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!inv) throw new Error("Invitation not found");
+    if (inv.status !== "pending") throw new Error("Only an open invitation can be emailed.");
 
-    const { buildInvitationEmail } = await import("@/lib/invitation-email");
-    const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
-
-    const mail = buildInvitationEmail({
-      variant: "agency",
-      subject: data.subject,
-      body: data.body,
-      agencyName: inv.agency_name,
-      contactPerson: inv.contact_person,
-      recipientEmail: inv.email,
-      inviteUrl: data.invite_url,
-      expiryDate: fmtExpiry(inv.expires_at),
-    });
-
-    const result = await sendInvitationEmail(
-      inv.email,
-      mail,
-      `agency-invite-${inv.id}-${Date.now()}`,
-      "agency_invitation",
-    );
+    // Same renderer and approved wording as the Review email step.
+    const { deliverAdminInvite } = await import("@/lib/admin-invite-email.server");
+    const { result, subject } = await deliverAdminInvite(supabase, "agency", inv.id, userId);
 
     await supabase.from("admin_audit_log").insert({
       actor_id: userId,
@@ -72,19 +56,8 @@ export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
       target_type: "agency_invitation",
       target_id: inv.id,
       target_label: inv.email,
-      detail: {
-        subject: mail.subject,
-        edited: true,
-        reason: result.sent ? null : result.reason,
-      },
+      detail: { subject, reason: result.sent ? null : result.reason },
     });
-
-    if (result.sent) {
-      await supabase
-        .from("agency_invitations")
-        .update({ email_sent_at: new Date().toISOString() })
-        .eq("id", inv.id);
-    }
 
     return result;
   });
