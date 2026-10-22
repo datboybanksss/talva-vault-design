@@ -641,6 +641,41 @@ export const setAccountTest = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Admin talent account page: the profile, live agency links and account state. */
+export const getTalentAccountById = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdmin(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as any;
+    const { data: p, error } = await admin
+      .from("talent_profiles")
+      .select(
+        "id, user_id, full_name, email, created_at, activation_completed_at, is_test, paused_at, pause_reason, pause_note, suspended_at, suspension_reason, suspension_note",
+      )
+      .eq("id", data.id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!p) return null;
+    let agencies: { name: string; status: string }[] = [];
+    if (p.user_id) {
+      const { data: links } = await admin
+        .from("agency_talent_links")
+        .select("status, agencies(name)")
+        .eq("talent_user_id", p.user_id);
+      agencies = (links ?? []).map((l: any) => ({ name: l.agencies?.name ?? "—", status: l.status }));
+    }
+    await logAudit(supabase, userId, claims?.email, "view_talent", "talent", data.id, p.full_name || p.email);
+    return {
+      ...p,
+      status: talentAccountStatus(p.activation_completed_at, p),
+      agencies,
+    };
+  });
+
 export const getAgencyById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
