@@ -36,9 +36,18 @@ export function friendlyError(error: unknown, fallback: string = GENERIC): strin
   if (message.startsWith("TERMS_NOT_ACCEPTED")) {
     return "Please accept the current Terms & Conditions to continue.";
   }
+  // Our own refusals sometimes carry a machine code ("RETENTION_LOCKED: …");
+  // the sentence after it is written for people, so show just that.
+  const coded = /^[A-Z][A-Z0-9_]{2,}:\s*(.+)$/s.exec(message);
+  if (coded) return friendlyError(capitalise(coded[1]), safeFallback);
   if (/^Forbidden|^Unauthori[sz]ed/i.test(message)) {
     return "You don't have permission to do that.";
   }
   if (message.length > 240 || TECHNICAL.some((re) => re.test(message))) return safeFallback;
   return message;
+}
+
+function capitalise(s: string): string {
+  const t = s.trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
