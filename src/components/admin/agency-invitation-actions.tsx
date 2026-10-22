@@ -14,11 +14,7 @@ import {
   updateInvitationEmail,
 } from "@/lib/admin.functions";
 import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
-import {
-  DEFAULT_INVITATION_BODY,
-  DEFAULT_INVITATION_SUBJECT,
-  EMAIL_FALLBACK_NOTICE,
-} from "@/lib/invitation-email";
+import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
 import { friendlyError } from "@/lib/friendly-error";
 
 export type AgencyInviteRow = {
@@ -57,12 +53,7 @@ export function useAgencyInvitationActions(): {
       qc.invalidateQueries({ queryKey: ["admin"] });
       // Expiry is refreshed regardless; only claim the email went out if it did.
       const res: any = await sendAgencyEmailFn({
-        data: {
-          id: inv.id,
-          subject: DEFAULT_INVITATION_SUBJECT,
-          body: DEFAULT_INVITATION_BODY,
-          invite_url: `${window.location.origin}/invite/${inv.token}`,
-        },
+        data: { id: inv.id },
       }).catch(() => ({ sent: false }));
       if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
@@ -128,10 +119,11 @@ export function useAgencyInvitationActions(): {
       },
       i.status !== "draft" && {
         key: "preview",
-        label: "Preview branded email",
+        label: "View sent email",
         icon: Mail,
         to: "/admin/invitations/$id/email-preview",
         params: { id: i.id },
+        search: { type: "agency" },
       },
       allowed.includes("copy_link") && {
         key: "copy",
