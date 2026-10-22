@@ -5675,3 +5675,19 @@ a.tvp-entity-card:focus-visible {
     flex-wrap: wrap;
   }
 }
+
+/* Two KPI cards side by side (Launch progress); stacked on phones. */
+.tv-app .tvp-kpi-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+@media (max-width: 720px) {
+  .tv-app .tvp-kpi-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Small neutral "Test" label beside an account name. */
+.tv-app .tvp-test-label {
+  margin-left: var(--sp-2);
+}

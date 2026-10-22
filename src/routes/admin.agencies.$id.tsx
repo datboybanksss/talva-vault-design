@@ -12,6 +12,7 @@ import {
   getAgencyById,
   suspendAgency,
   unsuspendAgency,
+  setAccountTest,
   listAgencyInvitationsForAgency,
   listTalentInvitationsForAgency,
   whoami,
@@ -90,6 +91,22 @@ function AgencyDetail() {
   });
 
   const a = q.data as any;
+  const setTestFn = useServerFn(setAccountTest);
+  const testM = useMutation({
+    mutationFn: (isTest: boolean) => setTestFn({ data: { type: "agency", id, isTest } }),
+    onSuccess: (_r, isTest) => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success(isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.");
+    },
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't change the account type.")),
+  });
+  const toggleTest = () => {
+    const next = !a?.is_test;
+    const msg = next
+      ? `Mark ${a.name} as a test account? It will be left out of reports and launch offer places by default.`
+      : `Mark ${a.name} as a real account? It will be counted in reports again.`;
+    if (confirm(msg)) testM.mutate(next);
+  };
 
   return (
     <>
@@ -114,12 +131,21 @@ function AgencyDetail() {
               <span className={statusPillClass("agency", a.status)}>
                 {statusLabel("agency", a.status)}
               </span>
+              {a.is_test && <span className="tvp-status st-neutral">Test</span>}
               {a.contact_email}
             </div>
           )}
         </div>
         {a && (
           <div className="tvp-actions">
+            <button
+              className="tvp-secondary"
+              onClick={toggleTest}
+              disabled={!canEdit || testM.isPending}
+              title={canEdit ? undefined : "You need full edit access to change the account type."}
+            >
+              {a.is_test ? "Mark as real account" : "Mark as test account"}
+            </button>
             {a.status === "suspended" ? (
               <button
                 className="tvp-secondary"

@@ -3,6 +3,7 @@ import {
   ACCOUNT_STATUSES,
   accountOptionCounts,
   filterAccounts,
+  normaliseAccountScope,
   normaliseAccountStatus,
   normaliseTalentLink,
   talentAccountStatus,
@@ -54,5 +55,24 @@ describe("admin accounts filters", () => {
     expect(c.type).toEqual({ all: 2, agency: 0, talent: 2 });
     expect(c.status.incomplete).toBe(1);
     expect(c.link).toEqual({ all: 2, linked: 1, independent: 1 });
+  });
+});
+
+describe("real vs test accounts filter", () => {
+  const rows = [
+    { type: "agency" as const, status: "accepted", is_test: false },
+    { type: "agency" as const, status: "accepted", is_test: true },
+    { type: "talent" as const, status: "active" },
+  ];
+  const f = { type: "all" as const, status: "all", link: "all" as const };
+  it("real only excludes test accounts", () => {
+    expect(filterAccounts(rows, { ...f, scope: "real" })).toHaveLength(2);
+  });
+  it("test only shows only test accounts", () => {
+    expect(filterAccounts(rows, { ...f, scope: "test" })).toHaveLength(1);
+  });
+  it("reports default to real only", () => {
+    expect(normaliseAccountScope(undefined, "real")).toBe("real");
+    expect(normaliseAccountScope("bogus", "real")).toBe("real");
   });
 });

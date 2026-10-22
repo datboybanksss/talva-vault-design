@@ -19,12 +19,14 @@ import {
   Trash2,
   FileEdit,
   Send,
+  FlaskConical,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   listAccounts,
+  setAccountTest,
   suspendAgency,
   unsuspendAgency,
   resendInvitation,
@@ -58,9 +60,10 @@ import {
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { FilterBar } from "@/components/shared/filter-bar";
+import { ACCOUNT_SCOPE_LABEL, normaliseAccountScope } from "@/lib/account-filters";
 import { friendlyError } from "@/lib/friendly-error";
 
-type AccountsSearch = { type?: string; status?: string; link?: string };
+type AccountsSearch = { type?: string; status?: string; link?: string; accounts?: string };
 const DESC = "Agencies and talent in one list, with status, linked agency and actions.";
 
 export const Route = createFileRoute("/admin/accounts")({
@@ -68,6 +71,7 @@ export const Route = createFileRoute("/admin/accounts")({
     ...(normaliseAccountType(raw.type) !== "all" ? { type: String(raw.type) } : {}),
     ...(normaliseAccountStatus(raw.status) !== "all" ? { status: String(raw.status) } : {}),
     ...(normaliseTalentLink(raw.link) !== "all" ? { link: String(raw.link) } : {}),
+    ...(normaliseAccountScope(raw.accounts, "all") !== "all" ? { accounts: String(raw.accounts) } : {}),
   }),
   head: () => ({
     meta: [
@@ -99,6 +103,7 @@ function AccountsPage() {
   const type = normaliseAccountType(search.type);
   const status = normaliseAccountStatus(search.status);
   const link = type === "talent" ? normaliseTalentLink(search.link) : "all";
+  const scope = normaliseAccountScope(search.accounts, "all");
   const setFilters = (next: AccountsSearch) =>
     nav({
       to: "/admin/accounts",
@@ -108,6 +113,7 @@ function AccountsPage() {
         if (m.type && m.type !== "all") out.type = m.type;
         if (m.status && m.status !== "all") out.status = m.status;
         if (out.type === "talent" && m.link && m.link !== "all") out.link = m.link;
+        if (m.accounts && m.accounts !== "all") out.accounts = m.accounts;
         return out;
       },
       replace: true,
@@ -115,10 +121,10 @@ function AccountsPage() {
   const clearFilters = () => nav({ to: "/admin/accounts", search: {}, replace: true });
 
   const accounts = useInfiniteQuery({
-    queryKey: ["admin", "accounts", type, status, link],
+    queryKey: ["admin", "accounts", type, status, link, scope],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
-      listFn({ data: { type, status, link, limit: PAGE_SIZE, offset: pageParam as number } }),
+      listFn({ data: { type, status, link, accounts: scope, limit: PAGE_SIZE, offset: pageParam as number } }),
     getNextPageParam: (last: any, all: any[]) => {
       const loaded = all.reduce((n, p: any) => n + (p.rows?.length ?? 0), 0);
       return loaded < (last?.total ?? 0) ? loaded : undefined;
@@ -130,7 +136,29 @@ function AccountsPage() {
   );
   const firstPage: any = accounts.data?.pages?.[0];
   const total = firstPage?.total ?? 0;
-  const counts = firstPage?.counts ?? { type: {}, status: {}, link: {} };
+  const counts = firstPage?.counts ?? { type: {}, status: {}, link: {}, scope: {} };
+  const setTestFn = useServerFn(setAccountTest);
+  const testM = useMutation({
+    mutationFn: (v: { type: "agency" | "talent"; id: string; isTest: boolean }) => setTestFn({ data: v }),
+    onSuccess: (_r, v) => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success(v.isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.");
+    },
+    onError: (e) => toast.error(friendlyError(e, "We couldn't change the account type.")),
+  });
+  const toggleTest = (type: "agency" | "talent", id: string, name: string, isTest: boolean) => {
+    const msg = isTest
+      ? `Mark ${name} as a test account? It will be left out of reports and launch offer places by default.`
+      : `Mark ${name} as a real account? It will be counted in reports again.`;
+    if (confirm(msg)) testM.mutate({ type, id, isTest });
+  };
+  const testAction = (type: "agency" | "talent", a: any) => ({
+    key: "test",
+    label: a.is_test ? "Mark as real account" : "Mark as test account",
+    icon: FlaskConical,
+    separatorBefore: type === "agency",
+    onSelect: () => toggleTest(type, a.id, a.name, !a.is_test),
+  });
 
   const suspendM = useMutation({
     mutationFn: (v: { id: string; reason: string }) => suspendFn({ data: v }),
@@ -248,7 +276,7 @@ function AccountsPage() {
     }
   };
 
-  const filtersActive = type !== "all" || status !== "all" || link !== "all";
+  const filtersActive = type !== "all" || status !== "all" || link !== "all" || scope !== "all";
   const activeFilterText = [
     type !== "all" ? `Type: ${ACCOUNT_TYPE_LABEL[type]}` : null,
     status !== "all" ? `Status: ${accountStatusOptionLabel(status)}` : null,
@@ -322,6 +350,16 @@ function AccountsPage() {
                   },
                 ]
               : []),
+            {
+              key: "accounts",
+              label: "Accounts",
+              value: scope,
+              options: (["all", "real", "test"] as const).map((v) => ({
+                value: v,
+                label: ACCOUNT_SCOPE_LABEL[v],
+                count: counts.scope?.[v] ?? 0,
+              })),
+            },
           ]}
         />
         <div className="tvp-table-wrap">
@@ -371,6 +409,7 @@ function AccountsPage() {
                     <tr key={a.key}>
                       <td>
                         <strong>{a.name}</strong>
+                        {a.is_test && <span className="tvp-status st-neutral tvp-test-label">Test</span>}
                         {a.email && (
                           <>
                             <br />
@@ -388,7 +427,9 @@ function AccountsPage() {
                       </td>
                       <td>{linkedLabel(a)}</td>
                       <td>{fmtDate(a.joined_at)}</td>
-                      <td></td>
+                      <td>
+                        <RowActionsMenu actions={[testAction("talent", a)]} />
+                      </td>
                     </tr>
                   );
                 }
@@ -414,6 +455,7 @@ function AccountsPage() {
                       <Link to="/admin/agencies/$id" params={{ id: a.id }}>
                         <strong>{a.name}</strong>
                       </Link>
+                      {a.is_test && <span className="tvp-status st-neutral tvp-test-label">Test</span>}
                       {inviteEmail && (
                         <>
                           <br />
@@ -542,6 +584,7 @@ function AccountsPage() {
                                   separatorBefore: true,
                                   onSelect: () => doSuspend(a.id, a.name),
                                 },
+                            testAction("agency", a),
                             inviteOpen && {
                               key: "revoke",
                               label: "Revoke invitation",

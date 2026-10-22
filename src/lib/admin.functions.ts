@@ -17,6 +17,7 @@ import {
   filterAccounts,
   normaliseAccountStatus,
   normaliseAccountType,
+  normaliseAccountScope,
   normaliseTalentLink,
   talentAccountStatus,
 } from "@/lib/account-filters";
@@ -509,6 +510,7 @@ export const listAccounts = createServerFn({ method: "GET" })
         type: z.string().default("all"),
         status: z.string().default("all"),
         link: z.string().default("all"),
+        accounts: z.string().default("all"),
         limit: z.number().int().min(1).max(50).default(10),
         offset: z.number().int().min(0).max(5000).default(0),
       }),
@@ -522,14 +524,14 @@ export const listAccounts = createServerFn({ method: "GET" })
       type: normaliseAccountType(data.type),
       status: normaliseAccountStatus(data.status),
       link: normaliseTalentLink(data.link),
+      scope: normaliseAccountScope(data.accounts, "all"),
     };
     const agencies = await loadAgenciesWithInvitations(supabase);
     const agencyName = new Map<string, string>(agencies.map((a: any) => [a.id, a.name]));
 
     const { data: profiles, error: pErr } = await supabase
       .from("talent_profiles")
-      .select("id, user_id, full_name, email, created_at, activation_completed_at")
-      .eq("is_test", false)
+      .select("id, user_id, full_name, email, created_at, activation_completed_at, is_test")
       .is("deleted_at", null);
     if (pErr) throw new Error(pErr.message);
     const userIds = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
@@ -555,6 +557,7 @@ export const listAccounts = createServerFn({ method: "GET" })
         ...a,
         key: `agency-${a.id}`,
         type: "agency" as const,
+        is_test: !!a.is_test,
         joined_at: a.created_at,
       })),
       ...(profiles ?? []).map((p: any) => ({
@@ -566,6 +569,7 @@ export const listAccounts = createServerFn({ method: "GET" })
         email: p.email,
         status: talentAccountStatus(p.activation_completed_at),
         linked_agencies: linksByUser.get(p.user_id) ?? [],
+        is_test: !!p.is_test,
         joined_at: p.activation_completed_at ?? p.created_at,
       })),
     ].sort((a: any, b: any) => (a.joined_at < b.joined_at ? 1 : -1));
@@ -576,6 +580,42 @@ export const listAccounts = createServerFn({ method: "GET" })
       total: matching.length,
       counts: accountOptionCounts(all, filters),
     };
+  });
+
+/** Marks or unmarks an agency or talent account as a test account (audited). */
+export const setAccountTest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({ type: z.enum(["agency", "talent"]), id: z.string().uuid(), isTest: z.boolean() }),
+      d,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    await assertAdminCanEdit(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const table = data.type === "agency" ? "agencies" : "talent_profiles";
+    const label = data.type === "agency" ? "name" : "full_name";
+    const { data: row, error } = await (supabaseAdmin as any)
+      .from(table)
+      .update({ is_test: data.isTest })
+      .eq("id", data.id)
+      .select(`id, ${label}`)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("We couldn't find that account.");
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      data.isTest ? "mark_test_account" : "unmark_test_account",
+      data.type,
+      data.id,
+      row[label] ?? undefined,
+      { is_test: data.isTest },
+    );
+    return { ok: true };
   });
 
 export const getAgencyById = createServerFn({ method: "GET" })
@@ -856,6 +896,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         type: z.string().default("all"),
         status: z.string().default("all"),
         email: z.string().max(320).default(""),
+        accounts: z.string().default("all"),
         limit: z.number().int().min(1).max(50).default(10),
         offset: z.number().int().min(0).max(500).default(0),
       }),
@@ -869,10 +910,35 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     const status = normaliseInvitationStatus(data.status);
     const email = data.email.trim().replace(/[%_,()]/g, "");
     const nowIso = new Date().toISOString();
+    const scope = normaliseAccountScope(data.accounts, "all");
+    // Test accounts: agency invitations by their agency, talent invitations by email.
+    const [{ data: testAg }, { data: testTal }] = await Promise.all([
+      supabase.from("agencies").select("id").eq("is_test", true),
+      supabase.from("talent_profiles").select("email").eq("is_test", true),
+    ]);
+    const testAgencyIds: string[] = (testAg ?? []).map((r: any) => r.id);
+    const testEmails: string[] = (testTal ?? [])
+      .map((r: any) => String(r.email ?? "").trim().toLowerCase())
+      .filter(Boolean);
+    const quoteList = (xs: string[]) => xs.map((x) => `"${x.replace(/"/g, "")}"`).join(",");
+    const byScope = (q: any, t: InvitationType) => {
+      if (scope === "all") return q;
+      const ids = t === "agency" ? testAgencyIds : testEmails;
+      const col = t === "agency" ? "agency_id" : "email";
+      if (scope === "test") return ids.length ? q.in(col, ids) : q.eq("id", "00000000-0000-0000-0000-000000000000");
+      if (!ids.length) return q;
+      return t === "agency"
+        ? q.or(`agency_id.is.null,agency_id.not.in.(${quoteList(ids)})`)
+        : q.not("email", "in", `(${quoteList(ids)})`);
+    };
+    const isTestRow = (r: any, t: InvitationType) =>
+      t === "agency"
+        ? !!r.agency_id && testAgencyIds.includes(r.agency_id)
+        : testEmails.includes(String(r.email ?? "").trim().toLowerCase());
     const TABLE = {
       agency: {
         table: "agency_invitations",
-        cols: "id, agency_name, contact_person, email, status, expires_at, created_at, updated_at, last_sent_at, send_count, token",
+        cols: "id, agency_id, agency_name, contact_person, email, status, expires_at, created_at, updated_at, last_sent_at, send_count, token",
       },
       talent: {
         table: "independent_talent_invitations",
@@ -882,7 +948,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     // Only agency onboarding invitations: agency staff invitations share the
     // agency_invitations table (kind = 'staff') and are not Admin invitations.
     const byStatus = (q0: any, s: string, t: InvitationType) => {
-      const q1 = t === "agency" ? q0.eq("kind", ADMIN_AGENCY_INVITATION_KIND) : q0;
+      const q1 = byScope(t === "agency" ? q0.eq("kind", ADMIN_AGENCY_INVITATION_KIND) : q0, t);
       const q = email ? q1.ilike("email", `%${email}%`) : q1;
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
@@ -922,6 +988,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
           name: t === "agency" ? r.agency_name : r.talent_name,
           stored_status: r.status as string,
           status: effectiveInvitationStatus(r.status, r.expires_at),
+          is_test: isTestRow(r, t),
         }));
       }),
     );
