@@ -650,78 +650,150 @@ export const getAgencyById = createServerFn({ method: "GET" })
     return agency;
   });
 
-export const suspendAgency = createServerFn({ method: "POST" })
+/** Years of read-only access after a suspension (the one database number). */
+export const getReadOnlyYears = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { data, error } = await supabase.rpc("post_end_read_only_years");
+    if (error) throw new Error(error.message);
+    return { years: Number(data) };
+  });
+
+const BAN_DURATION = "876000h"; // ~100 years; lifted on unpause
+
+/** Blocks sign-in (and token refresh) for these users; returns the ones we banned. */
+async function banUsers(admin: any, userIds: string[]): Promise<string[]> {
+  const banned: string[] = [];
+  for (const id of [...new Set(userIds)]) {
+    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: id, _role: "admin" });
+    if (isAdmin) continue;
+    const { data: u } = await admin.auth.admin.getUserById(id);
+    const until = u?.user?.banned_until ? new Date(u.user.banned_until).getTime() : 0;
+    if (until > Date.now()) continue; // already blocked for another reason: leave it alone
+    const { error } = await admin.auth.admin.updateUserById(id, { ban_duration: BAN_DURATION });
+    if (error) throw new Error(error.message);
+    banned.push(id);
+  }
+  // End verified two-step sessions so nothing carries on after the pause.
+  if (banned.length) await admin.from("mfa_verified_sessions").delete().in("user_id", banned);
+  return banned;
+}
+
+async function unbanUsers(admin: any, userIds: string[]) {
+  for (const id of [...new Set(userIds)]) {
+    const { error } = await admin.auth.admin.updateUserById(id, { ban_duration: "none" });
+    if (error) throw new Error(error.message);
+  }
+}
+
+/**
+ * Pause / unpause / suspend / unsuspend an agency or talent account (Admin
+ * with edit rights only). Allowed transitions come from accountStateActions;
+ * pause never touches suspension, so unpausing restores the previous state.
+ */
+export const changeAccountState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    parseInput(z.object({ id: z.string(), reason: z.string().min(3) }), d),
+    parseInput(
+      z.object({
+        type: z.enum(["agency", "talent"]),
+        id: z.string().uuid(),
+        action: z.enum(["pause", "unpause", "suspend", "unsuspend"]),
+        reason: z.string().max(40).optional(),
+        note: z.string().trim().max(1000).optional(),
+      }),
+      d,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
-    const { data: updated, error } = await supabase
-      .from("agencies")
-      .update({
-        status: "suspended",
-        suspension_reason: data.reason,
-        suspended_at: new Date().toISOString(),
-        suspended_by: userId,
-      })
-      .eq("id", data.id)
-      .neq("status", "suspended")
-      .select()
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!updated) throw new Error("This agency is already suspended.");
-    await logAudit(
-      supabase,
-      userId,
-      claims?.email,
-      "suspend_agency",
-      "agency",
-      data.id,
-      updated.name,
-      { reason: data.reason },
-    );
-    await supabase.from("admin_notifications").insert({
-      kind: "suspended_review",
-      title: `${updated.name} suspended — needs review`,
-      detail: data.reason,
-      target_type: "agency",
-      target_id: data.id,
-    });
-    return updated;
-  });
+    const { canApplyAccountAction, isValidReason, reasonsFor } = await import("@/lib/account-state");
+    const needsReason = data.action === "pause" || data.action === "suspend";
+    if (needsReason && !isValidReason(data.action as "pause" | "suspend", data.reason ?? "")) {
+      throw new Error("Choose a reason.");
+    }
+    const note = data.note?.trim() || null;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as any;
+    const table = data.type === "agency" ? "agencies" : "talent_profiles";
+    const { data: row, error: rErr } = await admin.from(table).select("*").eq("id", data.id).maybeSingle();
+    if (rErr) throw new Error(rErr.message);
+    if (!row || (data.type === "talent" && row.deleted_at)) throw new Error("We couldn't find that account.");
+    const state = {
+      paused: !!row.paused_at,
+      suspended: data.type === "agency" ? row.status === "suspended" : !!row.suspended_at,
+    };
+    if (!canApplyAccountAction(data.action, state)) {
+      throw new Error("That action isn't available for this account's current status.");
+    }
+    const now = new Date().toISOString();
+    let patch: Record<string, unknown> = {};
 
-export const unsuspendAgency = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ id: z.string() }), d))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
-    await assertAdminCanEdit(supabase, userId);
-    const { data: updated, error } = await supabase
-      .from("agencies")
-      .update({
-        status: "accepted",
-        suspension_reason: null,
+    if (data.action === "pause") {
+      let userIds: string[] = [];
+      if (data.type === "agency") {
+        const { data: members } = await admin.from("agency_members").select("user_id").eq("agency_id", data.id);
+        userIds = (members ?? []).map((m: any) => m.user_id).filter(Boolean);
+      } else if (row.user_id) userIds = [row.user_id];
+      const banned = await banUsers(admin, userIds);
+      patch = {
+        paused_at: now,
+        paused_by: userId,
+        pause_reason: data.reason,
+        pause_note: note,
+        ...(data.type === "agency" ? { paused_banned_user_ids: banned } : { paused_banned: banned.length > 0 }),
+      };
+    } else if (data.action === "unpause") {
+      const toUnban: string[] =
+        data.type === "agency" ? (row.paused_banned_user_ids ?? []) : row.paused_banned && row.user_id ? [row.user_id] : [];
+      await unbanUsers(admin, toUnban);
+      patch = {
+        paused_at: null,
+        paused_by: null,
+        pause_reason: null,
+        pause_note: null,
+        ...(data.type === "agency" ? { paused_banned_user_ids: [] } : { paused_banned: false }),
+      };
+    } else if (data.action === "suspend") {
+      patch = {
+        ...(data.type === "agency" ? { status: "suspended" } : {}),
+        suspended_at: now,
+        suspended_by: userId,
+        suspension_reason: data.reason,
+        suspension_note: note,
+      };
+    } else {
+      patch = {
+        ...(data.type === "agency" ? { status: "accepted" } : {}),
         suspended_at: null,
         suspended_by: null,
-      })
-      .eq("id", data.id)
-      .eq("status", "suspended")
-      .select()
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!updated) throw new Error("Only a suspended agency can be reinstated.");
-    await logAudit(
-      supabase,
-      userId,
-      claims?.email,
-      "unsuspend_agency",
-      "agency",
-      data.id,
-      updated.name,
-    );
-    return updated;
+        suspension_reason: null,
+        suspension_note: null,
+      };
+    }
+
+    const { error: uErr } = await admin.from(table).update(patch).eq("id", data.id);
+    if (uErr) throw new Error(uErr.message);
+    const label = data.type === "agency" ? row.name : row.full_name || row.email;
+    await logAudit(supabase, userId, claims?.email, `${data.action}_${data.type}`, data.type, data.id, label, {
+      ...(needsReason
+        ? { reason: data.reason, reason_label: reasonsFor(data.action as "pause" | "suspend")[data.reason!] }
+        : {}),
+      note,
+    });
+    if (data.action === "suspend" && data.type === "agency") {
+      await supabase.from("admin_notifications").insert({
+        kind: "suspended_review",
+        title: `${row.name} suspended — needs review`,
+        detail: reasonsFor("suspend")[data.reason!],
+        target_type: "agency",
+        target_id: data.id,
+      });
+    }
+    return { ok: true };
   });
 
 export const listAgencyInvitationsForAgency = createServerFn({ method: "GET" })
