@@ -125,8 +125,8 @@ export function matchesInviteFilter(r: InviteRow, f: InviteFilter) {
   return true;
 }
 
-export function sourceKey(s: string | null): "admin" | "waiting_list" | "not_recorded" {
-  return s === "admin" || s === "waiting_list" ? s : "not_recorded";
+export function sourceKey(s: string | null): "admin" | "agency" | "waiting_list" | "not_recorded" {
+  return s === "admin" || s === "agency" || s === "waiting_list" ? s : "not_recorded";
 }
 
 /**

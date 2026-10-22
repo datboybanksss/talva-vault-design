@@ -109,6 +109,7 @@ describe("invitation conversion", () => {
     const rows = [inv({ type: "agency", segment: null }), inv({ segment: "agency_linked", source: "agency" }), inv({})];
     expect(invitationFunnel(rows, { ...ALL, type: "agency" }, NOW).total).toBe(1);
     expect(invitationFunnel(rows, { ...ALL, type: "talent", segment: "independent" }, NOW).total).toBe(1);
+    expect(invitationFunnel(rows, ALL, NOW).bySource.agency!.pending).toBe(1);
   });
   it("date range uses SAST midnight", () => {
     const r = sastRange("2026-11-20", "2026-11-20");
