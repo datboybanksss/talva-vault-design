@@ -1,5 +1,11 @@
 # Roadmap
 
+## Terms gate — 22 October 2026
+- [ ] Investigate current document IDs/schema and repair confirmed root cause without altering legal proofs.
+- [ ] Locate full v1.2 texts without making them current.
+- [ ] Restyle gate and long-document reader; require scrolling before agreement.
+- [ ] Test validation, exact-body hashes and role acceptance; report unavailable checks.
+
 ## Trusted contact rename
 - [x] Rename visible terminology centrally without changing internal names or stored/legal text.
 - [x] Audit legal and stored occurrences; verify remaining source hits and automatic validation.

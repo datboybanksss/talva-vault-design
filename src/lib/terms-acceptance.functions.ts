@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { acceptTermsInput } from "@/lib/terms-gate-core";
 
 /**
  * Terms & Conditions acceptance: the sign-in gate, each user's own records,
@@ -27,6 +28,7 @@ export type TermsStatus = {
     version: string;
     title: string;
     body: string;
+    body_sha256: string;
     effective_at: string;
   } | null;
   acceptances: MyAcceptance[];
@@ -64,10 +66,10 @@ export const getMyTermsStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<TermsStatus> => {
     const sb = await admin();
     const userId = context.userId;
-    const [{ data: current }, { data: accs }] = await Promise.all([
+    const [{ data: current, error: documentError }, { data: accs, error: acceptanceError }] = await Promise.all([
       sb
         .from("legal_documents")
-        .select("id, version, title, body, effective_at")
+        .select("id, version, title, body, body_sha256, effective_at")
         .eq("doc_type", data.portal)
         .eq("is_current", true)
         .maybeSingle(),
@@ -79,6 +81,7 @@ export const getMyTermsStatus = createServerFn({ method: "POST" })
         .eq("user_id", userId)
         .order("accepted_at", { ascending: false }),
     ]);
+    if (documentError || acceptanceError) throw new Error("We couldn't load your Terms & Conditions. Please try again.");
     const inPortal = await belongsToPortal(sb, userId, data.portal);
     const hasCurrent = !!current && (accs ?? []).some((a: any) => a.document_id === current.id);
     return {
@@ -90,18 +93,17 @@ export const getMyTermsStatus = createServerFn({ method: "POST" })
 
 export const acceptCurrentTerms = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((v: unknown) =>
-    z.object({ portal: z.enum(["talent", "agency"]), document_id: z.string().uuid() }).parse(v),
-  )
+  .inputValidator((v: unknown) => acceptTermsInput.parse(v))
   .handler(async ({ data, context }) => {
     const sb = await admin();
-    const { data: current } = await sb
+    const { data: current, error } = await sb
       .from("legal_documents")
-      .select("id")
+      .select("id, body_sha256")
       .eq("doc_type", data.portal)
       .eq("is_current", true)
       .maybeSingle();
-    if (!current || current.id !== data.document_id)
+    if (error) throw new Error("We couldn't load your Terms & Conditions. Please try again.");
+    if (!current || current.id !== data.document_id || current.body_sha256 !== data.body_sha256)
       throw new Error(
         "These Terms have been updated. Please reload the page and read the latest version.",
       );
@@ -126,7 +128,7 @@ export const getAcceptedTermsText = createServerFn({ method: "POST" })
       .select("user_id, document_id")
       .eq("id", data.acceptance_id)
       .maybeSingle();
-    if (!acc) throw new Error("Not found");
+    if (!acc || !acc.document_id) throw new Error("Not found");
     if (acc.user_id !== context.userId) {
       const { data: isAdmin } = await context.supabase.rpc("has_role", {
         _user_id: context.userId,
@@ -137,7 +139,7 @@ export const getAcceptedTermsText = createServerFn({ method: "POST" })
     const { data: doc } = await sb
       .from("legal_documents")
       .select("title, version, doc_type, body, body_sha256, effective_at")
-      .eq("id", acc.document_id!)
+      .eq("id", acc.document_id)
       .maybeSingle();
     if (!doc) throw new Error("Not found");
     return doc;
