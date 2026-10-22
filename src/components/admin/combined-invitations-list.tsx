@@ -8,6 +8,7 @@ import { useTalentInvitationActions } from "@/components/admin/talent-invitation
 import { useAgencyInvitationActions } from "@/components/admin/agency-invitation-actions";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { FilterBar } from "@/components/shared/filter-bar";
 import { listCombinedInvitations } from "@/lib/admin.functions";
 import {
   INVITATION_STATUSES,
@@ -95,34 +96,33 @@ export function CombinedInvitationsList({
         )}
       </div>
 
-      <div className="tvp-invite-filters">
-        <div className="tvp-roster-tabs" role="group" aria-label="Type">
-          {(["all", ...INVITATION_TYPES] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              aria-pressed={type === t}
-              className={`tvp-tab${type === t ? " tvp-active" : ""}`}
-              onClick={() => onFilterChange({ type: t })}
-            >
-              {t === "all" ? "All types" : INVITATION_TYPE_LABEL[t]} · {typeCounts[t]}
-            </button>
-          ))}
-        </div>
-        <div className="tvp-roster-tabs" role="group" aria-label="Status">
-          {["all", ...INVITATION_STATUSES].map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={status === s}
-              className={`tvp-tab${status === s ? " tvp-active" : ""}`}
-              onClick={() => onFilterChange({ status: s })}
-            >
-              {s === "all" ? "All statuses" : statusLabel("invitation", s)} · {statusCounts[s] ?? 0}
-            </button>
-          ))}
-        </div>
-      </div>
+      <FilterBar
+        active={filtersActive}
+        onClear={onClear}
+        onChange={(key, value) => onFilterChange({ [key]: value })}
+        filters={[
+          {
+            key: "type",
+            label: "Type",
+            value: type,
+            options: (["all", ...INVITATION_TYPES] as const).map((t) => ({
+              value: t,
+              label: t === "all" ? "All types" : INVITATION_TYPE_LABEL[t],
+              count: typeCounts[t] ?? 0,
+            })),
+          },
+          {
+            key: "status",
+            label: "Status",
+            value: status,
+            options: ["all", ...INVITATION_STATUSES].map((s) => ({
+              value: s,
+              label: s === "all" ? "All statuses" : statusLabel("invitation", s),
+              count: statusCounts[s] ?? 0,
+            })),
+          },
+        ]}
+      />
 
       <div className="tvp-table-wrap">
         <table className="tvp-table">
