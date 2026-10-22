@@ -5308,16 +5308,70 @@ a.tvp-entity-card:focus-visible {
   margin-left: var(--sp-1);
 }
 
-/* Admin overview — combined invitation filters */
-.tvp-portal .tvp-invite-filters {
+/* Segmented tabs must never shrink to min-content inside a wrapping flex
+   parent (fit-content + wrap stacked every tab on its own line). */
+.tvp-portal .tvp-roster-tabs {
+  max-width: 100%;
+  flex-direction: row;
+}
+
+/* Shared compact filter bar (Admin Invitations + Accounts) */
+.tvp-portal .tvp-filter-bar {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
-  gap: var(--sp-2);
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--sp-2) var(--sp-3);
   margin: 0 0 var(--sp-4);
 }
-.tvp-portal .tvp-invite-filters .tvp-roster-tabs {
-  margin: 0;
-  flex-wrap: wrap;
+.tvp-portal .tvp-filter-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 40px;
+  padding: 0 var(--sp-1) 0 var(--sp-3);
+  border: 1px solid var(--tvp-line-strong);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--tvp-text);
+  font-size: 13px;
+}
+.tvp-portal .tvp-filter-field:focus-within {
+  border-color: var(--tvp-teal-2);
+  box-shadow: 0 0 0 3px var(--tvp-teal-50);
+}
+.tvp-portal .tvp-filter-label {
+  color: var(--tvp-muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tvp-portal .tvp-filter-field select {
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--tvp-ink);
+  font: inherit;
+  font-weight: 700;
+  padding: 0 var(--sp-2) 0 0;
+  cursor: pointer;
+  outline: none;
+}
+.tvp-portal .tvp-filter-clear {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+@media (max-width: 560px) {
+  .tvp-portal .tvp-filter-field {
+    flex: 1 1 100%;
+  }
+  .tvp-portal .tvp-filter-field select {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 /* New invitation — "Who are you inviting?" */
