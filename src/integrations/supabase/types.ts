@@ -1066,6 +1066,7 @@ export type Database = {
           email: string
           email_sent_at: string | null
           expires_at: string
+          first_sent_at: string | null
           id: string
           invited_by: string | null
           kind: Database["public"]["Enums"]["agency_invitation_kind"]
@@ -1074,6 +1075,7 @@ export type Database = {
           registered_mobile_number: string | null
           role: string | null
           send_count: number
+          source: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           supporting_docs: Json | null
           token: string
@@ -1089,6 +1091,7 @@ export type Database = {
           email: string
           email_sent_at?: string | null
           expires_at?: string
+          first_sent_at?: string | null
           id?: string
           invited_by?: string | null
           kind?: Database["public"]["Enums"]["agency_invitation_kind"]
@@ -1097,6 +1100,7 @@ export type Database = {
           registered_mobile_number?: string | null
           role?: string | null
           send_count?: number
+          source?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           supporting_docs?: Json | null
           token?: string
@@ -1112,6 +1116,7 @@ export type Database = {
           email?: string
           email_sent_at?: string | null
           expires_at?: string
+          first_sent_at?: string | null
           id?: string
           invited_by?: string | null
           kind?: Database["public"]["Enums"]["agency_invitation_kind"]
@@ -1120,6 +1125,7 @@ export type Database = {
           registered_mobile_number?: string | null
           role?: string | null
           send_count?: number
+          source?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           supporting_docs?: Json | null
           token?: string
@@ -1801,11 +1807,13 @@ export type Database = {
           email: string
           email_sent_at: string | null
           expires_at: string
+          first_sent_at: string | null
           id: string
           invited_by: string | null
           last_sent_at: string | null
           reminder_sent_at: string | null
           send_count: number
+          source: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           talent_name: string
           talent_type: string | null
@@ -1820,11 +1828,13 @@ export type Database = {
           email: string
           email_sent_at?: string | null
           expires_at?: string
+          first_sent_at?: string | null
           id?: string
           invited_by?: string | null
           last_sent_at?: string | null
           reminder_sent_at?: string | null
           send_count?: number
+          source?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           talent_name: string
           talent_type?: string | null
@@ -1839,11 +1849,13 @@ export type Database = {
           email?: string
           email_sent_at?: string | null
           expires_at?: string
+          first_sent_at?: string | null
           id?: string
           invited_by?: string | null
           last_sent_at?: string | null
           reminder_sent_at?: string | null
           send_count?: number
+          source?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           talent_name?: string
           talent_type?: string | null
@@ -2210,6 +2222,27 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_filing_enabled: boolean
@@ -2412,6 +2445,7 @@ export type Database = {
           email: string
           email_sent_at: string | null
           expires_at: string
+          first_sent_at: string | null
           folder_mode: string
           folder_selection: Json
           id: string
@@ -2432,6 +2466,7 @@ export type Database = {
           email: string
           email_sent_at?: string | null
           expires_at?: string
+          first_sent_at?: string | null
           folder_mode?: string
           folder_selection?: Json
           id?: string
@@ -2452,6 +2487,7 @@ export type Database = {
           email?: string
           email_sent_at?: string | null
           expires_at?: string
+          first_sent_at?: string | null
           folder_mode?: string
           folder_selection?: Json
           id?: string

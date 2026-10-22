@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792691977522,
+      "tag": "0000_reporting_settings_and_invite_recording",
+      "breakpoints": true
+    }
+  ]
+}
