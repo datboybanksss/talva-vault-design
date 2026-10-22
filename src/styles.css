@@ -5312,8 +5312,8 @@ a.tvp-entity-card:focus-visible {
 .tvp-portal .tvp-invite-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-8);
-  margin: 0 0 var(--sp-16);
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-1);
 }
 .tvp-portal .tvp-invite-filters .tvp-roster-tabs {
   margin: 0;
@@ -5324,14 +5324,14 @@ a.tvp-entity-card:focus-visible {
 .tvp-back-link {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-1);
   font-size: 13px;
-  margin-bottom: var(--sp-4);
+  margin-bottom: var(--sp-1);
 }
 .tvp-invite-type {
   border: none;
   padding: 0;
-  margin: 0 0 var(--sp-20);
+  margin: 0 0 var(--sp-5);
   min-width: 0;
 }
 .tvp-invite-type-legend {
@@ -5339,12 +5339,12 @@ a.tvp-entity-card:focus-visible {
   font-weight: 700;
   font-size: 14px;
   color: var(--tvp-ink);
-  margin-bottom: var(--sp-8);
+  margin-bottom: var(--sp-2);
 }
 .tvp-invite-type-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-12);
+  gap: var(--sp-3);
 }
 @media (max-width: 720px) {
   .tvp-invite-type-options {
@@ -5354,8 +5354,8 @@ a.tvp-entity-card:focus-visible {
 .tvp-invite-type-card {
   display: flex;
   align-items: flex-start;
-  gap: var(--sp-12);
-  padding: var(--sp-16);
+  gap: var(--sp-3);
+  padding: var(--sp-1);
   border: 1px solid var(--line-200);
   border-radius: var(--r-md);
   background: var(--surface);
@@ -5365,7 +5365,7 @@ a.tvp-entity-card:focus-visible {
 .tvp-invite-type-card > span {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-1);
 }
 .tvp-invite-type-card input {
   margin-top: 2px;
@@ -5386,5 +5386,5 @@ a.tvp-entity-card:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-8);
+  gap: var(--sp-2);
 }
