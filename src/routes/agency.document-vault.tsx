@@ -1008,13 +1008,6 @@ function VaultPage() {
                                     disabledReason: changeBlock ? blockText(changeBlock) : null,
                                     onSelect: () => setNewVersionFor(d),
                                   },
-                                  !readOnly &&
-                                    isOwner && {
-                                      key: "retention",
-                                      label: "Set retention override",
-                                      icon: ShieldPlus,
-                                      onSelect: () => setOverrideFor(d),
-                                    },
                                   !readOnly && {
                                     key: "delete",
                                     label: "Delete document",
@@ -1102,30 +1095,6 @@ function VaultPage() {
         />
       )}
 
-      {!readOnly && overrideFor && (
-        <OverrideDialog
-          doc={overrideFor}
-          onClose={() => setOverrideFor(null)}
-          onSave={async (years, description) => {
-            try {
-              await upsertRuleFn({
-                data: {
-                  scope: "document",
-                  document_id: overrideFor.id,
-                  retention_years: years,
-                  description: description || null,
-                },
-              });
-              toast.success("Retention override set");
-              qc.invalidateQueries({ queryKey: ["agency", "vault"] });
-              qc.invalidateQueries({ queryKey: ["agency", "retention"] });
-              setOverrideFor(null);
-            } catch (e: any) {
-              toast.error(friendlyError(e, "Failed"));
-            }
-          }}
-        />
-      )}
     </>
   );
 }

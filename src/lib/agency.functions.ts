@@ -2014,6 +2014,10 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
+    if (data.scope === "document") {
+      const { NO_OVERRIDE_MESSAGE } = await import("@/lib/document-blocks");
+      throw new Error(NO_OVERRIDE_MESSAGE);
+    }
 
     const payload: Record<string, unknown> = {
       agency_id: agencyId,

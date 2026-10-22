@@ -62,7 +62,8 @@ export function agencyDocumentChangeBlock(
   if (verb === "deleted" && d.lockedUntil && new Date(d.lockedUntil).getTime() > now.getTime()) {
     return {
       code: "retention_locked",
-      message: `This document is under a retention period until ${fmtLongDate(d.lockedUntil)}, so it can't be deleted.`,
+      message: `This document is protected until ${fmtLongDate(d.lockedUntil)}, so it can't be deleted.`,
+      nextStep: "You can upload a new version instead.",
     };
   }
   return null;
@@ -81,3 +82,10 @@ export const NO_FOLDER_ACCESS: DocBlock = {
 export function blockText(b: DocBlock): string {
   return b.nextStep ? `${b.message} ${b.nextStep}` : b.message;
 }
+
+/** Shown whenever a document rule is created, changed or deleted. */
+export const RULE_CHANGE_NOTE =
+  "This applies to documents uploaded from now on. Existing documents keep their current rules.";
+
+export const NO_OVERRIDE_MESSAGE =
+  "Per-document retention overrides aren't available. Retention rules apply by folder to documents uploaded from now on.";
