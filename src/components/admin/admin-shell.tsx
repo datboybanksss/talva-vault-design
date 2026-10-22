@@ -146,7 +146,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               : "blue",
       title: p.title,
       detail: p.detail ?? "",
-      to: p.target_type === "agency" ? "/admin/accounts?type=agency" : undefined,
+      to: p.target_type === "agency" ? "/admin/agencies" : undefined,
     })),
   ];
 
