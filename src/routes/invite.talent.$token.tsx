@@ -216,8 +216,8 @@ function Wizard({
   const legalQ = useQuery({
     queryKey: ["legal-doc", "talent"],
     queryFn: () => getCurrentLegalDocument({ data: { doc_type: "talent" } }),
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
   const legal = legalQ.data ?? null;
 
