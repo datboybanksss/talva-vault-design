@@ -1418,7 +1418,7 @@
   & .tvp-kpi-sub.tvp-neutral {
     color: var(--tvp-muted);
   }
-  & .tvp-kpi-sub.tvp-danger {
+  & .tvp-kpi-sub.tvp-kpi-danger {
     color: var(--tvp-red);
   }
   & .tvp-kpi-sub.tvp-brand {
