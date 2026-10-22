@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { Suspense } from "react";
 import { AgencyProfilePanel } from "@/components/agency/agency-profile-panel";
@@ -10,7 +10,6 @@ import {
   documentRulesMeQO,
 } from "@/components/agency/document-rules-panel";
 import { QuotesInvoicesSettingsPanel } from "@/components/agency/quotes-invoices-settings-panel";
-import { ClientsPanel } from "@/components/agency/clients-panel";
 
 const tabSchema = z
   .enum(["profile", "folders", "document-rules", "quotes-invoices", "clients"])
@@ -54,7 +53,6 @@ const TABS: {
   { key: "folders", label: "Manage Folders" },
   { key: "document-rules", label: "Document Rules" },
   { key: "quotes-invoices", label: "Quotes & Invoices" },
-  { key: "clients", label: "Clients" },
 ];
 
 function AgencySettingsPage() {
@@ -97,7 +95,7 @@ function AgencySettingsPage() {
           {tab === "folders" && <ManageFoldersPanel />}
           {tab === "document-rules" && <DocumentRulesPanel />}
           {tab === "quotes-invoices" && <QuotesInvoicesSettingsPanel />}
-          {tab === "clients" && <ClientsPanel />}
+          {tab === "clients" && <Navigate to="/agency/clients" replace />}
         </Suspense>
       </div>
     </>

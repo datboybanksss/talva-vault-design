@@ -60,6 +60,7 @@ const manage: NavItem[] = [
     ),
     icon: <Receipt />,
   },
+  { to: "/agency/clients", label: "Clients", icon: <Building2 /> },
 ];
 
 const settings: NavItem[] = [
