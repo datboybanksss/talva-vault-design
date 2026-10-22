@@ -69,7 +69,8 @@ export type EntityCardProps = {
   name: string;
   avatarSeed?: string;
   photoUrl?: string | null;
-  subtitle?: string | null;
+  /** A list renders as parts separated by "·" only when they share a line. */
+  subtitle?: string | string[] | null;
   meta?: string | null;
   pills?: ReactNode;
   stats?: EntityStat[];
@@ -105,7 +106,21 @@ export function EntityCard({
         />
         <div className="tvp-entity-identity">
           <p className="tvp-entity-name">{name}</p>
-          {subtitle ? <p className="tvp-entity-sub">{subtitle}</p> : null}
+          {Array.isArray(subtitle) ? (
+            // Parts joined by "·" only on the same line: a part that wraps to a
+            // new line has its separator clipped, so no line ends in "·".
+            <div className="tvp-entity-sub tvp-entity-sub-parts">
+              <p>
+                {subtitle.filter(Boolean).map((part) => (
+                  <span key={part} className="tvp-entity-sub-part">
+                    {part}
+                  </span>
+                ))}
+              </p>
+            </div>
+          ) : subtitle ? (
+            <p className="tvp-entity-sub">{subtitle}</p>
+          ) : null}
           {meta ? <p className="tvp-entity-meta">{meta}</p> : null}
         </div>
         {actions ? (
