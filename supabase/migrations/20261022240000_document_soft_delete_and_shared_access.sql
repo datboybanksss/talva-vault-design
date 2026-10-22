@@ -1,3 +1,6 @@
+-- Once shared always available to talent, platform retention minimum, soft delete with recovery, bulk-delete flags, protected storage.
+-- Guarded (IF NOT EXISTS / OR REPLACE / DROP IF EXISTS). Cron job 'purge-recently-deleted-documents' (hourly) scheduled separately via cron.schedule.
+-- Rollback: cron.unschedule('purge-recently-deleted-documents'); drop triggers tsd_stamp_shared, tsd_guard_delete, link_accept_stamp_shared; drop storage policies 'Document files protected delete/update'; recreate previous 'Agency or talent read shared docs' policy without deleted_at/agency_removed_at; drop new functions, tables document_bulk_delete_flags, document_storage_purge_queue and added columns; restore previous trigger bodies from 20261022230000.
 -- Columns ------------------------------------------------------------------
 ALTER TABLE public.talent_shared_documents
   ADD COLUMN IF NOT EXISTS deleted_at timestamptz,
