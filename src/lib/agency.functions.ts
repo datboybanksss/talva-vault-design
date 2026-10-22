@@ -2038,6 +2038,12 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
       const { NO_OVERRIDE_MESSAGE } = await import("@/lib/document-blocks");
       throw new Error(NO_OVERRIDE_MESSAGE);
     }
+    {
+      const { data: min } = await supabase.rpc("document_setting", { _name: "min_retention_years" });
+      const { retentionBelowMinimum } = await import("@/lib/document-settings");
+      const below = retentionBelowMinimum(data.retention_years, (min as number | null) ?? null);
+      if (below) throw new Error(below);
+    }
 
     const payload: Record<string, unknown> = {
       agency_id: agencyId,
