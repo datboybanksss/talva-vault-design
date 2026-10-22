@@ -62,7 +62,7 @@ function TalentAccountPage() {
           </Link>
           <h1 className="tvp-h1">{t ? name : q.isLoading ? "Loading…" : "Talent not found"}</h1>
           {t && (
-            <div className="tvp-subtitle tvp-inline-meta">
+            <div className="tvp-subtitle" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <span className={accountStatusPill("talent", t.status)}>{accountStatusLabel("talent", t.status)}</span>
               {t.is_test && <span className="tvp-status st-neutral">Test</span>}
               {t.email}
