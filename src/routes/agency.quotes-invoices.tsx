@@ -1619,7 +1619,7 @@ function applyClient(editor: EditorState, c: AgencyClient): EditorState {
     recipient_vat_number: c.vat_number ?? "",
     recipient_emails: (c.emails ?? []).slice(0, 20),
     payment_terms_days:
-      editor.kind === "invoice" && c.payment_terms_days != null && !editor.id
+      editor.kind === "invoice" && (c.payment_terms_days ?? 0) > 0 && !editor.id
         ? String(c.payment_terms_days)
         : editor.payment_terms_days,
     save_client: false,
