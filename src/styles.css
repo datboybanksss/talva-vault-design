@@ -5608,8 +5608,11 @@ a.tvp-entity-card:focus-visible {
   box-shadow: var(--focus-ring);
 }
 @media (max-width: 560px) {
-  :is(.tv-app, .tvp-modal) .tvp-filter-search {
+  :is(.tv-app, .tvp-modal) .tvp-filter-search,
+  :is(.tv-app, .tvp-modal) .tvp-filter-field:not(.tvp-filter-search) {
+    flex: 1 1 100%;
     width: 100%;
+    min-width: 0;
   }
 }
 
