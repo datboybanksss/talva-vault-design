@@ -5414,67 +5414,75 @@ a.tvp-entity-card:focus-visible {
 
 /* Segmented tabs must never shrink to min-content inside a wrapping flex
    parent (fit-content + wrap stacked every tab on its own line). */
-.tvp-portal .tvp-roster-tabs {
+.tv-app .tvp-roster-tabs {
   max-width: 100%;
   flex-direction: row;
 }
 
-/* Shared compact filter bar (Admin Invitations + Accounts) */
-.tvp-portal .tvp-filter-bar {
+/* Shared filter bar (Admin Invitations + Accounts): labelled Select fields
+   using the standard form-field look (same as .tvp-form-group controls). */
+.tv-app .tvp-filter-bar {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--sp-2) var(--sp-3);
+  align-items: flex-end;
+  gap: var(--sp-3) var(--sp-4);
   margin: 0 0 var(--sp-4);
 }
-.tvp-portal .tvp-filter-field {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  height: 40px;
-  padding: 0 var(--sp-1) 0 var(--sp-3);
+.tv-app .tvp-filter-field {
+  display: grid;
+  gap: var(--sp-1);
+  width: 220px;
+  max-width: 100%;
+}
+.tv-app .tvp-filter-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--tvp-ink);
+}
+.tv-app .tvp-filter-control {
+  height: 42px;
+  padding: 0 var(--sp-3);
   border: 1px solid var(--tvp-line-strong);
-  border-radius: 11px;
-  background: var(--surface);
-  color: var(--tvp-text);
+  border-radius: 9px;
+  background: var(--field-bg);
+  color: var(--tvp-ink);
+  font-family: inherit;
+  font-size: 13px;
+  box-shadow: none;
+  transition: border-color 0.15s ease;
+}
+.tv-app .tvp-filter-control:hover {
+  border-color: var(--tvp-teal-2);
+}
+.tv-app .tvp-filter-control:focus,
+.tv-app .tvp-filter-control:focus-visible,
+.tv-app .tvp-filter-control[data-state="open"] {
+  outline: none;
+  border-color: var(--tvp-teal-2);
+  box-shadow: var(--focus-ring);
+}
+.tvp-filter-menu {
+  font-family: inherit;
   font-size: 13px;
 }
-.tvp-portal .tvp-filter-field:focus-within {
-  border-color: var(--tvp-teal-2);
-  box-shadow: 0 0 0 3px var(--tvp-teal-50);
-}
-.tvp-portal .tvp-filter-label {
-  color: var(--tvp-muted);
-  font-weight: 700;
-  white-space: nowrap;
-}
-.tvp-portal .tvp-filter-field select {
-  height: 100%;
-  border: 0;
-  background: transparent;
-  color: var(--tvp-ink);
-  font: inherit;
-  font-weight: 700;
-  padding: 0 var(--sp-2) 0 0;
-  cursor: pointer;
-  outline: none;
-}
-.tvp-portal .tvp-filter-clear {
+.tv-app .tvp-filter-clear {
+  height: 42px;
   background: none;
   border: 0;
   padding: 0;
   font-size: 13px;
   cursor: pointer;
 }
-@media (max-width: 560px) {
-  .tvp-portal .tvp-filter-field {
-    flex: 1 1 100%;
+@media (prefers-reduced-motion: reduce) {
+  .tv-app .tvp-filter-control {
+    transition: none;
   }
-  .tvp-portal .tvp-filter-field select {
-    flex: 1;
-    min-width: 0;
+}
+@media (max-width: 560px) {
+  .tv-app .tvp-filter-field {
+    flex: 1 1 100%;
+    width: 100%;
   }
 }
 
@@ -5548,7 +5556,7 @@ a.tvp-entity-card:focus-visible {
 }
 
 /* Admin invitations — step indicator and Review email step */
-.tvp-portal .tvp-steps {
+.tv-app .tvp-steps {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2);
@@ -5556,7 +5564,7 @@ a.tvp-entity-card:focus-visible {
   padding: 0;
   list-style: none;
 }
-.tvp-portal .tvp-steps li {
+.tv-app .tvp-steps li {
   padding: var(--sp-1) var(--sp-3);
   border: 1px solid var(--tvp-line);
   border-radius: 999px;
@@ -5565,12 +5573,12 @@ a.tvp-entity-card:focus-visible {
   color: var(--tvp-muted);
   background: var(--surface);
 }
-.tvp-portal .tvp-steps li[aria-current="step"] {
+.tv-app .tvp-steps li[aria-current="step"] {
   border-color: var(--tvp-teal-2);
   color: var(--tvp-ink);
   background: var(--tvp-teal-50);
 }
-.tvp-portal .tvp-email-review {
+.tv-app .tvp-email-review {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -5578,7 +5586,7 @@ a.tvp-entity-card:focus-visible {
   max-width: 664px;
   margin: 0 auto;
 }
-.tvp-portal .tvp-review-issues {
+.tv-app .tvp-review-issues {
   margin: 0;
   padding: 0 0 0 var(--sp-4);
   color: var(--tvp-red);
@@ -5587,14 +5595,14 @@ a.tvp-entity-card:focus-visible {
   display: grid;
   gap: var(--sp-1);
 }
-.tvp-portal .tvp-review-issues .tvp-link {
+.tv-app .tvp-review-issues .tvp-link {
   background: none;
   border: 0;
   padding: 0;
   font: inherit;
   cursor: pointer;
 }
-.tvp-portal .tvp-email-meta {
+.tv-app .tvp-email-meta {
   display: grid;
   gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-4);
@@ -5604,18 +5612,18 @@ a.tvp-entity-card:focus-visible {
   font-size: 13px;
   color: var(--tvp-text);
 }
-.tvp-portal .tvp-email-meta-row {
+.tv-app .tvp-email-meta-row {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
   min-width: 0;
 }
-.tvp-portal .tvp-email-meta-label {
+.tv-app .tvp-email-meta-label {
   flex: 0 0 64px;
   color: var(--tvp-muted);
   font-weight: 700;
 }
-.tvp-portal .tvp-email-subject {
+.tv-app .tvp-email-subject {
   flex: 1;
   min-width: 0;
   height: 36px;
@@ -5627,7 +5635,7 @@ a.tvp-entity-card:focus-visible {
   font: inherit;
   font-weight: 700;
 }
-.tvp-portal .tvp-email-tools {
+.tv-app .tvp-email-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -5635,14 +5643,14 @@ a.tvp-entity-card:focus-visible {
   gap: var(--sp-2);
   font-size: 12px;
 }
-.tvp-portal .tvp-email-frame {
+.tv-app .tvp-email-frame {
   width: 100%;
   border: 1px solid var(--tvp-line);
   border-radius: var(--r-md);
   background: var(--surface-soft);
   display: block;
 }
-.tvp-portal .tvp-email-review > .tvp-link {
+.tv-app .tvp-email-review > .tvp-link {
   align-self: flex-start;
   background: none;
   border: 0;
@@ -5650,7 +5658,7 @@ a.tvp-entity-card:focus-visible {
   font-size: 13px;
   cursor: pointer;
 }
-.tvp-portal .tvp-email-text {
+.tv-app .tvp-email-text {
   margin: 0;
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--tvp-line);
@@ -5663,7 +5671,7 @@ a.tvp-entity-card:focus-visible {
   word-break: break-word;
 }
 @media (max-width: 560px) {
-  .tvp-portal .tvp-email-meta-row {
+  .tv-app .tvp-email-meta-row {
     flex-wrap: wrap;
   }
 }
