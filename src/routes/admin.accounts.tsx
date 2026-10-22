@@ -421,6 +421,13 @@ function AccountsPage() {
                       <td>
                         <RowActionsMenu
                           actions={[
+                            {
+                              key: "view",
+                              label: "View account",
+                              icon: Eye,
+                              to: "/admin/talent/$id",
+                              params: { id: a.id },
+                            },
                             ...accountState.actionsFor({
                               type: "talent",
                               id: a.id,
