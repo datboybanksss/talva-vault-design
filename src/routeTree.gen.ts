@@ -17,7 +17,6 @@ import { Route as Enroll2faRouteImport } from './routes/enroll-2fa'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TalentRouteImport } from './routes/talent'
-import { Route as ZzLayoutCheckRouteImport } from './routes/zz-layout-check'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAccountsRouteImport } from './routes/admin.accounts'
 import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
@@ -110,11 +109,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const TalentRoute = TalentRouteImport.update({
   id: '/talent',
   path: '/talent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ZzLayoutCheckRoute = ZzLayoutCheckRouteImport.update({
-  id: '/zz-layout-check',
-  path: '/zz-layout-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -400,7 +394,6 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
-  '/zz-layout-check': typeof ZzLayoutCheckRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
@@ -461,7 +454,6 @@ export interface FileRoutesByTo {
   '/enroll-2fa': typeof Enroll2faRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/zz-layout-check': typeof ZzLayoutCheckRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
@@ -523,7 +515,6 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
-  '/zz-layout-check': typeof ZzLayoutCheckRoute
   '/admin/accounts': typeof AdminAccountsRoute
   '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
@@ -589,7 +580,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/talent'
-    | '/zz-layout-check'
     | '/admin/accounts'
     | '/admin/administrators'
     | '/admin/agencies'
@@ -650,7 +640,6 @@ export interface FileRouteTypes {
     | '/enroll-2fa'
     | '/forgot-password'
     | '/reset-password'
-    | '/zz-layout-check'
     | '/admin/accounts'
     | '/admin/administrators'
     | '/admin/audit'
@@ -711,7 +700,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/talent'
-    | '/zz-layout-check'
     | '/admin/accounts'
     | '/admin/administrators'
     | '/admin/agencies'
@@ -776,7 +764,6 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TalentRoute: typeof TalentRouteWithChildren
-  ZzLayoutCheckRoute: typeof ZzLayoutCheckRoute
   InviteTokenRoute: typeof InviteTokenRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LovedOneTokenRoute: typeof LovedOneTokenRoute
@@ -846,13 +833,6 @@ declare module '@tanstack/react-router' {
       path: '/talent'
       fullPath: '/talent'
       preLoaderRoute: typeof TalentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/zz-layout-check': {
-      id: '/zz-layout-check'
-      path: '/zz-layout-check'
-      fullPath: '/zz-layout-check'
-      preLoaderRoute: typeof ZzLayoutCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -1396,7 +1376,6 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TalentRoute: TalentRouteWithChildren,
-  ZzLayoutCheckRoute: ZzLayoutCheckRoute,
   InviteTokenRoute: InviteTokenRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LovedOneTokenRoute: LovedOneTokenRoute,
