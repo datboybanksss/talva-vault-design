@@ -2951,8 +2951,12 @@ export type Database = {
           created_at: string
           document_id: string
           id: string
+          locked_until: string | null
           mime_type: string | null
           name: string
+          retention_rule_id: string | null
+          retention_stamped_at: string | null
+          retention_years_at_upload: number | null
           size_bytes: number | null
           storage_path: string
           uploaded_by: string | null
@@ -2962,8 +2966,12 @@ export type Database = {
           created_at?: string
           document_id: string
           id?: string
+          locked_until?: string | null
           mime_type?: string | null
           name: string
+          retention_rule_id?: string | null
+          retention_stamped_at?: string | null
+          retention_years_at_upload?: number | null
           size_bytes?: number | null
           storage_path: string
           uploaded_by?: string | null
@@ -2973,8 +2981,12 @@ export type Database = {
           created_at?: string
           document_id?: string
           id?: string
+          locked_until?: string | null
           mime_type?: string | null
           name?: string
+          retention_rule_id?: string | null
+          retention_stamped_at?: string | null
+          retention_years_at_upload?: number | null
           size_bytes?: number | null
           storage_path?: string
           uploaded_by?: string | null
@@ -3012,6 +3024,7 @@ export type Database = {
           originator: string
           pending_review: boolean
           reminder_at: string | null
+          retention_rule_id: string | null
           retention_stamped_at: string | null
           retention_years_at_upload: number | null
           revoked_at: string | null
@@ -3043,6 +3056,7 @@ export type Database = {
           originator?: string
           pending_review?: boolean
           reminder_at?: string | null
+          retention_rule_id?: string | null
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
           revoked_at?: string | null
@@ -3074,6 +3088,7 @@ export type Database = {
           originator?: string
           pending_review?: boolean
           reminder_at?: string | null
+          retention_rule_id?: string | null
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
           revoked_at?: string | null
@@ -3378,6 +3393,13 @@ export type Database = {
           allowed: boolean
           remaining: number
           retry_after_seconds: number
+        }[]
+      }
+      current_retention_rule: {
+        Args: { _agency_id: string; _doc_id: string; _folder: string }
+        Returns: {
+          rule_id: string
+          years: number
         }[]
       }
       current_user_agency_id: { Args: never; Returns: string }
