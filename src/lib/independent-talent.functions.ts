@@ -351,7 +351,11 @@ async function sendInviteEmail(supabase: any, id: string, userId: string) {
   return deliverAdminInvite(supabase, "talent", id, userId).catch((e: any) => ({
     url: null as string | null,
     subject: null,
-    result: { sent: false as const, reason: "send_failed" as const, detail: String(e?.message ?? e) },
+    result: {
+      sent: false as const,
+      reason: "send_failed" as const,
+      detail: String(e?.message ?? e),
+    },
   }));
 }
 

@@ -194,9 +194,7 @@ export function CombinedInvitationsList({
                 </td>
                 <td>
                   {r.status === "draft" ? (
-                    <span className="tvp-muted">
-                      Saved {fmt(r.updated_at ?? r.created_at)}
-                    </span>
+                    <span className="tvp-muted">Saved {fmt(r.updated_at ?? r.created_at)}</span>
                   ) : (
                     fmt(r.last_sent_at)
                   )}

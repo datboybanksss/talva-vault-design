@@ -292,7 +292,11 @@ export function missingMergeFields(kind: AdminInviteKind, m: AdminInviteMerge): 
   if (kind === "talent" && !has(m.talentName))
     out.push({ field: "talent_name", message: "The talent's name is missing.", fix: "details" });
   if (!has(m.recipientEmail))
-    out.push({ field: "email", message: "The recipient's email address is missing.", fix: "details" });
+    out.push({
+      field: "email",
+      message: "The recipient's email address is missing.",
+      fix: "details",
+    });
   if (!has(m.expiryDate))
     out.push({ field: "expiry", message: "The expiry date is missing.", fix: "details" });
   if (!has(m.adminName))
@@ -302,18 +306,27 @@ export function missingMergeFields(kind: AdminInviteKind, m: AdminInviteMerge): 
       fix: "account",
     });
   if (!has(m.inviteUrl))
-    out.push({ field: "invite_url", message: "The invitation link isn't ready yet. Save the draft first.", fix: "details" });
+    out.push({
+      field: "invite_url",
+      message: "The invitation link isn't ready yet. Save the draft first.",
+      fix: "details",
+    });
   return out;
 }
 
 /** The standard wording for this invitation, filled with its real values. */
-export function standardInviteWording(kind: AdminInviteKind, m: AdminInviteMerge): AdminInviteWording {
+export function standardInviteWording(
+  kind: AdminInviteKind,
+  m: AdminInviteMerge,
+): AdminInviteWording {
   const admin = (m.adminName ?? "").trim();
   if (kind === "agency") {
     const agency = (m.agencyName ?? "").trim();
     return {
       subject: `${agency} is invited to join TalVault`,
-      greeting: has(m.contactPerson) ? `Hi ${firstName(m.contactPerson)},` : `Hello ${agency} team,`,
+      greeting: has(m.contactPerson)
+        ? `Hi ${firstName(m.contactPerson)},`
+        : `Hello ${agency} team,`,
       message: [
         `${admin} from the TalVault team has invited ${agency} to onboard onto the TalVault platform.`,
         "Click the button below to accept your invitation and finish setting up your agency account. You'll create your own password on the next screen — we never send passwords by email.",
@@ -343,7 +356,8 @@ export function wordingIssues(w: AdminInviteWording): string[] {
     const v = w[k].trim();
     if (!v) out.push(`${label} can't be empty.`);
     else if (v.length > WORDING_LIMITS[k]) out.push(`${label} is too long.`);
-    else if (PLACEHOLDER_RE.test(v)) out.push(`${label} still contains a placeholder — replace it with the real wording.`);
+    else if (PLACEHOLDER_RE.test(v))
+      out.push(`${label} still contains a placeholder — replace it with the real wording.`);
   });
   return out;
 }

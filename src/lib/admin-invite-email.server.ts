@@ -54,7 +54,11 @@ export async function deliverAdminInvite(
   id: string,
   userId: string,
 ) {
-  const { data: row, error } = await supabase.from(TABLE[kind]).select("*").eq("id", id).maybeSingle();
+  const { data: row, error } = await supabase
+    .from(TABLE[kind])
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
   if (error || !row) throw new Error("Invitation not found.");
   const merge = await mergeFor(kind, row, await adminDisplayName(supabase, userId));
   const standard = standardInviteWording(kind, merge);

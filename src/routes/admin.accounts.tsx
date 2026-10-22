@@ -312,7 +312,11 @@ function AccountsPage() {
                     options: (["all", ...TALENT_LINK_FILTERS] as const).map((l) => ({
                       value: l,
                       label:
-                        l === "all" ? "All talent" : l === "linked" ? "Agency-linked" : "Independent",
+                        l === "all"
+                          ? "All talent"
+                          : l === "linked"
+                            ? "Agency-linked"
+                            : "Independent",
                       count: counts.link[l] ?? 0,
                     })),
                   },

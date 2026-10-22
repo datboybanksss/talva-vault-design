@@ -45,7 +45,10 @@ export function InviteEmailReview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [kind, merge, seed],
   );
-  const text = useMemo(() => renderAdminInvite(kind, merge, effective).text, [kind, merge, effective]);
+  const text = useMemo(
+    () => renderAdminInvite(kind, merge, effective).text,
+    [kind, merge, effective],
+  );
 
   const frame = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(720);
@@ -60,7 +63,9 @@ export function InviteEmailReview({
     const doc = frame.current?.contentDocument;
     if (!doc) return;
     measure();
-    doc.querySelectorAll("a").forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
+    doc
+      .querySelectorAll("a")
+      .forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
     const bind = (field: "greeting" | "message") => {
       const el = doc.querySelector<HTMLElement>(`[data-tv-field="${field}"]`);
       if (!el) return;
@@ -73,7 +78,10 @@ export function InviteEmailReview({
         doc.execCommand("insertText", false, t);
       });
       el.addEventListener("input", () => {
-        const raw = el.innerText.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim();
+        const raw = el.innerText
+          .replace(/\r/g, "")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
         const { effective: cur, onChange: set } = latest.current;
         set({ ...cur, [field]: raw });
         measure();
@@ -209,9 +217,9 @@ export function SentEmailView({
           const doc = frame.current?.contentDocument;
           if (!doc) return;
           setHeight(Math.max(400, doc.documentElement.scrollHeight));
-          doc.querySelectorAll("a").forEach((a) =>
-            a.addEventListener("click", (e) => e.preventDefault()),
-          );
+          doc
+            .querySelectorAll("a")
+            .forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
         }}
       />
       {text && (

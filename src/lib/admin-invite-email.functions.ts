@@ -68,7 +68,8 @@ export const saveAdminInviteWording = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (!row) throw new Error("Invitation not found.");
-    if (row.status !== "draft") throw new Error("This invitation has been sent; its email can no longer be changed.");
+    if (row.status !== "draft")
+      throw new Error("This invitation has been sent; its email can no longer be changed.");
     const { error } = await supabase
       .from(TABLE[data.kind])
       .update({
@@ -91,7 +92,9 @@ export const getSentAdminInviteEmail = createServerFn({ method: "GET" })
     const nameCol = data.kind === "agency" ? "agency_name" : "talent_name";
     const { data: row } = await supabase
       .from(TABLE[data.kind])
-      .select(`email, ${nameCol}, sent_email_subject, sent_email_html, sent_email_text, sent_email_at`)
+      .select(
+        `email, ${nameCol}, sent_email_subject, sent_email_html, sent_email_text, sent_email_at`,
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (!row) throw new Error("Invitation not found.");

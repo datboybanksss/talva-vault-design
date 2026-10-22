@@ -431,309 +431,326 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
           </div>
         </div>
       ) : (
-      <>
-      <div className="tvp-card tvp-panel">
-        {typeSlot}
-        <InviteSteps current="details" />
-        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-          <div className="tvp-form-group">
-            <label>Agency name *</label>
-            <input
-              value={agencyName}
-              onChange={(e) => setAgencyName(e.target.value)}
-              required
-              placeholder="e.g. NewTech Talent Agency"
-            />
-          </div>
-          <div className="tvp-form-group">
-            <label>Primary contact person</label>
-            <input
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              placeholder="e.g. Maya Johnson"
-            />
-          </div>
-          <div className="tvp-form-group">
-            <label>Contact email *</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                emailCheck.clear();
-              }}
-              onBlur={() => void emailCheck.check(email)}
-              aria-invalid={!!emailCheck.conflict}
-              required
-              placeholder="contact@agency.com"
-            />
-            <InviteEmailFieldError conflict={emailCheck.conflict} />
-          </div>
-          <div className="tvp-form-group">
-            <label>Business type *</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {(["formal", "informal"] as BusinessType[]).map((t) => {
-                const active = businessType === t;
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setBusinessType(t)}
-                    className="tvp-card"
-                    style={{
-                      textAlign: "left",
-                      padding: 14,
-                      cursor: "pointer",
-                      border: active ? "2px solid var(--tvp-teal)" : "1px solid var(--tvp-border)",
-                      background: active ? "rgba(6,78,88,0.06)" : "var(--tvp-surface)",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, textTransform: "capitalize", marginBottom: 4 }}>
-                      {t}
-                    </div>
-                    <div className="tvp-muted" style={{ fontSize: 12 }}>
-                      {t === "formal"
-                        ? "Registered business / (Pty) Ltd / CC"
-                        : "Sole trader / individual operator"}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div className="tvp-form-group">
-            <label>Invitation expiry (days)</label>
-            <input
-              type="number"
-              min={1}
-              max={60}
-              value={expiryDays}
-              onChange={(e) => setExpiryDays(Number(e.target.value) || 14)}
-            />
-          </div>
-        </fieldset>
-
-        <div className="tvp-footer-actions">
-          <Link to="/admin/invitations" className="tvp-secondary">
-            {draftId ? "Close" : "Cancel"}
-          </Link>
-          <button
-            className="tvp-primary"
-            type="button"
-            disabled={!canSaveDraft}
-            onClick={async () => {
-              if (await emailCheck.check(email)) return;
-              if (draftId) updateDraftM.mutate();
-              else createDraftM.mutate();
-            }}
-          >
-            {savingDraft ? "Saving…" : draftId ? "Save draft" : "Save draft & continue →"}
-          </button>
-        </div>
-        {!detailsComplete && (
-          <p className="tvp-muted" style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}>
-            Add an agency name, contact email and business type to save a draft.
-          </p>
-        )}
-      </div>
-
-      {/* Compliance documents */}
-      {draftId && businessType && (
-        <div className="tvp-card tvp-panel" style={{ marginTop: 16 }}>
-          <h2 className="tvp-h2">Compliance documents ({businessType})</h2>
-          <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 14 }}>
-            Upload one file per required slot. All are mandatory before the invitation can be sent.
-            Documents are stored privately and are visible only to administrators.
-          </p>
-
-          <div style={{ display: "grid", gap: 10 }}>
-            {slotList.map((slot) => {
-              const uploaded = docs.filter((d) => d.doc_slot === slot.key);
-              const isUploading = uploadingSlot === slot.key;
-              return (
-                <div
-                  key={slot.key}
-                  className="tvp-callout"
-                  style={{
-                    padding: 12,
-                    border: `1px solid ${uploaded.length ? "var(--tvp-green)" : "var(--tvp-border)"}`,
-                    borderRadius: 8,
-                    background: uploaded.length ? "rgba(22,163,74,0.06)" : "var(--tvp-surface)",
+        <>
+          <div className="tvp-card tvp-panel">
+            {typeSlot}
+            <InviteSteps current="details" />
+            <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
+              <div className="tvp-form-group">
+                <label>Agency name *</label>
+                <input
+                  value={agencyName}
+                  onChange={(e) => setAgencyName(e.target.value)}
+                  required
+                  placeholder="e.g. NewTech Talent Agency"
+                />
+              </div>
+              <div className="tvp-form-group">
+                <label>Primary contact person</label>
+                <input
+                  value={contact}
+                  onChange={(e) => setContact(e.target.value)}
+                  placeholder="e.g. Maya Johnson"
+                />
+              </div>
+              <div className="tvp-form-group">
+                <label>Contact email *</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    emailCheck.clear();
                   }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {uploaded.length ? (
-                        <CheckCircle2 className="h-4 w-4" style={{ color: "var(--tvp-green)" }} />
-                      ) : (
-                        <AlertCircle className="h-4 w-4" style={{ color: "var(--tvp-amber)" }} />
-                      )}
-                      <strong style={{ fontSize: 14 }}>{slot.label}</strong>
-                      <span className="tvp-muted" style={{ fontSize: 12 }}>
-                        {uploaded.length ? "Uploaded" : "Required"}
-                      </span>
-                    </div>
-                    <label className="tvp-secondary" style={{ cursor: "pointer" }}>
-                      <Upload className="h-4 w-4" />
-                      {isUploading ? "Uploading…" : uploaded.length ? "Replace / add" : "Upload"}
-                      <input
-                        type="file"
-                        style={{ display: "none" }}
-                        disabled={isUploading}
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) uploadForSlot(slot.key, f);
-                          e.target.value = "";
+                  onBlur={() => void emailCheck.check(email)}
+                  aria-invalid={!!emailCheck.conflict}
+                  required
+                  placeholder="contact@agency.com"
+                />
+                <InviteEmailFieldError conflict={emailCheck.conflict} />
+              </div>
+              <div className="tvp-form-group">
+                <label>Business type *</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {(["formal", "informal"] as BusinessType[]).map((t) => {
+                    const active = businessType === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setBusinessType(t)}
+                        className="tvp-card"
+                        style={{
+                          textAlign: "left",
+                          padding: 14,
+                          cursor: "pointer",
+                          border: active
+                            ? "2px solid var(--tvp-teal)"
+                            : "1px solid var(--tvp-border)",
+                          background: active ? "rgba(6,78,88,0.06)" : "var(--tvp-surface)",
                         }}
-                      />
-                    </label>
-                  </div>
-                  {slotErrors[slot.key] && (
-                    <p
-                      role="alert"
-                      style={{
-                        margin: "8px 0 0",
-                        fontSize: 12,
-                        color: "var(--tvp-danger, #B42318)",
-                      }}
-                    >
-                      {slotErrors[slot.key]}
-                    </p>
-                  )}
-                  {uploaded.length > 0 && (
-                    <ul style={{ margin: "8px 0 0", padding: 0, listStyle: "none" }}>
-                      {uploaded.map((u) => (
-                        <li
-                          key={u.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            fontSize: 13,
-                            padding: "4px 0",
-                          }}
+                      >
+                        <div
+                          style={{ fontWeight: 600, textTransform: "capitalize", marginBottom: 4 }}
                         >
-                          <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
-                          <span>{u.file_name}</span>
-                          <span className="tvp-muted" style={{ fontSize: 11 }}>
-                            {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
-                          </span>
-                          <button
-                            className="tvp-mini-btn"
-                            title="Remove"
-                            style={{ marginLeft: "auto" }}
-                            onClick={() => deleteDocM.mutate(u.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                          {t}
+                        </div>
+                        <div className="tvp-muted" style={{ fontSize: 12 }}>
+                          {t === "formal"
+                            ? "Registered business / (Pty) Ltd / CC"
+                            : "Sole trader / individual operator"}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-
-          {staleDocs.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <div className="tvp-muted" style={{ fontSize: 12, marginBottom: 6 }}>
-                No longer required for this business type — you can remove these.
               </div>
-              <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-                {staleDocs.map((u) => (
-                  <li
-                    key={u.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontSize: 13,
-                      padding: "4px 0",
-                    }}
-                  >
-                    <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
-                    <span>{u.file_name}</span>
-                    <button
-                      className="tvp-mini-btn"
-                      title="Remove"
-                      style={{ marginLeft: "auto" }}
-                      onClick={() => deleteDocM.mutate(u.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <div className="tvp-form-group">
+                <label>Invitation expiry (days)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={expiryDays}
+                  onChange={(e) => setExpiryDays(Number(e.target.value) || 14)}
+                />
+              </div>
+            </fieldset>
+
+            <div className="tvp-footer-actions">
+              <Link to="/admin/invitations" className="tvp-secondary">
+                {draftId ? "Close" : "Cancel"}
+              </Link>
+              <button
+                className="tvp-primary"
+                type="button"
+                disabled={!canSaveDraft}
+                onClick={async () => {
+                  if (await emailCheck.check(email)) return;
+                  if (draftId) updateDraftM.mutate();
+                  else createDraftM.mutate();
+                }}
+              >
+                {savingDraft ? "Saving…" : draftId ? "Save draft" : "Save draft & continue →"}
+              </button>
             </div>
-          )}
-
-          <div className="tvp-form-group" style={{ marginTop: 16 }}>
-            <label>
-              {businessType === "formal"
-                ? "Registered business contact number *"
-                : "Registered mobile number *"}
-            </label>
-            <input
-              type="tel"
-              placeholder="e.g. +27 82 123 4567"
-              value={phoneValue}
-              aria-invalid={showPhoneError || undefined}
-              onBlur={() => setPhoneTouched(true)}
-              onChange={(e) =>
-                businessType === "formal"
-                  ? setRegContact(e.target.value)
-                  : setRegMobile(e.target.value)
-              }
-              style={showPhoneError ? { borderColor: "var(--tvp-red)" } : undefined}
-            />
-            {showPhoneError ? (
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tvp-red)" }}>
-                {phoneFormatError}
-              </div>
-            ) : (
-              <div className="tvp-muted" style={{ fontSize: 12 }}>
-                Include the country code, for example +27 82 123 4567.
-              </div>
+            {!detailsComplete && (
+              <p className="tvp-muted" style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}>
+                Add an agency name, contact email and business type to save a draft.
+              </p>
             )}
           </div>
 
-          <div className="tvp-footer-actions">
-            <Link to="/admin/invitations" className="tvp-secondary">
-              Save & close
-            </Link>
-            <button
-              type="button"
-              className="tvp-primary"
-              disabled={!canSend}
-              onClick={() => {
-                setPhoneSubmitAttempted(true);
-                if (phoneFormatError) {
-                  setPhoneTouched(true);
-                  toast.error(phoneFormatError);
-                  return;
-                }
-                setStep("review");
-              }}
-            >
-              Continue to review email
-            </button>
-          </div>
-          {!canSend && outstanding.length > 0 && (
-            <p className="tvp-muted" style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}>
-              Still outstanding: {outstanding.join(", ")}.
-            </p>
+          {/* Compliance documents */}
+          {draftId && businessType && (
+            <div className="tvp-card tvp-panel" style={{ marginTop: 16 }}>
+              <h2 className="tvp-h2">Compliance documents ({businessType})</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 14 }}>
+                Upload one file per required slot. All are mandatory before the invitation can be
+                sent. Documents are stored privately and are visible only to administrators.
+              </p>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                {slotList.map((slot) => {
+                  const uploaded = docs.filter((d) => d.doc_slot === slot.key);
+                  const isUploading = uploadingSlot === slot.key;
+                  return (
+                    <div
+                      key={slot.key}
+                      className="tvp-callout"
+                      style={{
+                        padding: 12,
+                        border: `1px solid ${uploaded.length ? "var(--tvp-green)" : "var(--tvp-border)"}`,
+                        borderRadius: 8,
+                        background: uploaded.length ? "rgba(22,163,74,0.06)" : "var(--tvp-surface)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {uploaded.length ? (
+                            <CheckCircle2
+                              className="h-4 w-4"
+                              style={{ color: "var(--tvp-green)" }}
+                            />
+                          ) : (
+                            <AlertCircle
+                              className="h-4 w-4"
+                              style={{ color: "var(--tvp-amber)" }}
+                            />
+                          )}
+                          <strong style={{ fontSize: 14 }}>{slot.label}</strong>
+                          <span className="tvp-muted" style={{ fontSize: 12 }}>
+                            {uploaded.length ? "Uploaded" : "Required"}
+                          </span>
+                        </div>
+                        <label className="tvp-secondary" style={{ cursor: "pointer" }}>
+                          <Upload className="h-4 w-4" />
+                          {isUploading
+                            ? "Uploading…"
+                            : uploaded.length
+                              ? "Replace / add"
+                              : "Upload"}
+                          <input
+                            type="file"
+                            style={{ display: "none" }}
+                            disabled={isUploading}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) uploadForSlot(slot.key, f);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      </div>
+                      {slotErrors[slot.key] && (
+                        <p
+                          role="alert"
+                          style={{
+                            margin: "8px 0 0",
+                            fontSize: 12,
+                            color: "var(--tvp-danger, #B42318)",
+                          }}
+                        >
+                          {slotErrors[slot.key]}
+                        </p>
+                      )}
+                      {uploaded.length > 0 && (
+                        <ul style={{ margin: "8px 0 0", padding: 0, listStyle: "none" }}>
+                          {uploaded.map((u) => (
+                            <li
+                              key={u.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                fontSize: 13,
+                                padding: "4px 0",
+                              }}
+                            >
+                              <FileText
+                                className="h-3.5 w-3.5"
+                                style={{ color: "var(--tvp-muted)" }}
+                              />
+                              <span>{u.file_name}</span>
+                              <span className="tvp-muted" style={{ fontSize: 11 }}>
+                                {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
+                              </span>
+                              <button
+                                className="tvp-mini-btn"
+                                title="Remove"
+                                style={{ marginLeft: "auto" }}
+                                onClick={() => deleteDocM.mutate(u.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {staleDocs.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="tvp-muted" style={{ fontSize: 12, marginBottom: 6 }}>
+                    No longer required for this business type — you can remove these.
+                  </div>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                    {staleDocs.map((u) => (
+                      <li
+                        key={u.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          fontSize: 13,
+                          padding: "4px 0",
+                        }}
+                      >
+                        <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
+                        <span>{u.file_name}</span>
+                        <button
+                          className="tvp-mini-btn"
+                          title="Remove"
+                          style={{ marginLeft: "auto" }}
+                          onClick={() => deleteDocM.mutate(u.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="tvp-form-group" style={{ marginTop: 16 }}>
+                <label>
+                  {businessType === "formal"
+                    ? "Registered business contact number *"
+                    : "Registered mobile number *"}
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. +27 82 123 4567"
+                  value={phoneValue}
+                  aria-invalid={showPhoneError || undefined}
+                  onBlur={() => setPhoneTouched(true)}
+                  onChange={(e) =>
+                    businessType === "formal"
+                      ? setRegContact(e.target.value)
+                      : setRegMobile(e.target.value)
+                  }
+                  style={showPhoneError ? { borderColor: "var(--tvp-red)" } : undefined}
+                />
+                {showPhoneError ? (
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tvp-red)" }}>
+                    {phoneFormatError}
+                  </div>
+                ) : (
+                  <div className="tvp-muted" style={{ fontSize: 12 }}>
+                    Include the country code, for example +27 82 123 4567.
+                  </div>
+                )}
+              </div>
+
+              <div className="tvp-footer-actions">
+                <Link to="/admin/invitations" className="tvp-secondary">
+                  Save & close
+                </Link>
+                <button
+                  type="button"
+                  className="tvp-primary"
+                  disabled={!canSend}
+                  onClick={() => {
+                    setPhoneSubmitAttempted(true);
+                    if (phoneFormatError) {
+                      setPhoneTouched(true);
+                      toast.error(phoneFormatError);
+                      return;
+                    }
+                    setStep("review");
+                  }}
+                >
+                  Continue to review email
+                </button>
+              </div>
+              {!canSend && outstanding.length > 0 && (
+                <p className="tvp-muted" style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}>
+                  Still outstanding: {outstanding.join(", ")}.
+                </p>
+              )}
+            </div>
           )}
-        </div>
-      )}
-      </>
+        </>
       )}
     </>
   );
