@@ -5293,3 +5293,17 @@ a.tvp-entity-card:focus-visible {
     flex: 1 1 100%;
   }
 }
+
+/* Inline field error under an input (not a banner). */
+.tvp-field-error {
+  margin-top: var(--sp-1);
+  color: var(--tvp-red);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.tvp-field-error a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: var(--sp-1);
+}
