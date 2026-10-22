@@ -388,9 +388,14 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
       supabase
         .from("agency_invitations")
         .select("id", head)
+        .eq("kind", ADMIN_AGENCY_INVITATION_KIND)
         .eq("status", "pending")
         .gt("expires_at", nowIso),
-      supabase.from("agency_invitations").select("id", head).eq("status", "draft"),
+      supabase
+        .from("agency_invitations")
+        .select("id", head)
+        .eq("kind", ADMIN_AGENCY_INVITATION_KIND)
+        .eq("status", "draft"),
       supabase.from("independent_talent_invitations").select("id", head).eq("status", "draft"),
     ]);
 
@@ -872,8 +877,11 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         cols: "id, talent_name, email, status, expires_at, created_at, updated_at, last_sent_at, send_count",
       },
     } as const;
-    const byStatus = (q0: any, s: string) => {
-      const q = email ? q0.ilike("email", `%${email}%`) : q0;
+    // Only agency onboarding invitations: agency staff invitations share the
+    // agency_invitations table (kind = 'staff') and are not Admin invitations.
+    const byStatus = (q0: any, s: string, t: InvitationType) => {
+      const q1 = t === "agency" ? q0.eq("kind", ADMIN_AGENCY_INVITATION_KIND) : q0;
+      const q = email ? q1.ilike("email", `%${email}%`) : q1;
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
       if (s !== "all") return q.eq("status", s);
@@ -886,6 +894,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         const { count } = await byStatus(
           supabase.from(TABLE[t].table).select("id", { count: "exact", head: true }),
           s,
+          t,
         );
         return [t, s, count ?? 0] as const;
       }),
@@ -900,6 +909,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         const { data: rows, error } = await byStatus(
           supabase.from(TABLE[t].table).select(TABLE[t].cols),
           status,
+          t,
         )
           .order("created_at", { ascending: false })
           .range(0, window - 1);
