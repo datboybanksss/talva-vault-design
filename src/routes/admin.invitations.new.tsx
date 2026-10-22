@@ -1,6 +1,9 @@
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import { InvitationTypeField } from "@/components/admin/invitation-type-field";
+import { TalentInviteForm } from "@/components/admin/talent-invite-form";
+import type { InvitationType } from "@/lib/invitation-filters";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -25,10 +28,20 @@ import {
 import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/invitations/new")({
-  validateSearch: (raw: Record<string, unknown>): { draft?: string } =>
-    typeof raw.draft === "string" && raw.draft ? { draft: raw.draft } : {},
-  head: () => ({ meta: [{ title: "New Invitation · TalVault Admin" }] }),
-  component: NewInvitationPage,
+  validateSearch: (raw: Record<string, unknown>): { draft?: string; type?: InvitationType } => ({
+    ...(typeof raw.draft === "string" && raw.draft ? { draft: raw.draft } : {}),
+    ...(raw.type === "agency" || raw.type === "talent" ? { type: raw.type } : {}),
+  }),
+  head: () => ({
+    meta: [
+      { title: "New invitation · TalVault Admin" },
+      {
+        name: "description",
+        content: "Invite an agency or independent talent to TalVault.",
+      },
+    ],
+  }),
+  component: NewInvitationRoute,
 });
 
 type BusinessType = "formal" | "informal";
@@ -53,7 +66,40 @@ function daysUntil(iso?: string | null) {
   return d >= 1 && d <= 60 ? d : 14;
 }
 
-function NewInvitationPage() {
+function NewInvitationRoute() {
+  const { draft, type } = Route.useSearch();
+  const nav = useNavigate();
+  const choose = (t: InvitationType) =>
+    nav({ to: "/admin/invitations/new", search: { type: t } as any, replace: true });
+
+  // A saved agency draft keeps its type; to change it, delete the draft.
+  if (draft) return <AgencyInviteForm typeSlot={<InvitationTypeField value="agency" locked />} />;
+  if (type === "agency")
+    return <AgencyInviteForm typeSlot={<InvitationTypeField value="agency" onChange={choose} />} />;
+  if (type === "talent")
+    return <TalentInviteForm typeSlot={<InvitationTypeField value="talent" onChange={choose} />} />;
+
+  return (
+    <>
+      <div className="tvp-topbar">
+        <div>
+          <Link to="/admin/invitations" className="tvp-link tvp-back-link">
+            <ArrowLeft className="h-3 w-3" /> Back to invitations
+          </Link>
+          <h1 className="tvp-h1">New invitation</h1>
+          <div className="tvp-subtitle">
+            Choose who you're inviting. The rest of the form follows from that choice.
+          </div>
+        </div>
+      </div>
+      <div className="tvp-card tvp-panel">
+        <InvitationTypeField value={null} onChange={choose} />
+      </div>
+    </>
+  );
+}
+
+function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
   const { draft: draftIdFromUrl } = Route.useSearch();
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -302,7 +348,7 @@ function NewInvitationPage() {
             <ArrowLeft className="h-3 w-3" /> Back to invitations
           </Link>
           <h1 className="tvp-h1" style={{ marginTop: 4 }}>
-            {draftId ? "Continue Agency Invitation" : "New Agency Invitation"}
+            {draftId ? "Continue invitation" : "New invitation"}
           </h1>
           <div className="tvp-subtitle">
             Save your progress as a draft at any point and come back to it. Everything stays
@@ -313,6 +359,7 @@ function NewInvitationPage() {
       </div>
 
       <div className="tvp-card tvp-panel">
+        {typeSlot}
         <div style={{ display: "flex", gap: 12, marginBottom: 18, fontSize: 13 }}>
           <span
             className="tvp-status"
@@ -622,7 +669,7 @@ function NewInvitationPage() {
                 finalizeM.mutate();
               }}
             >
-              {finalizeM.isPending ? "Sending…" : "Create & send invitation"}
+              {finalizeM.isPending ? "Sending…" : "Send invitation"}
             </button>
           </div>
           {!canSend && outstanding.length > 0 && (

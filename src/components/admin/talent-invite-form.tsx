@@ -1,5 +1,7 @@
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { Link, useNavigate } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import { InvitationTypeField } from "@/components/admin/invitation-type-field";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -59,7 +61,13 @@ function daysUntil(iso?: string | null) {
  * Admin "Invite talent" (independent, no agency). Mirrors the agency invite
  * draft flow: details → draft → two documents → send.
  */
-export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
+export function TalentInviteForm({
+  draftId: initialId,
+  typeSlot,
+}: {
+  draftId?: string;
+  typeSlot?: ReactNode;
+}) {
   const nav = useNavigate();
   const qc = useQueryClient();
   const createFn = useServerFn(createIndependentTalentDraft);
@@ -283,11 +291,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
             <ArrowLeft className="h-3 w-3" /> Back to invitations
           </Link>
           <h1 className="tvp-h1" style={{ marginTop: 4 }}>
-            {!draftId
-              ? "Invite talent"
-              : isDraft
-                ? "Continue talent invitation"
-                : "Talent invitation"}
+            {!draftId ? "New invitation" : isDraft ? "Continue invitation" : "Talent invitation"}
           </h1>
           <div className="tvp-subtitle">
             Independent talent join TalVault without an agency. Save a draft at any point;
@@ -330,6 +334,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       </div>
 
       <div className="tvp-card tvp-panel" data-tour="admin-talent-invite-details">
+        {typeSlot ?? (draftId ? <InvitationTypeField value="talent" locked /> : null)}
         <fieldset disabled={!isDraft} style={{ border: "none", padding: 0, margin: 0 }}>
           <div className="tvp-form-group">
             <label>Full name *</label>

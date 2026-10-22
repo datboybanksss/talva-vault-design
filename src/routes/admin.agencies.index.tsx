@@ -245,7 +245,7 @@ function AgenciesPage() {
             <Download className="h-4 w-4" />
             Export
           </button>
-          <Link to="/admin/invitations/new" className="tvp-primary">
+          <Link to="/admin/invitations/new" search={{ type: "agency" }} className="tvp-primary">
             <Plus className="h-4 w-4" />
             Invite Agency
           </Link>
@@ -371,7 +371,11 @@ function AgenciesPage() {
                 <tr>
                   <td colSpan={7} className="tvp-muted">
                     No agencies here yet — the first one starts with an invitation.{" "}
-                    <Link to="/admin/invitations/new" className="tvp-link">
+                    <Link
+                      to="/admin/invitations/new"
+                      search={{ type: "agency" }}
+                      className="tvp-link"
+                    >
                       Invite an agency →
                     </Link>
                   </td>
@@ -511,7 +515,10 @@ function AgenciesPage() {
                                 onSelect: () =>
                                   invitation!.status === "pending"
                                     ? resendM.mutate(invitation!.id)
-                                    : nav({ to: "/admin/invitations/new" }),
+                                    : nav({
+                                        to: "/admin/invitations/new",
+                                        search: { type: "agency" },
+                                      }),
                               },
                             agencyAllowed.includes("reinstate")
                               ? {
