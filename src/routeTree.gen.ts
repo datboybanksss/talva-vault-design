@@ -18,6 +18,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TalentRouteImport } from './routes/talent'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAccountsRouteImport } from './routes/admin.accounts'
 import { Route as AdminAdministratorsRouteImport } from './routes/admin.administrators'
 import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
@@ -112,6 +113,11 @@ const TalentRoute = TalentRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAccountsRoute = AdminAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdministratorsRoute = AdminAdministratorsRouteImport.update({
@@ -382,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
+  '/admin/accounts': typeof AdminAccountsRoute
   '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
@@ -440,6 +447,7 @@ export interface FileRoutesByTo {
   '/enroll-2fa': typeof Enroll2faRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin/accounts': typeof AdminAccountsRoute
   '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
@@ -499,6 +507,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/talent': typeof TalentRouteWithChildren
+  '/admin/accounts': typeof AdminAccountsRoute
   '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/agencies': typeof AdminAgenciesRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
@@ -562,6 +571,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/talent'
+    | '/admin/accounts'
     | '/admin/administrators'
     | '/admin/agencies'
     | '/admin/audit'
@@ -620,6 +630,7 @@ export interface FileRouteTypes {
     | '/enroll-2fa'
     | '/forgot-password'
     | '/reset-password'
+    | '/admin/accounts'
     | '/admin/administrators'
     | '/admin/audit'
     | '/admin/enroll-2fa'
@@ -678,6 +689,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/talent'
+    | '/admin/accounts'
     | '/admin/administrators'
     | '/admin/agencies'
     | '/admin/audit'
@@ -816,6 +828,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/accounts': {
+      id: '/admin/accounts'
+      path: '/accounts'
+      fullPath: '/admin/accounts'
+      preLoaderRoute: typeof AdminAccountsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/administrators': {
@@ -1217,6 +1236,7 @@ const AdminInvitationsRouteWithChildren =
   AdminInvitationsRoute._addFileChildren(AdminInvitationsRouteChildren)
 
 interface AdminRouteChildren {
+  AdminAccountsRoute: typeof AdminAccountsRoute
   AdminAdministratorsRoute: typeof AdminAdministratorsRouteWithChildren
   AdminAgenciesRoute: typeof AdminAgenciesRouteWithChildren
   AdminAuditRoute: typeof AdminAuditRoute
@@ -1230,6 +1250,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAccountsRoute: AdminAccountsRoute,
   AdminAdministratorsRoute: AdminAdministratorsRouteWithChildren,
   AdminAgenciesRoute: AdminAgenciesRouteWithChildren,
   AdminAuditRoute: AdminAuditRoute,
