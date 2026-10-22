@@ -46,8 +46,14 @@ import {
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, emptyLine, fmtMoney } from "@/lib/billing";
 import { BillingPreviewDialog } from "@/components/agency/billing-preview-dialog";
-import { EmailChipsInput } from "@/components/shared/email-chips-input";
-import { useAgencyClients, type AgencyClient } from "@/components/agency/clients-panel";
+import {
+  useAgencyClients,
+  ClientFormModal,
+  emptyClientForm,
+  type AgencyClient,
+} from "@/components/agency/clients-panel";
+import { ClientPicker } from "@/components/agency/client-picker";
+import { formatClientAddress } from "@/lib/client-duplicates";
 import { BillingSummaryCards } from "@/components/agency/billing-summary-cards";
 import {
   BillingPeriodSelector,
@@ -69,7 +75,6 @@ import { friendlyError } from "@/lib/friendly-error";
 
 // Radix Select cannot hold an empty string value, so "no talent" uses a sentinel.
 const NO_TALENT = "__none__";
-const ONE_OFF_CLIENT = "__one_off__";
 
 type Row = {
   id: string;
@@ -310,6 +315,7 @@ function QIPage() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState>(emptyEditor("invoice"));
+  const [addingClient, setAddingClient] = useState(false);
   const [loadingEditor, setLoadingEditor] = useState(false);
 
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -565,6 +571,7 @@ function QIPage() {
   const send = useMutation({
     mutationFn: async () => {
       if (!editor.id) throw new Error("Save the record first");
+      if (!editor.client_id) throw new Error("Choose a client before sending");
       if (editor.recipient_emails.length === 0)
         throw new Error("Add at least one recipient email address");
       return sendFn({ data: { id: editor.id, recipients: editor.recipient_emails } });
@@ -598,6 +605,7 @@ function QIPage() {
   const markPreviewSent = useMutation({
     mutationFn: async () => {
       if (!editor.id) throw new Error("Save the record first");
+      if (!editor.client_id) throw new Error("Choose a client before sending");
       return markSentFn({ data: { id: editor.id } });
     },
     onSuccess: (res: any) => {
@@ -1167,102 +1175,60 @@ function QIPage() {
                       maxLength={200}
                     />
                   </div>
-                  <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
-                    <label htmlFor="editor-saved-client">Saved client</label>
-                    <Select
-                      value={editor.client_id ?? ONE_OFF_CLIENT}
-                      onValueChange={(v: string) => {
-                        if (v === ONE_OFF_CLIENT) {
-                          setEditor({ ...editor, client_id: null });
-                          return;
-                        }
-                        const c = savedClients.find((x) => x.id === v);
-                        if (!c) return;
-                        setEditor({
-                          ...editor,
-                          client_id: c.id,
-                          client_name: c.name,
-                          recipient_contact_person: c.contact_person ?? "",
-                          recipient_address: c.address ?? editor.recipient_address,
-                          recipient_vat_number: c.vat_number ?? editor.recipient_vat_number,
-                          recipient_emails: (c.emails ?? []).slice(0, 20),
-                          save_client: false,
-                        });
-                      }}
-                    >
-                      <SelectTrigger id="editor-saved-client">
-                        <SelectValue placeholder="One-off client (enter manually)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={ONE_OFF_CLIENT}>
-                          One-off client (enter manually)
-                        </SelectItem>
-                        {savedClients.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                            {c.contact_person ? ` — ${c.contact_person}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {savedClients.length === 0 ? (
-                      <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
-                        You haven't saved any clients yet. Add them once in{" "}
-                        <Link to="/agency/settings" search={{ tab: "clients" }}>
-                          Settings › Clients
-                        </Link>{" "}
-                        and they'll be a click away here — or just type the details below for a
-                        one-off client.
+                  <div
+                    className="tvp-form-group"
+                    data-tour="editor-client"
+                    style={{ gridColumn: "1 / -1" }}
+                  >
+                    <label htmlFor="editor-client-picker">Client</label>
+                    <ClientPicker
+                      id="editor-client-picker"
+                      clients={savedClients}
+                      value={editor.client_id}
+                      fallbackLabel={editor.client_name || null}
+                      disabled={financialsLocked}
+                      onSelect={(c) => setEditor(applyClient(editor, c))}
+                      onAddNew={() => setAddingClient(true)}
+                    />
+                    {editor.client_id || editor.client_name ? (
+                      <div className="tvp-client-summary" data-tour="editor-recipients">
+                        {editor.recipient_contact_person && (
+                          <div>Attention: {editor.recipient_contact_person}</div>
+                        )}
+                        <div>{editor.recipient_address || "No billing address saved"}</div>
+                        {editor.recipient_vat_number && (
+                          <div>VAT number: {editor.recipient_vat_number}</div>
+                        )}
+                        <div className="tvp-muted">
+                          Sends to: {editor.recipient_emails.join(", ") || "no email address saved"}
+                        </div>
+                        {!financialsLocked && editor.client_id && (
+                          <div className="tvp-field-hint">
+                            Change these details on the{" "}
+                            <Link
+                              to="/agency/clients/$clientId"
+                              params={{ clientId: editor.client_id }}
+                              className="tvp-link"
+                            >
+                              client's page
+                            </Link>
+                            . Drafts always use the latest details; once sent, this document keeps
+                            a copy that never changes.
+                          </div>
+                        )}
+                        {!editor.client_id && !financialsLocked && (
+                          <div className="tvp-field-hint tvp-field-warn">
+                            Choose a saved client before sending.
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
-                        Choosing a saved client fills in their name, contact person, address, VAT
-                        number and email addresses. Manage them in{" "}
-                        <Link to="/agency/settings" search={{ tab: "clients" }}>
-                          Settings › Clients
-                        </Link>
-                        .
+                      <div className="tvp-field-hint">
+                        A client is required before you can send. Their details fill in
+                        automatically.
                       </div>
                     )}
                   </div>
-                  <div className="tvp-form-group" data-tour="editor-client">
-                    <label>Client / recipient name</label>
-                    <input
-                      value={editor.client_name}
-                      onChange={(e) =>
-                        setEditor({ ...editor, client_name: e.target.value, client_id: null })
-                      }
-                    />
-                  </div>
-                  <div className="tvp-form-group">
-                    <label>Contact person</label>
-                    <input
-                      value={editor.recipient_contact_person}
-                      maxLength={200}
-                      placeholder="Who the document is addressed to"
-                      onChange={(e) =>
-                        setEditor({ ...editor, recipient_contact_person: e.target.value })
-                      }
-                    />
-                  </div>
-                  {!editor.client_id && editor.client_name.trim() !== "" && (
-                    <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
-                      <label
-                        style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={editor.save_client}
-                          onChange={(e) => setEditor({ ...editor, save_client: e.target.checked })}
-                        />
-                        Save this client for next time
-                      </label>
-                      <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
-                        Keeps their name, contact person, address, VAT number and email addresses in
-                        Settings › Clients so you don't retype them.
-                      </div>
-                    </div>
-                  )}
                   <div className="tvp-form-group">
                     <label htmlFor="editor-talent">Talent</label>
                     <Select
@@ -1296,35 +1262,6 @@ function QIPage() {
                           ? "Matched to your roster — sharing will reach this talent."
                           : "No longer on your roster — sharing won't reach this talent."}
                     </div>
-                  </div>
-                  <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
-                    <label>Recipient billing address</label>
-                    <textarea
-                      rows={2}
-                      value={editor.recipient_address}
-                      onChange={(e) => setEditor({ ...editor, recipient_address: e.target.value })}
-                      placeholder="Required by SARS for invoices over R5,000"
-                    />
-                  </div>
-                  <div
-                    className="tvp-form-group"
-                    data-tour="editor-recipients"
-                    style={{ gridColumn: "1 / -1" }}
-                  >
-                    <label>Recipient emails</label>
-                    <EmailChipsInput
-                      value={editor.recipient_emails}
-                      onChange={(next) => setEditor({ ...editor, recipient_emails: next })}
-                    />
-                  </div>
-                  <div className="tvp-form-group">
-                    <label>Recipient VAT number</label>
-                    <input
-                      value={editor.recipient_vat_number}
-                      onChange={(e) =>
-                        setEditor({ ...editor, recipient_vat_number: e.target.value })
-                      }
-                    />
                   </div>
                   <div className="tvp-form-group">
                     <label>Issued</label>
@@ -1622,6 +1559,7 @@ function QIPage() {
           recipients={editor.recipient_emails}
           canSend={
             !!editor.id &&
+            !!editor.client_id &&
             editor.recipient_emails.length > 0 &&
             !!settings?.billing_from_verified_at &&
             !!settings?.billing_from_email &&
@@ -1630,17 +1568,23 @@ function QIPage() {
           sendDisabledReason={
             !editor.id
               ? "Save this draft first before sending."
-              : editor.recipient_emails.length === 0
+              : !editor.client_id
+                ? "Choose a client before sending."
+                : editor.recipient_emails.length === 0
                 ? "Add at least one recipient email address before sending."
                 : !settings?.billing_from_verified_at || !settings?.billing_from_email
                   ? "Verify a sending address in Quotes & Invoices Settings before sending."
                   : "This record has already been sent."
           }
           canMarkSent={
-            !!editor.id && (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
+            !!editor.id && !!editor.client_id && (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
           }
           markSentDisabledReason={
-            !editor.id ? "Save this draft first." : "This record has already been sent."
+            !editor.id
+              ? "Save this draft first."
+              : !editor.client_id
+                ? "Choose a client before sending."
+                : "This record has already been sent."
           }
           onSend={() => send.mutate()}
           sending={send.isPending}
@@ -1648,6 +1592,35 @@ function QIPage() {
           markingSent={markPreviewSent.isPending}
         />
       )}
+      {addingClient && (
+        <ClientFormModal
+          compact
+          initial={emptyClientForm()}
+          onClose={() => setAddingClient(false)}
+          onSaved={(_id, c) => {
+            setAddingClient(false);
+            setEditor((prev) => applyClient(prev, c));
+          }}
+        />
+      )}
     </>
   );
+}
+
+/** Fill the editor's recipient block from a saved client (mirrors the database rule). */
+function applyClient(editor: EditorState, c: AgencyClient): EditorState {
+  return {
+    ...editor,
+    client_id: c.id,
+    client_name: c.name,
+    recipient_contact_person: c.contact_person ?? "",
+    recipient_address: formatClientAddress(c),
+    recipient_vat_number: c.vat_number ?? "",
+    recipient_emails: (c.emails ?? []).slice(0, 20),
+    payment_terms_days:
+      editor.kind === "invoice" && (c.payment_terms_days ?? 0) > 0 && !editor.id
+        ? String(c.payment_terms_days)
+        : editor.payment_terms_days,
+    save_client: false,
+  };
 }

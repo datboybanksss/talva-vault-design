@@ -54,6 +54,8 @@ import { Route as AdminAgenciesIdRouteImport } from './routes/admin.agencies.$id
 import { Route as AdminInvitationsIndexRouteImport } from './routes/admin.invitations.index'
 import { Route as AdminInvitationsNewRouteImport } from './routes/admin.invitations.new'
 import { Route as AdminTalentIdRouteImport } from './routes/admin.talent.$id'
+import { Route as AgencyClientsIndexRouteImport } from './routes/agency.clients.index'
+import { Route as AgencyClientsClientIdRouteImport } from './routes/agency.clients.$clientId'
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AgencyTalentIndexRouteImport } from './routes/agency.talent.index'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
@@ -296,6 +298,16 @@ const AdminTalentIdRoute = AdminTalentIdRouteImport.update({
   path: '/talent/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AgencyClientsIndexRoute = AgencyClientsIndexRouteImport.update({
+  id: '/clients/',
+  path: '/clients/',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyClientsClientIdRoute = AgencyClientsClientIdRouteImport.update({
+  id: '/clients/$clientId',
+  path: '/clients/$clientId',
+  getParentRoute: () => AgencyRoute,
+} as any)
 const AgencyContractsIdRoute = AgencyContractsIdRouteImport.update({
   id: '/contracts/$id',
   path: '/contracts/$id',
@@ -429,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/admin/talent/$id': typeof AdminTalentIdRoute
+  '/agency/clients/$clientId': typeof AgencyClientsClientIdRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -439,6 +452,7 @@ export interface FileRoutesByFullPath {
   '/legal/terms/$type': typeof LegalTermsTypeRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
+  '/agency/clients/': typeof AgencyClientsIndexRoute
   '/agency/talent/': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
@@ -486,6 +500,7 @@ export interface FileRoutesByTo {
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/admin/talent/$id': typeof AdminTalentIdRoute
+  '/agency/clients/$clientId': typeof AgencyClientsClientIdRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -496,6 +511,7 @@ export interface FileRoutesByTo {
   '/legal/terms/$type': typeof LegalTermsTypeRoute
   '/admin/agencies': typeof AdminAgenciesIndexRoute
   '/admin/invitations': typeof AdminInvitationsIndexRoute
+  '/agency/clients': typeof AgencyClientsIndexRoute
   '/agency/talent': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
@@ -550,6 +566,7 @@ export interface FileRoutesById {
   '/admin/agencies/$id': typeof AdminAgenciesIdRoute
   '/admin/invitations/new': typeof AdminInvitationsNewRoute
   '/admin/talent/$id': typeof AdminTalentIdRoute
+  '/agency/clients/$clientId': typeof AgencyClientsClientIdRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/health': typeof ApiPublicHealthRoute
@@ -560,6 +577,7 @@ export interface FileRoutesById {
   '/legal/terms/$type': typeof LegalTermsTypeRoute
   '/admin/agencies/': typeof AdminAgenciesIndexRoute
   '/admin/invitations/': typeof AdminInvitationsIndexRoute
+  '/agency/clients/': typeof AgencyClientsIndexRoute
   '/agency/talent/': typeof AgencyTalentIndexRoute
   '/admin/administrators/$id/email-preview': typeof AdminAdministratorsIdEmailPreviewRoute
   '/admin/invitations/$id/email-preview': typeof AdminInvitationsIdEmailPreviewRoute
@@ -615,6 +633,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
     | '/admin/talent/$id'
+    | '/agency/clients/$clientId'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/api/public/health'
@@ -625,6 +644,7 @@ export interface FileRouteTypes {
     | '/legal/terms/$type'
     | '/admin/agencies/'
     | '/admin/invitations/'
+    | '/agency/clients/'
     | '/agency/talent/'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
@@ -672,6 +692,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
     | '/admin/talent/$id'
+    | '/agency/clients/$clientId'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/api/public/health'
@@ -682,6 +703,7 @@ export interface FileRouteTypes {
     | '/legal/terms/$type'
     | '/admin/agencies'
     | '/admin/invitations'
+    | '/agency/clients'
     | '/agency/talent'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
@@ -735,6 +757,7 @@ export interface FileRouteTypes {
     | '/admin/agencies/$id'
     | '/admin/invitations/new'
     | '/admin/talent/$id'
+    | '/agency/clients/$clientId'
     | '/agency/contracts/$id'
     | '/agency/talent/invite'
     | '/api/public/health'
@@ -745,6 +768,7 @@ export interface FileRouteTypes {
     | '/legal/terms/$type'
     | '/admin/agencies/'
     | '/admin/invitations/'
+    | '/agency/clients/'
     | '/agency/talent/'
     | '/admin/administrators/$id/email-preview'
     | '/admin/invitations/$id/email-preview'
@@ -1094,6 +1118,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTalentIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/agency/clients/': {
+      id: '/agency/clients/'
+      path: '/clients'
+      fullPath: '/agency/clients/'
+      preLoaderRoute: typeof AgencyClientsIndexRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/clients/$clientId': {
+      id: '/agency/clients/$clientId'
+      path: '/clients/$clientId'
+      fullPath: '/agency/clients/$clientId'
+      preLoaderRoute: typeof AgencyClientsClientIdRouteImport
+      parentRoute: typeof AgencyRoute
+    }
     '/agency/contracts/$id': {
       id: '/agency/contracts/$id'
       path: '/contracts/$id'
@@ -1323,7 +1361,9 @@ interface AgencyRouteChildren {
   AgencySettingsRoute: typeof AgencySettingsRoute
   AgencyTalentRoute: typeof AgencyTalentRouteWithChildren
   AgencyIndexRoute: typeof AgencyIndexRoute
+  AgencyClientsClientIdRoute: typeof AgencyClientsClientIdRoute
   AgencyContractsIdRoute: typeof AgencyContractsIdRoute
+  AgencyClientsIndexRoute: typeof AgencyClientsIndexRoute
 }
 
 const AgencyRouteChildren: AgencyRouteChildren = {
@@ -1338,7 +1378,9 @@ const AgencyRouteChildren: AgencyRouteChildren = {
   AgencySettingsRoute: AgencySettingsRoute,
   AgencyTalentRoute: AgencyTalentRouteWithChildren,
   AgencyIndexRoute: AgencyIndexRoute,
+  AgencyClientsClientIdRoute: AgencyClientsClientIdRoute,
   AgencyContractsIdRoute: AgencyContractsIdRoute,
+  AgencyClientsIndexRoute: AgencyClientsIndexRoute,
 }
 
 const AgencyRouteWithChildren =

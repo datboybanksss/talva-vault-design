@@ -327,6 +327,12 @@ export const GUIDES: TourGuide[] = [
         body: "Create quotes, convert them to invoices and track payment. There's a dedicated guide for the full billing workflow.",
       },
       {
+        key: "clients",
+        selector: '[data-tour="/agency/clients"]',
+        title: "Clients",
+        body: "Your client book. Save each client's company, VAT and billing details once, then pick them from the list on any quote or invoice.",
+      },
+      {
         key: "activity-log",
         selector: '[data-tour="/agency/activity"]',
         title: "Activity Log",
@@ -390,7 +396,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-client"]',
         title: "Step 6 — who it's for",
-        body: 'Client / recipient name: "Kalahari Retail Group". Talent: "Naledi Khumalo" — type the talent\'s name exactly as it appears on your roster, because that\'s what links the document to them and lets you share it with them later. Then "Recipient billing address": "5 Rivonia Road, Sandton, 2196" — SARS requires it on invoices over R5,000 — and "Recipient VAT number" if they have one.',
+        body: 'Click "Client" and search for "Kalahari Retail Group" — their contact person, billing address, VAT number and email addresses fill in automatically. Not saved yet? Choose "Add new client" at the bottom of the list; nothing you\'ve typed on the quote is lost. A client is required before you can send, and once sent the document keeps a copy of their details that later edits never change. Then pick the Talent from your roster.',
         optional: true,
       },
       {
@@ -398,7 +404,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-recipients"]',
         title: "Step 7 — Recipient emails",
-        body: 'Type "accounts@kalahariretail.co.za" and press Enter to turn it into a chip, then add "thandi@kalahariretail.co.za" the same way. Every chip receives the document when you send. An address with no chip around it hasn\'t been added — press Enter.',
+        body: 'The document goes to every email address saved on the client. To change who receives it, edit the client on the Clients page — drafts pick up the change straight away.',
         optional: true,
       },
       {

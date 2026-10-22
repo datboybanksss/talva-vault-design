@@ -6007,3 +6007,55 @@ a.tvp-entity-card:focus-visible {
 .tv-app .tvp-topbar .tvp-actions > * {
   white-space: nowrap;
 }
+
+/* Client book: empty states, two-column forms, inline field hints. */
+.tvp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-8, 8px);
+  padding: var(--sp-32, 32px) var(--sp-16, 16px);
+  text-align: center;
+}
+.tvp-empty .tvp-muted {
+  max-width: 440px;
+}
+.tvp-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-12, 12px) var(--sp-16, 16px);
+}
+@media (max-width: 640px) {
+  .tvp-form-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.tvp-field-hint {
+  margin-top: var(--sp-1);
+  color: var(--tvp-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.tvp-field-warn {
+  color: var(--tvp-amber);
+}
+.tvp-client-summary {
+  margin-top: var(--sp-8, 8px);
+  padding: var(--sp-12, 12px) var(--sp-16, 16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.tvp-client-picker {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-8, 8px);
+  text-align: left;
+}
+.tvp-client-picker-menu {
+  width: var(--radix-popover-trigger-width);
+  min-width: 260px;
+}

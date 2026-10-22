@@ -21,6 +21,7 @@ import {
   Info,
   Clock,
   X,
+  Building2,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,7 @@ const manage: NavItem[] = [
     ),
     icon: <Receipt />,
   },
+  { to: "/agency/clients", label: "Clients", icon: <Building2 /> },
 ];
 
 const settings: NavItem[] = [

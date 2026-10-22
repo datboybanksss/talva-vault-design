@@ -448,6 +448,8 @@ export type Database = {
           allow_partial_payment: boolean
           client_id: string | null
           client_name: string | null
+          client_snapshot: Json | null
+          client_snapshot_at: string | null
           contract_document_id: string | null
           converted_from_quote_id: string | null
           created_at: string
@@ -486,6 +488,8 @@ export type Database = {
           allow_partial_payment?: boolean
           client_id?: string | null
           client_name?: string | null
+          client_snapshot?: Json | null
+          client_snapshot_at?: string | null
           contract_document_id?: string | null
           converted_from_quote_id?: string | null
           created_at?: string
@@ -524,6 +528,8 @@ export type Database = {
           allow_partial_payment?: boolean
           client_id?: string | null
           client_name?: string | null
+          client_snapshot?: Json | null
+          client_snapshot_at?: string | null
           contract_document_id?: string | null
           converted_from_quote_id?: string | null
           created_at?: string
@@ -596,6 +602,7 @@ export type Database = {
       agency_clients: {
         Row: {
           address: string | null
+          address_suburb: string | null
           agency_id: string
           archived_at: string | null
           city: string | null
@@ -612,6 +619,8 @@ export type Database = {
           notes: string | null
           payment_terms_days: number | null
           phone: string | null
+          postal_code: string | null
+          province: string | null
           relationship_manager_user_id: string | null
           trading_name: string | null
           updated_at: string
@@ -619,6 +628,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          address_suburb?: string | null
           agency_id: string
           archived_at?: string | null
           city?: string | null
@@ -635,6 +645,8 @@ export type Database = {
           notes?: string | null
           payment_terms_days?: number | null
           phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           relationship_manager_user_id?: string | null
           trading_name?: string | null
           updated_at?: string
@@ -642,6 +654,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          address_suburb?: string | null
           agency_id?: string
           archived_at?: string | null
           city?: string | null
@@ -658,6 +671,8 @@ export type Database = {
           notes?: string | null
           payment_terms_days?: number | null
           phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           relationship_manager_user_id?: string | null
           trading_name?: string | null
           updated_at?: string
@@ -3327,6 +3342,10 @@ export type Database = {
       }
       attach_talent_invite_private: {
         Args: { _actor: string; _actor_email: string; _invitation_id: string }
+        Returns: string
+      }
+      billing_client_address: {
+        Args: { c: Database["public"]["Tables"]["agency_clients"]["Row"] }
         Returns: string
       }
       can_access_talent_folder: {
