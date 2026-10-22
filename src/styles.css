@@ -2686,18 +2686,21 @@
   /* --- Folder grid (uniform cards, animated collapse) --- */
   & .tvp-folder-tree {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
-    gap: 16px;
+    /* Two equal columns that can never push past the panel padding. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-4);
     align-items: start;
-    margin-top: 16px;
+    margin-top: var(--sp-4);
   }
   & .tvp-folder-card {
+    min-width: 0;
     border: 1px solid var(--tvp-line);
     border-radius: 16px;
     background: var(--surface);
-    padding: 13px;
+    padding: 0;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     transition:
       border-color 0.16s ease,
       box-shadow 0.16s ease,
@@ -2714,14 +2717,16 @@
   }
   & .tvp-folder-head {
     display: grid;
-    grid-template-columns: 40px minmax(0, 1fr) 22px;
+    grid-template-columns: 40px minmax(0, 1fr) 16px;
     align-items: center;
-    gap: 12px;
+    gap: var(--sp-3);
     width: 100%;
-    padding: 12px;
+    min-height: 72px;
+    padding: var(--sp-4);
     border: 0;
     background: transparent;
-    border-radius: 12px;
+    border-radius: 15px;
+    color: inherit;
     cursor: pointer;
     text-align: left;
     font: inherit;
@@ -2737,8 +2742,8 @@
     background: transparent;
   }
   & .tvp-folder-head:focus-visible {
-    outline: 2px solid var(--tvp-teal-2);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring);
   }
   & .tvp-folder-name {
     margin: 0;
@@ -2751,11 +2756,21 @@
     white-space: nowrap;
   }
   & .tvp-folder-meta {
-    margin-top: 3px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.35;
     color: var(--tvp-muted);
+  }
+  & .tvp-folder-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+    margin-top: var(--sp-2);
+  }
+  & .tvp-section-desc {
+    margin: var(--sp-1) 0 0;
+    font-size: 13px;
   }
   & .tvp-folder-chevron {
     color: var(--tvp-muted);
@@ -2782,13 +2797,13 @@
     visibility: visible;
   }
   & .tvp-folder-body-inner {
-    padding: 4px 12px 12px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--sp-3);
     border-top: 1px solid var(--tvp-line);
-    margin: 0 4px;
-    padding-top: 12px;
+    /* Subfolders line up with the folder title (icon 40px + gap). */
+    margin: 0 var(--sp-4);
+    padding: var(--sp-3) 0 var(--sp-4) calc(40px + var(--sp-3));
   }
   & .tvp-folder-eyebrow {
     font-size: 10px;
@@ -2992,7 +3007,7 @@
     grid-template-columns: 1fr !important;
   }
   .tv-app .tvp-folder-tree {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+    grid-template-columns: 1fr !important;
   }
   .tv-app .tvp-view-switch {
     display: flex !important;
@@ -4522,7 +4537,7 @@
     grid-template-columns: 1fr;
   }
 }
-.tvp-folder-card {
+.tvp-folder-grid .tvp-folder-card {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -4532,14 +4547,14 @@
   background: var(--surface);
   cursor: pointer;
 }
-.tvp-folder-card:hover {
+.tvp-folder-grid .tvp-folder-card:hover {
   border-color: var(--tvp-teal-2);
 }
-.tvp-folder-card input[type="checkbox"] {
+.tvp-folder-grid .tvp-folder-card input[type="checkbox"] {
   margin-top: 2px;
   accent-color: var(--tvp-teal);
 }
-.tvp-folder-card input[type="checkbox"]:disabled {
+.tvp-folder-grid .tvp-folder-card input[type="checkbox"]:disabled {
   cursor: not-allowed;
 }
 .tvp-folder-card-name {

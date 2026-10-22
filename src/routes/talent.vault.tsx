@@ -433,7 +433,8 @@ function PrivateVault() {
                           {f.name}
                         </span>
                         <span className="tvp-folder-meta" style={{ display: "block" }}>
-                          {subs.length} sub · {docCount} doc{docCount === 1 ? "" : "s"}
+                          {docCount} {docCount === 1 ? "document" : "documents"}
+                          {subs.length > 0 && ` · ${subs.length} ${subs.length === 1 ? "subfolder" : "subfolders"}`}
                         </span>
                       </span>
                       <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
@@ -861,9 +862,9 @@ function SharedDocumentsView() {
                           {f.folder_name}
                         </span>
                         <span className="tvp-folder-meta" style={{ display: "block" }}>
-                          {count} doc{count === 1 ? "" : "s"}
+                          {count} {count === 1 ? "document" : "documents"}
                           {f.retention_years != null
-                            ? ` · retention ${f.retention_years} yr${f.retention_years === 1 ? "" : "s"}`
+                            ? ` · kept for ${f.retention_years} ${f.retention_years === 1 ? "year" : "years"}`
                             : ""}
                         </span>
                       </span>
