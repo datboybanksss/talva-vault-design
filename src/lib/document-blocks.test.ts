@@ -28,7 +28,7 @@ describe("blocked agency document delete shows the reason", () => {
   });
   it("retention period: gives the end date", () => {
     expect(shown({ ...base, lockedUntil: "2031-03-12T00:00:00Z" })).toBe(
-      "This document is under a retention period until 12 March 2031, so it can't be deleted.",
+      "This document is protected until 12 March 2031, so it can't be deleted. You can upload a new version instead.",
     );
   });
   it("an expired retention period no longer blocks", () => {
