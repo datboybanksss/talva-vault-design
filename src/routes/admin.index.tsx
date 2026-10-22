@@ -115,7 +115,7 @@ function AdminDashboard() {
       </div>
 
       <div className="tvp-grid tvp-kpi-grid">
-        <Link to="/admin/agencies" className="tvp-card tvp-kpi tvp-clickable">
+        <Link to="/admin/accounts" search={{ type: "agency" }} className="tvp-card tvp-kpi tvp-clickable">
           <div className="tvp-kpi-icon tvp-bg-teal">
             <Building2 className="h-5 w-5" />
           </div>
@@ -188,7 +188,11 @@ function AdminDashboard() {
             </div>
           </div>
         </div>
-        <div className="tvp-card tvp-kpi">
+        <Link
+          to="/admin/accounts"
+          search={{ type: "agency", status: "suspended" }}
+          className="tvp-card tvp-kpi tvp-clickable"
+        >
           <div className="tvp-kpi-icon tvp-bg-red">
             <Ban className="h-5 w-5" />
           </div>
@@ -199,7 +203,7 @@ function AdminDashboard() {
               {counts.suspended > 0 ? "Read-only / export rules apply" : "None suspended"}
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       <CombinedInvitationsList
@@ -215,12 +219,4 @@ function AdminDashboard() {
       />
     </>
   );
-}
-
-function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 }
