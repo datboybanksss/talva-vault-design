@@ -287,32 +287,26 @@ function TalentPage() {
       </div>
 
       <div className="tvp-card">
-        <div className="tvp-toolbar">
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <label className="tvp-entity-stat-label" htmlFor="roster-search">
-              Search
-            </label>
-            <input
-              id="roster-search"
-              className="tvp-search"
-              placeholder="Search roster by name, type or lead…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap items-end">
-<FilterBar onChange={(k, v) => (k === "lead" ? setManager(v) : setType(v))} filters={[{ key: "lead", label: "Lead", value: manager, options: [{ value: "all", label: "All leads" }, ...managerOptions.map((m) => ({ value: m, label: m }))] },{ key: "type", label: "Talent type", value: type, options: [{ value: "all", label: "All types" }, ...typeOptions.map((t) => ({ value: t, label: t }))] }]} />
-            {(tab !== "active" || manager !== "all" || type !== "all" || search !== "") && (
-              <button
-                className="tvp-select"
-                onClick={clearFilters}
-                style={{ cursor: "pointer", fontWeight: 700 }}
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
+        <FilterBar
+          search={{ value: search, onChange: setSearch, placeholder: "Search by name, type or lead" }}
+          active={tab !== "active" || manager !== "all" || type !== "all" || search !== ""}
+          onClear={clearFilters}
+          onChange={(k, v) => (k === "lead" ? setManager(v) : setType(v))}
+          filters={[
+            {
+              key: "lead",
+              label: "Lead",
+              value: manager,
+              options: [{ value: "all", label: "All leads" }, ...managerOptions.map((m) => ({ value: m, label: m }))],
+            },
+            {
+              key: "type",
+              label: "Talent type",
+              value: type,
+              options: [{ value: "all", label: "All types" }, ...typeOptions.map((t) => ({ value: t, label: t }))],
+            },
+          ]}
+        />
 
         {talent.isLoading ? (
           <div className="tvp-muted" style={{ padding: "28px 4px" }}>
@@ -356,14 +350,14 @@ function TalentPage() {
           </div>
         ) : (
           <>
-            <div className="tvp-entity-grid" style={{ marginTop: 16 }}>
+            <div className="tvp-entity-grid">
               {page.visible.map((r) => (
                 <EntityCard
                   key={r.id}
                   name={r.displayName}
                   avatarSeed={r.id}
                   photoUrl={r.avatarUrl}
-                  subtitle={`${r.talentType ?? "Talent type not set"} · Manager: ${r.managerName || "Unassigned"}`}
+                  subtitle={[r.talentType ?? "Talent type not set", `Manager: ${r.managerName || "Unassigned"}`]}
                   pills={
                     <>
                       <span className={statusPillClass("talentLink", r.status)}>
