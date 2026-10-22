@@ -6047,3 +6047,15 @@ a.tvp-entity-card:focus-visible {
   font-size: 0.875rem;
   line-height: 1.5;
 }
+.tvp-client-picker {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-8, 8px);
+  text-align: left;
+}
+.tvp-client-picker-menu {
+  width: var(--radix-popover-trigger-width);
+  min-width: 260px;
+}
