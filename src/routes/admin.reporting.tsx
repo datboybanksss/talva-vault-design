@@ -8,6 +8,7 @@ import { printHtmlDocument } from "@/lib/billing-reports";
 import { buildAdminReportingHtml } from "@/lib/admin-print";
 import { getReportingSummary } from "@/lib/admin-reporting.functions";
 import type { ReportingMetric } from "@/lib/admin-reporting.functions";
+import { LaunchReports } from "@/components/admin/launch-reports";
 import { ReportingRawDrawer } from "@/components/admin/reporting-raw-drawer";
 
 export const Route = createFileRoute("/admin/reporting")({
@@ -532,6 +533,7 @@ function ReportingPage() {
           onClose={() => setDrill(null)}
         />
       )}
+      <LaunchReports from={range.from} to={range.to} />
     </>
   );
 }

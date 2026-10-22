@@ -195,7 +195,6 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                     <div className="tvp-kpi-value">{n} / {t}</div>
                     <div className="tvp-kpi-label">{label}</div>
                     <div className="tvp-kpi-sub">{pct}% of target</div>
-                    <progress className="tvp-progress" max={100} value={Math.min(100, Number(pct))} />
                   </div>
                 </div>
               ))}
@@ -304,7 +303,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                       <td>{a.doc_type === "agency" ? "Agency" : "Talent"}</td>
                       <td>{a.version}{a.is_current ? "" : " (older)"}</td>
                       <td>{fmtDate(a.accepted_at)}</td>
-                      <td className="tvp-mono" title={a.body_sha256 ?? ""}>
+                      <td title={a.body_sha256 ?? ""}>
                         {a.document_id.slice(0, 8)} · {a.body_sha256 ? a.body_sha256.slice(0, 12) : "—"}
                         {a.hash_retrospective ? " · hash added later" : ""}
                       </td>
