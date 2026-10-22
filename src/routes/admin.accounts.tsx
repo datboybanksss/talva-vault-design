@@ -397,7 +397,9 @@ function AccountsPage() {
                   return (
                     <tr key={a.key}>
                       <td>
-                        <strong>{a.name}</strong>
+                        <Link to="/admin/talent/$id" params={{ id: a.id }}>
+                          <strong>{a.name}</strong>
+                        </Link>
                         {a.is_test && <span className="tvp-status st-neutral tvp-test-label">Test</span>}
                         {a.email && (
                           <>
