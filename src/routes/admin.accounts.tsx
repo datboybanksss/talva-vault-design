@@ -1,3 +1,4 @@
+import { searchParam } from "@/lib/search";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
@@ -63,7 +64,7 @@ import { FilterBar } from "@/components/shared/filter-bar";
 import { ACCOUNT_SCOPE_LABEL, normaliseAccountScope } from "@/lib/account-filters";
 import { friendlyError } from "@/lib/friendly-error";
 
-type AccountsSearch = { type?: string; status?: string; link?: string; accounts?: string };
+type AccountsSearch = { type?: string; status?: string; link?: string; accounts?: string; q?: string };
 const DESC = "Agencies and talent in one list, with status, linked agency and actions.";
 
 export const Route = createFileRoute("/admin/accounts")({
@@ -72,6 +73,7 @@ export const Route = createFileRoute("/admin/accounts")({
     ...(normaliseAccountStatus(raw.status) !== "all" ? { status: String(raw.status) } : {}),
     ...(normaliseTalentLink(raw.link) !== "all" ? { link: String(raw.link) } : {}),
     ...(normaliseAccountScope(raw.accounts, "all") !== "all" ? { accounts: String(raw.accounts) } : {}),
+    ...(searchParam(raw.q) ? { q: searchParam(raw.q) } : {}),
   }),
   head: () => ({
     meta: [
@@ -114,17 +116,19 @@ function AccountsPage() {
         if (m.status && m.status !== "all") out.status = m.status;
         if (out.type === "talent" && m.link && m.link !== "all") out.link = m.link;
         if (m.accounts && m.accounts !== "all") out.accounts = m.accounts;
+        if (searchParam(m.q)) out.q = searchParam(m.q);
         return out;
       },
       replace: true,
     });
   const clearFilters = () => nav({ to: "/admin/accounts", search: {}, replace: true });
 
+  const q = search.q ?? "";
   const accounts = useInfiniteQuery({
-    queryKey: ["admin", "accounts", type, status, link, scope],
+    queryKey: ["admin", "accounts", type, status, link, scope, q],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
-      listFn({ data: { type, status, link, accounts: scope, limit: PAGE_SIZE, offset: pageParam as number } }),
+      listFn({ data: { type, status, link, accounts: scope, q, limit: PAGE_SIZE, offset: pageParam as number } }),
     getNextPageParam: (last: any, all: any[]) => {
       const loaded = all.reduce((n, p: any) => n + (p.rows?.length ?? 0), 0);
       return loaded < (last?.total ?? 0) ? loaded : undefined;
@@ -306,6 +310,7 @@ function AccountsPage() {
 
       <div className="tvp-card tvp-panel">
         <FilterBar
+          search={{ value: q, onChange: (v) => setFilters({ q: v }) }}
           tourId="admin-account-filters"
           active={filtersActive}
           onClear={clearFilters}
@@ -385,7 +390,14 @@ function AccountsPage() {
               {!accounts.isLoading && visible.length === 0 && (
                 <tr>
                   <td colSpan={6} className="tvp-muted">
-                    {filtersActive ? (
+                    {q ? (
+                      <>
+                        No results for ‘{q}’.{" "}
+                        <button type="button" className="tvp-link" onClick={() => setFilters({ q: "" })}>
+                          Clear search
+                        </button>
+                      </>
+                    ) : filtersActive ? (
                       <>
                         No accounts match {activeFilterText}.{" "}
                         <button type="button" className="tvp-link" onClick={clearFilters}>
