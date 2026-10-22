@@ -1048,60 +1048,6 @@ function QIPage() {
                             },
                           ]}
                         />
-                        <div hidden className="flex gap-1" style={{ justifyContent: "flex-end" }}>
-                          <button
-                            className="tvp-mini-btn"
-                            title={
-                              r.talent_name
-                                ? r.shared_with_talent
-                                  ? "Shared with talent — click to hide"
-                                  : "Share with linked talent"
-                                : "Set a talent to enable sharing"
-                            }
-                            onClick={() =>
-                              r.talent_name &&
-                              toggleShare.mutate({ id: r.id, shared: !r.shared_with_talent })
-                            }
-                            disabled={!r.talent_name}
-                            style={{
-                              opacity: r.talent_name ? 1 : 0.4,
-                              color: r.shared_with_talent ? "var(--tvp-green)" : undefined,
-                            }}
-                          >
-                            <Link2 className="h-4 w-4" />
-                          </button>
-                          {r.kind === "quote" && !linkedInvoice && (
-                            <button
-                              className="tvp-mini-btn"
-                              data-tour="billing-convert"
-                              title="Convert to invoice"
-                              onClick={() => convert.mutate(r)}
-                            >
-                              <ArrowRightLeft className="h-4 w-4" />
-                            </button>
-                          )}
-                          {r.kind === "invoice" && r.status !== "draft" && (
-                            <button
-                              className="tvp-mini-btn"
-                              title="Payments received"
-                              onClick={() => setPaymentsDocId(r.id)}
-                            >
-                              <Wallet className="h-4 w-4" />
-                            </button>
-                          )}
-                          <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(r)}>
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            className="tvp-mini-btn"
-                            title="Delete"
-                            onClick={() => {
-                              if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
                       </td>
                     </tr>
                   );
