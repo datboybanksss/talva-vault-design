@@ -63,6 +63,9 @@ export const Route = createFileRoute("/api/public/hooks/talent-reminders")({
           const { purgeClosedIndependentInviteDocuments } =
             await import("@/lib/independent-invite-purge.server");
           const purged = await purgeClosedIndependentInviteDocuments();
+          // Same daily run: remove files of permanently removed, never-shared documents.
+          const { drainDocumentStoragePurgeQueue } = await import("@/lib/document-purge.server");
+          await drainDocumentStoragePurgeQueue();
           return new Response(
             JSON.stringify({ ok: true, ...result, purged_invites: purged.invitations }),
             {

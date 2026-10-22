@@ -7,6 +7,8 @@ import {
   fmtLongDate,
 } from "@/lib/document-blocks";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { RecentlyDeletedDialog } from "@/components/agency/recently-deleted-dialog";
+import { stopSharingConfirmText } from "@/lib/document-settings";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Upload,
@@ -58,6 +60,7 @@ import {
   registerAgencyVaultDocument,
   getAgencyVaultSignedUrl,
   deleteAgencyVaultDocument,
+  stopSharingDocument,
   agencyWhoami,
   listAgencyDocumentVersions,
   registerAgencyDocumentVersion,
@@ -366,11 +369,13 @@ function VaultPage() {
   const registerFn = useServerFn(registerAgencyVaultDocument);
   const signedFn = useServerFn(getAgencyVaultSignedUrl);
   const deleteFn = useServerFn(deleteAgencyVaultDocument);
+  const stopSharingFn = useServerFn(stopSharingDocument);
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: () => {
-      toast.success("Document deleted");
+      toast.success("Moved to Recently deleted");
       qc.invalidateQueries({ queryKey: ["agency", "vault"] });
     },
     onError: (e: any) => {
@@ -510,11 +515,17 @@ function VaultPage() {
   return (
     <>
       {confirmDialog}
+      {showDeleted && <RecentlyDeletedDialog onClose={() => setShowDeleted(false)} />}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Document Vault</h1>
         </div>
         <div className="tvp-actions" data-tour="vault-actions">
+          {isOwner && (
+            <button className="tvp-secondary" onClick={() => setShowDeleted(true)}>
+              <Trash2 className="h-4 w-4" /> Recently deleted
+            </button>
+          )}
           <button
             className={mode === "search" ? "tvp-primary" : "tvp-secondary"}
             onClick={() => {
@@ -1009,6 +1020,26 @@ function VaultPage() {
                                     disabledReason: changeBlock ? blockText(changeBlock) : null,
                                     onSelect: () => setNewVersionFor(d),
                                   },
+                                  !readOnly &&
+                                    d.originator !== "talent" && {
+                                      key: "stopsharing",
+                                      label: "Stop sharing",
+                                      icon: X,
+                                      onSelect: async () => {
+                                        const ok = await confirm({
+                                          title: `Stop sharing "${d.name}"?`,
+                                          body: `${stopSharingConfirmText(d.talentName)} It will no longer appear as newly shared or updated.`,
+                                          confirmLabel: "Stop sharing",
+                                        });
+                                        if (!ok) return;
+                                        try {
+                                          await stopSharingFn({ data: { id: d.id } });
+                                          toast.success("Sharing stopped");
+                                        } catch (e: any) {
+                                          toast.error(friendlyError(e, "Sharing couldn't be stopped."));
+                                        }
+                                      },
+                                    },
                                   !readOnly && {
                                     key: "delete",
                                     label: "Delete document",
@@ -1020,7 +1051,7 @@ function VaultPage() {
                                     onSelect: async () => {
                                       const ok = await confirm({
                                         title: `Delete "${d.name}"?`,
-                                        body: "This removes the file and all its versions. It can't be undone.",
+                                        body: "It moves to Recently deleted, where the agency owner can restore it until the recovery period ends. Anything already shared with the talent stays available to them.",
                                         confirmLabel: "Delete document",
                                         destructive: true,
                                       });

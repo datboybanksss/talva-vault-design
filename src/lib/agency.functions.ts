@@ -1860,7 +1860,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: row, error } = await supabase
@@ -1904,24 +1904,19 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
     });
     if (block) throw new Error(blockText(block));
 
-    // Delete the record first: if the database refuses (retention lock set a
-    // moment ago, restricted folder), no file is touched.
-    const { data: deleted, error: dErr } = await supabase
-      .from("talent_shared_documents")
-      .delete()
-      .eq("id", row.id)
-      .select("id");
+    // Never removed directly: the database moves it to Recently deleted, re-checks
+    // every rule, and writes the audit entry.
+    const { data: purgeAfter, error: dErr } = await supabase.rpc("soft_delete_agency_document", {
+      _doc_id: row.id,
+    });
     if (dErr) {
-      if (/RETENTION_LOCKED/.test(dErr.message)) {
-        const { data: fresh } = await supabase
-          .from("talent_shared_documents")
-          .select("locked_until")
-          .eq("id", row.id)
-          .maybeSingle();
+      const m = dErr.message ?? "";
+      if (/RETENTION_LOCKED/.test(m)) {
+        const until = m.match(/RETENTION_LOCKED: (.+)$/)?.[1] ?? effectiveLock;
         const again = agencyDocumentDeleteBlock({
           originator: "agency",
           talentName,
-          lockedUntil: latestLock([(fresh?.locked_until as string) ?? null, effectiveLock]),
+          lockedUntil: until ? new Date(until).toISOString() : null,
           linkStatus: null,
           agencyReadOnly: false,
         });
@@ -1929,32 +1924,53 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
           again ? blockText(again) : "This document is protected, so it can't be deleted. You can upload a new version instead.",
         );
       }
-      throw new Error(dErr.message);
+      if (/NO_FOLDER_ACCESS/.test(m)) throw new Error(blockText(NO_FOLDER_ACCESS));
+      if (/DOCUMENT_NOT_FOUND/.test(m))
+        throw new Error("This document is no longer in your vault. Refresh the page to see the latest list.");
+      throw new Error(m);
     }
-    if (!deleted || deleted.length === 0) throw new Error(blockText(NO_FOLDER_ACCESS));
-    const paths = Array.from(
-      new Set(
-        [
-          row.storage_path as string | null,
-          ...(versions ?? []).map((v: any) => v.storage_path),
-        ].filter(Boolean) as string[],
-      ),
-    );
-    if (paths.length) {
-      await supabase.storage.from("talent-documents").remove(paths);
-    }
+    return { ok: true, purgeAfter: (purgeAfter as string | null) ?? null };
+  });
 
-    await logAgencyAudit(
-      supabase,
-      agencyId,
-      userId,
-      claims?.email,
-      "delete_vault_document",
-      "talent_shared_document",
-      row.id,
-      row.name,
-      { folder: row.folder, storage_path: row.storage_path },
-    );
+export const listRecentlyDeletedDocuments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data, error } = await supabase.rpc("list_recently_deleted_documents", {
+      _agency_id: agencyId,
+    });
+    if (error) {
+      if (/OWNER_ONLY/.test(error.message)) return { canView: false, rows: [] as any[] };
+      throw new Error(error.message);
+    }
+    return { canView: true, rows: (data ?? []) as any[] };
+  });
+
+export const restoreDeletedDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await getWritableCallerAgency(supabase, userId);
+    const { error } = await supabase.rpc("restore_deleted_document", { _doc_id: data.id });
+    if (error) {
+      if (/OWNER_ONLY/.test(error.message)) throw new Error("Only the agency owner can restore documents.");
+      if (/DOCUMENT_NOT_FOUND/.test(error.message))
+        throw new Error("This document is no longer in Recently deleted. Refresh the page.");
+      throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+export const stopSharingDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await getWritableCallerAgency(supabase, userId);
+    const { error } = await supabase.rpc("stop_sharing_document", { _doc_id: data.id });
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
@@ -2021,6 +2037,12 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
     if (data.scope === "document") {
       const { NO_OVERRIDE_MESSAGE } = await import("@/lib/document-blocks");
       throw new Error(NO_OVERRIDE_MESSAGE);
+    }
+    {
+      const { data: min } = await supabase.rpc("document_setting", { _name: "min_retention_years" });
+      const { retentionBelowMinimum } = await import("@/lib/document-settings");
+      const below = retentionBelowMinimum(data.retention_years, (min as number | null) ?? null);
+      if (below) throw new Error(below);
     }
 
     const payload: Record<string, unknown> = {
