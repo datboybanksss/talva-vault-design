@@ -448,7 +448,10 @@ function RecordsDialog({
       ]),
     ]);
   return (
-    <ModalShell title={`${title} · ${rows.length}`} onClose={onClose} wide>
+    <ModalShell onClose={onClose} maxWidth={1040} labelledBy="lr-records-title">
+      <div className="tvp-panel-head">
+        <h2 className="tvp-h2" id="lr-records-title">{title} · {rows.length}</h2>
+      </div>
       <div className="tvp-table-wrap">
         <table className="tvp-table">
           <thead>
