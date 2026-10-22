@@ -17,7 +17,7 @@ import {
   type InvitationType,
 } from "@/lib/invitation-filters";
 
-export const INVITATION_TYPE_LABEL: Record<InvitationType, string> = {
+const INVITATION_TYPE_LABEL: Record<InvitationType, string> = {
   agency: "Agency",
   talent: "Talent",
 };

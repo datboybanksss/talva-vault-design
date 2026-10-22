@@ -79,3 +79,8 @@
 - [x] Make CI lint failures blocking.
 - [x] Run tests and inspect automatic validation; report approval-required lint debt.
 - [ ] Resolve remaining lint debt — awaiting approval for type refactors, draft hydration effects and mixed-export refactors; see LINT-TRIAGE.md.
+
+## Admin sidebar: Invitations and Accounts — 22 October 2026
+- [x] Invitations page uses the shared overview list (type/status filters in the URL, View all carries filters).
+- [x] Agencies page becomes Accounts (agencies + talent), server-filtered and paged; old /admin/agencies redirects.
+- [x] Sidebar, titles, overview card links and guides renamed.
