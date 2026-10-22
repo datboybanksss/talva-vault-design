@@ -123,9 +123,9 @@ export async function resolveDeniedDestination(
 export type MfaGate = "ok" | "enrol" | "challenge";
 
 /**
- * Mandatory emailed-code sign-in, restored at Lara's request.
+ * TEMPORARILY OFF for testing at Lara's request (22 Oct 2026). Set back to true to restore.
  */
-export const MFA_ENFORCED = true;
+export const MFA_ENFORCED = false;
 
 /**
  * Two-step sign-in state for the current session, resolved server-side from
