@@ -2,8 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import {
+  inLaunchWindow,
+  inviteBucket,
   invitationFunnel,
   launchOffer,
+  matchesInviteFilter,
   launchProgress,
   parseLaunchSettings,
   sastRange,
@@ -257,17 +260,71 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       ...memberIds,
     ]);
     const accInRange = accRows
-      .filter((a) => scopedUsers.has(a.user_id) || (scope !== "real" && !memberAgency.has(a.user_id) && !allTalent.some((t) => t.user_id === a.user_id)) ? true : scopedUsers.has(a.user_id))
+      .filter((a) => scopedUsers.has(a.user_id))
       .filter((a) => a.accepted_at >= range.fromIso && a.accepted_at <= range.toIso)
       .filter((a) => data.type === "all" || a.doc_type === data.type)
       .map((a) => ({ ...a, is_current: currentIds.has(a.document_id) }));
 
     const page = <T,>(rows: T[], offset: number) => rows.slice(offset, offset + data.limit);
 
+    // Raw records behind each card: same filters, so row counts equal the card figures.
+    const inviteByEmail = new Map<string, any>();
+    for (const i of invites) if (i.type === "talent" && !inviteByEmail.has(i.email)) inviteByEmail.set(i.email, i);
+    const recordTalent = talentRows
+      .filter((t) => inLaunchWindow(t.activation_completed_at, settings))
+      .map((t) => {
+        const inv = inviteByEmail.get(String(t.email ?? "").trim().toLowerCase());
+        const ags = agenciesOfTalent.get(t.user_id) ?? [];
+        return {
+          id: t.user_id,
+          name: t.full_name ?? "",
+          email: t.email ?? "",
+          type: "talent" as const,
+          is_test: !!t.is_test,
+          agency: ags.length ? ags.join(", ") : "Independent",
+          invited_at: inv?.first_sent_at ?? inv?.created_at ?? null,
+          signed_up_at: t.activation_completed_at,
+          status: "active",
+          offer_place: inv ? placeById.get(inv.id) ?? null : null,
+        };
+      });
+    const recordAgencies = agencyAcc
+      .filter((a) => inLaunchWindow(a.accepted_at, settings))
+      .map((a) => {
+        const ag = a.agency_id ? agencyById.get(a.agency_id) : null;
+        return {
+          id: a.id,
+          name: ag?.name ?? a.agency_name ?? "",
+          email: a.email ?? "",
+          type: "agency" as const,
+          is_test: !!ag?.is_test,
+          agency: null,
+          invited_at: a.first_sent_at ?? a.created_at,
+          signed_up_at: a.accepted_at,
+          status: ag?.status ?? "accepted",
+          offer_place: placeById.get(a.id) ?? null,
+        };
+      });
+    const recordInvites = scopedInvites
+      .filter((r) => matchesInviteFilter(r, { ...range, type: data.type, segment: data.segment }))
+      .map((r: any) => ({
+        id: r.id,
+        name: r.name ?? "",
+        email: r.email,
+        type: r.type,
+        is_test: !!r.is_test,
+        agency: r.type === "talent" ? (r.segment === "independent" ? "Independent" : "Agency-linked") : null,
+        invited_at: r.first_sent_at ?? r.created_at,
+        signed_up_at: r.accepted_at,
+        status: inviteBucket(r, nowIso),
+        offer_place: placeById.get(r.id) ?? null,
+      }));
+
     return {
       generatedAt: nowIso,
       settings,
       progress,
+      records: { talent: recordTalent, agencies: recordAgencies, invitations: recordInvites },
       offer: {
         talent: { places: offer.talent.places, allocated: offer.talent.allocated, used: offer.talent.used },
         agency: { places: offer.agency.places, allocated: offer.agency.allocated, used: offer.agency.used },
