@@ -5421,7 +5421,7 @@ a.tvp-entity-card:focus-visible {
 
 /* Shared filter bar (Admin Invitations + Accounts): labelled Select fields
    using the standard form-field look (same as .tvp-form-group controls). */
-.tv-app .tvp-filter-bar {
+:is(.tv-app, .tvp-modal) .tvp-filter-bar {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -5429,18 +5429,18 @@ a.tvp-entity-card:focus-visible {
   gap: var(--sp-3) var(--sp-4);
   margin: 0 0 var(--sp-4);
 }
-.tv-app .tvp-filter-field {
+:is(.tv-app, .tvp-modal) .tvp-filter-field {
   display: grid;
   gap: var(--sp-1);
   width: 220px;
   max-width: 100%;
 }
-.tv-app .tvp-filter-label {
+:is(.tv-app, .tvp-modal) .tvp-filter-label {
   font-size: 12px;
   font-weight: 900;
   color: var(--tvp-ink);
 }
-.tv-app .tvp-filter-control {
+:is(.tv-app, .tvp-modal) .tvp-filter-control {
   height: 42px;
   padding: 0 var(--sp-3);
   border: 1px solid var(--tvp-line-strong);
@@ -5452,12 +5452,12 @@ a.tvp-entity-card:focus-visible {
   box-shadow: none;
   transition: border-color 0.15s ease;
 }
-.tv-app .tvp-filter-control:hover {
+:is(.tv-app, .tvp-modal) .tvp-filter-control:hover {
   border-color: var(--tvp-teal-2);
 }
-.tv-app .tvp-filter-control:focus,
-.tv-app .tvp-filter-control:focus-visible,
-.tv-app .tvp-filter-control[data-state="open"] {
+:is(.tv-app, .tvp-modal) .tvp-filter-control:focus,
+:is(.tv-app, .tvp-modal) .tvp-filter-control:focus-visible,
+:is(.tv-app, .tvp-modal) .tvp-filter-control[data-state="open"] {
   outline: none;
   border-color: var(--tvp-teal-2);
   box-shadow: var(--focus-ring);
@@ -5466,7 +5466,7 @@ a.tvp-entity-card:focus-visible {
   font-family: inherit;
   font-size: 13px;
 }
-.tv-app .tvp-filter-clear {
+:is(.tv-app, .tvp-modal) .tvp-filter-clear {
   height: 42px;
   background: none;
   border: 0;
@@ -5475,23 +5475,23 @@ a.tvp-entity-card:focus-visible {
   cursor: pointer;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tv-app .tvp-filter-control {
+  :is(.tv-app, .tvp-modal) .tvp-filter-control {
     transition: none;
   }
 }
 @media (max-width: 560px) {
-  .tv-app .tvp-filter-field {
+  :is(.tv-app, .tvp-modal) .tvp-filter-field {
     flex: 1 1 100%;
     width: 100%;
   }
 }
-.tv-app .tvp-filter-search {
+:is(.tv-app, .tvp-modal) .tvp-filter-search {
   width: 300px;
 }
-.tv-app .tvp-filter-search-wrap {
+:is(.tv-app, .tvp-modal) .tvp-filter-search-wrap {
   position: relative;
 }
-.tv-app .tvp-filter-search-icon {
+:is(.tv-app, .tvp-modal) .tvp-filter-search-icon {
   position: absolute;
   left: var(--sp-3);
   top: 50%;
@@ -5499,18 +5499,18 @@ a.tvp-entity-card:focus-visible {
   color: var(--tvp-muted);
   pointer-events: none;
 }
-.tv-app .tvp-filter-search-input {
+:is(.tv-app, .tvp-modal) .tvp-filter-search-input {
   width: 100%;
   padding-left: calc(var(--sp-3) + 16px + var(--sp-2));
   padding-right: calc(var(--sp-3) + 16px + var(--sp-2));
 }
-.tv-app .tvp-filter-search-input::-webkit-search-cancel-button {
+:is(.tv-app, .tvp-modal) .tvp-filter-search-input::-webkit-search-cancel-button {
   display: none;
 }
-.tv-app .tvp-filter-search-input::placeholder {
+:is(.tv-app, .tvp-modal) .tvp-filter-search-input::placeholder {
   color: var(--tvp-muted);
 }
-.tv-app .tvp-filter-search-clear {
+:is(.tv-app, .tvp-modal) .tvp-filter-search-clear {
   position: absolute;
   right: var(--sp-2);
   top: 50%;
@@ -5523,15 +5523,15 @@ a.tvp-entity-card:focus-visible {
   color: var(--tvp-muted);
   cursor: pointer;
 }
-.tv-app .tvp-filter-search-clear:hover {
+:is(.tv-app, .tvp-modal) .tvp-filter-search-clear:hover {
   color: var(--tvp-ink);
 }
-.tv-app .tvp-filter-search-clear:focus-visible {
+:is(.tv-app, .tvp-modal) .tvp-filter-search-clear:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 @media (max-width: 560px) {
-  .tv-app .tvp-filter-search {
+  :is(.tv-app, .tvp-modal) .tvp-filter-search {
     width: 100%;
   }
 }
