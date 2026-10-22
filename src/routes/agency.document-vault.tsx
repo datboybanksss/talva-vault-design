@@ -358,12 +358,10 @@ function VaultPage() {
   const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
   const [versionsFor, setVersionsFor] = useState<VaultDoc | null>(null);
   const [newVersionFor, setNewVersionFor] = useState<VaultDoc | null>(null);
-  const [overrideFor, setOverrideFor] = useState<VaultDoc | null>(null);
   const [aiReviewFor, setAiReviewFor] = useState<{ id: string; name: string } | null>(null);
   const aiRow = useAnalyseWithAi("agency");
 
   const isOwner = me?.role === "owner";
-  const upsertRuleFn = useServerFn(upsertAgencyRetentionRule);
 
   const registerFn = useServerFn(registerAgencyVaultDocument);
   const signedFn = useServerFn(getAgencyVaultSignedUrl);
@@ -1847,79 +1845,3 @@ function NewVersionDialog({
 // ---------------------------------------------------------------------------
 // Per-document retention override dialog
 // ---------------------------------------------------------------------------
-function OverrideDialog({
-  doc,
-  onClose,
-  onSave,
-}: {
-  doc: VaultDoc;
-  onClose: () => void;
-  onSave: (years: number, description: string) => Promise<void>;
-}) {
-  const [years, setYears] = useState<number>(5);
-  const [description, setDescription] = useState<string>("");
-  const [busy, setBusy] = useState(false);
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-      }}
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setBusy(true);
-          try {
-            await onSave(Number(years), description);
-          } finally {
-            setBusy(false);
-          }
-        }}
-        className="tvp-card"
-        style={{ width: 480, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
-      >
-        <h2 className="tvp-h2">Set retention override</h2>
-        <p className="tvp-muted" style={{ fontSize: 13 }}>
-          Locks "{doc.name}" from deletion for the specified number of years from its upload date.
-          This overrides any folder-level rule for this document.
-        </p>
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
-          Retention (years)
-        </label>
-        <input
-          className="tvp-select"
-          type="number"
-          min={0}
-          max={100}
-          value={years}
-          onChange={(e) => setYears(Number(e.target.value))}
-          required
-        />
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
-          Description (optional)
-        </label>
-        <input
-          className="tvp-select"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-          <button type="submit" className="tvp-primary" disabled={busy}>
-            Set override
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
