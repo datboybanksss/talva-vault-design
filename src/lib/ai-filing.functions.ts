@@ -154,7 +154,6 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
     let fileName = "";
 
     if (data.scope === "talent") {
-      await assertTalentWritable(supabase, userId);
       const { data: doc, error } = await supabase
         .from("talent_private_documents")
         .select("id, user_id, name, folder_id, expires_at")
