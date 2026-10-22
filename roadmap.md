@@ -1,5 +1,13 @@
 # Roadmap
 
+## Terms gate — 22 October 2026
+- [x] Investigate current IDs/schema: both UUIDs, default and partial unique index already correct; legal proofs unchanged.
+- [x] Locate full v1.2 texts without making them current: none found in repo or database.
+- [x] Restyle gate and long-document reader; require scrolling before agreement.
+- [x] Test validation, exact-body hashes and simulated role acceptance; verify isolated light/dark/mobile layout.
+- [ ] Resolve original invalid-ID failure — blocked on the failing request's actual document_id; live data does not reproduce it.
+- [ ] Verify real owner/staff/talent acceptance — blocked on usable role sessions; restored self-session returns to sign-in.
+
 ## Trusted contact rename
 - [x] Rename visible terminology centrally without changing internal names or stored/legal text.
 - [x] Audit legal and stored occurrences; verify remaining source hits and automatic validation.

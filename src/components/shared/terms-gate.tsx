@@ -1,90 +1,111 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ModalShell } from "@/components/shared/modal-shell";
+import { DocumentModal } from "@/components/shared/document-modal";
 import { LegalDocumentView } from "@/components/shared/legal-document-view";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { termsGateError } from "@/lib/terms-gate-core";
 import {
   acceptCurrentTerms,
   getMyTermsStatus,
   type TermsPortal,
+  type TermsStatus,
 } from "@/lib/terms-acceptance.functions";
 
-/**
- * Blocks the portal until the signed-in user has accepted the current Terms
- * & Conditions for their role. The portal content is not rendered meanwhile.
- */
+/** Keep portal content unmounted until the Terms status is known. */
 export function TermsGate({ portal, children }: { portal: TermsPortal; children: ReactNode }) {
   const statusFn = useServerFn(getMyTermsStatus);
-  const acceptFn = useServerFn(acceptCurrentTerms);
-  const qc = useQueryClient();
-  const [agreed, setAgreed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const { data } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["terms-status", portal],
     queryFn: () => statusFn({ data: { portal } }),
     staleTime: 60_000,
+    refetchOnMount: "always",
   });
-
+  if (isPending || isError) {
+    return (
+      <DocumentModal title="Terms & Conditions" onClose={() => undefined} busy className="tvp-terms-modal">
+        <p role="status">{isError ? "We couldn't load your Terms & Conditions. Please try again." : "Loading Terms & Conditions…"}</p>
+        {isError && <Button onClick={() => void refetch()}>Try again</Button>}
+        <SignOut />
+      </DocumentModal>
+    );
+  }
   if (!data?.required || !data.current) return <>{children}</>;
-  const doc = data.current;
-  const hadPrevious = data.acceptances.some((a) => a.doc_type === portal);
+  return <TermsAgreement key={`${portal}:${data.current.id}:${data.current.body_sha256}`} portal={portal} doc={data.current} hadPrevious={data.acceptances.some((a) => a.doc_type === portal)} />;
+}
+
+function SignOut({ disabled = false }: { disabled?: boolean }) {
+  return <Button variant="secondary" className="tvp-secondary" disabled={disabled} onClick={async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      window.location.href = "/auth";
+    } catch {
+      toast.error("We couldn't sign you out. Please try again.");
+    }
+  }}>Sign out</Button>;
+}
+
+function TermsAgreement({ portal, doc, hadPrevious }: {
+  portal: TermsPortal;
+  doc: NonNullable<TermsStatus["current"]>;
+  hadPrevious: boolean;
+}) {
+  const acceptFn = useServerFn(acceptCurrentTerms);
+  const qc = useQueryClient();
+  const [agreed, setAgreed] = useState(false);
+  const [readToEnd, setReadToEnd] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const reachedEnd = useCallback(() => setReadToEnd(true), []);
+  const title = hadPrevious ? "Our Terms & Conditions have been updated" : "Please accept our Terms & Conditions";
+  const effective = new Date(doc.effective_at);
+  const effectiveDate = Number.isNaN(effective.getTime()) ? null : effective.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
   async function accept() {
+    if (!readToEnd || !agreed || busy) return;
     setBusy(true);
     try {
-      const res = await acceptFn({ data: { portal, document_id: doc.id } });
-      toast.success(
-        res.proof_ref ? `Thank you. Your proof reference is ${res.proof_ref}.` : "Thank you.",
-      );
-      // Everything refused before acceptance (bell, counts, pages) reloads now.
+      const res = await acceptFn({ data: { portal, document_id: doc.id, body_sha256: doc.body_sha256 } });
+      toast.success(res.proof_ref ? `Thank you. Your proof reference is ${res.proof_ref}.` : "Thank you.");
       await qc.invalidateQueries();
-    } catch (e: any) {
-      toast.error(e?.message ?? "We couldn't record your acceptance. Please try again.");
+    } catch (error: unknown) {
+      toast.error(termsGateError(error));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <ModalShell
-      onClose={() => undefined}
-      closeOnBackdrop={false}
-      maxWidth={720}
-      labelledBy="terms-gate-title"
-    >
-      <div style={{ padding: 24 }}>
-        <h2 id="terms-gate-title" className="tvp-h2" style={{ margin: 0 }}>
-          {hadPrevious
-            ? "Our Terms & Conditions have been updated"
-            : "Please accept our Terms & Conditions"}
-        </h2>
-        <p className="tvp-muted" style={{ marginTop: 6 }}>
-          {doc.title} · version {doc.version}. Please read them before you continue to your portal.
+    <DocumentModal title={title} onClose={() => undefined} busy className="tvp-terms-modal">
+      <header className="tvp-terms-header">
+        <h2 className="tvp-terms-title">{title}</h2>
+        <p className="tvp-terms-document-title">{doc.title}</p>
+        <div className="tvp-terms-meta">
+          <span>Version {doc.version}</span>
+          {effectiveDate && <span>Effective <time dateTime={doc.effective_at}>{effectiveDate}</time></span>}
+        </div>
+      </header>
+      <LegalDocumentView body={doc.body} maxHeight={380} onReachedEnd={reachedEnd} />
+      <div className="tvp-terms-agreement">
+        <p id="terms-scroll-help" className="tvp-terms-helper" aria-live="polite">
+          {readToEnd ? "You can now confirm your agreement." : "Scroll to the end of the document to enable the agreement checkbox."}
         </p>
-        <LegalDocumentView body={doc.body} maxHeight={380} />
-        <label
-          style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 14, fontSize: 14 }}
-        >
-          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-          <span>I have read and accept these Terms & Conditions (version {doc.version}).</span>
-        </label>
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-          <button
-            className="tvp-secondary"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              window.location.href = "/auth";
-            }}
-          >
-            Sign out
-          </button>
-          <button className="tvp-primary" disabled={!agreed || busy} onClick={accept}>
-            {busy ? "Recording…" : "Accept and continue"}
-          </button>
+        <div className="tvp-terms-checkbox-row">
+          <Checkbox id="terms-agreed" aria-describedby="terms-scroll-help" checked={agreed} disabled={!readToEnd || busy} onCheckedChange={(checked) => setAgreed(checked === true)} />
+          <label htmlFor="terms-agreed">I have read and accept these Terms & Conditions (version {doc.version}).</label>
         </div>
       </div>
-    </ModalShell>
+      <footer className="tvp-terms-actions">
+        <SignOut disabled={busy} />
+        <Button className="tvp-primary" disabled={!readToEnd || !agreed || busy} aria-busy={busy} onClick={accept}>
+          {busy && <LoaderCircle className="tvp-terms-spinner" aria-hidden="true" />}
+          {busy ? "Recording…" : "Accept and continue"}
+        </Button>
+      </footer>
+    </DocumentModal>
   );
 }
