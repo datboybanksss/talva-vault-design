@@ -26,7 +26,7 @@ export const Route = createFileRoute("/agency/my-account")({
       { title: "My Account · TalVault Agency" },
       {
         name: "description",
-        content: "Your agency profile, sign-in email, password and two-factor settings.",
+        content: "Your agency profile, sign-in email, password and sign-in security.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -56,7 +56,7 @@ function MyAccountPage() {
         <div>
           <h1 className="tvp-h1">My Account</h1>
           <div className="tvp-subtitle">
-            Your personal profile, sign-in email, password and two-factor settings. Changes only
+            Your personal profile, sign-in email, password and sign-in security. Changes only
             affect your own account.
           </div>
         </div>

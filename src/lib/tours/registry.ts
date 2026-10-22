@@ -59,7 +59,7 @@ export const GUIDES: TourGuide[] = [
         key: "settings",
         selector: '[data-tour="/talent/settings"]',
         title: "Settings",
-        body: "Manage which folder categories are active, notification reminders, your password and two-factor authentication.",
+        body: "Manage which folder categories are active, notification reminders, your password and sign-in security.",
       },
     ],
   },
@@ -782,7 +782,7 @@ export const GUIDES: TourGuide[] = [
         key: "administrators",
         selector: '[data-tour="/admin/administrators"]',
         title: "Administrators",
-        body: "Manage who has platform admin access and their two-factor enrolment.",
+        body: "Manage who has platform admin access and whether each has signed in with an emailed code.",
       },
       {
         key: "audit",
