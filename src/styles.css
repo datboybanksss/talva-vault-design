@@ -6059,3 +6059,22 @@ a.tvp-entity-card:focus-visible {
   width: var(--radix-popover-trigger-width);
   min-width: 260px;
 }
+
+/* Disabled row action with its reason underneath (visible on touch too). */
+.tvp-kebab-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tvp-kebab-reason {
+  max-width: 260px;
+  color: var(--tvp-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+}
+.tvp-kebab-item[data-disabled] .tvp-kebab-reason {
+  opacity: 1;
+}
