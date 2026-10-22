@@ -1,5 +1,11 @@
 import { useId } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type FilterOption = { value: string; label: string; count?: number };
 export type FilterDef = {
