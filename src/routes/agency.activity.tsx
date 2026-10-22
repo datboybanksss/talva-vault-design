@@ -437,7 +437,7 @@ function AgencyActivityLog() {
 
       <div className="tvp-card tvp-panel">
         <div className="flex flex-wrap gap-2 pb-4">
-          <FilterBar onChange={(_, v) => setCategory(v)} filters={[{ key: "category", label: "Category", value: category, options: CATEGORY_CHIPS.map((c) => ({ value: c.key, label: c.label, count: counts[c.key] ?? 0 })) }]} />
+          <FilterBar onChange={(_, v) => setCategory(v as typeof category)} filters={[{ key: "category", label: "Category", value: category, options: CATEGORY_CHIPS.map((c) => ({ value: c.key, label: c.label, count: counts[c.key] ?? 0 })) }]} />
           <div
             className="tvp-muted"
             style={{ alignSelf: "center", fontSize: 12, marginLeft: "auto" }}

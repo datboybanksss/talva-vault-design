@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -238,57 +239,7 @@ function TermsAcceptancesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <select
-            aria-label="Terms type"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            style={{ maxWidth: 150 }}
-          >
-            <option value="all">All types</option>
-            <option value="talent">Talent</option>
-            <option value="agency">Agency</option>
-          </select>
-          {view === "accepted" && (
-            <select
-              aria-label="Version"
-              value={version}
-              onChange={(e) => setVersion(e.target.value)}
-              style={{ maxWidth: 140 }}
-            >
-              <option value="all">All versions</option>
-              {versions.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          )}
-          <select
-            aria-label="Role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            style={{ maxWidth: 160 }}
-          >
-            <option value="all">All roles</option>
-            {Object.entries(ROLE_LABEL).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Agency"
-            value={agency}
-            onChange={(e) => setAgency(e.target.value)}
-            style={{ maxWidth: 200 }}
-          >
-            <option value="all">All agencies</option>
-            {agencies.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
+          <FilterBar onChange={(k, v) => (k === "type" ? setType(v) : k === "version" ? setVersion(v) : k === "role" ? setRole(v) : setAgency(v))} filters={[{ key: "type", label: "Terms type", value: type, options: [{ value: "all", label: "All types" }, { value: "talent", label: "Talent" }, { value: "agency", label: "Agency" }] }, ...(view === "accepted" ? [{ key: "version", label: "Version", value: version, options: [{ value: "all", label: "All versions" }, ...versions.map((v) => ({ value: v, label: v }))] }] : []), { key: "role", label: "Role", value: role, options: [{ value: "all", label: "All roles" }, ...Object.entries(ROLE_LABEL).map(([k, v]) => ({ value: k, label: v }))] }, { key: "agency", label: "Agency", value: agency, options: [{ value: "all", label: "All agencies" }, ...agencies.map(([id, name]) => ({ value: id, label: name }))] }]} />
           {view === "accepted" && (
             <>
               <input

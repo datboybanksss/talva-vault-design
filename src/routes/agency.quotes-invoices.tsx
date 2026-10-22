@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
@@ -864,50 +865,7 @@ function QIPage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <select
-                className="tvp-select"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All statuses</option>
-                {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_LABEL[s]}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="tvp-select"
-                value={talentFilter}
-                onChange={(e) => setTalentFilter(e.target.value)}
-              >
-                <option value="all">All talent</option>
-                {talents.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="tvp-select"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              >
-                <option value="all">All types</option>
-                <option value="quote">Quote</option>
-                <option value="invoice">Invoice</option>
-              </select>
-              <select
-                className="tvp-select"
-                value={sort}
-                onChange={(e) => setSort(e.target.value as SortKey)}
-              >
-                <option value="newest">Sort: Newest</option>
-                <option value="oldest">Sort: Oldest</option>
-                <option value="amount_desc">Sort: Amount ↓</option>
-                <option value="amount_asc">Sort: Amount ↑</option>
-                <option value="due">Sort: Due date</option>
-              </select>
+              <FilterBar onChange={(k, v) => (k === "status" ? setStatusFilter(v) : k === "talent" ? setTalentFilter(v) : k === "type" ? setTypeFilter(v) : setSort(v as SortKey))} filters={[{ key: "status", label: "Status", value: statusFilter, options: [{ value: "all", label: "All statuses" }, ...(Object.keys(STATUS_LABEL) as Row["status"][]).map((x) => ({ value: x, label: STATUS_LABEL[x] }))] }, { key: "talent", label: "Talent", value: talentFilter, options: [{ value: "all", label: "All talent" }, ...talents.map((t) => ({ value: t, label: t }))] }, { key: "type", label: "Type", value: typeFilter, options: [{ value: "all", label: "All types" }, { value: "quote", label: "Quote" }, { value: "invoice", label: "Invoice" }] }, { key: "sort", label: "Sort", value: sort, options: [{ value: "newest", label: "Newest" }, { value: "oldest", label: "Oldest" }, { value: "amount_desc", label: "Amount ↓" }, { value: "amount_asc", label: "Amount ↑" }, { value: "due", label: "Due date" }] }]} />
             </div>
 
             <div className="tvp-life-chips" style={{ padding: "0 18px 14px" }}>

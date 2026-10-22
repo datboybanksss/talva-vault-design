@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { SHARE_RECIPIENT_TERM } from "@/lib/terms";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -279,16 +280,7 @@ function ReportingPage() {
 
       <div className="tvp-card" style={{ padding: 16, marginBottom: 18 }}>
         <div className="flex items-end gap-3" style={{ flexWrap: "wrap" }}>
-          <div className="tvp-form-group" style={{ minWidth: 200 }}>
-            <label>Date range</label>
-            <select value={preset} onChange={(e) => setPreset(e.target.value as Preset)}>
-              {(Object.keys(PRESET_LABEL) as Preset[]).map((p) => (
-                <option key={p} value={p}>
-                  {PRESET_LABEL[p]}
-                </option>
-              ))}
-            </select>
-          </div>
+          <FilterBar onChange={(_, v) => setPreset(v as Preset)} filters={[{ key: "range", label: "Date range", value: preset, options: (Object.keys(PRESET_LABEL) as Preset[]).map((p) => ({ value: p, label: PRESET_LABEL[p] })) }]} />
           {preset === "custom" && (
             <>
               <div className="tvp-form-group">
