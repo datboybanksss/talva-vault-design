@@ -1,4 +1,6 @@
 import { FilterBar } from "@/components/shared/filter-bar";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { fmtMoney } from "@/lib/billing";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Download,
@@ -52,13 +54,6 @@ const CHIPS: Array<{ key: ChipKey; label: string; tone: string }> = [
   { key: "overdue", label: "Overdue", tone: "red" },
 ];
 
-function fmtMoney(cents: number, ccy: string) {
-  return new Intl.NumberFormat("en-ZA", {
-    style: "currency",
-    currency: ccy,
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
 
 function daysAgo(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 3600 * 1000));
@@ -217,7 +212,7 @@ function QuotesInvoicesPage() {
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             <Lock className="h-3 w-3" />
-            Read-only admin reporting view · view/export is audit logged.
+            Read-only. Viewing and exporting are recorded in the audit log.
           </div>
         </div>
         <div className="tvp-actions">
@@ -240,7 +235,7 @@ function QuotesInvoicesPage() {
           </div>
           <div>
             <div className="tvp-kpi-value">{kpis.total}</div>
-            <div className="tvp-kpi-label">Total Records</div>
+            <div className="tvp-kpi-label">Total records</div>
             <div className="tvp-kpi-sub" style={{ color: "var(--tvp-muted)" }}>
               Across all agencies
             </div>
@@ -251,7 +246,7 @@ function QuotesInvoicesPage() {
             <Wallet className="h-5 w-5" />
           </div>
           <div>
-            <div className="tvp-kpi-value" style={{ fontSize: 22 }}>
+            <div className="tvp-kpi-value">
               {fmtMoney(kpis.outstanding, "ZAR")}
             </div>
             <div className="tvp-kpi-label">Outstanding</div>
@@ -268,10 +263,10 @@ function QuotesInvoicesPage() {
             <CheckCircle2 className="h-5 w-5" />
           </div>
           <div>
-            <div className="tvp-kpi-value" style={{ fontSize: 22 }}>
+            <div className="tvp-kpi-value">
               {fmtMoney(kpis.paid30, "ZAR")}
             </div>
-            <div className="tvp-kpi-label">Paid (last 30d)</div>
+            <div className="tvp-kpi-label">Paid (last 30 days)</div>
             <div
               className="tvp-kpi-sub"
               style={{ color: kpis.paid30 > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
@@ -286,7 +281,7 @@ function QuotesInvoicesPage() {
           </div>
           <div>
             <div className="tvp-kpi-value">{kpis.overdueCount}</div>
-            <div className="tvp-kpi-label">Overdue Invoices</div>
+            <div className="tvp-kpi-label">Overdue invoices</div>
             <div
               className="tvp-kpi-sub"
               style={{ color: kpis.overdueCount > 0 ? "var(--tvp-red)" : "var(--tvp-green)" }}
@@ -313,23 +308,17 @@ function QuotesInvoicesPage() {
         ))}
       </div>
 
-      <div className="tvp-card">
-        <div className="tvp-toolbar">
-          <input
-            className="tvp-search"
-            placeholder="Search number, client, agency..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <div className="tvp-row-actions" style={{ flexWrap: "wrap" }}>
-            <FilterBar onChange={(k, v) => (k === "agency" ? setAgencyFilter(v) : setTypeFilter(v))} filters={[{ key: "agency", label: "Agency", value: agencyFilter, options: [{ value: "all", label: "All agencies" }, ...agencies.map((a) => ({ value: a, label: a }))] },{ key: "type", label: "Type", value: typeFilter, options: [{ value: "all", label: "All types" }, { value: "quote", label: "Quote" }, { value: "invoice", label: "Invoice" }] }]} />
-            {filtersActive && (
-              <button className="tvp-link" onClick={resetFilters}>
-                Reset filters
-              </button>
-            )}
-          </div>
-        </div>
+      <div className="tvp-card tvp-panel">
+        <FilterBar
+          search={{ value: search, onChange: setSearch, placeholder: "Search by number, client or agency" }}
+          active={filtersActive}
+          onClear={resetFilters}
+          onChange={(k, v) => (k === "agency" ? setAgencyFilter(v) : setTypeFilter(v))}
+          filters={[
+            { key: "agency", label: "Agency", value: agencyFilter, options: [{ value: "all", label: "All agencies" }, ...agencies.map((a) => ({ value: a, label: a }))] },
+            { key: "type", label: "Type", value: typeFilter, options: [{ value: "all", label: "All types" }, { value: "quote", label: "Quote" }, { value: "invoice", label: "Invoice" }] },
+          ]}
+        />
         <div className="tvp-table-wrap">
           <table className="tvp-table" data-tour="admin-billing-table">
             <thead>
@@ -339,24 +328,25 @@ function QuotesInvoicesPage() {
                 <th>Number</th>
                 <th>Client</th>
                 <th>Issued</th>
-                <th>Total</th>
+                <th className="tvp-num">Total</th>
                 <th>Status</th>
-                <th></th>
+                <th aria-label="Actions"></th>
               </tr>
             </thead>
             <tbody>
               {q.isLoading && (
                 <tr>
                   <td colSpan={8} className="tvp-muted">
-                    Loading…
+                    Loading quotes and invoices…
                   </td>
                 </tr>
               )}
               {!q.isLoading && visible.length === 0 && (
                 <tr>
                   <td colSpan={8} className="tvp-muted">
-                    No quotes or invoices yet — records appear here as soon as agencies start
-                    creating them.
+                    {filteredRows.length === 0 && !filtersActive
+                      ? "No quotes or invoices yet. They appear here once agencies create them."
+                      : "No quotes or invoices match these filters."}
                   </td>
                 </tr>
               )}
@@ -365,24 +355,30 @@ function QuotesInvoicesPage() {
                   <td>
                     <strong>{r.agency_name}</strong>
                   </td>
-                  <td style={{ textTransform: "capitalize" }}>{r.kind}</td>
+                  <td>
+                    <span className="tvp-status st-neutral">{r.kind === "quote" ? "Quote" : "Invoice"}</span>
+                  </td>
                   <td>{r.number}</td>
                   <td>{r.client_name ?? "—"}</td>
-                  <td>{r.issued_at}</td>
-                  <td>{fmtMoney(r.total_cents, r.currency)}</td>
+                  <td>{r.issued_at ? new Date(r.issued_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
+                  <td className="tvp-num">{fmtMoney(r.total_cents, r.currency)}</td>
                   <td>
                     <span className={`tvp-status tvp-${statusTone[r.status] ?? "neutral"}`}>
                       {statusLabel[r.status] ?? r.status}
                     </span>
                   </td>
-                  <td>
-                    <button
-                      className="tvp-mini-btn"
-                      title="View-only — Admin cannot edit agency quotes/invoices (BR-QI-002)"
-                      onClick={() => toast.info("Read-only view logged to audit.")}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                  <td className="tvp-actions-cell">
+                    <RowActionsMenu
+                      label={`Actions for ${r.number}`}
+                      actions={[
+                        {
+                          key: "view",
+                          label: "View (read-only)",
+                          icon: Eye,
+                          onSelect: () => toast.info("Admins can view but not change agency quotes and invoices."),
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
