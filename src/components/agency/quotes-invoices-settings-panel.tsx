@@ -24,6 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { friendlyError } from "@/lib/friendly-error";
 
 const ACCENT_PRESETS = [
   { name: "TalVault Teal", value: "#064E58" },
@@ -94,7 +95,7 @@ export function QuotesInvoicesSettingsPanel() {
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Save failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
   });
 
   async function handleLogoUpload(file: File) {
@@ -115,7 +116,7 @@ export function QuotesInvoicesSettingsPanel() {
       toast.success("Logo uploaded");
       qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
     } catch (e: any) {
-      toast.error(e.message ?? "Upload failed");
+      toast.error(friendlyError(e, "Upload failed"));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

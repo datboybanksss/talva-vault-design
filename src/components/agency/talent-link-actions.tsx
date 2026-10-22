@@ -19,6 +19,7 @@ import {
   revokeAgencyInvitationMine,
 } from "@/lib/agency.functions";
 import { talentLinkActions } from "@/lib/status-actions";
+import { friendlyError } from "@/lib/friendly-error";
 
 export type TalentLinkRowLike = {
   id: string;
@@ -61,7 +62,7 @@ export function useTalentLinkRowActions(opts: {
       );
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not end the relationship"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not end the relationship")),
   });
   const reactivateMut = useMutation({
     mutationFn: (id: string) => reactivateFn({ data: { id } }),
@@ -69,7 +70,7 @@ export function useTalentLinkRowActions(opts: {
       toast.success("Relationship reactivated.");
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not reactivate the relationship"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not reactivate the relationship")),
   });
   const resendMut = useMutation({
     mutationFn: (invitationId: string) =>
@@ -78,7 +79,7 @@ export function useTalentLinkRowActions(opts: {
       toast.success("Invitation resent · expiry refreshed · logged.");
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not resend the invitation"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not resend the invitation")),
   });
   const revokeMut = useMutation({
     mutationFn: (invitationId: string) => revokeFn({ data: { id: invitationId, type: "talent" } }),
@@ -86,7 +87,7 @@ export function useTalentLinkRowActions(opts: {
       toast.success("Invitation revoked and logged.");
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not revoke the invitation"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not revoke the invitation")),
   });
 
   const copyLink = async (r: TalentLinkRowLike) => {

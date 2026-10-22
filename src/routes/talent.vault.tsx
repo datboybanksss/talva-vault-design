@@ -46,6 +46,7 @@ import {
   Search,
   Eye,
 } from "lucide-react";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/talent/vault")({
   head: () => ({
@@ -216,7 +217,7 @@ function PrivateVault() {
       );
       invalidate();
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not delete.");
+      toast.error(friendlyError(e, "Could not delete."));
     }
   }
 
@@ -256,7 +257,7 @@ function PrivateVault() {
 
       if (document_id) setAiReviewFor({ id: document_id as string, name: file.name });
     } catch (err: any) {
-      toast.error(err?.message ?? "Upload failed.");
+      toast.error(friendlyError(err, "Upload failed."));
     }
   }
 
@@ -265,7 +266,7 @@ function PrivateVault() {
       const { url } = await download({ data: { id } });
       window.open(url, "_blank");
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not open file.");
+      toast.error(friendlyError(e, "Could not open file."));
     }
   }
 
@@ -274,7 +275,7 @@ function PrivateVault() {
       const { url } = await download({ data: { id } });
       setPreview({ url, name });
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not open file.");
+      toast.error(friendlyError(e, "Could not open file."));
     }
   }
 
@@ -285,7 +286,7 @@ function PrivateVault() {
       toast.success("Document deleted.");
       invalidate();
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not delete.");
+      toast.error(friendlyError(e, "Could not delete."));
     }
   }
 
@@ -754,7 +755,7 @@ function SharedDocumentsView() {
       const { url } = await download({ data: { document_id: id } });
       window.open(url, "_blank");
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not open file.");
+      toast.error(friendlyError(e, "Could not open file."));
     }
   }
 
@@ -1032,7 +1033,7 @@ function ManagerRequests() {
       qc.invalidateQueries({ queryKey: ["talent", "roster-shared"] });
       qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Upload failed");
+      toast.error(friendlyError(e, "Upload failed"));
     } finally {
       setUploadingId(null);
     }

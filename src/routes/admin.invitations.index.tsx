@@ -40,6 +40,7 @@ import { useQuery } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
 import { listIndependentTalentInvitations } from "@/lib/independent-talent.functions";
 import { useTalentInvitationActions } from "@/components/admin/talent-invitation-actions";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/invitations/")({
   validateSearch: (
@@ -122,7 +123,7 @@ function InvitationsPage() {
       if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to resend"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to resend")),
   });
   const revokeM = useMutation({
     mutationFn: (id: string) => revokeFn({ data: { id } }),
@@ -130,7 +131,7 @@ function InvitationsPage() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Invitation revoked and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to revoke"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to revoke")),
   });
   const updateEmailM = useMutation({
     mutationFn: (v: { id: string; email: string }) => updateEmailFn({ data: v }),
@@ -139,7 +140,7 @@ function InvitationsPage() {
       setEditing(null);
       toast.success("Email updated and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update email")),
   });
   const [pendingDelete, setPendingDelete] = useState<any | null>(null);
   const deleteM = useMutation({
@@ -151,7 +152,7 @@ function InvitationsPage() {
         res?.agency_deleted ? "Invitation and agency shell deleted." : "Invitation deleted.",
       );
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to delete")),
   });
 
   const [editing, setEditing] = useState<any | null>(null);

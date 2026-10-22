@@ -50,6 +50,7 @@ import { Button } from "@/components/ui/button";
 import { DocumentModal } from "@/components/shared/document-modal";
 import { syncAiFilingPreference } from "@/lib/ai-filing-cache";
 import { suggestFromFileName } from "@/lib/filing-heuristics";
+import { friendlyError } from "@/lib/friendly-error";
 
 export type AiFilingScope = "talent" | "agency";
 
@@ -479,7 +480,7 @@ export function AiFilingReviewModal({
       toast.success("Filing saved.");
       onDone();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not save filing."),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not save filing.")),
   });
 
   const skip = useMutation({
@@ -488,7 +489,7 @@ export function AiFilingReviewModal({
       toast.success("Skipped — find it later under Pending review.");
       onDone();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not skip this document."),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not skip this document.")),
   });
 
   const retry = useMutation({
@@ -498,7 +499,7 @@ export function AiFilingReviewModal({
       return startFn({ data: { scope, document_id: documentId } }) as Promise<AnalysisView>;
     },
     onSuccess: (view) => qc.setQueryData(analysisKey, view),
-    onError: (e: any) => toast.error(e?.message ?? "Could not start the analysis."),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not start the analysis.")),
   });
 
   const toggleAi = useMutation({
@@ -534,7 +535,7 @@ export function AiFilingReviewModal({
     onError: (e: any, next) => {
       togglePending.current = false;
       setAiOverride(null);
-      toast.error(e?.message ?? "Could not change this preference.");
+      toast.error(friendlyError(e, "Could not change this preference."));
     },
   });
 

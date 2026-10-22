@@ -27,6 +27,7 @@ import { EntityCard } from "@/components/shared/entity-card";
 import { usePagedList } from "@/lib/pagination";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { useTalentLinkRowActions } from "@/components/agency/talent-link-actions";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/agency/talent/")({
   head: () => ({
@@ -116,7 +117,7 @@ function TalentPage() {
       );
       setTypeEditor(null);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not update talent type"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not update talent type")),
   });
   // Manager assignment (post-acceptance roster action)
   const [managerEditor, setManagerEditor] = useState<TalentRow | null>(null);
@@ -136,7 +137,7 @@ function TalentPage() {
       toast.success(input.manager_user_id ? "Manager assigned" : "Manager cleared");
       setManagerEditor(null);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not update the manager"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not update the manager")),
   });
 
   const whoFn = useServerFn(agencyWhoami);

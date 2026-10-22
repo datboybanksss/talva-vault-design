@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { friendlyError } from "@/lib/friendly-error";
 
 const PAYMENT_NOTE_KIND = "client_payment_tracking";
 
@@ -213,7 +214,7 @@ export function ClientsPanel() {
       toast.success(form?.id ? "Client updated" : "Client saved");
       setForm(null);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not save this client"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not save this client")),
   });
 
   const remove = useMutation({
@@ -224,7 +225,7 @@ export function ClientsPanel() {
       setConfirmRemove(null);
       setDetailId(null);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not remove this client"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not remove this client")),
   });
 
   const dismissNote = useMutation({

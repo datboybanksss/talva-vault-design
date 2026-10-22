@@ -9,6 +9,7 @@ import {
   deleteInvoicePayment,
 } from "@/lib/agency.functions";
 import { fmtMoney } from "@/lib/billing";
+import { friendlyError } from "@/lib/friendly-error";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -63,7 +64,7 @@ export function InvoicePaymentsDialog({ docId, onClose }: { docId: string; onClo
       refresh();
       toast.success("Payment recorded");
     },
-    onError: (e: any) => toast.error(e.message ?? "The payment could not be recorded."),
+    onError: (e: any) => toast.error(friendlyError(e, "The payment could not be recorded.")),
   });
 
   const remove = useMutation({
@@ -72,7 +73,7 @@ export function InvoicePaymentsDialog({ docId, onClose }: { docId: string; onClo
       refresh();
       toast.success("Payment removed");
     },
-    onError: (e: any) => toast.error(e.message ?? "The payment could not be removed."),
+    onError: (e: any) => toast.error(friendlyError(e, "The payment could not be removed.")),
   });
 
   const doc = q.data?.doc;

@@ -110,6 +110,7 @@ import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { friendlyError } from "@/lib/friendly-error";
 
 const talentSummaryQO = queryOptions({
   queryKey: ["agency", "vault", "talent-summary"],
@@ -363,19 +364,19 @@ function VaultPage() {
       toast.success("Document deleted");
       qc.invalidateQueries({ queryKey: ["agency", "vault"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Delete failed")),
   });
 
   const viewMut = useMutation({
     mutationFn: (id: string) => signedFn({ data: { id, disposition: "inline" } }),
     onSuccess: ({ url, name }) => setPreview({ url, name }),
-    onError: (e: any) => toast.error(e?.message ?? "Could not open file"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not open file")),
   });
 
   const downloadMut = useMutation({
     mutationFn: (id: string) => signedFn({ data: { id, disposition: "attachment" } }),
     onSuccess: ({ url }) => window.open(url, "_blank", "noopener"),
-    onError: (e: any) => toast.error(e?.message ?? "Could not download file"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not download file")),
   });
 
   // ---- Folder tree for the selected talent, live from agency_talent_folders ----
@@ -1121,7 +1122,7 @@ function VaultPage() {
               qc.invalidateQueries({ queryKey: ["agency", "retention"] });
               setOverrideFor(null);
             } catch (e: any) {
-              toast.error(e?.message ?? "Failed");
+              toast.error(friendlyError(e, "Failed"));
             }
           }}
         />
@@ -1232,7 +1233,7 @@ function UploadDialog({
       toast.success("Uploaded");
       onDone(inserted?.id ? { id: inserted.id as string, name: finalName } : undefined);
     } catch (err: any) {
-      toast.error(err?.message ?? "Upload failed");
+      toast.error(friendlyError(err, "Upload failed"));
     } finally {
       setBusy(false);
     }
@@ -1687,7 +1688,7 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
       if (disposition === "inline") setPreview({ url, name });
       else window.open(url, "_blank", "noopener");
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not open version");
+      toast.error(friendlyError(e, "Could not open version"));
     }
   }
 
@@ -1828,7 +1829,7 @@ function NewVersionDialog({
       toast.success("New version uploaded");
       onDone();
     } catch (err: any) {
-      toast.error(err?.message ?? "Upload failed");
+      toast.error(friendlyError(err, "Upload failed"));
     } finally {
       setBusy(false);
     }

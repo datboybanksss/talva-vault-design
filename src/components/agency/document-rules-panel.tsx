@@ -19,6 +19,7 @@ import {
   updateAgencyNotificationSettings,
 } from "@/lib/agency.functions";
 import { useFolderNames } from "@/lib/folder-catalogue";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Rule = {
   id: string;
@@ -71,7 +72,7 @@ export function DocumentRulesPanel() {
       qc.invalidateQueries({ queryKey: ["agency", "retention"] });
       qc.invalidateQueries({ queryKey: ["agency", "vault"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Delete failed")),
   });
 
   const folderRules = rules.filter((r) => r.scope === "folder");
@@ -281,7 +282,7 @@ export function DocumentRulesPanel() {
               qc.invalidateQueries({ queryKey: ["agency", "vault"] });
               setEditing(null);
             } catch (e: any) {
-              toast.error(e?.message ?? "Save failed");
+              toast.error(friendlyError(e, "Save failed"));
             }
           }}
         />
@@ -473,7 +474,7 @@ function ExpiryNoticePanel() {
       qc.invalidateQueries({ queryKey: ["agency", "metrics"] });
       qc.invalidateQueries({ queryKey: ["agency", "talent"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
   });
 
   return (

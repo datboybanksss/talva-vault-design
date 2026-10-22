@@ -16,6 +16,7 @@ import { friendlyAuthError } from "@/lib/password";
 import { SectionHeader } from "@/components/account/section-header";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/my-account")({
   head: () => ({ meta: [{ title: "My Account · TalVault Admin" }] }),
@@ -93,7 +94,7 @@ function ProfileCard({ me }: { me: any }) {
       qc.invalidateQueries({ queryKey: ["whoami"] });
       qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update profile"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update profile")),
   });
 
   const dirty =

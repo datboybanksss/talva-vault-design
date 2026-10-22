@@ -32,6 +32,7 @@ import { logTalentInviteCopyLink } from "@/lib/admin.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
 import { DOCUMENT_ACCEPT, preflightUpload } from "@/lib/file-validation";
+import { friendlyError } from "@/lib/friendly-error";
 
 const BUCKET = "talent-invite-docs";
 const SLOTS = [
@@ -118,7 +119,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       toast.success("Draft saved. You can keep editing it until you send.");
       nav({ to: "/admin/invitations/talent/$id", params: { id: row.id }, replace: true });
     },
-    onError: (e: any) => toast.error(e.message ?? "We couldn't save the draft."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't save the draft.")),
   });
   const updateM = useMutation({
     mutationFn: () => updateFn({ data: { id: draftId, ...payload() } }),
@@ -126,7 +127,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       refresh();
       toast.success("Draft updated.");
     },
-    onError: (e: any) => toast.error(e.message ?? "We couldn't update the draft."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't update the draft.")),
   });
 
   const sendResult = (res: any, okMsg: string) => {
@@ -144,12 +145,12 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       sendResult(res, "Invitation sent. The talent will receive the branded email.");
       nav({ to: "/admin/invitations" });
     },
-    onError: (e: any) => toast.error(e.message ?? "We couldn't send the invitation."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't send the invitation.")),
   });
   const resendM = useMutation({
     mutationFn: () => resendFn({ data: { id: draftId, extend_days: 14 } }),
     onSuccess: (res: any) => sendResult(res, "Invitation resent · expiry refreshed · logged."),
-    onError: (e: any) => toast.error(e.message ?? "We couldn't resend the invitation."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't resend the invitation.")),
   });
   const revokeM = useMutation({
     mutationFn: () => revokeFn({ data: { id: draftId } }),
@@ -157,7 +158,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       refresh();
       toast.success("Invitation revoked. The ID document and proof of talent were deleted.");
     },
-    onError: (e: any) => toast.error(e.message ?? "We couldn't revoke the invitation."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't revoke the invitation.")),
   });
   const deleteDraftM = useMutation({
     mutationFn: () => deleteDraftFn({ data: { id: draftId } }),
@@ -166,7 +167,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       toast.success("Draft and its documents deleted.");
       nav({ to: "/admin/invitations" });
     },
-    onError: (e: any) => toast.error(e.message ?? "We couldn't delete the draft."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't delete the draft.")),
   });
   const deleteDocM = useMutation({
     mutationFn: (id: string) => deleteDocFn({ data: { id } }),
@@ -175,7 +176,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       refresh();
       toast.success("Document removed.");
     },
-    onError: (e: any) => toast.error(e.message ?? "We couldn't remove the document."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't remove the document.")),
   });
 
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
@@ -234,7 +235,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
       const { url } = await docUrlFn({ data: { id } });
       window.open(url, "_blank", "noopener");
     } catch (e: any) {
-      toast.error(e.message ?? "We couldn't open that document.");
+      toast.error(friendlyError(e, "We couldn't open that document."));
     }
   };
 

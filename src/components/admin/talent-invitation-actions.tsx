@@ -12,6 +12,7 @@ import {
 } from "@/lib/independent-talent.functions";
 import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
 import { logTalentInviteCopyLink } from "@/lib/admin.functions";
+import { friendlyError } from "@/lib/friendly-error";
 
 /** State-driven row actions for an admin-sent (independent) talent invitation. */
 export function useTalentInvitationActions() {
@@ -29,7 +30,7 @@ export function useTalentInvitationActions() {
       if (res?.email_sent) toast.success("Invitation resent · expiry refreshed · logged.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
-    onError: (e: any) => toast.error(e.message ?? "We couldn't resend the invitation."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't resend the invitation.")),
   });
   const revokeM = useMutation({
     mutationFn: (id: string) => revokeFn({ data: { id } }),
@@ -37,7 +38,7 @@ export function useTalentInvitationActions() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Invitation revoked. The ID document and proof of talent were deleted.");
     },
-    onError: (e: any) => toast.error(e.message ?? "We couldn't revoke the invitation."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't revoke the invitation.")),
   });
 
   const copyLink = async (id: string) => {
@@ -48,7 +49,7 @@ export function useTalentInvitationActions() {
       await logCopyFn({ data: { id } }).catch(() => undefined);
       toast.success("Link copied. Copy does not extend expiry.");
     } catch (e: any) {
-      toast.error(e?.message ?? "Copy failed");
+      toast.error(friendlyError(e, "Copy failed"));
     }
   };
 

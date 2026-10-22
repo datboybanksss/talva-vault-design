@@ -18,6 +18,7 @@ import {
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
 import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/agencies/$id")({
   head: () => ({ meta: [{ title: "Agency · TalVault Admin" }] }),
@@ -77,7 +78,7 @@ function AgencyDetail() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Agency suspended and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
   });
   const unsuspendM = useMutation({
     mutationFn: () => unsuspendFn({ data: { id } }),
@@ -85,7 +86,7 @@ function AgencyDetail() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Agency reinstated.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
   });
 
   const a = q.data as any;

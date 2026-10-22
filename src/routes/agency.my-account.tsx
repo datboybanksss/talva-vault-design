@@ -17,6 +17,7 @@ import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
 import { AiFilingPreferenceCard } from "@/components/account/ai-filing-preference-card";
 import { MyTermsAcceptances } from "@/components/shared/my-terms-acceptances";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/agency/my-account")({
   ssr: false,
@@ -111,7 +112,7 @@ function ProfileCard({ me }: { me: any }) {
       toast.success("Profile updated.");
       qc.invalidateQueries({ queryKey: ["agency", "whoami"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update profile"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update profile")),
   });
 
   const dirty =

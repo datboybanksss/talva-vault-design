@@ -10,6 +10,7 @@ import {
   updateAgencyContractMeta,
   createInvoiceForContract,
 } from "@/lib/agency.functions";
+import { friendlyError } from "@/lib/friendly-error";
 
 const contractQO = (id: string) =>
   queryOptions({
@@ -92,7 +93,7 @@ function ContractDetail() {
       qc.invalidateQueries({ queryKey: ["agency", "contract", id] });
       setEditing(false);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
   });
 
   const createInvMut = useMutation({
@@ -109,7 +110,7 @@ function ContractDetail() {
       setShowInvoice(false);
       setTab("invoices");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
   });
 
   return (

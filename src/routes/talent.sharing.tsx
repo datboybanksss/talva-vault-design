@@ -42,6 +42,7 @@ import { listPrivateVault } from "@/lib/talent-vault.functions";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/talent/sharing")({
   head: () => ({
@@ -100,7 +101,7 @@ function SharingPage() {
       toast.success("Share revoked");
       qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to revoke");
+      toast.error(friendlyError(e, "Failed to revoke"));
     }
   }
 
@@ -126,7 +127,7 @@ function SharingPage() {
       }
       qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to regenerate code");
+      toast.error(friendlyError(e, "Failed to regenerate code"));
     }
   }
 
@@ -556,7 +557,7 @@ function NewShareModal({
         recipient: name.trim(),
       });
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to create share");
+      toast.error(friendlyError(e, "Failed to create share"));
     } finally {
       setSaving(false);
     }

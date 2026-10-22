@@ -36,11 +36,15 @@ export async function recordLegalAcceptance(args: {
 
   let q = supabaseAdmin
     .from("legal_documents")
-    .select("id, doc_type, version")
+    .select("id, doc_type, version, is_current")
     .eq("doc_type", args.docType);
   q = args.documentId ? q.eq("id", args.documentId) : q.eq("version", args.version ?? "");
   const { data: doc } = await q.maybeSingle();
   if (!doc) throw new Error(`Unknown ${args.docType} Terms & Conditions version.`);
+  // Activation sends the version shown on screen; refuse a version that is no
+  // longer current so nobody silently accepts outdated text.
+  if (args.method === "activation" && !args.documentId && !doc.is_current)
+    throw new Error("These Terms have been updated. Please reload the page and read the latest version.");
 
   const meta = requestMeta();
   const { data, error } = await supabaseAdmin

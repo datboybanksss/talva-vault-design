@@ -16,6 +16,7 @@ import {
   InvitationEmailComposer,
   SendStatusBanner,
 } from "@/components/shared/invitation-email-composer";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/administrators/$id/email-preview")({
   head: () => ({ meta: [{ title: "Administrator invitation email · TalVault Admin" }] }),
@@ -46,7 +47,7 @@ function AdminEmailPreviewPage() {
       setStatus({ kind: "ok", message: "Expiry refreshed — this invitation can be sent again." });
       toast.success("Invitation reopened · expiry refreshed.");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not refresh the expiry."),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not refresh the expiry.")),
   });
 
   const [subject, setSubject] = useState(DEFAULT_ADMIN_INVITATION_SUBJECT);

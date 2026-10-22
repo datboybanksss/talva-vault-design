@@ -43,6 +43,7 @@ import {
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { invitationActions, invitationIsOpen } from "@/lib/status-actions";
 import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/agency/invitations")({
   head: () => ({ meta: [{ title: "Invitations · TalVault" }] }),
@@ -135,7 +136,7 @@ function InvitationsPage() {
       qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
       toast.success("Invitation resent · expiry refreshed · logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to resend"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to resend")),
   });
   const revokeM = useMutation({
     mutationFn: (v: { id: string; type: InviteType }) => revokeFn({ data: v }),
@@ -143,7 +144,7 @@ function InvitationsPage() {
       qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
       toast.success("Invitation revoked and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to revoke"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to revoke")),
   });
 
   const copyLink = async (inv: any) => {
@@ -382,7 +383,7 @@ function InvitationsPage() {
               qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
               setOpenForm(null);
             } catch (e: any) {
-              toast.error(e.message ?? "Failed to send invitation");
+              toast.error(friendlyError(e, "Failed to send invitation"));
             }
           }}
         />
@@ -802,7 +803,7 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
       qc.invalidateQueries({ queryKey: ["agency", "staff-roster"] });
       toast.success("Role updated and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update role"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update role")),
   });
 
   const removeStaff = useMutation({
@@ -812,7 +813,7 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
       setConfirmRemove(null);
       toast.success("Staff member removed and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to remove staff member"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to remove staff member")),
   });
 
   const rows = (staff.data ?? []) as any[];
