@@ -1584,6 +1584,69 @@ export type Database = {
         }
         Relationships: []
       }
+      document_bulk_delete_flags: {
+        Row: {
+          agency_id: string
+          created_at: string
+          deleted_count: number
+          first_deleted_at: string
+          id: string
+          last_deleted_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          threshold: number
+          window_minutes: number
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          deleted_count: number
+          first_deleted_at: string
+          id?: string
+          last_deleted_at: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          threshold: number
+          window_minutes: number
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          deleted_count?: number
+          first_deleted_at?: string
+          id?: string
+          last_deleted_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          threshold?: number
+          window_minutes?: number
+        }
+        Relationships: []
+      }
+      document_storage_purge_queue: {
+        Row: {
+          bucket: string
+          id: string
+          path: string
+          queued_at: string
+          removed_at: string | null
+        }
+        Insert: {
+          bucket: string
+          id?: string
+          path: string
+          queued_at?: string
+          removed_at?: string | null
+        }
+        Update: {
+          bucket?: string
+          id?: string
+          path?: string
+          queued_at?: string
+          removed_at?: string | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -2954,6 +3017,7 @@ export type Database = {
           locked_until: string | null
           mime_type: string | null
           name: string
+          retention_min_years_at_upload: number | null
           retention_rule_id: string | null
           retention_stamped_at: string | null
           retention_years_at_upload: number | null
@@ -2969,6 +3033,7 @@ export type Database = {
           locked_until?: string | null
           mime_type?: string | null
           name: string
+          retention_min_years_at_upload?: number | null
           retention_rule_id?: string | null
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
@@ -2984,6 +3049,7 @@ export type Database = {
           locked_until?: string | null
           mime_type?: string | null
           name?: string
+          retention_min_years_at_upload?: number | null
           retention_rule_id?: string | null
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
@@ -3005,6 +3071,7 @@ export type Database = {
       talent_shared_documents: {
         Row: {
           agency_id: string
+          agency_removed_at: string | null
           ai_suggested_expiry: string | null
           ai_suggested_folder: string | null
           contract_client_name: string | null
@@ -3015,6 +3082,8 @@ export type Database = {
           contract_total_cents: number | null
           created_at: string
           current_version_id: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           expiry_source: string | null
           folder: string
           folder_source: string | null
@@ -3023,11 +3092,16 @@ export type Database = {
           name: string
           originator: string
           pending_review: boolean
+          purge_after: string | null
           reminder_at: string | null
+          retention_min_years_at_upload: number | null
           retention_rule_id: string | null
           retention_stamped_at: string | null
           retention_years_at_upload: number | null
           revoked_at: string | null
+          shared_with_talent_at: string | null
+          sharing_stopped_at: string | null
+          sharing_stopped_by: string | null
           status: Database["public"]["Enums"]["shared_document_status"]
           storage_path: string | null
           talent_link_id: string | null
@@ -3037,6 +3111,7 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          agency_removed_at?: string | null
           ai_suggested_expiry?: string | null
           ai_suggested_folder?: string | null
           contract_client_name?: string | null
@@ -3047,6 +3122,8 @@ export type Database = {
           contract_total_cents?: number | null
           created_at?: string
           current_version_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           expiry_source?: string | null
           folder?: string
           folder_source?: string | null
@@ -3055,11 +3132,16 @@ export type Database = {
           name: string
           originator?: string
           pending_review?: boolean
+          purge_after?: string | null
           reminder_at?: string | null
+          retention_min_years_at_upload?: number | null
           retention_rule_id?: string | null
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
           revoked_at?: string | null
+          shared_with_talent_at?: string | null
+          sharing_stopped_at?: string | null
+          sharing_stopped_by?: string | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
           talent_link_id?: string | null
@@ -3069,6 +3151,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          agency_removed_at?: string | null
           ai_suggested_expiry?: string | null
           ai_suggested_folder?: string | null
           contract_client_name?: string | null
@@ -3079,6 +3162,8 @@ export type Database = {
           contract_total_cents?: number | null
           created_at?: string
           current_version_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           expiry_source?: string | null
           folder?: string
           folder_source?: string | null
@@ -3087,11 +3172,16 @@ export type Database = {
           name?: string
           originator?: string
           pending_review?: boolean
+          purge_after?: string | null
           reminder_at?: string | null
+          retention_min_years_at_upload?: number | null
           retention_rule_id?: string | null
           retention_stamped_at?: string | null
           retention_years_at_upload?: number | null
           revoked_at?: string | null
+          shared_with_talent_at?: string | null
+          sharing_stopped_at?: string | null
+          sharing_stopped_by?: string | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
           talent_link_id?: string | null
@@ -3407,6 +3497,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      document_setting: { Args: { _name: string }; Returns: number }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -3436,6 +3527,28 @@ export type Database = {
       is_restricted_folder_name: {
         Args: { _agency_id: string; _folder_name: string }
         Returns: boolean
+      }
+      list_recently_deleted_documents: {
+        Args: { _agency_id: string }
+        Returns: {
+          deleted_at: string
+          deleted_by_email: string
+          folder: string
+          id: string
+          name: string
+          purge_after: string
+          shared_with_talent: boolean
+          talent_name: string
+        }[]
+      }
+      log_document_event: {
+        Args: {
+          _action: string
+          _actor: string
+          _doc: Database["public"]["Tables"]["talent_shared_documents"]["Row"]
+          _extra?: Json
+        }
+        Returns: undefined
       }
       mint_billing_doc_number: {
         Args: { _agency_id: string; _kind: string }
@@ -3470,6 +3583,7 @@ export type Database = {
         }
         Returns: number
       }
+      purge_recently_deleted_documents: { Args: never; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -3516,6 +3630,10 @@ export type Database = {
         Args: { _accept: boolean; _link_id: string }
         Returns: string
       }
+      restore_deleted_document: {
+        Args: { _doc_id: string }
+        Returns: undefined
+      }
       rollback_folder_rename_batch: {
         Args: { _batch_id: string }
         Returns: number
@@ -3537,6 +3655,12 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      soft_delete_agency_document: {
+        Args: { _doc_id: string }
+        Returns: string
+      }
+      stop_sharing_document: { Args: { _doc_id: string }; Returns: undefined }
+      storage_path_is_document: { Args: { _path: string }; Returns: boolean }
       sweep_overdue_invoices: { Args: never; Returns: number }
       talent_account_writable: { Args: { _user_id: string }; Returns: boolean }
       talent_can_read_shared_doc: {

@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792701302267,
+      "tag": "0000_document_soft_delete_and_shared_access",
+      "breakpoints": true
+    }
+  ]
+}
