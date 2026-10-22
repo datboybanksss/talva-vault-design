@@ -348,7 +348,11 @@ export const getIndependentTalentDocumentUrl = createServerFn({ method: "POST" }
 async function sendInviteEmail(supabase: any, id: string, userId: string) {
   // Same renderer and approved wording as the Review email step.
   const { deliverAdminInvite } = await import("@/lib/admin-invite-email.server");
-  return deliverAdminInvite(supabase, "talent", id, userId);
+  return deliverAdminInvite(supabase, "talent", id, userId).catch((e: any) => ({
+    url: null as string | null,
+    subject: null,
+    result: { sent: false as const, reason: "send_failed" as const, detail: String(e?.message ?? e) },
+  }));
 }
 
 export const finalizeIndependentTalentInvitation = createServerFn({ method: "POST" })
