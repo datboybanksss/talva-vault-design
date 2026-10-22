@@ -1,3 +1,4 @@
+import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { useFolderCatalogue, resolveSubfolders, talentTypesFrom } from "@/lib/folder-catalogue";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -109,6 +110,8 @@ function InviteTalent() {
 
   const detailsValid = fullName.trim().length > 1 && /\S+@\S+\.\S+/.test(email.trim());
 
+  const emailCheck = useInviteEmailCheck("agency_talent");
+
   const sendMut = useMutation({
     mutationFn: () =>
       createFn({
@@ -186,9 +189,15 @@ function InviteTalent() {
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        emailCheck.clear();
+                      }}
+                      onBlur={() => void emailCheck.check(email)}
+                      aria-invalid={!!emailCheck.conflict}
                       placeholder="name@email.com"
                     />
+                    <InviteEmailFieldError conflict={emailCheck.conflict} />
                   </div>
                   <div className="tvp-form-group">
                     <label>Talent type</label>
@@ -351,7 +360,11 @@ function InviteTalent() {
                 <button
                   className="tvp-primary"
                   disabled={!canContinue}
-                  onClick={() => canContinue && setStep(step + 1)}
+                  onClick={async () => {
+                    if (!canContinue) return;
+                    if (step === 1 && (await emailCheck.check(email))) return;
+                    setStep(step + 1);
+                  }}
                 >
                   Continue
                 </button>
