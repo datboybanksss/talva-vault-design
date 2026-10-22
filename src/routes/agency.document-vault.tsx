@@ -709,12 +709,10 @@ function VaultPage() {
           )}
 
           {showFolderGrid && (
-            <div className="tvp-card">
-              <h2 className="tvp-h2" style={{ marginBottom: 2 }}>
-                {selectedTalent?.displayName}'s folders
-              </h2>
-              <p className="tvp-muted" style={{ fontSize: 13, marginTop: 0 }}>
-                Provisioned from Manage folders. Open a category, or drill into a subfolder.
+            <div className="tvp-card tvp-panel">
+              <h2 className="tvp-h2">{selectedTalent?.displayName}'s folders</h2>
+              <p className="tvp-muted tvp-section-desc">
+                Open a folder to see its documents and subfolders.
               </p>
               {foldersLoading ? (
                 <div className="tvp-muted" style={{ padding: 16 }}>
@@ -757,11 +755,11 @@ function VaultPage() {
                             </span>
                             <span className="tvp-folder-meta" style={{ display: "block" }}>
                               {c.count} {c.count === 1 ? "document" : "documents"}
-                              {c.children.length > 0 && ` · ${c.children.length} subfolders`}
+                              {c.children.length > 0 &&
+                                ` · ${c.children.length} ${c.children.length === 1 ? "subfolder" : "subfolders"}`}
                             </span>
-                            <span
-                              style={{ display: "flex", gap: 5, marginTop: 6, flexWrap: "wrap" }}
-                            >
+                            {(c.reviewCount > 0 || c.expiringCount > 0 || c.needsReview) && (
+                            <span className="tvp-folder-flags">
                               {c.reviewCount > 0 && (
                                 <span className="tvp-status tvp-purple">
                                   {c.reviewCount} to review
@@ -776,6 +774,7 @@ function VaultPage() {
                                 <span className="tvp-status tvp-amber">Folder needs review</span>
                               )}
                             </span>
+                            )}
                           </span>
                           <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
                         </button>
