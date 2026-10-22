@@ -99,12 +99,13 @@ function AccountStateDialog({
 
   return (
     <ModalShell onClose={onClose} labelledBy={titleId} maxWidth={520}>
-      <div className="tvp-panel-head">
+      <div className="tvp-modal-head">
         <h2 className="tvp-h2" id={titleId}>
           {ACCOUNT_ACTION_LABEL[action]}: {target.name}
         </h2>
       </div>
-      <p className="tvp-muted">
+      <div className="tvp-modal-body">
+      <p>
         {years.data
           ? accountActionEffect(action, target.type, years.data.years)
           : "Loading…"}
@@ -113,7 +114,7 @@ function AccountStateDialog({
         <div className="tvp-form-group">
           <label htmlFor="account-state-reason">Reason</label>
           <Select value={reason} onValueChange={setReason}>
-            <SelectTrigger id="account-state-reason">
+            <SelectTrigger id="account-state-reason" className="tvp-modal-control">
               <SelectValue placeholder="Choose a reason" />
             </SelectTrigger>
             <SelectContent>
@@ -140,7 +141,8 @@ function AccountStateDialog({
         The reason and note are kept in the audit log for administrators only. They're never shown to
         the account.
       </p>
-      <div className="tvp-footer-actions">
+      </div>
+      <div className="tvp-modal-foot">
         <button type="button" className="tvp-secondary" onClick={onClose}>
           Cancel
         </button>

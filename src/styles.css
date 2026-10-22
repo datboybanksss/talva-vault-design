@@ -3794,6 +3794,52 @@
   background: var(--tvp-teal-100);
   color: var(--tvp-teal);
 }
+/* Buttons and muted text inside portalled modals (outside .tv-app), using the
+   root tokens so they match the in-page buttons. */
+.tvp-modal :is(.tvp-primary, .tvp-secondary, .tvp-danger) {
+  height: 42px;
+  border-radius: 11px;
+  padding: 0 16px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  border: 0;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.tvp-modal .tvp-primary {
+  background: var(--teal-700);
+  color: var(--on-teal);
+}
+.tvp-modal .tvp-primary:hover {
+  background: var(--teal-600);
+}
+.tvp-modal .tvp-secondary {
+  background: var(--surface);
+  color: var(--ink-900);
+  border: 1px solid var(--line-300);
+}
+.tvp-modal .tvp-danger {
+  background: var(--danger-600);
+  color: var(--on-teal);
+}
+.tvp-modal :is(.tvp-primary, .tvp-secondary, .tvp-danger):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tvp-modal :is(.tvp-primary, .tvp-secondary, .tvp-danger):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tvp-modal .tvp-muted {
+  color: var(--ink-500);
+}
+.tvp-modal-body > * + * {
+  margin-top: var(--sp-4);
+}
 @media (max-width: 720px) {
   .tvp-modal .tvp-form-grid {
     grid-template-columns: 1fr;
