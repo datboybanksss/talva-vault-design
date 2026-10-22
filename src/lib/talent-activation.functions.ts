@@ -116,7 +116,8 @@ const activateInput = z.object({
   phone_number: z.string().trim().max(40).optional().or(z.literal("")),
   password: z.string().min(12).max(200),
   terms_accepted: z.literal(true),
-  terms_version: z.string().trim().min(1).max(40),
+  terms_document_id: z.string().uuid(),
+  terms_body_sha256: z.string().regex(/^[a-f0-9]{64}$/),
 });
 
 export type TalentActivationResult =
@@ -238,7 +239,8 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       await recordLegalAcceptance({
         userId,
         docType: "talent",
-        version: data.terms_version,
+        documentId: data.terms_document_id,
+        bodySha256: data.terms_body_sha256,
         method: "activation",
       });
     } catch (e: any) {
