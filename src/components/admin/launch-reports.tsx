@@ -19,6 +19,8 @@ import {
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { friendlyError } from "@/lib/friendly-error";
 import { PAGE_SIZE } from "@/lib/pagination";
+import { ACCOUNT_SCOPES, ACCOUNT_SCOPE_LABEL } from "@/lib/account-filters";
+import { ModalShell } from "@/components/shared/modal-shell";
 
 /** Date invitation send times and sources started being recorded. */
 const RECORDING_SINCE = "22 Oct 2026";
@@ -63,10 +65,13 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
   const navigate = useNavigate({ from: "/admin/reporting" });
   const type = search.type ?? "all";
   const segment = search.talent ?? "all";
+  const accounts = search.accounts ?? "real";
+  const [viewing, setViewing] = useState<null | "talent" | "agencies" | "invitations">(null);
   const setFilter = (key: string, value: string) =>
     navigate({
       search: (prev) => {
-        const next = { ...prev, [key]: value === "all" ? undefined : value };
+        const dflt = key === "accounts" ? "real" : "all";
+        const next = { ...prev, [key]: value === dflt ? undefined : value };
         if (key === "type" && value === "agency") next.talent = undefined;
         return next as typeof prev;
       },
@@ -80,10 +85,10 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
     setOfferOffset(0);
     setTermsOffset(0);
     setOutstandingOffset(0);
-  }, [type, segment, from, to]);
+  }, [type, segment, accounts, from, to]);
 
   const fn = useServerFn(getLaunchReports);
-  const base = { from, to, type, segment: type === "agency" ? "all" : segment } as const;
+  const base = { from, to, type, segment: type === "agency" ? "all" : segment, accounts } as const;
   const q = useQuery({
     queryKey: ["admin", "launch-reports", base, offerOffset, termsOffset, outstandingOffset],
     queryFn: () =>
@@ -168,9 +173,9 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
           </button>
         </div>
         <FilterBar
-          active={type !== "all" || segment !== "all"}
+          active={type !== "all" || segment !== "all" || accounts !== "real"}
           onChange={setFilter}
-          onClear={() => navigate({ search: (prev) => ({ ...prev, type: undefined, talent: undefined }), replace: true })}
+          onClear={() => navigate({ search: (prev) => ({ ...prev, type: undefined, talent: undefined, accounts: undefined }), replace: true })}
           filters={[
             {
               key: "type",
@@ -196,6 +201,12 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                   },
                 ]
               : []),
+            {
+              key: "accounts",
+              label: "Accounts",
+              value: accounts,
+              options: ACCOUNT_SCOPES.map((v) => ({ value: v, label: ACCOUNT_SCOPE_LABEL[v] })),
+            },
           ]}
         />
         {q.isLoading && <p className="tvp-muted">Loading launch reports…</p>}
@@ -208,19 +219,24 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Launch progress</h2>
               <span className="tvp-muted">
-                {fmtDate(d.progress.windowStart)} – {fmtDate(d.progress.windowEnd)} · not affected by the date range
+                Launch period: {fmtDate(d.progress.windowStart)} – {fmtDate(d.progress.windowEnd)}
               </span>
             </div>
-            <div className="tvp-kpi-grid">
-              {[
-                ["Talent signed up", d.progress.talent, d.progress.talentTarget, d.progress.talentPct],
-                ["Agencies signed up", d.progress.agencies, d.progress.agencyTarget, d.progress.agencyPct],
-              ].map(([label, n, t, pct]) => (
-                <div key={label as string} className="tvp-card tvp-kpi">
+            <div className="tvp-kpi-pair">
+              {(
+                [
+                  ["talent", "Talent signed up", d.progress.talent, d.progress.talentTarget, d.progress.talentPct],
+                  ["agencies", "Agencies signed up", d.progress.agencies, d.progress.agencyTarget, d.progress.agencyPct],
+                ] as const
+              ).map(([key, label, n, t, pct]) => (
+                <div key={key} className="tvp-card tvp-kpi">
                   <div>
                     <div className="tvp-kpi-value">{n} / {t}</div>
                     <div className="tvp-kpi-label">{label}</div>
                     <div className="tvp-kpi-sub">{pct}% of target</div>
+                    <button type="button" className="tvp-link" onClick={() => setViewing(key)}>
+                      View data
+                    </button>
                   </div>
                 </div>
               ))}
@@ -266,7 +282,12 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
           <div className="tvp-card tvp-panel">
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Invitation conversion</h2>
-              <Csv kind="funnel" />
+              <div className="tvp-actions">
+                <button type="button" className="tvp-link" onClick={() => setViewing("invitations")}>
+                  View data
+                </button>
+                <Csv kind="funnel" />
+              </div>
             </div>
             <p className="tvp-muted">
               Invitations created in the date range. Each invitation counts once, however often it was resent.
@@ -371,7 +392,99 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
       )}
 
       {editing && <SettingsDialog onClose={() => setEditing(false)} />}
+      {viewing && d && (
+        <RecordsDialog
+          title={
+            viewing === "talent"
+              ? "Talent signed up"
+              : viewing === "agencies"
+                ? "Agencies signed up"
+                : "Invitations counted"
+          }
+          rows={d.records[viewing]}
+          fileName={`${viewing}_${accounts}_${from}_${to}.csv`}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </section>
+  );
+}
+
+type RecordRow = {
+  id: string;
+  name: string;
+  email: string;
+  type: "agency" | "talent";
+  is_test: boolean;
+  agency: string | null;
+  invited_at: string | null;
+  signed_up_at: string | null;
+  status: string;
+  offer_place: number | null;
+};
+
+/** The exact records behind a report figure (row count = the figure). Admin only via the server function. */
+function RecordsDialog({
+  title,
+  rows,
+  fileName,
+  onClose,
+}: {
+  title: string;
+  rows: RecordRow[];
+  fileName: string;
+  onClose: () => void;
+}) {
+  const statusText = (r: RecordRow) =>
+    r.type === "agency" && r.status !== "accepted" && r.status !== "pending"
+      ? statusLabel("agency", r.status)
+      : statusLabel("invitation", r.status);
+  const csv = () =>
+    download(fileName, [
+      ["Name", "Email", "Type", "Account", "Agency link", "Invited", "Accepted / signed up", "Status", "Launch-offer place"],
+      ...rows.map((r) => [
+        r.name, r.email, r.type === "agency" ? "Agency" : "Talent", r.is_test ? "Test" : "Real",
+        r.agency ?? "", r.invited_at ?? "", r.signed_up_at ?? "", statusText(r), r.offer_place ?? "",
+      ]),
+    ]);
+  return (
+    <ModalShell title={`${title} · ${rows.length}`} onClose={onClose} wide>
+      <div className="tvp-table-wrap">
+        <table className="tvp-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Type</th><th>Agency link</th><th>Invited</th><th>Signed up</th><th>Status</th><th>Offer place</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={7} className="tvp-muted">No records match these filters.</td></tr>
+            )}
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>
+                  <strong>{r.name || "—"}</strong>
+                  {r.is_test && <span className="tvp-status st-neutral tvp-test-label">Test</span>}
+                  <div className="tvp-muted">{r.email}</div>
+                </td>
+                <td><span className="tvp-status st-neutral">{r.type === "agency" ? "Agency" : "Talent"}</span></td>
+                <td>{r.agency ?? "—"}</td>
+                <td>{fmtDate(r.invited_at)}</td>
+                <td>{fmtDate(r.signed_up_at)}</td>
+                <td>{statusText(r)}</td>
+                <td>{r.offer_place ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="tvp-footer-actions">
+        <button className="tvp-secondary" onClick={csv}>
+          <Download className="h-4 w-4" /> CSV
+        </button>
+        <button className="tvp-primary" onClick={onClose}>Close</button>
+      </div>
+    </ModalShell>
   );
 }
 

@@ -14,11 +14,14 @@ import { ReportingRawDrawer } from "@/components/admin/reporting-raw-drawer";
 
 const LR_TYPES = ["agency", "talent"] as const;
 const LR_TALENT = ["agency_linked", "independent"] as const;
+const LR_ACCOUNTS = ["test", "all"] as const;
 
 export const Route = createFileRoute("/admin/reporting")({
   validateSearch: (s: Record<string, unknown>) => ({
     type: LR_TYPES.find((t) => t === s.type),
     talent: LR_TALENT.find((t) => t === s.talent),
+    // Real accounts only unless the address says otherwise.
+    accounts: LR_ACCOUNTS.find((t) => t === s.accounts),
   }),
   head: () => ({
     meta: [
