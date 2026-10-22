@@ -1352,7 +1352,8 @@
   }
 
   & .tvp-kpi-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Four across when there is room, otherwise as many as fit. */
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     margin-bottom: 22px;
   }
   & .tvp-kpi {
@@ -3050,9 +3051,6 @@
   .tv-app .tvp-form-layout,
   .tv-app .tvp-meta-grid {
     grid-template-columns: 1fr !important;
-  }
-  .tv-app .tvp-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 @media (max-width: 720px) {
@@ -5568,13 +5566,14 @@ a.tvp-entity-card:focus-visible {
 }
 :is(.tv-app, .tvp-modal) .tvp-filter-search {
   /* Search takes the flexible space; dropdowns keep their fixed width. */
-  flex: 1 1 260px;
+  flex: 2 1 260px;
   width: auto;
   min-width: 220px;
 }
 :is(.tv-app, .tvp-modal) .tvp-filter-field:not(.tvp-filter-search) {
-  flex: 0 1 220px;
-  min-width: 180px;
+  flex: 1 1 180px;
+  min-width: 160px;
+  max-width: 260px;
 }
 :is(.tv-app, .tvp-modal) .tvp-filter-search-wrap {
   position: relative;
@@ -5998,5 +5997,12 @@ a.tvp-entity-card:focus-visible {
   }
 }
 .tv-app .tvp-table td.tvp-nowrap {
+  white-space: nowrap;
+}
+
+.tv-app .tvp-topbar .tvp-actions {
+  flex-wrap: wrap;
+}
+.tv-app .tvp-topbar .tvp-actions > * {
   white-space: nowrap;
 }
