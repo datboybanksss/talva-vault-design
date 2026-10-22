@@ -192,7 +192,15 @@ export function CombinedInvitationsList({
                     {statusLabel("invitation", r.status)}
                   </span>
                 </td>
-                <td>{r.last_sent_at ? fmt(r.last_sent_at) : "—"}</td>
+                <td>
+                  {r.status === "draft" ? (
+                    <span className="tvp-muted">
+                      Saved {fmt(r.updated_at ?? r.created_at)}
+                    </span>
+                  ) : (
+                    fmt(r.last_sent_at)
+                  )}
+                </td>
                 <td>
                   {r.status === "pending" || r.status === "expired" ? fmt(r.expires_at) : "—"}
                 </td>
@@ -220,8 +228,11 @@ export function CombinedInvitationsList({
   );
 }
 
-function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+function fmt(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",

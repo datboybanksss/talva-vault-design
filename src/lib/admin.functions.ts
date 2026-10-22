@@ -344,7 +344,18 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     // Counts use head-only exact counts so the dashboard never streams whole
     // tables back just to call .length on them.
     const nowIso = new Date().toISOString();
-    const [agencies, talentSplit, docs, shares, talentInvites, linkRequests] = await Promise.all([
+    const head = { count: "exact" as const, head: true };
+    const [
+      agencies,
+      talentSplit,
+      docs,
+      shares,
+      talentInvites,
+      linkRequests,
+      agencyInvites,
+      agencyDrafts,
+      talentDrafts,
+    ] = await Promise.all([
       supabase.from("agencies").select("id, status"),
       // Shared definition with the Reporting page — see src/lib/onboarded-talent.ts.
       fetchTalentSplit(supabase),
@@ -373,6 +384,14 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
         .eq("state", "pending")
         .eq("talent_invitations.status", "pending")
         .gt("talent_invitations.expires_at", nowIso),
+      // Sent, unexpired agency invitations (drafts excluded).
+      supabase
+        .from("agency_invitations")
+        .select("id", head)
+        .eq("status", "pending")
+        .gt("expires_at", nowIso),
+      supabase.from("agency_invitations").select("id", head).eq("status", "draft"),
+      supabase.from("independent_talent_invitations").select("id", head).eq("status", "draft"),
     ]);
 
     const statusCounts: Record<string, number> = {
@@ -403,6 +422,8 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
       agencyLinkedTalent: talentSplit.agencyLinked,
       independentTalent: talentSplit.independent,
       openTalentInvites: talentInvites.count ?? 0,
+      openAgencyInvites: agencyInvites.count ?? 0,
+      draftInvites: (agencyDrafts.count ?? 0) + (talentDrafts.count ?? 0),
       pendingLinkRequests: linkRequests.count ?? 0,
       totalDocuments: totalDocs,
       activeShares,
@@ -844,11 +865,11 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     const TABLE = {
       agency: {
         table: "agency_invitations",
-        cols: "id, agency_name, contact_person, email, status, expires_at, created_at, last_sent_at, send_count, token",
+        cols: "id, agency_name, contact_person, email, status, expires_at, created_at, updated_at, last_sent_at, send_count, token",
       },
       talent: {
         table: "independent_talent_invitations",
-        cols: "id, talent_name, email, status, expires_at, created_at, last_sent_at, send_count",
+        cols: "id, talent_name, email, status, expires_at, created_at, updated_at, last_sent_at, send_count",
       },
     } as const;
     const byStatus = (q0: any, s: string) => {

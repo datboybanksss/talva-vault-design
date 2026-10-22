@@ -137,12 +137,17 @@ function AdminDashboard() {
           </div>
           <div>
             <div className="tvp-kpi-value">
-              {counts.invited + (metrics.data?.openTalentInvites ?? 0)}
+              {metrics.data
+                ? (metrics.data.openAgencyInvites ?? 0) + (metrics.data.openTalentInvites ?? 0)
+                : "—"}
             </div>
             <div className="tvp-kpi-label">Open invitations</div>
             <div className="tvp-kpi-sub">
-              {counts.invited} {counts.invited === 1 ? "agency" : "agencies"} ·{" "}
-              {metrics.data?.openTalentInvites ?? 0} talent
+              {metrics.data?.openAgencyInvites ?? 0}{" "}
+              {metrics.data?.openAgencyInvites === 1 ? "agency" : "agencies"} ·{" "}
+              {metrics.data?.openTalentInvites ?? 0} talent ·{" "}
+              {metrics.data?.draftInvites ?? 0}{" "}
+              {metrics.data?.draftInvites === 1 ? "draft" : "drafts"}
             </div>
           </div>
         </Link>

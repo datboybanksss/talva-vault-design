@@ -2,10 +2,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Ban, FileEdit, Link2, RefreshCw, Eye, Send } from "lucide-react";
+import { Ban, FileEdit, Link2, RefreshCw, Eye, Send, Trash2 } from "lucide-react";
 import { invitationActions } from "@/lib/status-actions";
 import type { RowAction } from "@/components/shared/row-actions-menu";
 import {
+  deleteIndependentTalentDraft,
   getIndependentTalentInvitation,
   resendIndependentTalentInvitation,
   revokeIndependentTalentInvitation,
@@ -22,6 +23,15 @@ export function useTalentInvitationActions() {
   const resendFn = useServerFn(resendIndependentTalentInvitation);
   const revokeFn = useServerFn(revokeIndependentTalentInvitation);
   const logCopyFn = useServerFn(logTalentInviteCopyLink);
+  const deleteFn = useServerFn(deleteIndependentTalentDraft);
+  const deleteM = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Draft deleted.");
+    },
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't delete the draft.")),
+  });
 
   const resendM = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
@@ -118,6 +128,18 @@ export function useTalentInvitationActions() {
           ) {
             revokeM.mutate(row.id);
           }
+        },
+      },
+      {
+        key: "delete",
+        label: "Delete draft",
+        icon: Trash2,
+        hidden: !(row.status === "draft" && allowed.includes("delete")),
+        destructive: true,
+        separatorBefore: true,
+        title: "Also deletes any uploaded ID document and proof of talent",
+        onSelect: () => {
+          if (confirm(`Delete the draft invitation to ${row.talent_name}?`)) deleteM.mutate(row.id);
         },
       },
     ];
