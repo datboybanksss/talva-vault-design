@@ -145,39 +145,52 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const settings = parseLaunchSettings(settingsRow?.value);
     if (!settings) throw new Error("Launch settings are missing. Add them under Launch settings.");
 
-    const [talent, agencyAccepted, invites, members, links, acc, docs] = await Promise.all([
+    const [talent, agencyAccepted, invites, members, links, acc, docs, agencyRows] = await Promise.all([
       admin
         .from("talent_profiles")
-        .select("user_id, full_name, email, activation_completed_at")
-        .is("deleted_at", null)
-        .eq("is_test", false),
+        .select("user_id, full_name, email, created_at, activation_completed_at, is_test")
+        .is("deleted_at", null),
       admin
         .from("agency_invitations")
-        .select("accepted_at")
+        .select("id, agency_id, agency_name, email, first_sent_at, created_at, accepted_at, status")
         .eq("kind", "agency_onboarding")
         .eq("status", "accepted"),
       loadInviteRows(admin),
       admin.from("agency_members").select("user_id, agency_id"),
-      admin.from("agency_talent_links").select("talent_user_id").eq("status", "active"),
+      admin.from("agency_talent_links").select("talent_user_id, agency_id").eq("status", "active"),
       admin
         .from("legal_acceptances")
         .select("id, user_id, document_id, doc_type, version, accepted_at, body_sha256, hash_retrospective, user_email, user_full_name, user_role, proof_ref")
         .order("accepted_at", { ascending: false }),
       admin.from("legal_documents").select("id, doc_type, version").eq("is_current", true),
+      admin.from("agencies").select("id, name, status, is_test"),
     ]);
-    const talentRows = check<any[]>(talent);
+    const scope = data.accounts;
+    const inScope = (isTest: boolean | null | undefined) =>
+      scope === "all" ? true : scope === "test" ? !!isTest : !isTest;
+    const agencyById = new Map<string, any>(check<any[]>(agencyRows).map((a) => [a.id, a]));
+    const allTalent = check<any[]>(talent);
+    const talentRows = allTalent.filter((t) => inScope(t.is_test));
+    const agencyAcc = check<any[]>(agencyAccepted).filter((a) =>
+      inScope(a.agency_id ? agencyById.get(a.agency_id)?.is_test : false),
+    );
+    const scopedInvites = invites.filter((i) => inScope(i.is_test));
 
     // 1. Launch progress — activated talent and accepted agency onboarding.
     const progress = launchProgress(
       {
         talentJoined: talentRows.map((t) => t.activation_completed_at),
-        agenciesJoined: check<any[]>(agencyAccepted).map((a) => a.accepted_at),
+        agenciesJoined: agencyAcc.map((a) => a.accepted_at),
       },
       settings,
     );
 
     // 2. Launch offer.
+    // Places are always allocated over real invitations only (test accounts never use one).
     const offer = launchOffer(invites as unknown as OfferCandidate[], settings);
+    const placeById = new Map<string, number>(
+      [...offer.agency.rows, ...offer.talent.rows].map((r) => [r.id, r.place]),
+    );
     const offerRows = [...offer.agency.rows, ...offer.talent.rows].filter(
       (r) => data.type === "all" || r.type === data.type,
     );
@@ -185,15 +198,25 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     // 3. Invitation conversion.
     const range = sastRange(data.from, data.to);
     const funnel = invitationFunnel(
-      invites,
+      scopedInvites,
       { ...range, type: data.type, segment: data.segment },
       nowIso,
     );
 
     // 4. Terms.
-    const linked = new Set(check<any[]>(links).map((l) => l.talent_user_id));
+    const linkRows = check<any[]>(links);
+    const linked = new Set(linkRows.map((l) => l.talent_user_id));
+    const agenciesOfTalent = new Map<string, string[]>();
+    for (const l of linkRows) {
+      const n = agencyById.get(l.agency_id)?.name;
+      if (!n) continue;
+      agenciesOfTalent.set(l.talent_user_id, [...(agenciesOfTalent.get(l.talent_user_id) ?? []), n]);
+    }
+    const memberAgency = new Map<string, string>(check<any[]>(members).map((m) => [m.user_id, m.agency_id]));
     const profiles = new Map<string, any>();
-    const memberIds = [...new Set(check<any[]>(members).map((m) => m.user_id))];
+    const memberIds = [...new Set(check<any[]>(members).map((m) => m.user_id))].filter((id) =>
+      inScope(agencyById.get(memberAgency.get(id) ?? "")?.is_test),
+    );
     if (memberIds.length) {
       const p = check<any[]>(
         await admin.from("profiles").select("id, email, display_name, first_name, last_name").in("id", memberIds),
@@ -229,7 +252,12 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const currentDocs = check<any[]>(docs);
     const currentIds = new Set(currentDocs.map((d) => d.id));
     const outstanding = termsOutstanding(peopleFiltered, accRows, currentDocs);
+    const scopedUsers = new Set<string>([
+      ...talentRows.map((t) => t.user_id),
+      ...memberIds,
+    ]);
     const accInRange = accRows
+      .filter((a) => scopedUsers.has(a.user_id) || (scope !== "real" && !memberAgency.has(a.user_id) && !allTalent.some((t) => t.user_id === a.user_id)) ? true : scopedUsers.has(a.user_id))
       .filter((a) => a.accepted_at >= range.fromIso && a.accepted_at <= range.toIso)
       .filter((a) => data.type === "all" || a.doc_type === data.type)
       .map((a) => ({ ...a, is_current: currentIds.has(a.document_id) }));

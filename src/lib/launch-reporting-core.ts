@@ -63,6 +63,12 @@ export function launchWindow(s: LaunchSettings) {
 
 const inWindow = (ts: string | null | undefined, a: string, b: string) => !!ts && ts >= a && ts < b;
 
+/** True when a timestamp falls inside the launch window (what "signed up" counts). */
+export function inLaunchWindow(ts: string | null | undefined, s: LaunchSettings) {
+  const w = launchWindow(s);
+  return inWindow(ts, w.start, w.end);
+}
+
 export function launchProgress(
   input: { talentJoined: (string | null)[]; agenciesJoined: (string | null)[] },
   s: LaunchSettings,
@@ -100,6 +106,8 @@ export type InviteRow = {
   first_sent_at: string | null;
   accepted_at: string | null;
   source: string | null;
+  /** Belongs to a test account. */
+  is_test?: boolean;
 };
 
 export const FUNNEL_BUCKETS = ["draft", "pending", "accepted", "expired", "revoked", "declined"] as const;
@@ -184,18 +192,20 @@ export type OfferCandidate = {
   first_sent_at: string | null;
   accepted_at: string | null;
   status: string;
+  is_test?: boolean;
 };
 
 /**
  * Places go to the first N invitations (per type) first sent on or after the
  * launch date, in send order. A place is "used" once that invitation is
  * accepted; the free period runs from acceptance for offer_free_months.
+ * Test accounts never take a place.
  */
 export function launchOffer(cands: OfferCandidate[], s: LaunchSettings) {
   const start = launchWindow(s).start;
   const build = (type: InviteType, places: number) => {
     const ordered = cands
-      .filter((c) => c.type === type && c.first_sent_at && c.first_sent_at >= start)
+      .filter((c) => c.type === type && !c.is_test && c.first_sent_at && c.first_sent_at >= start)
       .sort((a, b) => (a.first_sent_at! < b.first_sent_at! ? -1 : a.first_sent_at! > b.first_sent_at! ? 1 : a.id < b.id ? -1 : 1))
       .slice(0, places);
     const rows = ordered.map((c, i) => ({
