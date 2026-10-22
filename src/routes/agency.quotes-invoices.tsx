@@ -46,8 +46,14 @@ import {
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, emptyLine, fmtMoney } from "@/lib/billing";
 import { BillingPreviewDialog } from "@/components/agency/billing-preview-dialog";
-import { EmailChipsInput } from "@/components/shared/email-chips-input";
-import { useAgencyClients, type AgencyClient } from "@/components/agency/clients-panel";
+import {
+  useAgencyClients,
+  ClientFormModal,
+  emptyClientForm,
+  type AgencyClient,
+} from "@/components/agency/clients-panel";
+import { ClientPicker } from "@/components/agency/client-picker";
+import { formatClientAddress } from "@/lib/client-duplicates";
 import { BillingSummaryCards } from "@/components/agency/billing-summary-cards";
 import {
   BillingPeriodSelector,
@@ -69,7 +75,6 @@ import { friendlyError } from "@/lib/friendly-error";
 
 // Radix Select cannot hold an empty string value, so "no talent" uses a sentinel.
 const NO_TALENT = "__none__";
-const ONE_OFF_CLIENT = "__one_off__";
 
 type Row = {
   id: string;
@@ -310,6 +315,7 @@ function QIPage() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editor, setEditor] = useState<EditorState>(emptyEditor("invoice"));
+  const [addingClient, setAddingClient] = useState(false);
   const [loadingEditor, setLoadingEditor] = useState(false);
 
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -565,6 +571,7 @@ function QIPage() {
   const send = useMutation({
     mutationFn: async () => {
       if (!editor.id) throw new Error("Save the record first");
+      if (!editor.client_id) throw new Error("Choose a client before sending");
       if (editor.recipient_emails.length === 0)
         throw new Error("Add at least one recipient email address");
       return sendFn({ data: { id: editor.id, recipients: editor.recipient_emails } });
@@ -598,6 +605,7 @@ function QIPage() {
   const markPreviewSent = useMutation({
     mutationFn: async () => {
       if (!editor.id) throw new Error("Save the record first");
+      if (!editor.client_id) throw new Error("Choose a client before sending");
       return markSentFn({ data: { id: editor.id } });
     },
     onSuccess: (res: any) => {
@@ -1552,6 +1560,7 @@ function QIPage() {
           recipients={editor.recipient_emails}
           canSend={
             !!editor.id &&
+            !!editor.client_id &&
             editor.recipient_emails.length > 0 &&
             !!settings?.billing_from_verified_at &&
             !!settings?.billing_from_email &&
@@ -1560,17 +1569,23 @@ function QIPage() {
           sendDisabledReason={
             !editor.id
               ? "Save this draft first before sending."
-              : editor.recipient_emails.length === 0
+              : !editor.client_id
+                ? "Choose a client before sending."
+                : editor.recipient_emails.length === 0
                 ? "Add at least one recipient email address before sending."
                 : !settings?.billing_from_verified_at || !settings?.billing_from_email
                   ? "Verify a sending address in Quotes & Invoices Settings before sending."
                   : "This record has already been sent."
           }
           canMarkSent={
-            !!editor.id && (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
+            !!editor.id && !!editor.client_id && (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
           }
           markSentDisabledReason={
-            !editor.id ? "Save this draft first." : "This record has already been sent."
+            !editor.id
+              ? "Save this draft first."
+              : !editor.client_id
+                ? "Choose a client before sending."
+                : "This record has already been sent."
           }
           onSend={() => send.mutate()}
           sending={send.isPending}
@@ -1578,6 +1593,35 @@ function QIPage() {
           markingSent={markPreviewSent.isPending}
         />
       )}
+      {addingClient && (
+        <ClientFormModal
+          compact
+          initial={emptyClientForm()}
+          onClose={() => setAddingClient(false)}
+          onSaved={(_id, c) => {
+            setAddingClient(false);
+            setEditor((prev) => applyClient(prev, c));
+          }}
+        />
+      )}
     </>
   );
+}
+
+/** Fill the editor's recipient block from a saved client (mirrors the database rule). */
+function applyClient(editor: EditorState, c: AgencyClient): EditorState {
+  return {
+    ...editor,
+    client_id: c.id,
+    client_name: c.name,
+    recipient_contact_person: c.contact_person ?? "",
+    recipient_address: formatClientAddress(c),
+    recipient_vat_number: c.vat_number ?? "",
+    recipient_emails: (c.emails ?? []).slice(0, 20),
+    payment_terms_days:
+      editor.kind === "invoice" && c.payment_terms_days != null && !editor.id
+        ? String(c.payment_terms_days)
+        : editor.payment_terms_days,
+    save_client: false,
+  };
 }
