@@ -2689,6 +2689,12 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
         kind: "invoice",
         number: data.invoice_number,
         client_name: quote.client_name,
+        client_id: quote.client_id ?? null,
+        recipient_contact_person: quote.recipient_contact_person ?? null,
+        recipient_address: quote.recipient_address ?? null,
+        recipient_vat_number: quote.recipient_vat_number ?? null,
+        recipient_email: quote.recipient_email ?? null,
+        recipient_emails: quote.recipient_emails ?? [],
         talent_name: quote.talent_name,
         talent_link_id:
           quote.talent_link_id ??
@@ -4999,7 +5005,7 @@ function emptyRollup(): ClientRollup {
 async function loadClientRollups(supabase: any, agencyId: string) {
   const { data: docs, error } = await supabase
     .from("agency_billing_docs")
-    .select("id, client_id, kind, status, total_cents, due_date, paid_at")
+    .select("id, client_id, kind, status, total_cents, due_date, paid_at, issued_at, updated_at")
     .eq("agency_id", agencyId)
     .not("client_id", "is", null);
   if (error) throw new Error(error.message);
@@ -5028,6 +5034,8 @@ async function loadClientRollups(supabase: any, agencyId: string) {
     const key = d.client_id as string;
     const agg = byClient.get(key) ?? emptyRollup();
     agg.docCount += 1;
+    const used = ((d.issued_at as string) || (d.updated_at as string) || null) as string | null;
+    if (used && (!agg.lastUsedAt || used > agg.lastUsedAt)) agg.lastUsedAt = used;
 
     if (d.kind === "invoice" && d.status !== "cancelled") {
       const total = Number(d.total_cents ?? 0);
@@ -5049,15 +5057,15 @@ async function loadClientRollups(supabase: any, agencyId: string) {
 
 export const listAgencyClients = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) =>
+    z.object({ includeArchived: z.boolean().optional() }).optional().parse(d),
+  )
+  .handler(async ({ data: input, context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
-    const { data, error } = await supabase
-      .from("agency_clients")
-      .select(CLIENT_COLUMNS)
-      .eq("agency_id", agencyId)
-      .is("archived_at", null)
-      .order("name", { ascending: true });
+    let q = supabase.from("agency_clients").select(CLIENT_COLUMNS).eq("agency_id", agencyId);
+    if (!input?.includeArchived) q = q.is("archived_at", null);
+    const { data, error } = await q.order("name", { ascending: true });
     if (error) throw new Error(error.message);
     const clients = data ?? [];
 
@@ -5166,10 +5174,13 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
         contact_person: z.string().trim().max(200).nullable().optional(),
         emails: z
           .array(z.string().trim().email("Enter a valid email address").max(200))
-          .max(20, "You can save up to 20 email addresses per client")
-          .default([]),
+          .min(1, "Enter the client's email address")
+          .max(20, "You can save up to 20 email addresses per client"),
         phone: z.string().trim().max(40).nullable().optional(),
         address: z.string().trim().max(500).nullable().optional(),
+        address_suburb: z.string().trim().max(120).nullable().optional(),
+        province: z.string().trim().max(120).nullable().optional(),
+        postal_code: z.string().trim().max(20).nullable().optional(),
         vat_number: z.string().trim().max(64).nullable().optional(),
         city: z.string().trim().max(120).nullable().optional(),
         country: z.string().trim().max(120).nullable().optional(),
@@ -5194,9 +5205,12 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
       emails: normaliseEmails(data.emails),
       phone: data.phone?.trim() || null,
       address: data.address?.trim() || null,
+      address_suburb: data.address_suburb?.trim() || null,
+      province: data.province?.trim() || null,
+      postal_code: data.postal_code?.trim() || null,
       vat_number: data.vat_number?.trim() || null,
       city: data.city?.trim() || null,
-      country: data.country?.trim() || null,
+      country: data.country?.trim() || "South Africa",
       notes: data.notes?.trim() || null,
       client_type: data.client_type?.trim() || null,
       contact_title: data.contact_title?.trim() || null,
@@ -5242,6 +5256,50 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
     );
 
     return { id: clientId };
+  });
+
+/** Warn-only duplicate check within the caller's own agency. */
+export const checkAgencyClientDuplicates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid().nullable().optional(),
+        name: z.string().max(200).optional(),
+        emails: z.array(z.string().max(200)).max(20).optional(),
+        vat_number: z.string().max(64).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: rows, error } = await supabase
+      .from("agency_clients")
+      .select("id, name, emails, vat_number, archived_at")
+      .eq("agency_id", agencyId);
+    if (error) throw new Error(error.message);
+    const { findClientDuplicates } = await import("@/lib/client-duplicates");
+    return findClientDuplicates(data, rows ?? []);
+  });
+
+export const restoreAgencyClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
+    const { data: r, error } = await supabase
+      .from("agency_clients")
+      .update({ archived_at: null })
+      .eq("id", data.id)
+      .eq("agency_id", agencyId)
+      .select("id, name")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!r) throw new Error("That client could not be found on your agency.");
+    await logAgencyAudit(supabase, agencyId, userId, claims?.email, "restore_agency_client", "agency_client", r.id, r.name, {});
+    return { ok: true };
   });
 
 export const removeAgencyClient = createServerFn({ method: "POST" })
