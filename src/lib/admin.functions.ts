@@ -511,6 +511,7 @@ export const listAccounts = createServerFn({ method: "GET" })
         status: z.string().default("all"),
         link: z.string().default("all"),
         accounts: z.string().default("all"),
+        q: z.string().max(200).default(""),
         limit: z.number().int().min(1).max(50).default(10),
         offset: z.number().int().min(0).max(5000).default(0),
       }),
@@ -525,6 +526,7 @@ export const listAccounts = createServerFn({ method: "GET" })
       status: normaliseAccountStatus(data.status),
       link: normaliseTalentLink(data.link),
       scope: normaliseAccountScope(data.accounts, "all"),
+      q: normaliseSearch(data.q),
     };
     const agencies = await loadAgenciesWithInvitations(supabase);
     const agencyName = new Map<string, string>(agencies.map((a: any) => [a.id, a.name]));
@@ -559,6 +561,15 @@ export const listAccounts = createServerFn({ method: "GET" })
         type: "agency" as const,
         is_test: !!a.is_test,
         joined_at: a.created_at,
+        search_text: [
+          a.name,
+          a.contact_person,
+          [a.main_contact_first_name, a.main_contact_last_name].filter(Boolean).join(" "),
+          a.contact_email,
+          a.main_contact_email,
+          a.invitation?.contact_person,
+          a.invitation?.email,
+        ],
       })),
       ...(profiles ?? []).map((p: any) => ({
         key: `talent-${p.id}`,
@@ -571,12 +582,16 @@ export const listAccounts = createServerFn({ method: "GET" })
         linked_agencies: linksByUser.get(p.user_id) ?? [],
         is_test: !!p.is_test,
         joined_at: p.activation_completed_at ?? p.created_at,
+        // Linked agency names: searching an agency also finds its talent.
+        search_text: [p.full_name, p.email, ...(linksByUser.get(p.user_id) ?? [])],
       })),
     ].sort((a: any, b: any) => (a.joined_at < b.joined_at ? 1 : -1));
 
     const matching = filterAccounts(all, filters);
     return {
-      rows: matching.slice(data.offset, data.offset + data.limit),
+      rows: matching
+        .slice(data.offset, data.offset + data.limit)
+        .map(({ search_text: _s, ...r }: any) => r),
       total: matching.length,
       counts: accountOptionCounts(all, filters),
     };
@@ -896,6 +911,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         type: z.string().default("all"),
         status: z.string().default("all"),
         email: z.string().max(320).default(""),
+        q: z.string().max(200).default(""),
         accounts: z.string().default("all"),
         limit: z.number().int().min(1).max(50).default(10),
         offset: z.number().int().min(0).max(500).default(0),
@@ -920,6 +936,29 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     const testEmails: string[] = (testTal ?? [])
       .map((r: any) => String(r.email ?? "").trim().toLowerCase())
       .filter(Boolean);
+    // Search box: matched on the server across names, contact person and
+    // email (accent-insensitive), then applied as an id filter so counts,
+    // filters and paging all respect it.
+    const term = normaliseSearch(data.q);
+    const searchIds: Record<InvitationType, string[] | null> = { agency: null, talent: null };
+    if (term) {
+      const [ag, ta] = await Promise.all([
+        supabase
+          .from("agency_invitations")
+          .select("id, agency_name, contact_person, email")
+          .eq("kind", ADMIN_AGENCY_INVITATION_KIND)
+          .limit(5000),
+        supabase.from("independent_talent_invitations").select("id, talent_name, email").limit(5000),
+      ]);
+      if (ag.error) throw new Error(ag.error.message);
+      if (ta.error) throw new Error(ta.error.message);
+      searchIds.agency = (ag.data ?? [])
+        .filter((r: any) => matchesSearch([r.agency_name, r.contact_person, r.email], term))
+        .map((r: any) => r.id);
+      searchIds.talent = (ta.data ?? [])
+        .filter((r: any) => matchesSearch([r.talent_name, r.email], term))
+        .map((r: any) => r.id);
+    }
     const quoteList = (xs: string[]) => xs.map((x) => `"${x.replace(/"/g, "")}"`).join(",");
     const byScope = (q: any, t: InvitationType) => {
       if (scope === "all") return q;
@@ -949,7 +988,9 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     // agency_invitations table (kind = 'staff') and are not Admin invitations.
     const byStatus = (q0: any, s: string, t: InvitationType) => {
       const q1 = byScope(t === "agency" ? q0.eq("kind", ADMIN_AGENCY_INVITATION_KIND) : q0, t);
-      const q = email ? q1.ilike("email", `%${email}%`) : q1;
+      const q2 = email ? q1.ilike("email", `%${email}%`) : q1;
+      const ids = searchIds[t];
+      const q = ids === null ? q2 : q2.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
       if (s !== "all") return q.eq("status", s);

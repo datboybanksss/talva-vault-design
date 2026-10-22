@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/search";
 import { Constants } from "@/integrations/supabase/types";
 import { LIFECYCLE_STATUS, statusLabel, statusPillClass } from "@/lib/status-labels";
 
@@ -58,6 +59,8 @@ export type AccountRow = {
   /** Talent only: agency names of live links; empty = independent. */
   linked_agencies?: string[];
   is_test?: boolean;
+  /** Text the search box matches (names, contact names, emails, linked agencies). */
+  search_text?: Array<string | null | undefined>;
 };
 
 export type AccountFilters = {
@@ -66,6 +69,8 @@ export type AccountFilters = {
   link: TalentLinkFilter;
   /** Real/test accounts; omitted = all. */
   scope?: "real" | "test" | "all";
+  /** Search box term; empty = no search. */
+  q?: string;
 };
 
 function linkMatches(r: AccountRow, link: TalentLinkFilter) {
@@ -82,7 +87,8 @@ export function filterAccounts<T extends AccountRow>(rows: T[], f: AccountFilter
       (f.type === "all" || r.type === f.type) &&
       (f.status === "all" || r.status === f.status) &&
       (!f.scope || f.scope === "all" || (f.scope === "test") === !!r.is_test) &&
-      linkMatches(r, link),
+      linkMatches(r, link) &&
+      matchesSearch(r.search_text ?? [], f.q ?? ""),
   );
 }
 
