@@ -2117,15 +2117,27 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
     const { data: versions, error } = await supabase
       .from("talent_shared_document_versions")
       .select(
-        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at",
+        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at, locked_until",
       )
       .eq("document_id", data.document_id)
       .order("version_number", { ascending: false });
     if (error) throw new Error(error.message);
+    const ids = Array.from(new Set((versions ?? []).map((v: any) => v.uploaded_by).filter(Boolean)));
+    const names = new Map<string, string>();
+    if (ids.length) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      for (const p of profs ?? []) names.set(p.id, p.full_name || p.email || "");
+    }
     return {
       currentVersionId: (doc.current_version_id as string) ?? null,
       currentStoragePath: (doc.storage_path as string) ?? null,
-      versions: versions ?? [],
+      versions: (versions ?? []).map((v: any) => ({
+        ...v,
+        uploaded_by_name: names.get(v.uploaded_by) || null,
+      })),
     };
   });
 

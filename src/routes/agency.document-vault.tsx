@@ -356,6 +356,7 @@ function VaultPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
   const [versionsFor, setVersionsFor] = useState<VaultDoc | null>(null);
+  const [versionsCanUpload, setVersionsCanUpload] = useState(false);
   const [newVersionFor, setNewVersionFor] = useState<VaultDoc | null>(null);
   const [aiReviewFor, setAiReviewFor] = useState<{ id: string; name: string } | null>(null);
   const aiRow = useAnalyseWithAi("agency");
@@ -996,7 +997,10 @@ function VaultPage() {
                                     label: "Version history",
                                     icon: History,
                                     separatorBefore: true,
-                                    onSelect: () => setVersionsFor(d),
+                                    onSelect: () => {
+                                      setVersionsCanUpload(!readOnly && !changeBlock);
+                                      setVersionsFor(d);
+                                    },
                                   },
                                   !readOnly && {
                                     key: "newversion",
@@ -1078,7 +1082,21 @@ function VaultPage() {
         <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />
       )}
 
-      {versionsFor && <VersionsDialog doc={versionsFor} onClose={() => setVersionsFor(null)} />}
+      {versionsFor && (
+        <VersionsDialog
+          doc={versionsFor}
+          onClose={() => setVersionsFor(null)}
+          onNewVersion={
+            versionsCanUpload
+              ? () => {
+                  const d = versionsFor;
+                  setVersionsFor(null);
+                  setNewVersionFor(d);
+                }
+              : undefined
+          }
+        />
+      )}
 
       {!readOnly && newVersionFor && (
         <NewVersionDialog
@@ -1638,7 +1656,15 @@ function UploadDialog({
 // ---------------------------------------------------------------------------
 // Version history dialog
 // ---------------------------------------------------------------------------
-function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }) {
+function VersionsDialog({
+  doc,
+  onClose,
+  onNewVersion,
+}: {
+  doc: VaultDoc;
+  onClose: () => void;
+  onNewVersion?: () => void;
+}) {
   const listFn = useServerFn(listAgencyDocumentVersions);
   const signedFn = useServerFn(getAgencyVersionSignedUrl);
   const { data, isLoading } = useQuery({
@@ -1685,9 +1711,16 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
               {doc.name}
             </div>
           </div>
-          <button className="tvp-mini-btn" onClick={onClose} title="Close">
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex gap-2 items-center">
+            {onNewVersion && (
+              <button className="tvp-secondary" onClick={onNewVersion}>
+                <Upload className="h-4 w-4" /> Upload new version
+              </button>
+            )}
+            <button className="tvp-mini-btn" onClick={onClose} title="Close">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -1705,7 +1738,9 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
               <tr>
                 <th>#</th>
                 <th>File name</th>
+                <th>Uploaded by</th>
                 <th>Uploaded</th>
+                <th>Protected until</th>
                 <th style={{ width: 140 }}></th>
               </tr>
             </thead>
@@ -1717,7 +1752,11 @@ function VersionsDialog({ doc, onClose }: { doc: VaultDoc; onClose: () => void }
                     {data?.currentVersionId === v.id ? " · current" : ""}
                   </td>
                   <td>{v.name}</td>
-                  <td className="tvp-muted">{new Date(v.created_at).toLocaleString()}</td>
+                  <td>{v.uploaded_by_name ?? "—"}</td>
+                  <td className="tvp-muted">{new Date(v.created_at).toLocaleString("en-GB")}</td>
+                  <td className="tvp-muted">
+                    {v.locked_until ? fmtLongDate(v.locked_until) : "No rule"}
+                  </td>
                   <td>
                     <div className="flex gap-1 justify-end">
                       <button
