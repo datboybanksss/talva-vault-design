@@ -1,3 +1,4 @@
+import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -408,6 +409,7 @@ function NewInvitationModal({
   const [role, setRole] = useState("staff");
   const [expiryDays, setExpiryDays] = useState(14);
   const [busy, setBusy] = useState(false);
+  const emailCheck = useInviteEmailCheck(type === "talent" ? "agency_talent" : "agency_staff");
   const [panel, setPanel] = useState<"details" | "folders">("details");
   const [folderMode, setFolderMode] = useState<"standard" | "custom">("standard");
   const [customFolders, setCustomFolders] = useState<Set<string>>(new Set());
@@ -532,6 +534,7 @@ function NewInvitationModal({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
+            if (await emailCheck.check(email)) return;
             if (type === "talent" && panel === "details") {
               if (!name.trim() || !email.trim()) return;
               setPanel("folders");
@@ -589,10 +592,16 @@ function NewInvitationModal({
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    emailCheck.clear();
+                  }}
+                  onBlur={() => void emailCheck.check(email)}
+                  aria-invalid={!!emailCheck.conflict}
                   required
                   placeholder="name@email.com"
                 />
+                <InviteEmailFieldError conflict={emailCheck.conflict} />
               </div>
               {type === "staff" && (
                 <div className="tvp-form-group">

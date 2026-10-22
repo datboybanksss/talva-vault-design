@@ -1,3 +1,4 @@
+import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -254,6 +255,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
 
   const uploaded = new Set(docs.map((d) => d.doc_slot));
   const missing = SLOTS.filter((s) => !uploaded.has(s.key));
+  const emailCheck = useInviteEmailCheck("admin_talent", draftId || null);
   const saving = createM.isPending || updateM.isPending;
   const canSend =
     !!draftId &&
@@ -261,6 +263,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
     detailsComplete &&
     missing.length === 0 &&
     !saving &&
+    !emailCheck.conflict &&
     !invQ.isFetching &&
     !finalizeM.isPending;
   const outstanding = [
@@ -341,9 +344,15 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                emailCheck.clear();
+              }}
+              onBlur={() => void emailCheck.check(email)}
+              aria-invalid={!!emailCheck.conflict}
               placeholder="name@example.com"
             />
+            <InviteEmailFieldError conflict={emailCheck.conflict} />
           </div>
           <div className="tvp-form-group">
             <label>Talent type</label>
@@ -406,7 +415,11 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
                 className="tvp-primary"
                 type="button"
                 disabled={!detailsComplete || saving}
-                onClick={() => (draftId ? updateM.mutate() : createM.mutate())}
+                onClick={async () => {
+                  if (await emailCheck.check(email)) return;
+                  if (draftId) updateM.mutate();
+                  else createM.mutate();
+                }}
               >
                 {saving ? "Saving…" : draftId ? "Save draft" : "Save draft & continue →"}
               </button>

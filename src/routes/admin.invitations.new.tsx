@@ -1,3 +1,4 @@
+import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -254,6 +255,7 @@ function NewInvitationPage() {
   }
 
   const detailsComplete = !!(agencyName.trim() && email.trim() && businessType);
+  const emailCheck = useInviteEmailCheck("admin_agency", draftId || null);
   const savingDraft = createDraftM.isPending || updateDraftM.isPending;
   const canSaveDraft = detailsComplete && !savingDraft;
 
@@ -279,6 +281,7 @@ function NewInvitationPage() {
     !missingPhone &&
     !phoneFormatError &&
     !savingDraft &&
+    !emailCheck.conflict &&
     !finalizeM.isPending;
 
   const outstanding = [
@@ -354,10 +357,16 @@ function NewInvitationPage() {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                emailCheck.clear();
+              }}
+              onBlur={() => void emailCheck.check(email)}
+              aria-invalid={!!emailCheck.conflict}
               required
               placeholder="contact@agency.com"
             />
+            <InviteEmailFieldError conflict={emailCheck.conflict} />
           </div>
           <div className="tvp-form-group">
             <label>Business type *</label>
@@ -411,7 +420,11 @@ function NewInvitationPage() {
             className="tvp-primary"
             type="button"
             disabled={!canSaveDraft}
-            onClick={() => (draftId ? updateDraftM.mutate() : createDraftM.mutate())}
+            onClick={async () => {
+              if (await emailCheck.check(email)) return;
+              if (draftId) updateDraftM.mutate();
+              else createDraftM.mutate();
+            }}
           >
             {savingDraft ? "Saving…" : draftId ? "Save draft" : "Save draft & continue →"}
           </button>
