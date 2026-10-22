@@ -5485,6 +5485,56 @@ a.tvp-entity-card:focus-visible {
     width: 100%;
   }
 }
+.tv-app .tvp-filter-search {
+  width: 300px;
+}
+.tv-app .tvp-filter-search-wrap {
+  position: relative;
+}
+.tv-app .tvp-filter-search-icon {
+  position: absolute;
+  left: var(--sp-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--tvp-muted);
+  pointer-events: none;
+}
+.tv-app .tvp-filter-search-input {
+  width: 100%;
+  padding-left: calc(var(--sp-3) + 16px + var(--sp-2));
+  padding-right: calc(var(--sp-3) + 16px + var(--sp-2));
+}
+.tv-app .tvp-filter-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+.tv-app .tvp-filter-search-input::placeholder {
+  color: var(--tvp-muted);
+}
+.tv-app .tvp-filter-search-clear {
+  position: absolute;
+  right: var(--sp-2);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  padding: var(--sp-1);
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tvp-muted);
+  cursor: pointer;
+}
+.tv-app .tvp-filter-search-clear:hover {
+  color: var(--tvp-ink);
+}
+.tv-app .tvp-filter-search-clear:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+@media (max-width: 560px) {
+  .tv-app .tvp-filter-search {
+    width: 100%;
+  }
+}
 
 /* New invitation — "Who are you inviting?" */
 .tvp-back-link {
