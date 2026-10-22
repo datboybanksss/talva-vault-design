@@ -191,7 +191,9 @@ export function AiFilingReviewModal({
     queryFn: () => catalogFn({ data: { scope, document_id: documentId } }),
     retry: false,
     refetchOnWindowFocus: false,
-    staleTime: Infinity,
+    // Folders can change between opens; always load them fresh when the pop-up opens.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const catalog: CatalogItem[] = useMemo(() => data?.catalog ?? [], [data]);
