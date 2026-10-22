@@ -1,3 +1,4 @@
+import { fmtMoney as fmtZar } from "@/lib/billing";
 import { ModalShell } from "@/components/shared/modal-shell";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { isUuid } from "@/lib/ids";
@@ -39,12 +40,7 @@ export const Route = createFileRoute("/agency/contracts/$id")({
 });
 
 function fmtMoney(cents: number | null, ccy: string | null) {
-  if (cents == null) return "—";
-  return new Intl.NumberFormat("en-ZA", {
-    style: "currency",
-    currency: ccy || "ZAR",
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
+  return cents == null ? "—" : fmtZar(cents, ccy ?? "ZAR");
 }
 
 type Tab = "overview" | "invoices";
@@ -316,7 +312,7 @@ function ContractDetail() {
                     </td>
                     <td>{i.issuedAt}</td>
                     <td>{i.dueDate ?? "—"}</td>
-                    <td>{fmtMoney(i.totalCents, i.currency)}</td>
+                    <td className="tvp-num">{fmtMoney(i.totalCents, i.currency)}</td>
                     <td>
                       <span
                         className={`tvp-status tvp-${i.status === "paid" ? "green" : i.status === "overdue" ? "red" : "blue"}`}

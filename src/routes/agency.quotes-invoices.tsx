@@ -1,4 +1,5 @@
 import { FilterBar } from "@/components/shared/filter-bar";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
@@ -114,7 +115,7 @@ export const Route = createFileRoute("/agency/quotes-invoices")({
   },
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
-      <h1 className="tvp-h1">Quotes & Invoices</h1>
+      <h1 className="tvp-h1">Quotes & invoices</h1>
       <p className="tvp-muted">Failed to load: {(error as Error)?.message}</p>
     </div>
   ),
@@ -692,7 +693,7 @@ function QIPage() {
     <>
       <div className="tvp-topbar" style={{ alignItems: "center" }}>
         <div>
-          <h1 className="tvp-h1">Quotes & Invoices</h1>
+          <h1 className="tvp-h1">Quotes & invoices</h1>
         </div>
         <div className="tvp-actions" data-tour="billing-new">
           <button className="tvp-secondary" onClick={() => openNew("quote")}>
@@ -755,7 +756,7 @@ function QIPage() {
               </div>
               <div>
                 <div className="tvp-kpi-value">{kpis.quoteDrafts}</div>
-                <div className="tvp-kpi-label">Quote Drafts</div>
+                <div className="tvp-kpi-label">Quote drafts</div>
                 <div
                   className="tvp-kpi-sub"
                   style={{ color: kpis.quoteDrafts > 0 ? "var(--tvp-green)" : "var(--tvp-muted)" }}
@@ -776,7 +777,7 @@ function QIPage() {
               </div>
               <div>
                 <div className="tvp-kpi-value">{kpis.invoiceDrafts}</div>
-                <div className="tvp-kpi-label">Invoice Drafts</div>
+                <div className="tvp-kpi-label">Invoice drafts</div>
                 <div
                   className="tvp-kpi-sub"
                   style={{
@@ -799,7 +800,7 @@ function QIPage() {
               </div>
               <div>
                 <div className="tvp-kpi-value">{kpis.quotesAccepted}</div>
-                <div className="tvp-kpi-label">Quotes Accepted</div>
+                <div className="tvp-kpi-label">Quotes accepted</div>
                 <div
                   className="tvp-kpi-sub"
                   style={{
@@ -824,7 +825,7 @@ function QIPage() {
               </div>
               <div>
                 <div className="tvp-kpi-value">{kpis.lateInvoices}</div>
-                <div className="tvp-kpi-label">Late Invoices</div>
+                <div className="tvp-kpi-label">Late invoices</div>
                 <div
                   className="tvp-kpi-sub"
                   style={{ color: kpis.lateInvoices > 0 ? "var(--tvp-red)" : "var(--tvp-muted)" }}
@@ -835,40 +836,25 @@ function QIPage() {
             </button>
           </div>
 
-          <div className="tvp-card">
-            <div className="tvp-panel-head" style={{ padding: "16px 18px 0", margin: 0 }}>
-              <h2 className="tvp-h2">Quotes & Invoices Workspace</h2>
-              {filtersActive && (
-                <button className="tvp-link" onClick={resetFilters}>
-                  Reset filters
-                </button>
-              )}
+          <div className="tvp-card tvp-panel">
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">Quotes and invoices</h2>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3" style={{ padding: "14px 18px" }}>
-              <div style={{ position: "relative", flex: "1 1 260px", minWidth: 200 }}>
-                <Search
-                  className="h-4 w-4"
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--tvp-muted)",
-                  }}
-                />
-                <input
-                  className="tvp-search-top"
-                  style={{ paddingLeft: 34, width: "100%" }}
-                  placeholder="Search by client, talent or reference..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <FilterBar onChange={(k, v) => (k === "status" ? setStatusFilter(v) : k === "talent" ? setTalentFilter(v) : k === "type" ? setTypeFilter(v) : setSort(v as SortKey))} filters={[{ key: "status", label: "Status", value: statusFilter, options: [{ value: "all", label: "All statuses" }, ...(Object.keys(STATUS_LABEL) as Row["status"][]).map((x) => ({ value: x, label: STATUS_LABEL[x] }))] }, { key: "talent", label: "Talent", value: talentFilter, options: [{ value: "all", label: "All talent" }, ...talents.map((t) => ({ value: t, label: t }))] }, { key: "type", label: "Type", value: typeFilter, options: [{ value: "all", label: "All types" }, { value: "quote", label: "Quote" }, { value: "invoice", label: "Invoice" }] }, { key: "sort", label: "Sort", value: sort, options: [{ value: "newest", label: "Newest" }, { value: "oldest", label: "Oldest" }, { value: "amount_desc", label: "Amount ↓" }, { value: "amount_asc", label: "Amount ↑" }, { value: "due", label: "Due date" }] }]} />
-            </div>
+            <FilterBar
+              search={{ value: search, onChange: setSearch, placeholder: "Search by client, talent or reference" }}
+              active={filtersActive}
+              onClear={resetFilters}
+              onChange={(k, v) => (k === "status" ? setStatusFilter(v) : k === "talent" ? setTalentFilter(v) : k === "type" ? setTypeFilter(v) : setSort(v as SortKey))}
+              filters={[
+                { key: "status", label: "Status", value: statusFilter, options: [{ value: "all", label: "All statuses" }, ...(Object.keys(STATUS_LABEL) as Row["status"][]).map((x) => ({ value: x, label: STATUS_LABEL[x] }))] },
+                { key: "talent", label: "Talent", value: talentFilter, options: [{ value: "all", label: "All talent" }, ...talents.map((t) => ({ value: t, label: t }))] },
+                { key: "type", label: "Type", value: typeFilter, options: [{ value: "all", label: "All types" }, { value: "quote", label: "Quote" }, { value: "invoice", label: "Invoice" }] },
+                { key: "sort", label: "Sort", value: sort, options: [{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "amount_desc", label: "Highest amount" }, { value: "amount_asc", label: "Lowest amount" }, { value: "due", label: "Due date" }] },
+              ]}
+            />
 
-            <div className="tvp-life-chips" style={{ padding: "0 18px 14px" }}>
+            <div className="tvp-life-chips">
               {CHIPS.map((c) => (
                 <button
                   key={c.key}
@@ -881,6 +867,7 @@ function QIPage() {
               ))}
             </div>
 
+            <div className="tvp-table-wrap">
             <table className="tvp-table" data-tour="billing-table">
               <thead>
                 <tr>
@@ -889,9 +876,9 @@ function QIPage() {
                   <th>Talent</th>
                   <th>Client</th>
                   <th>Status</th>
-                  <th>Acceptance / Due Rule</th>
-                  <th>Amount</th>
-                  <th></th>
+                  <th>Acceptance or due</th>
+                  <th className="tvp-num">Amount</th>
+                  <th aria-label="Actions"></th>
                 </tr>
               </thead>
               <tbody>
@@ -899,8 +886,8 @@ function QIPage() {
                   <tr>
                     <td colSpan={8} className="tvp-muted" style={{ padding: 24 }}>
                       {rows.length === 0
-                        ? "Nothing billed yet — start with New Quote or New Invoice."
-                        : "No quotes or invoices match these filters — try clearing them."}
+                        ? "No quotes or invoices yet. Start with New quote or New invoice."
+                        : "No quotes or invoices match these filters."}
                     </td>
                   </tr>
                 )}
@@ -1025,62 +1012,42 @@ function QIPage() {
                           {ruleText(r)}
                         </span>
                       </td>
-                      <td>{fmtMoney(r.total_cents, r.currency)}</td>
-                      <td>
-                        <div className="flex gap-1" style={{ justifyContent: "flex-end" }}>
-                          <button
-                            className="tvp-mini-btn"
-                            title={
-                              r.talent_name
-                                ? r.shared_with_talent
-                                  ? "Shared with talent — click to hide"
-                                  : "Share with linked talent"
-                                : "Set a talent to enable sharing"
-                            }
-                            onClick={() =>
-                              r.talent_name &&
-                              toggleShare.mutate({ id: r.id, shared: !r.shared_with_talent })
-                            }
-                            disabled={!r.talent_name}
-                            style={{
-                              opacity: r.talent_name ? 1 : 0.4,
-                              color: r.shared_with_talent ? "var(--tvp-green)" : undefined,
-                            }}
-                          >
-                            <Link2 className="h-4 w-4" />
-                          </button>
-                          {r.kind === "quote" && !linkedInvoice && (
-                            <button
-                              className="tvp-mini-btn"
-                              data-tour="billing-convert"
-                              title="Convert to invoice"
-                              onClick={() => convert.mutate(r)}
-                            >
-                              <ArrowRightLeft className="h-4 w-4" />
-                            </button>
-                          )}
-                          {r.kind === "invoice" && r.status !== "draft" && (
-                            <button
-                              className="tvp-mini-btn"
-                              title="Payments received"
-                              onClick={() => setPaymentsDocId(r.id)}
-                            >
-                              <Wallet className="h-4 w-4" />
-                            </button>
-                          )}
-                          <button className="tvp-mini-btn" title="Edit" onClick={() => openEdit(r)}>
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            className="tvp-mini-btn"
-                            title="Delete"
-                            onClick={() => {
-                              if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                      <td className="tvp-num">{fmtMoney(r.total_cents, r.currency)}</td>
+                      <td className="tvp-actions-cell">
+                        <RowActionsMenu
+                          label={`Actions for ${r.number}`}
+                          actions={[
+                            { key: "edit", label: "Edit", icon: Pencil, onSelect: () => openEdit(r) },
+                            r.kind === "quote" && !linkedInvoice && {
+                              key: "convert",
+                              label: "Convert to invoice",
+                              icon: ArrowRightLeft,
+                              onSelect: () => convert.mutate(r),
+                            },
+                            r.kind === "invoice" && r.status !== "draft" && {
+                              key: "payments",
+                              label: "Payments received",
+                              icon: Wallet,
+                              onSelect: () => setPaymentsDocId(r.id),
+                            },
+                            !!r.talent_name && {
+                              key: "share",
+                              label: r.shared_with_talent ? "Stop sharing with talent" : "Share with linked talent",
+                              icon: Link2,
+                              onSelect: () => toggleShare.mutate({ id: r.id, shared: !r.shared_with_talent }),
+                            },
+                            {
+                              key: "delete",
+                              label: "Delete",
+                              icon: Trash2,
+                              destructive: true,
+                              separatorBefore: true,
+                              onSelect: () => {
+                                if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id);
+                              },
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );
@@ -1095,6 +1062,7 @@ function QIPage() {
                 />
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
@@ -1156,7 +1124,7 @@ function QIPage() {
                     </div>
                   </div>
                 )}
-                <div className="tvp-rule-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="tvp-form-2col">
                   <div className="tvp-form-group">
                     <label>Type</label>
                     <select
@@ -1448,31 +1416,13 @@ function QIPage() {
                       Add line
                     </button>
                   </div>
-                  <div
-                    style={{
-                      border: "1px solid var(--tvp-line)",
-                      borderRadius: 6,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 70px 130px 90px 130px 34px",
-                        gap: 8,
-                        padding: "8px 10px",
-                        background: "var(--surface-soft)",
-                        fontSize: 11,
-                        textTransform: "uppercase",
-                        color: "var(--tvp-muted)",
-                        fontWeight: 700,
-                      }}
-                    >
+                  <div className="tvp-lines">
+                    <div className="tvp-line-row tvp-line-head" aria-hidden="true">
                       <div>Description</div>
-                      <div style={{ textAlign: "right" }}>Qty</div>
-                      <div style={{ textAlign: "right" }}>Unit price (excl.)</div>
-                      <div style={{ textAlign: "right" }}>VAT %</div>
-                      <div style={{ textAlign: "right" }}>Line total</div>
+                      <div className="tvp-num">Quantity</div>
+                      <div className="tvp-num">Unit price (excl. VAT)</div>
+                      <div className="tvp-num">VAT %</div>
+                      <div className="tvp-num">Line total</div>
                       <div />
                     </div>
                     {editor.lines.map((l, i) => {
@@ -1480,18 +1430,9 @@ function QIPage() {
                         (Number(l.quantity) || 0) * (Number(l.unit_price_cents) || 0),
                       );
                       return (
-                        <div
-                          key={i}
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 70px 130px 90px 130px 34px",
-                            gap: 8,
-                            padding: "8px 10px",
-                            borderTop: "1px solid var(--tvp-line)",
-                            alignItems: "center",
-                          }}
-                        >
+                        <div key={i} className="tvp-line-row">
                           <input
+                            aria-label="Description"
                             value={l.description}
                             disabled={financialsLocked}
                             onChange={(e) => updateLine(i, { description: e.target.value })}
@@ -1504,7 +1445,9 @@ function QIPage() {
                             disabled={financialsLocked}
                             value={l.quantity}
                             onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })}
-                            style={{ textAlign: "right" }}
+                            aria-label="Quantity"
+                            placeholder="Quantity"
+                            className="tvp-num"
                           />
                           <input
                             type="number"
@@ -1517,7 +1460,9 @@ function QIPage() {
                                 unit_price_cents: Math.round(Number(e.target.value) * 100),
                               })
                             }
-                            style={{ textAlign: "right" }}
+                            aria-label="Unit price (excl. VAT)"
+                            placeholder="Unit price"
+                            className="tvp-num"
                           />
                           <input
                             type="number"
@@ -1531,9 +1476,11 @@ function QIPage() {
                                 vat_rate_bp: Math.round(Number(e.target.value) * 100),
                               })
                             }
-                            style={{ textAlign: "right" }}
+                            aria-label="VAT %"
+                            placeholder="VAT %"
+                            className="tvp-num"
                           />
-                          <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                          <div className="tvp-num tvp-line-total">
                             {fmtMoney(line, editor.currency)}
                           </div>
                           <button
@@ -1548,56 +1495,31 @@ function QIPage() {
                         </div>
                       );
                     })}
-                    <div
-                      data-tour="editor-totals"
-                      style={{
-                        padding: "10px 12px",
-                        borderTop: "2px solid var(--tvp-line-strong)",
-                        background: "var(--surface-soft)",
-                        display: "grid",
-                        gridTemplateColumns: "1fr 260px",
-                        gap: 8,
-                        fontSize: 13,
-                      }}
-                    >
-                      <div className="tvp-muted" style={{ fontSize: 11 }}>
-                        Totals calculated from lines. Subtotal is VAT-exclusive; VAT is applied per
+                    <div data-tour="editor-totals" className="tvp-totals">
+                      <p className="tvp-muted tvp-totals-note">
+                        Worked out from the lines above. The subtotal excludes VAT; VAT is added per
                         line.
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span className="tvp-muted">Subtotal (excl.)</span>
-                          <strong style={{ fontVariantNumeric: "tabular-nums" }}>
-                            {fmtMoney(editorTotals.subtotal_cents, editor.currency)}
-                          </strong>
+                      </p>
+                      <dl className="tvp-totals-list">
+                        <div>
+                          <dt>Subtotal (excl. VAT)</dt>
+                          <dd className="tvp-num">{fmtMoney(editorTotals.subtotal_cents, editor.currency)}</dd>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span className="tvp-muted">VAT</span>
-                          <strong style={{ fontVariantNumeric: "tabular-nums" }}>
-                            {fmtMoney(editorTotals.vat_cents, editor.currency)}
-                          </strong>
+                        <div>
+                          <dt>VAT</dt>
+                          <dd className="tvp-num">{fmtMoney(editorTotals.vat_cents, editor.currency)}</dd>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            borderTop: "1px solid #ddd",
-                            paddingTop: 4,
-                            marginTop: 4,
-                          }}
-                        >
-                          <span style={{ fontWeight: 800 }}>Total</span>
-                          <strong style={{ fontVariantNumeric: "tabular-nums", fontSize: 15 }}>
-                            {fmtMoney(editorTotals.total_cents, editor.currency)}
-                          </strong>
+                        <div className="tvp-totals-grand">
+                          <dt>Total</dt>
+                          <dd className="tvp-num">{fmtMoney(editorTotals.total_cents, editor.currency)}</dd>
                         </div>
-                      </div>
+                      </dl>
                     </div>
                   </div>
                 </div>
 
                 <div className="tvp-form-group" style={{ marginTop: 12 }}>
-                  <label>Notes / terms</label>
+                  <label>Notes and terms</label>
                   <textarea
                     value={editor.notes}
                     onChange={(e) => setEditor({ ...editor, notes: e.target.value })}
@@ -1633,11 +1555,7 @@ function QIPage() {
                   </label>
                 </div>
 
-                <div
-                  className="flex justify-between items-center gap-2"
-                  data-tour="editor-actions"
-                  style={{ marginTop: 20, flexWrap: "wrap" }}
-                >
+                <div className="tvp-form-footer" data-tour="editor-actions">
                   <div>
                     <button
                       className="tvp-secondary"

@@ -9,7 +9,21 @@ export type BillingLine = {
   sort_order: number;
 };
 
+/**
+ * Money as shown everywhere in TalVault. Rand uses the South African style
+ * "R 12 500,00" (space thousands, comma decimals) regardless of the browser's
+ * locale data; other currencies fall back to Intl.
+ */
 export function fmtMoney(cents: number, currency = "ZAR") {
+  if (currency === "ZAR") {
+    const neg = cents < 0;
+    const abs = Math.round(Math.abs(cents));
+    const whole = Math.floor(abs / 100)
+      .toString()
+      .replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
+    const frac = String(abs % 100).padStart(2, "0");
+    return `${neg ? "-" : ""}R\u00a0${whole},${frac}`;
+  }
   try {
     return new Intl.NumberFormat("en-ZA", {
       style: "currency",
