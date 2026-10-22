@@ -1,4 +1,11 @@
 import { FilterBar } from "@/components/shared/filter-bar";
+import { useConfirm } from "@/components/shared/use-confirm";
+import {
+  agencyDocumentChangeBlock,
+  agencyDocumentDeleteBlock,
+  blockText,
+  fmtLongDate,
+} from "@/lib/document-blocks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -78,6 +85,8 @@ type VaultDoc = {
   lockedUntil: string | null;
   currentVersionId: string | null;
   pendingReview?: boolean;
+  originator?: string;
+  linkStatus?: string | null;
 };
 type TalentLinkLite = {
   id: string;
@@ -306,6 +315,7 @@ const TAB_FILTER: Record<
 function VaultPage() {
   const qc = useQueryClient();
   const readOnly = !!useAgencyReadOnly();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const folderOptions = useFolderNames();
   const { data: talentLinks } = useSuspenseQuery(talentLinksQO);
   const { data: me } = useSuspenseQuery(meQO);
@@ -365,7 +375,10 @@ function VaultPage() {
       toast.success("Document deleted");
       qc.invalidateQueries({ queryKey: ["agency", "vault"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Delete failed")),
+    onError: (e: any) => {
+      toast.error(friendlyError(e, "This document couldn't be deleted. Please try again."));
+      qc.invalidateQueries({ queryKey: ["agency", "vault"] });
+    },
   });
 
   const viewMut = useMutation({
@@ -498,6 +511,7 @@ function VaultPage() {
 
   return (
     <>
+      {confirmDialog}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Document Vault</h1>
@@ -882,9 +896,16 @@ function VaultPage() {
                     {page.visible.map((d) => {
                       const isLocked =
                         !!d.lockedUntil && new Date(d.lockedUntil).getTime() > Date.now();
-                      const lockDate = d.lockedUntil
-                        ? new Date(d.lockedUntil).toLocaleDateString()
-                        : "";
+                      const lockDate = d.lockedUntil ? fmtLongDate(d.lockedUntil) : "";
+                      const docFacts = {
+                        originator: d.originator ?? "agency",
+                        talentName: d.talentName,
+                        lockedUntil: d.lockedUntil,
+                        linkStatus: d.linkStatus ?? null,
+                        agencyReadOnly: readOnly,
+                      };
+                      const deleteBlock = agencyDocumentDeleteBlock(docFacts);
+                      const changeBlock = agencyDocumentChangeBlock(docFacts, "changed");
                       return (
                         <tr key={d.id}>
                           <td>
@@ -902,7 +923,7 @@ function VaultPage() {
                             )}
                             {isLocked && (
                               <span
-                                title={`Locked by retention rule until ${lockDate} — cannot be deleted.`}
+                                title={`Under a retention period until ${lockDate}, so it can't be deleted.`}
                                 style={{
                                   marginLeft: 6,
                                   display: "inline-flex",
@@ -984,6 +1005,7 @@ function VaultPage() {
                                     key: "newversion",
                                     label: "Upload new version",
                                     icon: Upload,
+                                    disabledReason: changeBlock ? blockText(changeBlock) : null,
                                     onSelect: () => setNewVersionFor(d),
                                   },
                                   !readOnly &&
@@ -999,16 +1021,16 @@ function VaultPage() {
                                     icon: Trash2,
                                     destructive: true,
                                     separatorBefore: true,
-                                    disabled: isLocked || deleteMut.isPending,
-                                    title: isLocked ? `Locked until ${lockDate}` : undefined,
-                                    onSelect: () => {
-                                      if (
-                                        confirm(
-                                          `Delete "${d.name}"? This removes the file and all versions.`,
-                                        )
-                                      ) {
-                                        deleteMut.mutate(d.id);
-                                      }
+                                    disabled: deleteMut.isPending,
+                                    disabledReason: deleteBlock ? blockText(deleteBlock) : null,
+                                    onSelect: async () => {
+                                      const ok = await confirm({
+                                        title: `Delete "${d.name}"?`,
+                                        body: "This removes the file and all its versions. It can't be undone.",
+                                        confirmLabel: "Delete document",
+                                        destructive: true,
+                                      });
+                                      if (ok) deleteMut.mutate(d.id);
                                     },
                                   },
                                 ]}

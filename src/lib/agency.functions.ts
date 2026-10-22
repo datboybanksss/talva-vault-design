@@ -1305,9 +1305,11 @@ export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 
 const VAULT_DOC_COLUMNS =
-  "id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review";
+  "id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review, originator";
 
-function mapVaultDoc(r: any, talentMap: Map<string, string>) {
+type TalentMap = Map<string, string> & { statuses?: Map<string, string> };
+
+function mapVaultDoc(r: any, talentMap: TalentMap) {
   return {
     id: r.id as string,
     name: r.name as string,
@@ -1323,18 +1325,24 @@ function mapVaultDoc(r: any, talentMap: Map<string, string>) {
     lockedUntil: (r.locked_until as string) ?? null,
     currentVersionId: (r.current_version_id as string) ?? null,
     pendingReview: Boolean(r.pending_review),
+    originator: (r.originator as string) ?? "agency",
+    linkStatus: r.talent_link_id ? (talentMap.statuses?.get(r.talent_link_id) ?? null) : null,
   };
 }
 
 async function resolveTalentNames(supabase: any, rows: any[]) {
   const linkIds = Array.from(new Set(rows.map((r: any) => r.talent_link_id).filter(Boolean)));
-  const talentMap = new Map<string, string>();
+  const talentMap: TalentMap = new Map<string, string>();
+  talentMap.statuses = new Map<string, string>();
   if (linkIds.length) {
     const { data: links } = await supabase
       .from("agency_talent_links")
-      .select("id, display_name")
+      .select("id, display_name, status")
       .in("id", linkIds);
-    for (const l of links ?? []) talentMap.set(l.id as string, l.display_name as string);
+    for (const l of links ?? []) {
+      talentMap.set(l.id as string, l.display_name as string);
+      talentMap.statuses.set(l.id as string, l.status as string);
+    }
   }
   return talentMap;
 }
@@ -1857,18 +1865,64 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, agency_id, talent_link_id, name, storage_path, folder, locked_until")
+      .select("id, agency_id, talent_link_id, name, storage_path, folder, locked_until, originator")
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    if (row.agency_id !== agencyId) throw new Error("Forbidden");
-    await assertLinkNotEnded(supabase, row.talent_link_id);
-
-    if (row.locked_until && new Date(row.locked_until) > new Date()) {
-      throw new Error(
-        `RETENTION_LOCKED: this document is locked until ${new Date(row.locked_until).toLocaleDateString()} by an active retention rule.`,
-      );
+    if (!row || row.agency_id !== agencyId) {
+      throw new Error("This document is no longer in your vault. Refresh the page to see the latest list.");
     }
+    const { agencyDocumentDeleteBlock, blockText, NO_FOLDER_ACCESS } = await import(
+      "@/lib/document-blocks"
+    );
+    let linkStatus: string | null = null;
+    let talentName: string | null = null;
+    if (row.talent_link_id) {
+      const { data: link } = await supabase
+        .from("agency_talent_links")
+        .select("status, display_name")
+        .eq("id", row.talent_link_id)
+        .maybeSingle();
+      linkStatus = (link?.status as string) ?? null;
+      talentName = (link?.display_name as string) ?? null;
+    }
+    const block = agencyDocumentDeleteBlock({
+      originator: row.originator,
+      talentName,
+      lockedUntil: row.locked_until,
+      linkStatus,
+      agencyReadOnly: false,
+    });
+    if (block) throw new Error(blockText(block));
+
+    // Delete the record first: if the database refuses (retention lock set a
+    // moment ago, restricted folder), no file is touched.
+    const { data: deleted, error: dErr } = await supabase
+      .from("talent_shared_documents")
+      .delete()
+      .eq("id", row.id)
+      .select("id");
+    if (dErr) {
+      if (/RETENTION_LOCKED/.test(dErr.message)) {
+        const { data: fresh } = await supabase
+          .from("talent_shared_documents")
+          .select("locked_until")
+          .eq("id", row.id)
+          .maybeSingle();
+        const again = agencyDocumentDeleteBlock({
+          originator: "agency",
+          talentName,
+          lockedUntil: (fresh?.locked_until as string) ?? row.locked_until,
+          linkStatus: null,
+          agencyReadOnly: false,
+        });
+        throw new Error(
+          again ? blockText(again) : "This document is under a retention period, so it can't be deleted.",
+        );
+      }
+      throw new Error(dErr.message);
+    }
+    if (!deleted || deleted.length === 0) throw new Error(blockText(NO_FOLDER_ACCESS));
 
     const { data: versions } = await supabase
       .from("talent_shared_document_versions")
@@ -1883,14 +1937,8 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       ),
     );
     if (paths.length) {
-      const { error: rmErr } = await supabase.storage.from("talent-documents").remove(paths);
-      if (rmErr) throw new Error(rmErr.message);
+      await supabase.storage.from("talent-documents").remove(paths);
     }
-    const { error: dErr } = await supabase
-      .from("talent_shared_documents")
-      .delete()
-      .eq("id", row.id);
-    if (dErr) throw new Error(dErr.message);
 
     await logAgencyAudit(
       supabase,

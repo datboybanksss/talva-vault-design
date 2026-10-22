@@ -29,6 +29,7 @@ import { useAnalyseWithAi } from "@/components/shared/use-analyse-with-ai";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/shared/use-confirm";
 import {
   Upload,
   Lock,
@@ -155,6 +156,7 @@ type PrivateDoc = {
 };
 
 function PrivateVault() {
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const qc = useQueryClient();
   const load = useServerFn(listPrivateVault);
   const deleteFolder = useServerFn(deletePrivateFolder);
@@ -208,7 +210,13 @@ function PrivateVault() {
     const message = isTop
       ? `Remove "${name}" from your vault? Nothing is deleted — the folder is hidden with its documents intact, and you can restore it later from Settings → Manage folders.`
       : `Permanently delete "${name}"? This cannot be undone, and only empty subfolders can be deleted.`;
-    if (!window.confirm(message)) return;
+    const ok = await confirm({
+      title: isTop ? `Remove "${name}"?` : `Delete "${name}"?`,
+      body: message,
+      confirmLabel: isTop ? "Remove folder" : "Delete subfolder",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteFolder({ data: { id } });
       toast.success(
@@ -281,7 +289,13 @@ function PrivateVault() {
   }
 
   async function onDeleteDoc(id: string, name: string) {
-    if (!window.confirm(`Delete "${name}"?`)) return;
+    const ok = await confirm({
+      title: `Delete "${name}"?`,
+      body: "The file is removed from your Private Vault. It can't be undone.",
+      confirmLabel: "Delete document",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteDoc({ data: { id } });
       toast.success("Document deleted.");
@@ -347,6 +361,7 @@ function PrivateVault() {
 
   return (
     <>
+      {confirmDialog}
       <input ref={fileInput} type="file" hidden onChange={onFilePicked} />
 
       <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>

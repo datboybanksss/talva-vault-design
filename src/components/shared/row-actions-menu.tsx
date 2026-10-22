@@ -33,6 +33,11 @@ export type RowAction = {
   hidden?: boolean;
   /** Optional hint shown on hover, e.g. why an action is disabled. */
   title?: string;
+  /**
+   * Why the action can't be used. Shown as helper text under the label (so it
+   * is visible on touch screens too) and as the hover hint; implies disabled.
+   */
+  disabledReason?: string | null;
   /** Draws a divider above this item. */
   separatorBefore?: boolean;
 };
@@ -82,7 +87,12 @@ export function RowActionsMenu({
           const inner = (
             <>
               {Icon ? <Icon className="h-4 w-4 shrink-0" /> : <span className="h-4 w-4 shrink-0" />}
-              <span>{a.label}</span>
+              <span className="tvp-kebab-text">
+                <span>{a.label}</span>
+                {a.disabledReason && (
+                  <span className="tvp-kebab-reason">{a.disabledReason}</span>
+                )}
+              </span>
             </>
           );
           const itemClass = `tvp-kebab-item${a.destructive ? " tvp-kebab-danger" : ""}`;
@@ -91,16 +101,16 @@ export function RowActionsMenu({
               {a.separatorBefore && <DropdownMenuSeparator className="tvp-kebab-sep" />}
               <DropdownMenuItem
                 className={itemClass}
-                disabled={a.disabled}
-                title={a.title}
+                disabled={a.disabled || Boolean(a.disabledReason)}
+                title={a.disabledReason ?? a.title}
                 onSelect={(e) => {
                   if (a.to) return;
                   e.preventDefault();
                   a.onSelect?.();
                 }}
-                asChild={Boolean(a.to && !a.disabled)}
+                asChild={Boolean(a.to && !a.disabled && !a.disabledReason)}
               >
-                {a.to && !a.disabled ? (
+                {a.to && !a.disabled && !a.disabledReason ? (
                   <Link
                     to={a.to as any}
                     params={a.params as any}
@@ -110,7 +120,7 @@ export function RowActionsMenu({
                     {inner}
                   </Link>
                 ) : (
-                  <span className="inline-flex items-center gap-2">{inner}</span>
+                  <span className="inline-flex items-start gap-2">{inner}</span>
                 )}
               </DropdownMenuItem>
             </div>
