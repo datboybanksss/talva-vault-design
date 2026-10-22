@@ -1,67 +1,64 @@
-# Document filing when AI is skipped, fails or is switched off
+# Audit: ID validation and raw-error family (all portals)
 
-## Current behaviour (verified in code and database)
+Audit only. No code changed. Fixes below await approval.
 
-- No document-reading AI exists yet. The filing review uses a guess from the file name only (`suggestFromFileName`), and it runs in the browser.
-- The text "Automatic analysis could not be completed" is not in the current code or on the live site's home page.
-- The "Suggested by AI" badge appears whenever the file-name guess matched a folder or a date.
+## Headline findings
+- 90 strict `uuid()` validators across 11 server-function modules. None of the paths sampled sends a blank ID by mistake, but no server function turns a validation failure into a friendly message — any slip returns raw Zod JSON.
+- 116 places show the raw error text straight to the user (`toast.error(e.message)`) across 37 files. This affects every portal. The Terms gate is the only screen that turns errors into friendly messages.
+- Both activation wizards (agency and talent) can send an empty Terms version when the Terms text has not loaded, and they cache the Terms document indefinitely.
+- Cause of the T&C error (7): **not proven**. The live IDs are valid, and the current gate sends `doc.id` from the server response. The most likely cause is an older published build (an older gate that sent another value). I cannot read the published deploy time, so this is unverified.
 
-1. Skip for now
-   - (a) Talent Private Vault: the document is saved (`pending_review = true`). It is listed in the vault table with a "Pending review" pill and appears under the "Pending review" filter. Its menu offers Finish filing review, Download and Delete. **There is no View or preview action.**
-   - (b) Agency upload to talent: the document is saved (`pending_review = true`) and appears under the "Pending review" tab. Its menu offers View, Download and Finish filing review.
-   - (b) Talent side: the talent's agency-shared list does not filter on `pending_review`, so the talent can already see it, but with no pending marker.
-2. Visibility (RLS)
-   - Private documents: `auth.uid() = user_id` only, so they stay private.
-   - Shared documents: the agency reads them through its folder access, and the talent reads them through `talent_can_read_shared_doc`. Agency writes are already blocked by the "Suspended agency read-only" and "Terms not accepted" policies.
-   - Both rules are already enforced by RLS and the server.
-3. AI opt-out
-   - No opt-out setting exists for talent or agency staff.
-   - The server never calls AI.
-   - `ai_assisted` is written only to the agency audit log. Nothing on the document rows records whether a value was AI-suggested or entered by the user.
-   - Agency filing drops the reminder date: the shared documents table has no reminder column, so only the expiry is saved.
-4. Wrong badges
-   - The failed-analysis state cannot be reproduced from current code.
-   - The badge logic is still loose: `suggested` is true whenever the file-name guess returned anything, and both fields start labelled as AI.
+## Findings by portal
 
-## Proposed changes
+### Shared (all signed-in portals)
+| File / function | Check | What the user would see | Severity | Proposed fix |
+|---|---|---|---|---|
+| All server functions with `inputValidator(...parse)` | 1, 5 | A JSON blob such as `[{"validation":"uuid"...}]` whenever any input is wrong | High | One shared `friendlyError()` helper (extend `termsGateError`) used by every toast; server validators throw a plain sentence instead of Zod JSON |
+| 116 `toast.error(e.message)` call sites (37 files) | 5 | Database or technical text, e.g. "violates row-level security", "TERMS_NOT_ACCEPTED: …", "Forbidden" | High | Route all through the shared helper; keep known plain messages, replace the rest with "Something went wrong. Please try again." |
+| `terms-gate.tsx` status query (`staleTime` 60 s) | 3 | Low risk now: the server re-checks ID and hash and shows "These Terms have been updated…" | Low | Refetch the current document after that message instead of asking the user to reload |
+| `ai-filing-review-modal.tsx` (`staleTime: Infinity`) | 3 | Folder list can be out of date if folders change while the popup is open; saving to a deleted folder fails with raw text | Medium | Refetch folders on open; friendly error |
+| `use-analyse-with-ai.ts`, `ai-filing-preference-card.tsx` | 5 | Raw error on toggle/analyse failure | Low | Shared helper |
 
-Screens:
-- Shared modal gets an explicit mode: `ai` (suggestion succeeded), `failed`, or `manual` (opt-out, or no suggestion).
-  - In `failed` and `manual` mode: no badges, no "Where did this come from?" link and no confidence label. Folder starts empty, or on the folder the document was uploaded into, with no expiry and the portal's default reminder days.
-  - Failure is shown with the existing neutral muted helper line, not an amber banner.
-  - The file-name guess counts as `ai` only when it actually matched something. Each field is labelled AI only while it is untouched.
-- Talent Private Vault: add "View document" (the existing preview dialog) to every row, including pending ones.
-- Talent agency-shared list: show the shared "Pending review" pill on agency uploads not yet filed. View and download only; the talent cannot file them.
-- Settings: an "Organise documents with AI" switch.
-  - Talent: on the Settings, Preferences card.
-  - Agency: on Agency settings, as an agency-wide switch (owners only).
-  - When off, the modal opens in manual mode and no suggestion is requested.
-- Pending review keeps the same folder, subfolder, expiry and reminder modal. Skip for now stays available in every mode.
+### Agency portal
+| File / function | Check | What the user would see | Severity | Proposed fix |
+|---|---|---|---|---|
+| `invite.$token.tsx` activation → `agency-activation` `terms_version` | 1, 4, 3 | If Terms text hasn't loaded, "Complete" sends `""` → raw "String must contain at least 1 character(s)"; cached Terms (`staleTime: Infinity`) can be an old version | High | Disable the button until Terms loaded; send the document ID and hash (as the gate does), not the version label; refetch before submit |
+| `agency.quotes-invoices.tsx` (9 raw toasts) | 5 | Raw database/trigger text e.g. locked-invoice errors | Medium | Shared helper |
+| `agency.document-vault.tsx` (7), `manage-folders-panel`, `folder-templates-panel`, `document-rules-panel`, `vault-requests-panel` | 5 | Raw text on upload/move/delete failures, including suspended-agency refusals | Medium | Shared helper with a read-only message |
+| `agency.invitations.tsx` (5), `talent-link-actions.tsx` (4), `agency.talent.index.tsx` | 5 | Raw text on invite/link actions | Medium | Shared helper |
+| `clients-panel.tsx` manager field | 2 | Checked: `""` is converted to `null` before sending — no bug | — | None |
+| `agency-profile-panel`, `billing-sender-card`, `invoice-payments-dialog`, `clients-panel`, `quotes-invoices-settings-panel`, `agency.contracts.$id`, `agency.my-account` | 5 | Raw text on save failure | Low | Shared helper |
 
-Server:
-- `getFilingCatalog` returns `aiEnabled` from the setting. The future suggestion call (and the file-name guess) runs only when it is on, and failures come back as `analysis: "failed"`.
-- `confirmDocumentFiling` stores per-field provenance: `folder_source` and `expiry_source` (`ai` or `user`). It refuses `ai` when AI is off or the analysis failed.
-- Agency filing saves `reminder_at`.
-- Talent filing gets an audit entry in `talent_audit_log`.
-- Reminders job: read the agency `reminder_at` too, so a manual expiry feeds the same Expiring soon list and bell as an AI one. It already uses `expires_at` / `validity_expires_at`, whatever their source.
+### Talent portal
+| File / function | Check | What the user would see | Severity | Proposed fix |
+|---|---|---|---|---|
+| `invite.talent.$token.tsx` activation → `talent-activation` `terms_version` | 1, 3, 4 | Same as agency: empty or outdated Terms version → raw validation error or acceptance of an older version | High | Same as agency activation |
+| `talent.vault.tsx` (7), `vault-folders-panel` | 5 | Raw text on upload/filing/delete | Medium | Shared helper |
+| `talent.sharing.tsx` (3) — Trusted contact shares | 5, 6 | Raw text on create/revoke share | Medium | Shared helper |
+| `talent.settings.tsx`, `talent.notifications.tsx`, `talent.requests.tsx`, `talent.index.tsx` | 5 | Raw text, including "TERMS_NOT_ACCEPTED: …" if the gate is bypassed | Low | Shared helper maps this code to "Please accept the current Terms & Conditions to continue." |
 
-Database (guarded migration with rollback SQL):
-- `talent_profiles.ai_filing_enabled boolean default true`
-- `agencies.ai_filing_enabled boolean default true`
-- `talent_private_documents.folder_source` and `.expiry_source` (text, check `ai`/`user`, nullable)
-- `talent_shared_documents.reminder_at`, `.folder_source`, `.expiry_source`
-- RLS: no new policies needed. Existing owner, agency, suspended and Terms policies cover the new columns. The agency switch is changed only through the owner-checked server function.
+### Admin portal
+| File / function | Check | What the user would see | Severity | Proposed fix |
+|---|---|---|---|---|
+| `admin.administrators.tsx` (8), `admin.agencies.index.tsx` (6), `admin.agencies.$id.tsx` | 5 | Raw text on invite/suspend/permission changes | Medium | Shared helper |
+| `talent-invite-form.tsx` (8), `admin.invitations.new.tsx` (4), `admin.invitations.index.tsx` (4), `talent-invitation-actions.tsx` (3) | 5, 4 | Raw text on draft save/upload/send; Send can fire before a new draft's ID exists | Medium | Shared helper; disable Send until the draft is saved and has an ID |
+| `invite.admin.$token.tsx` (`staleTime` 30 s) | 3 | Low: the token is re-checked on the server | Low | None beyond the shared helper |
+| `admin.my-account.tsx`, `admin.administrators.$id.email-preview.tsx` | 5 | Raw text | Low | Shared helper |
 
-Tests:
-- The modal shows no badges in failed or manual mode.
-- Saved sources are `user` when AI is off.
-- Skip keeps the document listed and openable.
-- The reminder query includes a manual agency expiry.
+### Trusted contact (no account)
+| File / function | Check | What the user would see | Severity | Proposed fix |
+|---|---|---|---|---|
+| `loved-one.$token.tsx` open document | 5 | Raw server text when a file fails to open (expired/revoked link) | Medium | Plain "This document is no longer available." message |
 
-## Decisions needed
+## What I could not verify
+- Every one of the 90 `uuid()` call sites was not traced by hand. I checked the Terms, activation and client-form paths and sampled the rest. The first step of the fix is a full trace of every call site (table of file → server function → where the ID comes from).
+- Whether the published site is behind the current build (7). I can't read the published deploy time here. The current code cannot send a non-ID for `document_id`. Republishing and re-testing as an agency owner would confirm it.
+- Real signed-in agency, talent and Trusted contact click-throughs (the available session opens Admin only).
 
-1. Agency opt-out: agency-wide (owner sets it), or per staff member?
-2. Default for new users: AI on, or off until they opt in?
-3. In failed or manual mode, should the folder start empty (forcing a choice) or on the folder the document was uploaded into?
-4. Should the file-name guess still count as "AI" while no real document AI exists, or should badges stay off until the real service is connected?
-5. Please re-send the screenshot of the "Automatic analysis could not be completed" screen, and say whether it was the live site or the preview. I couldn't find that text in current code.
+## Proposed fix order (for approval)
+1. Trace every `uuid()` call site in full, then fix any that can send blank, label or unloaded IDs.
+2. Add a shared friendly-error helper and replace all 116 raw toasts with it. Make server validators return plain sentences.
+3. Activation wizards: disable submit until Terms load, send the Terms document ID and hash, and refetch before submitting.
+4. Add loading/disabled guards to admin draft Send and the filing popup Save; refetch the filing popup's folders on open.
+5. Republish, then re-test Terms acceptance as agency owner, agency staff and talent.
+6. Add tests: the helper never shows JSON or codes; activation refuses to submit with an empty Terms value.
