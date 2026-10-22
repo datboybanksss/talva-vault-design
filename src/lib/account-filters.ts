@@ -146,3 +146,21 @@ export function matchesScope(isTest: boolean | null | undefined, scope: AccountS
   if (scope === "all") return true;
   return scope === "test" ? !!isTest : !isTest;
 }
+
+/**
+ * Accounts by status (current state) for reports: every status option for each
+ * type, so zero counts still show. Test accounts excluded unless scope says.
+ */
+export function accountStatusCounts(
+  rows: { type: AccountType; status: string; is_test?: boolean }[],
+  scope: AccountScope = "real",
+): Record<AccountType, Record<string, number>> {
+  const out: Record<AccountType, Record<string, number>> = { agency: {}, talent: {} };
+  for (const s of AGENCY_ACCOUNT_STATUSES) out.agency[s] = 0;
+  for (const s of TALENT_ACCOUNT_STATUSES) out.talent[s] = 0;
+  for (const r of rows) {
+    if (!matchesScope(r.is_test, scope)) continue;
+    out[r.type][r.status] = (out[r.type][r.status] ?? 0) + 1;
+  }
+  return out;
+}
