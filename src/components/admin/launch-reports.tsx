@@ -182,7 +182,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
               label: "Type",
               value: type,
               options: [
-                { value: "all", label: "All types" },
+                { value: "all", label: "All users" },
                 { value: "agency", label: "Agency" },
                 { value: "talent", label: "Talent" },
               ],
