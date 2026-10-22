@@ -22,6 +22,7 @@ import {
   FileEdit,
   Send,
   FlaskConical,
+  Eye,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -421,6 +422,13 @@ function AccountsPage() {
                       <td>
                         <RowActionsMenu
                           actions={[
+                            {
+                              key: "view",
+                              label: "View account",
+                              icon: Eye,
+                              to: "/admin/talent/$id",
+                              params: { id: a.id },
+                            },
                             ...accountState.actionsFor({
                               type: "talent",
                               id: a.id,
@@ -511,6 +519,13 @@ function AccountsPage() {
                         )}
                         <RowActionsMenu
                           actions={[
+                            {
+                              key: "view",
+                              label: "View account",
+                              icon: Eye,
+                              to: "/admin/agencies/$id",
+                              params: { id: a.id },
+                            },
                             isDraftInvite && {
                               key: "continue",
                               label: "Continue draft",
