@@ -312,7 +312,11 @@ function AccountsPage() {
                     options: (["all", ...TALENT_LINK_FILTERS] as const).map((l) => ({
                       value: l,
                       label:
-                        l === "all" ? "All talent" : l === "linked" ? "Agency-linked" : "Independent",
+                        l === "all"
+                          ? "All talent"
+                          : l === "linked"
+                            ? "Agency-linked"
+                            : "Independent",
                       count: counts.link[l] ?? 0,
                     })),
                   },
@@ -476,10 +480,11 @@ function AccountsPage() {
                             },
                             isSentInvite && {
                               key: "preview",
-                              label: "Preview branded email",
+                              label: "View sent email",
                               icon: Mail,
                               to: "/admin/invitations/$id/email-preview",
                               params: { id: invitation?.id ?? "" },
+                              search: { type: "agency" },
                             },
                             inviteOpen && {
                               key: "copy",

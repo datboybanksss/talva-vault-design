@@ -16,6 +16,7 @@ import {
   Link2,
   RefreshCw,
   Ban,
+  Mail,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -30,7 +31,18 @@ import {
   revokeIndependentTalentInvitation,
   deleteIndependentTalentDraft,
 } from "@/lib/independent-talent.functions";
-import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
+import {
+  EMAIL_FALLBACK_NOTICE,
+  missingMergeFields,
+  wordingIssues,
+  type AdminInviteWording,
+} from "@/lib/invitation-email";
+import {
+  getAdminInviteEmailContext,
+  saveAdminInviteWording,
+} from "@/lib/admin-invite-email.functions";
+import { InviteEmailReview } from "@/components/admin/invite-email-review";
+import { InviteSteps, previewExpiry } from "@/components/admin/invite-steps";
 import { logTalentInviteCopyLink } from "@/lib/admin.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
@@ -88,6 +100,18 @@ export function TalentInviteForm({
   const [talentType, setTalentType] = useState("");
   const [dob, setDob] = useState("");
   const [expiryDays, setExpiryDays] = useState(14);
+  const [step, setStep] = useState<"details" | "review">("details");
+  const [wording, setWording] = useState<AdminInviteWording | null>(null);
+  const saveWordingFn = useServerFn(saveAdminInviteWording);
+  const ctxFn = useServerFn(getAdminInviteEmailContext);
+  const ctxQ = useQuery({
+    queryKey: ["admin", "invite-email-context", "talent", draftId],
+    queryFn: () => ctxFn({ data: { kind: "talent", id: draftId } }),
+    enabled: !!draftId,
+  });
+  useEffect(() => {
+    if (ctxQ.data?.saved) setWording(ctxQ.data.saved);
+  }, [ctxQ.data?.saved?.subject, ctxQ.data?.saved?.greeting, ctxQ.data?.saved?.message]);
 
   const invQ = useQuery({
     queryKey: ["admin", "talent-invite", draftId],
@@ -149,6 +173,8 @@ export function TalentInviteForm({
   const finalizeM = useMutation({
     mutationFn: async () => {
       await updateFn({ data: { id: draftId, ...payload() } });
+      // The approved email wording is stored with the invitation first.
+      await saveWordingFn({ data: { kind: "talent", id: draftId, wording } });
       return finalizeFn({ data: { id: draftId, expiry_days: expiryDays } });
     },
     onSuccess: (res: any) => {
@@ -274,6 +300,32 @@ export function TalentInviteForm({
     !emailCheck.conflict &&
     !invQ.isFetching &&
     !finalizeM.isPending;
+  const merge = useMemo(
+    () => ({
+      talentName: name.trim(),
+      recipientEmail: email.trim(),
+      adminName: ctxQ.data?.adminName ?? "",
+      expiryDate: previewExpiry(expiryDays),
+      inviteUrl: ctxQ.data?.inviteUrl ?? "",
+    }),
+    [name, email, expiryDays, ctxQ.data?.adminName, ctxQ.data?.inviteUrl],
+  );
+  const reviewBlocked =
+    ctxQ.isLoading ||
+    missingMergeFields("talent", merge).length > 0 ||
+    (wording !== null && wordingIssues(wording).length > 0);
+  const saveWordingM = useMutation({
+    mutationFn: async () => {
+      await updateFn({ data: { id: draftId, ...payload() } });
+      return saveWordingFn({ data: { kind: "talent", id: draftId, wording } });
+    },
+    onSuccess: () => {
+      refresh();
+      toast.success("Draft saved, including your email wording.");
+    },
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't save the draft.")),
+  });
+
   const outstanding = [
     ...(detailsComplete ? [] : ["talent details"]),
     ...missing.map((s) => s.label.toLowerCase()),
@@ -301,6 +353,15 @@ export function TalentInviteForm({
         {draftId && invQ.isSuccess && status !== "draft" && (
           <div className="tvp-actions" data-tour="admin-talent-invite-actions">
             <span className="tvp-status tvp-blue">{statusLabel[status] ?? status}</span>
+            <Link
+              to="/admin/invitations/$id/email-preview"
+              params={{ id: draftId }}
+              search={{ type: "talent" }}
+              className="tvp-secondary"
+            >
+              <Mail className="h-4 w-4" />
+              View sent email
+            </Link>
             {status === "pending" && (
               <>
                 <button className="tvp-secondary" onClick={copyLink}>
@@ -333,242 +394,291 @@ export function TalentInviteForm({
         )}
       </div>
 
-      <div className="tvp-card tvp-panel" data-tour="admin-talent-invite-details">
-        {typeSlot ?? (draftId ? <InvitationTypeField value="talent" locked /> : null)}
-        <fieldset disabled={!isDraft} style={{ border: "none", padding: 0, margin: 0 }}>
-          <div className="tvp-form-group">
-            <label>Full name *</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Thandi Mokoena"
-            />
+      {step === "review" && isDraft ? (
+        <div className="tvp-card tvp-panel">
+          <InviteSteps current="review" />
+          <InviteEmailReview
+            kind="talent"
+            merge={merge}
+            value={wording}
+            onChange={setWording}
+            onFix={() => setStep("details")}
+          />
+          <div className="tvp-footer-actions">
+            <button type="button" className="tvp-secondary" onClick={() => setStep("details")}>
+              Back to details
+            </button>
+            <button
+              type="button"
+              className="tvp-secondary"
+              disabled={saveWordingM.isPending || reviewBlocked}
+              onClick={() => saveWordingM.mutate()}
+            >
+              {saveWordingM.isPending ? "Saving…" : "Save draft"}
+            </button>
+            <button
+              type="button"
+              className="tvp-primary"
+              disabled={!canSend || reviewBlocked}
+              onClick={() => finalizeM.mutate()}
+            >
+              {finalizeM.isPending ? "Sending…" : "Send invitation"}
+            </button>
           </div>
-          <div className="tvp-form-group">
-            <label>Email *</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                emailCheck.clear();
-              }}
-              onBlur={() => void emailCheck.check(email)}
-              aria-invalid={!!emailCheck.conflict}
-              placeholder="name@example.com"
-            />
-            <InviteEmailFieldError conflict={emailCheck.conflict} />
-          </div>
-          <div className="tvp-form-group">
-            <label>Talent type</label>
-            <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
-              <option value="">Not specified</option>
-              {typeOptions.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="tvp-form-group">
-            <label>Date of birth *</label>
-            <input
-              type="date"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              aria-invalid={!!dobError || undefined}
-            />
-            {dobError && (
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tvp-red)" }}>
-                {dobError}
+        </div>
+      ) : (
+        <>
+          <div className="tvp-card tvp-panel" data-tour="admin-talent-invite-details">
+            {isDraft && <InviteSteps current="details" />}
+            {typeSlot ?? (draftId ? <InvitationTypeField value="talent" locked /> : null)}
+            <fieldset disabled={!isDraft} style={{ border: "none", padding: 0, margin: 0 }}>
+              <div className="tvp-form-group">
+                <label>Full name *</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Thandi Mokoena"
+                />
               </div>
-            )}
-          </div>
-          <div className="tvp-form-group">
-            <label>Invitation expiry (days)</label>
-            <input
-              type="number"
-              min={1}
-              max={60}
-              value={expiryDays}
-              onChange={(e) => setExpiryDays(Number(e.target.value) || 14)}
-            />
-          </div>
-        </fieldset>
-
-        {isDraft && (
-          <>
-            <div className="tvp-footer-actions">
-              {draftId && (
-                <button
-                  type="button"
-                  className="tvp-secondary"
-                  disabled={deleteDraftM.isPending}
-                  onClick={() =>
-                    confirm("Delete this draft and its documents? This cannot be undone.") &&
-                    deleteDraftM.mutate()
-                  }
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete draft
-                </button>
-              )}
-              <Link to="/admin/invitations" className="tvp-secondary">
-                {draftId ? "Close" : "Cancel"}
-              </Link>
-              <button
-                className="tvp-primary"
-                type="button"
-                disabled={!detailsComplete || saving}
-                onClick={async () => {
-                  if (await emailCheck.check(email)) return;
-                  if (draftId) updateM.mutate();
-                  else createM.mutate();
-                }}
-              >
-                {saving ? "Saving…" : draftId ? "Save draft" : "Save draft & continue →"}
-              </button>
-            </div>
-            {!detailsComplete && (
-              <p className="tvp-muted" style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}>
-                Add a full name, email and date of birth (18 or older) to save a draft.
-              </p>
-            )}
-          </>
-        )}
-      </div>
-
-      {draftId && (isDraft || docs.length > 0) && (
-        <div
-          className="tvp-card tvp-panel"
-          style={{ marginTop: 16 }}
-          data-tour="admin-talent-invite-docs"
-        >
-          <h2 className="tvp-h2">Documents</h2>
-          <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 14 }}>
-            One file per slot. Both are required before the invitation can be sent. Documents are
-            stored privately, are visible only to administrators, and are deleted if the invitation
-            is revoked or expires.
-          </p>
-          <div style={{ display: "grid", gap: 10 }}>
-            {SLOTS.map((slot) => {
-              const files = docs.filter((d) => d.doc_slot === slot.key);
-              const has = files.length > 0;
-              const busy = uploadingSlot === slot.key;
-              return (
-                <div
-                  key={slot.key}
-                  className="tvp-callout"
-                  style={{
-                    padding: 12,
-                    borderRadius: 8,
-                    border: `1px solid ${has ? "var(--tvp-green)" : "var(--tvp-border)"}`,
-                    background: "var(--tvp-surface)",
+              <div className="tvp-form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    emailCheck.clear();
                   }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
+                  onBlur={() => void emailCheck.check(email)}
+                  aria-invalid={!!emailCheck.conflict}
+                  placeholder="name@example.com"
+                />
+                <InviteEmailFieldError conflict={emailCheck.conflict} />
+              </div>
+              <div className="tvp-form-group">
+                <label>Talent type</label>
+                <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
+                  <option value="">Not specified</option>
+                  {typeOptions.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="tvp-form-group">
+                <label>Date of birth *</label>
+                <input
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  aria-invalid={!!dobError || undefined}
+                />
+                {dobError && (
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tvp-red)" }}>
+                    {dobError}
+                  </div>
+                )}
+              </div>
+              <div className="tvp-form-group">
+                <label>Invitation expiry (days)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={expiryDays}
+                  onChange={(e) => setExpiryDays(Number(e.target.value) || 14)}
+                />
+              </div>
+            </fieldset>
+
+            {isDraft && (
+              <>
+                <div className="tvp-footer-actions">
+                  {draftId && (
+                    <button
+                      type="button"
+                      className="tvp-secondary"
+                      disabled={deleteDraftM.isPending}
+                      onClick={() =>
+                        confirm("Delete this draft and its documents? This cannot be undone.") &&
+                        deleteDraftM.mutate()
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete draft
+                    </button>
+                  )}
+                  <Link to="/admin/invitations" className="tvp-secondary">
+                    {draftId ? "Close" : "Cancel"}
+                  </Link>
+                  <button
+                    className="tvp-primary"
+                    type="button"
+                    disabled={!detailsComplete || saving}
+                    onClick={async () => {
+                      if (await emailCheck.check(email)) return;
+                      if (draftId) updateM.mutate();
+                      else createM.mutate();
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {has ? (
-                        <CheckCircle2 className="h-4 w-4" style={{ color: "var(--tvp-green)" }} />
-                      ) : (
-                        <AlertCircle className="h-4 w-4" style={{ color: "var(--tvp-amber)" }} />
-                      )}
-                      <strong style={{ fontSize: 14 }}>{slot.label}</strong>
-                      <span className="tvp-muted" style={{ fontSize: 12 }}>
-                        {has ? "Uploaded" : "Required"}
-                      </span>
-                    </div>
-                    {isDraft && !has && (
-                      <label className="tvp-secondary" style={{ cursor: "pointer" }}>
-                        <Upload className="h-4 w-4" />
-                        {busy ? "Uploading…" : "Upload"}
-                        <input
-                          type="file"
-                          accept={DOCUMENT_ACCEPT}
-                          style={{ display: "none" }}
-                          disabled={busy}
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) uploadForSlot(slot.key, f);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-                  {slotErrors[slot.key] && (
-                    <p
-                      role="alert"
-                      style={{ margin: "8px 0 0", fontSize: 12, color: "var(--tvp-red)" }}
-                    >
-                      {slotErrors[slot.key]}
-                    </p>
-                  )}
-                  {files.map((u) => (
-                    <div
-                      key={u.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        fontSize: 13,
-                        padding: "6px 0 0",
-                      }}
-                    >
-                      <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
-                      <button type="button" className="tvp-link" onClick={() => openDoc(u.id)}>
-                        {u.file_name}
-                      </button>
-                      <span className="tvp-muted" style={{ fontSize: 11 }}>
-                        {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
-                      </span>
-                      {isDraft && (
-                        <button
-                          className="tvp-mini-btn"
-                          title="Remove"
-                          style={{ marginLeft: "auto" }}
-                          onClick={() => deleteDocM.mutate(u.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    {saving ? "Saving…" : draftId ? "Save draft" : "Save draft & continue →"}
+                  </button>
                 </div>
-              );
-            })}
+                {!detailsComplete && (
+                  <p
+                    className="tvp-muted"
+                    style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}
+                  >
+                    Add a full name, email and date of birth (18 or older) to save a draft.
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
-          {isDraft && (
-            <>
-              <div className="tvp-footer-actions">
-                <Link to="/admin/invitations" className="tvp-secondary">
-                  Save & close
-                </Link>
-                <button
-                  type="button"
-                  className="tvp-primary"
-                  disabled={!canSend}
-                  onClick={() => finalizeM.mutate()}
-                >
-                  {finalizeM.isPending ? "Sending…" : "Send invitation"}
-                </button>
+          {draftId && (isDraft || docs.length > 0) && (
+            <div
+              className="tvp-card tvp-panel"
+              style={{ marginTop: 16 }}
+              data-tour="admin-talent-invite-docs"
+            >
+              <h2 className="tvp-h2">Documents</h2>
+              <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 14 }}>
+                One file per slot. Both are required before the invitation can be sent. Documents
+                are stored privately, are visible only to administrators, and are deleted if the
+                invitation is revoked or expires.
+              </p>
+              <div style={{ display: "grid", gap: 10 }}>
+                {SLOTS.map((slot) => {
+                  const files = docs.filter((d) => d.doc_slot === slot.key);
+                  const has = files.length > 0;
+                  const busy = uploadingSlot === slot.key;
+                  return (
+                    <div
+                      key={slot.key}
+                      className="tvp-callout"
+                      style={{
+                        padding: 12,
+                        borderRadius: 8,
+                        border: `1px solid ${has ? "var(--tvp-green)" : "var(--tvp-border)"}`,
+                        background: "var(--tvp-surface)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {has ? (
+                            <CheckCircle2
+                              className="h-4 w-4"
+                              style={{ color: "var(--tvp-green)" }}
+                            />
+                          ) : (
+                            <AlertCircle
+                              className="h-4 w-4"
+                              style={{ color: "var(--tvp-amber)" }}
+                            />
+                          )}
+                          <strong style={{ fontSize: 14 }}>{slot.label}</strong>
+                          <span className="tvp-muted" style={{ fontSize: 12 }}>
+                            {has ? "Uploaded" : "Required"}
+                          </span>
+                        </div>
+                        {isDraft && !has && (
+                          <label className="tvp-secondary" style={{ cursor: "pointer" }}>
+                            <Upload className="h-4 w-4" />
+                            {busy ? "Uploading…" : "Upload"}
+                            <input
+                              type="file"
+                              accept={DOCUMENT_ACCEPT}
+                              style={{ display: "none" }}
+                              disabled={busy}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) uploadForSlot(slot.key, f);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                      {slotErrors[slot.key] && (
+                        <p
+                          role="alert"
+                          style={{ margin: "8px 0 0", fontSize: 12, color: "var(--tvp-red)" }}
+                        >
+                          {slotErrors[slot.key]}
+                        </p>
+                      )}
+                      {files.map((u) => (
+                        <div
+                          key={u.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            fontSize: 13,
+                            padding: "6px 0 0",
+                          }}
+                        >
+                          <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
+                          <button type="button" className="tvp-link" onClick={() => openDoc(u.id)}>
+                            {u.file_name}
+                          </button>
+                          <span className="tvp-muted" style={{ fontSize: 11 }}>
+                            {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
+                          </span>
+                          {isDraft && (
+                            <button
+                              className="tvp-mini-btn"
+                              title="Remove"
+                              style={{ marginLeft: "auto" }}
+                              onClick={() => deleteDocM.mutate(u.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
-              {!canSend && outstanding.length > 0 && (
-                <p className="tvp-muted" style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}>
-                  Still outstanding: {outstanding.join(", ")}.
-                </p>
+
+              {isDraft && (
+                <>
+                  <div className="tvp-footer-actions">
+                    <Link to="/admin/invitations" className="tvp-secondary">
+                      Save & close
+                    </Link>
+                    <button
+                      type="button"
+                      className="tvp-primary"
+                      disabled={!canSend}
+                      onClick={() => setStep("review")}
+                    >
+                      Continue to review email
+                    </button>
+                  </div>
+                  {!canSend && outstanding.length > 0 && (
+                    <p
+                      className="tvp-muted"
+                      style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}
+                    >
+                      Still outstanding: {outstanding.join(", ")}.
+                    </p>
+                  )}
+                </>
               )}
-            </>
+            </div>
           )}
-        </div>
+        </>
       )}
     </>
   );

@@ -161,6 +161,8 @@ export function bodyParagraphs(body: string) {
 export function buildInvitationEmail(input: {
   subject: string;
   body: string;
+  /** When set, rendered as its own (editable) paragraph before `body`. */
+  greeting?: string;
   agencyName?: string | null;
   contactPerson?: string | null;
   talentName?: string | null;
@@ -170,6 +172,12 @@ export function buildInvitationEmail(input: {
   expiryDate: string;
   /** Defaults to the agency variant so existing callers are unchanged. */
   variant?: InvitationVariantKey;
+  /**
+   * Preview only: marks the subject heading, greeting and message as
+   * click-to-edit. Everything else (button, link, expiry, security wording,
+   * footer) is never editable. Never set when sending.
+   */
+  editable?: boolean;
 }) {
   const v = INVITATION_VARIANTS[input.variant ?? "agency"];
   const tokens: InvitationTokens = {
@@ -184,24 +192,34 @@ export function buildInvitationEmail(input: {
 
   const resolvedBody = applyTokens(input.body, tokens);
   const subject = applyTokens(input.subject, { ...tokens, invite_url: undefined });
+  const greeting = input.greeting?.trim() ?? "";
 
+  const editAttr = input.editable
+    ? ` contenteditable="true" spellcheck="true" style="outline:1px dashed #8FB3B8;outline-offset:4px;border-radius:4px;cursor:text;`
+    : ` style="`;
+  const pStyle = "font-size:15px;line-height:1.55;margin:0 0 14px;";
   const paras = bodyParagraphs(resolvedBody)
-    .map(
-      (p) =>
-        `<p style="font-size:15px;line-height:1.55;margin:0 0 14px;">${escapeHtml(p).replace(/\n/g, "<br />")}</p>`,
-    )
+    .map((p) => `<p style="${pStyle}">${escapeHtml(p).replace(/\n/g, "<br />")}</p>`)
     .join("");
+  const greetingHtml = greeting
+    ? `<p data-tv-field="greeting"${editAttr}${pStyle}">${escapeHtml(greeting)}</p>`
+    : "";
+  const messageHtml = input.editable
+    ? `<div data-tv-field="message"${editAttr}margin:0 0 14px;">${paras}</div>`
+    : paras;
+  const headingStyle = "font-size:22px;font-weight:700;margin:22px 0 6px;";
+  const headingAttr = input.editable ? ` data-tv-field="subject-heading" style="` : ` style="`;
 
   const html = `<!doctype html>
 <html><body style="margin:0;padding:0;background:#f4f5f7;font-family:'Inter','Helvetica Neue',Arial,sans-serif;color:#1a1f2e;">
   <div style="max-width:600px;margin:24px auto;background:#ffffff;border-radius:12px;overflow:hidden;">
     <div style="background:#064E58;padding:28px 32px;color:#ffffff;">
       ${emailWhiteBrandHtml()}
-      <h1 style="font-size:22px;font-weight:700;margin:22px 0 6px;">${escapeHtml(subject)}</h1>
+      <h1${headingAttr}${headingStyle}">${escapeHtml(subject)}</h1>
       <p style="font-size:14px;opacity:0.95;margin:0;">${escapeHtml(v.strapline)}</p>
     </div>
     <div style="padding:28px 32px;">
-      ${paras}
+      ${greetingHtml}${messageHtml}
       <div style="text-align:center;margin:24px 0 8px;">
         <a href="${escapeHtml(input.inviteUrl)}" style="display:inline-block;background:#064E58;color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:8px;font-weight:600;font-size:15px;">${escapeHtml(v.ctaLabel)}</a>
       </div>
@@ -225,14 +243,145 @@ export function buildInvitationEmail(input: {
 </body></html>`;
 
   const text = [
-    ...bodyParagraphs(resolvedBody),
+    ...(greeting ? [greeting, ""] : []),
+    ...bodyParagraphs(resolvedBody).flatMap((p, i) => (i ? ["", p] : [p])),
     "",
     `${v.ctaLabel}:`,
     input.inviteUrl,
     "",
     `Expires: ${input.expiryDate}`,
     v.expiryHelp,
+    "",
+    INVITATION_DISCLAIMER,
+    "",
+    `${v.footerBrand} · Sent to ${input.recipientEmail}`,
   ].join("\n");
 
   return { subject, html, text };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Admin invitations (agency + independent talent): per-invitation wording   */
+/* -------------------------------------------------------------------------- */
+
+export type AdminInviteKind = "agency" | "talent";
+
+/** Real values from the invitation; nothing here may ever be a placeholder. */
+export type AdminInviteMerge = {
+  agencyName?: string | null;
+  contactPerson?: string | null;
+  talentName?: string | null;
+  adminName?: string | null;
+  recipientEmail?: string | null;
+  expiryDate?: string | null;
+  inviteUrl?: string | null;
+};
+
+export type AdminInviteWording = { subject: string; greeting: string; message: string };
+
+export type MergeIssue = { field: string; message: string; fix: "details" | "account" };
+
+const firstName = (s?: string | null) => (s ?? "").trim().split(/\s+/)[0] ?? "";
+const has = (s?: string | null) => !!s && s.trim().length > 0;
+
+/** Values the email cannot be sent without, with where to fix each. */
+export function missingMergeFields(kind: AdminInviteKind, m: AdminInviteMerge): MergeIssue[] {
+  const out: MergeIssue[] = [];
+  if (kind === "agency" && !has(m.agencyName))
+    out.push({ field: "agency_name", message: "The agency name is missing.", fix: "details" });
+  if (kind === "talent" && !has(m.talentName))
+    out.push({ field: "talent_name", message: "The talent's name is missing.", fix: "details" });
+  if (!has(m.recipientEmail))
+    out.push({
+      field: "email",
+      message: "The recipient's email address is missing.",
+      fix: "details",
+    });
+  if (!has(m.expiryDate))
+    out.push({ field: "expiry", message: "The expiry date is missing.", fix: "details" });
+  if (!has(m.adminName))
+    out.push({
+      field: "admin_name",
+      message: "Your name is missing from your profile, so the email can't say who invited them.",
+      fix: "account",
+    });
+  if (!has(m.inviteUrl))
+    out.push({
+      field: "invite_url",
+      message: "The invitation link isn't ready yet. Save the draft first.",
+      fix: "details",
+    });
+  return out;
+}
+
+/** The standard wording for this invitation, filled with its real values. */
+export function standardInviteWording(
+  kind: AdminInviteKind,
+  m: AdminInviteMerge,
+): AdminInviteWording {
+  const admin = (m.adminName ?? "").trim();
+  if (kind === "agency") {
+    const agency = (m.agencyName ?? "").trim();
+    return {
+      subject: `${agency} is invited to join TalVault`,
+      greeting: has(m.contactPerson)
+        ? `Hi ${firstName(m.contactPerson)},`
+        : `Hello ${agency} team,`,
+      message: [
+        `${admin} from the TalVault team has invited ${agency} to onboard onto the TalVault platform.`,
+        "Click the button below to accept your invitation and finish setting up your agency account. You'll create your own password on the next screen — we never send passwords by email.",
+      ].join("\n\n"),
+    };
+  }
+  return {
+    subject: "You're invited to set up your TalVault",
+    greeting: `Hi ${firstName(m.talentName)},`,
+    message: [
+      `TalVault is a secure, invite-only vault where talent keep contracts, ID, tax and career documents in one protected place. You've been invited by ${admin} from the TalVault team.`,
+      "Setting up takes about five minutes: choose a password, accept the terms, confirm your details and verify your sign-in with a code we email you. We never send passwords by email.",
+    ].join("\n\n"),
+  };
+}
+
+/** Anything that looks like an unfilled merge field. */
+const PLACEHOLDER_RE = /\{\{|\}\}|<[^>\n]{1,40}>|\[[A-Za-z _]{2,30}\]/;
+
+export const WORDING_LIMITS = { subject: 200, greeting: 120, message: 4000 } as const;
+
+/** Problems with edited wording; empty when it can be sent. */
+export function wordingIssues(w: AdminInviteWording): string[] {
+  const out: string[] = [];
+  (["subject", "greeting", "message"] as const).forEach((k) => {
+    const label = k === "subject" ? "Subject" : k === "greeting" ? "Greeting" : "Message";
+    const v = w[k].trim();
+    if (!v) out.push(`${label} can't be empty.`);
+    else if (v.length > WORDING_LIMITS[k]) out.push(`${label} is too long.`);
+    else if (PLACEHOLDER_RE.test(v))
+      out.push(`${label} still contains a placeholder — replace it with the real wording.`);
+  });
+  return out;
+}
+
+/** The one renderer for admin invitations: preview, send, resend all use it. */
+export function renderAdminInvite(
+  kind: AdminInviteKind,
+  m: AdminInviteMerge,
+  w: AdminInviteWording,
+  opts: { editable?: boolean } = {},
+) {
+  return buildInvitationEmail({
+    variant: kind === "agency" ? "agency" : "independent",
+    subject: escapeTokens(w.subject.trim()),
+    greeting: w.greeting.trim(),
+    body: escapeTokens(w.message.trim()),
+    recipientEmail: m.recipientEmail ?? "",
+    inviteUrl: m.inviteUrl ?? "",
+    expiryDate: m.expiryDate ?? "",
+    editable: opts.editable,
+  });
+}
+
+/** Approved text is literal: never let it be re-interpreted as tokens. */
+function escapeTokens(s: string) {
+  return s.replace(/\{\{/g, "{ {");
 }

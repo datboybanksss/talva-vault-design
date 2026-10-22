@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Ban, FileEdit, Link2, RefreshCw, Eye, Send, Trash2 } from "lucide-react";
+import { Ban, FileEdit, Link2, Mail, RefreshCw, Eye, Send, Trash2 } from "lucide-react";
 import { invitationActions } from "@/lib/status-actions";
 import type { RowAction } from "@/components/shared/row-actions-menu";
 import {
@@ -82,6 +82,15 @@ export function useTalentInvitationActions() {
         label: row.status === "draft" ? "Open draft" : "Open invitation",
         icon: row.status === "draft" ? FileEdit : Eye,
         onSelect: () => nav({ to: "/admin/invitations/talent/$id", params: { id: row.id } }),
+      },
+      {
+        key: "sent-email",
+        label: "View sent email",
+        icon: Mail,
+        hidden: row.status === "draft",
+        to: "/admin/invitations/$id/email-preview",
+        params: { id: row.id },
+        search: { type: "talent" },
       },
       {
         key: "copy",

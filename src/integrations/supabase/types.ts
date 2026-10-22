@@ -1064,7 +1064,10 @@ export type Database = {
           contact_person: string | null
           created_at: string
           email: string
+          email_greeting: string | null
+          email_message: string | null
           email_sent_at: string | null
+          email_subject: string | null
           expires_at: string
           first_sent_at: string | null
           id: string
@@ -1075,6 +1078,10 @@ export type Database = {
           registered_mobile_number: string | null
           role: string | null
           send_count: number
+          sent_email_at: string | null
+          sent_email_html: string | null
+          sent_email_subject: string | null
+          sent_email_text: string | null
           source: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           supporting_docs: Json | null
@@ -1089,7 +1096,10 @@ export type Database = {
           contact_person?: string | null
           created_at?: string
           email: string
+          email_greeting?: string | null
+          email_message?: string | null
           email_sent_at?: string | null
+          email_subject?: string | null
           expires_at?: string
           first_sent_at?: string | null
           id?: string
@@ -1100,6 +1110,10 @@ export type Database = {
           registered_mobile_number?: string | null
           role?: string | null
           send_count?: number
+          sent_email_at?: string | null
+          sent_email_html?: string | null
+          sent_email_subject?: string | null
+          sent_email_text?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           supporting_docs?: Json | null
@@ -1114,7 +1128,10 @@ export type Database = {
           contact_person?: string | null
           created_at?: string
           email?: string
+          email_greeting?: string | null
+          email_message?: string | null
           email_sent_at?: string | null
+          email_subject?: string | null
           expires_at?: string
           first_sent_at?: string | null
           id?: string
@@ -1125,6 +1142,10 @@ export type Database = {
           registered_mobile_number?: string | null
           role?: string | null
           send_count?: number
+          sent_email_at?: string | null
+          sent_email_html?: string | null
+          sent_email_subject?: string | null
+          sent_email_text?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           supporting_docs?: Json | null
@@ -1805,7 +1826,10 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           email: string
+          email_greeting: string | null
+          email_message: string | null
           email_sent_at: string | null
+          email_subject: string | null
           expires_at: string
           first_sent_at: string | null
           id: string
@@ -1813,6 +1837,10 @@ export type Database = {
           last_sent_at: string | null
           reminder_sent_at: string | null
           send_count: number
+          sent_email_at: string | null
+          sent_email_html: string | null
+          sent_email_subject: string | null
+          sent_email_text: string | null
           source: string | null
           status: Database["public"]["Enums"]["invitation_status"]
           talent_name: string
@@ -1826,7 +1854,10 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           email: string
+          email_greeting?: string | null
+          email_message?: string | null
           email_sent_at?: string | null
+          email_subject?: string | null
           expires_at?: string
           first_sent_at?: string | null
           id?: string
@@ -1834,6 +1865,10 @@ export type Database = {
           last_sent_at?: string | null
           reminder_sent_at?: string | null
           send_count?: number
+          sent_email_at?: string | null
+          sent_email_html?: string | null
+          sent_email_subject?: string | null
+          sent_email_text?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           talent_name: string
@@ -1847,7 +1882,10 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           email?: string
+          email_greeting?: string | null
+          email_message?: string | null
           email_sent_at?: string | null
+          email_subject?: string | null
           expires_at?: string
           first_sent_at?: string | null
           id?: string
@@ -1855,6 +1893,10 @@ export type Database = {
           last_sent_at?: string | null
           reminder_sent_at?: string | null
           send_count?: number
+          sent_email_at?: string | null
+          sent_email_html?: string | null
+          sent_email_subject?: string | null
+          sent_email_text?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["invitation_status"]
           talent_name?: string

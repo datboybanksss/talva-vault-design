@@ -345,37 +345,18 @@ export const getIndependentTalentDocumentUrl = createServerFn({ method: "POST" }
     return { url: signed.signedUrl as string };
   });
 
-async function sendInviteEmail(inv: {
-  id: string;
-  email: string;
-  talent_name: string;
-  token: string;
-  expires_at: string;
-}) {
-  const {
-    buildInvitationEmail,
-    DEFAULT_INDEPENDENT_TALENT_INVITATION_BODY,
-    DEFAULT_INDEPENDENT_TALENT_INVITATION_SUBJECT,
-  } = await import("@/lib/invitation-email");
-  const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
-  const { fmtLongDate } = await import("@/lib/notice-email");
-  const url = await inviteUrlFor(inv.token);
-  const mail = buildInvitationEmail({
-    variant: "independent",
-    subject: DEFAULT_INDEPENDENT_TALENT_INVITATION_SUBJECT,
-    body: DEFAULT_INDEPENDENT_TALENT_INVITATION_BODY,
-    talentName: inv.talent_name.split(" ")[0],
-    recipientEmail: inv.email,
-    inviteUrl: url,
-    expiryDate: fmtLongDate(inv.expires_at),
-  });
-  const result = await sendInvitationEmail(
-    inv.email,
-    mail,
-    `independent-invite-${inv.id}-${Date.now()}`,
-    "independent_talent_invitation",
-  );
-  return { url, result };
+async function sendInviteEmail(supabase: any, id: string, userId: string) {
+  // Same renderer and approved wording as the Review email step.
+  const { deliverAdminInvite } = await import("@/lib/admin-invite-email.server");
+  return deliverAdminInvite(supabase, "talent", id, userId).catch((e: any) => ({
+    url: null as string | null,
+    subject: null,
+    result: {
+      sent: false as const,
+      reason: "send_failed" as const,
+      detail: String(e?.message ?? e),
+    },
+  }));
 }
 
 export const finalizeIndependentTalentInvitation = createServerFn({ method: "POST" })
@@ -422,7 +403,7 @@ export const finalizeIndependentTalentInvitation = createServerFn({ method: "POS
       .eq("id", data.id);
     if (error) throw new Error("We couldn't send the invitation. Please try again.");
 
-    const { url, result } = await sendInviteEmail({ ...inv, expires_at });
+    const { url, result } = await sendInviteEmail(supabase, data.id, userId);
     if (result.sent) {
       await supabase
         .from("independent_talent_invitations")
@@ -480,7 +461,7 @@ export const resendIndependentTalentInvitation = createServerFn({ method: "POST"
         reminder_sent_at: null,
       })
       .eq("id", data.id);
-    const { url, result } = await sendInviteEmail({ ...inv, expires_at });
+    const { url, result } = await sendInviteEmail(supabase, data.id, userId);
     if (result.sent) {
       await supabase
         .from("independent_talent_invitations")
