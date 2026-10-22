@@ -1,3 +1,6 @@
+-- Non-retroactive retention rules, no per-document overrides, immutable stamped versions.
+-- Guarded (OR REPLACE / IF NOT EXISTS / DROP IF EXISTS).
+-- Rollback: restore previous bodies of tsd_after_insert_refresh_lock, tsd_protect_retention_lock, retention_rule_refresh_docs (see 2026 retention migrations); DROP TRIGGER tsdv_immutable, tsdv_stamp_retention ON talent_shared_document_versions; DROP TRIGGER retention_rule_no_document_override ON agency_retention_rules; drop the added columns and functions current_retention_rule, tsdv_stamp_retention, tsdv_immutable, retention_rule_no_document_override.
 ALTER TABLE public.talent_shared_documents
   ADD COLUMN IF NOT EXISTS retention_rule_id uuid;
 ALTER TABLE public.talent_shared_document_versions
