@@ -57,6 +57,7 @@ import {
 } from "@/lib/account-filters";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { FilterBar } from "@/components/shared/filter-bar";
 import { friendlyError } from "@/lib/friendly-error";
 
 type AccountsSearch = { type?: string; status?: string; link?: string };
@@ -276,51 +277,49 @@ function AccountsPage() {
       </div>
 
       <div className="tvp-card tvp-panel">
-        <div className="tvp-invite-filters" data-tour="admin-account-filters">
-          <div className="tvp-roster-tabs" role="group" aria-label="Type">
-            {(["all", ...ACCOUNT_TYPES] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                aria-pressed={type === t}
-                className={`tvp-tab${type === t ? " tvp-active" : ""}`}
-                onClick={() => setFilters({ type: t })}
-              >
-                {t === "all" ? "All types" : ACCOUNT_TYPE_LABEL[t]} · {counts.type[t] ?? 0}
-              </button>
-            ))}
-          </div>
-          <div className="tvp-roster-tabs" role="group" aria-label="Status">
-            {["all", ...ACCOUNT_STATUSES].map((st) => (
-              <button
-                key={st}
-                type="button"
-                aria-pressed={status === st}
-                className={`tvp-tab${status === st ? " tvp-active" : ""}`}
-                onClick={() => setFilters({ status: st })}
-              >
-                {st === "all" ? "All statuses" : accountStatusOptionLabel(st)} ·{" "}
-                {counts.status[st] ?? 0}
-              </button>
-            ))}
-          </div>
-          {type === "talent" && (
-            <div className="tvp-roster-tabs" role="group" aria-label="Agency link">
-              {(["all", ...TALENT_LINK_FILTERS] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  aria-pressed={link === l}
-                  className={`tvp-tab${link === l ? " tvp-active" : ""}`}
-                  onClick={() => setFilters({ link: l })}
-                >
-                  {l === "all" ? "All talent" : l === "linked" ? "Agency-linked" : "Independent"} ·{" "}
-                  {counts.link[l] ?? 0}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <FilterBar
+          tourId="admin-account-filters"
+          active={filtersActive}
+          onClear={clearFilters}
+          onChange={(key, value) => setFilters({ [key]: value } as AccountsSearch)}
+          filters={[
+            {
+              key: "type",
+              label: "Type",
+              value: type,
+              options: (["all", ...ACCOUNT_TYPES] as const).map((t) => ({
+                value: t,
+                label: t === "all" ? "All types" : ACCOUNT_TYPE_LABEL[t],
+                count: counts.type[t] ?? 0,
+              })),
+            },
+            {
+              key: "status",
+              label: "Status",
+              value: status,
+              options: ["all", ...ACCOUNT_STATUSES].map((st) => ({
+                value: st,
+                label: st === "all" ? "All statuses" : accountStatusOptionLabel(st),
+                count: counts.status[st] ?? 0,
+              })),
+            },
+            ...(type === "talent"
+              ? [
+                  {
+                    key: "link",
+                    label: "Agency link",
+                    value: link,
+                    options: (["all", ...TALENT_LINK_FILTERS] as const).map((l) => ({
+                      value: l,
+                      label:
+                        l === "all" ? "All talent" : l === "linked" ? "Agency-linked" : "Independent",
+                      count: counts.link[l] ?? 0,
+                    })),
+                  },
+                ]
+              : []),
+          ]}
+        />
         <div className="tvp-table-wrap">
           <table className="tvp-table" data-tour="admin-agency-table">
             <thead>
