@@ -24,9 +24,9 @@ import {
 const TYPE_LABEL: Record<InvitationType, string> = { agency: "Agency", talent: "Talent" };
 
 export const Route = createFileRoute("/admin/")({
-  validateSearch: (raw: Record<string, unknown>) => ({
-    itype: normaliseInvitationType(raw.itype),
-    istatus: normaliseInvitationStatus(raw.istatus),
+  validateSearch: (raw: Record<string, unknown>): { itype?: string; istatus?: string } => ({
+    ...(normaliseInvitationType(raw.itype) !== "all" ? { itype: String(raw.itype) } : {}),
+    ...(normaliseInvitationStatus(raw.istatus) !== "all" ? { istatus: String(raw.istatus) } : {}),
   }),
   head: () => ({
     meta: [
@@ -42,14 +42,15 @@ export const Route = createFileRoute("/admin/")({
 
 function AdminDashboard() {
   const getMetricsFn = useServerFn(getDashboardMetrics);
-  const listAgenciesFn = useServerFn(listAgencies);
 
   const metrics = useQuery({
     queryKey: ["admin", "metrics"],
     queryFn: () => getMetricsFn(),
     refetchInterval: 60_000,
   });
-  const { itype, istatus } = Route.useSearch();
+  const search = Route.useSearch();
+  const itype = normaliseInvitationType(search.itype);
+  const istatus = normaliseInvitationStatus(search.istatus);
   const nav = useNavigate({ from: "/admin/" });
   const setFilters = (next: { itype?: string; istatus?: string }) =>
     nav({
