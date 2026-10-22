@@ -11,7 +11,14 @@ import type { ReportingMetric } from "@/lib/admin-reporting.functions";
 import { LaunchReports } from "@/components/admin/launch-reports";
 import { ReportingRawDrawer } from "@/components/admin/reporting-raw-drawer";
 
+const LR_TYPES = ["agency", "talent"] as const;
+const LR_TALENT = ["agency_linked", "independent"] as const;
+
 export const Route = createFileRoute("/admin/reporting")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    type: LR_TYPES.find((t) => t === s.type),
+    talent: LR_TALENT.find((t) => t === s.talent),
+  }),
   head: () => ({
     meta: [
       { title: "Reporting · TalVault Admin" },

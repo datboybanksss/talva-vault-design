@@ -1,3 +1,5 @@
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { FilterBar } from "@/components/shared/filter-bar";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -57,8 +59,19 @@ function download(name: string, rows: (string | number | null | undefined)[][]) 
 }
 
 export function LaunchReports({ from, to }: { from: string; to: string }) {
-  const [type, setType] = useState<"all" | "agency" | "talent">("all");
-  const [segment, setSegment] = useState<"all" | "agency_linked" | "independent">("all");
+  const search = useSearch({ from: "/admin/reporting" });
+  const navigate = useNavigate({ from: "/admin/reporting" });
+  const type = search.type ?? "all";
+  const segment = search.talent ?? "all";
+  const setFilter = (key: string, value: string) =>
+    navigate({
+      search: (prev) => {
+        const next = { ...prev, [key]: value === "all" ? undefined : value };
+        if (key === "type" && value === "agency") next.talent = undefined;
+        return next as typeof prev;
+      },
+      replace: true,
+    });
   const [offerOffset, setOfferOffset] = useState(0);
   const [termsOffset, setTermsOffset] = useState(0);
   const [outstandingOffset, setOutstandingOffset] = useState(0);
@@ -154,24 +167,37 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             <Settings2 className="h-4 w-4" /> Launch settings
           </button>
         </div>
-        <div className="tvp-invite-filters">
-          <div className="tvp-roster-tabs" role="group" aria-label="Type">
-            {(["all", "agency", "talent"] as const).map((t) => (
-              <button key={t} type="button" aria-pressed={type === t} className={`tvp-tab${type === t ? " tvp-active" : ""}`} onClick={() => setType(t)}>
-                {t === "all" ? "All types" : t === "agency" ? "Agency" : "Talent"}
-              </button>
-            ))}
-          </div>
-          {type !== "agency" && (
-            <div className="tvp-roster-tabs" role="group" aria-label="Talent link">
-              {(["all", "agency_linked", "independent"] as const).map((s) => (
-                <button key={s} type="button" aria-pressed={segment === s} className={`tvp-tab${segment === s ? " tvp-active" : ""}`} onClick={() => setSegment(s)}>
-                  {s === "all" ? "All talent" : s === "agency_linked" ? "Agency-linked" : "Independent"}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <FilterBar
+          active={type !== "all" || segment !== "all"}
+          onChange={setFilter}
+          onClear={() => navigate({ search: (prev) => ({ ...prev, type: undefined, talent: undefined }), replace: true })}
+          filters={[
+            {
+              key: "type",
+              label: "Type",
+              value: type,
+              options: [
+                { value: "all", label: "All types" },
+                { value: "agency", label: "Agency" },
+                { value: "talent", label: "Talent" },
+              ],
+            },
+            ...(type !== "agency"
+              ? [
+                  {
+                    key: "talent",
+                    label: "Talent",
+                    value: segment,
+                    options: [
+                      { value: "all", label: "All talent" },
+                      { value: "agency_linked", label: "Agency-linked" },
+                      { value: "independent", label: "Independent" },
+                    ],
+                  },
+                ]
+              : []),
+          ]}
+        />
         {q.isLoading && <p className="tvp-muted">Loading launch reports…</p>}
         {q.isError && <p className="tvp-muted">{friendlyError(q.error, "We couldn't load the launch reports.")}</p>}
       </div>
