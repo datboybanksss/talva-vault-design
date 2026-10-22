@@ -16,6 +16,9 @@ export const Route = createFileRoute("/agency")({
   }),
   beforeLoad: async ({ location }) => {
     const access = await checkPortalAccess("agency");
+    if (access === "paused") {
+      throw redirect({ to: "/auth", search: { unavailable: "1" } as never });
+    }
     if (access === "denied") {
       // Wrong workspace for this account: send them to their own rather than
       // to an error screen.

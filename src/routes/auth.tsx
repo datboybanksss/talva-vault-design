@@ -1,3 +1,4 @@
+import { ACCOUNT_UNAVAILABLE_MESSAGE } from "@/lib/account-state";
 import { SIGN_IN_CODE_EXPIRY, SIGN_IN_CODE_MISSING } from "@/lib/mfa-copy";
 import {
   SHARE_RECIPIENT_TERM,
@@ -12,6 +13,7 @@ import {
   MFA_ENFORCED,
   PORTAL_FOR_DENIED_CODE,
   checkPortalAccess,
+  isAccountPaused,
   resolvePortalHome,
 } from "@/lib/portal-access";
 import { lovable } from "@/integrations/lovable";
@@ -43,6 +45,8 @@ function recordSignIn() {
 const searchSchema = z.object({
   next: z.string().optional(),
   denied: z.string().optional(),
+  /** Set by the portal gates when the account is paused. */
+  unavailable: z.string().optional(),
   invite: z.string().optional(),
   invite_kind: z.enum(INVITE_KINDS).optional(),
   reset: z
@@ -198,7 +202,9 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    search.unavailable ? ACCOUNT_UNAVAILABLE_MESSAGE : null,
+  );
   const [info, setInfo] = useState<string | null>(null);
 
   // Two-step sign-in state: after the password is accepted we ask for the
@@ -447,6 +453,11 @@ function AuthPage() {
         await clearingRef.current?.catch(() => {});
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (await isAccountPaused()) {
+          await supabase.auth.signOut();
+          setError(ACCOUNT_UNAVAILABLE_MESSAGE);
+          return;
+        }
         // Two-step sign-in is mandatory: never land anyone in a portal on a
         // password alone.
         await afterPassword();

@@ -1,3 +1,4 @@
+import { ACCOUNT_PAUSED_CODE, ACCOUNT_UNAVAILABLE_MESSAGE } from "@/lib/account-state";
 // Shared password policy + strength scoring used by the sign-up form and
 // the admin "Change password" section. The policy is:
 //   • Minimum 12 characters
@@ -108,6 +109,8 @@ export function validateNewPassword(pw: string): string | null {
 
 export function friendlyAuthError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
+  // A paused account is blocked from signing in; never say why.
+  if (/banned/i.test(msg) || msg.startsWith(`${ACCOUNT_PAUSED_CODE}:`)) return ACCOUNT_UNAVAILABLE_MESSAGE;
   if (/pwned|leaked|compromised|breached/i.test(msg))
     return "That password has appeared in a known data breach. Please choose a different one.";
   return msg;
