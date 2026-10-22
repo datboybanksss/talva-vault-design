@@ -160,6 +160,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const isActive = (item: NavItem) => {
     if (item.match === "exact") return pathname === item.to;
+    // Agency detail pages live under the old /admin/agencies path.
+    if (item.to === "/admin/accounts" && pathname.startsWith("/admin/agencies")) return true;
     return pathname === item.to || pathname.startsWith(item.to + "/");
   };
 

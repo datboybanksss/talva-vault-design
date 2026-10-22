@@ -96,11 +96,12 @@ function AgencyDetail() {
       <div className="tvp-topbar">
         <div>
           <Link
-            to="/admin/agencies"
+            to="/admin/accounts"
+            search={{ type: "agency" }}
             className="tvp-link"
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13 }}
           >
-            <ArrowLeft className="h-3 w-3" /> Back to agencies
+            <ArrowLeft className="h-3 w-3" /> Back to accounts
           </Link>
           <h1 className="tvp-h1" style={{ marginTop: 4 }}>
             {a?.name ?? (q.isLoading ? "Loading…" : "Agency not found")}
