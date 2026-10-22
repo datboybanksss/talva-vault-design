@@ -1,15 +1,17 @@
+import { normaliseAccountScope } from "@/lib/account-filters";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Send } from "lucide-react";
 import { CombinedInvitationsList } from "@/components/admin/combined-invitations-list";
 import { normaliseInvitationStatus, normaliseInvitationType } from "@/lib/invitation-filters";
 
-type InvitationsSearch = { type?: string; status?: string; email?: string };
+type InvitationsSearch = { type?: string; status?: string; email?: string; accounts?: string };
 
 export const Route = createFileRoute("/admin/invitations/")({
   validateSearch: (raw: Record<string, unknown>): InvitationsSearch => ({
     ...(normaliseInvitationType(raw.type) !== "all" ? { type: String(raw.type) } : {}),
     ...(normaliseInvitationStatus(raw.status) !== "all" ? { status: String(raw.status) } : {}),
     ...(typeof raw.email === "string" && raw.email.trim() ? { email: raw.email.trim() } : {}),
+    ...(normaliseAccountScope(raw.accounts, "all") !== "all" ? { accounts: String(raw.accounts) } : {}),
   }),
   head: () => ({
     meta: [
@@ -35,7 +37,8 @@ function InvitationsPage() {
   const type = normaliseInvitationType(search.type);
   const status = normaliseInvitationStatus(search.status);
   const nav = useNavigate({ from: "/admin/invitations/" });
-  const setFilters = (next: { type?: string; status?: string }) =>
+  const accounts = normaliseAccountScope(search.accounts, "all");
+  const setFilters = (next: { type?: string; status?: string; accounts?: string }) =>
     nav({
       search: (prev: InvitationsSearch) => {
         const merged = { ...prev, ...next };
@@ -43,6 +46,7 @@ function InvitationsPage() {
         if (merged.type && merged.type !== "all") out.type = merged.type;
         if (merged.status && merged.status !== "all") out.status = merged.status;
         if (merged.email) out.email = merged.email;
+        if (merged.accounts && merged.accounts !== "all") out.accounts = merged.accounts;
         return out;
       },
       replace: true,
@@ -69,6 +73,7 @@ function InvitationsPage() {
         type={type}
         status={status}
         email={search.email}
+        accounts={accounts}
         onFilterChange={setFilters}
         onClear={() => nav({ search: {}, replace: true })}
       />

@@ -1,3 +1,4 @@
+import { normaliseAccountScope } from "@/lib/account-filters";
 import { SHARE_TERM } from "@/lib/terms";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
@@ -19,9 +20,10 @@ import { CombinedInvitationsList } from "@/components/admin/combined-invitations
 import { normaliseInvitationStatus, normaliseInvitationType } from "@/lib/invitation-filters";
 
 export const Route = createFileRoute("/admin/")({
-  validateSearch: (raw: Record<string, unknown>): { itype?: string; istatus?: string } => ({
+  validateSearch: (raw: Record<string, unknown>): { itype?: string; istatus?: string; iaccounts?: string } => ({
     ...(normaliseInvitationType(raw.itype) !== "all" ? { itype: String(raw.itype) } : {}),
     ...(normaliseInvitationStatus(raw.istatus) !== "all" ? { istatus: String(raw.istatus) } : {}),
+    ...(normaliseAccountScope(raw.iaccounts, "all") !== "all" ? { iaccounts: String(raw.iaccounts) } : {}),
   }),
   head: () => ({
     meta: [
@@ -48,13 +50,15 @@ function AdminDashboard() {
   const itype = normaliseInvitationType(search.itype);
   const istatus = normaliseInvitationStatus(search.istatus);
   const nav = useNavigate({ from: "/admin/" });
-  const setFilters = (next: { itype?: string; istatus?: string }) =>
+  const iaccounts = normaliseAccountScope(search.iaccounts, "all");
+  const setFilters = (next: { itype?: string; istatus?: string; iaccounts?: string }) =>
     nav({
       search: (prev: any) => {
         const merged = { ...prev, ...next };
         const out: Record<string, string> = {};
         if (merged.itype && merged.itype !== "all") out.itype = merged.itype;
         if (merged.istatus && merged.istatus !== "all") out.istatus = merged.istatus;
+        if (merged.iaccounts && merged.iaccounts !== "all") out.iaccounts = merged.iaccounts;
         return out as any;
       },
       replace: true,
@@ -219,11 +223,13 @@ function AdminDashboard() {
         tourId="admin-overview-invitations"
         type={itype}
         status={istatus}
-        onFilterChange={(n) => setFilters({ itype: n.type, istatus: n.status })}
+        accounts={iaccounts}
+        onFilterChange={(n) => setFilters({ itype: n.type, istatus: n.status, iaccounts: n.accounts })}
         onClear={clearFilters}
         viewAllSearch={{
           ...(itype !== "all" ? { type: itype } : {}),
           ...(istatus !== "all" ? { status: istatus } : {}),
+          ...(iaccounts !== "all" ? { accounts: iaccounts } : {}),
         }}
       />
     </>

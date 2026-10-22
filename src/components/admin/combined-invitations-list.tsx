@@ -9,6 +9,7 @@ import { useAgencyInvitationActions } from "@/components/admin/agency-invitation
 import { PAGE_SIZE } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { FilterBar } from "@/components/shared/filter-bar";
+import { ACCOUNT_SCOPE_LABEL, type AccountScope } from "@/lib/account-filters";
 import { listCombinedInvitations } from "@/lib/admin.functions";
 import {
   INVITATION_STATUSES,
@@ -31,6 +32,7 @@ export function CombinedInvitationsList({
   type,
   status,
   email,
+  accounts = "all",
   onFilterChange,
   onClear,
   viewAllSearch,
@@ -39,7 +41,9 @@ export function CombinedInvitationsList({
   type: InvitationType | "all";
   status: string;
   email?: string;
-  onFilterChange: (next: { type?: string; status?: string }) => void;
+  /** Real/test accounts filter (default all). */
+  accounts?: AccountScope;
+  onFilterChange: (next: { type?: string; status?: string; accounts?: string }) => void;
   onClear: () => void;
   /** When set, shows "View all invitations" linking to the Invitations page with these filters. */
   viewAllSearch?: Record<string, string>;
@@ -47,7 +51,7 @@ export function CombinedInvitationsList({
 }) {
   const listFn = useServerFn(listCombinedInvitations);
   const invites = useInfiniteQuery({
-    queryKey: ["admin", "combined-invitations", type, status, email ?? ""],
+    queryKey: ["admin", "combined-invitations", type, status, email ?? "", accounts],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       listFn({
@@ -55,6 +59,7 @@ export function CombinedInvitationsList({
           type,
           status,
           email: email ?? "",
+          accounts,
           limit: PAGE_SIZE,
           offset: pageParam as number,
         },
@@ -73,11 +78,12 @@ export function CombinedInvitationsList({
   const rawCounts = firstPage?.counts ?? { agency: {}, talent: {} };
   const typeCounts = typeOptionCounts(rawCounts, status);
   const statusCounts = statusOptionCounts(rawCounts, type);
-  const filtersActive = type !== "all" || status !== "all" || !!email;
+  const filtersActive = type !== "all" || status !== "all" || !!email || accounts !== "all";
   const activeFilterText = [
     type !== "all" ? `Type: ${INVITATION_TYPE_LABEL[type]}` : null,
     status !== "all" ? `Status: ${statusLabel("invitation", status)}` : null,
     email ? `Email: ${email}` : null,
+    accounts !== "all" ? `Accounts: ${ACCOUNT_SCOPE_LABEL[accounts]}` : null,
   ]
     .filter(Boolean)
     .join(" and ");
@@ -119,6 +125,15 @@ export function CombinedInvitationsList({
               value: s,
               label: s === "all" ? "All statuses" : statusLabel("invitation", s),
               count: statusCounts[s] ?? 0,
+            })),
+          },
+          {
+            key: "accounts",
+            label: "Accounts",
+            value: accounts,
+            options: (["all", "real", "test"] as const).map((v) => ({
+              value: v,
+              label: ACCOUNT_SCOPE_LABEL[v],
             })),
           },
         ]}
@@ -180,6 +195,7 @@ export function CombinedInvitationsList({
                   ) : (
                     <strong>{r.name}</strong>
                   )}
+                  {r.is_test && <span className="tvp-status st-neutral tvp-test-label">Test</span>}
                 </td>
                 <td>{r.email}</td>
                 <td>
