@@ -45,16 +45,10 @@ type NavItem = {
 const manage: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
   { to: "/admin/reporting", label: "Reporting", icon: <BarChart3 /> },
-  { to: "/admin/agencies", label: "Agencies", icon: <Building2 /> },
+  { to: "/admin/accounts", label: "Accounts", icon: <Building2 /> },
   {
     to: "/admin/invitations",
-    label: (
-      <>
-        Agency
-        <br />
-        Invitations
-      </>
-    ),
+    label: "Invitations",
     icon: <Send />,
   },
   {
@@ -152,7 +146,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               : "blue",
       title: p.title,
       detail: p.detail ?? "",
-      to: p.target_type === "agency" ? "/admin/agencies" : undefined,
+      to: p.target_type === "agency" ? "/admin/accounts?type=agency" : undefined,
     })),
   ];
 
