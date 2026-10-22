@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
-import { requireTalentTermsAccepted } from "@/lib/terms-guard";
+import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
 
 async function ensureTalentProfile(supabase: any, userId: string) {
@@ -81,7 +81,7 @@ const CreateShareInput = z.object({
 });
 
 export const createLovedOneShare = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((i: unknown) => CreateShareInput.parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -204,7 +204,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
   });
 
 export const revokeLovedOneShare = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -219,7 +219,7 @@ export const revokeLovedOneShare = createServerFn({ method: "POST" })
 
 /** Mints a brand-new access code for an existing share (old one stops working). */
 export const regenerateAccessCode = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
