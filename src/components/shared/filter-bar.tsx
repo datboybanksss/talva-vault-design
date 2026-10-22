@@ -129,7 +129,12 @@ function SearchField({
           maxLength={100}
           autoComplete="off"
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Escape" && text && clear()}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && text) {
+              e.stopPropagation();
+              clear();
+            }
+          }}
         />
         {text && (
           <button
