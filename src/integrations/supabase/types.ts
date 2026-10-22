@@ -185,6 +185,7 @@ export type Database = {
           expiry_notice_days: number
           id: string
           invoice_overdue_grace_days: number
+          is_test: boolean
           is_vat_registered: boolean
           logo_path: string | null
           main_contact_email: string | null
@@ -228,6 +229,7 @@ export type Database = {
           expiry_notice_days?: number
           id?: string
           invoice_overdue_grace_days?: number
+          is_test?: boolean
           is_vat_registered?: boolean
           logo_path?: string | null
           main_contact_email?: string | null
@@ -271,6 +273,7 @@ export type Database = {
           expiry_notice_days?: number
           id?: string
           invoice_overdue_grace_days?: number
+          is_test?: boolean
           is_vat_registered?: boolean
           logo_path?: string | null
           main_contact_email?: string | null
