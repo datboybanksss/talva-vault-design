@@ -106,6 +106,11 @@ export const LIFECYCLE_STATUS: Record<StatusFamily, Record<string, Entry>> = {
     declined: { label: "Declined", st: "declined" },
     suspended: { label: "Suspended", st: "suspended" },
   },
+  /** Talent account, derived from talent_profiles.activation_completed_at */
+  talentAccount: {
+    active: { label: "Active", st: "accepted" },
+    incomplete: { label: "Incomplete", st: "incomplete" },
+  },
   /** agency_members.suspended / user_roles.suspended_at */
   member: {
     active: { label: "Active", st: "accepted" },
