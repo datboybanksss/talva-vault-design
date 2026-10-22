@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
-import { requireTalentTermsAccepted } from "@/lib/terms-guard";
+import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
 
 const BUCKET = "talent-private-documents";
@@ -43,7 +43,7 @@ const CreateFolderInput = z.object({
 });
 
 export const createPrivateFolder = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => CreateFolderInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -85,7 +85,7 @@ const DeleteFolderInput = z.object({ id: z.string().uuid() });
  * Subfolders are hard-deleted, but only when they hold no documents and no children.
  */
 export const deletePrivateFolder = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => DeleteFolderInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -151,7 +151,7 @@ const CreateUploadUrlInput = z.object({
  * insert the document row (client uploads to the signed URL).
  */
 export const createPrivateUploadUrl = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => CreateUploadUrlInput.parse(input))
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
@@ -190,7 +190,7 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
  * stored object and the row with it.
  */
 export const finalisePrivateUpload = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => z.object({ document_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { userId, supabase, claims } = context as any;
@@ -263,7 +263,7 @@ export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
   });
 
 export const deletePrivateDocument = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => DocIdInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -295,7 +295,7 @@ const MoveDocInput = z.object({
 });
 
 export const movePrivateDocument = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => MoveDocInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -345,7 +345,7 @@ const RestoreDefaultInput = z.object({ name: z.string().trim().min(1).max(120) }
  * database catalogue.
  */
 export const restoreDefaultFolder = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => RestoreDefaultInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;

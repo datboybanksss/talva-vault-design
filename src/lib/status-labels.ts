@@ -112,11 +112,15 @@ export const LIFECYCLE_STATUS: Record<StatusFamily, Record<string, Entry>> = {
     expired: { label: "Expired", st: "expired" },
     declined: { label: "Declined", st: "declined" },
     suspended: { label: "Suspended", st: "suspended" },
+    /** Not a stored status: agencies.paused_at overlays any status. */
+    paused: { label: "Paused", st: "declined" },
   },
-  /** Talent account, derived from talent_profiles.activation_completed_at */
+  /** Talent account, derived from talent_profiles activation/suspension/pause. */
   talentAccount: {
     active: { label: "Active", st: "accepted" },
     incomplete: { label: "Incomplete", st: "incomplete" },
+    suspended: { label: "Suspended", st: "suspended" },
+    paused: { label: "Paused", st: "declined" },
   },
   /** agency_members.suspended / user_roles.suspended_at */
   member: {

@@ -194,11 +194,17 @@ export type Database = {
           main_contact_phone: string | null
           name: string
           notes: string | null
+          pause_note: string | null
+          pause_reason: string | null
+          paused_at: string | null
+          paused_banned_user_ids: string[]
+          paused_by: string | null
           payment_instructions: string | null
           phone: string | null
           status: Database["public"]["Enums"]["agency_status"]
           suspended_at: string | null
           suspended_by: string | null
+          suspension_note: string | null
           suspension_reason: string | null
           updated_at: string
           vat_number: string | null
@@ -238,11 +244,17 @@ export type Database = {
           main_contact_phone?: string | null
           name: string
           notes?: string | null
+          pause_note?: string | null
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_banned_user_ids?: string[]
+          paused_by?: string | null
           payment_instructions?: string | null
           phone?: string | null
           status?: Database["public"]["Enums"]["agency_status"]
           suspended_at?: string | null
           suspended_by?: string | null
+          suspension_note?: string | null
           suspension_reason?: string | null
           updated_at?: string
           vat_number?: string | null
@@ -282,11 +294,17 @@ export type Database = {
           main_contact_phone?: string | null
           name?: string
           notes?: string | null
+          pause_note?: string | null
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_banned_user_ids?: string[]
+          paused_by?: string | null
           payment_instructions?: string | null
           phone?: string | null
           status?: Database["public"]["Enums"]["agency_status"]
           suspended_at?: string | null
           suspended_by?: string | null
+          suspension_note?: string | null
           suspension_reason?: string | null
           updated_at?: string
           vat_number?: string | null
@@ -2822,9 +2840,18 @@ export type Database = {
           is_provisional_taxpayer: boolean | null
           is_test: boolean
           notification_prefs: Json
+          pause_note: string | null
+          pause_reason: string | null
+          paused_at: string | null
+          paused_banned: boolean
+          paused_by: string | null
           phone_number: string | null
           postal_code: string | null
           province: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_note: string | null
+          suspension_reason: string | null
           tax_number: string | null
           user_id: string | null
         }
@@ -2846,9 +2873,18 @@ export type Database = {
           is_provisional_taxpayer?: boolean | null
           is_test?: boolean
           notification_prefs?: Json
+          pause_note?: string | null
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_banned?: boolean
+          paused_by?: string | null
           phone_number?: string | null
           postal_code?: string | null
           province?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_note?: string | null
+          suspension_reason?: string | null
           tax_number?: string | null
           user_id?: string | null
         }
@@ -2870,9 +2906,18 @@ export type Database = {
           is_provisional_taxpayer?: boolean | null
           is_test?: boolean
           notification_prefs?: Json
+          pause_note?: string | null
+          pause_reason?: string | null
+          paused_at?: string | null
+          paused_banned?: boolean
+          paused_by?: string | null
           phone_number?: string | null
           postal_code?: string | null
           province?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_note?: string | null
+          suspension_reason?: string | null
           tax_number?: string | null
           user_id?: string | null
         }
@@ -3249,6 +3294,8 @@ export type Database = {
         Args: { _email: string; _invitation_id: string; _user_id: string }
         Returns: string
       }
+      account_paused: { Args: { _user_id: string }; Returns: boolean }
+      account_read_allowed: { Args: { _user_id: string }; Returns: boolean }
       agency_is_writable: { Args: { _agency_id: string }; Returns: boolean }
       agency_read_only_until: { Args: { _agency_id: string }; Returns: string }
       agency_staff_can_read: { Args: { _agency_id: string }; Returns: boolean }
@@ -3362,6 +3409,7 @@ export type Database = {
         }
         Returns: number
       }
+      my_account_access: { Args: never; Returns: Json }
       my_link_requests: {
         Args: never
         Returns: {
@@ -3449,6 +3497,7 @@ export type Database = {
         Returns: undefined
       }
       sweep_overdue_invoices: { Args: never; Returns: number }
+      talent_account_writable: { Args: { _user_id: string }; Returns: boolean }
       talent_can_read_shared_doc: {
         Args: { _link_id: string; _originator: string; _years: number }
         Returns: boolean
@@ -3460,6 +3509,7 @@ export type Database = {
       }
       talent_link_read_until: { Args: { _link_id: string }; Returns: string }
       talent_post_end_access_years: { Args: never; Returns: number }
+      talent_read_only_until: { Args: { _user_id: string }; Returns: string }
       terms_write_allowed: { Args: { _user_id: string }; Returns: boolean }
       tv_map_legacy_folder: { Args: { _name: string }; Returns: string }
     }

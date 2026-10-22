@@ -1,3 +1,4 @@
+import { accountStatusCounts, agencyAccountStatus, talentAccountStatus } from "@/lib/account-filters";
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -467,8 +468,30 @@ export const getReportingSummary = createServerFn({ method: "GET" })
         outstandingCents: Math.max(0, invoicedCents - paidOnPeriodInvoices),
       },
       cohorts,
+      accountsByStatus: await accountsByStatus(admin),
     };
   });
+
+/** Current status of every real agency and talent account (pause overlays status). */
+async function accountsByStatus(admin: any) {
+  const [ag, ta] = await Promise.all([
+    admin.from("agencies").select("status, paused_at, is_test"),
+    admin
+      .from("talent_profiles")
+      .select("activation_completed_at, paused_at, suspended_at, is_test")
+      .is("deleted_at", null),
+  ]);
+  if (ag.error) throw new Error(ag.error.message);
+  if (ta.error) throw new Error(ta.error.message);
+  return accountStatusCounts([
+    ...(ag.data ?? []).map((a: any) => ({ type: "agency" as const, status: agencyAccountStatus(a), is_test: a.is_test })),
+    ...(ta.data ?? []).map((t: any) => ({
+      type: "talent" as const,
+      status: talentAccountStatus(t.activation_completed_at, t),
+      is_test: t.is_test,
+    })),
+  ]);
+}
 
 // -----------------------------------------------------------------------------
 // Raw data drill-down

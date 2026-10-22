@@ -4,21 +4,21 @@ import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useSessionReady } from "@/hooks/use-session-ready";
-import { ArrowLeft, Ban, RotateCcw, Send, Users } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Send, Users } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getAgencyById,
-  suspendAgency,
-  unsuspendAgency,
   setAccountTest,
   listAgencyInvitationsForAgency,
   listTalentInvitationsForAgency,
   whoami,
 } from "@/lib/admin.functions";
 import { toast } from "sonner";
-import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
+import { useAccountStateActions } from "@/components/admin/account-state-actions";
+import { AccountStateDetails } from "@/components/admin/account-state-details";
+import { accountStateActions, ACCOUNT_ACTION_LABEL } from "@/lib/account-state";
+import { agencyAccountStatus } from "@/lib/account-filters";
 import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/agencies/$id")({
@@ -37,14 +37,12 @@ function fmtDate(iso?: string | null) {
 function AgencyDetail() {
   const { id } = useParams({ from: "/admin/agencies/$id" });
   const getFn = useServerFn(getAgencyById);
-  const suspendFn = useServerFn(suspendAgency);
-  const unsuspendFn = useServerFn(unsuspendAgency);
+  const accountState = useAccountStateActions();
   const listAgencyInvFn = useServerFn(listAgencyInvitationsForAgency);
   const listTalentInvFn = useServerFn(listTalentInvitationsForAgency);
   const sessionReady = useSessionReady();
   const whoamiFn = useServerFn(whoami);
   const qc = useQueryClient();
-  const [suspendOpen, setSuspendOpen] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin", "agency", id],
@@ -71,24 +69,7 @@ function AgencyDetail() {
   });
   const canEdit = !!me.data?.canEdit;
   const noEditTitle =
-    "You need full edit access to suspend or reinstate an agency. Ask a Main Administrator to change your access level.";
-
-  const suspendM = useMutation({
-    mutationFn: (reason: string) => suspendFn({ data: { id, reason } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Agency suspended and logged.");
-    },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
-  });
-  const unsuspendM = useMutation({
-    mutationFn: () => unsuspendFn({ data: { id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Agency reinstated.");
-    },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
-  });
+    "You need full edit access to pause or suspend an account. Ask a Main Administrator to change your access level.";
 
   const a = q.data as any;
   const setTestFn = useServerFn(setAccountTest);
@@ -128,8 +109,8 @@ function AgencyDetail() {
               className="tvp-subtitle"
               style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
             >
-              <span className={statusPillClass("agency", a.status)}>
-                {statusLabel("agency", a.status)}
+              <span className={statusPillClass("agency", agencyAccountStatus(a))}>
+                {statusLabel("agency", agencyAccountStatus(a))}
               </span>
               {a.is_test && <span className="tvp-status st-neutral">Test</span>}
               {a.contact_email}
@@ -146,27 +127,31 @@ function AgencyDetail() {
             >
               {a.is_test ? "Mark as real account" : "Mark as test account"}
             </button>
-            {a.status === "suspended" ? (
+            {accountStateActions(
+              { paused: !!a.paused_at, suspended: a.status === "suspended" },
+              true,
+            ).map((action) => (
               <button
+                key={action}
                 className="tvp-secondary"
-                onClick={() => unsuspendM.mutate()}
                 disabled={!canEdit}
-                title={canEdit ? "Reinstate this agency" : noEditTitle}
+                title={canEdit ? undefined : noEditTitle}
+                onClick={() =>
+                  accountState.openAction(
+                    {
+                      type: "agency",
+                      id: a.id,
+                      name: a.name,
+                      paused: !!a.paused_at,
+                      suspended: a.status === "suspended",
+                    },
+                    action,
+                  )
+                }
               >
-                <RotateCcw className="h-4 w-4" />
-                Reinstate
+                {ACCOUNT_ACTION_LABEL[action]}
               </button>
-            ) : (
-              <button
-                className="tvp-secondary"
-                onClick={() => setSuspendOpen(true)}
-                disabled={!canEdit}
-                title={canEdit ? "Suspend this agency" : noEditTitle}
-              >
-                <Ban className="h-4 w-4" />
-                Suspend
-              </button>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -207,20 +192,7 @@ function AgencyDetail() {
                   year: "numeric",
                 })}
               </p>
-              {a.status === "suspended" && (
-                <>
-                  <p style={{ marginTop: 10 }}>
-                    <strong>Suspension reason</strong>
-                    <br />
-                    {a.suspension_reason ?? "—"}
-                  </p>
-                  <p style={{ marginTop: 10 }}>
-                    <strong>Suspended at</strong>
-                    <br />
-                    {a.suspended_at ? new Date(a.suspended_at).toLocaleString("en-GB") : "—"}
-                  </p>
-                </>
-              )}
+              <AccountStateDetails row={a} suspended={a.status === "suspended"} />
               {a.notes && (
                 <p style={{ marginTop: 10 }}>
                   <strong>Notes</strong>
@@ -382,18 +354,7 @@ function AgencyDetail() {
         </div>
       )}
 
-      {a && suspendOpen && (
-        <SuspendAgencyDialog
-          agencyName={a.name}
-          isPending={suspendM.isPending}
-          onCancel={() => setSuspendOpen(false)}
-          onConfirm={(reason) => {
-            suspendM.mutate(reason, {
-              onSuccess: () => setSuspendOpen(false),
-            });
-          }}
-        />
-      )}
+      {accountState.dialog}
     </>
   );
 }

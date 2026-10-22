@@ -1,3 +1,4 @@
+import { ACCOUNT_STATUSES, accountStatusOptionLabel } from "@/lib/account-filters";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { SHARE_RECIPIENT_TERM } from "@/lib/terms";
 import { createFileRoute } from "@tanstack/react-router";
@@ -469,6 +470,34 @@ function ReportingPage() {
               metric="outstanding"
               onDrill={onDrill}
             />
+          </div>
+
+          {/* Accounts by status */}
+          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
+            Accounts by status
+          </h2>
+          <div className="tvp-table-wrap" style={{ marginBottom: 24 }}>
+            <table className="tvp-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Agencies</th>
+                  <th>Talent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ACCOUNT_STATUSES.map((st) => (
+                  <tr key={st}>
+                    <td>{accountStatusOptionLabel(st)}</td>
+                    <td>{d.accountsByStatus.agency[st] ?? "—"}</td>
+                    <td>{d.accountsByStatus.talent[st] ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="tvp-muted" style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}>
+              Current status of real accounts; test accounts are left out. Not affected by the date range.
+            </p>
           </div>
 
           {/* Cohort retention */}

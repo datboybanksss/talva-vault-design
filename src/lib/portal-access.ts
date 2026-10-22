@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export type PortalKey = "admin" | "agency" | "talent";
 
-export type AccessResult = "granted" | "denied" | "signed-out" | "error";
+export type AccessResult = "granted" | "denied" | "signed-out" | "error" | "paused";
 
 export const DENIED_CODE: Record<PortalKey, string> = {
   admin: "not_admin",
@@ -74,6 +74,10 @@ export async function checkPortalAccess(key: PortalKey): Promise<AccessResult> {
   if (sessErr) return "error";
   const userId = sessRes.session?.user?.id;
   if (!userId) return "signed-out";
+  if (await isAccountPaused()) {
+    await supabase.auth.signOut();
+    return "paused";
+  }
 
   const first = await runCheck(key, userId);
   if (first !== "error") return first;
@@ -144,4 +148,15 @@ export async function checkMfaGate(): Promise<MfaGate> {
     // A transient failure must never lock a legitimate user out of the portal.
     return "ok";
   }
+}
+
+/**
+ * Is the signed-in account paused (talent, or staff of a paused agency)?
+ * The rule is the database function account_paused(). A failed check is
+ * treated as not paused here; the database and server still refuse access.
+ */
+export async function isAccountPaused(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("my_account_access");
+  if (error) return false;
+  return !!(data as { paused?: boolean } | null)?.paused;
 }

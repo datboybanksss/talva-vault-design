@@ -1,3 +1,10 @@
+import {
+  ACCOUNT_PAUSED_CODE,
+  ACCOUNT_READ_ONLY_MESSAGE,
+  ACCOUNT_SUSPENDED_CODE,
+  ACCOUNT_UNAVAILABLE_MESSAGE,
+} from "@/lib/account-state";
+
 /**
  * Turns any thrown value into a sentence safe to show a user. Plain messages
  * written by our server functions pass through; validation JSON, database
@@ -24,6 +31,8 @@ export function friendlyError(error: unknown, fallback: string = GENERIC): strin
   const message = raw.trim();
   const safeFallback = fallback || GENERIC;
   if (!message) return safeFallback;
+  if (message.startsWith(`${ACCOUNT_PAUSED_CODE}:`)) return ACCOUNT_UNAVAILABLE_MESSAGE;
+  if (message.startsWith(`${ACCOUNT_SUSPENDED_CODE}:`)) return ACCOUNT_READ_ONLY_MESSAGE;
   if (message.startsWith("TERMS_NOT_ACCEPTED")) {
     return "Please accept the current Terms & Conditions to continue.";
   }

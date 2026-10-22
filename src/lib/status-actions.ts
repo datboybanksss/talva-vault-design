@@ -32,8 +32,6 @@ export type InvitationAction =
   | "delete"
   | "open_record";
 
-export type AgencyAction = "suspend" | "reinstate";
-
 /** Statuses a relationship may be ended from / reactivated from. */
 export const END_RELATIONSHIP_FROM = ["active", "needs_review"] as const;
 export const REACTIVATE_RELATIONSHIP_FROM = ["ended", "read_only"] as const;
@@ -132,10 +130,7 @@ export function invitationActions(input: {
   return out;
 }
 
-export function agencyActions(input: { status: string; canEdit: boolean }): AgencyAction[] {
-  if (!input.canEdit) return [];
-  return input.status === "suspended" ? ["reinstate"] : ["suspend"];
-}
+// Agency and talent account Pause / Suspend actions live in src/lib/account-state.ts.
 
 /** Talent share: a new access code only on a live share. */
 export function shareIsLive(status: string): boolean {

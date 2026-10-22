@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  agencyActions,
   canEndRelationship,
   canReactivateRelationship,
   invitationActions,
@@ -85,10 +84,6 @@ describe("invitation actions", () => {
 });
 
 describe("agency and share rules", () => {
-  it("suspended agency → reinstate; otherwise suspend", () => {
-    expect(agencyActions({ status: "suspended", canEdit: true })).toEqual(["reinstate"]);
-    expect(agencyActions({ status: "accepted", canEdit: true })).toEqual(["suspend"]);
-  });
   it("no new access code on revoked or expired shares", () => {
     expect(shareIsLive("revoked")).toBe(false);
     expect(shareIsLive("expired")).toBe(false);

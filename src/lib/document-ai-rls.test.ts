@@ -9,7 +9,7 @@ describe.skipIf(!process.env.SUPABASE_DB_URL)("live analysis read policy", () =>
       {
         env: { ...process.env, PGDATABASE: process.env.SUPABASE_DB_URL },
         input: `SELECT json_build_object('roles',roles,'qual',qual,'cmd',cmd) FROM pg_policies
-        WHERE schemaname='public' AND tablename='document_ai_analyses';`,
+        WHERE schemaname='public' AND tablename='document_ai_analyses' AND permissive='PERMISSIVE';`,
         encoding: "utf8",
       },
     );

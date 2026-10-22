@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireTalentTermsAccepted } from "@/lib/terms-guard";
+import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
 
 /**
@@ -89,7 +89,7 @@ const NotificationPrefsInput = z.object({
 });
 
 export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => NotificationPrefsInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -226,7 +226,7 @@ const UpdateProfileInput = z.object({
 });
 
 export const updateTalentProfile = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => UpdateProfileInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -394,7 +394,7 @@ const RequestUploadInput = z.object({
  * Storage path is scoped to the caller's link so admin bucket ops stay auditable.
  */
 export const createTalentRequestUploadUrl = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => RequestUploadInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -433,7 +433,7 @@ const SubmitRequestInput = z.object({
  * shared document and mark the request submitted (agency reviews next).
  */
 export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
-  .middleware([requireTalentTermsAccepted])
+  .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => SubmitRequestInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;

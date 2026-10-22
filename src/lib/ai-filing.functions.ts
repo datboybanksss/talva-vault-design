@@ -14,7 +14,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertTermsAccepted } from "@/lib/terms-guard";
+import { assertTalentWritable, assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 import { applyAiPreferenceChange, checkAiSources } from "@/lib/document-ai-core";
 
@@ -252,6 +252,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
     await assertSourcesAllowed(aiEnabled, data.scope, data.document_id, data);
 
     if (data.scope === "talent") {
+      await assertTalentWritable(supabase, userId);
       const { data: doc } = await supabase
         .from("talent_private_documents")
         .select("id, user_id, name")
@@ -359,6 +360,7 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
 
     if (data.scope === "talent") {
+      await assertTalentWritable(supabase, userId);
       const { data: doc } = await supabase
         .from("talent_private_documents")
         .select("id, user_id")
@@ -484,6 +486,7 @@ export const startDocumentAnalysis = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AnalysisInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
+    if (data.scope === "talent") await assertTalentWritable(supabase, userId);
     const { agencyId } = await authoriseForDocument(supabase, userId, data.scope, data.document_id);
     const { restartAnalysis } = await import("@/lib/document-ai.server");
     return restartAnalysis({
