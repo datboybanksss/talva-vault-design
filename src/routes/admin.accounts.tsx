@@ -476,10 +476,11 @@ function AccountsPage() {
                             },
                             isSentInvite && {
                               key: "preview",
-                              label: "Preview branded email",
+                              label: "View sent email",
                               icon: Mail,
                               to: "/admin/invitations/$id/email-preview",
                               params: { id: invitation?.id ?? "" },
+                              search: { type: "agency" },
                             },
                             inviteOpen && {
                               key: "copy",
