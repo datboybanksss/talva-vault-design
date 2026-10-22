@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792696118920,
+      "tag": "0000_invitation_email_wording_and_sent_copy",
+      "breakpoints": true
+    }
+  ]
+}
