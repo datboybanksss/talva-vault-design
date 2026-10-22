@@ -734,6 +734,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       z.object({
         type: z.string().default("all"),
         status: z.string().default("all"),
+        email: z.string().max(320).default(""),
         limit: z.number().int().min(1).max(50).default(10),
         offset: z.number().int().min(0).max(500).default(0),
       }),
@@ -745,6 +746,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     await assertAdmin(supabase, userId);
     const type = normaliseInvitationType(data.type);
     const status = normaliseInvitationStatus(data.status);
+    const email = data.email.trim().replace(/[%_,()]/g, "");
     const nowIso = new Date().toISOString();
     const TABLE = {
       agency: {
@@ -756,7 +758,8 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         cols: "id, talent_name, email, status, expires_at, created_at, last_sent_at, send_count",
       },
     } as const;
-    const byStatus = (q: any, s: string) => {
+    const byStatus = (q0: any, s: string) => {
+      const q = email ? q0.ilike("email", `%${email}%`) : q0;
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
       if (s !== "all") return q.eq("status", s);
