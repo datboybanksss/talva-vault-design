@@ -85,6 +85,8 @@ type VaultDoc = {
   lockedUntil: string | null;
   currentVersionId: string | null;
   pendingReview?: boolean;
+  originator?: string;
+  linkStatus?: string | null;
 };
 type TalentLinkLite = {
   id: string;
@@ -896,10 +898,10 @@ function VaultPage() {
                         !!d.lockedUntil && new Date(d.lockedUntil).getTime() > Date.now();
                       const lockDate = d.lockedUntil ? fmtLongDate(d.lockedUntil) : "";
                       const docFacts = {
-                        originator: d.originator,
+                        originator: d.originator ?? "agency",
                         talentName: d.talentName,
                         lockedUntil: d.lockedUntil,
-                        linkStatus: d.linkStatus,
+                        linkStatus: d.linkStatus ?? null,
                         agencyReadOnly: readOnly,
                       };
                       const deleteBlock = agencyDocumentDeleteBlock(docFacts);
