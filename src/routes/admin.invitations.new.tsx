@@ -1,6 +1,6 @@
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { InvitationTypeField } from "@/components/admin/invitation-type-field";
 import { TalentInviteForm } from "@/components/admin/talent-invite-form";
 import type { InvitationType } from "@/lib/invitation-filters";
@@ -21,10 +21,17 @@ import { toast } from "sonner";
 import { phoneError } from "@/lib/phone";
 import { sendAgencyInvitationEmail } from "@/lib/invitation-email.functions";
 import {
-  DEFAULT_INVITATION_SUBJECT,
-  DEFAULT_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
+  missingMergeFields,
+  wordingIssues,
+  type AdminInviteWording,
 } from "@/lib/invitation-email";
+import {
+  getAdminInviteEmailContext,
+  saveAdminInviteWording,
+} from "@/lib/admin-invite-email.functions";
+import { InviteEmailReview } from "@/components/admin/invite-email-review";
+import { InviteSteps, previewExpiry } from "@/components/admin/invite-steps";
 import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/invitations/new")({
@@ -114,6 +121,18 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
   const deleteDocFn = useServerFn(deleteComplianceDocument);
 
   const [draftId, setDraftId] = useState<string>(draftIdFromUrl || "");
+  const [step, setStep] = useState<"details" | "review">("details");
+  const [wording, setWording] = useState<AdminInviteWording | null>(null);
+  const saveWordingFn = useServerFn(saveAdminInviteWording);
+  const ctxFn = useServerFn(getAdminInviteEmailContext);
+  const ctxQ = useQuery({
+    queryKey: ["admin", "invite-email-context", "agency", draftId],
+    queryFn: () => ctxFn({ data: { kind: "agency", id: draftId } }),
+    enabled: !!draftId,
+  });
+  useEffect(() => {
+    if (ctxQ.data?.saved) setWording(ctxQ.data.saved);
+  }, [ctxQ.data?.saved?.subject, ctxQ.data?.saved?.greeting, ctxQ.data?.saved?.message]);
 
   // Details
   const [agencyName, setAgencyName] = useState("");
@@ -197,6 +216,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
 
   const finalizeM = useMutation({
     mutationFn: async () => {
+      // The approved email wording is stored with the invitation first.
+      await saveWordingFn({ data: { kind: "agency", id: draftId, wording } });
       // Persist any unsaved edits first so sending always reflects the form.
       await updateDraftFn({
         data: {
@@ -224,14 +245,9 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
 
       // The invitation exists either way — a delivery failure must never be
       // reported as a successful send.
-      const res: any = await sendAgencyEmailFn({
-        data: {
-          id: inv.id,
-          subject: DEFAULT_INVITATION_SUBJECT,
-          body: DEFAULT_INVITATION_BODY,
-          invite_url: `${window.location.origin}/invite/${inv.token}`,
-        },
-      }).catch(() => ({ sent: false }));
+      const res: any = await sendAgencyEmailFn({ data: { id: inv.id } }).catch(() => ({
+        sent: false,
+      }));
       if (res?.sent)
         toast.success("Invitation sent. The recipient will receive the branded email.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
@@ -330,6 +346,30 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
     !emailCheck.conflict &&
     !finalizeM.isPending;
 
+  const merge = useMemo(
+    () => ({
+      agencyName: agencyName.trim(),
+      contactPerson: contact.trim(),
+      recipientEmail: email.trim(),
+      adminName: ctxQ.data?.adminName ?? "",
+      expiryDate: previewExpiry(expiryDays),
+      inviteUrl: ctxQ.data?.inviteUrl ?? "",
+    }),
+    [agencyName, contact, email, expiryDays, ctxQ.data?.adminName, ctxQ.data?.inviteUrl],
+  );
+  const reviewBlocked =
+    ctxQ.isLoading ||
+    missingMergeFields("agency", merge).length > 0 ||
+    (wording !== null && wordingIssues(wording).length > 0);
+  const saveWordingM = useMutation({
+    mutationFn: () => saveWordingFn({ data: { kind: "agency", id: draftId, wording } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Draft saved, including your email wording.");
+    },
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't save the draft.")),
+  });
+
   const outstanding = [
     ...(detailsComplete ? [] : ["agency details"]),
     ...missingSlots.map((s) => s.label.toLowerCase()),
@@ -358,29 +398,43 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
         </div>
       </div>
 
+      {step === "review" ? (
+        <div className="tvp-card tvp-panel">
+          <InviteSteps current="review" />
+          <InviteEmailReview
+            kind="agency"
+            merge={merge}
+            value={wording}
+            onChange={setWording}
+            onFix={() => setStep("details")}
+          />
+          <div className="tvp-footer-actions">
+            <button type="button" className="tvp-secondary" onClick={() => setStep("details")}>
+              Back to details
+            </button>
+            <button
+              type="button"
+              className="tvp-secondary"
+              disabled={saveWordingM.isPending || reviewBlocked}
+              onClick={() => saveWordingM.mutate()}
+            >
+              {saveWordingM.isPending ? "Saving…" : "Save draft"}
+            </button>
+            <button
+              type="button"
+              className="tvp-primary"
+              disabled={!canSend || reviewBlocked}
+              onClick={() => finalizeM.mutate()}
+            >
+              {finalizeM.isPending ? "Sending…" : "Send invitation"}
+            </button>
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="tvp-card tvp-panel">
         {typeSlot}
-        <div style={{ display: "flex", gap: 12, marginBottom: 18, fontSize: 13 }}>
-          <span
-            className="tvp-status"
-            style={{
-              background: draftId ? "var(--tvp-green-soft, #E7F5EE)" : "rgba(6,78,88,0.1)",
-              color: draftId ? "var(--tvp-green)" : "var(--tvp-teal)",
-            }}
-          >
-            {draftId ? "Step 1: Draft saved · still editable" : "Step 1: Agency details"}
-          </span>
-          <span
-            className="tvp-status"
-            style={{
-              background: draftId ? "rgba(6,78,88,0.1)" : "rgba(0,0,0,0.05)",
-              color: draftId ? "var(--tvp-teal)" : "var(--tvp-muted)",
-            }}
-          >
-            Step 2: Compliance & send
-          </span>
-        </div>
-
+        <InviteSteps current="details" />
         <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
           <div className="tvp-form-group">
             <label>Agency name *</label>
@@ -666,10 +720,10 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                   toast.error(phoneFormatError);
                   return;
                 }
-                finalizeM.mutate();
+                setStep("review");
               }}
             >
-              {finalizeM.isPending ? "Sending…" : "Send invitation"}
+              Continue to review email
             </button>
           </div>
           {!canSend && outstanding.length > 0 && (
@@ -678,6 +732,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
             </p>
           )}
         </div>
+      )}
+      </>
       )}
     </>
   );
