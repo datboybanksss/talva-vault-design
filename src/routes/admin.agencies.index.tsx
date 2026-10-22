@@ -371,7 +371,11 @@ function AgenciesPage() {
                 <tr>
                   <td colSpan={7} className="tvp-muted">
                     No agencies here yet — the first one starts with an invitation.{" "}
-                    <Link to="/admin/invitations/new" className="tvp-link">
+                    <Link
+                      to="/admin/invitations/new"
+                      search={{ type: "agency" }}
+                      className="tvp-link"
+                    >
                       Invite an agency →
                     </Link>
                   </td>

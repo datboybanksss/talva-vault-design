@@ -1,16 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { TalentInviteForm } from "@/components/admin/talent-invite-form";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// Kept so old links and bookmarks still work: talent invitations now start
+// from the single New invitation form.
 export const Route = createFileRoute("/admin/invitations/talent/new")({
-  head: () => ({
-    meta: [
-      { title: "Invite talent · TalVault Admin" },
-      {
-        name: "description",
-        content:
-          "Invite independent talent to TalVault with their ID document and proof of talent.",
-      },
-    ],
-  }),
-  component: () => <TalentInviteForm />,
+  beforeLoad: () => {
+    throw redirect({ to: "/admin/invitations/new", search: { type: "talent" }, replace: true });
+  },
 });

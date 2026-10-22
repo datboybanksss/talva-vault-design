@@ -98,7 +98,7 @@ export function useTalentInvitationActions() {
           ? "Sends the invitation again with a fresh expiry"
           : "Starts a new invitation — the ID document and proof of talent are needed again",
         onSelect: () =>
-          storedOpen ? resendM.mutate(row.id) : nav({ to: "/admin/invitations/talent/new" }),
+          storedOpen ? resendM.mutate(row.id) : nav({ to: "/admin/invitations/new", search: { type: "talent" } }),
       },
       {
         key: "revoke",
