@@ -1,4 +1,11 @@
 import { FilterBar } from "@/components/shared/filter-bar";
+import { useConfirm } from "@/components/shared/use-confirm";
+import {
+  agencyDocumentChangeBlock,
+  agencyDocumentDeleteBlock,
+  blockText,
+  fmtLongDate,
+} from "@/lib/document-blocks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -502,6 +509,7 @@ function VaultPage() {
 
   return (
     <>
+      {confirmDialog}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Document Vault</h1>
