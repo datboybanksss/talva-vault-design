@@ -280,7 +280,7 @@ function AccountsPage() {
     }
   };
 
-  const filtersActive = type !== "all" || status !== "all" || link !== "all" || scope !== "all";
+  const filtersActive = type !== "all" || status !== "all" || link !== "all" || scope !== "all" || !!q;
   const activeFilterText = [
     type !== "all" ? `Type: ${ACCOUNT_TYPE_LABEL[type]}` : null,
     status !== "all" ? `Status: ${accountStatusOptionLabel(status)}` : null,
