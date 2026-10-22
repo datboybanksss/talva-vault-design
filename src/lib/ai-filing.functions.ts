@@ -14,7 +14,7 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertTermsAccepted } from "@/lib/terms-guard";
+import { assertTalentWritable, assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 import { applyAiPreferenceChange, checkAiSources } from "@/lib/document-ai-core";
 
@@ -484,6 +484,7 @@ export const startDocumentAnalysis = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AnalysisInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
+    if (data.scope === "talent") await assertTalentWritable(supabase, userId);
     const { agencyId } = await authoriseForDocument(supabase, userId, data.scope, data.document_id);
     const { restartAnalysis } = await import("@/lib/document-ai.server");
     return restartAnalysis({
