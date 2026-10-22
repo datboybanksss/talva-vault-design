@@ -30,6 +30,7 @@ import {
 } from "@/lib/folder-catalogue";
 import { upsertAgencySubfolderSetting, deleteAgencySubfolderSetting } from "@/lib/agency.functions";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Setting = {
   id: string;
@@ -109,7 +110,7 @@ export function ManageFoldersPanel() {
       can_untick_during_onboarding?: boolean;
     }) => upsertFn({ data: input }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["agency", "folder-settings"] }),
-    onError: (e: any) => toast.error(e?.message ?? "Could not save that change"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not save that change")),
   });
 
   const subUpsertFn = useServerFn(upsertAgencySubfolderSetting);
@@ -123,13 +124,13 @@ export function ManageFoldersPanel() {
       enabled?: boolean;
     }) => subUpsertFn({ data: input }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["folder-catalogue"] }),
-    onError: (e: any) => toast.error(e?.message ?? "Could not save that subfolder"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not save that subfolder")),
   });
 
   const resetSub = useMutation({
     mutationFn: (id: string) => subDeleteFn({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["folder-catalogue"] }),
-    onError: (e: any) => toast.error(e?.message ?? "Could not reset that subfolder"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not reset that subfolder")),
   });
 
   const reset = useMutation({
@@ -138,7 +139,7 @@ export function ManageFoldersPanel() {
       qc.invalidateQueries({ queryKey: ["agency", "folder-settings"] });
       toast.success("Folder selection reset to recommended");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Reset failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Reset failed")),
   });
 
   return (

@@ -52,6 +52,7 @@ import {
   DEFAULT_ADMIN_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
+import { friendlyError } from "@/lib/friendly-error";
 
 /** Administrator invitation statuses, styled like the Agency invitations page. */
 export const Route = createFileRoute("/admin/administrators")({
@@ -122,7 +123,7 @@ function AdminsPage() {
       if (res?.sent) toast.success("Administrator invitation sent.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to invite"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to invite")),
   });
 
   const revoke = useMutation({
@@ -131,7 +132,7 @@ function AdminsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
       toast.success("Invitation revoked.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
   });
 
   // Reopens a lapsed (or simply forgotten) invitation: refresh the expiry,
@@ -166,7 +167,7 @@ function AdminsPage() {
         );
       }
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to resend invitation"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to resend invitation")),
   });
 
   const deleteInvite = useMutation({
@@ -175,7 +176,7 @@ function AdminsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
       toast.success("Invitation deleted.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to delete invitation"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to delete invitation")),
   });
 
   // Editing the access level carried by a still-pending invitation, so a
@@ -196,7 +197,7 @@ function AdminsPage() {
       toast.success("Invitation access level updated.");
       setEditInvite(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update invitation"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update invitation")),
   });
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -227,7 +228,7 @@ function AdminsPage() {
       toast.success("Administrator updated.");
       setEditAdmin(null);
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update administrator")),
   });
 
   const suspendAdminMut = useMutation({
@@ -241,7 +242,7 @@ function AdminsPage() {
           : "Administrator access restored.",
       );
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update administrator"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update administrator")),
   });
 
   const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState<any | null>(null);
@@ -253,7 +254,7 @@ function AdminsPage() {
       setConfirmRemoveAdmin(null);
       toast.success("Administrator removed.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to remove administrator"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to remove administrator")),
   });
 
   const list = useMemo(() => admins.data ?? [], [admins.data]);

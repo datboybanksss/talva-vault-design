@@ -10,6 +10,7 @@ import {
   applyAgencyFolderTemplate,
   agencyWhoami,
 } from "@/lib/agency.functions";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Template = {
   id: string;
@@ -141,7 +142,7 @@ export function FolderTemplatesPanel() {
       toast.success(editingId ? "Template updated" : "Template created");
       setEditorOpen(false);
     },
-    onError: (e: any) => toast.error(e.message ?? "Save failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
   });
 
   const del = useMutation({
@@ -150,7 +151,7 @@ export function FolderTemplatesPanel() {
       qc.invalidateQueries({ queryKey: ["agency", "folder-templates"] });
       toast.success("Template deleted");
     },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Delete failed")),
   });
 
   const apply = useMutation({
@@ -159,7 +160,7 @@ export function FolderTemplatesPanel() {
       qc.invalidateQueries({ queryKey: ["agency", "retention", "rules"] });
       toast.success(`Template applied · ${res?.rules_created ?? 0} retention rule(s) created`);
     },
-    onError: (e: any) => toast.error(e.message ?? "Apply failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Apply failed")),
   });
 
   return (

@@ -45,6 +45,7 @@ import {
   listAgencyTalentLinksLite,
   listAgencyRetentionRules,
 } from "@/lib/agency.functions";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Row = Awaited<ReturnType<typeof listAgencyDocumentRequests>>[number];
 
@@ -302,7 +303,7 @@ function NewRequestDialog({
       toast.success("Request created");
       onDone();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
   });
   return (
     <ModalShell onClose={onClose} labelledBy="new-document-request-title">
@@ -479,7 +480,7 @@ function ReviewDialog({
       );
       onDone();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
   });
 
   return (

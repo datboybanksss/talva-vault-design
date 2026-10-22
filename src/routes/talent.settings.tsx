@@ -17,6 +17,7 @@ import { MyTermsAcceptances } from "@/components/shared/my-terms-acceptances";
 import { SecurityLogPanel } from "@/components/talent/security-log-panel";
 import { logTalentPasswordChange } from "@/lib/talent-audit.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/talent/settings")({
   ssr: false,
@@ -111,7 +112,7 @@ function TalentSettings() {
       });
       toast.success(`You'll be warned ${n} days before a document expires`);
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not save notification settings");
+      toast.error(friendlyError(e, "Could not save notification settings"));
     } finally {
       setSavingPrefs(false);
     }
@@ -134,7 +135,7 @@ function TalentSettings() {
       });
       toast.success("Profile updated");
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to update profile");
+      toast.error(friendlyError(e, "Failed to update profile"));
     } finally {
       setSavingProfile(false);
     }

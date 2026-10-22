@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Check, X } from "lucide-react";
 import { listMyLinkRequests, respondToLinkRequest } from "@/lib/link-requests.functions";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/talent/requests")({
   ssr: false,
@@ -40,7 +41,7 @@ function RequestsPage() {
       );
       qc.invalidateQueries({ queryKey: ["talent"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Something went wrong."),
+    onError: (e: any) => toast.error(friendlyError(e, "Something went wrong.")),
   });
   const rows = q.data ?? [];
 

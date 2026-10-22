@@ -11,6 +11,7 @@ import {
   listAgencyFolderSettings,
   createTalentInvitationMine,
 } from "@/lib/agency.functions";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/agency/talent/invite")({
   head: () => ({ meta: [{ title: "Invite talent · TalVault" }] }),
@@ -132,7 +133,7 @@ function InviteTalent() {
       );
       navigate({ to: "/agency/invitations" });
     },
-    onError: (e: any) => toast.error(e?.message ?? "The invitation could not be sent."),
+    onError: (e: any) => toast.error(friendlyError(e, "The invitation could not be sent.")),
   });
 
   const canContinue = step !== 1 || detailsValid;

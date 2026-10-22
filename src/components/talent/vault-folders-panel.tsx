@@ -13,6 +13,7 @@ import {
   starterCategories,
   subfolderCount,
 } from "@/lib/talent-vault-catalogue";
+import { friendlyError } from "@/lib/friendly-error";
 
 type Folder = { id: string; parent_id: string | null; name: string };
 
@@ -56,7 +57,7 @@ export function VaultFoldersPanel() {
       qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
       qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not update folder.");
+      toast.error(friendlyError(e, "Could not update folder."));
     } finally {
       setBusy(null);
     }
@@ -74,7 +75,7 @@ export function VaultFoldersPanel() {
       qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
       qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not update folders.");
+      toast.error(friendlyError(e, "Could not update folders."));
     } finally {
       setBusy(null);
     }

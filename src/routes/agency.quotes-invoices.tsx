@@ -63,6 +63,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { friendlyError } from "@/lib/friendly-error";
 
 // Radix Select cannot hold an empty string value, so "no talent" uses a sentinel.
 const NO_TALENT = "__none__";
@@ -294,7 +295,7 @@ function QIPage() {
       setLinkingId(null);
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "We couldn't link this document."),
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't link this document.")),
   });
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -485,7 +486,7 @@ function QIPage() {
         lines: lines.length > 0 ? lines : [emptyLine(0, settings?.default_vat_rate_bp ?? 1500)],
       });
     } catch (e: any) {
-      toast.error(e.message ?? "Failed to load record");
+      toast.error(friendlyError(e, "Failed to load record"));
       setEditorOpen(false);
     } finally {
       setLoadingEditor(false);
@@ -556,7 +557,7 @@ function QIPage() {
       toast.success(editor.id ? "Record updated" : "Record created");
       setEditor((prev) => ({ ...prev, id: res.id }));
     },
-    onError: (e: any) => toast.error(e.message ?? "Save failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
   });
 
   const send = useMutation({
@@ -579,7 +580,7 @@ function QIPage() {
       setPreviewOpen(false);
       setEditorOpen(false);
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to send"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to send")),
   });
 
   const changeStatus = useMutation({
@@ -589,7 +590,7 @@ function QIPage() {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success("Status updated");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
   });
 
   const markPreviewSent = useMutation({
@@ -604,7 +605,7 @@ function QIPage() {
       setPreviewOpen(false);
       setEditorOpen(false);
     },
-    onError: (e: any) => toast.error(e.message ?? "Could not update this record"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not update this record")),
   });
 
   const del = useMutation({
@@ -613,7 +614,7 @@ function QIPage() {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success("Record deleted");
     },
-    onError: (e: any) => toast.error(e.message ?? "Delete failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Delete failed")),
   });
 
   const toggleShare = useMutation({
@@ -622,7 +623,7 @@ function QIPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
   });
 
   const convert = useMutation({
@@ -637,7 +638,7 @@ function QIPage() {
       toast.success("Invoice created from quote");
     },
     onError: (e: any) => {
-      if (e.message !== "Cancelled") toast.error(e.message ?? "Conversion failed");
+      if (e.message !== "Cancelled") toast.error(friendlyError(e, "Conversion failed"));
     },
   });
 

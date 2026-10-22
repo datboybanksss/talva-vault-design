@@ -21,6 +21,7 @@ import {
   unlockLovedOneShare,
 } from "@/lib/loved-one.functions";
 import { BillingDocument } from "@/components/agency/billing-document";
+import { friendlyError } from "@/lib/friendly-error";
 
 /** Read-only rendering of a shared quote or invoice — data, not a file. */
 function BillingBlock({
@@ -166,7 +167,7 @@ function LovedOnePage() {
       if (mode === "download") window.open(url, "_blank", "noopener");
       else setViewer({ url, name });
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not open document");
+      toast.error(friendlyError(e, "Could not open document"));
     }
   }
 

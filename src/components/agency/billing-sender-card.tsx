@@ -10,6 +10,7 @@ import {
 } from "@/lib/agency.functions";
 import { isValidEmail } from "@/components/shared/email-chips-input";
 import { Input } from "@/components/ui/input";
+import { friendlyError } from "@/lib/friendly-error";
 
 /**
  * Per-agency "send from" address for quotes and invoices. The address is only
@@ -43,7 +44,7 @@ export function BillingSenderCard({
       if (res?.sent) toast.success(`Verification email sent to ${value.trim()}`);
       else toast.warning("Address saved, but the verification email could not be delivered yet");
     },
-    onError: (e: any) => toast.error(e.message ?? "Could not save address"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not save address")),
   });
 
   const resend = useMutation({
@@ -52,7 +53,7 @@ export function BillingSenderCard({
       refresh();
       toast.success("Verification email resent");
     },
-    onError: (e: any) => toast.error(e.message ?? "Could not resend"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not resend")),
   });
 
   const clear = useMutation({
@@ -63,7 +64,7 @@ export function BillingSenderCard({
       setName("");
       toast.success("Sending address removed");
     },
-    onError: (e: any) => toast.error(e.message ?? "Could not remove"),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not remove")),
   });
 
   const verified = !!verifiedAt && !!email;

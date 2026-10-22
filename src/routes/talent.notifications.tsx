@@ -11,6 +11,7 @@ import {
 } from "@/lib/talent.functions";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/talent/notifications")({
   ssr: false,
@@ -67,7 +68,7 @@ function NotificationsPage() {
       await markFn({ data: { id: row.id, read: !row.read_at } });
       await refresh();
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not update this reminder");
+      toast.error(friendlyError(e, "Could not update this reminder"));
     }
   }
 
@@ -77,7 +78,7 @@ function NotificationsPage() {
       toast.success("All reminders marked as read");
       await refresh();
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not mark reminders as read");
+      toast.error(friendlyError(e, "Could not mark reminders as read"));
     }
   }
 

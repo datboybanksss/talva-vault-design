@@ -44,6 +44,7 @@ import { SuspendAgencyDialog } from "@/components/admin/suspend-agency-dialog";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/agencies/")({
   head: () => ({ meta: [{ title: "Agencies · TalVault Admin" }] }),
@@ -74,7 +75,7 @@ function AgenciesPage() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Agency suspended and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to suspend"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to suspend")),
   });
   const unsuspendM = useMutation({
     mutationFn: (id: string) => unsuspendFn({ data: { id } }),
@@ -82,7 +83,7 @@ function AgenciesPage() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Agency reinstated.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to reinstate"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to reinstate")),
   });
   const resendM = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
@@ -100,7 +101,7 @@ function AgenciesPage() {
       if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to resend"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to resend")),
   });
   const revokeM = useMutation({
     mutationFn: (id: string) => revokeFn({ data: { id } }),
@@ -108,7 +109,7 @@ function AgenciesPage() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Invitation revoked and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to revoke"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to revoke")),
   });
   const updateEmailM = useMutation({
     mutationFn: (v: { id: string; email: string }) => updateEmailFn({ data: v }),
@@ -117,7 +118,7 @@ function AgenciesPage() {
       setEditingInvite(null);
       toast.success("Email updated and logged.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update email"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update email")),
   });
   const [pendingDelete, setPendingDelete] = useState<{
     inviteId: string;
@@ -133,7 +134,7 @@ function AgenciesPage() {
         res?.agency_deleted ? "Invitation and agency shell deleted." : "Invitation deleted.",
       );
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to delete")),
   });
 
   const [tab, setTab] = useState<string>("all");

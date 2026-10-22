@@ -21,6 +21,7 @@ import {
   Minimize2,
   X,
 } from "lucide-react";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/talent/")({
   head: () => ({
@@ -59,7 +60,7 @@ function TalentDashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] }),
     onError: (e: any, item: { key: string; snapshot: number; notificationId?: string }) => {
       setDismissing((k) => k.filter((x) => x !== item.key));
-      toast.error(e?.message ?? "Couldn't dismiss that just now — please try again.");
+      toast.error(friendlyError(e, "Couldn't dismiss that just now — please try again."));
     },
   });
 

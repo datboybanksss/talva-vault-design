@@ -8,6 +8,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getAiFilingPreference, startDocumentAnalysis } from "@/lib/ai-filing.functions";
 import { canAnalyseWithAi } from "@/lib/document-ai-core";
+import { friendlyError } from "@/lib/friendly-error";
 
 export function useAnalyseWithAi(scope: "talent" | "agency") {
   const qc = useQueryClient();
@@ -30,7 +31,7 @@ export function useAnalyseWithAi(scope: "talent" | "agency") {
       qc.setQueryData(["filing-analysis", scope, doc.id], view);
       doc.open();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Could not start the analysis."),
+    onError: (e: any) => toast.error(friendlyError(e, "Could not start the analysis.")),
   });
 
   return {

@@ -21,6 +21,7 @@ import {
   DEFAULT_INVITATION_BODY,
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/admin/invitations/new")({
   validateSearch: (raw: Record<string, unknown>): { draft?: string } =>
@@ -113,7 +114,7 @@ function NewInvitationPage() {
       toast.success("Draft saved. You can keep editing it until you send.");
       nav({ to: "/admin/invitations/new", search: { draft: row.id } as any, replace: true });
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to save draft"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to save draft")),
   });
 
   const updateDraftM = useMutation({
@@ -134,7 +135,7 @@ function NewInvitationPage() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Draft updated.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to update draft"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to update draft")),
   });
 
   const [phoneTouched, setPhoneTouched] = useState(false);
@@ -190,7 +191,7 @@ function NewInvitationPage() {
 
       nav({ to: "/admin/invitations" });
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to send invitation"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to send invitation")),
   });
 
   const deleteDocM = useMutation({
@@ -199,7 +200,7 @@ function NewInvitationPage() {
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       toast.success("Document removed.");
     },
-    onError: (e: any) => toast.error(e.message ?? "Failed to remove document"),
+    onError: (e: any) => toast.error(friendlyError(e, "Failed to remove document")),
   });
 
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
