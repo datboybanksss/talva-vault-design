@@ -31,8 +31,8 @@ export function FilterBar({
 }: {
   filters: FilterDef[];
   onChange: (key: string, value: string) => void;
-  onClear: () => void;
-  active: boolean;
+  onClear?: () => void;
+  active?: boolean;
   tourId?: string;
 }) {
   const baseId = useId();
@@ -62,7 +62,7 @@ export function FilterBar({
           </div>
         );
       })}
-      {active && (
+      {active && onClear && (
         <button type="button" className="tvp-link tvp-filter-clear" onClick={onClear}>
           Clear filters
         </button>
