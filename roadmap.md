@@ -84,3 +84,4 @@
 - [x] Invitations page uses the shared overview list (type/status filters in the URL, View all carries filters).
 - [x] Agencies page becomes Accounts (agencies + talent), server-filtered and paged; old /admin/agencies redirects.
 - [x] Sidebar, titles, overview card links and guides renamed.
+- [ ] Switch 2FA back on (MFA_ENFORCED = true) after testing — waiting on Lara
