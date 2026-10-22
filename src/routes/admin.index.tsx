@@ -1,3 +1,4 @@
+import { searchParam } from "@/lib/search";
 import { normaliseAccountScope } from "@/lib/account-filters";
 import { SHARE_TERM } from "@/lib/terms";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -20,10 +21,11 @@ import { CombinedInvitationsList } from "@/components/admin/combined-invitations
 import { normaliseInvitationStatus, normaliseInvitationType } from "@/lib/invitation-filters";
 
 export const Route = createFileRoute("/admin/")({
-  validateSearch: (raw: Record<string, unknown>): { itype?: string; istatus?: string; iaccounts?: string } => ({
+  validateSearch: (raw: Record<string, unknown>): { itype?: string; istatus?: string; iaccounts?: string; iq?: string } => ({
     ...(normaliseInvitationType(raw.itype) !== "all" ? { itype: String(raw.itype) } : {}),
     ...(normaliseInvitationStatus(raw.istatus) !== "all" ? { istatus: String(raw.istatus) } : {}),
     ...(normaliseAccountScope(raw.iaccounts, "all") !== "all" ? { iaccounts: String(raw.iaccounts) } : {}),
+    ...(searchParam(raw.iq) ? { iq: searchParam(raw.iq) } : {}),
   }),
   head: () => ({
     meta: [
@@ -51,7 +53,7 @@ function AdminDashboard() {
   const istatus = normaliseInvitationStatus(search.istatus);
   const nav = useNavigate({ from: "/admin/" });
   const iaccounts = normaliseAccountScope(search.iaccounts, "all");
-  const setFilters = (next: { itype?: string; istatus?: string; iaccounts?: string }) =>
+  const setFilters = (next: { itype?: string; istatus?: string; iaccounts?: string; iq?: string }) =>
     nav({
       search: (prev: any) => {
         const merged = { ...prev, ...next };
@@ -59,6 +61,7 @@ function AdminDashboard() {
         if (merged.itype && merged.itype !== "all") out.itype = merged.itype;
         if (merged.istatus && merged.istatus !== "all") out.istatus = merged.istatus;
         if (merged.iaccounts && merged.iaccounts !== "all") out.iaccounts = merged.iaccounts;
+        if (searchParam(merged.iq)) out.iq = searchParam(merged.iq);
         return out as any;
       },
       replace: true,
@@ -224,12 +227,14 @@ function AdminDashboard() {
         type={itype}
         status={istatus}
         accounts={iaccounts}
-        onFilterChange={(n) => setFilters({ itype: n.type, istatus: n.status, iaccounts: n.accounts })}
+        q={search.iq ?? ""}
+        onFilterChange={(n) => setFilters({ itype: n.type, istatus: n.status, iaccounts: n.accounts, iq: n.q })}
         onClear={clearFilters}
         viewAllSearch={{
           ...(itype !== "all" ? { type: itype } : {}),
           ...(istatus !== "all" ? { status: istatus } : {}),
           ...(iaccounts !== "all" ? { accounts: iaccounts } : {}),
+          ...(search.iq ? { q: search.iq } : {}),
         }}
       />
     </>

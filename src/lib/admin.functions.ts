@@ -11,6 +11,7 @@ import {
   normaliseInvitationStatus,
   normaliseInvitationType,
 } from "@/lib/invitation-filters";
+import { matchesSearch, normaliseSearch } from "@/lib/search";
 import { fetchOnboardedTalentLinks, fetchTalentSplit } from "@/lib/onboarded-talent";
 import {
   accountOptionCounts,
