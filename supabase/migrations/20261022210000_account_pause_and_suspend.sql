@@ -1,3 +1,21 @@
+-- Pause and suspend for agency and talent accounts.
+-- Pause: an overlay (paused_at) that blocks all access; status is untouched, so
+-- unpausing restores exactly the previous state (suspended stays suspended).
+-- Suspend: agencies keep status = 'suspended'; talent gets suspended_at. Both are
+-- read-only for post_end_read_only_years(), then access ends.
+-- Rollback (in order):
+--   DO $$ DECLARE r record; BEGIN FOR r IN SELECT schemaname, tablename, policyname FROM pg_policies
+--     WHERE policyname IN ('Paused account blocked','Suspended talent read-only insert','Suspended talent read-only update','Suspended talent read-only delete')
+--   LOOP EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename); END LOOP; END $$;
+--   DROP TRIGGER IF EXISTS account_state_guard ON public.agencies; DROP TRIGGER IF EXISTS account_state_guard ON public.talent_profiles;
+--   DROP FUNCTION IF EXISTS public.account_state_guard(), public.my_account_access(), public.account_read_allowed(uuid),
+--     public.talent_account_writable(uuid), public.talent_read_only_until(uuid), public.account_paused(uuid);
+--   ALTER TABLE public.agencies DROP COLUMN IF EXISTS paused_at, DROP COLUMN IF EXISTS paused_by, DROP COLUMN IF EXISTS pause_reason,
+--     DROP COLUMN IF EXISTS pause_note, DROP COLUMN IF EXISTS paused_banned_user_ids, DROP COLUMN IF EXISTS suspension_note;
+--   ALTER TABLE public.talent_profiles DROP COLUMN IF EXISTS paused_at, DROP COLUMN IF EXISTS paused_by, DROP COLUMN IF EXISTS pause_reason,
+--     DROP COLUMN IF EXISTS pause_note, DROP COLUMN IF EXISTS paused_banned, DROP COLUMN IF EXISTS suspended_at,
+--     DROP COLUMN IF EXISTS suspended_by, DROP COLUMN IF EXISTS suspension_reason, DROP COLUMN IF EXISTS suspension_note;
+
 ALTER TABLE public.agencies
   ADD COLUMN IF NOT EXISTS paused_at timestamptz,
   ADD COLUMN IF NOT EXISTS paused_by uuid,
@@ -62,6 +80,7 @@ $$;
 REVOKE ALL ON FUNCTION public.my_account_access() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.my_account_access() TO authenticated;
 
+-- Only admins (or the service role) may change pause/suspension columns.
 CREATE OR REPLACE FUNCTION public.account_state_guard()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
@@ -93,6 +112,8 @@ DROP TRIGGER IF EXISTS account_state_guard ON public.talent_profiles;
 CREATE TRIGGER account_state_guard BEFORE UPDATE ON public.talent_profiles
   FOR EACH ROW EXECUTE FUNCTION public.account_state_guard();
 
+-- Database enforcement on every RLS-protected table in public, plus storage:
+-- paused (or past the read-only window) = nothing; suspended talent = read only.
 DO $$
 DECLARE r record;
 BEGIN
