@@ -943,6 +943,11 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
         "If this person is on TalVault they'll receive a request to connect; otherwise they'll receive an invitation.",
     };
 
+    // Only this agency's own pending invitations are checked: whether the
+    // address has an account is never revealed (Agency T&C §6.3).
+    const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
+    await assertInviteEmailFree({ flow: "agency_talent", email: data.email, agencyId });
+
     const expires_at = new Date(Date.now() + data.expiry_days * 86400000).toISOString();
 
     // Normalise sort_order across the selection
@@ -1082,6 +1087,9 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
+    const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
+    await assertInviteEmailFree({ flow: "agency_staff", email: data.email, agencyId });
+
     // Fetch agency name (needed for NOT NULL agency_name column)
     const { data: ag } = await supabase.from("agencies").select("name").eq("id", agencyId).single();
     if (!ag) throw new Error("Agency not found");
@@ -1093,7 +1101,7 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
         agency_id: agencyId,
         agency_name: ag.name,
         contact_person: data.contact_person ?? null,
-        email: data.email,
+        email: data.email.trim().toLowerCase(),
         kind: "staff",
         role: data.role,
         expires_at,

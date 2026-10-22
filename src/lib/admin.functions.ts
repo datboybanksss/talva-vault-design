@@ -734,19 +734,8 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
 
-    const nowIso = new Date().toISOString();
-    const { data: activeInv } = await supabase
-      .from("agency_invitations")
-      .select("id, agency_name, status, expires_at")
-      .ilike("email", data.email)
-      .in("status", ["pending", "draft"])
-      .gt("expires_at", nowIso)
-      .maybeSingle();
-    if (activeInv?.id) {
-      throw new Error(
-        `An active ${activeInv.status} invitation for ${data.email} already exists (${activeInv.agency_name}). Delete or revoke it before inviting again.`,
-      );
-    }
+    const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
+    await assertInviteEmailFree({ flow: "admin_agency", email: data.email });
     const { data: activeAgency } = await supabase
       .from("agencies")
       .select("id, name, status")
@@ -840,20 +829,8 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
 
     const nextEmail = data.email ?? inv.email;
     if (data.email && data.email.toLowerCase() !== (inv.email ?? "").toLowerCase()) {
-      const nowIso = new Date().toISOString();
-      const { data: clash } = await supabase
-        .from("agency_invitations")
-        .select("id, agency_name, status")
-        .ilike("email", data.email)
-        .in("status", ["pending", "draft"])
-        .gt("expires_at", nowIso)
-        .neq("id", data.id)
-        .maybeSingle();
-      if (clash?.id) {
-        throw new Error(
-          `An active ${clash.status} invitation for ${data.email} already exists (${clash.agency_name}).`,
-        );
-      }
+      const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
+      await assertInviteEmailFree({ flow: "admin_agency", email: data.email, excludeId: data.id });
       const { data: activeAgency } = await supabase
         .from("agencies")
         .select("id, name")
@@ -946,6 +923,8 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
     if (inv.status !== "draft") {
       throw new Error(`Invitation is already ${inv.status}, cannot finalize.`);
     }
+    const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
+    await assertInviteEmailFree({ flow: "admin_agency", email: inv.email, excludeId: inv.id });
     const bt = inv.business_type as "formal" | "informal";
     if (!bt) throw new Error("Business type missing on invitation.");
 
@@ -1304,6 +1283,8 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
     if (existing.status !== "pending") {
       throw new Error("Only an open invitation's email address can be changed.");
     }
+    const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
+    await assertInviteEmailFree({ flow: "admin_agency", email: data.email, excludeId: data.id });
     const { data: inv, error } = await supabase
       .from("agency_invitations")
       .update({ email: data.email })
@@ -1556,47 +1537,15 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
     const inviter = await assertCanInviteAdministrator(supabase, userId);
     assertGrantablePermission(inviter.permissionLevel, data.permission_level);
 
-    // Reject if email is already an admin
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .ilike("email", data.email)
-      .maybeSingle();
-    if (existingProfile?.id) {
-      const { data: hasAdmin } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("user_id", existingProfile.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      if (hasAdmin) throw new Error("That user is already an administrator.");
-    }
-
-    // Any still-open invitation (pending, whether or not it has lapsed) blocks
-    // a brand-new one — an expired invite is reopened with Resend, never
-    // duplicated into a second orphaned row for the same person.
-    const { data: dupe } = await supabase
-      .from("admin_invitations")
-      .select("id, expires_at")
-      .ilike("email", data.email)
-      .eq("status", "pending")
-      .limit(1)
-      .maybeSingle();
-    if (dupe?.id) {
-      const lapsed = new Date(dupe.expires_at).getTime() < Date.now();
-      throw new Error(
-        lapsed
-          ? "An invitation for that email has already been sent and has lapsed. Use Resend invitation on the existing row to reopen it instead of creating a second one."
-          : "A pending invitation already exists for that email. Use Resend invitation on the existing row if they need it again.",
-      );
-    }
+    const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
+    await assertInviteEmailFree({ flow: "admin_admin", email: data.email });
 
     const expiresAt = new Date(Date.now() + data.expiry_days * 24 * 3600 * 1000).toISOString();
 
     const { data: inv, error } = await supabase
       .from("admin_invitations")
       .insert({
-        email: data.email,
+        email: data.email.trim().toLowerCase(),
         permission_level: data.permission_level,
         invited_by: userId,
         invited_by_email: claims?.email ?? null,
