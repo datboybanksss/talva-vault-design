@@ -1,3 +1,4 @@
+import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { useSessionReady } from "@/hooks/use-session-ready";
@@ -67,6 +68,7 @@ function AdminsPage() {
   const whoamiFn = useServerFn(whoami);
   const listInvFn = useServerFn(listAdminInvitations);
   const inviteFn = useServerFn(inviteAdministrator);
+  const inviteEmailCheck = useInviteEmailCheck("admin_admin");
   const revokeFn = useServerFn(revokeAdminInvitation);
   const resendFn = useServerFn(resendAdminInvitation);
   const deleteInviteFn = useServerFn(deleteAdminInvitation);
@@ -528,10 +530,16 @@ function AdminsPage() {
                   <input
                     type="email"
                     value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
+                    onChange={(e) => {
+                      setInviteEmail(e.target.value);
+                      inviteEmailCheck.clear();
+                    }}
+                    onBlur={() => void inviteEmailCheck.check(inviteEmail)}
+                    aria-invalid={!!inviteEmailCheck.conflict}
                     placeholder="name@email.com"
                     autoFocus
                   />
+                  <InviteEmailFieldError conflict={inviteEmailCheck.conflict} />
                 </div>
                 <div className="tvp-form-group">
                   <label>Access level</label>
@@ -557,13 +565,14 @@ function AdminsPage() {
                   return (
                     <button
                       className="tvp-primary"
-                      onClick={() =>
+                      onClick={async () => {
+                        if (await inviteEmailCheck.check(inviteEmail)) return;
                         invite.mutate({
                           email: inviteEmail.trim(),
                           permission_level: invitePerm,
-                        })
-                      }
-                      disabled={invite.isPending || !valid}
+                        });
+                      }}
+                      disabled={invite.isPending || inviteEmailCheck.checking || !valid || !!inviteEmailCheck.conflict}
                     >
                       {invite.isPending ? "Sending…" : valid ? "Invite" : "Add"}
                     </button>

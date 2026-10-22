@@ -12,6 +12,7 @@ export type CurrentLegalDocument = {
   version: string;
   title: string;
   body: string;
+  body_sha256: string;
   effective_at: string;
 } | null;
 
@@ -39,7 +40,7 @@ export const getCurrentLegalDocument = createServerFn({ method: "POST" })
 
       const { data: row, error } = await supabasePublic
         .from("legal_documents")
-        .select("id, doc_type, version, title, body, effective_at")
+        .select("id, doc_type, version, title, body, body_sha256, effective_at")
         .eq("doc_type", data.doc_type)
         .eq("is_current", true)
         .maybeSingle();

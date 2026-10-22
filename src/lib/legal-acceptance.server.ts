@@ -30,20 +30,25 @@ export async function recordLegalAcceptance(args: {
   docType: LegalDocType;
   version?: string;
   documentId?: string;
+  /** Hash of the text the user was shown; must match the stored body. */
+  bodySha256?: string;
   method: AcceptanceMethod;
 }): Promise<{ proof_ref: string | null }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   let q = supabaseAdmin
     .from("legal_documents")
-    .select("id, doc_type, version, is_current")
+    .select("id, doc_type, version, is_current, body_sha256")
     .eq("doc_type", args.docType);
   q = args.documentId ? q.eq("id", args.documentId) : q.eq("version", args.version ?? "");
   const { data: doc } = await q.maybeSingle();
   if (!doc) throw new Error(`Unknown ${args.docType} Terms & Conditions version.`);
   // Activation sends the version shown on screen; refuse a version that is no
   // longer current so nobody silently accepts outdated text.
-  if (args.method === "activation" && !args.documentId && !doc.is_current)
+  if (
+    (args.method === "activation" && !doc.is_current) ||
+    (args.bodySha256 !== undefined && args.bodySha256 !== doc.body_sha256)
+  )
     throw new Error("These Terms have been updated. Please reload the page and read the latest version.");
 
   const meta = requestMeta();

@@ -235,7 +235,8 @@ function Wizard({
           phone_number: phone.trim() || undefined,
           password,
           terms_accepted: true as const,
-          terms_version: legal?.version ?? "",
+          terms_document_id: legal!.id,
+          terms_body_sha256: legal!.body_sha256,
         },
       }),
     onSuccess: async (res) => {

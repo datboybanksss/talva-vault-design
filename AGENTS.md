@@ -39,3 +39,5 @@ block plus a toggle. See the note at the top of `src/styles.css`.
 - Reminder date eligibility and wording use document-reminder-core. Why: explicit reminders, expiry windows and ended-link exclusions need testable shared rules.
 
 - CI lint is blocking and excludes only managed/generated integration output; unresolved authored-code findings stay enabled. Why: do not hide lint debt or rewrite regenerated files.
+- Invitation duplicate-email rules live only in src/lib/invite-email-check.ts (messages, matching) and are enforced by assertInviteEmailFree before every invitation insert/send; agency checks never look outside the caller's agency and agency talent invites never reveal accounts. Why: one message set, no cross-agency leaks.
+- Activation and the sign-in gate both record Terms acceptance by document ID plus body hash, refused unless current. Why: proof of the exact text accepted.

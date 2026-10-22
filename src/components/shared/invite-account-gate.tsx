@@ -1,3 +1,4 @@
+import { INVITE_EMAIL_MESSAGES } from "@/lib/invite-email-check";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,13 +170,8 @@ export function InviteAccountGatePanel({
   return (
     <>
       <div className="tv-auth-eyebrow">{eyebrow}</div>
-      <h2 className="tv-auth-title">{existingTitle ?? "You already have a TalVault account"}</h2>
-      <p className="tv-auth-tag">
-        {existingBody ??
-          (invitedEmail
-            ? `An account already exists for ${invitedEmail}. Log in and we'll add this invitation to it automatically — there's nothing else to set up.`
-            : "An account already exists for this address. Log in and we'll add this invitation to it automatically.")}
-      </p>
+      <h2 className="tv-auth-title">{existingTitle ?? "This invitation can no longer be used"}</h2>
+      <p className="tv-auth-tag">{existingBody ?? INVITE_EMAIL_MESSAGES.inviteTokenAccountExists}</p>
       <div style={{ marginTop: 24, display: "grid", gap: 12 }}>
         <Link
           to="/auth"
@@ -183,7 +179,7 @@ export function InviteAccountGatePanel({
           className="tv-auth-submit"
           style={{ textAlign: "center" }}
         >
-          Log in instead
+          Sign in
         </Link>
       </div>
     </>

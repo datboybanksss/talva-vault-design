@@ -55,39 +55,10 @@ async function inviteUrlFor(token: string) {
   return `${PUBLIC_SITE_URL}/invite/talent/${token}`;
 }
 
-/** Refuses an email that already has an account or an open invitation anywhere. */
+/** Refuses an email that already has an account or a pending, unexpired invitation anywhere. */
 async function assertEmailFree(email: string, excludeId?: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const nowIso = new Date().toISOString();
-  const { data: prof } = await supabaseAdmin
-    .from("profiles")
-    .select("id")
-    .ilike("email", email)
-    .maybeSingle();
-  if (prof?.id)
-    throw new Error(
-      `${email} already has a TalVault account. An agency can request to connect with existing talent.`,
-    );
-  let q = supabaseAdmin
-    .from("independent_talent_invitations")
-    .select("id, status")
-    .ilike("email", email)
-    .in("status", ["draft", "pending"])
-    .gt("expires_at", nowIso);
-  if (excludeId) q = q.neq("id", excludeId);
-  const { data: openInd } = await q.limit(1);
-  const { data: openAg } = await supabaseAdmin
-    .from("talent_invitations")
-    .select("id")
-    .ilike("email", email)
-    .eq("status", "pending")
-    .gt("expires_at", nowIso)
-    .limit(1);
-  if ((openInd ?? []).length || (openAg ?? []).length) {
-    throw new Error(
-      `There is already an open invitation for ${email}. Revoke or delete it before inviting again.`,
-    );
-  }
+  const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
+  await assertInviteEmailFree({ flow: "admin_talent", email, excludeId: excludeId ?? null });
 }
 
 const dobSchema = z

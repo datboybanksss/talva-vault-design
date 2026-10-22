@@ -1,3 +1,4 @@
+import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -88,7 +89,8 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
   const inv: any = invQ.data?.invitation;
   const docs: any[] = invQ.data?.documents ?? [];
   const status: string = inv?.status ?? "draft";
-  const isDraft = !draftId || status === "draft";
+  // An existing draft is only editable once it has loaded successfully.
+  const isDraft = !draftId || (invQ.isSuccess && status === "draft");
 
   useEffect(() => {
     if (!inv) return;
@@ -253,9 +255,17 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
 
   const uploaded = new Set(docs.map((d) => d.doc_slot));
   const missing = SLOTS.filter((s) => !uploaded.has(s.key));
+  const emailCheck = useInviteEmailCheck("admin_talent", draftId || null);
   const saving = createM.isPending || updateM.isPending;
   const canSend =
-    !!draftId && isDraft && detailsComplete && missing.length === 0 && !finalizeM.isPending;
+    !!draftId &&
+    isDraft &&
+    detailsComplete &&
+    missing.length === 0 &&
+    !saving &&
+    !emailCheck.conflict &&
+    !invQ.isFetching &&
+    !finalizeM.isPending;
   const outstanding = [
     ...(detailsComplete ? [] : ["talent details"]),
     ...missing.map((s) => s.label.toLowerCase()),
@@ -284,7 +294,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
             everything stays editable until you send.
           </div>
         </div>
-        {draftId && !isDraft && (
+        {draftId && invQ.isSuccess && status !== "draft" && (
           <div className="tvp-actions" data-tour="admin-talent-invite-actions">
             <span className="tvp-status tvp-blue">{statusLabel[status] ?? status}</span>
             {status === "pending" && (
@@ -334,9 +344,15 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                emailCheck.clear();
+              }}
+              onBlur={() => void emailCheck.check(email)}
+              aria-invalid={!!emailCheck.conflict}
               placeholder="name@example.com"
             />
+            <InviteEmailFieldError conflict={emailCheck.conflict} />
           </div>
           <div className="tvp-form-group">
             <label>Talent type</label>
@@ -399,7 +415,11 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
                 className="tvp-primary"
                 type="button"
                 disabled={!detailsComplete || saving}
-                onClick={() => (draftId ? updateM.mutate() : createM.mutate())}
+                onClick={async () => {
+                  if (await emailCheck.check(email)) return;
+                  if (draftId) updateM.mutate();
+                  else createM.mutate();
+                }}
               >
                 {saving ? "Saving…" : draftId ? "Save draft" : "Save draft & continue →"}
               </button>
