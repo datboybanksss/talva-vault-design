@@ -32,6 +32,7 @@ export function CombinedInvitationsList({
   type,
   status,
   email,
+  q = "",
   accounts = "all",
   onFilterChange,
   onClear,
@@ -41,9 +42,11 @@ export function CombinedInvitationsList({
   type: InvitationType | "all";
   status: string;
   email?: string;
+  /** Search box term (kept in the URL by the caller). */
+  q?: string;
   /** Real/test accounts filter (default all). */
   accounts?: AccountScope;
-  onFilterChange: (next: { type?: string; status?: string; accounts?: string }) => void;
+  onFilterChange: (next: { type?: string; status?: string; accounts?: string; q?: string }) => void;
   onClear: () => void;
   /** When set, shows "View all invitations" linking to the Invitations page with these filters. */
   viewAllSearch?: Record<string, string>;
@@ -51,7 +54,7 @@ export function CombinedInvitationsList({
 }) {
   const listFn = useServerFn(listCombinedInvitations);
   const invites = useInfiniteQuery({
-    queryKey: ["admin", "combined-invitations", type, status, email ?? "", accounts],
+    queryKey: ["admin", "combined-invitations", type, status, email ?? "", q, accounts],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       listFn({
@@ -59,6 +62,7 @@ export function CombinedInvitationsList({
           type,
           status,
           email: email ?? "",
+          q,
           accounts,
           limit: PAGE_SIZE,
           offset: pageParam as number,
@@ -78,7 +82,7 @@ export function CombinedInvitationsList({
   const rawCounts = firstPage?.counts ?? { agency: {}, talent: {} };
   const typeCounts = typeOptionCounts(rawCounts, status);
   const statusCounts = statusOptionCounts(rawCounts, type);
-  const filtersActive = type !== "all" || status !== "all" || !!email || accounts !== "all";
+  const filtersActive = type !== "all" || status !== "all" || !!email || !!q || accounts !== "all";
   const activeFilterText = [
     type !== "all" ? `Type: ${INVITATION_TYPE_LABEL[type]}` : null,
     status !== "all" ? `Status: ${statusLabel("invitation", status)}` : null,
@@ -103,6 +107,7 @@ export function CombinedInvitationsList({
       </div>
 
       <FilterBar
+        search={{ value: q, onChange: (v) => onFilterChange({ q: v }) }}
         active={filtersActive}
         onClear={onClear}
         onChange={(key, value) => onFilterChange({ [key]: value })}
@@ -163,7 +168,14 @@ export function CombinedInvitationsList({
             {!invites.isLoading && rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="tvp-muted">
-                  {filtersActive ? (
+                  {q ? (
+                    <>
+                      No results for ‘{q}’.{" "}
+                      <button type="button" className="tvp-link" onClick={() => onFilterChange({ q: "" })}>
+                        Clear search
+                      </button>
+                    </>
+                  ) : filtersActive ? (
                     <>
                       No invitations match {activeFilterText}.{" "}
                       <button type="button" className="tvp-link" onClick={onClear}>

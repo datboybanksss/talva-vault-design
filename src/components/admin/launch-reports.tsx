@@ -1,4 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { matchesSearch } from "@/lib/search";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -435,6 +436,8 @@ function RecordsDialog({
   fileName: string;
   onClose: () => void;
 }) {
+  const [term, setTerm] = useState("");
+  const shown = term ? rows.filter((r) => matchesSearch([r.name, r.email, r.agency], term)) : rows;
   const statusText = (r: RecordRow) =>
     r.type === "agency" && r.status !== "accepted" && r.status !== "pending"
       ? statusLabel("agency", r.status)
@@ -442,7 +445,7 @@ function RecordsDialog({
   const csv = () =>
     download(fileName, [
       ["Name", "Email", "Type", "Account", "Agency link", "Invited", "Accepted / signed up", "Status", "Launch-offer place"],
-      ...rows.map((r) => [
+      ...shown.map((r) => [
         r.name, r.email, r.type === "agency" ? "Agency" : "Talent", r.is_test ? "Test" : "Real",
         r.agency ?? "", r.invited_at ?? "", r.signed_up_at ?? "", statusText(r), r.offer_place ?? "",
       ]),
@@ -450,8 +453,9 @@ function RecordsDialog({
   return (
     <ModalShell onClose={onClose} maxWidth={1040} labelledBy="lr-records-title">
       <div className="tvp-panel-head">
-        <h2 className="tvp-h2" id="lr-records-title">{title} · {rows.length}</h2>
+        <h2 className="tvp-h2" id="lr-records-title">{title} · {term ? `${shown.length} of ${rows.length}` : rows.length}</h2>
       </div>
+      <FilterBar filters={[]} onChange={() => {}} search={{ value: term, onChange: setTerm }} />
       <div className="tvp-table-wrap">
         <table className="tvp-table">
           <thead>
@@ -460,10 +464,21 @@ function RecordsDialog({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={7} className="tvp-muted">No records match these filters.</td></tr>
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={7} className="tvp-muted">
+                  {term ? (
+                    <>
+                      No results for ‘{term}’.{" "}
+                      <button type="button" className="tvp-link" onClick={() => setTerm("")}>Clear search</button>
+                    </>
+                  ) : (
+                    "No records match these filters."
+                  )}
+                </td>
+              </tr>
             )}
-            {rows.map((r) => (
+            {shown.map((r) => (
               <tr key={r.id}>
                 <td>
                   <strong>{r.name || "—"}</strong>

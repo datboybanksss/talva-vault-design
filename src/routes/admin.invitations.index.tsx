@@ -1,10 +1,11 @@
+import { searchParam } from "@/lib/search";
 import { normaliseAccountScope } from "@/lib/account-filters";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Send } from "lucide-react";
 import { CombinedInvitationsList } from "@/components/admin/combined-invitations-list";
 import { normaliseInvitationStatus, normaliseInvitationType } from "@/lib/invitation-filters";
 
-type InvitationsSearch = { type?: string; status?: string; email?: string; accounts?: string };
+type InvitationsSearch = { type?: string; status?: string; email?: string; accounts?: string; q?: string };
 
 export const Route = createFileRoute("/admin/invitations/")({
   validateSearch: (raw: Record<string, unknown>): InvitationsSearch => ({
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/admin/invitations/")({
     ...(normaliseInvitationStatus(raw.status) !== "all" ? { status: String(raw.status) } : {}),
     ...(typeof raw.email === "string" && raw.email.trim() ? { email: raw.email.trim() } : {}),
     ...(normaliseAccountScope(raw.accounts, "all") !== "all" ? { accounts: String(raw.accounts) } : {}),
+    ...(searchParam(raw.q) ? { q: searchParam(raw.q) } : {}),
   }),
   head: () => ({
     meta: [
@@ -38,7 +40,7 @@ function InvitationsPage() {
   const status = normaliseInvitationStatus(search.status);
   const nav = useNavigate({ from: "/admin/invitations/" });
   const accounts = normaliseAccountScope(search.accounts, "all");
-  const setFilters = (next: { type?: string; status?: string; accounts?: string }) =>
+  const setFilters = (next: { type?: string; status?: string; accounts?: string; q?: string }) =>
     nav({
       search: (prev: InvitationsSearch) => {
         const merged = { ...prev, ...next };
@@ -47,6 +49,7 @@ function InvitationsPage() {
         if (merged.status && merged.status !== "all") out.status = merged.status;
         if (merged.email) out.email = merged.email;
         if (merged.accounts && merged.accounts !== "all") out.accounts = merged.accounts;
+        if (searchParam(merged.q)) out.q = searchParam(merged.q);
         return out;
       },
       replace: true,
@@ -73,6 +76,7 @@ function InvitationsPage() {
         type={type}
         status={status}
         email={search.email}
+        q={search.q ?? ""}
         accounts={accounts}
         onFilterChange={setFilters}
         onClear={() => nav({ search: {}, replace: true })}
