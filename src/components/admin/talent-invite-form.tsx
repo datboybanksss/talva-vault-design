@@ -16,6 +16,7 @@ import {
   Link2,
   RefreshCw,
   Ban,
+  Mail,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -30,7 +31,18 @@ import {
   revokeIndependentTalentInvitation,
   deleteIndependentTalentDraft,
 } from "@/lib/independent-talent.functions";
-import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
+import {
+  EMAIL_FALLBACK_NOTICE,
+  missingMergeFields,
+  wordingIssues,
+  type AdminInviteWording,
+} from "@/lib/invitation-email";
+import {
+  getAdminInviteEmailContext,
+  saveAdminInviteWording,
+} from "@/lib/admin-invite-email.functions";
+import { InviteEmailReview } from "@/components/admin/invite-email-review";
+import { InviteSteps, previewExpiry } from "@/components/admin/invite-steps";
 import { logTalentInviteCopyLink } from "@/lib/admin.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
 import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
@@ -88,6 +100,18 @@ export function TalentInviteForm({
   const [talentType, setTalentType] = useState("");
   const [dob, setDob] = useState("");
   const [expiryDays, setExpiryDays] = useState(14);
+  const [step, setStep] = useState<"details" | "review">("details");
+  const [wording, setWording] = useState<AdminInviteWording | null>(null);
+  const saveWordingFn = useServerFn(saveAdminInviteWording);
+  const ctxFn = useServerFn(getAdminInviteEmailContext);
+  const ctxQ = useQuery({
+    queryKey: ["admin", "invite-email-context", "talent", draftId],
+    queryFn: () => ctxFn({ data: { kind: "talent", id: draftId } }),
+    enabled: !!draftId,
+  });
+  useEffect(() => {
+    if (ctxQ.data?.saved) setWording(ctxQ.data.saved);
+  }, [ctxQ.data?.saved?.subject, ctxQ.data?.saved?.greeting, ctxQ.data?.saved?.message]);
 
   const invQ = useQuery({
     queryKey: ["admin", "talent-invite", draftId],
@@ -149,6 +173,8 @@ export function TalentInviteForm({
   const finalizeM = useMutation({
     mutationFn: async () => {
       await updateFn({ data: { id: draftId, ...payload() } });
+      // The approved email wording is stored with the invitation first.
+      await saveWordingFn({ data: { kind: "talent", id: draftId, wording } });
       return finalizeFn({ data: { id: draftId, expiry_days: expiryDays } });
     },
     onSuccess: (res: any) => {
@@ -274,6 +300,32 @@ export function TalentInviteForm({
     !emailCheck.conflict &&
     !invQ.isFetching &&
     !finalizeM.isPending;
+  const merge = useMemo(
+    () => ({
+      talentName: name.trim(),
+      recipientEmail: email.trim(),
+      adminName: ctxQ.data?.adminName ?? "",
+      expiryDate: previewExpiry(expiryDays),
+      inviteUrl: ctxQ.data?.inviteUrl ?? "",
+    }),
+    [name, email, expiryDays, ctxQ.data?.adminName, ctxQ.data?.inviteUrl],
+  );
+  const reviewBlocked =
+    ctxQ.isLoading ||
+    missingMergeFields("talent", merge).length > 0 ||
+    (wording !== null && wordingIssues(wording).length > 0);
+  const saveWordingM = useMutation({
+    mutationFn: async () => {
+      await updateFn({ data: { id: draftId, ...payload() } });
+      return saveWordingFn({ data: { kind: "talent", id: draftId, wording } });
+    },
+    onSuccess: () => {
+      refresh();
+      toast.success("Draft saved, including your email wording.");
+    },
+    onError: (e: any) => toast.error(friendlyError(e, "We couldn't save the draft.")),
+  });
+
   const outstanding = [
     ...(detailsComplete ? [] : ["talent details"]),
     ...missing.map((s) => s.label.toLowerCase()),
@@ -301,6 +353,15 @@ export function TalentInviteForm({
         {draftId && invQ.isSuccess && status !== "draft" && (
           <div className="tvp-actions" data-tour="admin-talent-invite-actions">
             <span className="tvp-status tvp-blue">{statusLabel[status] ?? status}</span>
+            <Link
+              to="/admin/invitations/$id/email-preview"
+              params={{ id: draftId }}
+              search={{ type: "talent" }}
+              className="tvp-secondary"
+            >
+              <Mail className="h-4 w-4" />
+              View sent email
+            </Link>
             {status === "pending" && (
               <>
                 <button className="tvp-secondary" onClick={copyLink}>
@@ -333,7 +394,42 @@ export function TalentInviteForm({
         )}
       </div>
 
+      {step === "review" && isDraft ? (
+        <div className="tvp-card tvp-panel">
+          <InviteSteps current="review" />
+          <InviteEmailReview
+            kind="talent"
+            merge={merge}
+            value={wording}
+            onChange={setWording}
+            onFix={() => setStep("details")}
+          />
+          <div className="tvp-footer-actions">
+            <button type="button" className="tvp-secondary" onClick={() => setStep("details")}>
+              Back to details
+            </button>
+            <button
+              type="button"
+              className="tvp-secondary"
+              disabled={saveWordingM.isPending || reviewBlocked}
+              onClick={() => saveWordingM.mutate()}
+            >
+              {saveWordingM.isPending ? "Saving…" : "Save draft"}
+            </button>
+            <button
+              type="button"
+              className="tvp-primary"
+              disabled={!canSend || reviewBlocked}
+              onClick={() => finalizeM.mutate()}
+            >
+              {finalizeM.isPending ? "Sending…" : "Send invitation"}
+            </button>
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="tvp-card tvp-panel" data-tour="admin-talent-invite-details">
+        {isDraft && <InviteSteps current="details" />}
         {typeSlot ?? (draftId ? <InvitationTypeField value="talent" locked /> : null)}
         <fieldset disabled={!isDraft} style={{ border: "none", padding: 0, margin: 0 }}>
           <div className="tvp-form-group">
@@ -556,9 +652,9 @@ export function TalentInviteForm({
                   type="button"
                   className="tvp-primary"
                   disabled={!canSend}
-                  onClick={() => finalizeM.mutate()}
+                  onClick={() => setStep("review")}
                 >
-                  {finalizeM.isPending ? "Sending…" : "Send invitation"}
+                  Continue to review email
                 </button>
               </div>
               {!canSend && outstanding.length > 0 && (
@@ -569,6 +665,8 @@ export function TalentInviteForm({
             </>
           )}
         </div>
+      )}
+      </>
       )}
     </>
   );
