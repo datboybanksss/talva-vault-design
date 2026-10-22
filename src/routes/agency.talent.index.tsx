@@ -286,7 +286,7 @@ function TalentPage() {
         ))}
       </div>
 
-      <div className="tvp-card">
+      <div className="tvp-card tvp-panel">
         <FilterBar
           search={{ value: search, onChange: setSearch, placeholder: "Search by name, type or lead" }}
           active={tab !== "active" || manager !== "all" || type !== "all" || search !== ""}
