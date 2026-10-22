@@ -25,6 +25,7 @@ const Filters = z.object({
   to: day,
   type: z.enum(["all", "agency", "talent"]).default("all"),
   segment: z.enum(["all", "agency_linked", "independent"]).default("all"),
+  accounts: z.enum(["real", "test", "all"]).default("real"),
   offerOffset: z.number().int().min(0).max(5000).default(0),
   termsOffset: z.number().int().min(0).max(5000).default(0),
   outstandingOffset: z.number().int().min(0).max(5000).default(0),
@@ -39,10 +40,10 @@ function check<T>(res: { data: T | null; error: any }): T {
 
 /** Loads every invitation the reports count (admin agency onboarding, independent and agency talent; inert excluded). */
 export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
-  const [ag, ind, tal, inert] = await Promise.all([
+  const [ag, ind, tal, inert, testAg, testTal] = await Promise.all([
     admin
       .from("agency_invitations")
-      .select("id, email, status, created_at, expires_at, first_sent_at, accepted_at, source, agency_name")
+      .select("id, agency_id, email, status, created_at, expires_at, first_sent_at, accepted_at, source, agency_name")
       .eq("kind", "agency_onboarding"),
     admin
       .from("independent_talent_invitations")
@@ -51,7 +52,13 @@ export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
       .from("talent_invitations")
       .select("id, email, status, created_at, expires_at, first_sent_at, accepted_at, talent_name"),
     admin.from("talent_invite_private").select("invitation_id").eq("kind", "inert"),
+    admin.from("agencies").select("id").eq("is_test", true),
+    admin.from("talent_profiles").select("email").eq("is_test", true),
   ]);
+  const testAgencies = new Set(check<any[]>(testAg).map((r) => r.id));
+  const testEmails = new Set(
+    check<any[]>(testTal).map((r) => String(r.email ?? "").trim().toLowerCase()),
+  );
   const inertIds = new Set(check<any[]>(inert).map((r) => r.invitation_id));
   const map = (rows: any[], type: "agency" | "talent", segment: any, source: (r: any) => any) =>
     rows.map((r) => ({
@@ -66,6 +73,12 @@ export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
       accepted_at: r.accepted_at,
       source: source(r),
       name: r.agency_name ?? r.talent_name ?? "",
+      agency_id: r.agency_id ?? null,
+      // Test account: the agency is marked test, or the talent's email belongs to a test profile.
+      is_test:
+        type === "agency"
+          ? !!r.agency_id && testAgencies.has(r.agency_id)
+          : testEmails.has(String(r.email ?? "").trim().toLowerCase()),
     }));
   return [
     ...map(check<any[]>(ag), "agency", null, (r) => r.source),
