@@ -1,13 +1,7 @@
 import { SHARE_TERM } from "@/lib/terms";
-import { statusLabel, statusPillClass } from "@/lib/status-labels";
-import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { useTalentInvitationActions } from "@/components/admin/talent-invitation-actions";
-import { useAgencyInvitationActions } from "@/components/admin/agency-invitation-actions";
-import { PAGE_SIZE } from "@/lib/pagination";
-import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Building2,
@@ -20,18 +14,9 @@ import {
   Ban,
   RefreshCw,
 } from "lucide-react";
-import { getDashboardMetrics, listCombinedInvitations } from "@/lib/admin.functions";
-import {
-  INVITATION_STATUSES,
-  INVITATION_TYPES,
-  normaliseInvitationStatus,
-  normaliseInvitationType,
-  statusOptionCounts,
-  typeOptionCounts,
-  type InvitationType,
-} from "@/lib/invitation-filters";
-
-const TYPE_LABEL: Record<InvitationType, string> = { agency: "Agency", talent: "Talent" };
+import { getDashboardMetrics } from "@/lib/admin.functions";
+import { CombinedInvitationsList } from "@/components/admin/combined-invitations-list";
+import { normaliseInvitationStatus, normaliseInvitationType } from "@/lib/invitation-filters";
 
 export const Route = createFileRoute("/admin/")({
   validateSearch: (raw: Record<string, unknown>): { itype?: string; istatus?: string } => ({
@@ -52,6 +37,7 @@ export const Route = createFileRoute("/admin/")({
 
 function AdminDashboard() {
   const getMetricsFn = useServerFn(getDashboardMetrics);
+  const qc = useQueryClient();
 
   const metrics = useQuery({
     queryKey: ["admin", "metrics"],
@@ -75,38 +61,6 @@ function AdminDashboard() {
     });
   const clearFilters = () => nav({ search: {} as any, replace: true });
 
-  const listInvitesFn = useServerFn(listCombinedInvitations);
-  const invites = useInfiniteQuery({
-    queryKey: ["admin", "combined-invitations", itype, istatus],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
-      listInvitesFn({
-        data: { type: itype, status: istatus, limit: PAGE_SIZE, offset: pageParam as number },
-      }),
-    getNextPageParam: (last: any, all: any[]) => {
-      const loaded = all.reduce((n, p: any) => n + (p.rows?.length ?? 0), 0);
-      return loaded < (last?.total ?? 0) && loaded < 500 ? loaded : undefined;
-    },
-  });
-  const rows = useMemo(
-    () => (invites.data?.pages ?? []).flatMap((p: any) => p.rows ?? []),
-    [invites.data?.pages],
-  );
-  const firstPage: any = invites.data?.pages?.[0];
-  const total = firstPage?.total ?? 0;
-  const rawCounts = firstPage?.counts ?? { agency: {}, talent: {} };
-  const typeCounts = typeOptionCounts(rawCounts, istatus);
-  const statusCounts = statusOptionCounts(rawCounts, itype);
-  const filtersActive = itype !== "all" || istatus !== "all";
-  const activeFilterText = [
-    itype !== "all" ? `Type: ${TYPE_LABEL[itype]}` : null,
-    istatus !== "all" ? `Status: ${statusLabel("invitation", istatus)}` : null,
-  ]
-    .filter(Boolean)
-    .join(" and ");
-
-  const talentActions = useTalentInvitationActions();
-  const agencyActions = useAgencyInvitationActions();
   const [refreshedAt, setRefreshedAt] = useState(() => new Date());
 
   const counts = metrics.data?.statusCounts ?? {
@@ -129,7 +83,7 @@ function AdminDashboard() {
 
   const refreshMetrics = () => {
     metrics.refetch();
-    invites.refetch();
+    qc.invalidateQueries({ queryKey: ["admin", "combined-invitations"] });
     setRefreshedAt(new Date());
   };
 
@@ -248,141 +202,17 @@ function AdminDashboard() {
         </div>
       </div>
 
-      <div className="tvp-card tvp-panel" data-tour="admin-overview-invitations">
-        <div className="tvp-panel-head">
-          <h2 className="tvp-h2">Invitations</h2>
-          <Link
-            to="/admin/invitations"
-            search={itype === "all" ? {} : { type: itype }}
-            className="tvp-link"
-          >
-            View all invitations →
-          </Link>
-        </div>
-
-        <div className="tvp-invite-filters">
-          <div className="tvp-roster-tabs" role="group" aria-label="Type">
-            {(["all", ...INVITATION_TYPES] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                aria-pressed={itype === t}
-                className={`tvp-tab${itype === t ? " tvp-active" : ""}`}
-                onClick={() => setFilters({ itype: t })}
-              >
-                {t === "all" ? "All types" : TYPE_LABEL[t]} · {typeCounts[t]}
-              </button>
-            ))}
-          </div>
-          <div className="tvp-roster-tabs" role="group" aria-label="Status">
-            {["all", ...INVITATION_STATUSES].map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={istatus === s}
-                className={`tvp-tab${istatus === s ? " tvp-active" : ""}`}
-                onClick={() => setFilters({ istatus: s })}
-              >
-                {s === "all" ? "All statuses" : statusLabel("invitation", s)} ·{" "}
-                {statusCounts[s] ?? 0}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="tvp-table-wrap">
-          <table className="tvp-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Sent</th>
-                <th>Expires</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {invites.isLoading && (
-                <tr>
-                  <td colSpan={7} className="tvp-muted">
-                    Loading invitations…
-                  </td>
-                </tr>
-              )}
-              {!invites.isLoading && rows.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="tvp-muted">
-                    {filtersActive ? (
-                      <>
-                        No invitations match {activeFilterText}.{" "}
-                        <button type="button" className="tvp-link" onClick={clearFilters}>
-                          Clear filters
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        No invitations yet.{" "}
-                        <Link to="/admin/invitations/new" className="tvp-link">
-                          New invitation
-                        </Link>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )}
-              {rows.map((r: any) => (
-                <tr key={`${r.type}-${r.id}`}>
-                  <td>
-                    {r.type === "talent" ? (
-                      <Link
-                        to="/admin/invitations/talent/$id"
-                        params={{ id: r.id }}
-                        className="text-ink"
-                      >
-                        <strong>{r.name}</strong>
-                      </Link>
-                    ) : (
-                      <strong>{r.name}</strong>
-                    )}
-                  </td>
-                  <td>{r.email}</td>
-                  <td>
-                    <span className="tvp-status st-neutral">
-                      {TYPE_LABEL[r.type as InvitationType]}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={statusPillClass("invitation", r.status)}>
-                      {statusLabel("invitation", r.status)}
-                    </span>
-                  </td>
-                  <td>{r.last_sent_at ? fmt(r.last_sent_at) : "—"}</td>
-                  <td>
-                    {r.status === "pending" || r.status === "expired" ? fmt(r.expires_at) : "—"}
-                  </td>
-                  <td>
-                    <RowActionsMenu
-                      actions={r.type === "talent" ? talentActions(r) : agencyActions.actionsFor(r)}
-                    />
-                  </td>
-                </tr>
-              ))}
-              <LoadMoreRow
-                colSpan={7}
-                noun="invitations"
-                shown={rows.length}
-                total={total}
-                hasMore={!!invites.hasNextPage}
-                loading={invites.isFetchingNextPage}
-                onLoadMore={() => invites.fetchNextPage()}
-              />
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {agencyActions.dialogs}
+      <CombinedInvitationsList
+        tourId="admin-overview-invitations"
+        type={itype}
+        status={istatus}
+        onFilterChange={(n) => setFilters({ itype: n.type, istatus: n.status })}
+        onClear={clearFilters}
+        viewAllSearch={{
+          ...(itype !== "all" ? { type: itype } : {}),
+          ...(istatus !== "all" ? { status: istatus } : {}),
+        }}
+      />
     </>
   );
 }
