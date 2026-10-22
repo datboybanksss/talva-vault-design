@@ -721,6 +721,89 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * Admin overview: agency and talent invitations in one list, newest first.
+ * Type and status are filtered in the database; each type contributes at most
+ * offset + limit rows before the merge, so no query is unbounded. Counts per
+ * type and status come back as counts, never rows.
+ */
+export const listCombinedInvitations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    parseInput(
+      z.object({
+        type: z.string().default("all"),
+        status: z.string().default("all"),
+        limit: z.number().int().min(1).max(50).default(10),
+        offset: z.number().int().min(0).max(500).default(0),
+      }),
+      d,
+    ),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const type = normaliseInvitationType(data.type);
+    const status = normaliseInvitationStatus(data.status);
+    const nowIso = new Date().toISOString();
+    const TABLE = {
+      agency: {
+        table: "agency_invitations",
+        cols: "id, agency_name, contact_person, email, status, expires_at, created_at, last_sent_at, send_count, token",
+      },
+      talent: {
+        table: "independent_talent_invitations",
+        cols: "id, talent_name, email, status, expires_at, created_at, last_sent_at, send_count",
+      },
+    } as const;
+    const byStatus = (q: any, s: string) => {
+      if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
+      if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
+      if (s !== "all") return q.eq("status", s);
+      return q;
+    };
+
+    const keys = ["all", ...INVITATION_STATUSES];
+    const countJobs = INVITATION_TYPES.flatMap((t) =>
+      keys.map(async (s) => {
+        const { count } = await byStatus(
+          supabase.from(TABLE[t].table).select("id", { count: "exact", head: true }),
+          s,
+        );
+        return [t, s, count ?? 0] as const;
+      }),
+    );
+    const counts: Record<string, Record<string, number>> = { agency: {}, talent: {} };
+    for (const [t, s, n] of await Promise.all(countJobs)) counts[t][s] = n;
+
+    const types = type === "all" ? [...INVITATION_TYPES] : [type];
+    const window = data.offset + data.limit;
+    const fetched = await Promise.all(
+      types.map(async (t) => {
+        const { data: rows, error } = await byStatus(
+          supabase.from(TABLE[t].table).select(TABLE[t].cols),
+          status,
+        )
+          .order("created_at", { ascending: false })
+          .range(0, window - 1);
+        if (error) throw new Error(error.message);
+        return (rows ?? []).map((r: any) => ({
+          ...r,
+          type: t,
+          name: t === "agency" ? r.agency_name : r.talent_name,
+          stored_status: r.status as string,
+          status: effectiveInvitationStatus(r.status, r.expires_at),
+        }));
+      }),
+    );
+    const rows = fetched
+      .flat()
+      .sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1))
+      .slice(data.offset, window);
+    const total = types.reduce((n, t) => n + (counts[t][status] ?? 0), 0);
+    return { rows, total, counts };
+  });
+
 // Create as DRAFT — admin must upload compliance docs then call finalize.
 export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
