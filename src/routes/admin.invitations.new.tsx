@@ -278,6 +278,7 @@ function NewInvitationPage() {
     missingSlots.length === 0 &&
     !missingPhone &&
     !phoneFormatError &&
+    !savingDraft &&
     !finalizeM.isPending;
 
   const outstanding = [

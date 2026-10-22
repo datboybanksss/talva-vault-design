@@ -291,7 +291,7 @@ export function TalentInviteForm({ draftId: initialId }: { draftId?: string }) {
             everything stays editable until you send.
           </div>
         </div>
-        {draftId && !isDraft && (
+        {draftId && invQ.isSuccess && status !== "draft" && (
           <div className="tvp-actions" data-tour="admin-talent-invite-actions">
             <span className="tvp-status tvp-blue">{statusLabel[status] ?? status}</span>
             {status === "pending" && (
