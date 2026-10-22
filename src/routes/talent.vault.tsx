@@ -156,6 +156,7 @@ type PrivateDoc = {
 };
 
 function PrivateVault() {
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const qc = useQueryClient();
   const load = useServerFn(listPrivateVault);
   const deleteFolder = useServerFn(deletePrivateFolder);
@@ -360,6 +361,7 @@ function PrivateVault() {
 
   return (
     <>
+      {confirmDialog}
       <input ref={fileInput} type="file" hidden onChange={onFilePicked} />
 
       <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>

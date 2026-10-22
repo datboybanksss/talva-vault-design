@@ -76,6 +76,7 @@ type FreshShare = {
 };
 
 function SharingPage() {
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const load = useServerFn(listMyLovedOneShares);
   const revoke = useServerFn(revokeLovedOneShare);
   const regen = useServerFn(regenerateAccessCode);
@@ -152,6 +153,7 @@ function SharingPage() {
 
   return (
     <>
+      {confirmDialog}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">{SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED}</h1>

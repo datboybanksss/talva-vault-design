@@ -274,8 +274,15 @@ export const deletePrivateDocument = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
 
-    const { error } = await supabase.from("talent_private_documents").delete().eq("id", data.id);
+    const { data: gone, error } = await supabase
+      .from("talent_private_documents")
+      .delete()
+      .eq("id", data.id)
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!gone || gone.length === 0) {
+      throw new Error("This document couldn't be deleted. Refresh the page and try again.");
+    }
 
     if (doc.storage_path) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -299,11 +306,15 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => MoveDocInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
-    const { error } = await supabase
+    const { data: moved, error } = await supabase
       .from("talent_private_documents")
       .update({ folder_id: data.folder_id })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!moved || moved.length === 0) {
+      throw new Error("This document is no longer in your vault, so it couldn't be moved. Refresh the page to see the latest list.");
+    }
     const { recordTalentActivity } = await import("@/lib/talent-activity.server");
     await recordTalentActivity(supabase, userId, claims?.email, "vault_document_moved", {
       targetId: data.id,
