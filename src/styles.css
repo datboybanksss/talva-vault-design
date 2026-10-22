@@ -3067,7 +3067,6 @@
   }
   .tv-app .tvp-kpi-grid,
   .tv-app .tvp-inline-grid-3,
-  .tv-app .tvp-life-chips,
   .tv-app .tvp-stepper,
   .tv-app .tvp-form-grid,
   .tv-app .tvp-review-grid {
@@ -5986,4 +5985,18 @@ a.tvp-entity-card:focus-visible {
   .tv-app .tvp-totals {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 720px) {
+  /* Compact summary figures and status chips on phones. */
+  .tv-app .tvp-kpi {
+    min-height: 0;
+    padding: var(--sp-4);
+  }
+  .tv-app .tvp-life-chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.tv-app .tvp-table td.tvp-nowrap {
+  white-space: nowrap;
 }

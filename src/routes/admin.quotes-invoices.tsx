@@ -358,9 +358,9 @@ function QuotesInvoicesPage() {
                   <td>
                     <span className="tvp-status st-neutral">{r.kind === "quote" ? "Quote" : "Invoice"}</span>
                   </td>
-                  <td>{r.number}</td>
+                  <td className="tvp-nowrap">{r.number}</td>
                   <td>{r.client_name ?? "—"}</td>
-                  <td>{r.issued_at ? new Date(r.issued_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
+                  <td className="tvp-nowrap">{r.issued_at ? new Date(r.issued_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
                   <td className="tvp-num">{fmtMoney(r.total_cents, r.currency)}</td>
                   <td>
                     <span className={`tvp-status tvp-${statusTone[r.status] ?? "neutral"}`}>
