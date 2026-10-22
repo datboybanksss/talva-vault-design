@@ -317,7 +317,7 @@ function AccountsPage() {
               value: type,
               options: (["all", ...ACCOUNT_TYPES] as const).map((t) => ({
                 value: t,
-                label: t === "all" ? "All types" : ACCOUNT_TYPE_LABEL[t],
+                label: t === "all" ? "All users" : ACCOUNT_TYPE_LABEL[t],
                 count: counts.type[t] ?? 0,
               })),
             },

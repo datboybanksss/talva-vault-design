@@ -113,7 +113,7 @@ export function CombinedInvitationsList({
             value: type,
             options: (["all", ...INVITATION_TYPES] as const).map((t) => ({
               value: t,
-              label: t === "all" ? "All types" : INVITATION_TYPE_LABEL[t],
+              label: t === "all" ? "All users" : INVITATION_TYPE_LABEL[t],
               count: typeCounts[t] ?? 0,
             })),
           },
