@@ -2264,6 +2264,17 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
       .from("talent-documents")
       .createSignedUrl(v.storage_path as string, 60 * 30, options);
     if (sErr) throw new Error(sErr.message);
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      (context as any).claims?.email,
+      data.disposition === "attachment" ? "download_document_version" : "view_document_version",
+      "talent_shared_document",
+      v.document_id as string,
+      v.name as string,
+      { version_id: data.version_id },
+    );
     return { url: signed.signedUrl as string, name: v.name as string };
   });
 
