@@ -3006,9 +3006,6 @@
   .tv-app .tvp-budget-builder {
     grid-template-columns: 1fr !important;
   }
-  .tv-app .tvp-folder-tree {
-    grid-template-columns: 1fr !important;
-  }
   .tv-app .tvp-view-switch {
     display: flex !important;
     flex: 1 1 100% !important;
@@ -5835,4 +5832,10 @@ a.tvp-entity-card:focus-visible {
 /* Small neutral "Test" label beside an account name. */
 .tv-app .tvp-test-label {
   margin-left: var(--sp-2);
+}
+
+@media (max-width: 720px) {
+  .tv-app .tvp-folder-tree {
+    grid-template-columns: 1fr;
+  }
 }
