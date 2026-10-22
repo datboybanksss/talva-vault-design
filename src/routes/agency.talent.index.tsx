@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/shared/filter-bar";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -300,42 +301,7 @@ function TalentPage() {
             />
           </div>
           <div className="flex gap-2 flex-wrap items-end">
-            <div>
-              <label className="tvp-entity-stat-label" htmlFor="roster-lead">
-                Lead
-              </label>
-              <select
-                id="roster-lead"
-                className="tvp-select"
-                value={manager}
-                onChange={(e) => setManager(e.target.value)}
-              >
-                <option value="all">All leads</option>
-                {managerOptions.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="tvp-entity-stat-label" htmlFor="roster-type">
-                Talent type
-              </label>
-              <select
-                id="roster-type"
-                className="tvp-select"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-              >
-                <option value="all">All types</option>
-                {typeOptions.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+<FilterBar onChange={(k, v) => (k === "lead" ? setManager(v) : setType(v))} filters={[{ key: "lead", label: "Lead", value: manager, options: [{ value: "all", label: "All leads" }, ...managerOptions.map((m) => ({ value: m, label: m }))] },{ key: "type", label: "Talent type", value: type, options: [{ value: "all", label: "All types" }, ...typeOptions.map((t) => ({ value: t, label: t }))] }]} />
             {(tab !== "active" || manager !== "all" || type !== "all" || search !== "") && (
               <button
                 className="tvp-select"
