@@ -404,7 +404,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-recipients"]',
         title: "Step 7 — Recipient emails",
-        body: 'Type "accounts@kalahariretail.co.za" and press Enter to turn it into a chip, then add "thandi@kalahariretail.co.za" the same way. Every chip receives the document when you send. An address with no chip around it hasn\'t been added — press Enter.',
+        body: 'The document goes to every email address saved on the client. To change who receives it, edit the client on the Clients page — drafts pick up the change straight away.',
         optional: true,
       },
       {
