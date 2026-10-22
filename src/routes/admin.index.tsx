@@ -202,7 +202,7 @@ function AdminDashboard() {
           <div>
             <div className="tvp-kpi-value">{counts.suspended}</div>
             <div className="tvp-kpi-label">Suspended Agencies</div>
-            <div className={`tvp-kpi-sub${counts.suspended > 0 ? " tvp-danger" : ""}`}>
+            <div className={`tvp-kpi-sub${counts.suspended > 0 ? " tvp-kpi-danger" : ""}`}>
               {counts.suspended > 0 ? "Read-only / export rules apply" : "None suspended"}
             </div>
           </div>
