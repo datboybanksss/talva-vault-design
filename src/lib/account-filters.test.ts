@@ -18,7 +18,7 @@ const rows = [
 ];
 
 describe("admin accounts filters", () => {
-  it("offers the agency_status enum plus derived talent statuses", () => {
+  it("offers the agency_status enum plus paused and derived talent statuses", () => {
     expect(ACCOUNT_STATUSES).toEqual([
       "incomplete",
       "invited",
@@ -26,6 +26,7 @@ describe("admin accounts filters", () => {
       "expired",
       "declined",
       "suspended",
+      "paused",
       "active",
     ]);
   });
