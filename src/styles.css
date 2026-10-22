@@ -5442,3 +5442,124 @@ a.tvp-entity-card:focus-visible {
   align-items: center;
   gap: var(--sp-2);
 }
+
+/* Admin invitations — step indicator and Review email step */
+.tvp-portal .tvp-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+  padding: 0;
+  list-style: none;
+}
+.tvp-portal .tvp-steps li {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--tvp-line);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tvp-muted);
+  background: var(--surface);
+}
+.tvp-portal .tvp-steps li[aria-current="step"] {
+  border-color: var(--tvp-teal-2);
+  color: var(--tvp-ink);
+  background: var(--tvp-teal-50);
+}
+.tvp-portal .tvp-email-review {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-3);
+  max-width: 664px;
+  margin: 0 auto;
+}
+.tvp-portal .tvp-review-issues {
+  margin: 0;
+  padding: 0 0 0 var(--sp-4);
+  color: var(--tvp-red);
+  font-size: 13px;
+  font-weight: 700;
+  display: grid;
+  gap: var(--sp-1);
+}
+.tvp-portal .tvp-review-issues .tvp-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.tvp-portal .tvp-email-meta {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--tvp-line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--tvp-text);
+}
+.tvp-portal .tvp-email-meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.tvp-portal .tvp-email-meta-label {
+  flex: 0 0 64px;
+  color: var(--tvp-muted);
+  font-weight: 700;
+}
+.tvp-portal .tvp-email-subject {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 var(--sp-2);
+  border: 1px dashed var(--tvp-line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--tvp-ink);
+  font: inherit;
+  font-weight: 700;
+}
+.tvp-portal .tvp-email-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: 12px;
+}
+.tvp-portal .tvp-email-frame {
+  width: 100%;
+  border: 1px solid var(--tvp-line);
+  border-radius: var(--r-md);
+  background: var(--surface-soft);
+  display: block;
+}
+.tvp-portal .tvp-email-review > .tvp-link {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tvp-portal .tvp-email-text {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--tvp-line);
+  border-radius: var(--r-md);
+  background: var(--surface-soft);
+  color: var(--tvp-text);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+@media (max-width: 560px) {
+  .tvp-portal .tvp-email-meta-row {
+    flex-wrap: wrap;
+  }
+}
