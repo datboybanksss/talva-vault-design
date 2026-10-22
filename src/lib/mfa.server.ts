@@ -2,7 +2,8 @@ import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import { emailHeaderHtml, PUBLIC_SITE_URL } from "@/lib/brand-email";
 
 /** Sign-in codes are short-lived and single use. */
-export const CODE_TTL_MINUTES = 10;
+export { CODE_TTL_MINUTES } from "@/lib/mfa-copy";
+import { CODE_TTL_MINUTES } from "@/lib/mfa-copy";
 export const MAX_CODE_ATTEMPTS = 5;
 
 export function generateCode(): string {

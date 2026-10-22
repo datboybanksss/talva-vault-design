@@ -1,3 +1,4 @@
+import { SIGN_IN_CODE_EXPIRY, SIGN_IN_CODE_MISSING } from "@/lib/mfa-copy";
 import {
   SHARE_RECIPIENT_TERM,
   SHARE_RECIPIENT_TERM_CAPITALISED,
@@ -651,8 +652,8 @@ function AuthPage() {
           {codeStage ? (
             <form onSubmit={verifyMfa} noValidate>
               <div className="tv-auth-hint" style={{ marginTop: 8 }}>
-                For your security we've emailed you a 6-digit code. Enter it below to finish signing
-                in. It expires in 10 minutes and can only be used once.
+                For your security we've emailed a one-time code to the address on your account.
+                Enter it below to continue. {SIGN_IN_CODE_EXPIRY}
               </div>
               <div className="tv-auth-field">
                 <label htmlFor="mfa-code">Sign-in code</label>
@@ -667,6 +668,7 @@ function AuthPage() {
                   placeholder="123456"
                   autoFocus
                 />
+                <div className="tv-auth-hint">{SIGN_IN_CODE_MISSING}</div>
               </div>
               {error && <div className="tv-auth-alert">{error}</div>}
               {info && <div className="tv-auth-alert tv-info">{info}</div>}

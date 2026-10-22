@@ -1,3 +1,4 @@
+import { maskEmail } from "@/lib/mfa-copy";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -95,13 +96,6 @@ export type SendCodeResult = {
   message: string;
 };
 
-function maskEmail(email: string): string {
-  const [name, domain] = email.split("@");
-  if (!domain) return email;
-  const head = name.slice(0, 1);
-  const tail = name.length > 2 ? name.slice(-1) : "";
-  return `${head}${"•".repeat(Math.max(2, name.length - 2))}${tail}@${domain}`;
-}
 
 /** Issues a fresh code and emails it to the account's own address. */
 export const requestSignInCode = createServerFn({ method: "POST" })

@@ -717,11 +717,11 @@ function TwoFactorStep() {
   const nav = useNavigate();
   return (
     <>
-      <h2 className="tv-auth-title">Secure with 2FA</h2>
+      <h2 className="tv-auth-title">Your sign-in code</h2>
       <p className="tv-auth-tag">
-        Two-factor authentication adds a second check when you sign in, so your documents stay safe
-        even if someone learns your password. Each time you sign in, we'll email you a one-time
-        code.
+        For your security, each time you sign in we email a one-time code to the address on your
+        account. Enter it to continue, so your documents stay safe even if someone learns your
+        password. This is required for everyone.
       </p>
       <button
         type="button"

@@ -1,3 +1,4 @@
+import { maskEmail, SIGN_IN_CODE_EXPIRY, SIGN_IN_CODE_MISSING } from "@/lib/mfa-copy";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/enroll-2fa")({
   validateSearch: (s: Record<string, unknown>) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Set up two-step sign-in · TalVault" },
+      { title: "Your sign-in code · TalVault" },
       {
         name: "description",
         content:
@@ -133,7 +134,7 @@ function EnrollTwoFactorPage() {
       } catch {
         /* not an administrator — no admin audit entry */
       }
-      toast.success("Two-step sign-in is now set up.");
+      toast.success("Thank you. You're signed in.");
       await goHome();
     } catch (err) {
       setError(friendlyAuthError(err));
@@ -164,8 +165,7 @@ function EnrollTwoFactorPage() {
           <h1 className="tv-auth-headline">One more step before your workspace opens.</h1>
           <p className="tv-auth-sub">
             TalVault holds sensitive personal and financial records, so a password on its own isn't
-            enough. From now on we'll also email you a short code when you sign in. It takes under a
-            minute to set up.
+            enough. Each time you sign in, we email a one-time code to the address on your account.
           </p>
 
           <ul className="tv-auth-points">
@@ -173,13 +173,13 @@ function EnrollTwoFactorPage() {
               <span className="tv-auth-point-dot">
                 <Mail className="h-4 w-4 text-white" />
               </span>
-              We email a 6-digit code to your own address
+              We email a one-time code to the address on your account
             </li>
             <li className="tv-auth-point">
               <span className="tv-auth-point-dot">
                 <KeyRound className="h-4 w-4 text-white" />
               </span>
-              You type it in to finish signing in
+              You enter it to continue
             </li>
             <li className="tv-auth-point">
               <span className="tv-auth-point-dot">
@@ -195,14 +195,14 @@ function EnrollTwoFactorPage() {
 
       <section className="tv-auth-panel">
         <div className="tv-auth-card">
-          <div className="tv-auth-eyebrow">Security setup</div>
+          <div className="tv-auth-eyebrow">Sign-in security</div>
           <h2 className="tv-auth-title">
-            {step === "explainer" ? "Set up two-step sign-in" : "Enter your sign-in code"}
+            {step === "explainer" ? "Why we ask for a code" : "Enter your sign-in code"}
           </h2>
           <p className="tv-auth-tag">
             {email
-              ? `Signed in as ${email}. You can't open your workspace until this is set up.`
-              : "You can't open your workspace until this is set up."}
+              ? `Signing in as ${maskEmail(email)}. This is required for everyone.`
+              : "This is required for everyone."}
           </p>
 
           {loading ? (
@@ -222,10 +222,9 @@ function EnrollTwoFactorPage() {
                 step still keeps them out.
               </div>
               <div className="tv-auth-hint" style={{ marginTop: 12 }}>
-                <strong>How does it work?</strong> Each time you sign in we email a 6-digit code to{" "}
-                <strong>{email || "your email address"}</strong>. You type it into the box on the
-                sign-in page. The code lasts 10 minutes and works once. There's nothing to install
-                and nothing to remember.
+                <strong>How does it work?</strong> For your security, each time you sign in we email a
+                one-time code to <strong>{maskEmail(email)}</strong>. Enter it to continue.{" "}
+                {SIGN_IN_CODE_EXPIRY} It's required for everyone, and we never use text messages.
               </div>
 
               {error && <div className="tv-auth-alert">{error}</div>}
@@ -236,7 +235,7 @@ function EnrollTwoFactorPage() {
                 onClick={() => sendCode(true)}
                 disabled={sending}
               >
-                {sending ? "Sending your code…" : "Email me a code to get started"}
+                {sending ? "Sending your code…" : "Email me my code"}
               </button>
 
               <div className="tv-auth-switch">
@@ -250,8 +249,8 @@ function EnrollTwoFactorPage() {
             <form onSubmit={verify} style={{ marginTop: 20 }} noValidate>
               <div className="tv-auth-hint">
                 {sentTo
-                  ? `We've emailed a 6-digit code to ${sentTo}. It expires in 10 minutes and can only be used once.`
-                  : "Enter the 6-digit code we emailed you. It expires in 10 minutes and can only be used once."}
+                  ? `We've emailed a one-time code to ${sentTo}. ${SIGN_IN_CODE_EXPIRY}`
+                  : `Enter the one-time code we emailed you. ${SIGN_IN_CODE_EXPIRY}`}
               </div>
 
               <div className="tv-auth-field">
@@ -267,13 +266,13 @@ function EnrollTwoFactorPage() {
                   placeholder="123456"
                   autoFocus
                 />
-                <div className="tv-auth-hint">Can't see it? Check your junk or spam folder.</div>
+                <div className="tv-auth-hint">{SIGN_IN_CODE_MISSING}</div>
               </div>
 
               {error && <div className="tv-auth-alert">{error}</div>}
 
               <button type="submit" className="tv-auth-submit" disabled={busy || code.length !== 6}>
-                {busy ? "Verifying…" : "Verify & finish set-up"}
+                {busy ? "Verifying…" : "Verify & continue"}
               </button>
 
               <div className="tv-auth-switch" style={{ display: "flex", gap: 14 }}>
