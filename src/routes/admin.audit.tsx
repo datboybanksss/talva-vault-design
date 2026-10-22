@@ -19,6 +19,13 @@ const actionArea: Record<
   suspend_agency: { area: "Agencies", tone: "teal", severity: "High", sevTone: "red" },
   unsuspend_agency: { area: "Agencies", tone: "teal", severity: "Medium", sevTone: "amber" },
   view_agency: { area: "Agencies", tone: "teal", severity: "Low", sevTone: "green" },
+  pause_agency: { area: "Agencies", tone: "teal", severity: "High", sevTone: "red" },
+  unpause_agency: { area: "Agencies", tone: "teal", severity: "Medium", sevTone: "amber" },
+  suspend_talent: { area: "Talent", tone: "teal", severity: "High", sevTone: "red" },
+  unsuspend_talent: { area: "Talent", tone: "teal", severity: "Medium", sevTone: "amber" },
+  pause_talent: { area: "Talent", tone: "teal", severity: "High", sevTone: "red" },
+  unpause_talent: { area: "Talent", tone: "teal", severity: "Medium", sevTone: "amber" },
+  view_talent: { area: "Talent", tone: "teal", severity: "Low", sevTone: "green" },
   create_agency_invitation: {
     area: "Invitations",
     tone: "blue",
