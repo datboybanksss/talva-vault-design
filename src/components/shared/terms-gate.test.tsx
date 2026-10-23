@@ -72,7 +72,7 @@ describe("Terms gate visibility", () => {
     spies.status.mockResolvedValue({ required: true, current: { ...current, id: "416ca0dc-a390-4525-b444-0729118bf4bb", version: "v1.2" }, acceptances: [{ doc_type: "talent" }] });
     mount();
     expect(await screen.findByText(/We've updated our Terms/)).toBeTruthy();
-    expect(screen.getAllByText("Our Terms & Conditions")).toHaveLength(1);
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });
 
   it("a failed check shows a retry message, not the gate", async () => {
