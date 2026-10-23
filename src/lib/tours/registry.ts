@@ -35,7 +35,7 @@ export const GUIDES: TourGuide[] = [
         key: "vault",
         selector: '[data-tour="/talent/vault"]',
         title: "Your Vault",
-        body: "Everything you upload lives here — your Private Vault (only you can see it) and the Agency Shared Folder your Manager can access.",
+        body: "Everything you upload lives here — your Private Vault (only you can see it) and the shared folder your agency can see.",
       },
       {
         key: "sharing",

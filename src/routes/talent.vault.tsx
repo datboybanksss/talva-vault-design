@@ -984,7 +984,7 @@ function SharedDocumentsView() {
       <div className="tvp-card tvp-panel">
         <h2 className="tvp-h2">No active manager link</h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
-          You aren't currently linked to a Talent Manager. Once you're invited and accepted, the
+          You aren't currently linked to an agency. Once you're invited and accepted, the
           Agency Shared Folder appears here.
         </p>
       </div>
@@ -1311,7 +1311,7 @@ function ManagerRequests() {
       <div className="tvp-card tvp-panel">
         <h2 className="tvp-h2">No active manager link</h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
-          Once you're linked to a Talent Manager, requests they send you will appear here.
+          Once you're linked to an agency, requests they send you will appear here.
         </p>
       </div>
     );
@@ -1334,7 +1334,7 @@ function ManagerRequests() {
         <div>
           <strong>Requests.</strong>{" "}
           <span className="tvp-muted">
-            Upload the requested document; it lands in your Agency Shared Folder and your Manager
+            Upload the requested document; it lands in your Agency Shared Folder and your agency
             reviews it. Previous submissions are kept in history — nothing is deleted.
           </span>
         </div>
