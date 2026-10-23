@@ -188,8 +188,6 @@ const tabs = [
   "Recently Updated",
   "Requests",
 ] as const;
-  icon: any;
-};
 const FOLDER_META: Record<string, { description: string; icon: any }> = {
   "Identity & Personal": { description: "Passport, ID, visa, work authorisation", icon: IdCard },
   "Contracts & Agreements": { description: "Agreements, riders, addenda", icon: FileSignature },
