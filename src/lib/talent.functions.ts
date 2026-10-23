@@ -557,7 +557,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     let attention: {
       key: string;
       snapshot: number;
-      type: "expiring" | "request" | "reminder";
+      type: "request" | "reminder";
       title: string;
       detail: string;
       tone: "amber" | "purple";
@@ -567,7 +567,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const expiryCutoff = new Date(Date.now() + expiryNoticeDays * 86400_000).toISOString();
-      const [sc, sf, ec, or, rr, pr, expDocs, reqRows] = await Promise.all([
+      const [sc, sf, ec, or, rr, pr, reqRows] = await Promise.all([
         supabaseAdmin
           .from("talent_shared_documents")
           .select("id", { count: "exact", head: true })
