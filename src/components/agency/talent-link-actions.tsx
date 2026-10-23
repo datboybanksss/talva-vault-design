@@ -7,7 +7,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Ban, CircleStop, Link2, RefreshCw, RotateCcw, Send, Tags, UserCog } from "lucide-react";
+import { Ban, CircleStop, Eye, Link2, RefreshCw, RotateCcw, Send, Tags, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import type { RowAction } from "@/components/shared/row-actions-menu";
 import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
@@ -20,6 +20,7 @@ import {
 } from "@/lib/agency.functions";
 import { talentLinkActions } from "@/lib/status-actions";
 import { friendlyError } from "@/lib/friendly-error";
+import { useConfirm } from "@/components/shared/use-confirm";
 
 export type TalentLinkRowLike = {
   id: string;
@@ -36,7 +37,10 @@ export function useTalentLinkRowActions(opts: {
   isOwner: boolean;
   onChangeType?: (row: TalentLinkRowLike) => void;
   onAssignManager?: (row: TalentLinkRowLike) => void;
+  /** Hide "View details" (used on the details page itself). */
+  hideOpen?: boolean;
 }) {
+  const { confirm: askConfirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const readOnly = useAgencyReadOnly();
@@ -103,7 +107,7 @@ export function useTalentLinkRowActions(opts: {
     }
   };
 
-  return (r: TalentLinkRowLike): RowAction[] => {
+  const build = (r: TalentLinkRowLike): RowAction[] => {
     const inviteInDate = r.inviteStatus ? r.inviteStatus === "pending" : true;
     const allowed = talentLinkActions({
       status: r.status,
@@ -115,6 +119,16 @@ export function useTalentLinkRowActions(opts: {
     const out: RowAction[] = [];
     for (const a of allowed) {
       switch (a) {
+        case "open":
+          if (!opts.hideOpen)
+            out.push({
+              key: "open",
+              label: "View details",
+              icon: Eye,
+              onSelect: () =>
+                navigate({ to: "/agency/talent/$linkId", params: { linkId: r.id } }),
+            });
+          break;
         case "resend":
           if (hasInvite)
             out.push({
@@ -173,8 +187,13 @@ export function useTalentLinkRowActions(opts: {
             label: "Reactivate relationship",
             icon: RotateCcw,
             disabled: reactivateMut.isPending,
-            onSelect: () => {
-              if (confirm(`Reactivate relationship with ${r.displayName}?`))
+            onSelect: async () => {
+              if (
+                await askConfirm({
+                  title: `Reactivate relationship with ${r.displayName}?`,
+                  confirmLabel: "Reactivate",
+                })
+              )
                 reactivateMut.mutate(r.id);
             },
           });
@@ -188,8 +207,14 @@ export function useTalentLinkRowActions(opts: {
               destructive: true,
               separatorBefore: true,
               disabled: revokeMut.isPending,
-              onSelect: () => {
-                if (confirm(`Revoke the invitation to ${r.displayName}?`))
+              onSelect: async () => {
+                if (
+                  await askConfirm({
+                    title: `Revoke the invitation to ${r.displayName}?`,
+                    confirmLabel: "Revoke invitation",
+                    destructive: true,
+                  })
+                )
                   revokeMut.mutate(r.talentInvitationId!);
               },
             });
@@ -202,11 +227,14 @@ export function useTalentLinkRowActions(opts: {
             destructive: true,
             separatorBefore: true,
             disabled: endMut.isPending,
-            onSelect: () => {
+            onSelect: async () => {
               if (
-                confirm(
-                  `End working relationship with ${r.displayName}?\n\nExisting shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.`,
-                )
+                await askConfirm({
+                  title: `End working relationship with ${r.displayName}?`,
+                  body: "Existing shared documents remain accessible under current retention rules. New uploads and versions will be blocked until reactivated.",
+                  confirmLabel: "End relationship",
+                  destructive: true,
+                })
               )
                 endMut.mutate(r.id);
             },
@@ -216,4 +244,5 @@ export function useTalentLinkRowActions(opts: {
     }
     return out;
   };
+  return Object.assign(build, { dialog });
 }
