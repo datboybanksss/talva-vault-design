@@ -107,7 +107,7 @@ function TermsAgreement({ portal, doc, hadPrevious }: {
         <p className="tvp-terms-document-title">{doc.title}</p>
         <div className="tvp-terms-meta">
           <span>Version {doc.version}</span>
-          {effectiveDate && <span>Effective <time dateTime={doc.effective_at}>{effectiveDate}</time></span>}
+          {effectiveDate && <span>Effective{" "}<time dateTime={doc.effective_at}>{effectiveDate}</time></span>}
         </div>
       </header>
       <LegalDocumentView body={doc.body} maxHeight={380} onReachedEnd={reachedEnd} />
