@@ -6195,21 +6195,21 @@ a.tvp-entity-card:focus-visible {
   font-size: 13px;
   font-weight: 800;
   color: var(--tvp-ink);
-  margin: var(--sp-24) 0 var(--sp-8);
+  margin: 24px 0 8px;
 }
 .tvp-modal .tvp-share-seg {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: var(--sp-4);
-  padding: var(--sp-4);
-  margin: 0 0 var(--sp-12);
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 12px;
   border: 1px solid var(--line-200);
   border-radius: var(--r-md);
   background: var(--surface-soft);
 }
 .tvp-modal .tvp-share-seg .tvp-tab {
   height: 36px;
-  padding: 0 var(--sp-12);
+  padding: 0 12px;
   border: 1px solid transparent;
   border-radius: 11px;
   background: transparent;
@@ -6236,7 +6236,7 @@ a.tvp-entity-card:focus-visible {
   border-radius: var(--r-sm);
   max-height: 280px;
   overflow-y: auto;
-  margin-top: var(--sp-8);
+  margin-top: 8px;
 }
 .tvp-modal .tvp-share-list ul {
   list-style: none;
@@ -6246,9 +6246,9 @@ a.tvp-entity-card:focus-visible {
 .tvp-modal .tvp-share-folder-row {
   display: flex;
   align-items: center;
-  gap: var(--sp-12);
+  gap: 12px;
   min-height: 44px;
-  padding: var(--sp-8) var(--sp-12);
+  padding: 8px 12px;
   border-bottom: 1px solid var(--line);
   font-size: 14px;
   font-weight: 500;
@@ -6267,7 +6267,7 @@ a.tvp-entity-card:focus-visible {
 }
 .tvp-modal .tvp-share-plain {
   border: 0;
-  padding: var(--sp-12) 0 0;
+  padding: 12px 0 0;
   font-size: 13px;
 }
 .tvp-modal .tvp-share-plain:hover {

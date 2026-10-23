@@ -756,7 +756,7 @@ export function NewShareModal({
             </div>
             <div className="tvp-share-list">
               {filteredDocs.length === 0 ? (
-                <p className="tvp-muted" style={{ padding: "var(--sp-12)" }}>
+                <p className="tvp-muted" style={{ padding: 12 }}>
                   No documents match your search — try a different term.
                 </p>
               ) : (
@@ -810,7 +810,7 @@ export function NewShareModal({
             : "They can save copies of these documents to their own device."}
         </p>
 
-        <div className="tvp-form-group" style={{ marginTop: "var(--sp-16)" }}>
+        <div className="tvp-form-group" style={{ marginTop: 16 }}>
           <label htmlFor="share-note">Optional note</label>
           <textarea
             id="share-note"
