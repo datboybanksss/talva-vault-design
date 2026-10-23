@@ -675,7 +675,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/invitations" },
         selector: '[data-tour="agency-invite-actions"]',
         title: "Step 3 — Folders for this talent",
-        body: 'Two cards. "Use my standard set" (Recommended) provisions the folders listed as badges on the card, pulled from your default Folder Template — take this unless you have a reason not to. "Customise for this talent" opens the full folder list with each one marked Recommended or Optional; tick, say, "Work Permits" for an international booking. The counter reads "7 folders selected".',
+        body: 'Two cards. "Use my standard set" (Recommended) provisions the folders listed as badges on the card, pulled from your default Folder Template — take this unless you have a reason not to. "Customise for this talent" opens the full folder list with each one marked Recommended or Optional; tick, say, "Visas & Work Permits" for an international booking. The counter reads "7 folders selected".',
         optional: true,
       },
       {
