@@ -227,6 +227,7 @@ function AgencyDashboard() {
 
   return (
     <>
+      {rowActions.dialog}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Manager dashboard</h1>
@@ -551,6 +552,7 @@ function RecentTalentActivity({
 
   return (
     <div className="tvp-card tvp-panel">
+      {rowActions.dialog}
       <div className="tvp-panel-head">
         <h2 className="tvp-h2">
           Recent talent activity <Info className="inline h-4 w-4 text-[var(--tvp-muted)]" />
