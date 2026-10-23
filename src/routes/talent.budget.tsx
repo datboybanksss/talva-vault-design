@@ -1,21 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageBand, EmptyState } from "@/components/shared/brand";
+import { PageBand, IconTile } from "@/components/shared/brand";
 import { Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/talent/budget")({
   head: () => ({
     meta: [
-      { title: "Budget & Income · TalVault Talent" },
+      { title: "Budget & Income — coming soon · TalVault Talent" },
       {
         name: "description",
         content:
-          "Budget & Income is coming soon to the TalVault Talent portal — a private place to follow the quotes and invoices your Manager shares with you.",
+          "Budget & Income is coming soon to TalVault — a private, read-only place to follow the quotes and invoices your agency shares with you.",
       },
-      { property: "og:title", content: "Budget & Income · TalVault Talent" },
+      { property: "og:title", content: "Budget & Income — coming soon · TalVault Talent" },
       {
         property: "og:description",
-        content:
-          "Coming soon: follow the quotes and invoices your Manager shares with you, in one private read-only place.",
+        content: "Coming soon: follow the quotes and invoices your agency shares with you, in one private, read-only place.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -26,15 +25,26 @@ export const Route = createFileRoute("/talent/budget")({
 
 function BudgetPage() {
   return (
-    <>
-      <PageBand icon={<Wallet />} title="Budget & Income" subtitle="Coming soon." />
-
-      <div className="tvp-card tvp-panel">
-        <EmptyState icon={<Wallet />} tint="lavender" title="Coming soon">
-          Budget &amp; Income isn't ready yet. When it opens, you'll be able to follow the quotes and invoices your
-          Manager shares with you — amounts, dates and payment status — all in one private, read-only place.
-        </EmptyState>
+    <div className="tv-page">
+      <PageBand
+        icon={<Wallet />}
+        title="Budget & Income — coming soon"
+        subtitle="We're still building this part of TalVault."
+      />
+      <div className="tvp-card tv-tint-lavender tv-teaser">
+        <IconTile icon={<Wallet />} tint="lavender" size="lg" />
+        <h2>A clear view of your quotes and invoices</h2>
+        <p>
+          Budget &amp; Income will give you one private place to follow the quotes and invoices your agency
+          shares with you. You'll be able to see:
+        </p>
+        <ul>
+          <li>the amount on each quote and invoice</li>
+          <li>its dates</li>
+          <li>whether it has been paid</li>
+        </ul>
+        <p>Everything here will be read-only — only your agency can create or change these records.</p>
       </div>
-    </>
+    </div>
   );
 }
