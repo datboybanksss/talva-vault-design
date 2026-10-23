@@ -29,7 +29,7 @@ export const GUIDES: TourGuide[] = [
         key: "dashboard",
         selector: '[data-tour="/talent"]',
         title: "Dashboard",
-        body: "Your home screen — a quick read on what's outstanding, what's expiring and what your Manager has asked for.",
+        body: "Your home screen — a quick read on what's outstanding, what's expiring and what your agency has asked for.",
       },
       {
         key: "vault",
@@ -53,7 +53,7 @@ export const GUIDES: TourGuide[] = [
         key: "needs-attention",
         selector: '[data-tour="needs-attention"]',
         title: "Needs attention",
-        body: "Your dashboard surfaces expiring documents and requests from your Manager here. Dismiss anything you've handled.",
+        body: "Your To do list shows document requests from your agency and documents expiring soon. Each item disappears once it is done.",
       },
       {
         key: "settings",
