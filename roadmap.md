@@ -5,3 +5,6 @@
 - [x] Fix agency.document-vault.tsx syntax errors (build broken)
 - [x] Standing rule: boundary audit — clean (owner-only RLS on private tables + bucket; agency code never reads private tables)
 - [x] Feature: talent "Copy to agency shared folder" (server fn, dialog, bell entry, duplicate check, tests)
+- [ ] Remove duplicate "Expiring soon" dashboard lists (Agency, Talent, Admin); keep KPI counts
+- [ ] Verify bell covers every expiring document the card showed; fix gaps
+- [ ] Bell notifications deep-link to the item with friendly fallback when unavailable
