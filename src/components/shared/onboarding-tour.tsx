@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { TalVaultIcon } from "@/components/brand/talvault-logo";
 import {
   getGuide,
@@ -211,7 +211,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   // confirmed the Terms are accepted (Admin has no gate).
   const { data: termsStatus } = useQuery<{ required?: boolean } | undefined>({
     queryKey: ["terms-status", portal],
-    enabled: false,
+    queryFn: skipToken,
   });
   const termsOk = portal === "admin" || (!!termsStatus && !termsStatus.required);
 
