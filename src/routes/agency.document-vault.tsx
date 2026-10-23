@@ -172,7 +172,7 @@ export const Route = createFileRoute("/agency/document-vault")({
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Document Vault</h1>
-      <p className="tvp-muted">Failed to load: {(error as Error)?.message}</p>
+      <p className="tvp-muted">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
     </div>
   ),
   notFoundComponent: () => <div>Not found</div>,

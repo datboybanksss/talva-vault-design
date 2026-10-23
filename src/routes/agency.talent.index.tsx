@@ -320,7 +320,7 @@ function TalentPage() {
           <div style={{ textAlign: "center", padding: "36px 16px" }}>
             <h3 className="tvp-h3">Your roster could not be loaded</h3>
             <p className="tvp-muted" style={{ marginTop: 6 }}>
-              {(talent.error as Error)?.message ?? "Something went wrong."}
+              {friendlyError(talent.error, "Something went wrong.")}
             </p>
             <button
               className="tvp-secondary"

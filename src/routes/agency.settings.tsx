@@ -1,3 +1,4 @@
+import { friendlyError } from "@/lib/friendly-error";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { Suspense } from "react";
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/agency/settings")({
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Agency Profile</h1>
-      <p className="tvp-muted">Failed to load: {(error as Error)?.message}</p>
+      <p className="tvp-muted">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
     </div>
   ),
   notFoundComponent: () => <div>Not found</div>,
