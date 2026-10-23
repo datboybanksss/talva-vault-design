@@ -6329,8 +6329,8 @@ a.tvp-entity-card:focus-visible {
 }
 
 /* Talent settings tabs: one row, horizontal scroll on narrow screens */
-.tvp-portal .tvp-settings-tabs, .tv-app .tvp-portal .tvp-tabs.tvp-settings-tabs { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
-.tvp-portal .tvp-settings-tabs .tvp-tab { flex: 0 0 auto; white-space: nowrap; }
+.tv-app .tvp-tabs.tvp-settings-tabs { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+.tv-app .tvp-settings-tabs .tvp-tab { flex: 0 0 auto; white-space: nowrap; }
 
 /* Talent Manage folders */
 .tvf .tvf-desc { color: var(--tvp-muted); font-size: 13px; margin: var(--sp-1) 0 0; max-width: 68ch; }
