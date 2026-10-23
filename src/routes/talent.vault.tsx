@@ -1,4 +1,5 @@
 import { FilterBar } from "@/components/shared/filter-bar";
+import { PageBand } from "@/components/shared/brand";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -132,11 +133,11 @@ function VaultPage() {
 
   return (
     <>
-      <div className="tvp-topbar">
-        <div>
-          <h1 className="tvp-h1">Vault</h1>
-        </div>
-      </div>
+      <PageBand
+        icon={<Lock />}
+        title="Vault"
+        subtitle={showAgency ? "Documents you and your agency both see." : "Your private documents — only you can see these."}
+      />
 
       <div className="tvp-tabs" data-tour="talent-vault-tabs">
         <button

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageBand, EmptyState } from "@/components/shared/brand";
 import { Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/talent/budget")({
@@ -26,36 +27,13 @@ export const Route = createFileRoute("/talent/budget")({
 function BudgetPage() {
   return (
     <>
-      <div className="tvp-topbar">
-        <div>
-          <h1 className="tvp-h1">Budget &amp; Income</h1>
-          <div className="tvp-subtitle">Coming soon.</div>
-        </div>
-      </div>
+      <PageBand icon={<Wallet />} title="Budget & Income" subtitle="Coming soon." />
 
-      <div className="tvp-card tvp-panel" style={{ textAlign: "center", padding: "56px 24px" }}>
-        <div
-          aria-hidden
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            background: "var(--tv-surface-2, rgba(6,78,88,0.08))",
-            color: "var(--tv-teal-700, #064E58)",
-            marginBottom: 14,
-          }}
-        >
-          <Wallet className="h-5 w-5" />
-        </div>
-        <h2 className="tvp-h2">Coming soon</h2>
-        <p className="tvp-muted" style={{ marginTop: 8, maxWidth: 460, marginInline: "auto" }}>
-          Budget &amp; Income isn't ready yet. When it opens, you'll be able to follow the quotes
-          and invoices your Manager shares with you — amounts, dates and payment status — all in one
-          private, read-only place.
-        </p>
+      <div className="tvp-card tvp-panel">
+        <EmptyState icon={<Wallet />} tint="lavender" title="Coming soon">
+          Budget &amp; Income isn't ready yet. When it opens, you'll be able to follow the quotes and invoices your
+          Manager shares with you — amounts, dates and payment status — all in one private, read-only place.
+        </EmptyState>
       </div>
     </>
   );
