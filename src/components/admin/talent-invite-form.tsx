@@ -81,6 +81,7 @@ export function TalentInviteForm({
   draftId?: string;
   typeSlot?: ReactNode;
 }) {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const nav = useNavigate();
   const qc = useQueryClient();
   const createFn = useServerFn(createIndependentTalentDraft);
@@ -334,6 +335,7 @@ export function TalentInviteForm({
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar">
         <div>
           <Link
