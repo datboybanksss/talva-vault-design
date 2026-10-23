@@ -89,6 +89,10 @@ function TalentSettings() {
   // Shown for current/past relationships, and kept visible if the read failed
   // (the panel then explains the error) — never hidden as "independent".
   const hasRelationship = agencyLinks.isError || (agencyLinks.data?.relationships.length ?? 0) > 0;
+  // A link to the Agency relationship tab with no relationship falls back to Profile.
+  useEffect(() => {
+    if (mode === "relationship" && agencyLinks.isSuccess && !hasRelationship) setMode("profile");
+  }, [mode, agencyLinks.isSuccess, hasRelationship]);
 
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
   const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "");
