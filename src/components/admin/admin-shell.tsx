@@ -146,7 +146,16 @@ export function AdminShell({ children }: { children: ReactNode }) {
               : "blue",
       title: p.title,
       detail: p.detail ?? "",
-      to: p.target_type === "agency" ? "/admin/agencies" : undefined,
+      to:
+        p.kind === "invite_expiring" || p.kind === "invite_expired"
+          ? "/admin/invitations"
+          : p.kind === "suspended_review"
+            ? "/admin/accounts"
+            : p.kind === "legal_copy_review"
+              ? "/admin/terms-acceptances"
+              : p.target_type === "agency"
+                ? "/admin/accounts"
+                : undefined,
     })),
   ];
 
