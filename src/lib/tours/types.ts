@@ -18,6 +18,8 @@ export type TourStep = {
   route?: TourRoute;
   /** Target may legitimately be absent (empty tables) — never treat as an error. */
   optional?: boolean;
+  /** Talent portal: only shown while the talent is linked to an agency. */
+  agencyOnly?: boolean;
 };
 
 export type TourGuide = {

@@ -77,13 +77,15 @@ export const Route = createFileRoute("/talent/vault")({
     tab?: Mode;
     view?: AgencyView;
     doc?: string;
+    link?: string;
   } => {
     const t = search.tab;
     const v = search.view;
     // Legacy deep links used ?tab=requests before Requests was merged into
     // the Agency Shared Folder tab.
     if (t === "requests") return { tab: "agency", view: "requests" };
-    const out: { tab?: Mode; view?: AgencyView; doc?: string } = {};
+    const out: { tab?: Mode; view?: AgencyView; doc?: string; link?: string } = {};
+    if (typeof search.link === "string" && /^[0-9a-f-]{36}$/i.test(search.link)) out.link = search.link;
     if (t === "private" || t === "agency") out.tab = t;
     if (v === "requests" || v === "folder") out.view = v;
     if (typeof search.doc === "string" && search.doc) out.doc = search.doc;
@@ -96,19 +98,35 @@ type Mode = "private" | "agency";
 type AgencyView = "folder" | "requests";
 
 function VaultPage() {
-  const { tab, view } = useSearch({ from: "/talent/vault" });
+  const { tab, view, link: linkParam } = useSearch({ from: "/talent/vault" });
   const navigate = useNavigate();
+  const loadDash = useServerFn(getTalentDashboard);
+  const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
+  // One shared section per agency the portal shows (active, or ended with
+  // shared items). Independent talent see only the Private Vault.
+  const links = ((dash as any)?.links ?? []) as {
+    id: string;
+    agency_name: string;
+    state: "active" | "previous";
+  }[];
   const [mode, setMode] = useState<Mode>(tab ?? "private");
+  const selected = links.find((l) => l.id === linkParam) ?? links[0];
 
   useEffect(() => {
     if (tab && tab !== mode) setMode(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  const goTo = (next: Mode) => {
+  const goTo = (next: Mode, linkId?: string) => {
     setMode(next);
-    navigate({ to: "/talent/vault", search: { tab: next }, replace: true });
+    navigate({
+      to: "/talent/vault",
+      search: next === "agency" && linkId ? { tab: next, link: linkId } : { tab: next },
+      replace: true,
+    });
   };
+
+  const showAgency = mode === "agency" && !!selected;
 
   return (
     <>
@@ -120,23 +138,34 @@ function VaultPage() {
 
       <div className="tvp-tabs" data-tour="talent-vault-tabs">
         <button
-          className={`tvp-tab${mode === "private" ? " tvp-active" : ""}`}
+          className={`tvp-tab${!showAgency ? " tvp-active" : ""}`}
           onClick={() => goTo("private")}
         >
           <Lock className="h-4 w-4" /> Private Vault
         </button>
-        <button
-          className={`tvp-tab${mode === "agency" ? " tvp-active" : ""}`}
-          onClick={() => goTo("agency")}
-        >
-          <FileStack className="h-4 w-4" /> Agency Shared Folder
-        </button>
+        {links.map((l) => (
+          <button
+            key={l.id}
+            className={`tvp-tab${showAgency && selected?.id === l.id ? " tvp-active" : ""}`}
+            onClick={() => goTo("agency", l.id)}
+          >
+            <FileStack className="h-4 w-4" />{" "}
+            {l.state === "active" ? `Shared with ${l.agency_name}` : `Previously shared with ${l.agency_name}`}
+          </button>
+        ))}
       </div>
 
       <div data-tour="talent-vault-body">
-        {mode === "private" && <PrivateVault />}
+        {!showAgency && <PrivateVault />}
 
-        {mode === "agency" && <AgencySharedFolder initialView={view ?? "folder"} />}
+        {showAgency && selected && (
+          <AgencySharedFolder
+            key={selected.id}
+            linkId={selected.id}
+            readOnly={selected.state === "previous"}
+            initialView={selected.state === "previous" ? "folder" : (view ?? "folder")}
+          />
+        )}
       </div>
     </>
   );
@@ -885,25 +914,42 @@ function statusTone(status: string) {
   }
 }
 
-function AgencySharedFolder({ initialView }: { initialView: AgencyView }) {
+function AgencySharedFolder({
+  initialView,
+  linkId,
+  readOnly,
+}: {
+  initialView: AgencyView;
+  linkId: string;
+  readOnly: boolean;
+}) {
   const navigate = useNavigate();
   const [view, setView] = useState<AgencyView>(initialView);
   useEffect(() => {
     setView(initialView);
   }, [initialView]);
 
-  const loadDash = useServerFn(getTalentDashboard);
-  const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
-  const actionRequests = (dash as any)?.actionRequests ?? 0;
+  const loadReq = useServerFn(listTalentDocumentRequests);
+  const { data: reqData } = useQuery({
+    queryKey: ["talent", "doc-requests", linkId],
+    queryFn: () => loadReq({ data: { link_id: linkId } }),
+    enabled: !readOnly,
+  });
+  const actionRequests = ((reqData as any)?.requests ?? []).filter((r: any) =>
+    ["pending", "resubmission_required"].includes(r.status),
+  ).length;
 
   const go = (next: AgencyView) => {
     setView(next);
-    navigate({ to: "/talent/vault", search: { tab: "agency", view: next }, replace: true });
+    navigate({ to: "/talent/vault", search: { tab: "agency", view: next, link: linkId }, replace: true });
   };
+
+  // Ended relationship: read-only list of what was shared — no requests, no upload.
+  if (readOnly) return <SharedDocumentsView linkId={linkId} />;
 
   return (
     <>
-      <div className="tvp-subtabs" role="tablist" aria-label="Agency Shared Folder sections">
+      <div className="tvp-subtabs" role="tablist" aria-label="Shared folder sections">
         <button
           type="button"
           role="tab"
@@ -925,12 +971,12 @@ function AgencySharedFolder({ initialView }: { initialView: AgencyView }) {
         </button>
       </div>
 
-      {view === "folder" ? <SharedDocumentsView /> : <ManagerRequests />}
+      {view === "folder" ? <SharedDocumentsView linkId={linkId} /> : <ManagerRequests linkId={linkId} />}
     </>
   );
 }
 
-function SharedDocumentsView() {
+function SharedDocumentsView({ linkId }: { linkId: string }) {
   const load = useServerFn(getRosterSharedContents);
   const download = useServerFn(getSharedDocumentDownloadUrl);
 
@@ -940,8 +986,8 @@ function SharedDocumentsView() {
   const docsVisible = showAllDocs || search.trim() !== "" || folderFilter !== "__all";
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["talent", "roster-shared"],
-    queryFn: () => load(),
+    queryKey: ["talent", "roster-shared", linkId],
+    queryFn: () => load({ data: { link_id: linkId } }),
   });
 
   // Deep link from a bell reminder: open the document, or say why we can't.
@@ -950,7 +996,7 @@ function SharedDocumentsView() {
   useEffect(() => {
     if (!docParam || !data) return;
     const d = (data.documents ?? []).find((x: any) => x.id === docParam);
-    navigateDoc({ to: "/talent/vault", search: { tab: "agency", view: "folder" }, replace: true });
+    navigateDoc({ to: "/talent/vault", search: { tab: "agency", view: "folder", link: linkId }, replace: true });
     if (d) onDownload(d.id);
     else toast.info("This document is no longer available to you.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1036,7 +1082,10 @@ function SharedDocumentsView() {
         <div className="tvp-card tvp-panel">
           <div className="tvp-panel-head">
             <div>
-              <h2 className="tvp-h2">Shared with {(data.link as any).agency_name}</h2>
+              <h2 className="tvp-h2">
+                {(data.link as any).state === "previous" ? "Previously shared with " : "Shared with "}
+                {(data.link as any).agency_name}
+              </h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
                 {folders.filter((f: any) => f.parent_folder_id).length || folders.length} folder
                 {(folders.filter((f: any) => f.parent_folder_id).length || folders.length) === 1 ? "" : "s"} · {data.documents.length}{" "}
@@ -1249,7 +1298,7 @@ function statusChipTone(s: string) {
   return "teal";
 }
 
-function ManagerRequests() {
+function ManagerRequests({ linkId }: { linkId: string }) {
   const load = useServerFn(listTalentDocumentRequests);
   const reserve = useServerFn(createTalentRequestUploadUrl);
   const submit = useServerFn(submitTalentDocumentRequest);
@@ -1258,8 +1307,8 @@ function ManagerRequests() {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["talent", "doc-requests"],
-    queryFn: () => load(),
+    queryKey: ["talent", "doc-requests", linkId],
+    queryFn: () => load({ data: { link_id: linkId } }),
   });
 
   async function onPick(requestId: string, file: File) {

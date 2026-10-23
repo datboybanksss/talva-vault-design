@@ -52,7 +52,7 @@ export const GUIDES: TourGuide[] = [
       {
         key: "needs-attention",
         selector: '[data-tour="needs-attention"]',
-        title: "Needs attention",
+        title: "To do",
         body: "Your To do list shows document requests from your agency and documents expiring soon. Each item disappears once it is done.",
       },
       {
@@ -104,6 +104,7 @@ export const GUIDES: TourGuide[] = [
         optional: true,
       },
       {
+        agencyOnly: true,
         key: "shared",
         route: { to: "/talent/vault", search: { tab: "agency" } },
         selector: '[data-tour="talent-vault-body"]',
@@ -112,6 +113,7 @@ export const GUIDES: TourGuide[] = [
         optional: true,
       },
       {
+        agencyOnly: true,
         key: "requests",
         route: { to: "/talent/vault", search: { tab: "requests" } },
         selector: '[data-tour="talent-vault-body"]',
@@ -283,7 +285,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/settings" },
         selector: '[data-tour="talent-settings-tabs"]',
         title: "Step 5 — in-app reminders",
-        body: 'Below that, the "In-app reminders" cards control what appears in the "Needs attention" panel on your dashboard. Cards marked "Active" can be ticked; those marked "Soon" are switched off until the TalVault sending domain is verified, so email delivery isn\'t running yet.',
+        body: 'Below that, the "In-app reminders" cards control what appears in your dashboard "To do" list. Cards marked "Active" can be ticked; those marked "Soon" are switched off until the TalVault sending domain is verified, so email delivery isn\'t running yet.',
       },
     ],
   },

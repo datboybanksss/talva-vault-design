@@ -214,7 +214,11 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   const seenRef = useRef<string[] | null>(null);
   const overviewDoneRef = useRef<boolean | null>(null);
 
-  const allSteps = guide?.steps ?? [];
+  const talentCtx = useRouterState({
+    select: (st) => st.matches.find((m) => m.routeId === "/talent")?.loaderData,
+  }) as { hasActiveLink?: boolean } | undefined;
+  const independent = portal === "talent" && !talentCtx?.hasActiveLink;
+  const allSteps = (guide?.steps ?? []).filter((s) => !(independent && s.agencyOnly));
   const steps: TourStep[] = keys ? allSteps.filter((s) => keys.includes(s.key)) : allSteps;
   const open = !!guide && steps.length > 0;
 
