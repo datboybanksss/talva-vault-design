@@ -10,16 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Product decisions
-
-### Dark mode — deferred (decided)
-Dark mode is **intentionally out of scope** for TalVault at this stage. It is a
-known future item, not an unresolved question: do not add a theme toggle or
-`.dark` overrides without an explicit decision to reverse this.
-
-The design system is already structured to support it without a rework — all
-colours/surfaces/shadows live as semantic tokens in `:root` in `src/styles.css`
-and the `dark` variant is registered. Adding it later = one `.dark { ... }` token
-block plus a toggle. See the note at the top of `src/styles.css`.
+- Theme: all colours/surfaces/shadows are semantic tokens in `:root` / `.dark` in `src/styles.css`. Why: theming without component rework.
 
 ## Technical decisions
 - All displayed sharing terminology imports the constants in src/lib/terms.ts; legacy identifiers and URLs remain unchanged. Why: consistent sentence case without breaking existing shares.
@@ -39,7 +30,6 @@ block plus a toggle. See the note at the top of `src/styles.css`.
 
 - CI lint is blocking and excludes only managed/generated integration output; unresolved authored-code findings stay enabled. Why: do not hide lint debt or rewrite regenerated files.
 - Invitation duplicate-email rules live only in src/lib/invite-email-check.ts (messages, matching) and are enforced by assertInviteEmailFree before every invitation insert/send; agency checks never look outside the caller's agency and agency talent invites never reveal accounts. Why: one message set, no cross-agency leaks.
-- Activation and the sign-in gate both record Terms acceptance by document ID plus body hash, refused unless current. Why: proof of the exact text accepted.
 - Admin invitations render only through CombinedInvitationsList (listCombinedInvitations; type/status options only from src/lib/invitation-filters.ts; agency row actions only from useAgencyInvitationActions), and Admin accounts only through listAccounts with filters in src/lib/account-filters.ts. Why: one list, one filter and action set, filtered and paged on the server.
 - Admin launch reports compute every figure through src/lib/launch-reporting-core.ts (SAST day boundaries), loaded by launch-reporting.functions.ts; launch targets/offer live only in platform_settings key "launch". Why: one tested rule per figure, editable targets.
 - Admin agency/independent-talent invitation emails render only through renderAdminInvite (src/lib/invitation-email.ts) for the Review email preview, send and resend; approved wording and an exact copy of the sent email are stored on the invitation row by deliverAdminInvite. Why: the preview, the sent email and the record can never differ.
