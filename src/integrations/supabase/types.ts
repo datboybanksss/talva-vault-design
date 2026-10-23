@@ -1445,6 +1445,54 @@ export type Database = {
           },
         ]
       }
+      agency_talent_folders_backup_20261023: {
+        Row: {
+          agency_id: string | null
+          category_slug: string | null
+          created_at: string | null
+          folder_name: string | null
+          id: string | null
+          needs_review: boolean | null
+          parent_folder_id: string | null
+          restricted: boolean | null
+          retention_years: number | null
+          sort_order: number | null
+          source: string | null
+          talent_link_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agency_id?: string | null
+          category_slug?: string | null
+          created_at?: string | null
+          folder_name?: string | null
+          id?: string | null
+          needs_review?: boolean | null
+          parent_folder_id?: string | null
+          restricted?: boolean | null
+          retention_years?: number | null
+          sort_order?: number | null
+          source?: string | null
+          talent_link_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agency_id?: string | null
+          category_slug?: string | null
+          created_at?: string | null
+          folder_name?: string | null
+          id?: string | null
+          needs_review?: boolean | null
+          parent_folder_id?: string | null
+          restricted?: boolean | null
+          retention_years?: number | null
+          sort_order?: number | null
+          source?: string | null
+          talent_link_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       agency_talent_links: {
         Row: {
           agency_id: string
@@ -1807,6 +1855,33 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
+      }
+      folder_catalogue_subfolders_backup_20261023: {
+        Row: {
+          category_slug: string | null
+          created_at: string | null
+          id: string | null
+          kind: string | null
+          name: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          category_slug?: string | null
+          created_at?: string | null
+          id?: string | null
+          kind?: string | null
+          name?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          category_slug?: string | null
+          created_at?: string | null
+          id?: string | null
+          kind?: string | null
+          name?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
       }
       folder_rename_migration_log: {
         Row: {
@@ -2465,6 +2540,72 @@ export type Database = {
           subject?: string
           updated_at?: string
           window_started_at?: string
+        }
+        Relationships: []
+      }
+      shared_folder_merge_doc_map: {
+        Row: {
+          batch: string
+          created_at: string
+          document_id: string
+          id: string
+          new_folder_name: string
+          old_folder_name: string
+        }
+        Insert: {
+          batch: string
+          created_at?: string
+          document_id: string
+          id?: string
+          new_folder_name: string
+          old_folder_name: string
+        }
+        Update: {
+          batch?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          new_folder_name?: string
+          old_folder_name?: string
+        }
+        Relationships: []
+      }
+      shared_folder_merge_map: {
+        Row: {
+          action: string
+          batch: string
+          created_at: string
+          folder_id: string
+          id: string
+          new_folder_name: string
+          old_folder_name: string
+          old_parent_folder_id: string | null
+          old_row: Json
+          talent_link_id: string
+        }
+        Insert: {
+          action: string
+          batch: string
+          created_at?: string
+          folder_id: string
+          id?: string
+          new_folder_name: string
+          old_folder_name: string
+          old_parent_folder_id?: string | null
+          old_row: Json
+          talent_link_id: string
+        }
+        Update: {
+          action?: string
+          batch?: string
+          created_at?: string
+          folder_id?: string
+          id?: string
+          new_folder_name?: string
+          old_folder_name?: string
+          old_parent_folder_id?: string | null
+          old_row?: Json
+          talent_link_id?: string
         }
         Relationships: []
       }
@@ -3282,6 +3423,24 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
+      }
+      tsd_folder_backup_20261023: {
+        Row: {
+          folder: string | null
+          id: string | null
+          talent_link_id: string | null
+        }
+        Insert: {
+          folder?: string | null
+          id?: string | null
+          talent_link_id?: string | null
+        }
+        Update: {
+          folder?: string | null
+          id?: string | null
+          talent_link_id?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
