@@ -619,24 +619,10 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           year: "numeric",
         });
 
+      // Expiring documents are intentionally not listed here — the bell
+      // already carries them (count + per-document reminders). The dashboard
+      // keeps the "Expiring soon" KPI count only.
       const items = [
-        ...(expDocs.data ?? []).map((d: any) => {
-          const ms = new Date(d.validity_expires_at).getTime() - Date.now();
-          const days = Math.ceil(ms / 86400_000);
-          return {
-            key: `expiring_doc:${d.id}`,
-            snapshot: Math.floor(new Date(d.validity_expires_at).getTime() / 1000),
-            type: "expiring" as const,
-            tone: "amber" as const,
-            title:
-              days < 0
-                ? `${d.name} expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`
-                : days === 0
-                  ? `${d.name} expires today`
-                  : `${d.name} expires in ${days} day${days === 1 ? "" : "s"}`,
-            detail: `${d.folder} · Agency Shared Folder`,
-          };
-        }),
         ...(reqRows.data ?? []).map((r: any) => ({
           key: `doc_request:${r.id}`,
           snapshot: Math.floor(new Date(r.updated_at).getTime() / 1000),
