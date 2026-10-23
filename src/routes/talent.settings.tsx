@@ -1,5 +1,6 @@
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { PageBand } from "@/components/shared/brand";
+import { Switch } from "@/components/ui/switch";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -32,31 +33,16 @@ export const Route = createFileRoute("/talent/settings")({
 
 type Mode = "profile" | "account" | "security" | "folders" | "relationship" | "notifications";
 
-const IN_APP_CHANNELS: { key: string; label: string; hint: string; live: boolean; agencyOnly?: boolean }[] = [
+const IN_APP_CHANNELS: { key: string; label: string; hint: string }[] = [
   {
     key: "doc_expiring",
     label: "Document expiring",
-    hint: "Documents in your vault approaching their expiry date.",
-    live: true,
+    hint: "When a document in your vault is close to its expiry date.",
   },
   {
     key: "share_expiring",
     label: `${SHARE_RECIPIENT_TERM_CAPITALISED} access expiring`,
-    hint: "A secure-link share you created is about to lapse.",
-    live: true,
-  },
-  {
-    key: "agency_share",
-    label: "Agency shares a document",
-    hint: "Arrives with the shared-folder event stream.",
-    live: false,
-    agencyOnly: true,
-  },
-  {
-    key: "ai_review",
-    label: "AI suggestions need review",
-    hint: "Arrives when AI filing runs server-side.",
-    live: false,
+    hint: "When a secure link you shared is about to stop working.",
   },
 ];
 
@@ -308,94 +294,47 @@ function TalentSettings() {
               </p>
             </div>
           </div>
-          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 18, fontWeight: 800 }}>
-            In-app notifications
-          </p>
-          <label
-            className="tvp-doc-card"
-            style={{
-              cursor: "pointer",
-              marginTop: 8,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={inAppEnabled}
-              onChange={(e) => setInAppEnabled(e.target.checked)}
-              style={{ width: 18, height: 18 }}
-            />
-            <div>
-              <strong>Show reminders in TalVault</strong>
-              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                Drives the notification bell, the Dashboard badge and the “Needs attention” panel.
-                Switch this off and no reminders are raised for your account.
+          <h3 className="tv-pref-heading">In-app notifications</h3>
+          <div className="tv-pref-list">
+            <div className="tv-pref-row">
+              <div className="tv-pref-text">
+                <label htmlFor="pref-in-app" className="tv-pref-label">Show reminders in TalVault</label>
+                <p className="tv-pref-hint">
+                  Reminders appear in the notification bell. Switch this off and you won't get any reminders.
+                </p>
               </div>
+              <Switch id="pref-in-app" checked={inAppEnabled} onCheckedChange={setInAppEnabled} />
             </div>
-            <span className={`tvp-status tvp-${inAppEnabled ? "green" : "neutral"}`}>
-              {inAppEnabled ? "On" : "Off"}
-            </span>
-          </label>
-
-          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 14 }}>
-            Choose which reminders you want to see.
-          </p>
-          <div className="tvp-doc-grid" style={{ marginTop: 10, opacity: inAppEnabled ? 1 : 0.5 }}>
-            {IN_APP_CHANNELS.filter((c) => linked || !c.agencyOnly).map((c) => {
-              const usable = c.live && inAppEnabled;
-              return (
-                <label
-                  key={c.key}
-                  className="tvp-doc-card"
-                  style={{ cursor: usable ? "pointer" : "not-allowed", opacity: c.live ? 1 : 0.6 }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={c.live ? inApp[c.key] !== false : false}
-                    disabled={!usable}
-                    onChange={(e) => setInApp((p) => ({ ...p, [c.key]: e.target.checked }))}
-                    style={{ width: 18, height: 18 }}
-                  />
-                  <div>
-                    <strong>{c.label}</strong>
-                    <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                      {c.hint}
-                    </div>
-                  </div>
-                  <span className={`tvp-status tvp-${c.live ? "green" : "neutral"}`}>
-                    {c.live ? "Active" : "Soon"}
-                  </span>
-                </label>
-              );
-            })}
           </div>
 
-          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 20, fontWeight: 800 }}>
-            Email notifications
-          </p>
-          <label
-            className="tvp-doc-card"
-            style={{
-              cursor: "not-allowed",
-              opacity: 0.6,
-              marginTop: 8,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <input type="checkbox" checked={false} disabled style={{ width: 18, height: 18 }} />
-            <div>
-              <strong>Email me the same reminders</strong>
-              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                Not available yet — pending domain verification. Reminders will start arriving by
-                email automatically once the TalVault sending domain is verified.
+          <h3 className="tv-pref-heading">Choose which reminders you want</h3>
+          <div className="tv-pref-list">
+            {IN_APP_CHANNELS.map((c) => (
+              <div key={c.key} className="tv-pref-row">
+                <div className="tv-pref-text">
+                  <label htmlFor={`pref-${c.key}`} className="tv-pref-label">{c.label}</label>
+                  <p className="tv-pref-hint">{c.hint}</p>
+                </div>
+                <Switch
+                  id={`pref-${c.key}`}
+                  checked={inApp[c.key] !== false}
+                  disabled={!inAppEnabled}
+                  onCheckedChange={(v) => setInApp((p) => ({ ...p, [c.key]: v }))}
+                />
               </div>
+            ))}
+          </div>
+
+          <h3 className="tv-pref-heading">Email notifications</h3>
+          <div className="tv-pref-list">
+            <div className="tv-pref-row tv-pref-off">
+              <div className="tv-pref-text">
+                <label htmlFor="pref-email" className="tv-pref-label">Email me the same reminders</label>
+                <p className="tv-pref-hint">Email reminders are coming once our email service is switched on.</p>
+              </div>
+              <Switch id="pref-email" checked={false} disabled />
             </div>
-            <span className="tvp-status tvp-neutral">Not available yet</span>
-          </label>
+          </div>
         </div>
       )}
     </>
