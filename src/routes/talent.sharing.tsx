@@ -1,5 +1,5 @@
-import {
 import { PageBand, EmptyState } from "@/components/shared/brand";
+import {
   SHARE_RECIPIENT_TERM,
   SHARE_RECIPIENT_TERM_CAPITALISED,
   SHARE_RECIPIENT_TERM_PLURAL,
