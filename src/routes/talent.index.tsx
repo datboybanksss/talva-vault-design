@@ -160,11 +160,11 @@ function TalentDashboard() {
             {visibleAttention.map((item) => (
               <div key={item.key} className="tvp-review-row">
                 <Link
-                  to="/talent/vault"
+                  to={item.type === "request" ? "/talent/vault" : "/talent/notifications"}
                   search={
                     item.type === "request"
                       ? { tab: "agency", view: "requests" }
-                      : { tab: "agency", view: "folder" }
+                      : undefined
                   }
                   className="tvp-review-link"
                   style={{ display: "contents", color: "inherit", textDecoration: "none" }}

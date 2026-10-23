@@ -6,7 +6,7 @@ import {
   blockText,
   fmtLongDate,
 } from "@/lib/document-blocks";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { RecentlyDeletedDialog } from "@/components/agency/recently-deleted-dialog";
 import { stopSharingConfirmText } from "@/lib/document-settings";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -158,8 +158,10 @@ export const Route = createFileRoute("/agency/document-vault")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { tab?: string } =>
-    typeof search.tab === "string" ? { tab: search.tab } : {},
+  validateSearch: (search: Record<string, unknown>): { tab?: string; doc?: string } => ({
+    ...(typeof search.tab === "string" ? { tab: search.tab } : {}),
+    ...(typeof search.doc === "string" && search.doc ? { doc: search.doc } : {}),
+  }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(talentSummaryQO),
@@ -351,8 +353,20 @@ function VaultPage() {
   const viewMut = useMutation({
     mutationFn: (id: string) => signedFn({ data: { id, disposition: "inline" } }),
     onSuccess: ({ url, name }) => setPreview({ url, name }),
-    onError: (e: any) => toast.error(friendlyError(e, "Could not open file")),
+    onError: (e: any) =>
+      toast.error(friendlyError(e, "This document is no longer available to you.")),
   });
+
+  // Deep link from a bell notification: open the document straight away, or
+  // say clearly when it is no longer available (deleted, access changed).
+  const navigate = useNavigate();
+  const docParam = (searchParams as { doc?: string }).doc;
+  useEffect(() => {
+    if (!docParam) return;
+    navigate({ to: "/agency/document-vault", search: {}, replace: true });
+    viewMut.mutate(docParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docParam]);
 
   const downloadMut = useMutation({
     mutationFn: (id: string) => signedFn({ data: { id, disposition: "attachment" } }),

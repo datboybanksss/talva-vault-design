@@ -156,7 +156,7 @@ export const getTalentBellFeed = createServerFn({ method: "GET" })
     if (!enabled) return { enabled: false, unreadCount: 0, items: [] as any[] };
     const { data: rows } = await supabase
       .from("talent_notifications")
-      .select("id, kind, title, detail, tone, target_type, due_at, created_at")
+      .select("id, kind, title, detail, tone, target_type, target_id, due_at, created_at")
       .eq("user_id", userId)
       .is("read_at", null)
       .order("created_at", { ascending: false })
@@ -557,7 +557,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     let attention: {
       key: string;
       snapshot: number;
-      type: "expiring" | "request" | "reminder";
+      type: "request" | "reminder";
       title: string;
       detail: string;
       tone: "amber" | "purple";
@@ -567,7 +567,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const expiryCutoff = new Date(Date.now() + expiryNoticeDays * 86400_000).toISOString();
-      const [sc, sf, ec, or, rr, pr, expDocs, reqRows] = await Promise.all([
+      const [sc, sf, ec, or, rr, pr, reqRows] = await Promise.all([
         supabaseAdmin
           .from("talent_shared_documents")
           .select("id", { count: "exact", head: true })
@@ -598,14 +598,6 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .eq("talent_link_id", link.id)
           .eq("status", "pending"),
         supabaseAdmin
-          .from("talent_shared_documents")
-          .select("id, name, folder, validity_expires_at")
-          .eq("talent_link_id", link.id)
-          .not("validity_expires_at", "is", null)
-          .lt("validity_expires_at", expiryCutoff)
-          .order("validity_expires_at", { ascending: true })
-          .limit(50),
-        supabaseAdmin
           .from("agency_document_requests")
           .select("id, title, folder, status, due_date, updated_at")
           .eq("talent_link_id", link.id)
@@ -627,24 +619,10 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           year: "numeric",
         });
 
+      // Expiring documents are intentionally not listed here — the bell
+      // already carries them (count + per-document reminders). The dashboard
+      // keeps the "Expiring soon" KPI count only.
       const items = [
-        ...(expDocs.data ?? []).map((d: any) => {
-          const ms = new Date(d.validity_expires_at).getTime() - Date.now();
-          const days = Math.ceil(ms / 86400_000);
-          return {
-            key: `expiring_doc:${d.id}`,
-            snapshot: Math.floor(new Date(d.validity_expires_at).getTime() / 1000),
-            type: "expiring" as const,
-            tone: "amber" as const,
-            title:
-              days < 0
-                ? `${d.name} expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`
-                : days === 0
-                  ? `${d.name} expires today`
-                  : `${d.name} expires in ${days} day${days === 1 ? "" : "s"}`,
-            detail: `${d.folder} · Agency Shared Folder`,
-          };
-        }),
         ...(reqRows.data ?? []).map((r: any) => ({
           key: `doc_request:${r.id}`,
           snapshot: Math.floor(new Date(r.updated_at).getTime() / 1000),
@@ -673,9 +651,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       });
     }
 
-    // Reminder-engine notifications (Private Vault expiries, share expiries).
-    // Shared-folder rows are skipped — they are already listed above.
-    // The in-app master switch gates both the scan and the feed.
+    // Reminder-engine notifications (Private Vault and shared-folder expiries,
+    // share expiries). The in-app master switch gates both the scan and the feed.
     const inAppEnabled = await inAppRemindersEnabled(supabase, userId);
     let unreadNotifications = 0;
     if (inAppEnabled) {
@@ -690,7 +667,6 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         .select("id, kind, title, detail, tone, target_type, due_at, read_at, created_at")
         .eq("user_id", userId)
         .is("dismissed_at", null)
-        .neq("target_type", "shared_document")
         .order("due_at", { ascending: true })
         .limit(50);
       for (const n of notifs ?? []) {

@@ -78,6 +78,22 @@ const buildManageNav = (
 
 const settings: NavItem[] = [{ to: "/talent/settings", label: "Settings", icon: <SettingsIcon /> }];
 
+/** Where a bell reminder leads when clicked — straight to the item it is about. */
+function bellTarget(n: {
+  kind: string;
+  target_type?: string | null;
+  target_id?: string | null;
+}): { to: string; search?: Record<string, unknown> } {
+  if (n.kind === "doc_expiring" && n.target_id) {
+    return n.target_type === "shared_document"
+      ? { to: "/talent/vault", search: { tab: "agency", view: "folder", doc: n.target_id } }
+      : { to: "/talent/vault", search: { tab: "private", doc: n.target_id } };
+  }
+  if (n.kind === "share_expiring") return { to: "/talent/sharing" };
+  if (n.kind === "new_device_signin") return { to: "/talent/settings", search: { tab: "account" } };
+  return { to: "/talent/notifications" };
+}
+
 export function TalentShell({ children }: { children: ReactNode }) {
   useIdleSignOut();
   const [collapsed, setCollapsed] = useState(false);
@@ -389,9 +405,13 @@ export function TalentShell({ children }: { children: ReactNode }) {
                 {bellItems.map((n: any) => (
                   <div key={n.id} style={{ position: "relative" }}>
                     <Link
-                      to="/talent/notifications"
+                      to={bellTarget(n).to}
+                      search={bellTarget(n).search}
                       className="tvp-notification-item"
-                      onClick={() => setBellOpen(false)}
+                      onClick={() => {
+                        setBellOpen(false);
+                        markNotificationRead(n.id);
+                      }}
                     >
                       <div
                         className={`tvp-kpi-icon tvp-bg-${n.tone === "purple" ? "purple" : "amber"}`}
