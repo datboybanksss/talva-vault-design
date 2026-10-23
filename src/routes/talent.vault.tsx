@@ -920,7 +920,7 @@ function AgencySharedFolder({ initialView }: { initialView: AgencyView }) {
           className={`tvp-subtab${view === "requests" ? " tvp-active" : ""}`}
           onClick={() => go("requests")}
         >
-          <Inbox className="h-4 w-4" /> Requests from your Manager
+          <Inbox className="h-4 w-4" /> Requests
           {actionRequests > 0 && <span className="tvp-subtab-badge">{actionRequests}</span>}
         </button>
       </div>
@@ -984,7 +984,7 @@ function SharedDocumentsView() {
       <div className="tvp-card tvp-panel">
         <h2 className="tvp-h2">No active manager link</h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
-          You aren't currently linked to a Talent Manager. Once you're invited and accepted, the
+          You aren't currently linked to an agency. Once you're invited and accepted, the
           Agency Shared Folder appears here.
         </p>
       </div>
@@ -1064,7 +1064,7 @@ function SharedDocumentsView() {
           )}
           {folders.length === 0 ? (
             <p className="tvp-muted" style={{ fontSize: 13 }}>
-              Your Manager hasn't provisioned any shared folders yet.
+              Your agency hasn't provisioned any shared folders yet.
             </p>
           ) : (
             <SharedFolderTree
@@ -1092,7 +1092,7 @@ function SharedDocumentsView() {
           {docs.length === 0 ? (
             <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
               {data.documents.length === 0
-                ? "Your Manager hasn't shared any documents with you yet."
+                ? "Your agency hasn't shared any documents with you yet."
                 : "No documents match your search or folder filter — clear them to see everything."}
             </p>
           ) : (
@@ -1283,7 +1283,7 @@ function ManagerRequests() {
           mime_type: file.type || undefined,
         },
       });
-      toast.success("Submitted to your Manager for review.");
+      toast.success("Submitted to your agency for review.");
       qc.invalidateQueries({ queryKey: ["talent", "doc-requests"] });
       qc.invalidateQueries({ queryKey: ["talent", "roster-shared"] });
       qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
@@ -1311,7 +1311,7 @@ function ManagerRequests() {
       <div className="tvp-card tvp-panel">
         <h2 className="tvp-h2">No active manager link</h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
-          Once you're linked to a Talent Manager, requests they send you will appear here.
+          Once you're linked to an agency, requests they send you will appear here.
         </p>
       </div>
     );
@@ -1332,9 +1332,9 @@ function ManagerRequests() {
           <Inbox className="h-4 w-4" />
         </div>
         <div>
-          <strong>Requests from your Manager.</strong>{" "}
+          <strong>Requests.</strong>{" "}
           <span className="tvp-muted">
-            Upload the requested document; it lands in your Agency Shared Folder and your Manager
+            Upload the requested document; it lands in your Agency Shared Folder and your agency
             reviews it. Previous submissions are kept in history — nothing is deleted.
           </span>
         </div>
@@ -1393,7 +1393,7 @@ function ManagerRequests() {
                           <AlertCircle className="h-4 w-4" />
                         </div>
                         <div style={{ fontSize: 12 }}>
-                          <strong>Manager requested a resubmission</strong>
+                          <strong>Your agency asked for a resubmission</strong>
                           {r.reason_code && <> · reason: {r.reason_code.replace(/_/g, " ")}</>}
                           {r.review_notes && (
                             <div className="tvp-muted" style={{ marginTop: 2 }}>
@@ -1438,7 +1438,7 @@ function ManagerRequests() {
                 )}
                 {r.status === "submitted" && (
                   <div className="tvp-muted" style={{ fontSize: 12, textAlign: "right" }}>
-                    Awaiting Manager review.
+                    Waiting for your agency to review.
                   </div>
                 )}
               </div>
