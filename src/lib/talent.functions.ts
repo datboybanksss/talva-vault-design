@@ -65,31 +65,35 @@ export type TalentLinkView = {
  * surface (UI and server) decides visibility from this one list.
  */
 export async function loadTalentLinks(supabase: any, userId: string): Promise<TalentLinkView[]> {
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsError } = await supabase
     .from("agency_talent_links")
     .select("id, agency_id, status, ended_at, created_at")
     .eq("talent_user_id", userId)
     .order("created_at", { ascending: true });
+  // A failed read must never look like "independent talent".
+  if (rowsError) throw new Error("We couldn't load your agency details. Please refresh and try again.");
   const out: TalentLinkView[] = [];
   const candidates = (rows ?? []) as any[];
   if (candidates.length === 0) return out;
   const { classifyTalentLink } = await import("@/lib/talent-links-core");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: agencies } = await supabaseAdmin
+  const { data: agencies, error: agenciesError } = await supabaseAdmin
     .from("agencies")
     .select("id, name")
     .in(
       "id",
       candidates.map((r) => r.agency_id),
     );
+  if (agenciesError) throw new Error("We couldn't load your agency details. Please refresh and try again.");
   const names = new Map((agencies ?? []).map((a: any) => [a.id, (a.name as string)?.trim()]));
   for (const r of candidates) {
     if (!r.ended_at && ["invited", "needs_review", "expired"].includes(r.status)) continue;
     const readUntil = await linkReadUntil(r.id);
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("talent_shared_documents")
       .select("id", { count: "exact", head: true })
       .eq("talent_link_id", r.id);
+    if (countError) throw new Error("We couldn't load your agency details. Please refresh and try again.");
     const shared = count ?? 0;
     const state = classifyTalentLink({
       status: r.status,
@@ -1059,17 +1063,19 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
  * so only the contact fields listed here are read with the service role, and
  * only for links loadTalentLinks has already confirmed belong to the caller.
  */
-export const getTalentAgencyRelationships = createServerFn({ method: "GET" })
+export const getTalentAgencyLinks = createServerFn({ method: "GET" })
   .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const links = await loadTalentLinks(supabase, userId);
-    if (links.length === 0) return { relationships: [] };
+    const { data: reqs } = await supabase.rpc("my_link_requests");
+    const pendingConnectionRequests = ((reqs as any[]) ?? []).length;
+    if (links.length === 0) return { relationships: [], hasActiveLink: false, pendingConnectionRequests };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ data: linkRows }, { data: agencies }] = await Promise.all([
+    const [{ data: linkRows, error: e1 }, { data: agencies, error: e2 }] = await Promise.all([
       supabaseAdmin
         .from("agency_talent_links")
-        .select("id, manager_user_id, created_at, accepted_at, ended_at")
+        .select("id, manager_user_id, created_at, responded_at, ended_at")
         .in(
           "id",
           links.map((l) => l.id),
@@ -1082,6 +1088,7 @@ export const getTalentAgencyRelationships = createServerFn({ method: "GET" })
           links.map((l) => l.agency_id),
         ),
     ]);
+    if (e1 || e2) throw new Error("We couldn't load your agency details. Please refresh and try again.");
     const managerIds = [...new Set((linkRows ?? []).map((r: any) => r.manager_user_id).filter(Boolean))];
     const { data: managers } = managerIds.length
       ? await supabaseAdmin.from("profiles").select("id, display_name, first_name, last_name, email, phone").in("id", managerIds)
@@ -1108,10 +1115,14 @@ export const getTalentAgencyRelationships = createServerFn({ method: "GET" })
         agencyEmail: clean(a.contact_email),
         agencyPhone: clean(a.phone),
         manager: m ? { name: managerName, email: clean(m.email), phone: clean(m.phone) } : null,
-        linkedSince: (row.accepted_at ?? row.created_at ?? null) as string | null,
+        linkedSince: (row.responded_at ?? row.created_at ?? null) as string | null,
         endedAt: (row.ended_at ?? null) as string | null,
         sharedDocs: l.shared_docs,
       });
     }
-    return { relationships: out };
+    return {
+      relationships: out,
+      hasActiveLink: out.some((r) => r.state === "active"),
+      pendingConnectionRequests,
+    };
   });

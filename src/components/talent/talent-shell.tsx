@@ -1,4 +1,5 @@
 import { SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
+import { useTalentAgencyLinks } from "@/lib/talent-agency-links";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { HelpMenu } from "@/components/shared/help-menu";
@@ -187,14 +188,15 @@ export function TalentShell({ children }: { children: ReactNode }) {
   }[];
 
   const bellCount = notifications.length + bellItems.length;
-  const ctxLinks = (useRouterState({
-    select: (st) => st.matches.find((m) => m.routeId === "/talent")?.loaderData,
-  }) ?? null) as { hasActiveLink?: boolean; pendingConnectionRequests?: number } | null;
+  const agencyLinks = useTalentAgencyLinks();
   const manage = buildManageNav(
     vaultBadge,
     sharesBadge,
     bellCount,
-    !!ctxLinks?.hasActiveLink || (ctxLinks?.pendingConnectionRequests ?? 0) > 0,
+    // A failed read keeps agency items visible rather than guessing "independent".
+    agencyLinks.isError ||
+      !!agencyLinks.data?.hasActiveLink ||
+      (agencyLinks.data?.pendingConnectionRequests ?? 0) > 0,
   );
 
   async function markNotificationRead(id: string) {
@@ -225,7 +227,14 @@ export function TalentShell({ children }: { children: ReactNode }) {
       .slice(0, 2)
       .join("")
       .toUpperCase() || "T";
-  const agencyName = ctx?.agency?.name ?? "Independent talent";
+  const activeAgencies = (agencyLinks.data?.relationships ?? []).filter((r) => r.state === "active");
+  const agencyName = agencyLinks.isError
+    ? "Agency details unavailable"
+    : !agencyLinks.data
+      ? ""
+      : activeAgencies.length
+        ? activeAgencies.map((r) => r.agencyName).join(", ")
+        : "Independent talent";
 
   async function handleSignOut() {
     await queryClient.cancelQueries();

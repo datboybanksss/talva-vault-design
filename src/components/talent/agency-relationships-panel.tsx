@@ -1,8 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { FileStack, Mail, Phone } from "lucide-react";
-import { getTalentAgencyRelationships } from "@/lib/talent.functions";
+import { useTalentAgencyLinks } from "@/lib/talent-agency-links";
 import { friendlyError } from "@/lib/friendly-error";
 
 const fmt = (v: string) =>
@@ -18,11 +16,7 @@ const initials = (name: string) =>
     .toUpperCase() || "A";
 
 export function AgencyRelationshipsPanel() {
-  const load = useServerFn(getTalentAgencyRelationships);
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["talent", "agency-relationships"],
-    queryFn: () => load(),
-  });
+  const { data, isLoading, isError, error } = useTalentAgencyLinks();
 
   if (isLoading)
     return (
