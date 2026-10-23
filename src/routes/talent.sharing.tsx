@@ -705,7 +705,7 @@ export function NewShareModal({
         <h3 className="tvp-share-section" data-tour="share-scope">
           What are you sharing?
         </h3>
-        <div className="tvp-roster-tabs tvp-share-seg" role="tablist" aria-label="What are you sharing?">
+        <div className="tvp-share-seg" role="tablist" aria-label="What are you sharing?">
           {kinds.map((k) => (
             <button
               key={k.id}
@@ -785,7 +785,7 @@ export function NewShareModal({
         <h3 className="tvp-share-section" data-tour="share-permission">
           What can they do?
         </h3>
-        <div className="tvp-roster-tabs tvp-share-seg" role="tablist" aria-label="What can they do?">
+        <div className="tvp-share-seg" role="tablist" aria-label="What can they do?">
           {(
             [
               { id: "view", label: "View only (watermarked)" },

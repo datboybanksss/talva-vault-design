@@ -6189,7 +6189,7 @@ a.tvp-entity-card:focus-visible {
 .tvp-modal .tvp-field-help {
   font-size: 12px;
   color: var(--tvp-muted);
-  margin-top: var(--sp-4);
+  margin: 0;
 }
 .tvp-modal .tvp-share-section {
   font-size: 13px;
@@ -6198,11 +6198,41 @@ a.tvp-entity-card:focus-visible {
   margin: var(--sp-24) 0 var(--sp-8);
 }
 .tvp-modal .tvp-share-seg {
-  margin: 0 0 var(--sp-12);
+  display: inline-flex;
   flex-wrap: wrap;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  margin: 0 0 var(--sp-12);
+  border: 1px solid var(--line-200);
+  border-radius: var(--r-md);
+  background: var(--surface-soft);
+}
+.tvp-modal .tvp-share-seg .tvp-tab {
+  height: 36px;
+  padding: 0 var(--sp-12);
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--tvp-muted);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.tvp-modal .tvp-share-seg .tvp-tab:hover {
+  color: var(--tvp-ink);
+}
+.tvp-modal .tvp-share-seg .tvp-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tvp-modal .tvp-share-seg .tvp-tab.tvp-active {
+  border-color: var(--line-200);
+  background: var(--surface);
+  color: var(--tvp-ink);
+  box-shadow: var(--sh-sm);
 }
 .tvp-modal .tvp-share-list {
-  border: 1px solid var(--tvp-line);
+  border: 1px solid var(--line);
   border-radius: var(--r-sm);
   max-height: 280px;
   overflow-y: auto;
@@ -6219,7 +6249,7 @@ a.tvp-entity-card:focus-visible {
   gap: var(--sp-12);
   min-height: 44px;
   padding: var(--sp-8) var(--sp-12);
-  border-bottom: 1px solid var(--tvp-line);
+  border-bottom: 1px solid var(--line);
   font-size: 14px;
   font-weight: 500;
   color: var(--tvp-ink);
