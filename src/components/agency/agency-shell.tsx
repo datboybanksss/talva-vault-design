@@ -348,6 +348,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                       {n.to ? (
                         <Link
                           to={n.to}
+                          search={n.search ?? {}}
                           onClick={() => setBellOpen(false)}
                           style={{ display: "contents", color: "inherit", textDecoration: "none" }}
                         >
