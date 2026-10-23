@@ -178,6 +178,21 @@ function PrivateVault() {
   const [filterFolder, setFilterFolder] = useState<string>("__all");
   const [showAllDocs, setShowAllDocs] = useState(false);
 
+  const [copyFor, setCopyFor] = useState<{ id: string; name: string } | null>(null);
+  const loadCopyTargets = useServerFn(listVaultCopyTargets);
+  const { data: copyTargets } = useQuery({
+    queryKey: ["talent", "vault-copy-targets"],
+    queryFn: () =>
+      loadCopyTargets() as Promise<{
+        targets: {
+          talent_link_id: string;
+          agency_name: string;
+          folders: { id: string; name: string }[];
+        }[];
+      }>,
+  });
+  const hasCopyTargets = (copyTargets?.targets ?? []).some((t) => t.folders.length > 0);
+
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const toggleFolder = (id: string) =>
     setOpenFolders((prev) => {
@@ -630,6 +645,16 @@ function PrivateVault() {
                                   ? undefined
                                   : "No file attached to this document",
                                 onSelect: () => onDownload(d.id),
+                              },
+                              hasCopyTargets && {
+                                key: "copy",
+                                label: "Copy to agency shared folder",
+                                icon: Share2,
+                                disabled: !d.storage_path,
+                                title: d.storage_path
+                                  ? undefined
+                                  : "No file attached to this document",
+                                onSelect: () => setCopyFor({ id: d.id, name: d.name }),
                               },
                               {
                                 key: "delete",
