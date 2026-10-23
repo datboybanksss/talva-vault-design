@@ -285,7 +285,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/settings" },
         selector: '[data-tour="talent-settings-tabs"]',
         title: "Step 5 — in-app reminders",
-        body: 'Below that, the "In-app reminders" cards control what appears in your dashboard "To do" list. Cards marked "Active" can be ticked; those marked "Soon" are switched off until the TalVault sending domain is verified, so email delivery isn\'t running yet.',
+        body: "On the Notifications tab, use the switches to choose which reminders appear in your notification bell.",
       },
     ],
   },

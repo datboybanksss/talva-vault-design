@@ -6575,3 +6575,13 @@ a.tvp-entity-card:focus-visible {
 }
 .tv-app .tv-page [data-tour="talent-vault-body"] > * { margin-top: 0; margin-bottom: 0; }
 .tv-app .tv-page .tvp-subtabs { align-self: flex-start; }
+
+/* Settings preference rows: label + hint left, standard switch right */
+.tv-app .tv-pref-heading { font-size: 13px; font-weight: 800; color: var(--tvp-ink); margin: var(--sp-5, 20px) 0 var(--sp-2, 8px); }
+.tv-app .tv-pref-list { border: 1px solid var(--tvp-line); border-radius: 12px; background: var(--tvp-surface); }
+.tv-app .tv-pref-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4, 16px); padding: 12px 16px; }
+.tv-app .tv-pref-row + .tv-pref-row { border-top: 1px solid var(--tvp-line); }
+.tv-app .tv-pref-text { min-width: 0; }
+.tv-app .tv-pref-label { font-size: 14px; font-weight: 700; color: var(--tvp-ink); cursor: pointer; }
+.tv-app .tv-pref-hint { font-size: 13px; color: var(--tvp-muted); margin-top: 2px; line-height: 1.45; }
+.tv-app .tv-pref-off .tv-pref-label { cursor: default; }
