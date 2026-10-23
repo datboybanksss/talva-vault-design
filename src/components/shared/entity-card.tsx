@@ -63,6 +63,8 @@ export type EntityStat = {
   label: string;
   value: string | number;
   tone?: "red" | "amber" | "green";
+  /** Opens a filtered view; does not trigger the card's own click. */
+  onClick?: () => void;
 };
 
 export type EntityCardProps = {
@@ -124,7 +126,11 @@ export function EntityCard({
           {meta ? <p className="tvp-entity-meta">{meta}</p> : null}
         </div>
         {actions ? (
-          <div className="tvp-entity-actions" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="tvp-entity-actions"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             {actions}
           </div>
         ) : null}
@@ -132,16 +138,37 @@ export function EntityCard({
       {pills ? <div className="tvp-entity-pills">{pills}</div> : null}
       {stats && stats.length > 0 ? (
         <div className="tvp-entity-stats">
-          {stats.map((s) => (
-            <div className="tvp-entity-stat" key={s.label}>
-              <span
-                className={`tvp-entity-stat-value${s.tone ? ` tvp-entity-stat-${s.tone}` : ""}`}
+          {stats.map((s) => {
+            const inner = (
+              <>
+                <span
+                  className={`tvp-entity-stat-value${s.tone ? ` tvp-entity-stat-${s.tone}` : ""}`}
+                >
+                  {s.value}
+                </span>
+                <span className="tvp-entity-stat-label">{s.label}</span>
+              </>
+            );
+            return s.onClick ? (
+              <button
+                type="button"
+                className="tvp-entity-stat tvp-entity-stat-link"
+                key={s.label}
+                aria-label={`${s.label}: ${s.value}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  s.onClick!();
+                }}
+                onKeyDown={(e) => e.stopPropagation()}
               >
-                {s.value}
-              </span>
-              <span className="tvp-entity-stat-label">{s.label}</span>
-            </div>
-          ))}
+                {inner}
+              </button>
+            ) : (
+              <div className="tvp-entity-stat" key={s.label}>
+                {inner}
+              </div>
+            );
+          })}
         </div>
       ) : null}
     </>
@@ -149,6 +176,27 @@ export function EntityCard({
 
   if (!onClick) return <div className={className}>{body}</div>;
 
+  // A card that holds its own menu or stat links can't be a <button> (nested
+  // interactive controls), so it is a focusable link-like region instead.
+  if (actions || stats?.some((s) => s.onClick)) {
+    return (
+      <div
+        role="link"
+        tabIndex={0}
+        className={`${className} tvp-entity-card-clickable`}
+        aria-label={ariaLabel ?? name}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && e.target === e.currentTarget) {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+      >
+        {body}
+      </div>
+    );
+  }
   return (
     <button type="button" className={className} onClick={onClick} aria-label={ariaLabel ?? name}>
       {body}

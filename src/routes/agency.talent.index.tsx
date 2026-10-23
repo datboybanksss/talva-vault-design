@@ -1,5 +1,5 @@
 import { FilterBar } from "@/components/shared/filter-bar";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -102,6 +102,9 @@ function nextActionLabel(r: TalentRow) {
 
 function TalentPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const openTalent = (id: string, search: { tab?: "documents"; filter?: "all" | "awaiting" | "expiring" } = {}) =>
+    navigate({ to: "/agency/talent/$linkId", params: { linkId: id }, search });
   const catalogue = useFolderCatalogue();
   const [typeEditor, setTypeEditor] = useState<TalentRow | null>(null);
   const [typeDraft, setTypeDraft] = useState("");
@@ -252,6 +255,7 @@ function TalentPage() {
 
   return (
     <>
+      {rowActions.dialog}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Talent roster</h1>
@@ -357,6 +361,8 @@ function TalentPage() {
                   name={r.displayName}
                   avatarSeed={r.id}
                   photoUrl={r.avatarUrl}
+                  onClick={() => openTalent(r.id)}
+                  ariaLabel={`Open ${r.displayName}`}
                   subtitle={[r.talentType ?? "Talent type not set", `Manager: ${r.managerName || "Unassigned"}`]}
                   pills={
                     <>
@@ -369,16 +375,22 @@ function TalentPage() {
                     </>
                   }
                   stats={[
-                    { label: "Documents", value: r.docCount },
+                    {
+                      label: "Documents",
+                      value: r.docCount,
+                      onClick: () => openTalent(r.id, { tab: "documents", filter: "all" }),
+                    },
                     {
                       label: "Awaiting",
                       value: r.awaitingCount,
                       tone: r.awaitingCount > 0 ? "amber" : undefined,
+                      onClick: () => openTalent(r.id, { tab: "documents", filter: "awaiting" }),
                     },
                     {
                       label: "Expiring",
                       value: r.expiringDocsCount,
                       tone: r.expiringDocsCount > 0 ? "amber" : undefined,
+                      onClick: () => openTalent(r.id, { tab: "documents", filter: "expiring" }),
                     },
                   ]}
                   actions={
