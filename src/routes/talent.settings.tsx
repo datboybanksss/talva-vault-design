@@ -70,7 +70,6 @@ function TalentSettings() {
     link: { talent_type: string | null; status: string } | null;
     hasActiveLink?: boolean;
   } | null;
-  const linked = !!ctx?.hasActiveLink;
   // Current or past agency relationship (ended links with shared items).
   const agencyLinks = useTalentAgencyLinks();
   // Shown for current/past relationships, and kept visible if the read failed
