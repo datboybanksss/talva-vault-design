@@ -389,9 +389,13 @@ export function TalentShell({ children }: { children: ReactNode }) {
                 {bellItems.map((n: any) => (
                   <div key={n.id} style={{ position: "relative" }}>
                     <Link
-                      to="/talent/notifications"
+                      to={bellTarget(n).to}
+                      search={bellTarget(n).search}
                       className="tvp-notification-item"
-                      onClick={() => setBellOpen(false)}
+                      onClick={() => {
+                        setBellOpen(false);
+                        markNotificationRead(n.id);
+                      }}
                     >
                       <div
                         className={`tvp-kpi-icon tvp-bg-${n.tone === "purple" ? "purple" : "amber"}`}
