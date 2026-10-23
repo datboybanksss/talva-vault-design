@@ -408,7 +408,7 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
         tone: "green",
         title: `${who} shared ${c.name} with you`,
         detail: `Copied from their Private Vault into ${c.folder}.`,
-        to: "/agency/document-vault",
+        to: `/agency/document-vault?doc=${c.id}`,
       });
     }
 
