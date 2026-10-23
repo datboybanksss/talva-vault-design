@@ -40,6 +40,7 @@ type NavItem = {
   label: ReactNode;
   icon: ReactNode;
   badge?: number;
+  tag?: string;
   match?: string;
 };
 
@@ -63,13 +64,9 @@ const buildManageNav = (
   },
   {
     to: "/talent/budget",
-    label: (
-      <>
-        Budget &<br />
-        Income
-      </>
-    ),
+    label: "Budget & Income",
     icon: <Wallet />,
+    tag: "Coming soon",
   },
   // Connection requests: shown while linked, or when an agency has asked to
   // connect (so an independent talent can still accept or decline).
@@ -230,7 +227,10 @@ export function TalentShell({ children }: { children: ReactNode }) {
         className={`tvp-nav-item${isActive(item) ? " tvp-active" : ""}`}
       >
         <span className="shrink-0">{item.icon}</span>
-        <span className="tvp-nav-label">{item.label}</span>
+        <span className="tvp-nav-label">
+          {item.label}
+          {item.tag && <span className="tvp-nav-tag">{item.tag}</span>}
+        </span>
         {item.badge !== undefined && <span className="tvp-nav-badge">{item.badge}</span>}
       </Link>
     ));
