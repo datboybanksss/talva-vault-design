@@ -48,6 +48,7 @@ const buildManageNav = (
   vaultBadge: number,
   sharesBadge: number,
   reminderBadge: number,
+  showRequests: boolean,
 ): NavItem[] => [
   {
     to: "/talent",
@@ -73,7 +74,9 @@ const buildManageNav = (
     ),
     icon: <Wallet />,
   },
-  { to: "/talent/requests", label: "Requests", icon: <UserPlus /> },
+  // Connection requests: shown while linked, or when an agency has asked to
+  // connect (so an independent talent can still accept or decline).
+  ...(showRequests ? [{ to: "/talent/requests", label: "Requests", icon: <UserPlus /> }] : []),
 ];
 
 const settings: NavItem[] = [{ to: "/talent/settings", label: "Settings", icon: <SettingsIcon /> }];
@@ -146,7 +149,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
       tone: "purple",
       Icon: Inbox,
       title: `${pendingRequests} document request${pendingRequests === 1 ? "" : "s"} from your agency`,
-      detail: "Upload the requested files from Vault → Agency Shared Folder → Requests.",
+      detail: "Upload the requested files from Vault → your shared folder → Requests.",
       to: "/talent/vault",
       search: { tab: "agency" as const, view: "requests" as const },
     },
@@ -184,7 +187,15 @@ export function TalentShell({ children }: { children: ReactNode }) {
   }[];
 
   const bellCount = notifications.length + bellItems.length;
-  const manage = buildManageNav(vaultBadge, sharesBadge, bellCount);
+  const ctxLinks = (useRouterState({
+    select: (st) => st.matches.find((m) => m.routeId === "/talent")?.loaderData,
+  }) ?? null) as { hasActiveLink?: boolean; pendingConnectionRequests?: number } | null;
+  const manage = buildManageNav(
+    vaultBadge,
+    sharesBadge,
+    bellCount,
+    !!ctxLinks?.hasActiveLink || (ctxLinks?.pendingConnectionRequests ?? 0) > 0,
+  );
 
   async function markNotificationRead(id: string) {
     try {
@@ -214,7 +225,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
       .slice(0, 2)
       .join("")
       .toUpperCase() || "T";
-  const agencyName = ctx?.agency?.name ?? "Talent Vault";
+  const agencyName = ctx?.agency?.name ?? "Independent talent";
 
   async function handleSignOut() {
     await queryClient.cancelQueries();

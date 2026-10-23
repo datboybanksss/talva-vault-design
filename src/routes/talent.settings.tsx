@@ -29,17 +29,17 @@ export const Route = createFileRoute("/talent/settings")({
 
 type Mode = "profile" | "account" | "security" | "folders" | "relationship" | "notifications";
 
-const IN_APP_CHANNELS: { key: string; label: string; hint: string; live: boolean }[] = [
+const IN_APP_CHANNELS: { key: string; label: string; hint: string; live: boolean; agencyOnly?: boolean }[] = [
   {
     key: "doc_expiring",
     label: "Document expiring",
-    hint: "Private Vault and Agency Shared Folder documents approaching their expiry date.",
+    hint: "Documents in your vault approaching their expiry date.",
     live: true,
   },
   {
     key: "share_expiring",
     label: `${SHARE_RECIPIENT_TERM_CAPITALISED} access expiring`,
-    hint: "A magic-link share you created is about to lapse.",
+    hint: "A secure-link share you created is about to lapse.",
     live: true,
   },
   {
@@ -47,6 +47,7 @@ const IN_APP_CHANNELS: { key: string; label: string; hint: string; live: boolean
     label: "Agency shares a document",
     hint: "Arrives with the shared-folder event stream.",
     live: false,
+    agencyOnly: true,
   },
   {
     key: "ai_review",
@@ -72,7 +73,9 @@ function TalentSettings() {
     profile: { full_name: string; email: string | null } | null;
     agency: { name: string } | null;
     link: { talent_type: string | null; status: string } | null;
+    hasActiveLink?: boolean;
   } | null;
+  const linked = !!ctx?.hasActiveLink;
 
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
   const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "");
@@ -147,7 +150,7 @@ function TalentSettings() {
         <div>
           <h1 className="tvp-h1">Settings</h1>
           <div className="tvp-subtitle">
-            Manage profile, account, relationship and notifications.
+            {linked ? "Manage profile, account, agency relationship and notifications." : "Manage profile, account and notifications."}
           </div>
         </div>
       </div>
@@ -178,12 +181,14 @@ function TalentSettings() {
           Manage folders
         </button>
 
-        <button
-          className={`tvp-tab${mode === "relationship" ? " tvp-active" : ""}`}
-          onClick={() => setMode("relationship")}
-        >
-          Agency Relationship
-        </button>
+        {linked && (
+          <button
+            className={`tvp-tab${mode === "relationship" ? " tvp-active" : ""}`}
+            onClick={() => setMode("relationship")}
+          >
+            Agency relationship
+          </button>
+        )}
         <button
           className={`tvp-tab${mode === "notifications" ? " tvp-active" : ""}`}
           onClick={() => setMode("notifications")}
@@ -252,9 +257,9 @@ function TalentSettings() {
 
       {mode === "folders" && <VaultFoldersPanel />}
 
-      {mode === "relationship" && (
+      {mode === "relationship" && linked && (
         <div className="tvp-card tvp-panel">
-          <h2 className="tvp-h2">Agency Relationship</h2>
+          <h2 className="tvp-h2">Agency relationship</h2>
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
             Linked Agency:{" "}
             <strong style={{ color: "var(--tvp-ink)" }}>{ctx?.agency?.name ?? "—"}</strong>
@@ -349,7 +354,7 @@ function TalentSettings() {
             Choose which reminders you want to see.
           </p>
           <div className="tvp-doc-grid" style={{ marginTop: 10, opacity: inAppEnabled ? 1 : 0.5 }}>
-            {IN_APP_CHANNELS.map((c) => {
+            {IN_APP_CHANNELS.filter((c) => linked || !c.agencyOnly).map((c) => {
               const usable = c.live && inAppEnabled;
               return (
                 <label

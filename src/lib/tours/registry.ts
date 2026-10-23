@@ -104,6 +104,7 @@ export const GUIDES: TourGuide[] = [
         optional: true,
       },
       {
+        agencyOnly: true,
         key: "shared",
         route: { to: "/talent/vault", search: { tab: "agency" } },
         selector: '[data-tour="talent-vault-body"]',
@@ -112,6 +113,7 @@ export const GUIDES: TourGuide[] = [
         optional: true,
       },
       {
+        agencyOnly: true,
         key: "requests",
         route: { to: "/talent/vault", search: { tab: "requests" } },
         selector: '[data-tour="talent-vault-body"]',
