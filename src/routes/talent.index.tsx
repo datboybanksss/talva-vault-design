@@ -3,7 +3,8 @@ import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getTalentDashboard } from "@/lib/talent.functions";
-import { Lock, FileStack, Inbox, Clock, Share2, ArrowRight, AlertCircle, Upload, CheckCircle2 } from "lucide-react";
+import { Lock, FileStack, FileText, Inbox, Clock, Share2, ChevronRight, AlertCircle, Upload, CheckCircle2, Users } from "lucide-react";
+import { useTalentAgencyLinks } from "@/lib/talent-agency-links";
 
 export const Route = createFileRoute("/talent/")({
   head: () => ({
@@ -51,39 +52,39 @@ function todoLink(t: TodoItem): { to: string; search?: Record<string, string> } 
 
 function TalentDashboard() {
   const load = useServerFn(getTalentDashboard);
-  const { data } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => load() });
+  const { data, isError: dashError } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => load() });
+  const agency = useTalentAgencyLinks();
 
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
   });
-  const ctx = (rootMatch?.loaderData ?? null) as {
-    profile: { full_name: string } | null;
-    agency: { name: string } | null;
-  } | null;
+  const ctx = (rootMatch?.loaderData ?? null) as { profile: { full_name: string } | null } | null;
   const firstName = (ctx?.profile?.full_name ?? "").split(/\s+/)[0] || "there";
-  const links = (data?.links ?? []) as {
-    id: string;
-    agency_name: string;
-    state: "active" | "previous";
-    shared_docs: number;
-  }[];
-  const active = links.filter((l) => l.state === "active");
+
+  const rels = agency.data?.relationships ?? [];
+  const active = rels.filter((r) => r.state === "active");
   const hasLink = active.length > 0;
-  const agencyName = active.length === 1 ? active[0].agency_name : "your agencies";
+  const agencyName = active.length === 1 ? active[0].agencyName : "your agencies";
   const todo = (data?.todo ?? []) as TodoItem[];
   const recent = data?.recentDocs ?? [];
   const contacts = data?.trustedContacts ?? [];
 
-  const subLine = hasLink
-    ? `Managed by ${active.map((l) => l.agency_name).join(", ")}${active.length === 1 && data?.managerName ? ` · ${data.managerName}` : ""}`
-    : data
-      ? "Independent talent"
-      : "";
+  let subLine = "";
+  if (agency.isError) subLine = "We couldn't load your agency details. Please refresh the page.";
+  else if (agency.data) {
+    subLine = hasLink
+      ? `Managed by ${active
+          .map((r) => (active.length === 1 && r.manager?.name ? `${r.agencyName} · ${r.manager.name}` : r.agencyName))
+          .join(", ")}`
+      : "Independent talent";
+  }
+
+  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
   return (
     <div className="tvd">
       <div className="tvp-topbar tvd-top">
-        <div>
+        <div className="tvd-title">
           <h1 className="tvp-h1">Welcome back, {firstName}</h1>
           <div className="tvp-subtitle">{subLine}</div>
         </div>
@@ -97,175 +98,197 @@ function TalentDashboard() {
         </div>
       </div>
 
-      <section className="tvp-card tvp-panel tvd-section" data-tour="needs-attention">
-        <div className="tvp-panel-head">
-          <h2 className="tvp-h2">To do</h2>
-        </div>
-        {todo.length === 0 ? (
-          <p className="tvd-empty">
-            <CheckCircle2 className="h-4 w-4" /> You're all caught up.
-          </p>
-        ) : (
-          <ul className="tvd-list">
-            {todo.map((item) => {
-              const l = todoLink(item);
-              const title =
-                item.type === "request" && hasLink && !item.title.startsWith("Resubmission")
-                  ? item.title.replace(/^Requested:/, `Requested by ${agencyName}:`)
-                  : item.title;
-              return (
-                <li key={item.key}>
-                  <Link to={l.to} search={l.search as any} className="tvd-row">
-                    <span className={`tvp-review-icon tvp-bg-${item.tone}`}>
-                      {item.type === "request" ? (
-                        item.tone === "amber" ? <AlertCircle className="h-3.5 w-3.5" /> : <Inbox className="h-3.5 w-3.5" />
-                      ) : (
-                        <Clock className="h-3.5 w-3.5" />
-                      )}
-                    </span>
-                    <span className="tvd-row-text">
-                      <span className="tvd-row-title">{title}</span>
-                      <span className="tvd-row-meta">{item.detail}</span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 tvd-row-arrow" />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {active.length === 1 && (data?.actionRequests ?? 0) > 0 && (
-          <Link
-            to="/talent/vault"
-            search={{ tab: "agency", view: "requests", link: active[0].id } as any}
-            className="tvp-link tvd-more"
-          >
-            Requests from {agencyName} ({data?.actionRequests}) →
-          </Link>
-        )}
-      </section>
+      {dashError && <p className="tvd-meta">Some of your dashboard couldn't be loaded. Please refresh the page.</p>}
 
-      <section className="tvp-card tvp-panel tvd-section">
-        <div className="tvp-panel-head">
-          <h2 className="tvp-h2">Vault</h2>
-          <Link to="/talent/vault" className="tvp-link">
-            Open Vault →
-          </Link>
-        </div>
-        <div className={`tvd-grid ${links.length > 0 ? "tvd-grid-2" : ""}`}>
-          <Link to="/talent/vault" search={{ tab: "private" }} className="tvp-doc-card tvp-clickable tvd-card">
-            <div className="tvp-kpi-icon tvp-bg-teal tvd-icon">
-              <Lock className="h-4 w-4" />
-            </div>
-            <div className="tvd-card-body">
-              <strong>Private</strong>
-              <span className="tvd-row-meta">Only you can see these.</span>
-            </div>
-            <div className="tvd-count">
-              <span className="tvp-kpi-value">{data?.privateDocs ?? 0}</span>
-              <span className="tvd-row-meta">document{(data?.privateDocs ?? 0) === 1 ? "" : "s"}</span>
-            </div>
-          </Link>
-          {links.map((l) => (
-            <Link
-              key={l.id}
-              to="/talent/vault"
-              search={{ tab: "agency", link: l.id } as any}
-              className="tvp-doc-card tvp-clickable tvd-card"
-            >
-              <div className="tvp-kpi-icon tvp-bg-blue tvd-icon">
-                <FileStack className="h-4 w-4" />
-              </div>
-              <div className="tvd-card-body">
-                <strong>
-                  {l.state === "active" ? "Shared with " : "Previously shared with "}
-                  {l.agency_name}
-                </strong>
-                <span className="tvd-row-meta">
-                  {l.state === "active"
-                    ? `Documents shared between you and ${l.agency_name}.`
-                    : "View and download only."}
-                </span>
-              </div>
-              <div className="tvd-count">
-                <span className="tvp-kpi-value">{l.shared_docs}</span>
-                <span className="tvd-row-meta">document{l.shared_docs === 1 ? "" : "s"}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-        <h3 className="tvd-sub">Recent documents</h3>
-        {recent.length === 0 ? (
-          <p className="tvd-empty">No documents yet. Upload your first one to get started.</p>
-        ) : (
-          <ul className="tvd-list">
-            {recent.map((d) => (
-              <li key={`${d.area}:${d.id}`}>
+      <div className="tvd-layout">
+        <div className="tvd-main">
+          <section className="tvp-card tvp-panel" data-tour="needs-attention">
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">
+                To do {todo.length > 0 && <span className="tvd-count-pill">{todo.length}</span>}
+              </h2>
+              {active.length === 1 && (data?.actionRequests ?? 0) > 0 && (
                 <Link
                   to="/talent/vault"
-                  search={
-                    (d.area === "shared"
-                      ? { tab: "agency", view: "folder", doc: d.id, link: (d as any).linkId }
-                      : { tab: "private", doc: d.id }) as any
-                  }
-                  className="tvd-row"
+                  search={{ tab: "agency", view: "requests", link: active[0].linkId } as any}
+                  className="tvp-link"
                 >
-                  <span className="tvd-row-text">
-                    <span className="tvd-row-title">{d.name}</span>
-                    <span className="tvd-row-meta">
-                      {d.folder} · {fmtDate(d.date)}
-                    </span>
-                  </span>
-                  <span className={d.area === "shared" ? "tvp-status tvp-blue" : "tvp-status tvp-green"}>
-                    {d.area === "shared" ? "Shared" : "Private"}
-                  </span>
+                  All requests →
                 </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              )}
+            </div>
+            {todo.length === 0 ? (
+              <p className="tvd-empty">
+                <CheckCircle2 className="h-4 w-4" /> You're all caught up.
+              </p>
+            ) : (
+              <ul className="tvp-review-list tvd-list">
+                {todo.map((item) => {
+                  const l = todoLink(item);
+                  const title =
+                    item.type === "request" && hasLink && !item.title.startsWith("Resubmission")
+                      ? item.title.replace(/^Requested:/, `Requested by ${agencyName}:`)
+                      : item.title;
+                  return (
+                    <li key={item.key}>
+                      <Link to={l.to} search={l.search as any} className="tvp-review-row tvd-row">
+                        <span className={`tvp-review-icon tvp-bg-${item.tone}`}>
+                          {item.type === "request" ? (
+                            item.tone === "amber" ? (
+                              <AlertCircle className="h-3.5 w-3.5" />
+                            ) : (
+                              <Inbox className="h-3.5 w-3.5" />
+                            )
+                          ) : (
+                            <Clock className="h-3.5 w-3.5" />
+                          )}
+                        </span>
+                        <span className="tvd-row-text">
+                          <span className="tvp-review-name">{title}</span>
+                          <span className="tvp-review-meta">{item.detail}</span>
+                        </span>
+                        <span />
+                        <ChevronRight className="h-4 w-4 tvd-chev" aria-hidden />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
 
-      <section className="tvp-card tvp-panel tvd-section">
-        <div className="tvp-panel-head">
-          <h2 className="tvp-h2">Sharing</h2>
-          <Link to="/talent/sharing" className="tvp-link">
-            Manage sharing →
-          </Link>
-        </div>
-        {contacts.length === 0 ? (
-          <div className="tvd-share-empty">
-            <p className="tvd-row-meta">
-              Give a {SHARE_RECIPIENT_TERM} access to chosen documents through a secure link. You decide what they see
-              and when their access ends.
-            </p>
-            <Link to="/talent/sharing" className="tvp-secondary">
-              <Share2 className="h-4 w-4" /> Share with a {SHARE_RECIPIENT_TERM}
-            </Link>
-          </div>
-        ) : (
-          <>
-            <p className="tvd-row-meta">
-              {data?.activeShares ?? contacts.length} active {SHARE_RECIPIENT_TERM_PLURAL}
-            </p>
-            <ul className="tvd-list">
-              {contacts.map((c) => (
-                <li key={c.id}>
-                  <Link to="/talent/sharing" className="tvd-row">
-                    <span className="tvd-row-text">
-                      <span className="tvd-row-title">{c.name}</span>
-                      <span className="tvd-row-meta">
-                        {c.expiresAt ? `Access ends ${fmtDate(c.expiresAt)}` : "No end date"}
-                      </span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 tvd-row-arrow" />
-                  </Link>
-                </li>
+          <section className="tvp-card tvp-panel">
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">Vault</h2>
+              <Link to="/talent/vault" className="tvp-link">
+                Open Vault →
+              </Link>
+            </div>
+            <div className="tvd-cards">
+              <Link to="/talent/vault" search={{ tab: "private" }} className="tvp-card tvp-kpi tvp-clickable">
+                <div className="tvp-kpi-icon tvp-bg-teal">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="tvp-kpi-value">{data?.privateDocs ?? 0}</div>
+                  <div className="tvp-kpi-label">Private</div>
+                  <div className="tvp-kpi-sub">Only you can see these</div>
+                </div>
+              </Link>
+              {rels.map((r) => (
+                <Link
+                  key={r.linkId}
+                  to="/talent/vault"
+                  search={{ tab: "agency", link: r.linkId } as any}
+                  className="tvp-card tvp-kpi tvp-clickable"
+                >
+                  <div className="tvp-kpi-icon tvp-bg-blue">
+                    <FileStack className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="tvp-kpi-value">{r.sharedDocs}</div>
+                    <div className="tvp-kpi-label">
+                      {r.state === "active" ? "Shared with " : "Previously shared with "}
+                      {r.agencyName}
+                    </div>
+                    <div className="tvp-kpi-sub">
+                      {r.state === "active" ? plural(r.sharedDocs, "document") : "View only"}
+                    </div>
+                  </div>
+                </Link>
               ))}
-            </ul>
-          </>
-        )}
-      </section>
+              {!agency.isError && agency.data && rels.length === 0 && (
+                <Link to="/talent/sharing" className="tvp-card tvp-kpi tvp-clickable">
+                  <div className="tvp-kpi-icon tvp-bg-purple">
+                    <Share2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="tvp-kpi-value">{data?.activeShares ?? 0}</div>
+                    <div className="tvp-kpi-label">Shared with {SHARE_RECIPIENT_TERM_PLURAL}</div>
+                    <div className="tvp-kpi-sub">Active secure links</div>
+                  </div>
+                </Link>
+              )}
+            </div>
+            <h3 className="tvd-sub">Recent documents</h3>
+            {recent.length === 0 ? (
+              <p className="tvd-empty">No documents yet. Upload your first one to get started.</p>
+            ) : (
+              <ul className="tvp-review-list tvd-list">
+                {recent.map((d) => (
+                  <li key={`${d.area}:${d.id}`}>
+                    <Link
+                      to="/talent/vault"
+                      search={
+                        (d.area === "shared"
+                          ? { tab: "agency", view: "folder", doc: d.id, link: (d as any).linkId }
+                          : { tab: "private", doc: d.id }) as any
+                      }
+                      className="tvp-review-row tvd-row"
+                    >
+                      <span className={`tvp-review-icon ${d.area === "shared" ? "tvp-bg-blue" : "tvp-bg-teal"}`}>
+                        <FileText className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="tvd-row-text">
+                        <span className="tvp-review-name">{d.name}</span>
+                        <span className="tvp-review-meta">
+                          {d.folder} · {fmtDate(d.date)}
+                        </span>
+                      </span>
+                      <span className={d.area === "shared" ? "tvp-status tvp-blue" : "tvp-status tvp-green"}>
+                        {d.area === "shared" ? "Shared" : "Private"}
+                      </span>
+                      <ChevronRight className="h-4 w-4 tvd-chev" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        <aside className="tvd-side">
+          <section className="tvp-card tvp-panel">
+            <div className="tvp-panel-head">
+              <h2 className="tvp-h2">Sharing</h2>
+              <Link to="/talent/sharing" className="tvp-link">
+                Manage →
+              </Link>
+            </div>
+            {contacts.length === 0 ? (
+              <div className="tvd-share-empty">
+                <p className="tvd-meta">
+                  No active {SHARE_RECIPIENT_TERM_PLURAL}. Share chosen documents through a secure link that ends
+                  when you decide.
+                </p>
+                <Link to="/talent/sharing" className="tvp-secondary">
+                  <Share2 className="h-4 w-4" /> Share with a {SHARE_RECIPIENT_TERM}
+                </Link>
+              </div>
+            ) : (
+              <ul className="tvp-review-list tvd-list">
+                {contacts.map((c) => (
+                  <li key={c.id}>
+                    <Link to="/talent/sharing" className="tvp-review-row tvd-row">
+                      <span className="tvp-review-icon tvp-bg-purple">
+                        <Users className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="tvd-row-text">
+                        <span className="tvp-review-name">{c.name}</span>
+                        <span className="tvp-review-meta">
+                          {c.expiresAt ? `Access ends ${fmtDate(c.expiresAt)}` : "No end date"}
+                        </span>
+                      </span>
+                      <span />
+                      <ChevronRight className="h-4 w-4 tvd-chev" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }
