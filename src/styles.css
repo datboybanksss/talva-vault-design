@@ -6328,3 +6328,29 @@ a.tvp-entity-card:focus-visible {
   .tvd .tvd-actions > a { justify-content: center; }
   .tvd .tvd-grid-2 { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Talent settings tabs: one row, horizontal scroll on narrow screens */
+.tvp-portal .tvp-settings-tabs { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; }
+.tvp-portal .tvp-settings-tabs .tvp-tab { flex: 0 0 auto; white-space: nowrap; }
+
+/* Talent Manage folders */
+.tvf .tvf-desc { color: var(--tvp-muted); font-size: 13px; margin: var(--sp-1) 0 0; max-width: 68ch; }
+.tvf .tvf-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin: var(--sp-4) 0 var(--sp-2); }
+.tvf .tvf-all { white-space: nowrap; cursor: pointer; }
+.tvf .tvf-all:disabled { opacity: 0.5; cursor: default; }
+.tvf .tvf-group { font-size: 13px; font-weight: 800; color: var(--tvp-text); margin: var(--sp-4) 0 var(--sp-2); }
+.tvf .tvf-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); align-items: start; }
+.tvf .tvf-item { border: 1px solid var(--tvp-line); border-radius: var(--r-md, 12px); background: var(--surface); }
+.tvf .tvf-row { display: flex; align-items: center; gap: var(--sp-2); min-height: 56px; padding: 0 var(--sp-3) 0 var(--sp-2); }
+.tvf .tvf-expand { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); background: transparent; border: 0; padding: var(--sp-2) 0; text-align: left; color: var(--tvp-ink); cursor: pointer; border-radius: 8px; }
+.tvf .tvf-expand:focus-visible { outline: 2px solid var(--tvp-teal); outline-offset: 2px; }
+.tvf .tvf-chev { color: var(--tvp-muted); flex-shrink: 0; transition: transform 0.15s; }
+.tvf .tvf-chev-open { transform: rotate(90deg); }
+.tvf .tvf-icon { width: 32px; height: 32px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tvf .tvf-text { display: flex; flex-direction: column; min-width: 0; }
+.tvf .tvf-name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tvf .tvf-meta { color: var(--tvp-muted); font-size: 12px; }
+.tvf .tvf-spin { color: var(--tvp-muted); }
+.tvf .tvf-subs { margin: 0; padding: 0 var(--sp-4) var(--sp-3) 76px; color: var(--tvp-text); font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { .tvf .tvf-chev, .tvf .tvf-spin { transition: none; animation: none; } }
+@media (max-width: 720px) { .tvf .tvf-grid { grid-template-columns: minmax(0, 1fr); } }
