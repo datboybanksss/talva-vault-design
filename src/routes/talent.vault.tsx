@@ -147,6 +147,7 @@ function VaultPage() {
         }
       />
 
+      {links.length > 0 && (
       <div className="tvp-tabs tvp-roster-tabs tv-page-tabs" role="tablist" aria-label="Vault" data-tour="talent-vault-tabs">
         <button
           type="button"
@@ -171,6 +172,7 @@ function VaultPage() {
           </button>
         ))}
       </div>
+      )}
 
       <div data-tour="talent-vault-body">
         {!showAgency && <PrivateVault uploadRef={uploadRef} />}
