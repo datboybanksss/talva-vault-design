@@ -188,6 +188,7 @@ const tabs = [
   "Recently Updated",
   "Requests",
 ] as const;
+type Tab = (typeof tabs)[number];
 const FOLDER_META: Record<string, { description: string; icon: any }> = {
   "Identity & Personal": { description: "Passport, ID, visa, work authorisation", icon: IdCard },
   "Contracts & Agreements": { description: "Agreements, riders, addenda", icon: FileSignature },
