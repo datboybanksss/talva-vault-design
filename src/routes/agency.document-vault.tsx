@@ -210,8 +210,7 @@ const FOLDER_META: Record<string, { description: string; icon: any }> = {
     description: "Licences, certifications, compliance",
     icon: ShieldPlus,
   },
-  },
-];
+};
 
 function statusTone(status: string): "purple" | "green" | "amber" {
   if (status === "ai_suggested") return "purple";
