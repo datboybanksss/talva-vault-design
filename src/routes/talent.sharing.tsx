@@ -30,6 +30,7 @@ import {
   FileText,
   Send,
   Receipt,
+  Folder,
   History,
 } from "lucide-react";
 import {
@@ -40,6 +41,7 @@ import {
   regenerateAccessCode,
 } from "@/lib/loved-one.functions";
 import { listPrivateVault } from "@/lib/talent-vault.functions";
+import { listTalentBillingDocuments } from "@/lib/talent.functions";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -488,6 +490,9 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
   );
 }
 
+const SHARE_DURATION_OPTIONS = [7, 30, 90, 180, 365] as const;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function NewShareModal({
   onClose,
   onCreated,
@@ -498,11 +503,17 @@ function NewShareModal({
   prefill?: { name: string; email: string; relationship: string } | null;
 }) {
   const loadVault = useServerFn(listPrivateVault);
+  const loadBilling = useServerFn(listTalentBillingDocuments);
   const create = useServerFn(createLovedOneShare);
   const { data: vault, isLoading } = useQuery({
     queryKey: ["talent", "private-vault"],
     queryFn: () => loadVault(),
   });
+  const { data: billing } = useQuery({
+    queryKey: ["talent", "billing-documents"],
+    queryFn: () => loadBilling(),
+  });
+  const hasBilling = ((billing as any)?.documents?.length ?? 0) > 0;
 
   const [name, setName] = useState(prefill?.name ?? "");
   const [email, setEmail] = useState(prefill?.email ?? "");
@@ -517,37 +528,59 @@ function NewShareModal({
   const [docSearch, setDocSearch] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const topFolders = useMemo(
-    () => (vault?.folders ?? []).filter((f: any) => !f.parent_id),
-    [vault],
-  );
-  const allDocs = useMemo(() => (vault as any)?.documents ?? [], [vault]);
+  const folders: any[] = useMemo(() => (vault as any)?.folders ?? [], [vault]);
+  const allDocs: any[] = useMemo(() => (vault as any)?.documents ?? [], [vault]);
+  const childrenOf = useMemo(() => {
+    const m = new Map<string | null, any[]>();
+    for (const f of folders) {
+      const k = f.parent_id ?? null;
+      m.set(k, [...(m.get(k) ?? []), f]);
+    }
+    return m;
+  }, [folders]);
+  const descendants = (id: string): string[] => {
+    const out: string[] = [];
+    const queue = [id];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      for (const c of childrenOf.get(cur) ?? []) {
+        out.push(c.id);
+        queue.push(c.id);
+      }
+    }
+    return out;
+  };
+  const docCount = useMemo(() => {
+    const direct = new Map<string, number>();
+    for (const d of allDocs) direct.set(d.folder_id, (direct.get(d.folder_id) ?? 0) + 1);
+    return direct;
+  }, [allDocs]);
+  const totalCount = (id: string) =>
+    [id, ...descendants(id)].reduce((n, fid) => n + (docCount.get(fid) ?? 0), 0);
   const filteredDocs = useMemo(() => {
     const q = docSearch.trim().toLowerCase();
     const list = q ? allDocs.filter((d: any) => d.name.toLowerCase().includes(q)) : allDocs;
     return list.slice(0, 50);
   }, [allDocs, docSearch]);
 
+  const allIds = folders.map((f) => f.id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => folderIds.has(id));
+
   function toggleFolder(id: string) {
     const next = new Set(folderIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    const ids = [id, ...descendants(id)];
+    if (next.has(id)) ids.forEach((x) => next.delete(x));
+    else ids.forEach((x) => next.add(x));
     setFolderIds(next);
   }
 
+  const emailValid = EMAIL_RE.test(email.trim());
+  const scopeChosen =
+    kind === "billing" ? hasBilling : kind === "folders" ? folderIds.size > 0 : !!docId;
+  const canShare = !!name.trim() && emailValid && scopeChosen && !saving;
+
   async function save() {
-    if (!name.trim() || !email.trim()) {
-      toast.error("Name and email required");
-      return;
-    }
-    if (kind === "folders" && folderIds.size === 0) {
-      toast.error("Select at least one folder");
-      return;
-    }
-    if (kind === "document" && !docId) {
-      toast.error("Pick a document to share");
-      return;
-    }
+    if (!canShare) return;
     setSaving(true);
     try {
       const res: any = await create({
@@ -577,188 +610,210 @@ function NewShareModal({
     }
   }
 
+  const renderFolder = (f: any, depth: number): React.ReactNode => {
+    const n = totalCount(f.id);
+    const kids = childrenOf.get(f.id) ?? [];
+    return (
+      <li key={f.id}>
+        <label className="tvp-share-folder-row" style={{ paddingLeft: 12 + depth * 24 }}>
+          <input
+            type="checkbox"
+            className="tvp-check"
+            checked={folderIds.has(f.id)}
+            onChange={() => toggleFolder(f.id)}
+          />
+          <Folder className="h-4 w-4 tvp-share-folder-icon" aria-hidden />
+          <span className="tvp-share-folder-name">{f.name}</span>
+          <span className="tvp-muted tvp-share-folder-count">
+            {n} {n === 1 ? "document" : "documents"}
+          </span>
+        </label>
+        {kids.length > 0 && <ul>{kids.map((k) => renderFolder(k, depth + 1))}</ul>}
+      </li>
+    );
+  };
+
+  const kinds: Array<{ id: "folders" | "document" | "billing"; label: string }> = [
+    { id: "folders", label: "Whole folders" },
+    { id: "document", label: "A single document" },
+    ...(hasBilling ? [{ id: "billing" as const, label: "Quotes & invoices" }] : []),
+  ];
+
   return (
-    <ModalShell onClose={onClose} maxWidth={680}>
+    <ModalShell
+      onClose={onClose}
+      maxWidth={680}
+      labelledBy="tvp-share-title"
+      className="tvp-modal-scroll"
+    >
       <div className="tvp-modal-head">
-        <h2 className="tvp-h2">
-          <Plus className="h-5 w-5" /> Share with a {SHARE_RECIPIENT_TERM}
+        <h2 className="tvp-h2" id="tvp-share-title">
+          Share with a {SHARE_RECIPIENT_TERM}
         </h2>
-        <button title="Close" className="tvp-mini-btn" onClick={onClose}>
+        <button type="button" aria-label="Close" className="tvp-mini-btn" onClick={onClose}>
           <X className="h-4 w-4" />
         </button>
       </div>
       <div className="tvp-modal-body">
-        <div className="tvp-form-grid">
+        <div className="tvp-form-grid tvp-share-fields">
           <div className="tvp-form-group" data-tour="share-recipient">
-            <label>{SHARE_RECIPIENT_TERM_CAPITALISED} name</label>
+            <label htmlFor="share-name">{SHARE_RECIPIENT_TERM_CAPITALISED} name</label>
             <input
+              id="share-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Sarah Mokoena"
             />
           </div>
           <div className="tvp-form-group">
-            <label>Email (link is sent here)</label>
+            <label htmlFor="share-email">Email</label>
             <input
+              id="share-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@email.com"
+              aria-describedby="share-email-help"
             />
+            <span id="share-email-help" className="tvp-field-help">
+              {email.trim() && !emailValid
+                ? "Enter a valid email address."
+                : "We'll email them a secure link."}
+            </span>
           </div>
           <div className="tvp-form-group">
-            <label>Relationship</label>
+            <label htmlFor="share-rel">Relationship</label>
             <input
+              id="share-rel"
               value={rel}
               onChange={(e) => setRel(e.target.value)}
               placeholder="Spouse, Sibling, Adviser…"
             />
           </div>
           <div className="tvp-form-group">
-            <label>Access duration (days)</label>
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-            />
+            <label htmlFor="share-days">Access duration</label>
+            <select id="share-days" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+              {SHARE_DURATION_OPTIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d === 365 ? "1 year" : `${d} days`}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <h3 className="tvp-h3" data-tour="share-scope" style={{ marginTop: 16 }}>
+        <h3 className="tvp-share-section" data-tour="share-scope">
           What are you sharing?
         </h3>
-        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-          <ChoiceChip
-            active={kind === "folders"}
-            onClick={() => setKind("folders")}
-            label="Whole folders"
-          />
-          <ChoiceChip
-            active={kind === "document"}
-            onClick={() => setKind("document")}
-            label="A single document"
-          />
-          <ChoiceChip
-            active={kind === "billing"}
-            onClick={() => setKind("billing")}
-            label="Quotes & invoices"
-            icon={<Receipt className="h-3 w-3" />}
-          />
+        <div className="tvp-roster-tabs tvp-share-seg" role="tablist" aria-label="What are you sharing?">
+          {kinds.map((k) => (
+            <button
+              key={k.id}
+              type="button"
+              role="tab"
+              aria-selected={kind === k.id}
+              className={`tvp-tab ${kind === k.id ? "tvp-active" : ""}`}
+              onClick={() => setKind(k.id)}
+            >
+              {k.label}
+            </button>
+          ))}
         </div>
 
         {kind === "billing" ? (
-          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 10 }}>
+          <p className="tvp-field-help">
             Shares the quotes and invoices your Manager has shared with you — the same set you see
-            on Budget &amp; Income. They open as read-only records, not downloadable files, and the
-            list stays current if your Manager shares more.
+            on Budget &amp; Income. They open as read-only records, not downloadable files.
           </p>
         ) : kind === "folders" ? (
           isLoading ? (
-            <p className="tvp-muted" style={{ marginTop: 10 }}>
-              Loading vault…
-            </p>
+            <p className="tvp-muted">Loading vault…</p>
+          ) : folders.length === 0 ? (
+            <p className="tvp-muted">Your Private Vault has no folders yet.</p>
           ) : (
-            <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
-              {topFolders.map((f: any) => (
-                <label key={f.id} className="tvp-doc-card" style={{ cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={folderIds.has(f.id)}
-                    onChange={() => toggleFolder(f.id)}
-                    style={{ width: 18, height: 18 }}
-                  />
-                  <div>
-                    <strong>{f.name}</strong>
-                  </div>
-                  <span />
-                </label>
-              ))}
+            <div className="tvp-share-list">
+              <label className="tvp-share-folder-row tvp-share-all">
+                <input
+                  type="checkbox"
+                  className="tvp-check"
+                  checked={allSelected}
+                  onChange={() => setFolderIds(allSelected ? new Set() : new Set(allIds))}
+                />
+                <span className="tvp-share-folder-name">Select all folders</span>
+              </label>
+              <ul>{(childrenOf.get(null) ?? []).map((f) => renderFolder(f, 0))}</ul>
             </div>
           )
         ) : (
-          <div style={{ marginTop: 10 }}>
-            <input
-              value={docSearch}
-              onChange={(e) => setDocSearch(e.target.value)}
-              placeholder="Search your documents…"
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                border: "1px solid #d4d4d8",
-                borderRadius: 6,
-                fontSize: 13,
-              }}
-            />
-            <div
-              style={{
-                maxHeight: 220,
-                overflowY: "auto",
-                marginTop: 8,
-                border: "1px solid #E5E7EB",
-                borderRadius: 8,
-              }}
-            >
+          <div>
+            <div className="tvp-form-group">
+              <input
+                value={docSearch}
+                onChange={(e) => setDocSearch(e.target.value)}
+                placeholder="Search your documents…"
+                aria-label="Search your documents"
+              />
+            </div>
+            <div className="tvp-share-list">
               {filteredDocs.length === 0 ? (
-                <p className="tvp-muted" style={{ padding: 12, fontSize: 13 }}>
+                <p className="tvp-muted" style={{ padding: "var(--sp-12)" }}>
                   No documents match your search — try a different term.
                 </p>
               ) : (
-                filteredDocs.map((d: any) => (
-                  <label
-                    key={d.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "10px 12px",
-                      borderBottom: "1px solid #F3F4F6",
-                      cursor: "pointer",
-                      background: docId === d.id ? "var(--tvp-teal-50, #ECFDF5)" : "transparent",
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="single-doc"
-                      checked={docId === d.id}
-                      onChange={() => setDocId(d.id)}
-                    />
-                    <FileText className="h-4 w-4" style={{ color: "var(--tvp-teal, #064E58)" }} />
-                    <span style={{ fontSize: 13 }}>{d.name}</span>
-                  </label>
-                ))
+                <ul>
+                  {filteredDocs.map((d: any) => (
+                    <li key={d.id}>
+                      <label className="tvp-share-folder-row">
+                        <input
+                          type="radio"
+                          name="single-doc"
+                          className="tvp-check"
+                          checked={docId === d.id}
+                          onChange={() => setDocId(d.id)}
+                        />
+                        <FileText className="h-4 w-4 tvp-share-folder-icon" aria-hidden />
+                        <span className="tvp-share-folder-name">{d.name}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>
         )}
 
-        <h3 className="tvp-h3" data-tour="share-permission" style={{ marginTop: 18 }}>
+        <h3 className="tvp-share-section" data-tour="share-permission">
           What can they do?
         </h3>
-        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-          <ChoiceChip
-            active={permission === "view"}
-            onClick={() => setPermission("view")}
-            label="View only (watermarked)"
-            icon={<Eye className="h-3 w-3" />}
-          />
-          <ChoiceChip
-            active={permission === "download"}
-            onClick={() => setPermission("download")}
-            label="View & download"
-            icon={<Download className="h-3 w-3" />}
-          />
+        <div className="tvp-roster-tabs tvp-share-seg" role="tablist" aria-label="What can they do?">
+          {(
+            [
+              { id: "view", label: "View only (watermarked)" },
+              { id: "download", label: "View & download" },
+            ] as const
+          ).map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              role="tab"
+              aria-selected={permission === p.id}
+              className={`tvp-tab ${permission === p.id ? "tvp-active" : ""}`}
+              onClick={() => setPermission(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
-        <p className="tvp-muted" style={{ fontSize: 12, marginTop: 6 }}>
+        <p className="tvp-field-help">
           {permission === "view"
             ? "Documents open in a watermarked viewer stamped with their email and the time. Downloads are blocked on the server, not just hidden."
             : "They can save copies of these documents to their own device."}
         </p>
 
-        <div className="tvp-form-group" style={{ marginTop: 14 }}>
-          <label>Optional note</label>
+        <div className="tvp-form-group" style={{ marginTop: "var(--sp-16)" }}>
+          <label htmlFor="share-note">Optional note</label>
           <textarea
+            id="share-note"
             rows={2}
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -766,62 +821,28 @@ function NewShareModal({
           />
         </div>
 
-        <label
-          style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 13 }}
-        >
+        <label className="tvp-share-folder-row tvp-share-plain">
           <input
             type="checkbox"
+            className="tvp-check"
             checked={sendEmail}
             onChange={(e) => setSendEmail(e.target.checked)}
           />
-          Email the link to {name.trim() || `your ${SHARE_RECIPIENT_TERM}`} (the access code is
-          never emailed)
+          <span>
+            Email the link to {name.trim() || `your ${SHARE_RECIPIENT_TERM}`} (the access code is
+            never emailed)
+          </span>
         </label>
       </div>
       <div className="tvp-modal-foot">
-        <button className="tvp-secondary" onClick={onClose}>
+        <button type="button" className="tvp-secondary" onClick={onClose}>
           Cancel
         </button>
-        <button className="tvp-primary" disabled={saving} onClick={save}>
-          {saving ? "Creating…" : "Create secure share"}
+        <button type="button" className="tvp-primary" disabled={!canShare} onClick={save}>
+          {saving ? "Sharing…" : "Share"}
         </button>
       </div>
     </ModalShell>
-  );
-}
-
-function ChoiceChip({
-  active,
-  onClick,
-  label,
-  icon,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "8px 14px",
-        borderRadius: 999,
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        cursor: "pointer",
-        border: `1px solid ${active ? "var(--tvp-teal, #064E58)" : "#E5E7EB"}`,
-        background: active ? "var(--tvp-teal-50, #ECFDF5)" : "white",
-        color: active ? "var(--tvp-teal, #064E58)" : "#65707A",
-      }}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 
