@@ -33,10 +33,15 @@ type TodoItem = {
   tone: "amber" | "purple";
   targetType?: string | null;
   targetId?: string | null;
+  linkId?: string;
 };
 
 function todoLink(t: TodoItem): { to: string; search?: Record<string, string> } {
-  if (t.type === "request") return { to: "/talent/vault", search: { tab: "agency", view: "requests" } };
+  if (t.type === "request")
+    return {
+      to: "/talent/vault",
+      search: { tab: "agency", view: "requests", ...(t.linkId ? { link: t.linkId } : {}) },
+    };
   if (t.targetType === "shared_document" && t.targetId)
     return { to: "/talent/vault", search: { tab: "agency", view: "folder", doc: t.targetId } };
   if (t.targetType === "private_document" && t.targetId)
@@ -56,14 +61,21 @@ function TalentDashboard() {
     agency: { name: string } | null;
   } | null;
   const firstName = (ctx?.profile?.full_name ?? "").split(/\s+/)[0] || "there";
-  const hasLink = !!data?.hasLink && !!ctx?.agency;
-  const agencyName = ctx?.agency?.name ?? "";
+  const links = (data?.links ?? []) as {
+    id: string;
+    agency_name: string;
+    state: "active" | "previous";
+    shared_docs: number;
+  }[];
+  const active = links.filter((l) => l.state === "active");
+  const hasLink = active.length > 0;
+  const agencyName = active.length === 1 ? active[0].agency_name : "your agencies";
   const todo = (data?.todo ?? []) as TodoItem[];
   const recent = data?.recentDocs ?? [];
   const contacts = data?.trustedContacts ?? [];
 
   const subLine = hasLink
-    ? `Managed by ${agencyName}${data?.managerName ? ` · ${data.managerName}` : ""}`
+    ? `Managed by ${active.map((l) => l.agency_name).join(", ")}${active.length === 1 && data?.managerName ? ` · ${data.managerName}` : ""}`
     : data
       ? "Independent talent"
       : "";
@@ -122,8 +134,12 @@ function TalentDashboard() {
             })}
           </ul>
         )}
-        {hasLink && (data?.actionRequests ?? 0) > 0 && (
-          <Link to="/talent/vault" search={{ tab: "agency", view: "requests" }} className="tvp-link tvd-more">
+        {active.length === 1 && (data?.actionRequests ?? 0) > 0 && (
+          <Link
+            to="/talent/vault"
+            search={{ tab: "agency", view: "requests", link: active[0].id } as any}
+            className="tvp-link tvd-more"
+          >
             Requests from {agencyName} ({data?.actionRequests}) →
           </Link>
         )}
@@ -136,7 +152,7 @@ function TalentDashboard() {
             Open Vault →
           </Link>
         </div>
-        <div className={`tvd-grid ${hasLink ? "tvd-grid-2" : ""}`}>
+        <div className={`tvd-grid ${links.length > 0 ? "tvd-grid-2" : ""}`}>
           <Link to="/talent/vault" search={{ tab: "private" }} className="tvp-doc-card tvp-clickable tvd-card">
             <div className="tvp-kpi-icon tvp-bg-teal tvd-icon">
               <Lock className="h-4 w-4" />
@@ -150,21 +166,33 @@ function TalentDashboard() {
               <span className="tvd-row-meta">document{(data?.privateDocs ?? 0) === 1 ? "" : "s"}</span>
             </div>
           </Link>
-          {hasLink && (
-            <Link to="/talent/vault" search={{ tab: "agency" }} className="tvp-doc-card tvp-clickable tvd-card">
+          {links.map((l) => (
+            <Link
+              key={l.id}
+              to="/talent/vault"
+              search={{ tab: "agency", link: l.id } as any}
+              className="tvp-doc-card tvp-clickable tvd-card"
+            >
               <div className="tvp-kpi-icon tvp-bg-blue tvd-icon">
                 <FileStack className="h-4 w-4" />
               </div>
               <div className="tvd-card-body">
-                <strong>Shared with {agencyName}</strong>
-                <span className="tvd-row-meta">Documents shared between you and {agencyName}.</span>
+                <strong>
+                  {l.state === "active" ? "Shared with " : "Previously shared with "}
+                  {l.agency_name}
+                </strong>
+                <span className="tvd-row-meta">
+                  {l.state === "active"
+                    ? `Documents shared between you and ${l.agency_name}.`
+                    : "View and download only."}
+                </span>
               </div>
               <div className="tvd-count">
-                <span className="tvp-kpi-value">{data?.sharedDocs ?? 0}</span>
-                <span className="tvd-row-meta">document{(data?.sharedDocs ?? 0) === 1 ? "" : "s"}</span>
+                <span className="tvp-kpi-value">{l.shared_docs}</span>
+                <span className="tvd-row-meta">document{l.shared_docs === 1 ? "" : "s"}</span>
               </div>
             </Link>
-          )}
+          ))}
         </div>
         <h3 className="tvd-sub">Recent documents</h3>
         {recent.length === 0 ? (

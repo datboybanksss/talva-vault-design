@@ -678,6 +678,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       targetType?: string | null;
       targetId?: string | null;
       requestId?: string;
+      linkId?: string;
     }[] = [];
     const todoNotifIds = new Set<string>();
 
@@ -716,7 +717,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .eq("status", "pending"),
         supabaseAdmin
           .from("agency_document_requests")
-          .select("id, title, folder, status, due_date, updated_at")
+          .select("id, title, folder, status, due_date, updated_at, talent_link_id")
           .in("talent_link_id", activeIds)
           .in("status", ["pending", "resubmission_required"])
           .order("updated_at", { ascending: false })
@@ -743,6 +744,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         ...(reqRows.data ?? []).map((r: any) => ({
           key: `doc_request:${r.id}`,
           requestId: r.id as string,
+          linkId: r.talent_link_id as string,
           snapshot: Math.floor(new Date(r.updated_at).getTime() / 1000),
           type: "request" as const,
           tone: (r.status === "resubmission_required" ? "amber" : "purple") as "amber" | "purple",
