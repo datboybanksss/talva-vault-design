@@ -572,7 +572,11 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       detail: string;
       tone: "amber" | "purple";
       notificationId?: string;
+      targetType?: string | null;
+      targetId?: string | null;
+      requestId?: string;
     }[] = [];
+    const todoNotifIds = new Set<string>();
 
     if (link) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -635,6 +639,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       const items = [
         ...(reqRows.data ?? []).map((r: any) => ({
           key: `doc_request:${r.id}`,
+          requestId: r.id as string,
           snapshot: Math.floor(new Date(r.updated_at).getTime() / 1000),
           type: "request" as const,
           tone: (r.status === "resubmission_required" ? "amber" : "purple") as "amber" | "purple",
@@ -689,7 +694,10 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           detail: (n.detail as string) ?? "",
           tone: (n.tone === "purple" ? "purple" : "amber") as "amber" | "purple",
           notificationId: n.id as string,
+          targetType: n.target_type as string | null,
+          targetId: n.target_id as string | null,
         });
+        if (n.kind === "doc_expiring") todoNotifIds.add(n.id as string);
       }
     } else {
       attention = [];
@@ -762,7 +770,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     const { data: contactRows } = await supabase
       .from("loved_one_shares")
       .select("id, loved_one_name, expires_at")
-      .eq("user_id", userId)
+      .eq("talent_id", userId)
       .eq("is_active", true)
       .is("revoked_at", null)
       .gt("expires_at", new Date().toISOString())
