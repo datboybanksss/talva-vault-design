@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -257,6 +258,7 @@ function emptyEditor(
 type SortKey = "newest" | "oldest" | "amount_desc" | "amount_asc" | "due";
 
 function QIPage() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(listQO);
   const saveFn = useServerFn(saveAgencyBillingDocFull);
@@ -699,6 +701,7 @@ function QIPage() {
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar" style={{ alignItems: "center" }}>
         <div>
           <h1 className="tvp-h1">Quotes & invoices</h1>
@@ -1050,8 +1053,8 @@ function QIPage() {
                               icon: Trash2,
                               destructive: true,
                               separatorBefore: true,
-                              onSelect: () => {
-                                if (confirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id);
+                              onSelect: async () => {
+                                if (await askConfirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id);
                               },
                             },
                           ]}

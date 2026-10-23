@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -47,6 +48,7 @@ type EditorItem = {
 };
 
 export function FolderTemplatesPanel() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
   const { data } = useSuspenseQuery(folderTemplatesListQO);
   const { data: me } = useSuspenseQuery(folderTemplatesMeQO);
@@ -165,6 +167,7 @@ export function FolderTemplatesPanel() {
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar">
         <div>
           <h2 className="tvp-h2">Manage Folders</h2>
@@ -296,8 +299,8 @@ export function FolderTemplatesPanel() {
                             <button
                               className="tvp-mini-btn"
                               title="Delete"
-                              onClick={() => {
-                                if (confirm(`Delete template "${t.name}"?`)) del.mutate(t.id);
+                              onClick={async () => {
+                                if (await askConfirm(`Delete template "${t.name}"?`)) del.mutate(t.id);
                               }}
                             >
                               <Trash2 className="h-4 w-4" />

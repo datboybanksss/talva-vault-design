@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { usePagedList } from "@/lib/pagination";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
@@ -35,6 +36,7 @@ function fmtDate(iso?: string | null) {
   });
 }
 function AgencyDetail() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const { id } = useParams({ from: "/admin/agencies/$id" });
   const getFn = useServerFn(getAgencyById);
   const accountState = useAccountStateActions();
@@ -86,11 +88,12 @@ function AgencyDetail() {
     const msg = next
       ? `Mark ${a.name} as a test account? It will be left out of reports and launch offer places by default.`
       : `Mark ${a.name} as a real account? It will be counted in reports again.`;
-    if (confirm(msg)) testM.mutate(next);
+    if (await askConfirm(msg)) testM.mutate(next);
   };
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar">
         <div>
           <Link
