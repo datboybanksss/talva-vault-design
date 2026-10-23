@@ -17,7 +17,7 @@ export function isCopyTargetActive(link: {
   ended_at: string | null;
   read_until?: string | null;
 }): boolean {
-  if (link.status !== "accepted") return false;
+  if (link.status !== "active") return false;
   if (link.ended_at) return false;
   if (link.read_until) return false;
   return true;

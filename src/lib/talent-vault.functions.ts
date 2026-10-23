@@ -489,7 +489,7 @@ export const listVaultCopyTargets = createServerFn({ method: "GET" })
       .from("agency_talent_links")
       .select("id, agency_id, status, ended_at")
       .eq("talent_user_id", userId)
-      .eq("status", "accepted")
+      .eq("status", "active")
       .is("ended_at", null);
     if (error) throw new Error(error.message);
     const rows = (links ?? []) as {
