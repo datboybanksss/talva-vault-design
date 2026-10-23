@@ -9,3 +9,5 @@
 - [x] Bell coverage verified: same thresholds, talent + agency covered
 - [x] Bell deep links + mark-as-read + friendly fallback (talent vault, agency vault, admin)
 - [x] Agency talent details page: clickable roster cards + stat links; detail page (breadcrumb, header/actions, contact details, shared folder docs with filters/upload/versions, Q&I in ZAR, activity, tabs); status-aware, server-enforced; reuse Document Vault "folders" view (keep its route); roster subtitle "See your talent, their documents and invitations."
+- [x] Talent Vault: shared folder shown nested by category (report + merge proposal awaiting Lara's approval)
+- [ ] Talent with several agencies sees only the oldest agency's shared folder (awaiting decision)
