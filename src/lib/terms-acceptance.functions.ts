@@ -362,7 +362,7 @@ export const listTermsNotAccepted = createServerFn({ method: "POST" })
     }
     if (agencyDoc) {
       const seen = new Set<string>();
-      for (const m of mems ?? []) {
+      for (const m of memsReal) {
         if (seen.has(m.user_id)) continue;
         seen.add(m.user_id);
         if (accepted.has(`${m.user_id}:${agencyDoc.id}`)) continue;
