@@ -35,6 +35,7 @@ import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/shared/use-confirm";
 import {
+  ChevronRight,
   Upload,
   Lock,
   FileStack,
