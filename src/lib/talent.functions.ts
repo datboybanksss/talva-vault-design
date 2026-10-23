@@ -370,7 +370,18 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
         agency_name: ((agency?.name as string) ?? "").trim() || "your agency",
         state: chosen!.state,
       },
-      folders: expired ? [] : (folders ?? []),
+      // Ended relationship: only folders that hold something shared (plus
+      // their category) — no empty agency folders.
+      folders: expired
+        ? []
+        : chosen!.state === "previous"
+          ? (() => {
+              const used = new Set((docs ?? []).map((d: any) => d.folder));
+              const keep = (folders ?? []).filter((f: any) => used.has(f.folder_name));
+              const parents = new Set(keep.map((f: any) => f.parent_folder_id).filter(Boolean));
+              return (folders ?? []).filter((f: any) => used.has(f.folder_name) || parents.has(f.id));
+            })()
+          : (folders ?? []),
       documents: docs ?? [],
       read_until: readUntil,
     };

@@ -1082,7 +1082,10 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
         <div className="tvp-card tvp-panel">
           <div className="tvp-panel-head">
             <div>
-              <h2 className="tvp-h2">Shared with {(data.link as any).agency_name}</h2>
+              <h2 className="tvp-h2">
+                {(data.link as any).state === "previous" ? "Previously shared with " : "Shared with "}
+                {(data.link as any).agency_name}
+              </h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
                 {folders.filter((f: any) => f.parent_folder_id).length || folders.length} folder
                 {(folders.filter((f: any) => f.parent_folder_id).length || folders.length) === 1 ? "" : "s"} · {data.documents.length}{" "}
