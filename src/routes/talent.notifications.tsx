@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageBand } from "@/components/shared/brand";
 import { useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -84,15 +85,11 @@ function NotificationsPage() {
 
   return (
     <>
-      <div className="tvp-topbar">
-        <div>
-          <h1 className="tvp-h1">All reminders</h1>
-          <div className="tvp-subtitle">
-            Everything TalVault has flagged for you — expiring documents, shared access and new
-            sign-ins. Clearing the bell marks a reminder as read; nothing is removed from this list.
-          </div>
-        </div>
-        <div className="tvp-actions">
+      <PageBand
+        icon={<Bell />}
+        title="All reminders"
+        subtitle="Everything TalVault has flagged for you — expiring documents, shared access and new sign-ins. Clearing the bell marks a reminder as read; nothing is removed from this list."
+        actions={<>
           <button
             className="tvp-secondary"
             onClick={() => setUnreadOnly((v) => !v)}
@@ -104,8 +101,8 @@ function NotificationsPage() {
           <button className="tvp-primary" onClick={markAll} disabled={unread === 0}>
             <CheckCheck className="h-4 w-4" /> Mark all as read
           </button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-head">

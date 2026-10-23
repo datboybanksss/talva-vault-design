@@ -1,3 +1,4 @@
+import { PageBand, EmptyState } from "@/components/shared/brand";
 import {
   SHARE_RECIPIENT_TERM,
   SHARE_RECIPIENT_TERM_CAPITALISED,
@@ -32,6 +33,7 @@ import {
   Receipt,
   Folder,
   History,
+  Heart,
 } from "lucide-react";
 import {
   listLovedOneShareAccess,
@@ -156,15 +158,12 @@ function SharingPage() {
   return (
     <>
       {confirmDialog}
-      <div className="tvp-topbar">
-        <div>
-          <h1 className="tvp-h1">{SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED}</h1>
-          <div className="tvp-subtitle">
-            Share private documents with a {SHARE_RECIPIENT_TERM} via a time-bound magic link plus a
-            one-time access code.
-          </div>
-        </div>
-        <div className="tvp-actions" data-tour="talent-share-new">
+      <PageBand
+        icon={<Heart />}
+        title={SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED}
+        subtitle={<>Share private documents with a {SHARE_RECIPIENT_TERM} using a secure link that expires, plus a one-time access code.</>}
+        tour="talent-share-new"
+        actions={
           <button
             className="tvp-primary"
             onClick={() => {
@@ -174,14 +173,11 @@ function SharingPage() {
           >
             <Share2 className="h-4 w-4" /> Add a {SHARE_RECIPIENT_TERM}
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="tvp-callout" style={{ background: "#ECFDF5", borderColor: "#B7EAD3" }}>
-        <div
-          className="tvp-callout-icon"
-          style={{ background: "var(--tvp-green-bg)", color: "var(--tvp-green)" }}
-        >
+      <div className="tvp-callout tv-tint-green">
+        <div className="tvp-callout-icon tv-icon-tile tv-icon-green">
           <Key className="h-4 w-4" />
         </div>
         <div>
@@ -202,18 +198,9 @@ function SharingPage() {
             Loading…
           </p>
         ) : (data ?? []).length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center" }}>
-            <div
-              className="tvp-kpi-icon tvp-bg-blue"
-              style={{ width: 46, height: 46, margin: "0 auto 10px" }}
-            >
-              <Share2 className="h-5 w-5" />
-            </div>
-            <strong>No {SHARE_RECIPIENT_TERM_PLURAL} yet</strong>
-            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-              Share with a {SHARE_RECIPIENT_TERM} to get started.
-            </p>
-          </div>
+          <EmptyState icon={<Share2 />} tint="peach" title={<>No {SHARE_RECIPIENT_TERM_PLURAL} yet</>}>
+            Share selected documents with someone you trust — like a parent, partner or accountant. You choose what they see and for how long.
+          </EmptyState>
         ) : (
           <div className="tvp-table-wrap">
             <table className="tvp-table" data-tour="talent-share-table">

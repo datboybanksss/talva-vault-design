@@ -1,8 +1,9 @@
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
+import { PageBand } from "@/components/shared/brand";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Info, Save } from "lucide-react";
+import { Info, Save, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateTalentProfile,
@@ -163,14 +164,11 @@ function TalentSettings() {
 
   return (
     <>
-      <div className="tvp-topbar">
-        <div>
-          <h1 className="tvp-h1">Settings</h1>
-          <div className="tvp-subtitle">
-            {hasRelationship ? "Manage profile, account, agency relationship and notifications." : "Manage profile, account and notifications."}
-          </div>
-        </div>
-      </div>
+      <PageBand
+        icon={<SettingsIcon />}
+        title="Settings"
+        subtitle={hasRelationship ? "Manage your profile, account, agency relationship and notifications." : "Manage your profile, account and notifications."}
+      />
 
       <div className="tvp-tabs tvp-roster-tabs tvp-settings-tabs" role="tablist" data-tour="talent-settings-tabs">
         <button

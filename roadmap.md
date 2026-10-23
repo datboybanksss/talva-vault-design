@@ -13,3 +13,8 @@
 - [x] Talent with several agencies: one shared section per agency
 - [x] Talent dashboard redesign (To do, Vault summary, Sharing; Budget left out — coming soon)
 - [x] Talent portal: agency items only when linked; 'Previously shared with'; one section per agency
+- [x] Platform look: shared brand pieces (PageBand, IconTile, EmptyState, tints, FileTypeIcon) + Talent portal applied
+- [ ] Platform look: Agency portal (business tone) — next, after Talent report
+- [ ] Platform look: Trusted contact portal (warm)
+- [ ] Platform look: Admin portal (calm tone)
+- [ ] Platform look: shared screens (sign-in, 2FA, activation wizards, Terms gate, error pages, emails)

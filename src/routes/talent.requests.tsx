@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageBand, EmptyState } from "@/components/shared/brand";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Check, X } from "lucide-react";
+import { Check, UserPlus, X } from "lucide-react";
 import { listMyLinkRequests, respondToLinkRequest } from "@/lib/link-requests.functions";
 import { friendlyError } from "@/lib/friendly-error";
 
@@ -47,19 +48,18 @@ function RequestsPage() {
 
   return (
     <>
-      <div className="tvp-topbar">
-        <div>
-          <h1 className="tvp-h1">Connection requests</h1>
-          <div className="tvp-subtitle">
-            Connecting creates a shared folder with that agency. They never see your Private Vault.
-          </div>
-        </div>
-      </div>
+      <PageBand
+        icon={<UserPlus />}
+        title="Connection requests"
+        subtitle="Connecting creates a shared folder with that agency. They never see your Private Vault."
+      />
       <div className="tvp-card tvp-panel">
         {q.isLoading ? (
           <div className="tvp-muted">Loading…</div>
         ) : rows.length === 0 ? (
-          <div className="tvp-muted">You have no open connection requests.</div>
+          <EmptyState icon={<UserPlus />} tint="blue" title="No open requests">
+            When an agency asks to connect with you, you'll see it here to accept or decline.
+          </EmptyState>
         ) : (
           <table className="tvp-table">
             <thead>

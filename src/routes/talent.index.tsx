@@ -3,8 +3,9 @@ import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getTalentDashboard } from "@/lib/talent.functions";
-import { Lock, FileStack, FileText, FileImage, FileSpreadsheet, Share2, ChevronRight, Upload, Users, Heart } from "lucide-react";
+import { Lock, FileStack, Share2, ChevronRight, Upload, Users, Heart } from "lucide-react";
 import { useTalentAgencyLinks } from "@/lib/talent-agency-links";
+import { fileKind } from "@/components/shared/brand";
 
 export const Route = createFileRoute("/talent/")({
   head: () => ({
@@ -25,16 +26,6 @@ export const Route = createFileRoute("/talent/")({
 
 const fmtDate = (v: string) =>
   new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-
-/** File-type icon + folder accent tint (colour is paired with a distinct icon shape). */
-function fileKind(name: string): { Icon: typeof FileText; tone: string; label: string } {
-  const ext = (name.split(".").pop() ?? "").toLowerCase();
-  if (ext === "pdf") return { Icon: FileText, tone: "amber", label: "PDF" };
-  if (["jpg", "jpeg", "png", "gif", "webp", "heic", "svg"].includes(ext))
-    return { Icon: FileImage, tone: "green", label: "Image" };
-  if (["xls", "xlsx", "csv", "numbers"].includes(ext)) return { Icon: FileSpreadsheet, tone: "blue", label: "Spreadsheet" };
-  return { Icon: FileText, tone: "purple", label: "Document" };
-}
 
 function TalentDashboard() {
   const load = useServerFn(getTalentDashboard);
