@@ -6329,7 +6329,7 @@ a.tvp-entity-card:focus-visible {
 }
 
 /* Talent settings tabs: one row, horizontal scroll on narrow screens */
-.tvp-portal .tvp-settings-tabs { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; }
+.tvp-portal .tvp-settings-tabs, .tv-app .tvp-portal .tvp-tabs.tvp-settings-tabs { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
 .tvp-portal .tvp-settings-tabs .tvp-tab { flex: 0 0 auto; white-space: nowrap; }
 
 /* Talent Manage folders */
