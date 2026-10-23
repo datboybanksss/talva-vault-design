@@ -6431,3 +6431,15 @@ a.tvp-entity-card:focus-visible {
   .tvp-terms-band { padding: var(--sp-4); }
   .tvp-terms-modal > :not(.tvp-terms-band) { margin-left: var(--sp-4); margin-right: var(--sp-4); }
 }
+
+/* Detail cards: stack label above value when the card itself is narrow
+   (three cards side by side squeezed values into one word per line). */
+.tvp-detail-grid > .tvp-card { container-type: inline-size; }
+@container (max-width: 360px) {
+  .tvp-detail-list { grid-template-columns: minmax(0, 1fr); gap: var(--sp-1); }
+  .tvp-detail-list dd { margin-bottom: var(--sp-2); }
+}
+/* Page titles never break mid-title beside a wrapping action row. */
+@media (min-width: 900px) {
+  .tv-app .tvp-topbar .tvp-h1 { white-space: nowrap; }
+}
