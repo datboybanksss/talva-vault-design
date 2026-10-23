@@ -378,6 +378,40 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       });
     }
 
+    // Documents the talent copied from their Private Vault into the shared
+    // folder in the last 14 days. Audit-only marker; no private detail shown.
+    const { data: vaultCopies } = await supabase
+      .from("talent_shared_documents")
+      .select("id, name, folder, copied_from_vault_at, talent_link_id")
+      .eq("agency_id", agencyId)
+      .eq("originator", "talent")
+      .not("copied_from_vault_at", "is", null)
+      .is("deleted_at", null)
+      .gte("copied_from_vault_at", sinceIso);
+    const copyLinkIds = [
+      ...new Set((vaultCopies ?? []).map((c: any) => c.talent_link_id).filter(Boolean)),
+    ];
+    const copyLinkNames = new Map<string, string>();
+    if (copyLinkIds.length > 0) {
+      const { data: copyLinks } = await supabase
+        .from("agency_talent_links")
+        .select("id, display_name")
+        .in("id", copyLinkIds as string[]);
+      for (const l of (copyLinks ?? []) as any[]) copyLinkNames.set(l.id, l.display_name);
+    }
+    for (const c of (vaultCopies ?? []) as any[]) {
+      const who = copyLinkNames.get(c.talent_link_id) ?? "Your talent";
+      computed.push({
+        id: `vault_copy:${c.id}`,
+        key: `vault_copy:${c.id}`,
+        snapshot: 1,
+        tone: "green",
+        title: `${who} shared ${c.name} with you`,
+        detail: `Copied from their Private Vault into ${c.folder}.`,
+        to: "/agency/document-vault",
+      });
+    }
+
     const { data: dis } = await supabase
       .from("agency_notification_dismissals")
       .select("kind, snapshot")
