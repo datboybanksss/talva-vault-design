@@ -598,14 +598,6 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .eq("talent_link_id", link.id)
           .eq("status", "pending"),
         supabaseAdmin
-          .from("talent_shared_documents")
-          .select("id, name, folder, validity_expires_at")
-          .eq("talent_link_id", link.id)
-          .not("validity_expires_at", "is", null)
-          .lt("validity_expires_at", expiryCutoff)
-          .order("validity_expires_at", { ascending: true })
-          .limit(50),
-        supabaseAdmin
           .from("agency_document_requests")
           .select("id, title, folder, status, due_date, updated_at")
           .eq("talent_link_id", link.id)
