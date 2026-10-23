@@ -695,8 +695,90 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       attention = [];
     }
 
+    // "To do" = real actions only: document requests (pending/resubmission)
+    // and document-expiry reminders, from the same feed/thresholds as the bell.
+    // Security alerts and share expiries stay under the bell only.
+    const todo = attention.filter(
+      (a) =>
+        a.type === "request" ||
+        (a.notificationId && todoNotifIds.has(a.notificationId)),
+    );
+
+    // Manager name (named person on the link), recent documents, trusted contacts.
+    let managerName: string | null = null;
+    const recent: { id: string; name: string; folder: string; date: string; area: "private" | "shared" }[] = [];
+    {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      if (link) {
+        const { data: l } = await supabaseAdmin
+          .from("agency_talent_links")
+          .select("manager_user_id")
+          .eq("id", link.id)
+          .maybeSingle();
+        if (l?.manager_user_id) {
+          const { data: p } = await supabaseAdmin
+            .from("profiles")
+            .select("full_name")
+            .eq("id", l.manager_user_id)
+            .maybeSingle();
+          managerName = (p as any)?.full_name ?? null;
+        }
+        const { data: sd } = await supabaseAdmin
+          .from("talent_shared_documents")
+          .select("id, name, folder, created_at")
+          .eq("talent_link_id", link.id)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(4);
+        for (const d of sd ?? [])
+          recent.push({ id: d.id, name: d.name, folder: d.folder, date: d.created_at, area: "shared" });
+      }
+      const { data: pd } = await supabase
+        .from("talent_private_documents")
+        .select("id, name, created_at, folder_id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(4);
+      const folderIds = [...new Set((pd ?? []).map((d) => d.folder_id).filter(Boolean))] as string[];
+      const folderNames = new Map<string, string>();
+      if (folderIds.length) {
+        const { data: fs } = await supabase
+          .from("talent_private_folders")
+          .select("id, name")
+          .in("id", folderIds);
+        for (const f of fs ?? []) folderNames.set(f.id, f.name);
+      }
+      for (const d of pd ?? [])
+        recent.push({
+          id: d.id,
+          name: d.name,
+          folder: (d.folder_id && folderNames.get(d.folder_id)) || "Unfiled",
+          date: d.created_at,
+          area: "private",
+        });
+      recent.sort((a, b) => b.date.localeCompare(a.date));
+    }
+
+    const { data: contactRows } = await supabase
+      .from("loved_one_shares")
+      .select("id, loved_one_name, expires_at")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("expires_at", { ascending: true })
+      .limit(5);
+
     return {
       hasLink: !!link,
+      managerName,
+      recentDocs: recent.slice(0, 4),
+      trustedContacts: (contactRows ?? []).map((c: any) => ({
+        id: c.id as string,
+        name: c.loved_one_name as string,
+        expiresAt: c.expires_at as string | null,
+      })),
+      todo,
       privateDocs: privDocs.count ?? 0,
       activeShares,
       privateFolders: privFolders.count ?? 0,
