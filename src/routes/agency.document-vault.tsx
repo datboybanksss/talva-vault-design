@@ -66,7 +66,9 @@ import {
   registerAgencyDocumentVersion,
   getAgencyVersionSignedUrl,
 } from "@/lib/agency.functions";
-import { useFolderCatalogue, useFolderNames, type CatalogueCategory } from "@/lib/folder-catalogue";
+import { useFolderNames } from "@/lib/folder-catalogue";
+import { suggestFromFileName } from "@/lib/filing-heuristics";
+import { getAiFilingPreference } from "@/lib/ai-filing.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EntityCard } from "@/components/shared/entity-card";
