@@ -69,14 +69,14 @@ export function AgencyRelationshipsPanel() {
                   <h3 className="tvr-label">Your manager</h3>
                   {r.manager.name && <div className="tvr-value">{r.manager.name}</div>}
                   {r.manager.email && (
-                    <a className="tvr-contact" href={`mailto:${r.manager.email}`}>
+                    <span className="tvr-contact">
                       <Mail className="h-3.5 w-3.5" aria-hidden /> {r.manager.email}
-                    </a>
+                    </span>
                   )}
                   {r.manager.phone && (
-                    <a className="tvr-contact" href={`tel:${r.manager.phone}`}>
+                    <span className="tvr-contact">
                       <Phone className="h-3.5 w-3.5" aria-hidden /> {r.manager.phone}
-                    </a>
+                    </span>
                   )}
                 </div>
               )}
@@ -84,14 +84,14 @@ export function AgencyRelationshipsPanel() {
                 <div>
                   <h3 className="tvr-label">Agency contact</h3>
                   {r.agencyEmail && (
-                    <a className="tvr-contact" href={`mailto:${r.agencyEmail}`}>
+                    <span className="tvr-contact">
                       <Mail className="h-3.5 w-3.5" aria-hidden /> {r.agencyEmail}
-                    </a>
+                    </span>
                   )}
                   {r.agencyPhone && (
-                    <a className="tvr-contact" href={`tel:${r.agencyPhone}`}>
+                    <span className="tvr-contact">
                       <Phone className="h-3.5 w-3.5" aria-hidden /> {r.agencyPhone}
-                    </a>
+                    </span>
                   )}
                 </div>
               )}

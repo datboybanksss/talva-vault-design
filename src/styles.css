@@ -6367,5 +6367,5 @@ a.tvp-entity-card:focus-visible {
 .tvr .tvr-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--tvp-line); }
 .tvr .tvr-label { font-size: 12px; font-weight: 800; color: var(--tvp-muted); margin: 0 0 var(--sp-1); }
 .tvr .tvr-value { font-weight: 700; color: var(--tvp-ink); font-size: 14px; }
-.tvr .tvr-contact { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--tvp-teal); text-decoration: none; margin-top: 4px; overflow-wrap: anywhere; }
+.tvr .tvr-contact { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--tvp-text); text-decoration: none; margin-top: 4px; overflow-wrap: anywhere; }
 @media (max-width: 720px) { .tvr .tvr-grid { grid-template-columns: minmax(0, 1fr); } }
