@@ -33,6 +33,7 @@ import {
   Receipt,
   Folder,
   History,
+  Heart,
 } from "lucide-react";
 import {
   listLovedOneShareAccess,
