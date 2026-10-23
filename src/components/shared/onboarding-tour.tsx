@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { TalVaultIcon } from "@/components/brand/talvault-logo";
 import {
   getGuide,
@@ -206,6 +207,13 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   const tipRef = useRef<HTMLDivElement | null>(null);
   /** First-login choice: start the walkthrough, or skip it for good. */
   const [welcome, setWelcome] = useState(false);
+  // Never offer the walkthrough over the Terms gate: wait until the server has
+  // confirmed the Terms are accepted (Admin has no gate).
+  const { data: termsStatus } = useQuery<{ required?: boolean } | undefined>({
+    queryKey: ["terms-status", portal],
+    queryFn: skipToken,
+  });
+  const termsOk = portal === "admin" || (!!termsStatus && !termsStatus.required);
 
   const rectRef = useRef<Rect | null>(null);
   const settlingRef = useRef(false);
@@ -451,7 +459,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   }, [open, finish]);
 
   /* --------------------------------------------------- welcome ---------- */
-  if (welcome) {
+  if (welcome && termsOk) {
     const overview = getOverviewGuide(portal);
     const startTour = () => {
       setWelcome(false);

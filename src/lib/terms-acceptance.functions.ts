@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { acceptTermsInput } from "@/lib/terms-gate-core";
+import { acceptTermsInput, testUserIds } from "@/lib/terms-gate-core";
 
 /**
  * Terms & Conditions acceptance: the sign-in gate, each user's own records,
@@ -200,6 +200,19 @@ async function identityMaps(sb: any, userIds: string[]) {
   };
 }
 
+/** Test accounts are left out of every Terms acceptance report. */
+async function loadTestUserIds(sb: any): Promise<Set<string>> {
+  const [{ data: tps }, { data: ags }] = await Promise.all([
+    sb.from("talent_profiles").select("user_id, is_test").eq("is_test", true),
+    sb.from("agencies").select("id").eq("is_test", true),
+  ]);
+  const agencyIds = (ags ?? []).map((a: any) => a.id as string);
+  const { data: mems } = agencyIds.length
+    ? await sb.from("agency_members").select("user_id, agency_id").in("agency_id", agencyIds)
+    : { data: [] };
+  return testUserIds(tps ?? [], mems ?? [], agencyIds);
+}
+
 export const listTermsAcceptances = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(
@@ -211,7 +224,7 @@ export const listTermsAcceptances = createServerFn({ method: "POST" })
     }> => {
       await assertAdmin(context);
       const sb = await admin();
-      const [{ data: accs, error }, { data: docs }] = await Promise.all([
+      const [{ data: allAccs, error }, { data: docs }] = await Promise.all([
         sb
           .from("legal_acceptances")
           .select("*")
@@ -223,6 +236,8 @@ export const listTermsAcceptances = createServerFn({ method: "POST" })
           .order("effective_at"),
       ]);
       if (error) throw new Error(error.message);
+      const testIds = await loadTestUserIds(sb);
+      const accs = (allAccs ?? []).filter((a: any) => !testIds.has(a.user_id));
       const docHash = new Map((docs ?? []).map((d: any) => [d.id, d.body_sha256]));
       const maps = await identityMaps(
         sb,
@@ -314,6 +329,8 @@ export const listTermsNotAccepted = createServerFn({ method: "POST" })
         .select("user_id, doc_type, version, document_id, accepted_at")
         .order("accepted_at"),
     ]);
+    const testIds = await loadTestUserIds(sb);
+    const memsReal = (mems ?? []).filter((m: any) => !testIds.has(m.user_id));
     const current = new Map((docs ?? []).map((d: any) => [d.doc_type, d]));
     const accepted = new Set((accs ?? []).map((a: any) => `${a.user_id}:${a.document_id}`));
     const last = new Map<string, string>();
@@ -324,7 +341,7 @@ export const listTermsNotAccepted = createServerFn({ method: "POST" })
     const agencyDoc: any = current.get("agency");
     const maps = await identityMaps(sb, [
       ...(tps ?? []).map((t: any) => t.user_id),
-      ...(mems ?? []).map((m: any) => m.user_id),
+      ...memsReal.map((m: any) => m.user_id),
     ]);
     if (talentDoc) {
       for (const t of tps ?? []) {
@@ -345,7 +362,7 @@ export const listTermsNotAccepted = createServerFn({ method: "POST" })
     }
     if (agencyDoc) {
       const seen = new Set<string>();
-      for (const m of mems ?? []) {
+      for (const m of memsReal) {
         if (seen.has(m.user_id)) continue;
         seen.add(m.user_id);
         if (accepted.has(`${m.user_id}:${agencyDoc.id}`)) continue;

@@ -68,6 +68,12 @@ function TalentSettings() {
       ? (tab as Mode)
       : "profile",
   );
+  // Keep the selected tab visible when the tab row scrolls on small screens.
+  useEffect(() => {
+    document
+      .querySelector(".tvp-settings-tabs .tvp-active")
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [mode]);
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
   });
@@ -83,6 +89,10 @@ function TalentSettings() {
   // Shown for current/past relationships, and kept visible if the read failed
   // (the panel then explains the error) — never hidden as "independent".
   const hasRelationship = agencyLinks.isError || (agencyLinks.data?.relationships.length ?? 0) > 0;
+  // A link to the Agency relationship tab with no relationship falls back to Profile.
+  useEffect(() => {
+    if (mode === "relationship" && agencyLinks.isSuccess && !hasRelationship) setMode("profile");
+  }, [mode, agencyLinks.isSuccess, hasRelationship]);
 
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
   const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "");
@@ -210,7 +220,7 @@ function TalentSettings() {
             <div>
               <h2 className="tvp-h2">Talent Profile</h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-                Your display name and talent type as shown to your agency.
+                {hasRelationship ? "Your display name and talent type as shown to your agency." : "Your display name and talent type."}
               </p>
             </div>
             <button className="tvp-primary" onClick={saveProfile} disabled={savingProfile}>
