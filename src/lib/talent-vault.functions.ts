@@ -465,3 +465,192 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
 
     return { id: top.id, restored: true };
   });
+
+// -----------------------------------------------------------------------------
+// Copy a Private Vault document to an agency shared folder (talent only)
+// -----------------------------------------------------------------------------
+
+const CopyToAgencyInput = z.object({
+  document_id: z.string().uuid(),
+  talent_link_id: z.string().uuid(),
+  folder: z.string().trim().min(1).max(200),
+});
+
+/**
+ * Agencies the caller can copy a vault document to: every accepted,
+ * non-ended link, with that link's shared folders. Private Vault data is
+ * never read here — only the agency-side folder list.
+ */
+export const listVaultCopyTargets = createServerFn({ method: "GET" })
+  .middleware([requireTalentTermsAccepted])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: links, error } = await supabase
+      .from("agency_talent_links")
+      .select("id, agency_id, status, ended_at")
+      .eq("talent_user_id", userId)
+      .eq("status", "accepted")
+      .is("ended_at", null);
+    if (error) throw new Error(error.message);
+    const rows = (links ?? []) as {
+      id: string;
+      agency_id: string;
+      status: string;
+      ended_at: string | null;
+    }[];
+    if (rows.length === 0) return { targets: [] };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: agencies } = await supabaseAdmin
+      .from("agencies")
+      .select("id, name")
+      .in(
+        "id",
+        rows.map((r) => r.agency_id),
+      );
+    const agencyName = new Map((agencies ?? []).map((a: any) => [a.id, a.name as string]));
+
+    const { data: folders } = await supabaseAdmin
+      .from("agency_talent_folders")
+      .select("id, talent_link_id, folder_name, sort_order")
+      .in(
+        "talent_link_id",
+        rows.map((r) => r.id),
+      )
+      .order("sort_order", { ascending: true });
+
+    const { isCopyTargetActive } = await import("@/lib/vault-copy-core");
+    return {
+      targets: rows.filter(isCopyTargetActive).map((r) => ({
+        talent_link_id: r.id,
+        agency_id: r.agency_id,
+        agency_name: agencyName.get(r.agency_id) ?? "Your agency",
+        folders: (folders ?? [])
+          .filter((f: any) => f.talent_link_id === r.id)
+          .map((f: any) => ({ id: f.id as string, name: f.folder_name as string })),
+      })),
+    };
+  });
+
+/**
+ * Copy a Private Vault document into the agency shared folder. The original
+ * stays in the vault, unchanged and private; the copy is independent and
+ * follows the shared folder rules from the moment it is created.
+ */
+export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
+  .middleware([requireTalentWritable])
+  .inputValidator((input: unknown) => CopyToAgencyInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context as any;
+
+    // 1. The vault document must be the caller's own.
+    const { data: doc } = await supabase
+      .from("talent_private_documents")
+      .select("id, user_id, name, storage_path, mime_type, size_bytes")
+      .eq("id", data.document_id)
+      .maybeSingle();
+    if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+    if (!doc.storage_path) throw new Error("This document has no file attached.");
+
+    // 2. The link must be the caller's own, accepted and not ended.
+    const { data: link } = await supabase
+      .from("agency_talent_links")
+      .select("id, agency_id, status, ended_at")
+      .eq("id", data.talent_link_id)
+      .eq("talent_user_id", userId)
+      .maybeSingle();
+    if (!link) throw new Error("Connection not found.");
+    const { isCopyTargetActive, duplicateCopyMessage } = await import("@/lib/vault-copy-core");
+    const { data: readUntil } = await supabase.rpc("talent_link_read_until", {
+      _link_id: link.id,
+    });
+    if (!isCopyTargetActive({ ...link, read_until: readUntil as string | null })) {
+      throw new Error(
+        "This connection has ended. Items from this agency are view and download only.",
+      );
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 3. The folder must be one of this link's shared folders.
+    const { data: folderRow } = await supabaseAdmin
+      .from("agency_talent_folders")
+      .select("id, folder_name")
+      .eq("talent_link_id", link.id)
+      .eq("folder_name", data.folder)
+      .maybeSingle();
+    if (!folderRow) throw new Error("That folder isn't available for this shared folder.");
+
+    // 4. Duplicate check — same file name already copied to that folder.
+    const { data: existing } = await supabaseAdmin
+      .from("talent_shared_documents")
+      .select("id")
+      .eq("talent_link_id", link.id)
+      .eq("folder", data.folder)
+      .eq("name", doc.name)
+      .eq("originator", "talent")
+      .is("deleted_at", null)
+      .limit(1);
+    if ((existing ?? []).length > 0) {
+      throw new Error(duplicateCopyMessage(doc.name, data.folder));
+    }
+
+    // 5. Copy the file across buckets — the original object is untouched.
+    const { data: file, error: dlErr } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .download(doc.storage_path);
+    if (dlErr || !file) throw new Error("The file couldn't be read. Try again.");
+    const safe = doc.name.replace(/[^\w.-]+/g, "_");
+    const copyPath = `agency/${link.agency_id}/link/${link.id}/vault-copies/${crypto.randomUUID()}-${safe}`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("talent-documents")
+      .upload(copyPath, file, {
+        contentType: doc.mime_type ?? undefined,
+        upsert: false,
+      });
+    if (upErr) throw new Error(upErr.message);
+
+    // 6. Register the copy as a talent-originated shared document.
+    const now = new Date().toISOString();
+    const { data: shared, error: sErr } = await supabaseAdmin
+      .from("talent_shared_documents")
+      .insert({
+        agency_id: link.agency_id,
+        talent_link_id: link.id,
+        name: doc.name,
+        folder: data.folder,
+        status: "filed",
+        storage_path: copyPath,
+        uploaded_by: userId,
+        originator: "talent",
+        folder_source: "user",
+        pending_review: false,
+        copied_from_vault_at: now,
+      })
+      .select("id")
+      .single();
+    if (sErr) {
+      await supabaseAdmin.storage.from("talent-documents").remove([copyPath]);
+      throw new Error(sErr.message);
+    }
+
+    await supabaseAdmin.from("talent_shared_document_versions").insert({
+      document_id: shared.id,
+      version_number: 1,
+      storage_path: copyPath,
+      name: doc.name,
+      size_bytes: doc.size_bytes ?? null,
+      mime_type: doc.mime_type ?? null,
+      uploaded_by: userId,
+    });
+
+    // 7. Audit — records the copy came from the vault, never its location.
+    const { recordTalentActivity } = await import("@/lib/talent-activity.server");
+    await recordTalentActivity(supabase, userId, claims?.email, "vault_document_shared", {
+      targetId: shared.id,
+      targetLabel: doc.name,
+      detail: { agency_id: link.agency_id, folder: data.folder, copied_from_vault: true },
+    });
+
+    return { ok: true as const, document_id: shared.id };
+  });
