@@ -34,3 +34,20 @@ export function termsGateView(s: {
   if (s.isError) return "error";
   return "loading";
 }
+
+/**
+ * User IDs that belong to Test accounts: talent marked Test, plus every member
+ * of an agency marked Test. Terms acceptance reports leave these out (the
+ * acceptances themselves are still recorded with the normal proof stamp).
+ */
+export function testUserIds(
+  talent: { user_id: string | null; is_test: boolean | null }[],
+  members: { user_id: string; agency_id: string }[],
+  testAgencyIds: Iterable<string>,
+): Set<string> {
+  const agencies = new Set(testAgencyIds);
+  const out = new Set<string>();
+  for (const t of talent) if (t.is_test && t.user_id) out.add(t.user_id);
+  for (const m of members) if (agencies.has(m.agency_id)) out.add(m.user_id);
+  return out;
+}

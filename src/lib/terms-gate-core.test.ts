@@ -45,3 +45,15 @@ describe("termsGateView (three states)", () => {
     expect(termsGateView({ isPending: false, isError: true, data: { required: false, current: {} } })).toBe("accepted");
   });
 });
+
+import { testUserIds } from "./terms-gate-core";
+describe("testUserIds", () => {
+  it("includes Test talent and every member of a Test agency, nobody else", () => {
+    const ids = testUserIds(
+      [{ user_id: "t1", is_test: true }, { user_id: "t2", is_test: false }],
+      [{ user_id: "o1", agency_id: "A" }, { user_id: "s1", agency_id: "A" }, { user_id: "r1", agency_id: "B" }],
+      ["A"],
+    );
+    expect([...ids].sort()).toEqual(["o1", "s1", "t1"]);
+  });
+});
