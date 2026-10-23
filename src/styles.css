@@ -6443,3 +6443,85 @@ a.tvp-entity-card:focus-visible {
 @media (min-width: 900px) {
   .tv-app .tvp-topbar .tvp-h1 { white-space: nowrap; }
 }
+
+/* ==========================================================================
+   Shared brand pieces (from the Talent dashboard) — src/components/shared/brand.tsx
+   Only existing tokens: teal brand + lavender (--purple), peach (--amber),
+   green, blue tints. Tones: warm (Talent/Trusted contact), business (Agency),
+   calm (Admin: structure and status, not decoration).
+   ========================================================================== */
+.tv-band {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: var(--sp-4); margin: 0 0 var(--sp-5); padding: var(--sp-5) var(--sp-6, 24px);
+  border-radius: var(--r-lg, 16px); box-shadow: var(--sh-sm);
+  background: linear-gradient(135deg, var(--tvd-band-from), var(--tvd-band-to));
+  color: var(--tvd-on-band);
+  --band-fg: var(--tvd-on-band);
+}
+.tv-band-business { background: linear-gradient(135deg, var(--tvd-band-from), color-mix(in oklab, var(--tvd-band-from) 55%, var(--tvd-band-to))); padding-block: var(--sp-4); }
+.tv-band-calm {
+  background: var(--surface); color: var(--ink); --band-fg: var(--ink);
+  border: 1px solid var(--line); border-left: 4px solid var(--teal); box-shadow: none; padding-block: var(--sp-4);
+}
+.tv-band-who { display: flex; align-items: center; gap: var(--sp-4); min-width: 0; flex: 1 1 320px; }
+.tv-band-title { min-width: 0; }
+.tv-band-h1 { font-size: 24px; font-weight: 800; line-height: 1.2; margin: 0; color: var(--band-fg); overflow-wrap: anywhere; }
+.tv-band-sub { margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: var(--band-fg); opacity: 0.92; max-width: 70ch; }
+.tv-band-calm .tv-band-sub { color: var(--text-body); opacity: 1; }
+.tv-band-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: 6px; font-size: 14px; }
+.tv-band-avatar, .tv-band-icon {
+  width: 52px; height: 52px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--band-fg); background: color-mix(in oklab, var(--band-fg) 16%, transparent);
+  border: 2px solid color-mix(in oklab, var(--band-fg) 40%, transparent);
+}
+.tv-band-avatar { border-radius: 50%; font-weight: 800; font-size: 19px; }
+.tv-band-icon { border-radius: 14px; }
+.tv-band-icon svg { width: 24px; height: 24px; }
+.tv-band-calm .tv-band-icon { color: var(--teal); background: var(--teal-100); border-color: transparent; }
+.tv-band-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-left: auto; }
+/* Existing buttons adopt band styling inside warm/business bands. */
+.tv-band:not(.tv-band-calm) .tv-band-actions :is(.tvp-primary, .tvp-secondary, .tvp-ghost, button, a) {
+  height: 42px; display: inline-flex; align-items: center; gap: var(--sp-2); padding: 0 16px; border-radius: 11px;
+  font-weight: 800; font-size: 14px; white-space: nowrap; text-decoration: none; cursor: pointer;
+  color: var(--tvd-on-band); background: transparent; border: 1.5px solid color-mix(in oklab, var(--tvd-on-band) 70%, transparent); box-shadow: none;
+}
+.tv-band:not(.tv-band-calm) .tv-band-actions .tvp-primary { background: var(--tvd-on-band); color: var(--teal-900); border-color: var(--tvd-on-band); }
+.tv-band:not(.tv-band-calm) .tv-band-actions :is(.tvp-secondary, .tvp-ghost):hover { background: color-mix(in oklab, var(--tvd-on-band) 12%, transparent); }
+.tv-band:not(.tv-band-calm) .tv-band-actions :is(button, a):focus-visible { outline: 3px solid var(--tvd-on-band); outline-offset: 2px; }
+.tv-band:not(.tv-band-calm) .tv-band-actions :is(button, a):disabled { opacity: 0.6; cursor: not-allowed; }
+@media (max-width: 640px) {
+  .tv-band { padding: var(--sp-4); }
+  .tv-band-h1 { font-size: 21px; }
+  .tv-band-avatar, .tv-band-icon { width: 42px; height: 42px; font-size: 15px; }
+  .tv-band-icon svg { width: 20px; height: 20px; }
+  .tv-band-actions { width: 100%; }
+  .tv-band-actions > * { flex: 1 1 100%; justify-content: center; }
+}
+
+/* Coloured icon tiles */
+.tv-icon-tile { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 12px; }
+.tv-icon-sm { width: 30px; height: 30px; border-radius: 9px; }
+.tv-icon-md { width: 40px; height: 40px; }
+.tv-icon-lg { width: 52px; height: 52px; border-radius: 16px; }
+.tv-icon-tile svg { width: 18px; height: 18px; }
+.tv-icon-lg svg { width: 24px; height: 24px; }
+.tv-icon-teal { background: var(--teal-100); color: var(--teal); }
+.tv-icon-lavender { background: var(--purple-bg); color: var(--purple); }
+.tv-icon-peach { background: var(--amber-bg); color: var(--amber); }
+.tv-icon-green { background: var(--green-bg); color: var(--green); }
+.tv-icon-blue { background: var(--blue-bg); color: var(--blue); }
+
+/* Accent-tinted cards: add to any .tvp-card */
+.tv-tint-teal { background: color-mix(in oklab, var(--teal-100) 55%, var(--surface)); }
+.tv-tint-lavender { background: var(--purple-bg); }
+.tv-tint-peach { background: var(--amber-bg); }
+.tv-tint-green { background: var(--green-bg); }
+.tv-tint-blue { background: var(--blue-bg); }
+:is(.tv-tint-teal, .tv-tint-lavender, .tv-tint-peach, .tv-tint-green, .tv-tint-blue) :is(.tvp-muted, .tvp-subtitle) { color: var(--text-body); }
+
+/* Friendly empty states */
+.tv-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: var(--sp-6, 24px) var(--sp-4); }
+.tv-empty .tv-icon-tile { margin-bottom: 6px; }
+.tv-empty-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+.tv-empty-text { margin: 0; font-size: 13px; color: var(--text-body); max-width: 46ch; line-height: 1.5; }
+.tv-empty-action { margin-top: var(--sp-3); }
