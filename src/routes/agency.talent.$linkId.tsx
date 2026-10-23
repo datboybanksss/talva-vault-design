@@ -375,7 +375,7 @@ function TalentDetailPage() {
             <p className="tvp-muted">No activity recorded for this talent yet.</p>
           ) : (
             <ul className="tvp-list">
-              {detail.data!.activity.map((a) => (
+              {detail.data!.activity.map((a: any) => (
                 <li key={a.id} className="tvp-list-item">
                   <div>
                     <strong>{humanAction(a.action)}</strong>
