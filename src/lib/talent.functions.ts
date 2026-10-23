@@ -1072,7 +1072,7 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
     const pendingConnectionRequests = ((reqs as any[]) ?? []).length;
     if (links.length === 0) return { relationships: [], hasActiveLink: false, pendingConnectionRequests };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ data: linkRows }, { data: agencies }] = await Promise.all([
+    const [{ data: linkRows, error: e1 }, { data: agencies, error: e2 }] = await Promise.all([
       supabaseAdmin
         .from("agency_talent_links")
         .select("id, manager_user_id, created_at, responded_at, ended_at")
@@ -1088,6 +1088,7 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
           links.map((l) => l.agency_id),
         ),
     ]);
+    if (e1 || e2) throw new Error("We couldn't load your agency details. Please refresh and try again.");
     const managerIds = [...new Set((linkRows ?? []).map((r: any) => r.manager_user_id).filter(Boolean))];
     const { data: managers } = managerIds.length
       ? await supabaseAdmin.from("profiles").select("id, display_name, first_name, last_name, email, phone").in("id", managerIds)

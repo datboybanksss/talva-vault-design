@@ -9,6 +9,7 @@ import {
   getTalentNotificationPrefs,
   updateTalentNotificationPrefs,
 } from "@/lib/talent.functions";
+import { useTalentAgencyLinks } from "@/lib/talent-agency-links";
 import { AgencyRelationshipsPanel } from "@/components/talent/agency-relationships-panel";
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 import { PasswordCard } from "@/components/account/password-card";
@@ -78,7 +79,10 @@ function TalentSettings() {
   } | null;
   const linked = !!ctx?.hasActiveLink;
   // Current or past agency relationship (ended links with shared items).
-  const hasRelationship = ((ctx as any)?.links ?? []).length > 0;
+  const agencyLinks = useTalentAgencyLinks();
+  // Shown for current/past relationships, and kept visible if the read failed
+  // (the panel then explains the error) — never hidden as "independent".
+  const hasRelationship = agencyLinks.isError || (agencyLinks.data?.relationships.length ?? 0) > 0;
 
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
   const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "");
