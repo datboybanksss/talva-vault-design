@@ -21,7 +21,11 @@ import {
   finalisePrivateUpload,
   getPrivateDocumentDownloadUrl,
   deletePrivateDocument,
+  listVaultCopyTargets,
+  copyPrivateDocumentToAgency,
 } from "@/lib/talent-vault.functions";
+import { copyConfirmText } from "@/lib/vault-copy-core";
+import { ModalShell } from "@/components/shared/modal-shell";
 import { preflightUpload } from "@/lib/file-validation";
 
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
@@ -47,6 +51,7 @@ import {
   ChevronDown,
   Search,
   Eye,
+  Share2,
 } from "lucide-react";
 import { friendlyError } from "@/lib/friendly-error";
 
@@ -172,6 +177,21 @@ function PrivateVault() {
   const [search, setSearch] = useState("");
   const [filterFolder, setFilterFolder] = useState<string>("__all");
   const [showAllDocs, setShowAllDocs] = useState(false);
+
+  const [copyFor, setCopyFor] = useState<{ id: string; name: string } | null>(null);
+  const loadCopyTargets = useServerFn(listVaultCopyTargets);
+  const { data: copyTargets } = useQuery({
+    queryKey: ["talent", "vault-copy-targets"],
+    queryFn: () =>
+      loadCopyTargets() as Promise<{
+        targets: {
+          talent_link_id: string;
+          agency_name: string;
+          folders: { id: string; name: string }[];
+        }[];
+      }>,
+  });
+  const hasCopyTargets = (copyTargets?.targets ?? []).some((t) => t.folders.length > 0);
 
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const toggleFolder = (id: string) =>
@@ -626,6 +646,16 @@ function PrivateVault() {
                                   : "No file attached to this document",
                                 onSelect: () => onDownload(d.id),
                               },
+                              hasCopyTargets && {
+                                key: "copy",
+                                label: "Copy to agency shared folder",
+                                icon: Share2,
+                                disabled: !d.storage_path,
+                                title: d.storage_path
+                                  ? undefined
+                                  : "No file attached to this document",
+                                onSelect: () => setCopyFor({ id: d.id, name: d.name }),
+                              },
                               {
                                 key: "delete",
                                 label: "Delete document",
@@ -672,11 +702,155 @@ function PrivateVault() {
           }}
         />
       )}
+
+      {copyFor && (
+        <CopyToAgencyDialog
+          documentId={copyFor.id}
+          documentName={copyFor.name}
+          targets={copyTargets?.targets ?? []}
+          onClose={() => setCopyFor(null)}
+        />
+      )}
     </>
   );
 }
 
 const SHARED_TONES = ["teal", "blue", "purple", "green", "amber", "red"];
+
+type CopyTarget = {
+  talent_link_id: string;
+  agency_name: string;
+  folders: { id: string; name: string }[];
+};
+
+/**
+ * Talent-only dialog: copy a Private Vault document into an agency shared
+ * folder. The original stays private; the copy follows shared folder rules.
+ */
+function CopyToAgencyDialog({
+  documentId,
+  documentName,
+  targets,
+  onClose,
+}: {
+  documentId: string;
+  documentName: string;
+  targets: CopyTarget[];
+  onClose: () => void;
+}) {
+  const copyFn = useServerFn(copyPrivateDocumentToAgency);
+  const usable = targets.filter((t) => t.folders.length > 0);
+  const [linkId, setLinkId] = useState<string>(usable[0]?.talent_link_id ?? "");
+  const [folder, setFolder] = useState<string>("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const target = usable.find((t) => t.talent_link_id === linkId) ?? null;
+
+  async function onCopy() {
+    if (!target || !folder) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await copyFn({
+        data: { document_id: documentId, talent_link_id: target.talent_link_id, folder },
+      });
+      toast.success(`Copied to your shared folder with ${target.agency_name}.`);
+      onClose();
+    } catch (e: any) {
+      setError(friendlyError(e, "The document couldn't be copied."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <ModalShell onClose={onClose} maxWidth={520} labelledBy="tvp-copy-title">
+      <h2 className="tvp-h2" id="tvp-copy-title">
+        Copy to agency shared folder
+      </h2>
+      <p className="tvp-muted" style={{ marginTop: 8 }}>
+        {copyConfirmText(documentName, target?.agency_name ?? "your agency")}
+      </p>
+
+      {usable.length > 1 && (
+        <div style={{ marginTop: 16 }}>
+          <label className="tvp-field-label" htmlFor="tvp-copy-agency">
+            Agency
+          </label>
+          <select
+            id="tvp-copy-agency"
+            className="tvp-select"
+            value={linkId}
+            onChange={(e) => {
+              setLinkId(e.target.value);
+              setFolder("");
+            }}
+          >
+            {usable.map((t) => (
+              <option key={t.talent_link_id} value={t.talent_link_id}>
+                {t.agency_name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div style={{ marginTop: 16 }}>
+        <label className="tvp-field-label" htmlFor="tvp-copy-folder">
+          Folder
+        </label>
+        <select
+          id="tvp-copy-folder"
+          className="tvp-select"
+          value={folder}
+          onChange={(e) => setFolder(e.target.value)}
+        >
+          <option value="">Choose a folder…</option>
+          {(target?.folders ?? []).map((f) => (
+            <option key={f.id} value={f.name}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <label
+        className="tvp-muted"
+        style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 16 }}
+      >
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(e) => setConfirmed(e.target.checked)}
+          style={{ marginTop: 3 }}
+        />
+        <span>I understand the copy can't be removed by me once it's shared.</span>
+      </label>
+
+      {error && (
+        <p className="tvp-field-error" role="alert" style={{ marginTop: 12 }}>
+          {error}
+        </p>
+      )}
+
+      <div className="tvp-form-footer">
+        <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="tvp-primary"
+          disabled={busy || !target || !folder || !confirmed}
+          onClick={onCopy}
+        >
+          {busy ? "Copying…" : "Copy to shared folder"}
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
 
 function statusTone(status: string) {
   switch (status) {

@@ -3080,6 +3080,7 @@ export type Database = {
           contract_notes: string | null
           contract_start_date: string | null
           contract_total_cents: number | null
+          copied_from_vault_at: string | null
           created_at: string
           current_version_id: string | null
           deleted_at: string | null
@@ -3120,6 +3121,7 @@ export type Database = {
           contract_notes?: string | null
           contract_start_date?: string | null
           contract_total_cents?: number | null
+          copied_from_vault_at?: string | null
           created_at?: string
           current_version_id?: string | null
           deleted_at?: string | null
@@ -3160,6 +3162,7 @@ export type Database = {
           contract_notes?: string | null
           contract_start_date?: string | null
           contract_total_cents?: number | null
+          copied_from_vault_at?: string | null
           created_at?: string
           current_version_id?: string | null
           deleted_at?: string | null

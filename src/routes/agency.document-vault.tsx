@@ -188,8 +188,7 @@ const tabs = [
   "Recently Updated",
   "Requests",
 ] as const;
-  icon: any;
-};
+type Tab = (typeof tabs)[number];
 const FOLDER_META: Record<string, { description: string; icon: any }> = {
   "Identity & Personal": { description: "Passport, ID, visa, work authorisation", icon: IdCard },
   "Contracts & Agreements": { description: "Agreements, riders, addenda", icon: FileSignature },
@@ -212,8 +211,7 @@ const FOLDER_META: Record<string, { description: string; icon: any }> = {
     description: "Licences, certifications, compliance",
     icon: ShieldPlus,
   },
-  },
-];
+};
 
 function statusTone(status: string): "purple" | "green" | "amber" {
   if (status === "ai_suggested") return "purple";
