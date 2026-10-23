@@ -1052,3 +1052,66 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
       })),
     };
   });
+
+/**
+ * Settings › Agency relationship. One entry per agency the portal shows
+ * (active, or ended with shared items). Talent have no RLS read on agencies,
+ * so only the contact fields listed here are read with the service role, and
+ * only for links loadTalentLinks has already confirmed belong to the caller.
+ */
+export const getTalentAgencyRelationships = createServerFn({ method: "GET" })
+  .middleware([requireTalentTermsAccepted])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const links = await loadTalentLinks(supabase, userId);
+    if (links.length === 0) return { relationships: [] };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: linkRows }, { data: agencies }] = await Promise.all([
+      supabaseAdmin
+        .from("agency_talent_links")
+        .select("id, manager_user_id, created_at, accepted_at, ended_at")
+        .in(
+          "id",
+          links.map((l) => l.id),
+        ),
+      supabaseAdmin
+        .from("agencies")
+        .select("id, name, logo_path, contact_email, phone")
+        .in(
+          "id",
+          links.map((l) => l.agency_id),
+        ),
+    ]);
+    const managerIds = [...new Set((linkRows ?? []).map((r: any) => r.manager_user_id).filter(Boolean))];
+    const { data: managers } = managerIds.length
+      ? await supabaseAdmin.from("profiles").select("id, display_name, first_name, last_name, email, phone").in("id", managerIds)
+      : { data: [] as any[] };
+    const clean = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+    const out = [];
+    for (const l of links) {
+      const row: any = (linkRows ?? []).find((r: any) => r.id === l.id) ?? {};
+      const a: any = (agencies ?? []).find((x: any) => x.id === l.agency_id) ?? {};
+      const m: any = (managers ?? []).find((x: any) => x.id === row.manager_user_id);
+      let logoUrl: string | null = null;
+      if (a.logo_path) {
+        const { data: signed } = await supabaseAdmin.storage.from("agency-branding").createSignedUrl(a.logo_path, 3600);
+        logoUrl = signed?.signedUrl ?? null;
+      }
+      const managerName = m
+        ? clean(m.display_name) || clean([m.first_name, m.last_name].filter(Boolean).join(" "))
+        : null;
+      out.push({
+        linkId: l.id,
+        state: l.state,
+        agencyName: l.agency_name,
+        logoUrl,
+        agencyEmail: clean(a.contact_email),
+        agencyPhone: clean(a.phone),
+        manager: m ? { name: managerName, email: clean(m.email), phone: clean(m.phone) } : null,
+        linkedSince: (row.accepted_at ?? row.created_at ?? null) as string | null,
+        endedAt: (row.ended_at ?? null) as string | null,
+        sharedDocs: l.shared_docs,
+      });
+    }
+    return { relationships: out };
+  });
