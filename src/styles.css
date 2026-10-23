@@ -6104,7 +6104,7 @@ a.tvp-entity-card:focus-visible {
   text-decoration: none;
 }
 .tvp-entity-stat-link:hover {
-  background: var(--surface-2, var(--line-200));
+  background: var(--tvp-teal-50);
 }
 @media (prefers-reduced-motion: reduce) {
   .tvp-entity-card-clickable:hover {
