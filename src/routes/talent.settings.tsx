@@ -220,7 +220,7 @@ function TalentSettings() {
             <div>
               <h2 className="tvp-h2">Talent Profile</h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-                Your display name and talent type as shown to your agency.
+                {hasRelationship ? "Your display name and talent type as shown to your agency." : "Your display name and talent type."}
               </p>
             </div>
             <button className="tvp-primary" onClick={saveProfile} disabled={savingProfile}>
