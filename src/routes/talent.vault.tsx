@@ -1,10 +1,10 @@
-import { FilterBar } from "@/components/shared/filter-bar";
+import { FilterBar, type FilterDef } from "@/components/shared/filter-bar";
 import { EmptyState, FileTypeIcon, PageBand } from "@/components/shared/brand";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getTalentDashboard } from "@/lib/talent.functions";
@@ -212,7 +212,7 @@ type PrivateDoc = {
   updated_at: string;
 };
 
-function PrivateVault({ uploadRef }: { uploadRef: React.MutableRefObject<(() => void) | null> }) {
+function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) | null> }) {
   const { confirm, dialog: confirmDialog } = useConfirm();
   const qc = useQueryClient();
   const load = useServerFn(listPrivateVault);
