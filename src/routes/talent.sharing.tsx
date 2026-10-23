@@ -493,7 +493,7 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
 const SHARE_DURATION_OPTIONS = [7, 30, 90, 180, 365] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function NewShareModal({
+function NewShareModal({
   onClose,
   onCreated,
   prefill,
