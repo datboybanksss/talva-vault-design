@@ -722,7 +722,7 @@ function NewShareModal({
 
         {kind === "billing" ? (
           <p className="tvp-field-help">
-            Shares the quotes and invoices your Manager has shared with you — the same set you see
+            Shares the quotes and invoices your agency has shared with you — the same set you see
             on Budget &amp; Income. They open as read-only records, not downloadable files.
           </p>
         ) : kind === "folders" ? (

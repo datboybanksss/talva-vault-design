@@ -71,10 +71,9 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
     .eq("talent_user_id", userId)
     .order("created_at", { ascending: true });
   const out: TalentLinkView[] = [];
-  const candidates = ((rows ?? []) as any[]).filter(
-    (r) => !["invited", "needs_review", "expired"].includes(r.status) || r.ended_at,
-  );
+  const candidates = (rows ?? []) as any[];
   if (candidates.length === 0) return out;
+  const { classifyTalentLink } = await import("@/lib/talent-links-core");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: agencies } = await supabaseAdmin
     .from("agencies")
@@ -85,20 +84,27 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
     );
   const names = new Map((agencies ?? []).map((a: any) => [a.id, (a.name as string)?.trim()]));
   for (const r of candidates) {
+    if (!r.ended_at && ["invited", "needs_review", "expired"].includes(r.status)) continue;
     const readUntil = await linkReadUntil(r.id);
     const { count } = await supabase
       .from("talent_shared_documents")
       .select("id", { count: "exact", head: true })
       .eq("talent_link_id", r.id);
     const shared = count ?? 0;
-    const active = r.status === "active" && !r.ended_at && !readUntil;
-    const readable = !readUntil || new Date(readUntil).getTime() > Date.now();
-    if (active) {
-      out.push({ id: r.id, agency_id: r.agency_id, agency_name: names.get(r.agency_id) || "Your agency", state: "active", shared_docs: shared });
-    } else if (r.status !== "revoked" || r.ended_at) {
-      if (readable && shared > 0)
-        out.push({ id: r.id, agency_id: r.agency_id, agency_name: names.get(r.agency_id) || "Your agency", state: "previous", shared_docs: shared });
-    }
+    const state = classifyTalentLink({
+      status: r.status,
+      ended_at: r.ended_at,
+      read_until: readUntil,
+      shared_docs: shared,
+    });
+    if (state)
+      out.push({
+        id: r.id,
+        agency_id: r.agency_id,
+        agency_name: names.get(r.agency_id) || "Your agency",
+        state,
+        shared_docs: shared,
+      });
   }
   return out;
 }
