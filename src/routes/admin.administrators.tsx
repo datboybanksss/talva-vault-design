@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
@@ -62,6 +63,7 @@ export const Route = createFileRoute("/admin/administrators")({
 });
 
 function AdminsPage() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const navigate = useNavigate();
   const listFn = useServerFn(listAdministrators);
   const sessionReady = useSessionReady();
@@ -685,8 +687,8 @@ function AdminsPage() {
                                         icon: Ban,
                                         destructive: true,
                                         separatorBefore: true,
-                                        onSelect: () => {
-                                          if (confirm(`Revoke invitation to ${i.email}?`))
+                                        onSelect: async () => {
+                                          if (await askConfirm({ title: `Revoke invitation to ${i.email}?`, destructive: true }))
                                             revoke.mutate(i.id);
                                         },
                                       },
@@ -699,8 +701,8 @@ function AdminsPage() {
                                   destructive: true,
                                   separatorBefore: open,
                                   title: "Permanently remove this invitation from the list",
-                                  onSelect: () => {
-                                    if (confirm(`Permanently delete the invitation to ${i.email}?`))
+                                  onSelect: async () => {
+                                    if (await askConfirm({ title: `Permanently delete the invitation to ${i.email}?`, destructive: true }))
                                       deleteInvite.mutate(i.id);
                                   },
                                 },

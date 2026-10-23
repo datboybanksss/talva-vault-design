@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -34,6 +35,7 @@ export function useAgencyInvitationActions(): {
   actionsFor: (row: AgencyInviteRow) => RowAction[];
   dialogs: ReactNode;
 } {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const nav = useNavigate();
   const qc = useQueryClient();
   const resendFn = useServerFn(resendInvitation);
@@ -164,8 +166,8 @@ export function useAgencyInvitationActions(): {
         icon: Ban,
         destructive: true,
         separatorBefore: true,
-        onSelect: () => {
-          if (confirm(`Revoke invitation to ${i.agency_name}?`)) revokeM.mutate(i.id);
+        onSelect: async () => {
+          if (await askConfirm({ title: `Revoke invitation to ${i.agency_name}?`, destructive: true })) revokeM.mutate(i.id);
         },
       },
       (allowed.includes("delete") || i.status === "pending") && {
@@ -193,6 +195,7 @@ export function useAgencyInvitationActions(): {
 
   const dialogs = (
     <>
+      {askConfirmDialog}
       {editing && (
         <div role="dialog" aria-modal="true" onClick={() => setEditing(null)} style={overlay}>
           <div
