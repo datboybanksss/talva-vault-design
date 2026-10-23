@@ -819,7 +819,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
 
     // Manager name (named person on the link), recent documents, trusted contacts.
     let managerName: string | null = null;
-    const recent: { id: string; name: string; folder: string; date: string; area: "private" | "shared" }[] = [];
+    const recent: { id: string; name: string; folder: string; date: string; area: "private" | "shared"; linkId?: string | null }[] = [];
     {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       if (visibleIds.length) {
@@ -838,13 +838,13 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         }
         const { data: sd } = await supabaseAdmin
           .from("talent_shared_documents")
-          .select("id, name, folder, created_at")
+          .select("id, name, folder, created_at, talent_link_id")
           .in("talent_link_id", visibleIds)
           .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .limit(4);
         for (const d of sd ?? [])
-          recent.push({ id: d.id, name: d.name, folder: d.folder, date: d.created_at, area: "shared" });
+          recent.push({ id: d.id, name: d.name, folder: d.folder, date: d.created_at, area: "shared", linkId: d.talent_link_id });
       }
       const { data: pd } = await supabase
         .from("talent_private_documents")

@@ -205,7 +205,7 @@ function TalentDashboard() {
                   to="/talent/vault"
                   search={
                     (d.area === "shared"
-                      ? { tab: "agency", view: "folder", doc: d.id }
+                      ? { tab: "agency", view: "folder", doc: d.id, link: (d as any).linkId }
                       : { tab: "private", doc: d.id }) as any
                   }
                   className="tvd-row"
