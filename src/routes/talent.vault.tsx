@@ -1035,14 +1035,18 @@ function SharedDocumentsView() {
         <div className="tvp-card tvp-panel">
           <div className="tvp-panel-head">
             <div>
-              <h2 className="tvp-h2">Agency Shared Folder</h2>
+              <h2 className="tvp-h2">Shared with {(data.link as any).agency_name}</h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-                {folders.length} folder{folders.length === 1 ? "" : "s"} · {data.documents.length}{" "}
+                {folders.filter((f: any) => f.parent_folder_id).length || folders.length} folder
+                {(folders.filter((f: any) => f.parent_folder_id).length || folders.length) === 1 ? "" : "s"} · {data.documents.length}{" "}
                 document{data.documents.length === 1 ? "" : "s"}
               </p>
             </div>
-            <span className="tvp-lock-note">
-              <Lock className="h-3 w-3" /> Folder structure locked by Manager
+            <span
+              className="tvp-lock-note"
+              title="Your agency sets up these folders. You can't add, rename or remove them."
+            >
+              <Lock className="h-3 w-3" aria-hidden="true" /> Folders set by your agency
             </span>
           </div>
           {data.read_until && (
@@ -1062,36 +1066,11 @@ function SharedDocumentsView() {
               Your Manager hasn't provisioned any shared folders yet.
             </p>
           ) : (
-            <div className="tvp-folder-tree">
-              {folders.map((f, i) => {
-                const count = data.documents.filter((d) => d.folder === f.folder_name).length;
-                const tone = SHARED_TONES[i % SHARED_TONES.length];
-                return (
-                  <div key={f.id} className="tvp-folder-card">
-                    <div className="tvp-folder-head tvp-static">
-                      <span
-                        className={`tvp-kpi-icon tvp-bg-${tone}`}
-                        style={{ width: 40, height: 40 }}
-                      >
-                        <FolderOpen className="h-4 w-4" />
-                      </span>
-                      <span style={{ minWidth: 0 }}>
-                        <span className="tvp-folder-name" style={{ display: "block" }}>
-                          {f.folder_name}
-                        </span>
-                        <span className="tvp-folder-meta" style={{ display: "block" }}>
-                          {count} {count === 1 ? "document" : "documents"}
-                          {f.retention_years != null
-                            ? ` · kept for ${f.retention_years} ${f.retention_years === 1 ? "year" : "years"}`
-                            : ""}
-                        </span>
-                      </span>
-                      <Lock className="h-4 w-4 tvp-folder-chevron" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <SharedFolderTree
+              folders={folders as any[]}
+              documents={data.documents}
+              onOpenFolder={(name) => setFolderFilter(name)}
+            />
           )}
         </div>
       )}
@@ -1178,6 +1157,87 @@ function SharedDocumentsView() {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Agency shared folder as categories that open to their subfolders, mirroring
+ * the agency's own folder view. Folders without a parent are categories;
+ * a folder with no children and no parent is shown as a standalone folder.
+ */
+function SharedFolderTree({
+  folders,
+  documents,
+  onOpenFolder,
+}: {
+  folders: { id: string; folder_name: string; parent_folder_id: string | null; retention_years: number | null }[];
+  documents: { folder: string }[];
+  onOpenFolder: (name: string) => void;
+}) {
+  const [open, setOpen] = useState<string | null>(null);
+  const countOf = (name: string) => documents.filter((d) => d.folder === name).length;
+  const roots = folders.filter((f) => !f.parent_folder_id);
+  const childrenOf = (id: string) => folders.filter((f) => f.parent_folder_id === id);
+  return (
+    <div className="tvp-folder-tree">
+      {roots.map((c, i) => {
+        const kids = childrenOf(c.id);
+        const total = countOf(c.folder_name) + kids.reduce((n, k) => n + countOf(k.folder_name), 0);
+        const tone = SHARED_TONES[i % SHARED_TONES.length];
+        const isOpen = open === c.id;
+        return (
+          <div key={c.id} className="tvp-folder-card">
+            <button
+              type="button"
+              className="tvp-folder-head"
+              aria-expanded={kids.length ? isOpen : undefined}
+              onClick={() => (kids.length ? setOpen(isOpen ? null : c.id) : onOpenFolder(c.folder_name))}
+            >
+              <span className={`tvp-kpi-icon tvp-bg-${tone}`} style={{ width: 40, height: 40 }}>
+                <FolderOpen className="h-4 w-4" />
+              </span>
+              <span style={{ minWidth: 0, textAlign: "left" }}>
+                <span className="tvp-folder-name" style={{ display: "block" }}>
+                  {c.folder_name}
+                </span>
+                <span className="tvp-folder-meta" style={{ display: "block" }}>
+                  {kids.length ? `${kids.length} ${kids.length === 1 ? "folder" : "folders"} · ` : ""}
+                  {total} {total === 1 ? "document" : "documents"}
+                </span>
+              </span>
+              {kids.length > 0 && (
+                <ChevronRight
+                  className="h-4 w-4 tvp-folder-chevron"
+                  style={{ transform: isOpen ? "rotate(90deg)" : undefined }}
+                  aria-hidden="true"
+                />
+              )}
+            </button>
+            {isOpen && (
+              <ul className="tvp-folder-children">
+                {kids.map((k) => {
+                  const n = countOf(k.folder_name);
+                  return (
+                    <li key={k.id}>
+                      <button type="button" className="tvp-link" onClick={() => onOpenFolder(k.folder_name)}>
+                        {k.folder_name}
+                      </button>
+                      <span className="tvp-folder-meta">
+                        {" "}
+                        · {n} {n === 1 ? "document" : "documents"}
+                        {k.retention_years != null
+                          ? ` · kept for ${k.retention_years} ${k.retention_years === 1 ? "year" : "years"}`
+                          : ""}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

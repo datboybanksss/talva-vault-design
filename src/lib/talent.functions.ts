@@ -285,12 +285,22 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: folders } = await supabaseAdmin
       .from("agency_talent_folders")
-      .select("id, folder_name, sort_order, retention_years")
+      .select("id, folder_name, sort_order, retention_years, parent_folder_id")
       .eq("talent_link_id", link.id)
       .order("sort_order", { ascending: true });
+    const { data: agency } = await supabaseAdmin
+      .from("agencies")
+      .select("name")
+      .eq("id", link.agency_id)
+      .maybeSingle();
 
     return {
-      link: { id: link.id, agency_id: link.agency_id, status: link.status },
+      link: {
+        id: link.id,
+        agency_id: link.agency_id,
+        status: link.status,
+        agency_name: ((agency?.name as string) ?? "").trim() || "your agency",
+      },
       folders: expired ? [] : (folders ?? []),
       documents: docs ?? [],
       read_until: readUntil,
