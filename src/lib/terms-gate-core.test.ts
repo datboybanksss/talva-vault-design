@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acceptTermsInput, reachedDocumentEnd, termsGateError } from "./terms-gate-core";
+import { acceptTermsInput, reachedDocumentEnd, termsGateError, testUserIds } from "./terms-gate-core";
 
 describe("Terms acceptance rules", () => {
   it.each([
@@ -46,7 +46,7 @@ describe("termsGateView (three states)", () => {
   });
 });
 
-import { testUserIds } from "./terms-gate-core";
+
 describe("testUserIds", () => {
   it("includes Test talent and every member of a Test agency, nobody else", () => {
     const ids = testUserIds(

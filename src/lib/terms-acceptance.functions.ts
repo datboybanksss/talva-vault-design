@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { acceptTermsInput } from "@/lib/terms-gate-core";
+import { acceptTermsInput, testUserIds } from "@/lib/terms-gate-core";
 
 /**
  * Terms & Conditions acceptance: the sign-in gate, each user's own records,
