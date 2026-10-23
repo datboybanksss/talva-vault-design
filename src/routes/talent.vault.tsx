@@ -21,7 +21,11 @@ import {
   finalisePrivateUpload,
   getPrivateDocumentDownloadUrl,
   deletePrivateDocument,
+  listVaultCopyTargets,
+  copyPrivateDocumentToAgency,
 } from "@/lib/talent-vault.functions";
+import { copyConfirmText } from "@/lib/vault-copy-core";
+import { ModalShell } from "@/components/shared/modal-shell";
 import { preflightUpload } from "@/lib/file-validation";
 
 import { AiFilingReviewModal } from "@/components/shared/ai-filing-review-modal";
@@ -47,6 +51,7 @@ import {
   ChevronDown,
   Search,
   Eye,
+  Share2,
 } from "lucide-react";
 import { friendlyError } from "@/lib/friendly-error";
 
