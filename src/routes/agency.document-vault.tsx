@@ -33,8 +33,6 @@ import {
   IdCard,
   Users as UsersIcon,
   HeartPulse,
-  Landmark,
-  AlertTriangle,
   Inbox,
   CalendarClock,
   RefreshCw,
@@ -190,12 +188,6 @@ const tabs = [
   "Recently Updated",
   "Requests",
 ] as const;
-type Tab = (typeof tabs)[number];
-
-type FolderMeta = {
-  key: string;
-  label: string;
-  description: string;
   icon: any;
 };
 const FOLDER_META: Record<string, { description: string; icon: any }> = {
@@ -220,34 +212,6 @@ const FOLDER_META: Record<string, { description: string; icon: any }> = {
     description: "Licences, certifications, compliance",
     icon: ShieldPlus,
   },
-  "Other Documents": { description: "Anything that does not fit elsewhere", icon: Files },
-};
-function allowedFoldersFrom(categories: CatalogueCategory[]): FolderMeta[] {
-  return categories.map((f) => ({
-    key: f.name,
-    label: f.name,
-    description: FOLDER_META[f.name]?.description ?? "",
-    icon: FOLDER_META[f.name]?.icon ?? FolderOpen,
-  }));
-}
-const BLOCKED_FOLDERS: FolderMeta[] = [
-  {
-    key: "family",
-    label: "Family / Personal contacts",
-    description: "Talent's personal contacts",
-    icon: UsersIcon,
-  },
-  {
-    key: "medical",
-    label: "Medical / Insurance",
-    description: "Health records, insurance",
-    icon: HeartPulse,
-  },
-  {
-    key: "finance",
-    label: "Personal Finance",
-    description: "Bank statements, taxes",
-    icon: Landmark,
   },
 ];
 
