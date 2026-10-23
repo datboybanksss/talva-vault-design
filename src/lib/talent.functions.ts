@@ -16,27 +16,92 @@ export const getTalentContext = createServerFn({ method: "GET" })
       .select("id, user_id, agency_id, full_name, email")
       .eq("user_id", userId)
       .maybeSingle();
-    if (!profile) return { profile: null, link: null, agency: null };
+    if (!profile)
+      return {
+        profile: null,
+        link: null,
+        agency: null,
+        links: [] as TalentLinkView[],
+        hasActiveLink: false,
+        pendingConnectionRequests: 0,
+      };
 
-    const { data: link } = await supabase
-      .from("agency_talent_links")
-      .select("id, agency_id, status, display_name, talent_type, created_at, ended_at")
-      .eq("talent_user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    let agency: { id: string; name: string } | null = null;
-    if (link?.agency_id) {
-      const { data: a } = await supabase
-        .from("agencies")
-        .select("id, name")
-        .eq("id", link.agency_id)
+    const links = await loadTalentLinks(supabase, userId);
+    const first = links.find((l) => l.state === "active") ?? null;
+    let link: any = null;
+    if (first) {
+      const { data } = await supabase
+        .from("agency_talent_links")
+        .select("id, agency_id, status, display_name, talent_type, created_at, ended_at")
+        .eq("id", first.id)
         .maybeSingle();
-      if (a) agency = a;
+      link = data ?? null;
     }
-    return { profile, link, agency };
+    const { data: reqs } = await supabase.rpc("my_link_requests");
+    return {
+      profile,
+      link,
+      agency: first ? { id: first.agency_id, name: first.agency_name } : null,
+      links,
+      hasActiveLink: !!first,
+      pendingConnectionRequests: ((reqs as any[]) ?? []).length,
+    };
   });
+
+export type TalentLinkView = {
+  id: string;
+  agency_id: string;
+  agency_name: string;
+  /** active = linked now; previous = ended but still readable with shared items. */
+  state: "active" | "previous";
+  shared_docs: number;
+};
+
+/**
+ * The caller's agency links that should appear anywhere in the Talent portal.
+ * Active links always appear. Ended/read-only links appear only as
+ * "Previously shared with [agency]" while still readable AND something was
+ * actually shared. Invited/unaccepted links never appear. Every agency-only
+ * surface (UI and server) decides visibility from this one list.
+ */
+export async function loadTalentLinks(supabase: any, userId: string): Promise<TalentLinkView[]> {
+  const { data: rows } = await supabase
+    .from("agency_talent_links")
+    .select("id, agency_id, status, ended_at, created_at")
+    .eq("talent_user_id", userId)
+    .order("created_at", { ascending: true });
+  const out: TalentLinkView[] = [];
+  const candidates = ((rows ?? []) as any[]).filter(
+    (r) => !["invited", "needs_review", "expired"].includes(r.status) || r.ended_at,
+  );
+  if (candidates.length === 0) return out;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: agencies } = await supabaseAdmin
+    .from("agencies")
+    .select("id, name")
+    .in(
+      "id",
+      candidates.map((r) => r.agency_id),
+    );
+  const names = new Map((agencies ?? []).map((a: any) => [a.id, (a.name as string)?.trim()]));
+  for (const r of candidates) {
+    const readUntil = await linkReadUntil(r.id);
+    const { count } = await supabase
+      .from("talent_shared_documents")
+      .select("id", { count: "exact", head: true })
+      .eq("talent_link_id", r.id);
+    const shared = count ?? 0;
+    const active = r.status === "active" && !r.ended_at && !readUntil;
+    const readable = !readUntil || new Date(readUntil).getTime() > Date.now();
+    if (active) {
+      out.push({ id: r.id, agency_id: r.agency_id, agency_name: names.get(r.agency_id) || "Your agency", state: "active", shared_docs: shared });
+    } else if (r.status !== "revoked" || r.ended_at) {
+      if (readable && shared > 0)
+        out.push({ id: r.id, agency_id: r.agency_id, agency_name: names.get(r.agency_id) || "Your agency", state: "previous", shared_docs: shared });
+    }
+  }
+  return out;
+}
 
 /**
  * When an ended (or offboarded-agency) link stops being readable. null = still
@@ -255,16 +320,19 @@ export const updateTalentProfile = createServerFn({ method: "POST" })
  */
 export const getRosterSharedContents = createServerFn({ method: "GET" })
   .middleware([requireTalentTermsAccepted])
-  .handler(async ({ context }) => {
+  .inputValidator((input: unknown) =>
+    z.object({ link_id: z.string().uuid().optional() }).optional().parse(input),
+  )
+  .handler(async ({ data: input, context }) => {
     const { supabase, userId } = context;
 
-    const { data: link } = await supabase
-      .from("agency_talent_links")
-      .select("id, agency_id, status")
-      .eq("talent_user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    // Only links the portal shows (active, or ended with shared items) are
+    // ever readable here — independent talent get nothing.
+    const visible = await loadTalentLinks(supabase, userId);
+    const chosen = input?.link_id ? visible.find((l) => l.id === input.link_id) : visible[0];
+    const link = chosen
+      ? { id: chosen.id, agency_id: chosen.agency_id, status: chosen.state === "active" ? "active" : "ended" }
+      : null;
 
     if (!link) return { link: null, folders: [], documents: [], read_until: null as string | null };
     const readUntil = await linkReadUntil(link.id);
@@ -300,6 +368,7 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
         agency_id: link.agency_id,
         status: link.status,
         agency_name: ((agency?.name as string) ?? "").trim() || "your agency",
+        state: chosen!.state,
       },
       folders: expired ? [] : (folders ?? []),
       documents: docs ?? [],
@@ -347,15 +416,11 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
 // M4 (talent side) — Document Requests fulfillment
 // -----------------------------------------------------------------------------
 
-async function getCallerLink(supabase: any, userId: string) {
-  const { data: link } = await supabase
-    .from("agency_talent_links")
-    .select("id, agency_id, status")
-    .eq("talent_user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  return link ?? null;
+/** An ACTIVE link of the caller (requests only exist while linked). */
+async function getCallerLink(supabase: any, userId: string, linkId?: string) {
+  const active = (await loadTalentLinks(supabase, userId)).filter((l) => l.state === "active");
+  const l = linkId ? active.find((x) => x.id === linkId) : active[0];
+  return l ? { id: l.id, agency_id: l.agency_id, status: "active" } : null;
 }
 
 /**
@@ -363,9 +428,12 @@ async function getCallerLink(supabase: any, userId: string) {
  */
 export const listTalentDocumentRequests = createServerFn({ method: "GET" })
   .middleware([requireTalentTermsAccepted])
-  .handler(async ({ context }) => {
+  .inputValidator((input: unknown) =>
+    z.object({ link_id: z.string().uuid().optional() }).optional().parse(input),
+  )
+  .handler(async ({ data: input, context }) => {
     const { supabase, userId } = context;
-    const link = await getCallerLink(supabase, userId);
+    const link = await getCallerLink(supabase, userId, input?.link_id);
     if (!link) return { link: null, requests: [], history: [] };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -381,6 +449,15 @@ export const listTalentDocumentRequests = createServerFn({ method: "GET" })
         .from("agency_document_request_history")
         .select("id, request_id, event, document_id, reason_code, notes, created_at")
         .eq("agency_id", link.agency_id)
+        .in(
+          "request_id",
+          (
+            await supabaseAdmin
+              .from("agency_document_requests")
+              .select("id")
+              .eq("talent_link_id", link.id)
+          ).data?.map((r: any) => r.id) ?? ["00000000-0000-0000-0000-000000000000"],
+        )
         .order("created_at", { ascending: false })
         .limit(50),
     ]);
@@ -408,7 +485,16 @@ export const createTalentRequestUploadUrl = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => RequestUploadInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const link = await getCallerLink(supabase, userId);
+    const { data: reqLink } = await (
+      await import("@/integrations/supabase/client.server")
+    ).supabaseAdmin
+      .from("agency_document_requests")
+      .select("talent_link_id")
+      .eq("id", data.request_id)
+      .maybeSingle();
+    const link = reqLink?.talent_link_id
+      ? await getCallerLink(supabase, userId, reqLink.talent_link_id as string)
+      : null;
     if (!link) throw new Error("No active roster link.");
     if (await linkReadUntil(link.id)) throw new Error(READ_ONLY_MESSAGE);
 
@@ -447,7 +533,16 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SubmitRequestInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const link = await getCallerLink(supabase, userId);
+    const { data: reqLink } = await (
+      await import("@/integrations/supabase/client.server")
+    ).supabaseAdmin
+      .from("agency_document_requests")
+      .select("talent_link_id")
+      .eq("id", data.request_id)
+      .maybeSingle();
+    const link = reqLink?.talent_link_id
+      ? await getCallerLink(supabase, userId, reqLink.talent_link_id as string)
+      : null;
     if (!link) throw new Error("No active roster link.");
     if (await linkReadUntil(link.id)) throw new Error(READ_ONLY_MESSAGE);
 
