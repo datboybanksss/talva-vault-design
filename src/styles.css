@@ -6525,3 +6525,14 @@ a.tvp-entity-card:focus-visible {
 .tv-empty-title { font-size: 15px; font-weight: 800; color: var(--ink); }
 .tv-empty-text { margin: 0; font-size: 13px; color: var(--text-body); max-width: 46ch; line-height: 1.5; }
 .tv-empty-action { margin-top: var(--sp-3); }
+/* Callouts use tokens (the old fixed light blue stayed white in dark mode). */
+.tv-app .tvp-callout { background: var(--blue-bg); border-color: color-mix(in oklab, var(--blue) 30%, transparent); color: var(--ink); }
+.tv-app .tvp-callout.tv-tint-green { background: var(--green-bg); border-color: color-mix(in oklab, var(--green) 30%, transparent); }
+.tv-app .tvp-callout.tv-tint-peach { background: var(--amber-bg); border-color: color-mix(in oklab, var(--amber) 30%, transparent); }
+.tv-app .tvp-callout .tvp-muted { color: var(--text-body); }
+.tv-app .tvp-card:is(.tv-tint-teal, .tv-tint-lavender, .tv-tint-peach, .tv-tint-green, .tv-tint-blue) { border-color: transparent; }
+.tv-app .tvp-card.tv-tint-teal { background: color-mix(in oklab, var(--teal-100) 55%, var(--surface)); }
+.tv-app .tvp-card.tv-tint-lavender { background: var(--purple-bg); }
+.tv-app .tvp-card.tv-tint-peach { background: var(--amber-bg); }
+.tv-app .tvp-card.tv-tint-green { background: var(--green-bg); }
+.tv-app .tvp-card.tv-tint-blue { background: var(--blue-bg); }
