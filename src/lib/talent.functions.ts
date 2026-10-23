@@ -646,7 +646,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           title:
             r.status === "resubmission_required"
               ? `Resubmission requested: ${r.title}`
-              : `Manager requested: ${r.title}`,
+              : `Requested: ${r.title}`,
           detail: r.due_date
             ? `${r.folder} · due ${fmtDate(r.due_date)}`
             : `${r.folder} · no due date`,
