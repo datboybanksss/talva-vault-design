@@ -323,6 +323,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
                 setBellOpen((o) => !o);
               }}
               aria-label="Notifications"
+              data-tour="talent-bell"
             >
               <Bell className="h-4 w-4" />
               {bellCount > 0 && <span className="tvp-dot">{bellCount}</span>}
