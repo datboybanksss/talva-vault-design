@@ -131,7 +131,7 @@ export function useTalentInvitationActions() {
         destructive: true,
         separatorBefore: true,
         title: "Also deletes the ID document and proof of talent",
-        onSelect: () => {
+        onSelect: async () => {
           if (
             await askConfirm({
               title: `Revoke the invitation to ${row.talent_name}?`,
