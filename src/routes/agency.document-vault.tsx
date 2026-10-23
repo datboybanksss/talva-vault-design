@@ -6,7 +6,7 @@ import {
   blockText,
   fmtLongDate,
 } from "@/lib/document-blocks";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { RecentlyDeletedDialog } from "@/components/agency/recently-deleted-dialog";
 import { stopSharingConfirmText } from "@/lib/document-settings";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -158,8 +158,10 @@ export const Route = createFileRoute("/agency/document-vault")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { tab?: string } =>
-    typeof search.tab === "string" ? { tab: search.tab } : {},
+  validateSearch: (search: Record<string, unknown>): { tab?: string; doc?: string } => ({
+    ...(typeof search.tab === "string" ? { tab: search.tab } : {}),
+    ...(typeof search.doc === "string" && search.doc ? { doc: search.doc } : {}),
+  }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(talentSummaryQO),
