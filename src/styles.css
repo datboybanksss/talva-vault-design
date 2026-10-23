@@ -6573,3 +6573,5 @@ a.tvp-entity-card:focus-visible {
   .tv-app .tv-seg { margin-left: 0; width: 100%; }
   .tv-app .tv-seg > button { flex: 1; justify-content: center; }
 }
+.tv-app .tv-page [data-tour="talent-vault-body"] > * { margin-top: 0; margin-bottom: 0; }
+.tv-app .tv-page .tvp-subtabs { align-self: flex-start; }
