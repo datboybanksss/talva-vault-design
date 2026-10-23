@@ -6585,3 +6585,15 @@ a.tvp-entity-card:focus-visible {
 .tv-app .tv-pref-label { font-size: 14px; font-weight: 700; color: var(--tvp-ink); cursor: pointer; }
 .tv-app .tv-pref-hint { font-size: 13px; color: var(--tvp-muted); margin-top: 2px; line-height: 1.45; }
 .tv-app .tv-pref-off .tv-pref-label { cursor: default; }
+
+/* Sidebar "Coming soon" tag (neutral lavender, never a warning colour) */
+.tv-app .tvp-nav-label .tvp-nav-tag {
+  display: block; width: fit-content; margin-top: 3px; padding: 1px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; line-height: 1.5; letter-spacing: 0.01em;
+  background: color-mix(in oklab, var(--cat-private-bg, #ece8fb) 85%, transparent); color: var(--cat-private-fg, #4b3a8c);
+}
+.tv-app .tv-teaser { text-align: center; padding: var(--sp-6, 28px) var(--sp-4, 16px); }
+.tv-app .tv-teaser .tv-icon-tile { margin: 0 auto var(--sp-3, 12px); }
+.tv-app .tv-teaser h2 { font-size: 18px; font-weight: 800; color: var(--tvp-ink); }
+.tv-app .tv-teaser p { max-width: 520px; margin: 8px auto 0; color: var(--tvp-muted); font-size: 14px; line-height: 1.55; }
+.tv-app .tv-teaser ul { max-width: 420px; margin: 14px auto 0; text-align: left; color: var(--tvp-ink); font-size: 14px; display: grid; gap: 6px; list-style: disc; padding-left: 20px; }

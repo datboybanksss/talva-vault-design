@@ -47,7 +47,7 @@ export const GUIDES: TourGuide[] = [
         key: "budget",
         selector: '[data-tour="/talent/budget"]',
         title: "Budget & Income",
-        body: "A place to track earnings and spending against your contracts. It's on its way — we'll let you know the moment it opens.",
+        body: "Coming soon: a private, read-only place to follow the quotes and invoices your agency shares with you.",
       },
       {
         key: "needs-attention",
