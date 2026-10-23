@@ -64,7 +64,7 @@ describe("Terms gate visibility", () => {
   it("not-accepted user sees the gate", async () => {
     spies.status.mockResolvedValue({ required: true, current, acceptances: [] });
     mount();
-    expect(await screen.findByText("Our Terms & Conditions")).toBeTruthy();
+    expect(await screen.findByRole("checkbox")).toBeTruthy();
     expect(screen.queryByText("Portal content")).toBeNull();
   });
 
