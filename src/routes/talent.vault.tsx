@@ -214,6 +214,18 @@ function PrivateVault() {
 
   const folders = useMemo(() => data?.folders ?? [], [data]);
   const documents = data?.documents ?? [];
+
+  // Deep link from a bell reminder: open the document, or say why we can't.
+  const { doc: docParam } = useSearch({ from: "/talent/vault" });
+  const navigateDoc = useNavigate();
+  useEffect(() => {
+    if (!docParam || !data) return;
+    const d = (data.documents ?? []).find((x) => x.id === docParam);
+    navigateDoc({ to: "/talent/vault", search: { tab: "private" }, replace: true });
+    if (d) onView(d.id, d.name);
+    else toast.info("This document is no longer available to you.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docParam, data]);
   const topFolders = useMemo(() => folders.filter((f) => !f.parent_id), [folders]);
   const subsByParent = useMemo(() => {
     const map = new Map<string, PrivateFolder[]>();
@@ -930,6 +942,18 @@ function SharedDocumentsView() {
     queryKey: ["talent", "roster-shared"],
     queryFn: () => load(),
   });
+
+  // Deep link from a bell reminder: open the document, or say why we can't.
+  const { doc: docParam } = useSearch({ from: "/talent/vault" });
+  const navigateDoc = useNavigate();
+  useEffect(() => {
+    if (!docParam || !data) return;
+    const d = (data.documents ?? []).find((x: any) => x.id === docParam);
+    navigateDoc({ to: "/talent/vault", search: { tab: "agency", view: "folder" }, replace: true });
+    if (d) onDownload(d.id);
+    else toast.info("This document is no longer available to you.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docParam, data]);
 
   async function onDownload(id: string) {
     try {
