@@ -768,17 +768,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         })),
       ];
 
-      // Per-user dismissals reuse the bell-reminder table; snapshot lets a row
-      // re-surface when the underlying document/request changes.
-      const { data: dis } = await supabase
-        .from("talent_notification_dismissals")
-        .select("kind, snapshot")
-        .eq("user_id", userId);
-      const dismissed = new Map((dis ?? []).map((d: any) => [d.kind, d.snapshot as number]));
-      attention = items.filter((i) => {
-        const d = dismissed.get(i.key);
-        return d === undefined || d < i.snapshot;
-      });
+      // Action items stay until done — they cannot be dismissed.
+      attention = items;
     }
 
     // Reminder-engine notifications (Private Vault and shared-folder expiries,

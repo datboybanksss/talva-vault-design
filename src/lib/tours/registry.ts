@@ -51,9 +51,9 @@ export const GUIDES: TourGuide[] = [
       },
       {
         key: "needs-attention",
-        selector: '[data-tour="needs-attention"]',
-        title: "To do",
-        body: "Your To do list shows document requests from your agency and documents expiring soon. Each item disappears once it is done.",
+        selector: '[data-tour="talent-bell"]',
+        title: "Reminders",
+        body: "The bell holds everything that needs you — document requests and documents expiring soon sit under Action needed until they're done, with other updates below.",
       },
       {
         key: "settings",
