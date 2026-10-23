@@ -679,7 +679,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       }
       const { data: notifs } = await supabase
         .from("talent_notifications")
-        .select("id, kind, title, detail, tone, target_type, due_at, read_at, created_at")
+        .select("id, kind, title, detail, tone, target_type, target_id, due_at, read_at, created_at")
         .eq("user_id", userId)
         .is("dismissed_at", null)
         .order("due_at", { ascending: true })
