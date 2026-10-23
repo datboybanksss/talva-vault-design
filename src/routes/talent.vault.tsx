@@ -78,13 +78,15 @@ export const Route = createFileRoute("/talent/vault")({
     view?: AgencyView;
     doc?: string;
     link?: string;
+    request?: string;
   } => {
     const t = search.tab;
     const v = search.view;
     // Legacy deep links used ?tab=requests before Requests was merged into
     // the Agency Shared Folder tab.
     if (t === "requests") return { tab: "agency", view: "requests" };
-    const out: { tab?: Mode; view?: AgencyView; doc?: string; link?: string } = {};
+    const out: { tab?: Mode; view?: AgencyView; doc?: string; link?: string; request?: string } = {};
+    if (typeof search.request === "string" && /^[0-9a-f-]{36}$/i.test(search.request)) out.request = search.request;
     if (typeof search.link === "string" && /^[0-9a-f-]{36}$/i.test(search.link)) out.link = search.link;
     if (t === "private" || t === "agency") out.tab = t;
     if (v === "requests" || v === "folder") out.view = v;
@@ -1311,6 +1313,26 @@ function ManagerRequests({ linkId }: { linkId: string }) {
     queryFn: () => load({ data: { link_id: linkId } }),
   });
 
+  // Deep link from the bell: bring the request (and its folder) into view
+  // with its upload button focused, or explain that it's already done.
+  const { request: requestParam } = useSearch({ from: "/talent/vault" });
+  useEffect(() => {
+    if (!requestParam || !data) return;
+    const r = (data.requests ?? []).find((x: any) => x.id === requestParam);
+    const isOpen = r && ["pending", "resubmission_required"].includes(r.status);
+    if (!isOpen) {
+      toast.info(
+        r ? "That request is already done — nothing more to upload." : "That request is no longer available.",
+      );
+      return;
+    }
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`tv-request-${requestParam}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+    });
+  }, [requestParam, data]);
+
   async function onPick(requestId: string, file: File) {
     setUploadingId(requestId);
     try {
@@ -1370,6 +1392,7 @@ function ManagerRequests({ linkId }: { linkId: string }) {
     (r: any) =>
       r.status === "pending" || r.status === "resubmission_required" || r.status === "submitted",
   );
+  const focusId = requestParam && open.some((r: any) => r.id === requestParam) ? requestParam : null;
   const closed = (data.requests ?? []).filter(
     (r: any) => r.status === "completed" || r.status === "cancelled",
   );
@@ -1405,7 +1428,8 @@ function ManagerRequests({ linkId }: { linkId: string }) {
             {open.map((r: any) => (
               <div
                 key={r.id}
-                className="tvp-doc-card"
+                id={`tv-request-${r.id}`}
+                className={`tvp-doc-card${focusId === r.id ? " tvp-request-focus" : ""}`}
                 style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10 }}
               >
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>

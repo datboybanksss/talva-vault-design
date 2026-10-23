@@ -13,8 +13,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getTalentDashboard,
-  listTalentDismissals,
-  dismissTalentReminder,
   getTalentBellFeed,
   markTalentNotificationRead,
 } from "@/lib/talent.functions";
@@ -48,7 +46,6 @@ type NavItem = {
 const buildManageNav = (
   vaultBadge: number,
   sharesBadge: number,
-  reminderBadge: number,
   showRequests: boolean,
 ): NavItem[] => [
   {
@@ -56,7 +53,6 @@ const buildManageNav = (
     label: "Dashboard",
     icon: <LayoutGrid />,
     match: "exact",
-    ...(reminderBadge > 0 ? { badge: reminderBadge } : {}),
   },
   { to: "/talent/vault", label: "Vault", icon: <Lock />, badge: vaultBadge },
   {
@@ -98,6 +94,33 @@ function bellTarget(n: {
   return { to: "/talent/notifications" };
 }
 
+type ActionItem = {
+  key: string;
+  type: "request" | "reminder";
+  title: string;
+  detail: string;
+  tone: "amber" | "purple";
+  targetType?: string | null;
+  targetId?: string | null;
+  notificationId?: string;
+  requestId?: string;
+  linkId?: string;
+};
+
+/** Straight to where the action is done. */
+function actionTarget(a: ActionItem): { to: string; search?: Record<string, unknown> } {
+  if (a.type === "request" && a.requestId)
+    return {
+      to: "/talent/vault",
+      search: { tab: "agency", view: "requests", request: a.requestId, ...(a.linkId ? { link: a.linkId } : {}) },
+    };
+  if (a.targetType === "shared_document" && a.targetId)
+    return { to: "/talent/vault", search: { tab: "agency", view: "folder", doc: a.targetId } };
+  if (a.targetType === "private_document" && a.targetId)
+    return { to: "/talent/vault", search: { tab: "private", doc: a.targetId } };
+  return { to: "/talent/notifications" };
+}
+
 export function TalentShell({ children }: { children: ReactNode }) {
   useIdleSignOut();
   const [collapsed, setCollapsed] = useState(false);
@@ -111,10 +134,6 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const loadDash = useServerFn(getTalentDashboard);
   const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
 
-  const pendingRequests = (dash as any)?.pendingRequests ?? 0;
-  const resubRequests = (dash as any)?.resubRequests ?? 0;
-  const expiringSoon = (dash as any)?.expiringSoon ?? 0;
-  const expiryNoticeDays = (dash as any)?.expiryNoticeDays ?? 30;
   const vaultBadge = ((dash as any)?.privateDocs ?? 0) + ((dash as any)?.sharedDocs ?? 0);
   const sharesBadge = (dash as any)?.activeShares ?? 0;
   // Reminder-engine notifications (unread) — surfaced in the bell AND as a
@@ -127,72 +146,16 @@ export function TalentShell({ children }: { children: ReactNode }) {
   });
   const bellItems = bell?.enabled ? (bell.items ?? []) : [];
 
-  const loadDismissals = useServerFn(listTalentDismissals);
-  const dismissFn = useServerFn(dismissTalentReminder);
-  const { data: dismissals } = useQuery({
-    queryKey: ["talent", "reminder-dismissals"],
-    queryFn: () => loadDismissals() as Promise<{ kind: string; snapshot: number }[]>,
-  });
-  const dismissedMap = new Map((dismissals ?? []).map((d) => [d.kind, d.snapshot]));
-  async function dismissReminder(kind: string, snapshot: number) {
-    try {
-      await dismissFn({ data: { kind, snapshot } });
-      queryClient.invalidateQueries({ queryKey: ["talent", "reminder-dismissals"] });
-    } catch {
-      /* non-blocking */
-    }
-  }
-
-  const notifications = [
-    pendingRequests > 0 && {
-      kind: "pending_requests",
-      snapshot: pendingRequests,
-      tone: "purple",
-      Icon: Inbox,
-      title: `${pendingRequests} document request${pendingRequests === 1 ? "" : "s"} from your agency`,
-      detail: "Upload the requested files from Vault → your shared folder → Requests.",
-      to: "/talent/vault",
-      search: { tab: "agency" as const, view: "requests" as const },
-    },
-    resubRequests > 0 && {
-      kind: "resubmissions",
-      snapshot: resubRequests,
-      tone: "amber",
-      Icon: AlertCircle,
-      title: `${resubRequests} resubmission${resubRequests === 1 ? "" : "s"} requested`,
-      detail: "Your agency needs an updated file.",
-      to: "/talent/vault",
-      search: { tab: "agency" as const, view: "requests" as const },
-    },
-    expiringSoon > 0 && {
-      kind: "expiring_soon",
-      snapshot: expiringSoon,
-      tone: "amber",
-      Icon: Clock,
-      title: `${expiringSoon} document${expiringSoon === 1 ? "" : "s"} expiring soon`,
-      detail: `Shared documents due for renewal within ${expiryNoticeDays} days.`,
-      to: "/talent/vault",
-      search: { tab: "agency" as const, view: "folder" as const },
-    },
-  ]
-    .filter(Boolean)
-    .filter((n: any) => dismissedMap.get(n.kind) !== n.snapshot) as {
-    kind: string;
-    snapshot: number;
-    tone: string;
-    Icon: typeof Inbox;
-    title: string;
-    detail: string;
-    to: string;
-    search: { tab: "agency"; view: "requests" | "folder" };
-  }[];
-
-  const bellCount = notifications.length + bellItems.length;
+  // "Action needed" = things the talent must do (agency requests incl.
+  // resubmissions, expiring documents). They come from the same rules and
+  // thresholds as before and stay until done, not just until read.
+  const actions = ((dash as any)?.todo ?? []) as ActionItem[];
+  const infoItems = bellItems.filter((n: any) => n.kind !== "doc_expiring");
+  const bellCount = actions.length + infoItems.length;
   const agencyLinks = useTalentAgencyLinks();
   const manage = buildManageNav(
     vaultBadge,
     sharesBadge,
-    bellCount,
     // A failed read keeps agency items visible rather than guessing "independent".
     agencyLinks.isError ||
       !!agencyLinks.data?.hasActiveLink ||
@@ -379,50 +342,49 @@ export function TalentShell({ children }: { children: ReactNode }) {
                 </div>
                 {bellCount === 0 ? (
                   <p className="tvp-muted" style={{ fontSize: 13, padding: "8px 2px" }}>
-                    {bell?.enabled === false
+                    {bell?.enabled === false && actions.length === 0
                       ? "In-app reminders are switched off in Settings → Notifications."
                       : "You're all caught up."}
                   </p>
-                ) : (
-                  notifications.map((n, i) => (
-                    <div key={i} style={{ position: "relative" }}>
-                      <Link
-                        to={n.to}
-                        search={n.search}
-                        className="tvp-notification-item"
-                        onClick={() => setBellOpen(false)}
-                      >
-                        <div
-                          className={`tvp-kpi-icon tvp-bg-${n.tone}`}
-                          style={{ width: 32, height: 32 }}
+                ) : null}
+                {actions.length > 0 && (
+                  <>
+                    <div className="tvp-bell-group">Action needed · {actions.length}</div>
+                    {actions.map((n) => {
+                      const t = actionTarget(n);
+                      return (
+                        <Link
+                          key={n.key}
+                          to={t.to}
+                          search={t.search as any}
+                          className="tvp-notification-item"
+                          onClick={() => {
+                            setBellOpen(false);
+                            if (n.notificationId) markNotificationRead(n.notificationId);
+                          }}
                         >
-                          <n.Icon className="h-4 w-4" />
-                        </div>
-                        <div style={{ paddingRight: 20 }}>
-                          <strong>{n.title}</strong>
-                          <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                            {n.detail}
+                          <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
+                            {n.type === "request" ? (
+                              n.tone === "amber" ? <AlertCircle className="h-4 w-4" /> : <Inbox className="h-4 w-4" />
+                            ) : (
+                              <Clock className="h-4 w-4" />
+                            )}
                           </div>
-                        </div>
-                      </Link>
-                      <button
-                        title="Dismiss reminder"
-                        aria-label="Dismiss reminder"
-                        className="tvp-mini-btn"
-                        style={{ position: "absolute", top: 8, right: 6 }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          dismissReminder(n.kind, n.snapshot);
-                        }}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))
+                          <div>
+                            <strong>{n.title}</strong>
+                            {n.detail && (
+                              <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                                {n.detail}
+                              </div>
+                            )}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </>
                 )}
-
-                {bellItems.map((n: any) => (
+                {infoItems.length > 0 && actions.length > 0 && <div className="tvp-bell-group">Updates</div>}
+                {infoItems.map((n: any) => (
                   <div key={n.id} style={{ position: "relative" }}>
                     <Link
                       to={bellTarget(n).to}

@@ -6408,3 +6408,5 @@ a.tvp-entity-card:focus-visible {
   .tvd .tvd-actions { width: 100%; }
   .tvd .tvd-btn { flex: 1 1 100%; }
 }
+.tvp-portal .tvp-bell-group, .tvp-bell-group { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tvp-muted); margin: 10px 2px 4px; }
+.tvp-portal .tvp-request-focus { border-color: var(--tvp-teal); box-shadow: 0 0 0 3px var(--tvp-teal-100); }
