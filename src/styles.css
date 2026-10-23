@@ -6542,3 +6542,5 @@ a.tvp-entity-card:focus-visible {
   .tv-app .tvp-tabs > .tvp-tab { flex: 0 0 auto; white-space: nowrap; }
 }
 .tv-app .tvp-panel-head :is(.tvp-primary, .tvp-secondary) { white-space: nowrap; }
+.tv-doc-name { display: inline-flex; align-items: center; gap: var(--sp-2); vertical-align: middle; margin-right: 6px; min-width: 0; }
+.tv-doc-name strong { overflow-wrap: anywhere; }

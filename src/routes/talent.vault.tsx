@@ -1,5 +1,5 @@
 import { FilterBar } from "@/components/shared/filter-bar";
-import { PageBand } from "@/components/shared/brand";
+import { FileTypeIcon, PageBand } from "@/components/shared/brand";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -608,7 +608,7 @@ function PrivateVault() {
       )}
 
       {docsVisible && (
-        <div className="tvp-card">
+        <div className="tvp-card tvp-panel">
           <div className="tvp-panel-head">
             <div>
               <h2 className="tvp-h2">All private documents</h2>
@@ -642,7 +642,7 @@ function PrivateVault() {
                   {docPage.visible.map((d) => (
                     <tr key={d.id}>
                       <td>
-                        <strong>{d.name}</strong>
+                        <span className="tv-doc-name"><FileTypeIcon name={d.name} /><strong>{d.name}</strong></span>
                         {d.pending_review && (
                           <span
                             className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}
