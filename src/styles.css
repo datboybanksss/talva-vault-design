@@ -6371,7 +6371,8 @@ a.tvp-entity-card:focus-visible {
 
 /* Talent dashboard — warm brand band and accent tiles (existing teal + folder accent tints) */
 :root { --tvd-band-from: var(--teal-900); --tvd-band-to: var(--teal-700); --tvd-on-band: #ffffff; }
-.dark { --tvd-band-from: var(--teal-900); --tvd-band-to: var(--teal-200); }
+:root[data-theme="dark"] { --tvd-band-to: var(--teal-200); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --tvd-band-to: var(--teal-200); } }
 .tvd .tvd-band { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6, 24px); border-radius: var(--r-lg, 16px); background: linear-gradient(135deg, var(--tvd-band-from), var(--tvd-band-to)); color: var(--tvd-on-band); box-shadow: var(--sh-sm); }
 .tvd .tvd-who { display: flex; align-items: center; gap: var(--sp-4); min-width: 0; }
 .tvd .tvd-avatar { width: 56px; height: 56px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; color: var(--tvd-on-band); background: color-mix(in oklab, var(--tvd-on-band) 18%, transparent); border: 2px solid color-mix(in oklab, var(--tvd-on-band) 45%, transparent); flex-shrink: 0; }
@@ -6380,7 +6381,6 @@ a.tvp-entity-card:focus-visible {
 .tvd .tvd-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: color-mix(in oklab, var(--tvd-on-band) 20%, transparent); }
 .tvd .tvd-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); height: 42px; padding: 0 16px; border-radius: 11px; font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap; }
 .tvd .tvd-btn-primary { background: var(--tvd-on-band); color: var(--teal-900); }
-.dark .tvd .tvd-btn-primary { color: #04262c; }
 .tvd .tvd-btn-primary:hover { box-shadow: var(--sh-sm); }
 .tvd .tvd-btn-ghost { color: var(--tvd-on-band); border: 1.5px solid color-mix(in oklab, var(--tvd-on-band) 70%, transparent); background: transparent; }
 .tvd .tvd-btn-ghost:hover { background: color-mix(in oklab, var(--tvd-on-band) 12%, transparent); }
