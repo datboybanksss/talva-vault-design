@@ -702,6 +702,15 @@ function PrivateVault() {
           }}
         />
       )}
+
+      {copyFor && (
+        <CopyToAgencyDialog
+          documentId={copyFor.id}
+          documentName={copyFor.name}
+          targets={copyTargets?.targets ?? []}
+          onClose={() => setCopyFor(null)}
+        />
+      )}
     </>
   );
 }
