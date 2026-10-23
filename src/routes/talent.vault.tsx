@@ -1,5 +1,5 @@
 import { FilterBar } from "@/components/shared/filter-bar";
-import { FileTypeIcon, PageBand } from "@/components/shared/brand";
+import { EmptyState, FileTypeIcon, PageBand } from "@/components/shared/brand";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { LoadMoreRow } from "@/components/shared/load-more";
@@ -130,17 +130,28 @@ function VaultPage() {
   };
 
   const showAgency = mode === "agency" && !!selected;
+  const uploadRef = useRef<(() => void) | null>(null);
 
   return (
-    <>
+    <div className="tv-page">
       <PageBand
         icon={<Lock />}
         title="Vault"
         subtitle={showAgency ? "Documents you and your agency both see." : "Your private documents — only you can see these."}
+        actions={
+          !showAgency ? (
+            <button type="button" className="tvp-primary" data-tour="talent-vault-upload" onClick={() => uploadRef.current?.()}>
+              <Upload className="h-4 w-4" /> Upload document
+            </button>
+          ) : undefined
+        }
       />
 
-      <div className="tvp-tabs" data-tour="talent-vault-tabs">
+      <div className="tvp-tabs tvp-roster-tabs tv-page-tabs" role="tablist" aria-label="Vault" data-tour="talent-vault-tabs">
         <button
+          type="button"
+          role="tab"
+          aria-selected={!showAgency}
           className={`tvp-tab${!showAgency ? " tvp-active" : ""}`}
           onClick={() => goTo("private")}
         >
@@ -149,6 +160,9 @@ function VaultPage() {
         {links.map((l) => (
           <button
             key={l.id}
+            type="button"
+            role="tab"
+            aria-selected={showAgency && selected?.id === l.id}
             className={`tvp-tab${showAgency && selected?.id === l.id ? " tvp-active" : ""}`}
             onClick={() => goTo("agency", l.id)}
           >
@@ -159,7 +173,7 @@ function VaultPage() {
       </div>
 
       <div data-tour="talent-vault-body">
-        {!showAgency && <PrivateVault />}
+        {!showAgency && <PrivateVault uploadRef={uploadRef} />}
 
         {showAgency && selected && (
           <AgencySharedFolder
@@ -170,7 +184,7 @@ function VaultPage() {
           />
         )}
       </div>
-    </>
+    </div>
   );
 }
 
