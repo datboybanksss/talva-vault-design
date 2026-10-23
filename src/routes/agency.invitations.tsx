@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { useFolderNames } from "@/lib/folder-catalogue";
 import { usePagedList } from "@/lib/pagination";
@@ -79,6 +80,7 @@ const STAFF_ROLE_LABEL: Record<string, string> = {
 };
 
 function InvitationsPage() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const navigate = useNavigate();
   const listFn = useServerFn(listAgencyInvitationsMine);
   const whoamiFn = useServerFn(agencyWhoami);
@@ -164,6 +166,7 @@ function InvitationsPage() {
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Invitations</h1>
@@ -324,8 +327,8 @@ function InvitationsPage() {
                                 icon: Ban,
                                 destructive: true,
                                 separatorBefore: true,
-                                onSelect: () => {
-                                  if (confirm(`Revoke invitation to ${i.email}?`))
+                                onSelect: async () => {
+                                  if (await askConfirm({ title: `Revoke invitation to ${i.email}?` }))
                                     revokeM.mutate({ id: i.id, type: i.type });
                                 },
                               },

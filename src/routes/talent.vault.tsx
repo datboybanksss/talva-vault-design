@@ -391,7 +391,7 @@ function PrivateVault() {
   if (isError) {
     return (
       <div className="tvp-card tvp-panel">
-        <p className="tvp-warn">Failed to load: {(error as Error)?.message}</p>
+        <p className="tvp-warn">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
       </div>
     );
   }
@@ -974,7 +974,7 @@ function SharedDocumentsView() {
   if (isError) {
     return (
       <div className="tvp-card tvp-panel">
-        <p className="tvp-warn">Failed to load: {(error as Error)?.message}</p>
+        <p className="tvp-warn">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
       </div>
     );
   }
@@ -1242,7 +1242,7 @@ function ManagerRequests() {
   if (isError)
     return (
       <div className="tvp-card tvp-panel">
-        <p className="tvp-warn">Failed to load: {(error as Error)?.message}</p>
+        <p className="tvp-warn">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
       </div>
     );
   if (!data?.link) {

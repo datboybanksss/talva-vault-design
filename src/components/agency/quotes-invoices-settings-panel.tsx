@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -36,6 +37,7 @@ const ACCENT_PRESETS = [
 ];
 
 export function QuotesInvoicesSettingsPanel() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
   const getFn = useServerFn(getAgencyBillingSettings);
   const saveFn = useServerFn(updateAgencyBillingSettings);
@@ -124,7 +126,7 @@ export function QuotesInvoicesSettingsPanel() {
   }
 
   async function removeLogo() {
-    if (!confirm("Remove agency logo?")) return;
+    if (!(await askConfirm({ title: "Remove agency logo?" }))) return;
     await logoFn({ data: { storage_path: null } });
     toast.success("Logo removed");
     qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
@@ -142,6 +144,7 @@ export function QuotesInvoicesSettingsPanel() {
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar" data-tour="billing-settings">
         <div>
           <h2 className="tvp-h2">Quotes &amp; Invoices Settings</h2>

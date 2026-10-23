@@ -58,6 +58,7 @@ import { Route as AgencyClientsIndexRouteImport } from './routes/agency.clients.
 import { Route as AgencyClientsClientIdRouteImport } from './routes/agency.clients.$clientId'
 import { Route as AgencyContractsIdRouteImport } from './routes/agency.contracts.$id'
 import { Route as AgencyTalentIndexRouteImport } from './routes/agency.talent.index'
+import { Route as AgencyTalentLinkIdRouteImport } from './routes/agency.talent.$linkId'
 import { Route as AgencyTalentInviteRouteImport } from './routes/agency.talent.invite'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicLovedOneFileRouteImport } from './routes/api/public/loved-one-file'
@@ -318,6 +319,11 @@ const AgencyTalentIndexRoute = AgencyTalentIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AgencyTalentRoute,
 } as any)
+const AgencyTalentLinkIdRoute = AgencyTalentLinkIdRouteImport.update({
+  id: '/$linkId',
+  path: '/$linkId',
+  getParentRoute: () => AgencyTalentRoute,
+} as any)
 const AgencyTalentInviteRoute = AgencyTalentInviteRouteImport.update({
   id: '/invite',
   path: '/invite',
@@ -443,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/admin/talent/$id': typeof AdminTalentIdRoute
   '/agency/clients/$clientId': typeof AgencyClientsClientIdRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
+  '/agency/talent/$linkId': typeof AgencyTalentLinkIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
@@ -502,6 +509,7 @@ export interface FileRoutesByTo {
   '/admin/talent/$id': typeof AdminTalentIdRoute
   '/agency/clients/$clientId': typeof AgencyClientsClientIdRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
+  '/agency/talent/$linkId': typeof AgencyTalentLinkIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
@@ -568,6 +576,7 @@ export interface FileRoutesById {
   '/admin/talent/$id': typeof AdminTalentIdRoute
   '/agency/clients/$clientId': typeof AgencyClientsClientIdRoute
   '/agency/contracts/$id': typeof AgencyContractsIdRoute
+  '/agency/talent/$linkId': typeof AgencyTalentLinkIdRoute
   '/agency/talent/invite': typeof AgencyTalentInviteRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/loved-one-file': typeof ApiPublicLovedOneFileRoute
@@ -635,6 +644,7 @@ export interface FileRouteTypes {
     | '/admin/talent/$id'
     | '/agency/clients/$clientId'
     | '/agency/contracts/$id'
+    | '/agency/talent/$linkId'
     | '/agency/talent/invite'
     | '/api/public/health'
     | '/api/public/loved-one-file'
@@ -694,6 +704,7 @@ export interface FileRouteTypes {
     | '/admin/talent/$id'
     | '/agency/clients/$clientId'
     | '/agency/contracts/$id'
+    | '/agency/talent/$linkId'
     | '/agency/talent/invite'
     | '/api/public/health'
     | '/api/public/loved-one-file'
@@ -759,6 +770,7 @@ export interface FileRouteTypes {
     | '/admin/talent/$id'
     | '/agency/clients/$clientId'
     | '/agency/contracts/$id'
+    | '/agency/talent/$linkId'
     | '/agency/talent/invite'
     | '/api/public/health'
     | '/api/public/loved-one-file'
@@ -1146,6 +1158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyTalentIndexRouteImport
       parentRoute: typeof AgencyTalentRoute
     }
+    '/agency/talent/$linkId': {
+      id: '/agency/talent/$linkId'
+      path: '/$linkId'
+      fullPath: '/agency/talent/$linkId'
+      preLoaderRoute: typeof AgencyTalentLinkIdRouteImport
+      parentRoute: typeof AgencyTalentRoute
+    }
     '/agency/talent/invite': {
       id: '/agency/talent/invite'
       path: '/invite'
@@ -1336,11 +1355,13 @@ const AgencyInvitationsRouteWithChildren =
   AgencyInvitationsRoute._addFileChildren(AgencyInvitationsRouteChildren)
 
 interface AgencyTalentRouteChildren {
+  AgencyTalentLinkIdRoute: typeof AgencyTalentLinkIdRoute
   AgencyTalentInviteRoute: typeof AgencyTalentInviteRoute
   AgencyTalentIndexRoute: typeof AgencyTalentIndexRoute
 }
 
 const AgencyTalentRouteChildren: AgencyTalentRouteChildren = {
+  AgencyTalentLinkIdRoute: AgencyTalentLinkIdRoute,
   AgencyTalentInviteRoute: AgencyTalentInviteRoute,
   AgencyTalentIndexRoute: AgencyTalentIndexRoute,
 }

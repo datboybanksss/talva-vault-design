@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -17,6 +18,7 @@ import { friendlyError } from "@/lib/friendly-error";
 
 /** State-driven row actions for an admin-sent (independent) talent invitation. */
 export function useTalentInvitationActions() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const nav = useNavigate();
   const qc = useQueryClient();
   const getFn = useServerFn(getIndependentTalentInvitation);
@@ -63,7 +65,7 @@ export function useTalentInvitationActions() {
     }
   };
 
-  return (row: {
+  const build = (row: {
     id: string;
     status: string;
     stored_status?: string | null;
@@ -129,11 +131,13 @@ export function useTalentInvitationActions() {
         destructive: true,
         separatorBefore: true,
         title: "Also deletes the ID document and proof of talent",
-        onSelect: () => {
+        onSelect: async () => {
           if (
-            confirm(
-              `Revoke the invitation to ${row.talent_name}? Their ID document and proof of talent will be deleted.`,
-            )
+            await askConfirm({
+              title: `Revoke the invitation to ${row.talent_name}?`,
+              body: "Their ID document and proof of talent will be deleted.",
+              destructive: true,
+            })
           ) {
             revokeM.mutate(row.id);
           }
@@ -147,10 +151,11 @@ export function useTalentInvitationActions() {
         destructive: true,
         separatorBefore: true,
         title: "Also deletes any uploaded ID document and proof of talent",
-        onSelect: () => {
-          if (confirm(`Delete the draft invitation to ${row.talent_name}?`)) deleteM.mutate(row.id);
+        onSelect: async () => {
+          if (await askConfirm({ title: `Delete the draft invitation to ${row.talent_name}?`, destructive: true })) deleteM.mutate(row.id);
         },
       },
     ];
   };
+  return Object.assign(build, { dialog: askConfirmDialog });
 }

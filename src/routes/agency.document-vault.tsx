@@ -50,7 +50,6 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import {
   listAgencyVaultDocuments,
-  listAgencyVaultExpiring,
   getAgencyVaultTalentSummary,
   getAgencyVaultFolderCounts,
   listAgencyTalentLinksLite,
@@ -128,10 +127,6 @@ const talentSummaryQO = queryOptions({
   queryKey: ["agency", "vault", "talent-summary"],
   queryFn: () => getAgencyVaultTalentSummary() as Promise<TalentSummary[]>,
 });
-const expiringQO = queryOptions({
-  queryKey: ["agency", "vault", "expiring"],
-  queryFn: () => listAgencyVaultExpiring({ data: { days: 180, limit: 5 } }) as Promise<VaultDoc[]>,
-});
 const talentLinksQO = queryOptions({
   queryKey: ["agency", "vault", "talent-links"],
   queryFn: () => listAgencyTalentLinksLite() as Promise<TalentLinkLite[]>,
@@ -158,14 +153,16 @@ export const Route = createFileRoute("/agency/document-vault")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { tab?: string; doc?: string } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: string; doc?: string; talent?: string } => ({
+    ...(typeof search.talent === "string" && search.talent ? { talent: search.talent } : {}),
     ...(typeof search.tab === "string" ? { tab: search.tab } : {}),
     ...(typeof search.doc === "string" && search.doc ? { doc: search.doc } : {}),
   }),
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(talentSummaryQO),
-      context.queryClient.ensureQueryData(expiringQO),
       context.queryClient.ensureQueryData(talentLinksQO),
       context.queryClient.ensureQueryData(meQO),
       context.queryClient.ensureQueryData(requestsListQO),
@@ -175,7 +172,7 @@ export const Route = createFileRoute("/agency/document-vault")({
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Document Vault</h1>
-      <p className="tvp-muted">Failed to load: {(error as Error)?.message}</p>
+      <p className="tvp-muted">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
     </div>
   ),
   notFoundComponent: () => <div>Not found</div>,
@@ -289,7 +286,6 @@ function VaultPage() {
   const { data: me } = useSuspenseQuery(meQO);
   const { data: requestRows } = useSuspenseQuery(requestsListQO);
   const { data: talentSummary = [] } = useSuspenseQuery(talentSummaryQO);
-  const { data: expiring = [] } = useSuspenseQuery(expiringQO);
   const searchParams = Route.useSearch();
   const initialTab: Tab = (tabs as readonly string[]).includes(searchParams.tab ?? "")
     ? (searchParams.tab as Tab)
@@ -311,7 +307,11 @@ function VaultPage() {
   );
 
   const [mode, setMode] = useState<"browse" | "search">("browse");
-  const [talentId, setTalentId] = useState<string | null>(null);
+  // `?talent=` opens a talent's folders directly (used by the talent details page).
+  const [talentId, setTalentId] = useState<string | null>(searchParams.talent ?? null);
+  useEffect(() => {
+    if (searchParams.talent) setTalentId(searchParams.talent);
+  }, [searchParams.talent]);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const [folderSel, setFolderSel] = useState<{
     label: string;
@@ -536,34 +536,6 @@ function VaultPage() {
           )}
         </div>
       </div>
-
-      {/* Only rendered when something is genuinely expiring — no reassurance
-          panel when the list is empty. */}
-      {tab !== "Requests" && expiring.length > 0 && (
-        <div className="tvp-card tvp-panel">
-          <div className="tvp-panel-head">
-            <h2 className="tvp-h2">Expiring soon</h2>
-          </div>
-          <div className="tvp-list">
-            {expiring.map((d) => (
-              <div key={d.id} className="tvp-list-item">
-                <FileText className="h-5 w-5 text-[var(--tvp-amber)]" />
-                <div>
-                  <strong>
-                    {d.talentName} · {d.name}
-                  </strong>
-                  <div className="tvp-muted">{formatValidity(d.validityExpiresAt)}</div>
-                </div>
-                <span
-                  className={`tvp-status tvp-${(daysUntil(d.validityExpiresAt) ?? 0) <= 60 ? "amber" : "blue"}`}
-                >
-                  {daysUntil(d.validityExpiresAt)} days
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="tvp-tabs" data-tour="vault-tabs">
         {tabs.map((t) => {

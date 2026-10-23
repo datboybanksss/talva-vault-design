@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { searchParam } from "@/lib/search";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { statusLabel, statusPillClass, statusToken } from "@/lib/status-labels";
@@ -88,6 +89,7 @@ export const Route = createFileRoute("/admin/accounts")({
 });
 
 function AccountsPage() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const listFn = useServerFn(listAccounts);
   const accountState = useAccountStateActions();
   const resendFn = useServerFn(resendInvitation);
@@ -148,11 +150,11 @@ function AccountsPage() {
     },
     onError: (e) => toast.error(friendlyError(e, "We couldn't change the account type.")),
   });
-  const toggleTest = (type: "agency" | "talent", id: string, name: string, isTest: boolean) => {
+  const toggleTest = async (type: "agency" | "talent", id: string, name: string, isTest: boolean) => {
     const msg = isTest
       ? `Mark ${name} as a test account? It will be left out of reports and launch offer places by default.`
       : `Mark ${name} as a real account? It will be counted in reports again.`;
-    if (confirm(msg)) testM.mutate({ type, id, isTest });
+    if (await askConfirm({ title: msg })) testM.mutate({ type, id, isTest });
   };
   const testAction = (type: "agency" | "talent", a: any) => ({
     key: "test",
@@ -269,6 +271,7 @@ function AccountsPage() {
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Accounts</h1>
@@ -600,8 +603,8 @@ function AccountsPage() {
                               label: "Revoke invitation",
                               icon: Ban,
                               destructive: true,
-                              onSelect: () => {
-                                if (confirm(`Revoke invitation to ${a.name}?`))
+                              onSelect: async () => {
+                                if (await askConfirm({ title: `Revoke invitation to ${a.name}?` }))
                                   revokeM.mutate(invitation!.id);
                               },
                             },

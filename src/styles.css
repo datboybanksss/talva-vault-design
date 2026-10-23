@@ -6078,3 +6078,80 @@ a.tvp-entity-card:focus-visible {
 .tvp-kebab-item[data-disabled] .tvp-kebab-reason {
   opacity: 1;
 }
+
+/* Clickable entity cards that hold their own menu / stat links. */
+.tvp-entity-card-clickable {
+  cursor: pointer;
+}
+.tvp-entity-card-clickable:hover {
+  border-color: var(--tvp-teal-200);
+  box-shadow: var(--tvp-shadow-soft);
+  transform: translateY(-1px);
+}
+.tvp-entity-card-clickable:focus-visible,
+.tvp-entity-stat-link:focus-visible {
+  outline: 2px solid var(--tvp-teal-2);
+  outline-offset: 2px;
+}
+.tvp-entity-stat-link {
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: var(--sp-1);
+  border-radius: var(--r-card);
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.tvp-entity-stat-link:hover {
+  background: var(--tvp-teal-50);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tvp-entity-card-clickable:hover {
+    transform: none;
+  }
+}
+
+/* Agency talent details page */
+.tvp-detail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+.tvp-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+}
+.tvp-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--sp-4);
+}
+.tvp-detail-grid > .tvp-card {
+  margin: 0;
+}
+.tvp-detail-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--sp-2) var(--sp-4);
+  margin: var(--sp-3) 0;
+}
+.tvp-detail-list dt {
+  color: var(--tvp-muted);
+}
+.tvp-detail-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .tvp-detail-list {
+    grid-template-columns: 1fr;
+    gap: var(--sp-1);
+  }
+  .tvp-detail-list dd {
+    margin-bottom: var(--sp-2);
+  }
+}

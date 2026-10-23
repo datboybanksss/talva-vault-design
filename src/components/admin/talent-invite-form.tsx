@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -80,6 +81,7 @@ export function TalentInviteForm({
   draftId?: string;
   typeSlot?: ReactNode;
 }) {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const nav = useNavigate();
   const qc = useQueryClient();
   const createFn = useServerFn(createIndependentTalentDraft);
@@ -333,6 +335,7 @@ export function TalentInviteForm({
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar">
         <div>
           <Link
@@ -379,11 +382,16 @@ export function TalentInviteForm({
                 <button
                   className="tvp-secondary"
                   disabled={revokeM.isPending}
-                  onClick={() =>
-                    confirm(
-                      `Revoke the invitation to ${name}? Their ID document and proof of talent will be deleted.`,
-                    ) && revokeM.mutate()
-                  }
+                  onClick={async () => {
+                    if (
+                      await askConfirm({
+                        title: `Revoke the invitation to ${name}?`,
+                        body: "Their ID document and proof of talent will be deleted.",
+                        destructive: true,
+                      })
+                    )
+                      revokeM.mutate();
+                  }}
                 >
                   <Ban className="h-4 w-4" />
                   Revoke
@@ -500,10 +508,16 @@ export function TalentInviteForm({
                       type="button"
                       className="tvp-secondary"
                       disabled={deleteDraftM.isPending}
-                      onClick={() =>
-                        confirm("Delete this draft and its documents? This cannot be undone.") &&
-                        deleteDraftM.mutate()
-                      }
+                      onClick={async () => {
+                        if (
+                          await askConfirm({
+                            title: "Delete this draft and its documents?",
+                            body: "This cannot be undone.",
+                            destructive: true,
+                          })
+                        )
+                          deleteDraftM.mutate();
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                       Delete draft

@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/shared/use-confirm";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -31,6 +32,7 @@ const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
 function TalentAccountPage() {
+  const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const { id } = Route.useParams();
   const getFn = useServerFn(getTalentAccountById);
   const whoamiFn = useServerFn(whoami);
@@ -55,6 +57,7 @@ function TalentAccountPage() {
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar">
         <div>
           <Link to="/admin/accounts" search={{ type: "talent" }} className="tvp-link tvp-back-link">
@@ -74,12 +77,12 @@ function TalentAccountPage() {
             <button
               className="tvp-secondary"
               disabled={!canEdit || testM.isPending}
-              onClick={() => {
+              onClick={async () => {
                 const next = !t.is_test;
                 const msg = next
                   ? `Mark ${name} as a test account? It will be left out of reports and launch offer places by default.`
                   : `Mark ${name} as a real account? It will be counted in reports again.`;
-                if (confirm(msg)) testM.mutate(next);
+                if (await askConfirm({ title: msg })) testM.mutate(next);
               }}
             >
               {t.is_test ? "Mark as real account" : "Mark as test account"}

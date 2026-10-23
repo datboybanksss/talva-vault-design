@@ -5597,3 +5597,59 @@ export const linkBillingDocToTalent = createServerFn({ method: "POST" })
     );
     return { ok: true };
   });
+
+// -----------------------------------------------------------------------------
+// Talent details page (agency view). Only the agency's own records: the
+// relationship row, the invitation the agency sent and the agency's own audit
+// log. Nothing from the talent's private profile or Private Vault is read.
+// -----------------------------------------------------------------------------
+export const getAgencyTalentDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ talent_link_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { agencyId } = await getCallerAgency(supabase, userId);
+    const { data: link, error } = await supabase
+      .from("agency_talent_links")
+      .select("id, talent_invitation_id, ended_at, responded_at, created_at")
+      .eq("id", data.talent_link_id)
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!link) throw new Error("This talent is not on your roster, or is no longer available to you.");
+
+    let email: string | null = null;
+    if (link.talent_invitation_id) {
+      const { data: inv } = await supabase
+        .from("talent_invitations")
+        .select("email")
+        .eq("id", link.talent_invitation_id)
+        .eq("agency_id", agencyId)
+        .maybeSingle();
+      email = (inv?.email as string) ?? null;
+    }
+
+    const targets = [link.id, link.talent_invitation_id].filter(Boolean).join(",");
+    const { data: logRows, error: logErr } = await supabase
+      .from("agency_audit_log")
+      .select("id, actor_email, action, target_label, created_at")
+      .eq("agency_id", agencyId)
+      .or(`target_id.in.(${targets}),detail->>talent_link_id.eq.${link.id}`)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (logErr) throw new Error(logErr.message);
+
+    return {
+      id: link.id as string,
+      email,
+      acceptedAt: (link.responded_at as string) ?? null,
+      endedAt: (link.ended_at as string) ?? null,
+      activity: (logRows ?? []).map((r: any) => ({
+        id: r.id as string,
+        actor: (r.actor_email as string) ?? null,
+        action: r.action as string,
+        label: (r.target_label as string) ?? null,
+        at: r.created_at as string,
+      })),
+    };
+  });

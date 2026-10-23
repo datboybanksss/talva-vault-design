@@ -250,6 +250,7 @@ export function CombinedInvitationsList({
         </table>
       </div>
       {agencyActions.dialogs}
+      {talentActions.dialog}
     </div>
   );
 }
