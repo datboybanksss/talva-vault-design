@@ -72,15 +72,20 @@ export const Route = createFileRoute("/talent/vault")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): { tab?: Mode; view?: AgencyView } => {
+  validateSearch: (search: Record<string, unknown>): {
+    tab?: Mode;
+    view?: AgencyView;
+    doc?: string;
+  } => {
     const t = search.tab;
     const v = search.view;
     // Legacy deep links used ?tab=requests before Requests was merged into
     // the Agency Shared Folder tab.
     if (t === "requests") return { tab: "agency", view: "requests" };
-    const out: { tab?: Mode; view?: AgencyView } = {};
+    const out: { tab?: Mode; view?: AgencyView; doc?: string } = {};
     if (t === "private" || t === "agency") out.tab = t;
     if (v === "requests" || v === "folder") out.view = v;
+    if (typeof search.doc === "string" && search.doc) out.doc = search.doc;
     return out;
   },
   component: VaultPage,
