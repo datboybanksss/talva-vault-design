@@ -6350,7 +6350,7 @@ a.tvp-entity-card:focus-visible {
 .tvf .tvf-text { display: flex; flex-direction: column; min-width: 0; }
 .tvf .tvf-name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tvf .tvf-meta { color: var(--tvp-muted); font-size: 12px; }
-.tvf .tvf-spin { color: var(--tvp-muted); animation: spin 1s linear infinite; }
+.tvf .tvf-spin { color: var(--tvp-muted); }
 .tvf .tvf-subs { margin: 0; padding: 0 var(--sp-4) var(--sp-3) 76px; color: var(--tvp-text); font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .tvf .tvf-chev, .tvf .tvf-spin { transition: none; animation: none; } }
 @media (max-width: 720px) { .tvf .tvf-grid { grid-template-columns: minmax(0, 1fr); } }
