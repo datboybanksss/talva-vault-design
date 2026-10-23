@@ -197,7 +197,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/talent/sharing" },
         selector: '[data-tour="share-recipient"]',
         title: "Step 2 — who it's for, and for how long",
-        body: `Fill the four fields at the top in order. ${SHARE_RECIPIENT_TERM_CAPITALISED} name: "Sarah Mokoena". Email (link is sent here): "sarah@example.com". Relationship: "Spouse". Access duration (days): 14 — the share stops working on its own after that, you don't have to remember to close it.`,
+        body: `Fill the four fields at the top in order. ${SHARE_RECIPIENT_TERM_CAPITALISED} name: "Sarah Mokoena". Email: "sarah@example.com" — we email them a secure link. Relationship: "Spouse". Access duration: choose from 7 days to 1 year — the share stops working on its own after that, you don't have to remember to close it.`,
         optional: true,
       },
       {

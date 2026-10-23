@@ -6171,3 +6171,129 @@ a.tvp-entity-card:focus-visible {
   font: inherit;
   cursor: pointer;
 }
+
+/* Share with a trusted contact: header/footer fixed, body scrolls. */
+.tvp-modal.tvp-modal-scroll {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 48px);
+}
+.tvp-modal.tvp-modal-scroll .tvp-modal-head,
+.tvp-modal.tvp-modal-scroll .tvp-modal-foot {
+  flex-shrink: 0;
+}
+.tvp-modal.tvp-modal-scroll .tvp-modal-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+.tvp-modal .tvp-field-help {
+  font-size: 12px;
+  color: var(--tvp-muted);
+  margin: 0;
+}
+.tvp-modal .tvp-share-section {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tvp-ink);
+  margin: 24px 0 8px;
+}
+.tvp-modal .tvp-share-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 12px;
+  border: 1px solid var(--line-200);
+  border-radius: var(--r-md);
+  background: var(--surface-soft);
+}
+.tvp-modal .tvp-share-seg .tvp-tab {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--tvp-muted);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.tvp-modal .tvp-share-seg .tvp-tab:hover {
+  color: var(--tvp-ink);
+}
+.tvp-modal .tvp-share-seg .tvp-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tvp-modal .tvp-share-seg .tvp-tab.tvp-active {
+  border-color: var(--line-200);
+  background: var(--surface);
+  color: var(--tvp-ink);
+  box-shadow: var(--sh-sm);
+}
+.tvp-modal .tvp-share-list {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+.tvp-modal .tvp-share-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tvp-modal .tvp-share-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tvp-ink);
+  cursor: pointer;
+}
+.tvp-modal .tvp-share-folder-row:hover {
+  background: var(--surface-soft);
+}
+.tvp-modal .tvp-share-list li:last-child > .tvp-share-folder-row {
+  border-bottom: 0;
+}
+.tvp-modal .tvp-share-all {
+  font-weight: 700;
+  background: var(--surface-soft);
+}
+.tvp-modal .tvp-share-plain {
+  border: 0;
+  padding: 12px 0 0;
+  font-size: 13px;
+}
+.tvp-modal .tvp-share-plain:hover {
+  background: transparent;
+}
+.tvp-modal .tvp-check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--tvp-teal);
+}
+.tvp-modal .tvp-share-folder-icon {
+  color: var(--tvp-teal);
+  flex-shrink: 0;
+}
+.tvp-modal .tvp-share-folder-name {
+  flex: 1;
+  min-width: 0;
+}
+.tvp-modal .tvp-share-folder-count {
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .tvp-modal .tvp-share-fields {
+    grid-template-columns: 1fr;
+  }
+}
