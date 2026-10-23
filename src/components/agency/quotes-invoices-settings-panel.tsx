@@ -126,7 +126,7 @@ export function QuotesInvoicesSettingsPanel() {
   }
 
   async function removeLogo() {
-    if (!(await askConfirm("Remove agency logo?"))) return;
+    if (!(await askConfirm({ title: "Remove agency logo?" }))) return;
     await logoFn({ data: { storage_path: null } });
     toast.success("Logo removed");
     qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });

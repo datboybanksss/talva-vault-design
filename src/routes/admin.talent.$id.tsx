@@ -77,12 +77,12 @@ function TalentAccountPage() {
             <button
               className="tvp-secondary"
               disabled={!canEdit || testM.isPending}
-              onClick={() => {
+              onClick={async () => {
                 const next = !t.is_test;
                 const msg = next
                   ? `Mark ${name} as a test account? It will be left out of reports and launch offer places by default.`
                   : `Mark ${name} as a real account? It will be counted in reports again.`;
-                if (await askConfirm(msg)) testM.mutate(next);
+                if (await askConfirm({ title: msg })) testM.mutate(next);
               }}
             >
               {t.is_test ? "Mark as real account" : "Mark as test account"}

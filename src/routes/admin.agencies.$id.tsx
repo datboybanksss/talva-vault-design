@@ -83,12 +83,12 @@ function AgencyDetail() {
     },
     onError: (e: any) => toast.error(friendlyError(e, "We couldn't change the account type.")),
   });
-  const toggleTest = () => {
+  const toggleTest = async () => {
     const next = !a?.is_test;
     const msg = next
       ? `Mark ${a.name} as a test account? It will be left out of reports and launch offer places by default.`
       : `Mark ${a.name} as a real account? It will be counted in reports again.`;
-    if (await askConfirm(msg)) testM.mutate(next);
+    if (await askConfirm({ title: msg })) testM.mutate(next);
   };
 
   return (

@@ -150,11 +150,11 @@ function AccountsPage() {
     },
     onError: (e) => toast.error(friendlyError(e, "We couldn't change the account type.")),
   });
-  const toggleTest = (type: "agency" | "talent", id: string, name: string, isTest: boolean) => {
+  const toggleTest = async (type: "agency" | "talent", id: string, name: string, isTest: boolean) => {
     const msg = isTest
       ? `Mark ${name} as a test account? It will be left out of reports and launch offer places by default.`
       : `Mark ${name} as a real account? It will be counted in reports again.`;
-    if (await askConfirm(msg)) testM.mutate({ type, id, isTest });
+    if (await askConfirm({ title: msg })) testM.mutate({ type, id, isTest });
   };
   const testAction = (type: "agency" | "talent", a: any) => ({
     key: "test",
@@ -604,7 +604,7 @@ function AccountsPage() {
                               icon: Ban,
                               destructive: true,
                               onSelect: async () => {
-                                if (await askConfirm(`Revoke invitation to ${a.name}?`))
+                                if (await askConfirm({ title: `Revoke invitation to ${a.name}?` }))
                                   revokeM.mutate(invitation!.id);
                               },
                             },

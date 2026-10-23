@@ -1054,7 +1054,7 @@ function QIPage() {
                               destructive: true,
                               separatorBefore: true,
                               onSelect: async () => {
-                                if (await askConfirm(`Delete ${r.kind} ${r.number}?`)) del.mutate(r.id);
+                                if (await askConfirm({ title: `Delete ${r.kind} ${r.number}?` })) del.mutate(r.id);
                               },
                             },
                           ]}
