@@ -68,6 +68,12 @@ function TalentSettings() {
       ? (tab as Mode)
       : "profile",
   );
+  // Keep the selected tab visible when the tab row scrolls on small screens.
+  useEffect(() => {
+    document
+      .querySelector(".tvp-settings-tabs .tvp-active")
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [mode]);
   const rootMatch = useRouterState({
     select: (s) => s.matches.find((m) => m.routeId === "/talent"),
   });
