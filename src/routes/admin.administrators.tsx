@@ -279,6 +279,7 @@ function AdminsPage() {
 
   return (
     <>
+      {askConfirmDialog}
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Administrators</h1>
