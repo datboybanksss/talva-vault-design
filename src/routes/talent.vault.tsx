@@ -212,7 +212,7 @@ type PrivateDoc = {
   updated_at: string;
 };
 
-function PrivateVault() {
+function PrivateVault({ uploadRef }: { uploadRef: React.MutableRefObject<(() => void) | null> }) {
   const { confirm, dialog: confirmDialog } = useConfirm();
   const qc = useQueryClient();
   const load = useServerFn(listPrivateVault);
@@ -314,6 +314,7 @@ function PrivateVault() {
     }
   }
 
+  uploadRef.current = () => triggerUpload(null);
   function triggerUpload(folderId: string | null) {
     setUploadFolderId(folderId);
     fileInput.current?.click();
@@ -448,37 +449,16 @@ function PrivateVault() {
       {confirmDialog}
       <input ref={fileInput} type="file" hidden onChange={onFilePicked} />
 
-      <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
-        <div className="tvp-vault-search">
-          <Search />
-          <input
-            placeholder="Search private documents..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <FilterBar onChange={(_, v) => setFilterFolder(v)} filters={[{ key: "folder", label: "Folder", value: filterFolder, options: [{ value: "__all", label: "All folders" }, { value: "__unfiled", label: "Unfiled" }, { value: "__pending", label: "Pending review", count: pendingCount || undefined }, ...topFolders.map((x) => ({ value: x.id, label: x.name }))] }]} />
-        <div className="tvp-view-switch" role="tablist" aria-label="Private vault view">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={!docsVisible}
-            className={!docsVisible ? "tvp-active" : ""}
-            onClick={() => setShowAllDocs(false)}
-          >
-            <Folder className="h-4 w-4" /> By folder
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={docsVisible}
-            className={docsVisible ? "tvp-active" : ""}
-            onClick={() => setShowAllDocs(true)}
-          >
-            <FileStack className="h-4 w-4" /> All documents
-          </button>
-        </div>
-      </div>
+      <VaultFilters
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search private documents"
+        folder={{ key: "folder", label: "Folder", value: filterFolder, options: [{ value: "__all", label: "All folders" }, { value: "__unfiled", label: "Unfiled" }, { value: "__pending", label: "Pending review", count: pendingCount || undefined }, ...topFolders.map((x) => ({ value: x.id, label: x.name }))] }}
+        onFolder={setFilterFolder}
+        showAll={docsVisible}
+        onShowAll={setShowAllDocs}
+        label="Private vault view"
+      />
 
       {!docsVisible && (
         <div className="tvp-card tvp-panel">
@@ -489,15 +469,6 @@ function PrivateVault() {
                 {topFolders.length} folder{topFolders.length === 1 ? "" : "s"} · choose which
                 categories appear in Settings → Manage folders.
               </p>
-            </div>
-            <div className="tvp-row-actions">
-              <button
-                className="tvp-primary"
-                data-tour="talent-vault-upload"
-                onClick={() => triggerUpload(null)}
-              >
-                <Upload className="h-4 w-4" /> Upload
-              </button>
             </div>
           </div>
 
@@ -635,11 +606,24 @@ function PrivateVault() {
           </div>
 
           {filteredDocs.length === 0 ? (
-            <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
-              {documents.length === 0
-                ? "Nothing uploaded yet — pick a folder above and upload your first document."
-                : "No documents match your search or folder filter — clear them to see everything."}
-            </p>
+            documents.length === 0 ? (
+              <EmptyState
+                icon={<Lock />}
+                tint="teal"
+                title="No documents yet"
+                action={
+                  <button type="button" className="tvp-primary" onClick={() => triggerUpload(null)}>
+                    <Upload className="h-4 w-4" /> Upload document
+                  </button>
+                }
+              >
+                Upload your first document to keep it safe in your private vault.
+              </EmptyState>
+            ) : (
+              <EmptyState icon={<Search />} tint="blue" title="No matches">
+                No documents match your search or folder filter — clear them to see everything.
+              </EmptyState>
+            )
           ) : (
             <div className="tvp-table-wrap">
               <table className="tvp-table">
@@ -1063,37 +1047,16 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
 
   return (
     <>
-      <div className="tvp-vault-toolbar" style={{ marginBottom: 18 }}>
-        <div className="tvp-vault-search">
-          <Search />
-          <input
-            placeholder="Search Agency Shared Folder..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <FilterBar onChange={(_, v) => setFolderFilter(v)} filters={[{ key: "folder", label: "Folder", value: folderFilter, options: [{ value: "__all", label: "All folders" }, ...folders.map((x) => ({ value: x.folder_name, label: x.folder_name }))] }]} />
-        <div className="tvp-view-switch" role="tablist" aria-label="Shared folder view">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={!docsVisible}
-            className={!docsVisible ? "tvp-active" : ""}
-            onClick={() => setShowAllDocs(false)}
-          >
-            <FolderOpen className="h-4 w-4" /> By folder
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={docsVisible}
-            className={docsVisible ? "tvp-active" : ""}
-            onClick={() => setShowAllDocs(true)}
-          >
-            <FileStack className="h-4 w-4" /> All documents
-          </button>
-        </div>
-      </div>
+      <VaultFilters
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search shared documents"
+        folder={{ key: "folder", label: "Folder", value: folderFilter, options: [{ value: "__all", label: "All folders" }, ...folders.map((x) => ({ value: x.folder_name, label: x.folder_name }))] }}
+        onFolder={setFolderFilter}
+        showAll={docsVisible}
+        onShowAll={setShowAllDocs}
+        label="Shared folder view"
+      />
 
       {!docsVisible && (
         <div className="tvp-card tvp-panel">
@@ -1143,7 +1106,7 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
       )}
 
       {docsVisible && (
-        <div className="tvp-card">
+        <div className="tvp-card tvp-panel">
           <div className="tvp-panel-head">
             <div>
               <h2 className="tvp-h2">All shared documents</h2>
@@ -1156,11 +1119,15 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
           </div>
 
           {docs.length === 0 ? (
-            <p className="tvp-muted" style={{ fontSize: 13, padding: "16px 0" }}>
-              {data.documents.length === 0
-                ? "Your agency hasn't shared any documents with you yet."
-                : "No documents match your search or folder filter — clear them to see everything."}
-            </p>
+            data.documents.length === 0 ? (
+              <EmptyState icon={<FileStack />} tint="lavender" title="Nothing shared yet">
+                Your agency hasn't shared any documents with you yet.
+              </EmptyState>
+            ) : (
+              <EmptyState icon={<Search />} tint="blue" title="No matches">
+                No documents match your search or folder filter — clear them to see everything.
+              </EmptyState>
+            )
           ) : (
             <div className="tvp-table-wrap">
               <table className="tvp-table">
@@ -1592,5 +1559,44 @@ function ManagerRequests({ linkId }: { linkId: string }) {
         </div>
       )}
     </>
+  );
+}
+
+/** Search + folder filter + compact By folder / All documents switch, one card. */
+function VaultFilters({
+  search,
+  onSearch,
+  placeholder,
+  folder,
+  onFolder,
+  showAll,
+  onShowAll,
+  label,
+}: {
+  search: string;
+  onSearch: (v: string) => void;
+  placeholder: string;
+  folder: FilterDef;
+  onFolder: (v: string) => void;
+  showAll: boolean;
+  onShowAll: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <div className="tvp-card tv-filter-card">
+      <FilterBar
+        search={{ value: search, onChange: onSearch, label: "Search", placeholder }}
+        filters={[folder]}
+        onChange={(_, v) => onFolder(v)}
+      />
+      <div className="tv-seg" role="tablist" aria-label={label}>
+        <button type="button" role="tab" aria-selected={!showAll} className={!showAll ? "tvp-active" : ""} onClick={() => onShowAll(false)}>
+          <Folder className="h-4 w-4" aria-hidden="true" /> By folder
+        </button>
+        <button type="button" role="tab" aria-selected={showAll} className={showAll ? "tvp-active" : ""} onClick={() => onShowAll(true)}>
+          <FileStack className="h-4 w-4" aria-hidden="true" /> All documents
+        </button>
+      </div>
+    </div>
   );
 }
