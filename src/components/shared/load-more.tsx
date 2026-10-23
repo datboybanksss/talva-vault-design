@@ -28,7 +28,8 @@ export function LoadMoreBar({
     <div className="tvp-load-more">
       <div className="tvp-muted" style={{ fontSize: 12 }}>
         Showing {shown}
-        {typeof total === "number" ? ` of ${total}` : ""} {noun}
+        {typeof total === "number" ? ` of ${total}` : ""}{" "}
+        {(typeof total === "number" ? total : shown) === 1 ? noun.replace(/s$/, "") : noun}
       </div>
       {hasMore && (
         <button

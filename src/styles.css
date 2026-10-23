@@ -6536,3 +6536,9 @@ a.tvp-entity-card:focus-visible {
 .tv-app .tvp-card.tv-tint-peach { background: var(--amber-bg); }
 .tv-app .tvp-card.tv-tint-green { background: var(--green-bg); }
 .tv-app .tvp-card.tv-tint-blue { background: var(--blue-bg); }
+/* Tab rows never stack on small screens; buttons keep their label on one line. */
+@media (max-width: 640px) {
+  .tv-app .tvp-tabs { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: thin; }
+  .tv-app .tvp-tabs > .tvp-tab { flex: 0 0 auto; white-space: nowrap; }
+}
+.tv-app .tvp-panel-head :is(.tvp-primary, .tvp-secondary) { white-space: nowrap; }
