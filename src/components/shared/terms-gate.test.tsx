@@ -41,3 +41,44 @@ describe("Terms gate agreement", () => {
     await screen.findByText("Portal content");
   });
 });
+describe("Terms gate visibility", () => {
+  const current = { id: "316ca0dc-a390-4525-b444-0729118bf4bb", title: "Test document", version: "v1.1", body: "Fixture", body_sha256: "b".repeat(64), effective_at: "2026-09-09T09:01:02Z" };
+  const mount = () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(<QueryClientProvider client={qc}><TermsGate portal="talent"><div>Portal content</div></TermsGate></QueryClientProvider>);
+  };
+
+  it("accepted user never sees the gate, even while loading", async () => {
+    let resolve!: (v: unknown) => void;
+    spies.status.mockReturnValue(new Promise((r) => (resolve = r)));
+    mount();
+    expect(screen.getByRole("status").textContent).toContain("Loading");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.queryByText("Portal content")).toBeNull();
+    resolve({ required: false, current, acceptances: [{ doc_type: "talent" }] });
+    await screen.findByText("Portal content");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("not-accepted user sees the gate", async () => {
+    spies.status.mockResolvedValue({ required: true, current, acceptances: [] });
+    mount();
+    expect(await screen.findByRole("checkbox")).toBeTruthy();
+    expect(screen.queryByText("Portal content")).toBeNull();
+  });
+
+  it("a new version shows the gate once, with updated wording", async () => {
+    spies.status.mockResolvedValue({ required: true, current: { ...current, id: "416ca0dc-a390-4525-b444-0729118bf4bb", version: "v1.2" }, acceptances: [{ doc_type: "talent" }] });
+    mount();
+    expect(await screen.findByText(/We've updated our Terms/)).toBeTruthy();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  });
+
+  it("a failed check shows a retry message, not the gate", async () => {
+    spies.status.mockRejectedValue(new Error("network"));
+    mount();
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+  });
+});

@@ -27,3 +27,21 @@ describe("Terms acceptance rules", () => {
     expect(termsGateError(new Error('[{"validation":"uuid","code":"invalid_string","path":["document_id"]}]'))).toBe("We couldn't verify this Terms document. Please reload the page and try again.");
   });
 });
+import { termsGateView } from "./terms-gate-core";
+describe("termsGateView (three states)", () => {
+  it("loading never shows the gate", () => {
+    expect(termsGateView({ isPending: true, isError: false, data: undefined })).toBe("loading");
+  });
+  it("a failed check is an error, not the gate", () => {
+    expect(termsGateView({ isPending: false, isError: true, data: undefined })).toBe("error");
+  });
+  it("accepted user passes", () => {
+    expect(termsGateView({ isPending: false, isError: false, data: { required: false, current: {} } })).toBe("accepted");
+  });
+  it("only a confirmed 'required' shows the gate", () => {
+    expect(termsGateView({ isPending: false, isError: false, data: { required: true, current: {} } })).toBe("needs_acceptance");
+  });
+  it("keeps the last confirmed answer while refetching in the background", () => {
+    expect(termsGateView({ isPending: false, isError: true, data: { required: false, current: {} } })).toBe("accepted");
+  });
+});

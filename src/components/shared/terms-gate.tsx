@@ -8,7 +8,8 @@ import { DocumentModal } from "@/components/shared/document-modal";
 import { LegalDocumentView } from "@/components/shared/legal-document-view";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { termsGateError } from "@/lib/terms-gate-core";
+import { termsGateError, termsGateView } from "@/lib/terms-gate-core";
+import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import {
   acceptCurrentTerms,
   getMyTermsStatus,
@@ -25,16 +26,26 @@ export function TermsGate({ portal, children }: { portal: TermsPortal; children:
     staleTime: 60_000,
     refetchOnMount: "always",
   });
-  if (isPending || isError) {
+  const view = termsGateView({ isPending, isError, data });
+  // Loading is a plain page loader — never the gate. Showing the gate (or a
+  // gate-shaped modal) before the server answered caused the sign-in flash.
+  if (view === "loading")
     return (
-      <DocumentModal title="Terms & Conditions" onClose={() => undefined} busy className="tvp-terms-modal">
-        <p role="status">{isError ? "We couldn't load your Terms & Conditions. Please try again." : "Loading Terms & Conditions…"}</p>
-        {isError && <Button onClick={() => void refetch()}>Try again</Button>}
-        <SignOut />
-      </DocumentModal>
+      <div className="tvp-terms-loading" role="status" aria-live="polite">
+        <LoaderCircle className="tvp-terms-spinner" aria-hidden="true" /> Loading…
+      </div>
     );
-  }
-  if (!data?.required || !data.current) return <>{children}</>;
+  if (view === "error")
+    return (
+      <div className="tvp-card tvp-panel tvp-terms-loading-error" role="alert">
+        <p>We couldn't check your account just now. Please try again.</p>
+        <div className="tvp-terms-actions">
+          <SignOut />
+          <Button className="tvp-primary" onClick={() => void refetch()}>Try again</Button>
+        </div>
+      </div>
+    );
+  if (view === "accepted" || !data?.current) return <>{children}</>;
   return <TermsAgreement key={`${portal}:${data.current.id}:${data.current.body_sha256}`} portal={portal} doc={data.current} hadPrevious={data.acceptances.some((a) => a.doc_type === portal)} />;
 }
 
@@ -61,7 +72,12 @@ function TermsAgreement({ portal, doc, hadPrevious }: {
   const [readToEnd, setReadToEnd] = useState(false);
   const [busy, setBusy] = useState(false);
   const reachedEnd = useCallback(() => setReadToEnd(true), []);
-  const title = hadPrevious ? "Our Terms & Conditions have been updated" : "Please accept our Terms & Conditions";
+  const title = "Our Terms & Conditions";
+  const lead = hadPrevious
+    ? "We've updated our Terms. Please read the new version and accept it to carry on."
+    : portal === "agency"
+      ? "Before your team uses TalVault, please read and accept our Terms."
+      : "Before you start using your vault, please read and accept our Terms.";
   const effective = new Date(doc.effective_at);
   const effectiveDate = Number.isNaN(effective.getTime()) ? null : effective.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -81,8 +97,13 @@ function TermsAgreement({ portal, doc, hadPrevious }: {
 
   return (
     <DocumentModal title={title} onClose={() => undefined} busy className="tvp-terms-modal">
-      <header className="tvp-terms-header">
+      <header className="tvp-terms-header tvp-terms-band">
+        <div className="tvp-terms-brand" aria-hidden="true">
+          <TalVaultIcon variant="white" style={{ height: 22, width: 22 }} />
+          <TalVaultWordmark variant="white" style={{ height: 18 }} />
+        </div>
         <h2 className="tvp-terms-title">{title}</h2>
+        <p className="tvp-terms-lead">{lead}</p>
         <p className="tvp-terms-document-title">{doc.title}</p>
         <div className="tvp-terms-meta">
           <span>Version {doc.version}</span>

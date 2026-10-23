@@ -19,3 +19,18 @@ export function termsGateError(error: unknown): string {
   if (message.startsWith("These Terms have been updated.")) return message;
   return fallback;
 }
+export type TermsGateView = "loading" | "error" | "accepted" | "needs_acceptance";
+
+/**
+ * Three-state gate decision. Only a confirmed server answer that acceptance is
+ * required shows the gate; unknown (loading) and failed reads never do.
+ */
+export function termsGateView(s: {
+  isPending: boolean;
+  isError: boolean;
+  data?: { required?: boolean; current?: unknown } | null;
+}): TermsGateView {
+  if (s.data) return s.data.required && s.data.current ? "needs_acceptance" : "accepted";
+  if (s.isError) return "error";
+  return "loading";
+}

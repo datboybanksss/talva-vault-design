@@ -6410,3 +6410,24 @@ a.tvp-entity-card:focus-visible {
 }
 .tvp-portal .tvp-bell-group, .tvp-bell-group { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tvp-muted); margin: 10px 2px 4px; }
 .tvp-portal .tvp-request-focus { border-color: var(--tvp-teal); box-shadow: 0 0 0 3px var(--tvp-teal-100); }
+
+/* Terms gate — branded band, readable document panel */
+.tvp-terms-loading { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: 40vh; color: var(--tvp-muted, var(--text-body)); font-size: 14px; }
+.tvp-terms-loading-error { max-width: 520px; margin: 10vh auto; display: flex; flex-direction: column; gap: var(--sp-3); }
+.tvp-terms-modal { padding: 0; gap: 0; }
+.tvp-terms-modal > :not(.tvp-terms-band) { margin-left: var(--sp-6); margin-right: var(--sp-6); }
+.tvp-terms-modal > .tvp-legal-document, .tvp-terms-modal .tvp-legal-document { margin-top: var(--sp-5); background: var(--surface); color: var(--text-strong, var(--tvp-ink)); }
+.tvp-terms-band { padding: var(--sp-5) var(--sp-6); background: linear-gradient(135deg, var(--tvd-band-from), var(--tvd-band-to)); color: var(--tvd-on-band); }
+.tvp-terms-band .tvp-terms-title, .tvp-terms-band .tvp-terms-document-title, .tvp-terms-band .tvp-terms-meta, .tvp-terms-band .tvp-terms-lead { color: var(--tvd-on-band); }
+.tvp-terms-brand { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.tvp-terms-lead { margin: 0; font-size: var(--t-body); line-height: 1.5; }
+.tvp-terms-band .tvp-terms-document-title { font-weight: 700; margin-top: var(--sp-1); }
+.tvp-terms-band .tvp-terms-meta span { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: color-mix(in oklab, var(--tvd-on-band) 20%, transparent); }
+.tvp-terms-agreement { margin-top: var(--sp-4); }
+.tvp-terms-actions { margin-top: var(--sp-4); margin-bottom: var(--sp-6); }
+.tvp-terms-loading-error .tvp-terms-actions { margin: 0; }
+.tvp-terms-modal .tvp-legal-document h1, .tvp-terms-modal .tvp-legal-document h2, .tvp-terms-modal .tvp-legal-document h3 { color: var(--tvp-teal, var(--teal-700)); }
+@media (max-width: 640px) {
+  .tvp-terms-band { padding: var(--sp-4); }
+  .tvp-terms-modal > :not(.tvp-terms-band) { margin-left: var(--sp-4); margin-right: var(--sp-4); }
+}
