@@ -256,7 +256,7 @@ function TalentPage() {
         <div>
           <h1 className="tvp-h1">Talent roster</h1>
           <div className="tvp-subtitle">
-            Manage talent on your roster, invitations, and Roster Shared Folders.
+            See your talent, their documents and invitations.
           </div>
         </div>
         <div className="tvp-actions">
