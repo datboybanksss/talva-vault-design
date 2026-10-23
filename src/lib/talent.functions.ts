@@ -156,7 +156,7 @@ export const getTalentBellFeed = createServerFn({ method: "GET" })
     if (!enabled) return { enabled: false, unreadCount: 0, items: [] as any[] };
     const { data: rows } = await supabase
       .from("talent_notifications")
-      .select("id, kind, title, detail, tone, target_type, due_at, created_at")
+      .select("id, kind, title, detail, tone, target_type, target_id, due_at, created_at")
       .eq("user_id", userId)
       .is("read_at", null)
       .order("created_at", { ascending: false })
@@ -651,9 +651,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       });
     }
 
-    // Reminder-engine notifications (Private Vault expiries, share expiries).
-    // Shared-folder rows are skipped — they are already listed above.
-    // The in-app master switch gates both the scan and the feed.
+    // Reminder-engine notifications (Private Vault and shared-folder expiries,
+    // share expiries). The in-app master switch gates both the scan and the feed.
     const inAppEnabled = await inAppRemindersEnabled(supabase, userId);
     let unreadNotifications = 0;
     if (inAppEnabled) {
@@ -668,7 +667,6 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         .select("id, kind, title, detail, tone, target_type, due_at, read_at, created_at")
         .eq("user_id", userId)
         .is("dismissed_at", null)
-        .neq("target_type", "shared_document")
         .order("due_at", { ascending: true })
         .limit(50);
       for (const n of notifs ?? []) {
