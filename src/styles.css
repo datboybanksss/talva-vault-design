@@ -6354,3 +6354,18 @@ a.tvp-entity-card:focus-visible {
 .tvf .tvf-subs { margin: 0; padding: 0 var(--sp-4) var(--sp-3) 76px; color: var(--tvp-text); font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .tvf .tvf-chev, .tvf .tvf-spin { transition: none; animation: none; } }
 @media (max-width: 720px) { .tvf .tvf-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Talent Settings › Agency relationship */
+.tvr { display: flex; flex-direction: column; gap: var(--sp-5); }
+.tvr .tvr-card { margin: 0; }
+.tvr .tvr-head { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.tvr .tvr-logo { width: 48px; height: 48px; border-radius: 12px; object-fit: contain; background: var(--surface-soft); border: 1px solid var(--tvp-line); flex-shrink: 0; }
+.tvr .tvr-initials { display: inline-flex; align-items: center; justify-content: center; font-weight: 800; color: var(--tvp-teal); }
+.tvr .tvr-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tvr .tvr-meta, .tvr .tvr-note { color: var(--tvp-muted); font-size: 13px; }
+.tvr .tvr-note { margin: var(--sp-2) var(--sp-1) 0; }
+.tvr .tvr-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--tvp-line); }
+.tvr .tvr-label { font-size: 12px; font-weight: 800; color: var(--tvp-muted); margin: 0 0 var(--sp-1); }
+.tvr .tvr-value { font-weight: 700; color: var(--tvp-ink); font-size: 14px; }
+.tvr .tvr-contact { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--tvp-teal); text-decoration: none; margin-top: 4px; overflow-wrap: anywhere; }
+@media (max-width: 720px) { .tvr .tvr-grid { grid-template-columns: minmax(0, 1fr); } }

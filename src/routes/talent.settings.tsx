@@ -9,6 +9,7 @@ import {
   getTalentNotificationPrefs,
   updateTalentNotificationPrefs,
 } from "@/lib/talent.functions";
+import { AgencyRelationshipsPanel } from "@/components/talent/agency-relationships-panel";
 import { VaultFoldersPanel } from "@/components/talent/vault-folders-panel";
 import { PasswordCard } from "@/components/account/password-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
@@ -76,6 +77,8 @@ function TalentSettings() {
     hasActiveLink?: boolean;
   } | null;
   const linked = !!ctx?.hasActiveLink;
+  // Current or past agency relationship (ended links with shared items).
+  const hasRelationship = ((ctx as any)?.links ?? []).length > 0;
 
   const [fullName, setFullName] = useState(ctx?.profile?.full_name ?? "");
   const [talentType, setTalentType] = useState(ctx?.link?.talent_type ?? "");
@@ -150,7 +153,7 @@ function TalentSettings() {
         <div>
           <h1 className="tvp-h1">Settings</h1>
           <div className="tvp-subtitle">
-            {linked ? "Manage profile, account, agency relationship and notifications." : "Manage profile, account and notifications."}
+            {hasRelationship ? "Manage profile, account, agency relationship and notifications." : "Manage profile, account and notifications."}
           </div>
         </div>
       </div>
@@ -181,7 +184,7 @@ function TalentSettings() {
           Manage folders
         </button>
 
-        {linked && (
+        {hasRelationship && (
           <button
             className={`tvp-tab${mode === "relationship" ? " tvp-active" : ""}`}
             onClick={() => setMode("relationship")}
@@ -257,33 +260,7 @@ function TalentSettings() {
 
       {mode === "folders" && <VaultFoldersPanel />}
 
-      {mode === "relationship" && linked && (
-        <div className="tvp-card tvp-panel">
-          <h2 className="tvp-h2">Agency relationship</h2>
-          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 6 }}>
-            Linked Agency:{" "}
-            <strong style={{ color: "var(--tvp-ink)" }}>{ctx?.agency?.name ?? "—"}</strong>
-            {ctx?.link?.status ? (
-              <>
-                {" "}
-                ·{" "}
-                <span className={statusPillClass("talentLink", ctx.link.status)}>
-                  {statusLabel("talentLink", ctx.link.status)}
-                </span>
-              </>
-            ) : null}
-          </p>
-          <div className="tvp-callout">
-            <div className="tvp-callout-icon">
-              <Info className="h-4 w-4" />
-            </div>
-            <div>
-              If the relationship ends, the shared folder moves to read-only/export access. Private
-              Vault remains yours.
-            </div>
-          </div>
-        </div>
-      )}
+      {mode === "relationship" && hasRelationship && <AgencyRelationshipsPanel />}
 
       {mode === "notifications" && (
         <div className="tvp-card tvp-panel">
