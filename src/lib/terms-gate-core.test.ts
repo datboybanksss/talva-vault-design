@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acceptTermsInput, reachedDocumentEnd, termsGateError, testUserIds } from "./terms-gate-core";
+import { acceptTermsInput, parseAcceptTermsInput, reachedDocumentEnd, termsGateError, testUserIds } from "./terms-gate-core";
 
 describe("Terms acceptance rules", () => {
   it.each([
@@ -23,8 +23,21 @@ describe("Terms acceptance rules", () => {
     expect(reachedDocumentEnd(0, 380, 100)).toBe(true);
     expect(reachedDocumentEnd(0, 0, 0)).toBe(false);
   });
-  it("does not expose raw validation details", () => {
-    expect(termsGateError(new Error('[{"validation":"uuid","code":"invalid_string","path":["document_id"]}]'))).toBe("We couldn't verify this Terms document. Please reload the page and try again.");
+  it("a genuine ID/hash problem gives the 'verify' message", () => {
+    let thrown: unknown;
+    try { parseAcceptTermsInput({ portal: "agency", document_id: "agency-v1.1", body_sha256: "a".repeat(64) }); } catch (e) { thrown = e; }
+    expect(termsGateError(thrown)).toBe("We couldn't verify this Terms document. Please reload the page and try again.");
+  });
+  it("raw validation text, database and unknown errors give the 'record' message", () => {
+    for (const m of [
+      '[{"validation":"uuid","code":"invalid_string","path":["document_id"]}]',
+      "document_id is required",
+      'new row violates row-level security policy',
+      "Failed to fetch",
+    ]) expect(termsGateError(new Error(m))).toBe("We couldn't record your acceptance. Please try again.");
+  });
+  it("keeps the 'updated' message", () => {
+    expect(termsGateError(new Error("These Terms have been updated. Please reload the page and read the latest version."))).toMatch(/^These Terms have been updated\./);
   });
 });
 import { termsGateView } from "./terms-gate-core";

@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { acceptTermsInput, testUserIds } from "@/lib/terms-gate-core";
+import {
+  parseAcceptTermsInput,
+  testUserIds,
+  TERMS_RECORD_FAILED_MESSAGE,
+  TERMS_UPDATED_MESSAGE,
+} from "@/lib/terms-gate-core";
 
 /**
  * Terms & Conditions acceptance: the sign-in gate, each user's own records,
@@ -93,7 +98,14 @@ export const getMyTermsStatus = createServerFn({ method: "POST" })
 
 export const acceptCurrentTerms = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((v: unknown) => acceptTermsInput.parse(v))
+  .inputValidator((v: unknown) => {
+    try {
+      return parseAcceptTermsInput(v);
+    } catch (e) {
+      console.error("[terms-accept] invalid input");
+      throw e;
+    }
+  })
   .handler(async ({ data, context }) => {
     const sb = await admin();
     const { data: current, error } = await sb
@@ -102,19 +114,32 @@ export const acceptCurrentTerms = createServerFn({ method: "POST" })
       .eq("doc_type", data.portal)
       .eq("is_current", true)
       .maybeSingle();
-    if (error) throw new Error("We couldn't load your Terms & Conditions. Please try again.");
-    if (!current || current.id !== data.document_id || current.body_sha256 !== data.body_sha256)
-      throw new Error(
-        "These Terms have been updated. Please reload the page and read the latest version.",
-      );
-    if (!(await belongsToPortal(sb, context.userId, data.portal))) throw new Error("Forbidden");
+    if (error) {
+      console.error("[terms-accept] load current failed", error.code);
+      throw new Error(TERMS_RECORD_FAILED_MESSAGE);
+    }
+    if (!current || current.id !== data.document_id || current.body_sha256 !== data.body_sha256) {
+      console.error("[terms-accept] document mismatch", data.portal);
+      throw new Error(TERMS_UPDATED_MESSAGE);
+    }
+    if (!(await belongsToPortal(sb, context.userId, data.portal))) {
+      console.error("[terms-accept] not a member of portal", data.portal);
+      throw new Error(TERMS_RECORD_FAILED_MESSAGE);
+    }
     const { recordLegalAcceptance } = await import("@/lib/legal-acceptance.server");
-    return recordLegalAcceptance({
-      userId: context.userId,
-      docType: data.portal,
-      documentId: current.id,
-      method: "reacceptance",
-    });
+    try {
+      return await recordLegalAcceptance({
+        userId: context.userId,
+        docType: data.portal,
+        documentId: current.id,
+        method: "reacceptance",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.startsWith("These Terms have been updated.")) throw new Error(TERMS_UPDATED_MESSAGE);
+      console.error("[terms-accept] record failed", data.portal, msg.slice(0, 200));
+      throw new Error(TERMS_RECORD_FAILED_MESSAGE);
+    }
   });
 
 /** The exact text of a version the caller accepted (admins may read any). */

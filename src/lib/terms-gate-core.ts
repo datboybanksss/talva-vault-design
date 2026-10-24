@@ -10,14 +10,29 @@ export function reachedDocumentEnd(scrollTop: number, clientHeight: number, scro
   return clientHeight > 0 && Math.ceil(scrollTop + clientHeight) >= scrollHeight;
 }
 
+export const TERMS_INVALID_INPUT_MESSAGE =
+  "We couldn't verify this Terms document. Please reload the page and try again.";
+export const TERMS_UPDATED_MESSAGE =
+  "These Terms have been updated. Please reload the page and read the latest version.";
+export const TERMS_RECORD_FAILED_MESSAGE = "We couldn't record your acceptance. Please try again.";
+
+/** Server-side input check: a genuine ID/hash problem becomes one plain, known sentence. */
+export function parseAcceptTermsInput(v: unknown) {
+  const r = acceptTermsInput.safeParse(v);
+  if (!r.success) throw new Error(TERMS_INVALID_INPUT_MESSAGE);
+  return r.data;
+}
+
+/**
+ * Only the exact known sentences are shown; anything else (database errors,
+ * network, permissions) gets the plain "couldn't record" message.
+ */
 export function termsGateError(error: unknown): string {
-  const fallback = "We couldn't record your acceptance. Please try again.";
-  const message = error instanceof Error ? error.message : "";
-  if (/invalid_string|invalid_type|Zod|document_id|body_sha256|"code"\s*:/.test(message)) {
-    return "We couldn't verify this Terms document. Please reload the page and try again.";
-  }
-  if (message.startsWith("These Terms have been updated.")) return message;
-  return fallback;
+  const message =
+    error && typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  if (message === TERMS_INVALID_INPUT_MESSAGE) return TERMS_INVALID_INPUT_MESSAGE;
+  if (message.startsWith("These Terms have been updated.")) return TERMS_UPDATED_MESSAGE;
+  return TERMS_RECORD_FAILED_MESSAGE;
 }
 export type TermsGateView = "loading" | "error" | "accepted" | "needs_acceptance";
 
