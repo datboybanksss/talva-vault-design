@@ -6,16 +6,18 @@ import { isMfaBootstrap, isMfaRequired, MFA_REQUIRED } from "./mfa-policy";
 /** Every bearer-authenticated RPC fails closed before its handler can use service privileges. */
 export const requireMfaVerified = createMiddleware({ type: "function" })
   .client(async ({ next }) => {
-    const result = await next();
-    const error = "error" in result ? result.error : undefined;
-    if (typeof window !== "undefined" && isMfaRequired(error)) {
-      const path = window.location.pathname;
-      if (path !== "/enroll-2fa" && path !== "/auth") {
-        const nextPath = `${path}${window.location.search}`;
-        window.location.replace(`/enroll-2fa?next=${encodeURIComponent(nextPath)}`);
+    try {
+      return await next();
+    } catch (error) {
+      if (typeof window !== "undefined" && isMfaRequired(error)) {
+        const path = window.location.pathname;
+        if (path !== "/enroll-2fa" && path !== "/auth") {
+          const nextPath = `${path}${window.location.search}`;
+          window.location.replace(`/enroll-2fa?next=${encodeURIComponent(nextPath)}`);
+        }
       }
+      throw error;
     }
-    return result;
   })
   .server(async ({ next, serverFnMeta }) => {
     const header = getRequest()?.headers.get("authorization");

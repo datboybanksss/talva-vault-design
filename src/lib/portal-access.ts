@@ -143,7 +143,8 @@ export async function checkMfaGate(): Promise<MfaGate> {
   try {
     const { getMfaStatus } = await import("@/lib/mfa.functions");
     const { browserSessionId } = await import("@/lib/device");
-    const status = await getMfaStatus({ data: { device: browserSessionId() } });
+    const status = await getMfaStatus({ data: { device: browserSessionId() } }).catch(() => null);
+    if (!status) return "challenge";
     return status.gate;
   } catch {
     // Never expose workspace content while verification is unknown.
