@@ -7,7 +7,8 @@ import { isMfaBootstrap, isMfaRequired, MFA_REQUIRED } from "./mfa-policy";
 export const requireMfaVerified = createMiddleware({ type: "function" })
   .client(async ({ next }) => {
     const result = await next();
-    if (typeof window !== "undefined" && isMfaRequired(result.error)) {
+    const error = "error" in result ? result.error : undefined;
+    if (typeof window !== "undefined" && isMfaRequired(error)) {
       const path = window.location.pathname;
       if (path !== "/enroll-2fa" && path !== "/auth") {
         const nextPath = `${path}${window.location.search}`;
