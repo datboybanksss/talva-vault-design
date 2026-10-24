@@ -89,7 +89,12 @@ function TermsAgreement({ portal, doc, hadPrevious }: {
       toast.success(res.proof_ref ? `Thank you. Your proof reference is ${res.proof_ref}.` : "Thank you.");
       await qc.invalidateQueries();
     } catch (error: unknown) {
-      toast.error(termsGateError(error));
+      const msg = termsGateError(error);
+      toast.error(msg);
+      // New Terms or a mismatched copy: fetch the current document again.
+      if (msg !== "We couldn't record your acceptance. Please try again.") {
+        await qc.invalidateQueries({ queryKey: ["terms-status", portal] });
+      }
     } finally {
       setBusy(false);
     }
