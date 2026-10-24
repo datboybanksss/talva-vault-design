@@ -7,6 +7,10 @@ export const Route = createFileRoute("/agency")({
   head: () => ({
     meta: [
       { title: "Agency · TalVault" },
+      { property: "og:title", content: "Agency · TalVault" },
+      { property: "og:description", content: "Your secure TalVault agency workspace." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content: "Agency workspace — Talent, Invitations, Vault, Quotes & Invoices.",
@@ -36,7 +40,7 @@ export const Route = createFileRoute("/agency")({
     }
     const mfa = await checkMfaGate();
     if (mfa === "enrol") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
-    if (mfa === "challenge") throw redirect({ to: "/auth", search: { next: location.href } });
+    if (mfa === "challenge") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
   },
   component: AgencyLayout,
 });
