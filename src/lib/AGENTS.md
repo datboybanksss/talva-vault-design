@@ -1,0 +1,4 @@
+# Server authentication
+- MFA is mandatory for every bearer RPC through the global requireMfaVerified middleware; exemptions use only compiled filename/name pairs in mfa-policy. Why: caller input cannot claim a bootstrap exemption.
+- MFA codes and verification markers bind only to verified JWT session_id; mfa_session_ok enforces the twelve-hour lifetime in SQL/RLS and the Data API pre-request guard. Why: passwords, browser IDs and other sessions cannot unlock data.
+- Keep the Data API my_account_access exemption limited to the existing paused-account bootstrap check; it must never expose private business data. Why: the paused-account guard also runs before code verification.
