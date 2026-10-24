@@ -46,7 +46,7 @@ export const getMfaStatus = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const sessionId = verifiedSessionId(claims);
-    const { data: verified, error: verificationError } = await context.supabase.rpc("mfa_session_ok" as never);
+    const { data: verified, error: verificationError } = await context.supabase.rpc("mfa_session_ok");
     if (verificationError) throw new Error("We couldn't check your sign-in code. Please try again.");
     const sessionVerified = sessionId !== null && verified === true;
 
