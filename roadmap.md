@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] TVA-SEC-101: bind emailed-code verification to JWT sessions; global server guard, restrictive data/storage policies, client code-screen routing and regression checks.
 - [x] Pause/Suspend for agencies and talent
 - [x] Row actions menu on every Accounts row
 - [x] Report why invited agencies appear in Accounts (awaiting Lara decision)
