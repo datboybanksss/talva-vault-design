@@ -17,6 +17,7 @@ export const Route = createFileRoute("/admin")({
   }),
   beforeLoad: async ({ location }) => {
     const access = await checkPortalAccess("admin");
+    if (access === "mfa-required") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
     if (access === "paused") {
       throw redirect({ to: "/auth", search: { unavailable: "1" } as never });
     }

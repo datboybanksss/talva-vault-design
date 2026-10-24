@@ -24,4 +24,8 @@ describe("mandatory two-factor sign-in", () => {
     getStatus.mockResolvedValue({ gate: "enrol" });
     expect(await checkMfaGate()).toBe("enrol");
   });
+  it("never grants access when the verification check fails", async () => {
+    getStatus.mockRejectedValue(new Error("offline"));
+    expect(await checkMfaGate()).toBe("challenge");
+  });
 });
