@@ -2358,6 +2358,7 @@ export type Database = {
           destination: string
           expires_at: string
           id: string
+          session_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2370,6 +2371,7 @@ export type Database = {
           destination: string
           expires_at: string
           id?: string
+          session_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2382,6 +2384,7 @@ export type Database = {
           destination?: string
           expires_at?: string
           id?: string
+          session_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -3712,6 +3715,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      mfa_rest_guard: { Args: never; Returns: undefined }
+      mfa_session_ok: { Args: never; Returns: boolean }
       mint_billing_doc_number: {
         Args: { _agency_id: string; _kind: string }
         Returns: string
