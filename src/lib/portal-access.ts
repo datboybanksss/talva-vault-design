@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getMfaStatus } from "@/lib/mfa.functions";
+import { browserSessionId } from "@/lib/device";
 
 /**
  * Single source of truth for "does the currently signed-in account have access
@@ -141,8 +143,6 @@ export const MFA_ENFORCED = true;
 export async function checkMfaGate(): Promise<MfaGate> {
   if (!MFA_ENFORCED) return "ok";
   try {
-    const { getMfaStatus } = await import("@/lib/mfa.functions");
-    const { browserSessionId } = await import("@/lib/device");
     const status = await getMfaStatus({ data: { device: browserSessionId() } }).catch(() => null);
     if (!status) return "challenge";
     return status.gate;
