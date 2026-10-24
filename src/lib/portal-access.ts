@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getMfaStatus } from "@/lib/mfa.functions";
+import { browserSessionId } from "@/lib/device";
 
 /**
  * Single source of truth for "does the currently signed-in account have access
@@ -13,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export type PortalKey = "admin" | "agency" | "talent";
 
-export type AccessResult = "granted" | "denied" | "signed-out" | "error" | "paused";
+export type AccessResult = "granted" | "denied" | "signed-out" | "error" | "paused" | "mfa-required";
 
 export const DENIED_CODE: Record<PortalKey, string> = {
   admin: "not_admin",
@@ -74,6 +76,7 @@ export async function checkPortalAccess(key: PortalKey): Promise<AccessResult> {
   if (sessErr) return "error";
   const userId = sessRes.session?.user?.id;
   if (!userId) return "signed-out";
+  if ((await checkMfaGate()) !== "ok") return "mfa-required";
   if (await isAccountPaused()) {
     await supabase.auth.signOut();
     return "paused";
@@ -127,9 +130,9 @@ export async function resolveDeniedDestination(
 export type MfaGate = "ok" | "enrol" | "challenge";
 
 /**
- * TEMPORARILY OFF for testing at Lara's request (22 Oct 2026). Set back to true to restore.
+ * Mandatory; server and database enforce the same session requirement.
  */
-export const MFA_ENFORCED = false;
+export const MFA_ENFORCED = true;
 
 /**
  * Two-step sign-in state for the current session, resolved server-side from
@@ -140,13 +143,12 @@ export const MFA_ENFORCED = false;
 export async function checkMfaGate(): Promise<MfaGate> {
   if (!MFA_ENFORCED) return "ok";
   try {
-    const { getMfaStatus } = await import("@/lib/mfa.functions");
-    const { browserSessionId } = await import("@/lib/device");
-    const status = await getMfaStatus({ data: { device: browserSessionId() } });
+    const status = await getMfaStatus({ data: { device: browserSessionId() } }).catch(() => null);
+    if (!status) return "challenge";
     return status.gate;
   } catch {
-    // A transient failure must never lock a legitimate user out of the portal.
-    return "ok";
+    // Never expose workspace content while verification is unknown.
+    return "challenge";
   }
 }
 

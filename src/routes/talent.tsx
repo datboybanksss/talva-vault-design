@@ -8,6 +8,10 @@ export const Route = createFileRoute("/talent")({
   head: () => ({
     meta: [
       { title: "Talent · TalVault" },
+      { property: "og:title", content: "Talent · TalVault" },
+      { property: "og:description", content: "Your secure TalVault talent workspace." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
@@ -18,6 +22,7 @@ export const Route = createFileRoute("/talent")({
   }),
   beforeLoad: async ({ location }) => {
     const access = await checkPortalAccess("talent");
+    if (access === "mfa-required") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
     if (access === "paused") {
       throw redirect({ to: "/auth", search: { unavailable: "1" } as never });
     }
@@ -37,7 +42,7 @@ export const Route = createFileRoute("/talent")({
     }
     const mfa = await checkMfaGate();
     if (mfa === "enrol") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
-    if (mfa === "challenge") throw redirect({ to: "/auth", search: { next: location.href } });
+    if (mfa === "challenge") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
   },
   loader: async () => getTalentContext(),
   component: TalentLayout,

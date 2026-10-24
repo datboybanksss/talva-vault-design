@@ -8,7 +8,7 @@ vi.mock("@/lib/device", () => ({ browserSessionId: () => "test-session" }));
 import { checkMfaGate, MFA_ENFORCED } from "./portal-access";
 
 describe("mandatory two-factor sign-in", () => {
-  beforeEach(() => getStatus.mockReset());
+  beforeEach(() => { getStatus.mockReset(); });
 
   it("enforces two-factor sign-in", () => {
     expect(MFA_ENFORCED).toBe(true);
@@ -23,5 +23,9 @@ describe("mandatory two-factor sign-in", () => {
   it("requires enrolment for an account that has not completed two-factor setup", async () => {
     getStatus.mockResolvedValue({ gate: "enrol" });
     expect(await checkMfaGate()).toBe("enrol");
+  });
+  it("never grants access when the verification check fails", async () => {
+    getStatus.mockRejectedValue(new Error("offline"));
+    expect(await checkMfaGate()).toBe("challenge");
   });
 });

@@ -8,6 +8,10 @@ export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
       { title: "Admin · TalVault" },
+      { property: "og:title", content: "Admin · TalVault" },
+      { property: "og:description", content: "Secure TalVault platform administration." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content: "Platform operations console — agencies, invites, audit and administrators.",
@@ -17,6 +21,7 @@ export const Route = createFileRoute("/admin")({
   }),
   beforeLoad: async ({ location }) => {
     const access = await checkPortalAccess("admin");
+    if (access === "mfa-required") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
     if (access === "paused") {
       throw redirect({ to: "/auth", search: { unavailable: "1" } as never });
     }
@@ -44,7 +49,7 @@ export const Route = createFileRoute("/admin")({
     if (location.pathname === "/admin/enroll-2fa") return;
     const mfa = await checkMfaGate();
     if (mfa === "enrol") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
-    if (mfa === "challenge") throw redirect({ to: "/auth", search: { next: location.href } });
+    if (mfa === "challenge") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
   },
   component: AdminLayout,
 });

@@ -8,6 +8,13 @@
       "when": 1792769140936,
       "tag": "0000_simplify_shared_folder_template",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792866245321,
+      "tag": "0001_mfa_session_enforcement",
+      "breakpoints": true
     }
   ]
 }
