@@ -25,6 +25,7 @@ describe("mandatory two-factor sign-in", () => {
     expect(await checkMfaGate()).toBe("enrol");
   });
   it("never grants access when the verification check fails", async () => {
+    console.log(checkMfaGate.toString());
     getStatus.mockImplementation(() => { throw new Error("offline"); });
     expect(await checkMfaGate()).toBe("challenge");
   });
