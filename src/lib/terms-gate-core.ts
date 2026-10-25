@@ -3,7 +3,7 @@ import { z } from "zod";
 export const acceptTermsInput = z.object({
   portal: z.enum(["talent", "agency"]),
   document_id: z.string().uuid(),
-  body_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  body_sha256: z.string().max(10000).regex(/^[a-f0-9]{64}$/),
 });
 
 export function reachedDocumentEnd(scrollTop: number, clientHeight: number, scrollHeight: number) {

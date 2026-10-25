@@ -8,7 +8,7 @@ const sendInput = z.object({
   id: z.string().uuid(),
   subject: z.string().trim().min(1).max(300),
   body: z.string().trim().min(1).max(8000),
-  invite_url: z.string().url(),
+  invite_url: z.string().max(10000).url(),
 });
 
 function fmtExpiry(iso: string) {

@@ -23,7 +23,7 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const day = z.string().max(10000).regex(/^\d{4}-\d{2}-\d{2}$/);
 const Filters = z.object({
   from: day,
   to: day,

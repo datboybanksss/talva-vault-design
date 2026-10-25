@@ -28,8 +28,8 @@ async function assertAdmin(supabase: any, userId: string) {
 }
 
 const PeriodInput = z.object({
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  from: z.string().max(10000).regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z.string().max(10000).regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 type Period = { fromIso: string; toIso: string; from: string; to: string };

@@ -955,11 +955,11 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        talent_name: z.string().min(1),
-        email: z.string().email(),
+        talent_name: z.string().max(10000).min(1),
+        email: z.string().max(10000).email(),
         expiry_days: z.number().int().min(1).max(60).default(14),
         folder_mode: z.enum(["standard", "custom"]).default("standard"),
-        folder_selection: z.array(folderSelectionItem).default([]),
+        folder_selection: z.array(folderSelectionItem).max(200).default([]),
         manager_user_id: z.string().uuid().nullable().optional(),
         talent_type: z.string().max(60).nullable().optional(),
       })
@@ -1112,9 +1112,9 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        contact_person: z.string().optional(),
-        email: z.string().email(),
-        role: z.string().default("staff"),
+        contact_person: z.string().max(10000).optional(),
+        email: z.string().max(10000).email(),
+        role: z.string().max(10000).default("staff"),
         expiry_days: z.number().int().min(1).max(60).default(14),
       })
       .parse(d),
@@ -1199,7 +1199,7 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        id: z.string(),
+        id: z.string().max(10000),
         type: z.enum(["talent", "staff"]),
         extend_days: z.number().int().min(1).max(60).default(14),
       })
@@ -1268,7 +1268,7 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
 export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ id: z.string(), type: z.enum(["talent", "staff"]) }).parse(d),
+    z.object({ id: z.string().max(10000), type: z.enum(["talent", "staff"]) }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -1319,7 +1319,7 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
 export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ id: z.string(), type: z.enum(["talent", "staff"]) }).parse(d),
+    z.object({ id: z.string().max(10000), type: z.enum(["talent", "staff"]) }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -1398,9 +1398,9 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
     z
       .object({
         talentLinkId: z.string().uuid().nullish(),
-        folderNames: z.array(z.string()).nullish(),
-        folder: z.string().nullish(),
-        search: z.string().default(""),
+        folderNames: z.array(z.string()).max(200).nullish(),
+        folder: z.string().max(10000).nullish(),
+        search: z.string().max(10000).default(""),
         tab: vaultTab.default("all"),
         limit: z.number().int().min(1).max(100).default(10),
         offset: z.number().int().min(0).default(0),
@@ -1768,12 +1768,12 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        name: z.string().min(1),
-        folder: z.string().min(1),
-        storage_path: z.string().min(1),
+        name: z.string().max(10000).min(1),
+        folder: z.string().max(10000).min(1),
+        storage_path: z.string().max(10000).min(1),
         talent_link_id: z.string().uuid().nullable().optional(),
         status: z.enum(["ai_suggested", "filed", "needs_review"]).default("needs_review"),
-        validity_expires_at: z.string().nullable().optional(),
+        validity_expires_at: z.string().max(10000).nullable().optional(),
         mime_type: z.string().max(160).nullable().optional(),
       })
       .parse(d),
@@ -2067,10 +2067,10 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid().optional(),
         scope: z.enum(["folder", "document"]),
-        scope_value: z.string().min(1).nullable().optional(),
+        scope_value: z.string().max(10000).min(1).nullable().optional(),
         document_id: z.string().uuid().nullable().optional(),
         retention_years: z.number().int().min(0).max(100),
-        description: z.string().nullable().optional(),
+        description: z.string().max(10000).nullable().optional(),
       })
       .parse(d),
   )
@@ -2213,10 +2213,10 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
     z
       .object({
         document_id: z.string().uuid(),
-        storage_path: z.string().min(1),
-        name: z.string().min(1),
+        storage_path: z.string().max(10000).min(1),
+        name: z.string().max(10000).min(1),
         size_bytes: z.number().int().nullable().optional(),
-        mime_type: z.string().nullable().optional(),
+        mime_type: z.string().max(10000).nullable().optional(),
       })
       .parse(d),
   )
@@ -2412,7 +2412,7 @@ export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
         name: z.string().min(1).max(120),
         description: z.string().max(500).nullable().optional(),
         is_default: z.boolean().optional(),
-        items: z.array(templateItemSchema).default([]),
+        items: z.array(templateItemSchema).max(200).default([]),
       })
       .parse(d),
   )
@@ -2607,8 +2607,8 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
         number: z.string().min(1).max(64),
         client_name: z.string().max(200).nullable().optional(),
         talent_name: z.string().max(200).nullable().optional(),
-        issued_at: z.string().min(10),
-        due_date: z.string().min(10).nullable().optional(),
+        issued_at: z.string().max(10000).min(10),
+        due_date: z.string().max(10000).min(10).nullable().optional(),
         currency: z.string().min(3).max(3).default("ZAR"),
         total_cents: z.number().int().min(0),
         status: billingStatus.default("draft"),
@@ -2804,8 +2804,8 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
       .object({
         quote_id: z.string().uuid(),
         invoice_number: z.string().min(1).max(64),
-        issued_at: z.string().min(10).optional(),
-        due_date: z.string().min(10).nullable().optional(),
+        issued_at: z.string().max(10000).min(10).optional(),
+        due_date: z.string().max(10000).min(10).nullable().optional(),
       })
       .parse(d),
   )
@@ -2893,12 +2893,12 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        action: z.string().optional(),
-        target_type: z.string().optional(),
-        actor_id: z.string().optional(),
-        since: z.string().optional(),
-        actions: z.array(z.string()).optional(),
-        excludeActions: z.array(z.string()).optional(),
+        action: z.string().max(10000).optional(),
+        target_type: z.string().max(10000).optional(),
+        actor_id: z.string().max(10000).optional(),
+        since: z.string().max(10000).optional(),
+        actions: z.array(z.string()).max(200).optional(),
+        excludeActions: z.array(z.string()).max(200).optional(),
         limit: z.number().int().min(1).max(1000).default(500),
         offset: z.number().int().min(0).default(0),
       })
@@ -2966,7 +2966,7 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
 /** Per-action counts for the activity-log chips (independent of paging). */
 export const countAgencyAuditByAction = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ since: z.string().optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ since: z.string().max(10000).optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
@@ -3079,8 +3079,8 @@ export const updateAgencyContractMeta = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         contract_client_name: z.string().max(200).nullable().optional(),
-        contract_start_date: z.string().nullable().optional(),
-        contract_end_date: z.string().nullable().optional(),
+        contract_start_date: z.string().max(10000).nullable().optional(),
+        contract_end_date: z.string().max(10000).nullable().optional(),
         contract_total_cents: z.number().int().min(0).nullable().optional(),
         contract_currency: z.string().min(3).max(3).nullable().optional(),
         contract_notes: z.string().max(4000).nullable().optional(),
@@ -3120,8 +3120,8 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
         contract_id: z.string().uuid(),
         number: z.string().min(1).max(64),
         total_cents: z.number().int().min(0),
-        issued_at: z.string().min(10).optional(),
-        due_date: z.string().min(10).nullable().optional(),
+        issued_at: z.string().max(10000).min(10).optional(),
+        due_date: z.string().max(10000).min(10).nullable().optional(),
         notes: z.string().max(2000).nullable().optional(),
       })
       .parse(d),
@@ -3276,7 +3276,7 @@ export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
         title: z.string().min(1).max(200),
         folder: z.string().min(1).max(100),
         instructions: z.string().max(2000).nullable().optional(),
-        due_date: z.string().nullable().optional(),
+        due_date: z.string().max(10000).nullable().optional(),
       })
       .parse(d),
   )
@@ -3432,7 +3432,7 @@ export const updateOwnAgencyProfile = createServerFn({ method: "POST" })
 
 export const logOwnAgencyEmailChangeRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ new_email: z.string().email() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ new_email: z.string().max(10000).email() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
@@ -3472,7 +3472,7 @@ export const logOwnAgencyPasswordChange = createServerFn({ method: "POST" })
 export const logOwnAgencyMfaEnrolled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ factor_type: z.string().default("email_code") }).parse(d),
+    z.object({ factor_type: z.string().max(10000).default("email_code") }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
@@ -3737,7 +3737,7 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
 
 export const updateAgencyLogoPath = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ storage_path: z.string().nullable() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ storage_path: z.string().max(10000).nullable() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
@@ -3837,8 +3837,8 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
         client_name: z.string().max(200).nullable(),
         talent_name: z.string().max(200).nullable(),
         description: z.string().max(200).nullable(),
-        issued_at: z.string().min(10),
-        due_date: z.string().min(10).nullable(),
+        issued_at: z.string().max(10000).min(10),
+        due_date: z.string().max(10000).min(10).nullable(),
         currency: z.string().min(3).max(3).default("ZAR"),
         status: z
           .enum([
@@ -3866,7 +3866,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
 
         acceptance_window_days: z.number().int().min(1).max(365).nullable(),
         payment_terms_days: z.number().int().min(1).max(365).nullable(),
-        lines: z.array(billingLineInput).min(1),
+        lines: z.array(billingLineInput).max(200).min(1),
       })
       .parse(d),
   )
@@ -4570,7 +4570,7 @@ export const resetAgencyFolderSettings = createServerFn({ method: "POST" })
 // invitation email composer.
 export const getTalentInvitationByIdMine = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ id: z.string().max(10000) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
@@ -4839,7 +4839,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       .object({
         doc_id: z.string().uuid(),
         amount_cents: z.number().int().positive(),
-        paid_on: z.string().min(10),
+        paid_on: z.string().max(10000).min(10),
         method: z.string().max(60).nullable().optional(),
         reference: z.string().max(120).nullable().optional(),
         notes: z.string().max(500).nullable().optional(),
@@ -5094,7 +5094,7 @@ export const removeAgencyStaffMember = createServerFn({ method: "POST" })
 /** Staff invitation detail, for the shared email preview/compose screen. */
 export const getStaffInvitationByIdMine = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ id: z.string().max(10000) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);

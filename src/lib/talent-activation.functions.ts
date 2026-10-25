@@ -117,7 +117,7 @@ const activateInput = z.object({
   password: z.string().min(12).max(200),
   terms_accepted: z.literal(true),
   terms_document_id: z.string().uuid(),
-  terms_body_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  terms_body_sha256: z.string().max(10000).regex(/^[a-f0-9]{64}$/),
 });
 
 export type TalentActivationResult =

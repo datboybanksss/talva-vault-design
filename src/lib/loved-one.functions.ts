@@ -78,8 +78,8 @@ const CreateShareInput = z.object({
   days: z.number().int().min(1).max(365).default(30),
   share_kind: z.enum(["folders", "document", "billing"]).default("folders"),
   permission: z.enum(["view", "download"]).default("view"),
-  private_folder_ids: z.array(z.string().uuid()).default([]),
-  private_document_ids: z.array(z.string().uuid()).default([]),
+  private_folder_ids: z.array(z.string().uuid()).max(200).default([]),
+  private_document_ids: z.array(z.string().uuid()).max(200).default([]),
   note: z.string().max(1000).optional(),
   send_email: z.boolean().default(true),
 });
