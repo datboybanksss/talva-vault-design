@@ -15,12 +15,7 @@ export function callerIp(): string {
   try {
     const h = getRequest()?.headers;
     if (!h) return "unknown";
-    return (
-      h.get("cf-connecting-ip") ||
-      h.get("x-real-ip") ||
-      (h.get("x-forwarded-for") ?? "").split(",")[0].trim() ||
-      "unknown"
-    );
+    return h.get("cf-connecting-ip") || "unknown";
   } catch {
     return "unknown";
   }
@@ -45,24 +40,30 @@ async function consume(
   blockSeconds?: number,
 ): Promise<RateLimitVerdict> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin.rpc("consume_rate_limit", {
+  let result;
+  try {
+    result = await supabaseAdmin.rpc("consume_rate_limit", {
     _bucket: bucket,
     _subject: subject,
     _max_attempts: maxAttempts,
     _window_seconds: windowSeconds,
     _block_seconds: blockSeconds ?? undefined,
-  });
+    });
+  } catch (error) {
+    console.error("rate_limit_unavailable", { bucket, error });
+    return { allowed: false, remaining: 0, retryAfterSeconds: blockSeconds ?? windowSeconds };
+  }
+  const { data, error } = result;
   if (error) {
-    // Fail open rather than lock legitimate users out of activation if the
-    // limiter itself is unavailable; the failure is logged for follow-up.
+    // Public token endpoints must fail closed when the limiter is unavailable.
     console.error("rate_limit_error", { bucket, message: error.message });
-    return { allowed: true, remaining: maxAttempts, retryAfterSeconds: 0 };
+    return { allowed: false, remaining: 0, retryAfterSeconds: blockSeconds ?? windowSeconds };
   }
   const row = Array.isArray(data) ? data[0] : data;
   return {
-    allowed: row?.allowed ?? true,
+    allowed: row?.allowed === true,
     remaining: row?.remaining ?? 0,
-    retryAfterSeconds: row?.retry_after_seconds ?? 0,
+    retryAfterSeconds: row?.retry_after_seconds ?? (blockSeconds ?? windowSeconds),
   };
 }
 

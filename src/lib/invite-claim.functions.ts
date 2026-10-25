@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { exactInvitationEmailPattern, invitationEmailMatches } from "./invitation-email-match";
 
 /**
  * Invitations opened by people who *already* have a TalVault account.
@@ -74,7 +75,7 @@ export const inviteAccountStatus = createServerFn({ method: "POST" })
     // address, and the result is confirmed against auth.users so a leftover
     // profile row alone never reads as "you already have an account".
     const invited = inv.email.trim().toLowerCase();
-    const escaped = invited.replace(/([%_\\])/g, "\\$1");
+    const escaped = exactInvitationEmailPattern(invited);
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
       .select("id, email")
@@ -123,17 +124,17 @@ export const pendingInvitationForMe = createServerFn({ method: "POST" })
       const { data: rows } = await supabaseAdmin
         .from(INVITE_TABLE[kind])
         .select(
-          "token, expires_at, " +
+          "token, email, expires_at, " +
             (kind === "agency" ? "agency_name" : kind === "talent" ? "talent_name" : "email"),
         )
-        .ilike("email", email)
+        .ilike("email", exactInvitationEmailPattern(email))
         .eq("status", "pending")
         .gt("expires_at", now)
         .order("created_at", { ascending: false })
         .limit(1);
 
       const row = (rows ?? [])[0] as any;
-      if (row?.token) {
+      if (row?.token && invitationEmailMatches(row.email, email)) {
         return {
           kind,
           token: row.token,
