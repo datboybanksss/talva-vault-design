@@ -13,7 +13,8 @@ import {
   MFA_ENFORCED,
   PORTAL_FOR_DENIED_CODE,
   checkPortalAccess,
-  isAccountPaused,
+  accessAfterSignIn,
+  clearPortalAccessCache,
   resolvePortalHome,
 } from "@/lib/portal-access";
 import { Lock, FileCheck2, Users } from "lucide-react";
@@ -395,17 +396,21 @@ function AuthPage() {
       return;
     }
     // Every password sign-in earns a fresh code, even on a browser that was
-    // verified earlier today.
+    // verified earlier today. The code screen appears straight away.
+    setCodeStage(true);
     await beginSignInChallenge({ data: { device: browserSessionId() } }).catch(() => {});
     const status = await getMfaStatus({ data: { device: browserSessionId() } });
     if (status.gate === "enrol") {
+      setCodeStage(false);
       nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
       return;
     }
     if (status.gate === "challenge") {
-      await startCodeChallenge();
+      // The email is sent in the background; its result shows when it arrives.
+      void startCodeChallenge();
       return;
     }
+    setCodeStage(false);
     recordSignIn();
     await goNext(true);
   }, [nav, search.next, startCodeChallenge, goNext]);
@@ -430,6 +435,7 @@ function AuthPage() {
       // The clearing itself is deliberately not gated on the component still
       // being mounted — React's double-invoked effects would otherwise skip it
       // and leave the session in place.
+      clearPortalAccessCache();
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
       clearStoredSession();
     })();
@@ -450,9 +456,13 @@ function AuthPage() {
         // signs existing accounts in. Wait for the leftover-session clean-up
         // first, otherwise it can wipe the fresh session.
         await clearingRef.current?.catch(() => {});
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        if (await isAccountPaused()) {
+        // One round-trip: paused status and portal home, cached briefly so
+        // the portal gate doesn't repeat the same checks.
+        const access = signedIn.user ? await accessAfterSignIn(signedIn.user.id) : null;
+        if (access?.paused) {
+          clearPortalAccessCache();
           await supabase.auth.signOut();
           setError(ACCOUNT_UNAVAILABLE_MESSAGE);
           return;
