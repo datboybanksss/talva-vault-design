@@ -38,7 +38,9 @@ export async function cleanupUnvalidatedUploads(now = Date.now()): Promise<numbe
   const cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabaseAdmin.rpc("queue_abandoned_private_uploads", { _cutoff: cutoff });
   if (error) throw new Error("The upload cleanup could not be completed.");
+  const { data: orphaned, error: orphanError } = await supabaseAdmin.rpc("queue_abandoned_upload_objects", { _cutoff: cutoff });
+  if (orphanError) throw new Error("The upload cleanup could not be completed.");
   const { drainDocumentStoragePurgeQueue } = await import("./document-purge.server");
   await drainDocumentStoragePurgeQueue();
-  return data ?? 0;
+  return (data ?? 0) + (orphaned ?? 0);
 }
