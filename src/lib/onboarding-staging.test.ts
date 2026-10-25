@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const calls: { table: string; op: string; args: unknown[] }[] = [];
-let stagedRows: any[] = [];
+let stagedRows: Array<Record<string, unknown>> = [];
 
 function builder(table: string) {
   const filters: Record<string, unknown> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- minimal query-builder test double
   const b: any = {
     select: () => b,
     eq: (col: string, v: unknown) => ((filters[col] = v), b),
@@ -69,7 +70,7 @@ describe("staged onboarding uploads", () => {
     expect(n).toBe(1);
     const insert = calls.find((c) => c.op === "insert")!;
     expect(insert.table).toBe("talent_invitation_documents");
-    expect((insert.args[0] as any[])[0]).toMatchObject({
+    expect((insert.args[0] as Array<Record<string, unknown>>)[0]).toMatchObject({
       invitation_id: "inv-1",
       doc_slot: "id_document",
       uploaded_by: adminA,
@@ -89,7 +90,7 @@ describe("staged onboarding uploads", () => {
     });
     const insert = calls.find((c) => c.op === "insert")!;
     expect(insert.table).toBe("agency_compliance_documents");
-    expect((insert.args[0] as any[])[0]).toMatchObject({
+    expect((insert.args[0] as Array<Record<string, unknown>>)[0]).toMatchObject({
       agency_id: "ag-1",
       business_type: "formal",
       invitation_id: "inv-2",
