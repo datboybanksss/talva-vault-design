@@ -2,6 +2,7 @@
 // talent invitation once it is revoked or has expired, so "no details were
 // kept" is true. The invitation row itself stays for the audit trail.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { databaseError } from "./security-errors";
 
 const BUCKET = "talent-invite-docs";
 
@@ -20,7 +21,7 @@ export async function purgeIndependentInviteDocuments(
   const paths = rows.map((d) => d.storage_path).filter(Boolean) as string[];
   if (paths.length) {
     const { error } = await supabaseAdmin.storage.from(BUCKET).remove(paths);
-    if (error) throw new Error(`Could not remove invitation files: ${error.message}`);
+    if (error) throw databaseError(error, "We couldn't remove these invitation files. Please try again.");
   }
   await supabaseAdmin
     .from("talent_invitation_documents")

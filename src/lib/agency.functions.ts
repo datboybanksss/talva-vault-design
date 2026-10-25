@@ -4635,7 +4635,7 @@ export const listFolderCatalogue = createServerFn({ method: "GET" })
     ]);
 
     for (const r of [cats, subs, tmpl, settings]) {
-      if ((r as any).error) throw new Error((r as any).error.message);
+      if ((r as any).error) throw databaseError((r as any).error);
     }
 
     return {

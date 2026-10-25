@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
-import { allowedMimeClaim, documentIsValidated, KIND_MIME } from "./file-security";
+import { allowedMimeClaim, documentIsValidated } from "./file-security";
 import { privateStoragePathOwned } from "./share-security";
 
 const BUCKET = "talent-private-documents";
