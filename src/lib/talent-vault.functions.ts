@@ -2,8 +2,16 @@ import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
+import { allowedMimeClaim, documentIsValidated, KIND_MIME } from "./file-security";
+import { privateStoragePathOwned } from "./share-security";
 
 const BUCKET = "talent-private-documents";
+
+async function requireOwnedFolder(db: any, userId: string, folderId: string | null | undefined) {
+  if (!folderId) return;
+  const { data, error } = await db.from("talent_private_folders").select("id").eq("id", folderId).eq("user_id", userId).is("removed_at", null).maybeSingle();
+  if (error || !data) throw new Error("That folder is no longer available in your private vault.");
+}
 
 /**
  * List the caller's private folder tree + documents.
@@ -27,6 +35,7 @@ export const listPrivateVault = createServerFn({ method: "GET" })
           "id, folder_id, name, storage_path, mime_type, size_bytes, reminder_at, expires_at, notes, pending_review, created_at, updated_at",
         )
         .eq("user_id", userId)
+        .not("validated_at", "is", null)
         .order("created_at", { ascending: false }),
     ]);
 
@@ -155,6 +164,8 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CreateUploadUrlInput.parse(input))
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
+    await requireOwnedFolder(supabase, userId, data.folder_id);
+    if (!allowedMimeClaim(data.mime_type)) throw new Error("That file type is not supported. Upload a PDF, image, Office document or plain text file.");
     const safeName = data.file_name.replace(/[^\w.-]+/g, "_");
     const path = `${userId}/${crypto.randomUUID()}-${safeName}`;
 
@@ -171,8 +182,9 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
         folder_id: data.folder_id ?? null,
         name: data.file_name,
         storage_path: path,
-        mime_type: data.mime_type ?? null,
+        mime_type: null,
         size_bytes: data.size_bytes ?? null,
+        validation_pending_since: new Date().toISOString(),
         // Awaiting the filing review; cleared when the review is confirmed.
         pending_review: true,
       })
@@ -203,6 +215,7 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (doc.user_id !== userId) throw new Error("Forbidden");
     if (!doc.storage_path) throw new Error("No file attached.");
+    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
 
     const { validateStoredUpload, UploadRejected } = await import("@/lib/file-validation.server");
     try {
@@ -212,10 +225,12 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
         claimedMime: doc.mime_type,
       });
       // Trust the size we measured, not the one the browser reported.
-      await supabase
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error: stampError } = await supabaseAdmin
         .from("talent_private_documents")
-        .update({ size_bytes: result.sizeBytes })
+        .update({ size_bytes: result.sizeBytes, mime_type: result.mimeType, validated_at: new Date().toISOString(), validation_pending_since: null })
         .eq("id", doc.id);
+      if (stampError) throw new Error("We couldn't finish checking this file. Please try again.");
       const { recordTalentActivity } = await import("@/lib/talent-activity.server");
       await recordTalentActivity(supabase, userId, claims?.email, "vault_document_uploaded", {
         targetId: doc.id,
@@ -233,8 +248,10 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
     } catch (e) {
       // The object is already removed by validateStoredUpload; drop the row too
       // so the vault never shows a phantom document.
-      await supabase.from("talent_private_documents").delete().eq("id", doc.id);
-      if (e instanceof UploadRejected) throw new Error(e.message);
+      if (e instanceof UploadRejected) {
+        await supabase.from("talent_private_documents").delete().eq("id", doc.id);
+        throw new Error(e.message);
+      }
       throw e;
     }
   });
@@ -248,11 +265,13 @@ export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: doc } = await supabase
       .from("talent_private_documents")
-      .select("id, name, storage_path, user_id")
+      .select("id, name, storage_path, user_id, validated_at")
       .eq("id", data.id)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+    if (!documentIsValidated(doc)) throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached.");
+    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error } = await supabaseAdmin.storage
@@ -306,10 +325,12 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => MoveDocInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
+    await requireOwnedFolder(supabase, userId, data.folder_id);
     const { data: moved, error } = await supabase
       .from("talent_private_documents")
       .update({ folder_id: data.folder_id })
       .eq("id", data.id)
+      .eq("user_id", userId)
       .select("id");
     if (error) throw new Error(error.message);
     if (!moved || moved.length === 0) {
@@ -546,11 +567,13 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
     // 1. The vault document must be the caller's own.
     const { data: doc } = await supabase
       .from("talent_private_documents")
-      .select("id, user_id, name, storage_path, mime_type, size_bytes")
+      .select("id, user_id, name, storage_path, mime_type, size_bytes, validated_at")
       .eq("id", data.document_id)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+    if (!documentIsValidated(doc)) throw new Error("This file must finish checking before it can be shared.");
     if (!doc.storage_path) throw new Error("This document has no file attached.");
+    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
 
     // 2. The link must be the caller's own, accepted and not ended.
     const { data: link } = await supabase
@@ -596,6 +619,8 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
     }
 
     // 5. Copy the file across buckets — the original object is untouched.
+    const { validateStoredUpload } = await import("@/lib/file-validation.server");
+    const checked = await validateStoredUpload({ bucket: BUCKET, path: doc.storage_path, removeOnFailure: false });
     const { data: file, error: dlErr } = await supabaseAdmin.storage
       .from(BUCKET)
       .download(doc.storage_path);
@@ -605,7 +630,7 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
     const { error: upErr } = await supabaseAdmin.storage
       .from("talent-documents")
       .upload(copyPath, file, {
-        contentType: doc.mime_type ?? undefined,
+        contentType: checked.mimeType,
         upsert: false,
       });
     if (upErr) throw new Error(upErr.message);
@@ -626,6 +651,9 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
         folder_source: "user",
         pending_review: false,
         copied_from_vault_at: now,
+        validated_at: now,
+        mime_type: checked.mimeType,
+        size_bytes: checked.sizeBytes,
       })
       .select("id")
       .single();
@@ -639,8 +667,9 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
       version_number: 1,
       storage_path: copyPath,
       name: doc.name,
-      size_bytes: doc.size_bytes ?? null,
-      mime_type: doc.mime_type ?? null,
+      size_bytes: checked.sizeBytes,
+      mime_type: checked.mimeType,
+      validated_at: now,
       uploaded_by: userId,
     });
 
