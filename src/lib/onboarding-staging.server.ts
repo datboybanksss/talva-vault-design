@@ -30,7 +30,11 @@ type Target =
  * admin's staged files can't be attached. Blocked files stay staged (and are
  * removed by the daily clean-up); they are never attached.
  */
-export async function attachStagedUploads(adminId: string, sessionId: string, target: Target): Promise<number> {
+export async function attachStagedUploads(
+  adminId: string,
+  sessionId: string,
+  target: Target,
+): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: rows, error } = await supabaseAdmin
     .from("onboarding_staged_uploads")
@@ -58,15 +62,27 @@ export async function attachStagedUploads(adminId: string, sessionId: string, ta
   });
   const insert =
     target.kind === "agency"
-      ? supabaseAdmin.from("agency_compliance_documents").insert(
-          owned.map((r) => ({ ...base(r), agency_id: target.agencyId, business_type: target.businessType })) as never,
-        )
+      ? supabaseAdmin
+          .from("agency_compliance_documents")
+          .insert(
+            owned.map((r) => ({
+              ...base(r),
+              agency_id: target.agencyId,
+              business_type: target.businessType,
+            })) as never,
+          )
       : supabaseAdmin.from("talent_invitation_documents").insert(owned.map(base) as never);
   const { error: insErr } = await insert;
   if (insErr) {
     console.error("[onboarding-staging] attach failed", insErr);
     throw new Error("We couldn't attach the uploaded documents. Please try again.");
   }
-  await supabaseAdmin.from("onboarding_staged_uploads").delete().in("id", owned.map((r) => r.id));
+  await supabaseAdmin
+    .from("onboarding_staged_uploads")
+    .delete()
+    .in(
+      "id",
+      owned.map((r) => r.id),
+    );
   return owned.length;
 }

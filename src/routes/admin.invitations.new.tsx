@@ -276,7 +276,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
   });
 
   const deleteDocM = useMutation({
-    mutationFn: (id: string) => (draftId ? deleteDocFn({ data: { id } }) : deleteStagedFn({ data: { id } })),
+    mutationFn: (id: string) =>
+      draftId ? deleteDocFn({ data: { id } }) : deleteStagedFn({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       qc.invalidateQueries({ queryKey: ["admin", "staged", "agency", onboardingSessionId] });
@@ -632,11 +633,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                         </div>
                         <label className="tvp-secondary" style={{ cursor: "pointer" }}>
                           <Upload className="h-4 w-4" />
-                          {isUploading
-                            ? "Uploading…"
-                            : usable.length
-                              ? "Replace / add"
-                              : "Upload"}
+                          {isUploading ? "Uploading…" : usable.length ? "Replace / add" : "Upload"}
                           <input
                             type="file"
                             style={{ display: "none" }}
@@ -679,7 +676,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                                 style={{ color: "var(--tvp-muted)" }}
                               />
                               <span>{u.file_name}</span>
-<BlockedDocumentPill reason={quarantineReason(u)} />
+                              <BlockedDocumentPill reason={quarantineReason(u)} />
                               <span className="tvp-muted" style={{ fontSize: 11 }}>
                                 {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
                               </span>
@@ -719,7 +716,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                       >
                         <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
                         <span>{u.file_name}</span>
-<BlockedDocumentPill reason={quarantineReason(u)} />
+                        <BlockedDocumentPill reason={quarantineReason(u)} />
                         <button
                           className="tvp-mini-btn"
                           title="Remove"

@@ -9,14 +9,18 @@ const SessionInput = z.object({ kind: Kind, session_id: z.string().uuid() });
 
 /** Only admins who can create invitations may stage files. */
 async function assertCanInvite(supabase: any, userId: string) {
-  const { data: isAdmin, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  const { data: isAdmin, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
   if (error) throw new Error("We couldn't confirm your access. Please try again.");
   if (!isAdmin) throw new Error("Forbidden: admin only");
   const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
   if (!canEdit) throw new Error("Forbidden: view-only administrators cannot perform this action.");
 }
 
-const COLUMNS = "id, doc_slot, file_name, size_bytes, mime_type, validated_at, quarantine_reason, created_at";
+const COLUMNS =
+  "id, doc_slot, file_name, size_bytes, mime_type, validated_at, quarantine_reason, created_at";
 
 export const listStagedOnboardingDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -66,7 +70,9 @@ export const stageOnboardingDocument = createServerFn({ method: "POST" })
       .eq("session_id", data.session_id)
       .eq("kind", data.kind);
     const dup = (existing ?? []).some((r) => norm(r.file_name) === norm(data.file_name));
-    const slotTaken = data.kind === "talent" && (existing ?? []).some((r) => r.doc_slot === data.doc_slot && r.validated_at);
+    const slotTaken =
+      data.kind === "talent" &&
+      (existing ?? []).some((r) => r.doc_slot === data.doc_slot && r.validated_at);
     if (dup || slotTaken) {
       await supabaseAdmin.storage.from(bucket).remove([data.storage_path]);
       throw new Error(
@@ -87,8 +93,16 @@ export const stageOnboardingDocument = createServerFn({ method: "POST" })
     };
     let rejected: Error | null = null;
     try {
-      const checked = await validateStoredUpload({ bucket, path: data.storage_path, claimedMime: data.mime_type ?? null });
-      Object.assign(row, { mime_type: checked.mimeType, size_bytes: checked.sizeBytes, validated_at: new Date().toISOString() });
+      const checked = await validateStoredUpload({
+        bucket,
+        path: data.storage_path,
+        claimedMime: data.mime_type ?? null,
+      });
+      Object.assign(row, {
+        mime_type: checked.mimeType,
+        size_bytes: checked.sizeBytes,
+        validated_at: new Date().toISOString(),
+      });
     } catch (e) {
       if (!(e instanceof UploadRejected)) throw e;
       // The checker has removed the file; the row is kept so the admin sees
@@ -125,7 +139,9 @@ export const deleteStagedOnboardingDocument = createServerFn({ method: "POST" })
     // Someone else's staged file is reported exactly like a missing one.
     if (!row || row.admin_id !== userId) throw new Error("Document not found.");
     const { STAGING_BUCKET } = await import("@/lib/onboarding-staging.server");
-    await supabaseAdmin.storage.from(STAGING_BUCKET[row.kind as "agency" | "talent"]).remove([row.storage_path]);
+    await supabaseAdmin.storage
+      .from(STAGING_BUCKET[row.kind as "agency" | "talent"])
+      .remove([row.storage_path]);
     await supabaseAdmin.from("onboarding_staged_uploads").delete().eq("id", row.id);
     return { ok: true };
   });

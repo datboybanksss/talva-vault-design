@@ -12,7 +12,14 @@ import {
 } from "./portal-access";
 
 const uid = "11111111-1111-4111-8111-111111111111";
-const base = { userId: uid, paused: false, admin: false, agency: true, talent: false, home: "/agency" };
+const base = {
+  userId: uid,
+  paused: false,
+  admin: false,
+  agency: true,
+  talent: false,
+  home: "/agency",
+};
 
 describe("sign-in access answer", () => {
   it("is reused for 60 seconds for the same user only", () => {
@@ -37,6 +44,8 @@ describe("sign-in access answer", () => {
 
   it("ignores an answer for a different user or an unknown home", () => {
     expect(parsePortalAccess({ signed_in: true, user_id: "x", agency: true }, uid)).toBeNull();
-    expect(parsePortalAccess({ signed_in: true, user_id: uid, home: "https://evil.example" }, uid)?.home).toBeNull();
+    expect(
+      parsePortalAccess({ signed_in: true, user_id: uid, home: "https://evil.example" }, uid)?.home,
+    ).toBeNull();
   });
 });

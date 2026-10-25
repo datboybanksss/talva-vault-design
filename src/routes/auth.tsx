@@ -456,7 +456,10 @@ function AuthPage() {
         // signs existing accounts in. Wait for the leftover-session clean-up
         // first, otherwise it can wipe the fresh session.
         await clearingRef.current?.catch(() => {});
-        const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signedIn, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
         if (error) throw error;
         // One round-trip: paused status and portal home, cached briefly so
         // the portal gate doesn't repeat the same checks.
@@ -577,9 +580,7 @@ function AuthPage() {
               ? "Sign in to TalVault"
               : `Sign in to TalVault ${portal.name}`}
           </h2>
-          <p className="tv-auth-tag">
-            Sign in with the email address your invitation was sent to.
-          </p>
+          <p className="tv-auth-tag">Sign in with the email address your invitation was sent to.</p>
 
           {search.reset === "1" && !codeStage && (
             <div className="tv-auth-alert tv-info" style={{ marginTop: 18 }}>
@@ -636,7 +637,6 @@ function AuthPage() {
               </div>
             </div>
           )}
-
 
           {codeStage ? (
             <form onSubmit={verifyMfa} noValidate>

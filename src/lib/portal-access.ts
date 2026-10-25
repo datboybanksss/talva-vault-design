@@ -59,8 +59,16 @@ export function cachedPortalAccess(userId: string, now = Date.now()): PortalAcce
 export function parsePortalAccess(raw: unknown, userId: string): PortalAccess | null {
   const r = raw as Record<string, unknown> | null;
   if (!r || r.signed_in !== true || r.user_id !== userId) return null;
-  const home = typeof r.home === "string" && Object.values(PORTAL_HOME).includes(r.home) ? r.home : null;
-  return { userId, paused: r.paused === true, admin: r.admin === true, agency: r.agency === true, talent: r.talent === true, home };
+  const home =
+    typeof r.home === "string" && Object.values(PORTAL_HOME).includes(r.home) ? r.home : null;
+  return {
+    userId,
+    paused: r.paused === true,
+    admin: r.admin === true,
+    agency: r.agency === true,
+    talent: r.talent === true,
+    home,
+  };
 }
 
 /** One round-trip to the database function my_portal_access(); null on failure. */

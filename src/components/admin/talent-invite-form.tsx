@@ -165,7 +165,8 @@ export function TalentInviteForm({
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin"] });
 
   const createM = useMutation({
-    mutationFn: () => createFn({ data: { ...payload(), onboarding_session_id: onboardingSessionId } }),
+    mutationFn: () =>
+      createFn({ data: { ...payload(), onboarding_session_id: onboardingSessionId } }),
     onSuccess: (row: any) => {
       refresh();
       setDraftId(row.id);
@@ -225,7 +226,8 @@ export function TalentInviteForm({
     onError: (e: any) => toast.error(friendlyError(e, "We couldn't delete the draft.")),
   });
   const deleteDocM = useMutation({
-    mutationFn: (id: string) => (draftId ? deleteDocFn({ data: { id } }) : deleteStagedFn({ data: { id } })),
+    mutationFn: (id: string) =>
+      draftId ? deleteDocFn({ data: { id } }) : deleteStagedFn({ data: { id } }),
     onSuccess: () => {
       if (draftId) invQ.refetch();
       else stagedQ.refetch();
@@ -681,7 +683,11 @@ export function TalentInviteForm({
                         >
                           <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
                           {draftId && !quarantineReason(u) ? (
-                            <button type="button" className="tvp-link" onClick={() => openDoc(u.id)}>
+                            <button
+                              type="button"
+                              className="tvp-link"
+                              onClick={() => openDoc(u.id)}
+                            >
                               {u.file_name}
                             </button>
                           ) : (
