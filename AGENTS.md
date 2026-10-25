@@ -42,4 +42,6 @@
 - Read src/lib/AGENTS.md before changing auth; TVA-SEC-101 deferred — 2FA owned by the live app.
 - File access requires server validation; file-security owns MIME/headers and cleanup atomically queues abandoned reservations. Why: client claims and races cannot expose or destroy files.
 - Shares insert token/hash together, billing uses owned link IDs, and public limits fail closed. Why: server-enforced access.
-- Raw database errors use security-errors; preserve deliberate rule messages. Why: log details, show plain language.
+- Database failures use security-errors/invite-claim-error. Why: safe messages.
+- Billing confirmation bundles theme tokens under strict CSP. Why: no external assets.
+- Only cron sweeps overdue invoices. Why: no global writes by readers.
