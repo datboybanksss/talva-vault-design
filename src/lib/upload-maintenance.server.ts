@@ -42,7 +42,7 @@ export async function recordQuarantineReasons(): Promise<
         }
       }
       const { error: upErr } = await supabaseAdmin.from(table).update({ quarantine_reason: reason } as never).eq("id", doc.id).is("validated_at", null);
-      if (upErr) throw new Error("The file check could not record its result.");
+      if (upErr) { console.error("[quarantine]", upErr); throw new Error("The file check could not record its result."); }
       out.push({ table, id: doc.id, outcome: reason, detail });
     }
   }
