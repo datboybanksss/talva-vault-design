@@ -1,9 +1,12 @@
 # Roadmap
-- [ ] TVA-SEC-102/111: server-derived file types, validation quarantine, safe responses, legacy SVG downloads, daily cleanup, folder ownership.
-- [ ] TVA-SEC-103/104/110: atomic coded shares, fail-closed access, link-ID billing scope, configured email URLs.
-- [ ] TVA-SEC-105/106/109: escaped POST-only sender verification, exact invite email match, fail-closed public token limits.
-- [ ] TVA-SEC-107/108: fill paused-account data-policy gaps; replace raw database errors with logged friendly failures.
-- [ ] TVA-SEC-102–111: focused tests, database verification and permitted on-screen checks; do not modify any MFA code, rules or tables.
+- [x] TVA-SEC-102/111: derived file types, five-table validation receipts, safe streamed responses, legacy SVG download-only, atomic private-reservation cleanup, folder ownership.
+- [x] TVA-SEC-103/104/110: atomic coded shares, fail-closed access, link-ID billing scope, configured email URLs.
+- [x] TVA-SEC-105/106/109: escaped POST-only sender verification, exact invite email match, fail-closed public token limits.
+- [x] TVA-SEC-107/108: filled seven paused-account policy gaps; raw error throws replaced with logged friendly failures, MFA excluded.
+- [x] TVA-SEC-102–111: 62 focused/regression tests pass; zero pause-policy gaps and uncoded active shares; 70 legacy receipts plus two download-only SVGs; public rejection screens checked; preview build OK.
+- [ ] TVA-SEC-102: extend daily cleanup beyond private reservations to abandoned objects in all upload buckets; current cleanup does not cover bare unregistered objects.
+- [ ] TVA-SEC-102: seven legacy rows remain quarantined (three shared, one version, three compliance); unsupported or missing bytes need replacement from their owners, never delete them.
+- [ ] TVA-SEC-102–111 deployment and authenticated end-to-end verification — restored frontend/security batch not published; requires user publishing request and a dedicated Test session. Two-factor remains untouched.
 - [ ] TVA-SEC-101 deferred — 2FA owned by the live app; requires a new product owner decision before build-level enforcement.
 - [x] Revert TVA-SEC-101: restored exact pre-change password-only code/routing; removed public/storage MFA policies and REST guard; retained safe MFA write revokes; 10 regressions pass; preview sign-in renders without errors.
 - [ ] Verify dedicated Test talent password sign-in to /talent and direct session table reads — blocked: no Test password available and Test-session mint approval unavailable in this context; never substitute a real account.
