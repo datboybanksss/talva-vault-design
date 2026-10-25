@@ -32,6 +32,11 @@ it("TVA-SEC-105 GET never verifies and escapes stored agency/email values", asyn
   expect(html).not.toContain("<script>");
   expect(html).toContain("&lt;svg");
   expect(response.status).toBe(200);
+  const csp = response.headers.get("Content-Security-Policy");
+  for (const directive of ["default-src 'none'", "style-src 'unsafe-inline'", "form-action 'self'", "base-uri 'none'", "frame-ancestors 'none'"]) {
+    expect(csp).toContain(directive);
+  }
+  expect(csp).not.toContain("script-src 'unsafe-inline'");
 });
 it("TVA-SEC-105 POST redeems a valid unexpired token", async () => {
   const response = await verifyBillingSenderRequest(new Request("https://example.test/api/public/verify-billing-sender", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "token=123456789012345678901234" }));

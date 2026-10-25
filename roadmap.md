@@ -1,8 +1,9 @@
 # Roadmap
-- [ ] TVA-SEC-112: verify invitation creation, disable public signup, check existing Google login and report unlinked accounts.
-- [ ] TVA-SEC-113: sanitise invitation claim database failures and test.
-- [ ] TVA-SEC-114/115: revoke anonymous function execution, preserve scheduled sweep and verify invoker-safe admin shares.
-- [ ] TVA-SEC-116: brand billing confirmation with existing tokens; verify light/dark desktop/mobile and POST-only escaping.
+- [x] TVA-SEC-112: all invitation wizards use server admin creation; hosted signup already disabled; enabled Google while preserving disable_signup; public signup refusal tested; two unlinked non-test addresses reported.
+- [x] TVA-SEC-113: four invitation claim failure branches sanitised with server logs; focused tests pass.
+- [x] TVA-SEC-114/115: revoked anonymous/PUBLIC execution on 14 functions; sweep service-only; hourly job active with successful runs; invoker view and admin SELECT policy tested as admin/non-admin in read-only database assertions.
+- [x] TVA-SEC-116: confirmation uses actual bundled tokens; desktop/mobile light/dark checked; escaping, POST-only and strict CSP tests pass.
+- [ ] TVA-SEC-112/115: real Google existing/new-account OAuth and authenticated admin screen checks require suitable Test Google account / approved Test session; session mint unavailable, no real account substituted.
 - [x] TVA-SEC-102/111: derived file types, five-table validation receipts, safe streamed responses, legacy SVG download-only, atomic private-reservation cleanup, folder ownership.
 - [x] TVA-SEC-103/104/110: atomic coded shares, fail-closed access, link-ID billing scope, configured email URLs.
 - [x] TVA-SEC-105/106/109: escaped POST-only sender verification, exact invite email match, fail-closed public token limits.
