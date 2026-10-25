@@ -1,5 +1,10 @@
 import { BlockedDocumentPill } from "@/components/shared/blocked-document";
 import { quarantineReason } from "@/lib/document-quarantine";
+import {
+  deleteStagedOnboardingDocument,
+  listStagedOnboardingDocuments,
+  stageOnboardingDocument,
+} from "@/lib/onboarding-staging.functions";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo, type ReactNode } from "react";
@@ -121,6 +126,11 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
   const listDocsFn = useServerFn(listComplianceDocuments);
   const recordDocFn = useServerFn(recordComplianceDocument);
   const deleteDocFn = useServerFn(deleteComplianceDocument);
+  const stageFn = useServerFn(stageOnboardingDocument);
+  const listStagedFn = useServerFn(listStagedOnboardingDocuments);
+  const deleteStagedFn = useServerFn(deleteStagedOnboardingDocument);
+  // Files uploaded before the first Save draft are staged under this id.
+  const [onboardingSessionId] = useState(() => crypto.randomUUID());
 
   const [draftId, setDraftId] = useState<string>(draftIdFromUrl || "");
   const [step, setStep] = useState<"details" | "review">("details");
@@ -174,6 +184,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
           email,
           business_type: businessType as BusinessType,
           expiry_days: expiryDays,
+          onboarding_session_id: onboardingSessionId,
         },
       }),
     onSuccess: (row: any) => {
@@ -214,7 +225,12 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
     queryFn: () => listDocsFn({ data: { invitation_id: draftId } }),
     enabled: !!draftId,
   });
-  const docs: any[] = docsQ.data ?? [];
+  const stagedQ = useQuery({
+    queryKey: ["admin", "staged", "agency", onboardingSessionId],
+    queryFn: () => listStagedFn({ data: { kind: "agency", session_id: onboardingSessionId } }),
+    enabled: !draftId,
+  });
+  const docs: any[] = draftId ? (docsQ.data ?? []) : (stagedQ.data ?? []);
 
   const finalizeM = useMutation({
     mutationFn: async () => {
@@ -260,9 +276,10 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
   });
 
   const deleteDocM = useMutation({
-    mutationFn: (id: string) => deleteDocFn({ data: { id } }),
+    mutationFn: (id: string) => (draftId ? deleteDocFn({ data: { id } }) : deleteStagedFn({ data: { id } })),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
+      qc.invalidateQueries({ queryKey: ["admin", "staged", "agency", onboardingSessionId] });
       toast.success("Document removed.");
     },
     onError: (e: any) => toast.error(friendlyError(e, "Failed to remove document")),
@@ -279,7 +296,6 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
     });
 
   async function uploadForSlot(slotKey: string, file: File) {
-    if (!draftId) return;
     const normalise = (n: string) => n.trim().toLowerCase();
     const duplicate = docs.some((d: any) => normalise(d.file_name ?? "") === normalise(file.name));
     if (duplicate) {
@@ -293,21 +309,42 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
     setUploadingSlot(slotKey);
     try {
       const safe = file.name.replace(/[^A-Za-z0-9._-]/g, "_");
-      const path = `${draftId}/${slotKey}/${Date.now()}-${safe}`;
+      let path: string;
+      if (draftId) {
+        path = `${draftId}/${slotKey}/${Date.now()}-${safe}`;
+      } else {
+        const { data: sess } = await supabase.auth.getSession();
+        const uid = sess.session?.user.id;
+        if (!uid) throw new Error("Please sign in again to upload.");
+        path = `staging/${uid}/${onboardingSessionId}/${slotKey}/${Date.now()}-${safe}`;
+      }
       const { error: upErr } = await supabase.storage
         .from("agency-compliance-docs")
         .upload(path, file, { upsert: false, contentType: file.type });
       if (upErr) throw upErr;
-      await recordDocFn({
-        data: {
-          invitation_id: draftId,
-          doc_slot: slotKey,
-          file_name: file.name,
-          storage_path: path,
-          mime_type: file.type,
-          size_bytes: file.size,
-        },
-      });
+      if (draftId) {
+        await recordDocFn({
+          data: {
+            invitation_id: draftId,
+            doc_slot: slotKey,
+            file_name: file.name,
+            storage_path: path,
+            mime_type: file.type,
+            size_bytes: file.size,
+          },
+        });
+      } else {
+        await stageFn({
+          data: {
+            kind: "agency",
+            session_id: onboardingSessionId,
+            doc_slot: slotKey,
+            file_name: file.name,
+            storage_path: path,
+            mime_type: file.type,
+          },
+        }).finally(() => stagedQ.refetch());
+      }
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       toast.success(`${file.name} uploaded.`);
     } catch (e: any) {
@@ -544,7 +581,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
           </div>
 
           {/* Compliance documents */}
-          {draftId && businessType && (
+          {businessType && (
             <div className="tvp-card tvp-panel" style={{ marginTop: 16 }}>
               <h2 className="tvp-h2">Compliance documents ({businessType})</h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 14 }}>
@@ -555,6 +592,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
               <div style={{ display: "grid", gap: 10 }}>
                 {slotList.map((slot) => {
                   const uploaded = docs.filter((d) => d.doc_slot === slot.key);
+                  const usable = uploaded.filter((d) => !quarantineReason(d));
                   const isUploading = uploadingSlot === slot.key;
                   return (
                     <div
