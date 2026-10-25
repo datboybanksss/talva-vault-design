@@ -40,3 +40,6 @@
 - Terms acceptance reports (Admin acceptances and not-accepted lists) leave out Test accounts via testUserIds in src/lib/terms-gate-core.ts; the acceptances are still stored with the normal proof. Why: test data must never inflate Terms or launch figures.
 - Shared brand visuals use src/components/shared/brand.tsx and styles.css tokens; tones: Talent/contact warm, Agency business, Admin calm. Why: one themed look.
 - Read src/lib/AGENTS.md before changing auth; TVA-SEC-101 deferred — 2FA owned by the live app.
+- File access requires server validation; file-security owns MIME/headers and cleanup atomically queues abandoned reservations. Why: client claims and races cannot expose or destroy files.
+- Shares insert token/hash together, billing uses owned link IDs, and public limits fail closed. Why: server-enforced access.
+- Raw database errors use security-errors; preserve deliberate rule messages. Why: log details, show plain language.

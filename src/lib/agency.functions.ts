@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -111,7 +112,7 @@ async function assertAgencyOwner(supabase: any, userId: string, agencyId: string
     _agency_id: agencyId,
     _role: "owner",
   });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: only agency owners may perform this action.");
 }
 
@@ -127,7 +128,7 @@ async function getCallerAgency(supabase: any, userId: string) {
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: not an agency member");
   // After a suspended agency's read-only window, staff have no access at all.
   const { data: canRead } = await supabase.rpc("is_agency_member", {
@@ -145,7 +146,7 @@ export const AGENCY_READ_ONLY_MESSAGE =
 /** Throws when the agency is suspended (read-only). Server twin of agency_is_writable(). */
 async function assertAgencyWritable(supabase: any, agencyId: string) {
   const { data, error } = await supabase.rpc("agency_is_writable", { _agency_id: agencyId });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error(AGENCY_READ_ONLY_MESSAGE);
 }
 
@@ -184,7 +185,7 @@ async function assertLinkNotEnded(supabase: any, talentLinkId: string | null | u
     .select("status")
     .eq("id", talentLinkId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (data && ["ended", "revoked", "expired"].includes(data.status)) {
     throw new Error(
       "RELATIONSHIP_ENDED: this talent relationship has ended — shared documents are view and download only. Reactivate the relationship to make changes.",
@@ -446,7 +447,7 @@ export const dismissAgencyReminder = createServerFn({ method: "POST" })
       },
       { onConflict: "user_id,kind" },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -459,7 +460,7 @@ export const listAgencyDismissedNotices = createServerFn({ method: "GET" })
       .from("agency_notification_dismissals")
       .select("kind")
       .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { kinds: (data ?? []).map((d: any) => d.kind as string) };
   });
 
@@ -659,7 +660,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       )
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const rows = links ?? [];
     await syncInvitedTalentLinks(supabase, agencyId, rows);
@@ -690,7 +691,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
           .eq("agency_id", agencyId)
           .order("created_at", { ascending: false })
           .range(from, from + page - 1);
-        if (docErr) throw new Error(docErr.message);
+        if (docErr) throw databaseError(docErr);
         const batch = data ?? [];
         out.push(...batch);
         if (batch.length < page) break;
@@ -833,8 +834,8 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
         .eq("kind", "staff")
         .order("created_at", { ascending: false }),
     ]);
-    if (talentRes.error) throw new Error(talentRes.error.message);
-    if (staffRes.error) throw new Error(staffRes.error.message);
+    if (talentRes.error) throw databaseError(talentRes.error);
+    if (staffRes.error) throw databaseError(staffRes.error);
 
     const inviterIds = Array.from(
       new Set([
@@ -919,7 +920,7 @@ export const listAgencyStaff = createServerFn({ method: "GET" })
       .eq("agency_id", agencyId)
       .eq("suspended", false)
       .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const ids = (members ?? []).map((m: any) => m.user_id);
     const { data: profs } = ids.length
@@ -1144,7 +1145,7 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -1233,7 +1234,7 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     if (data.type === "talent") {
       // Reopened invitation — put the roster row back to "Invited".
@@ -1280,7 +1281,7 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
       .eq("status", "pending")
       .select()
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("Only an open invitation can be revoked.");
 
     if (data.type === "talent") {
@@ -1465,8 +1466,8 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
         .range(data.offset, data.offset + data.limit - 1),
       countQ,
     ]);
-    if (error) throw new Error(error.message);
-    if (countErr) throw new Error(countErr.message);
+    if (error) throw databaseError(error);
+    if (countErr) throw databaseError(countErr);
 
     const rows = docs ?? [];
     const talentMap = await resolveTalentNames(supabase, rows);
@@ -1496,7 +1497,7 @@ export const listAgencyVaultExpiring = createServerFn({ method: "POST" })
       .lte("validity_expires_at", new Date(Date.now() + data.days * 86400000).toISOString())
       .order("validity_expires_at", { ascending: true })
       .limit(data.limit);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const rows = docs ?? [];
     const talentMap = await resolveTalentNames(supabase, rows);
     return rows.map((r: any) => mapVaultDoc(r, talentMap));
@@ -1511,7 +1512,7 @@ export const getAgencyVaultTalentSummary = createServerFn({ method: "GET" })
     const { data, error } = await supabase.rpc("agency_vault_talent_summary", {
       _agency_id: agencyId,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return (data ?? []).map((r: any) => ({
       talentLinkId: r.talent_link_id as string,
       docCount: Number(r.doc_count ?? 0),
@@ -1531,7 +1532,7 @@ export const getAgencyVaultFolderCounts = createServerFn({ method: "POST" })
       _agency_id: agencyId,
       _talent_link_id: data.talent_link_id,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return (rows ?? []).map((r: any) => ({
       folder: r.folder as string,
       docCount: Number(r.doc_count ?? 0),
@@ -1561,8 +1562,8 @@ export const getAgencyVaultLockCounts = createServerFn({ method: "GET" })
         .gt("locked_until", nowIso)
         .lt("locked_until", soonIso),
     ]);
-    if (locked.error) throw new Error(locked.error.message);
-    if (soon.error) throw new Error(soon.error.message);
+    if (locked.error) throw databaseError(locked.error);
+    if (soon.error) throw databaseError(soon.error);
     return { locked: locked.count ?? 0, unlockingSoon: soon.count ?? 0 };
   });
 
@@ -1576,7 +1577,7 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
       .select("id, display_name, status, talent_type, talent_user_id, talent_invitation_id")
       .eq("agency_id", agencyId)
       .order("display_name", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const rows = data ?? [];
     await syncInvitedTalentLinks(supabase, agencyId, rows);
 
@@ -1621,7 +1622,7 @@ export const listAgencyTalentFolders = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .eq("talent_link_id", data.talent_link_id)
       .order("sort_order", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return (rows ?? []).map((r: any) => ({
       id: r.id as string,
       folderName: r.folder_name as string,
@@ -1649,7 +1650,7 @@ export const listAllAgencyProvisionedFolders = createServerFn({ method: "POST" }
       )
       .eq("agency_id", agencyId)
       .order("sort_order", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return (rows ?? []).map((r: any) => ({
       id: r.id as string,
       folderName: r.folder_name as string,
@@ -1680,7 +1681,7 @@ export const endTalentRelationship = createServerFn({ method: "POST" })
       .select("id, display_name, agency_id, status")
       .eq("id", data.id)
       .single();
-    if (fetchErr) throw new Error(fetchErr.message);
+    if (fetchErr) throw databaseError(fetchErr);
     if (link.agency_id !== agencyId) throw new Error("Forbidden");
     if (!canEndRelationship(link.status)) {
       throw new Error("Only an active relationship can be ended.");
@@ -1696,7 +1697,7 @@ export const endTalentRelationship = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     // E7 + bell to the talent (best effort while the sending domain is unverified).
     const { notifyRelationshipEnded } = await import("@/lib/link-notify.server");
@@ -1729,7 +1730,7 @@ export const reactivateTalentRelationship = createServerFn({ method: "POST" })
       .select("id, display_name, agency_id, status")
       .eq("id", data.id)
       .single();
-    if (fetchErr) throw new Error(fetchErr.message);
+    if (fetchErr) throw databaseError(fetchErr);
     if (link.agency_id !== agencyId) throw new Error("Forbidden");
     if (!canReactivateRelationship(link.status)) {
       throw new Error("Only an ended or read-only relationship can be reactivated.");
@@ -1745,7 +1746,7 @@ export const reactivateTalentRelationship = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -1791,7 +1792,7 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
         .select("status, agency_id")
         .eq("id", data.talent_link_id)
         .maybeSingle();
-      if (linkErr) throw new Error(linkErr.message);
+      if (linkErr) throw databaseError(linkErr);
       if (!link || link.agency_id !== agencyId) throw new Error("Invalid talent for this agency.");
       if (link.status === "ended") {
         throw new Error(
@@ -1803,13 +1804,14 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
     // TVA-SEC-004: the browser uploaded straight to storage, so verify the real
     // bytes before this document becomes visible to anyone.
     const { validateStoredUpload } = await import("@/lib/file-validation.server");
-    await validateStoredUpload({
+    const checkedUpload = await validateStoredUpload({
       bucket: "talent-documents",
       path: data.storage_path,
       claimedMime: data.mime_type ?? null,
     });
 
-    const { data: inserted, error } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: inserted, error } = await supabaseAdmin
       .from("talent_shared_documents")
       .insert({
         agency_id: agencyId,
@@ -1820,12 +1822,15 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
         validity_expires_at: data.validity_expires_at ?? null,
         storage_path: data.storage_path,
         uploaded_by: userId,
+        mime_type: checkedUpload.mimeType,
+        size_bytes: checkedUpload.sizeBytes,
+        validated_at: new Date().toISOString(),
         // Awaiting the filing review; cleared when the review is confirmed.
         pending_review: true,
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -1870,11 +1875,12 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("storage_path, agency_id, name, talent_link_id")
+      .select("storage_path, agency_id, name, talent_link_id, mime_type, validated_at")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!row) throw new Error("This document is no longer available.");
+    if (!row.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
     if (!row.storage_path) throw new Error("No file attached to this document.");
 
@@ -1882,12 +1888,11 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
       await logTalentVaultView(supabase, agencyId, userId, claims?.email, row.talent_link_id);
     }
 
-    const options =
-      data.disposition === "attachment" ? { download: row.name as string } : undefined;
+    const options = { download: row.name as string };
     const { data: signed, error: sErr } = await supabase.storage
       .from("talent-documents")
       .createSignedUrl(row.storage_path, 60 * 30, options);
-    if (sErr) throw new Error(sErr.message);
+    if (sErr) throw databaseError(sErr);
     return { url: signed.signedUrl as string, name: row.name as string };
   });
 
@@ -1903,7 +1908,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       .select("id, agency_id, talent_link_id, name, storage_path, folder, locked_until, originator")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!row || row.agency_id !== agencyId) {
       throw new Error("This document is no longer in your vault. Refresh the page to see the latest list.");
     }
@@ -1977,7 +1982,7 @@ export const listRecentlyDeletedDocuments = createServerFn({ method: "GET" })
     });
     if (error) {
       if (/OWNER_ONLY/.test(error.message)) return { canView: false, rows: [] as any[] };
-      throw new Error(error.message);
+      throw databaseError(error);
     }
     return { canView: true, rows: (data ?? []) as any[] };
   });
@@ -1993,7 +1998,7 @@ export const restoreDeletedDocument = createServerFn({ method: "POST" })
       if (/OWNER_ONLY/.test(error.message)) throw new Error("Only the agency owner can restore documents.");
       if (/DOCUMENT_NOT_FOUND/.test(error.message))
         throw new Error("This document is no longer in Recently deleted. Refresh the page.");
-      throw new Error(error.message);
+      throw databaseError(error);
     }
     return { ok: true };
   });
@@ -2005,7 +2010,7 @@ export const stopSharingDocument = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     await getWritableCallerAgency(supabase, userId);
     const { error } = await supabase.rpc("stop_sharing_document", { _doc_id: data.id });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -2025,7 +2030,7 @@ export const listAgencyRetentionRules = createServerFn({ method: "GET" })
       .eq("agency_id", agencyId)
       .order("scope", { ascending: true })
       .order("scope_value", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const docIds = (data ?? []).map((r: any) => r.document_id).filter(Boolean);
     const docMap = new Map<string, { name: string; folder: string }>();
@@ -2099,7 +2104,7 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
         .eq("agency_id", agencyId)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       row = r;
     } else {
       const { data: r, error } = await supabase
@@ -2107,7 +2112,7 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
         .insert(payload)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       row = r;
     }
 
@@ -2139,7 +2144,7 @@ export const deleteAgencyRetentionRule = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -2168,7 +2173,7 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
       .select("id, agency_id, name, storage_path, current_version_id")
       .eq("id", data.document_id)
       .single();
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
     if (doc.agency_id !== agencyId) throw new Error("Forbidden");
 
     const { data: versions, error } = await supabase
@@ -2178,7 +2183,7 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
       )
       .eq("document_id", data.document_id)
       .order("version_number", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const ids = Array.from(new Set((versions ?? []).map((v: any) => v.uploaded_by).filter(Boolean)));
     const names = new Map<string, string>();
     if (ids.length) {
@@ -2221,7 +2226,7 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
 
     // TVA-SEC-004: verify the newly uploaded version's real bytes.
     const { validateStoredUpload } = await import("@/lib/file-validation.server");
-    await validateStoredUpload({
+    const checkedUpload = await validateStoredUpload({
       bucket: "talent-documents",
       path: data.storage_path,
       claimedMime: data.mime_type ?? null,
@@ -2232,7 +2237,7 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
       .select("id, agency_id, storage_path, name, talent_link_id")
       .eq("id", data.document_id)
       .single();
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
     if (doc.agency_id !== agencyId) throw new Error("Forbidden");
 
     if (doc.talent_link_id) {
@@ -2248,6 +2253,7 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
       }
     }
 
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: last } = await supabase
       .from("talent_shared_document_versions")
       .select("version_number")
@@ -2258,39 +2264,45 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
 
     let nextNumber = ((last?.version_number as number | undefined) ?? 0) + 1;
     if (!last && doc.storage_path && doc.storage_path !== data.storage_path) {
-      await supabase.from("talent_shared_document_versions").insert({
+      const { error: preserveError } = await supabaseAdmin.from("talent_shared_document_versions").insert({
         document_id: data.document_id,
         version_number: 1,
         storage_path: doc.storage_path,
         name: doc.name,
         uploaded_by: userId,
       });
+      if (preserveError) throw databaseError(preserveError);
       nextNumber = 2;
     }
 
-    const { data: version, error } = await supabase
+    const { data: version, error } = await supabaseAdmin
       .from("talent_shared_document_versions")
       .insert({
         document_id: data.document_id,
         version_number: nextNumber,
         storage_path: data.storage_path,
         name: data.name,
-        size_bytes: data.size_bytes ?? null,
-        mime_type: data.mime_type ?? null,
+        size_bytes: checkedUpload.sizeBytes,
+        mime_type: checkedUpload.mimeType,
+        validated_at: new Date().toISOString(),
         uploaded_by: userId,
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
-    await supabase
+    const { error: currentError } = await supabaseAdmin
       .from("talent_shared_documents")
       .update({
         current_version_id: version.id,
+        mime_type: checkedUpload.mimeType,
+        size_bytes: checkedUpload.sizeBytes,
+        validated_at: new Date().toISOString(),
         storage_path: data.storage_path,
         name: data.name,
       })
       .eq("id", data.document_id);
+    if (currentError) throw databaseError(currentError);
 
     await logAgencyAudit(
       supabase,
@@ -2322,17 +2334,18 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
 
     const { data: v, error } = await supabase
       .from("talent_shared_document_versions")
-      .select("storage_path, name, document_id, talent_shared_documents!inner(agency_id)")
+      .select("storage_path, name, document_id, mime_type, validated_at, talent_shared_documents!inner(agency_id)")
       .eq("id", data.version_id)
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if ((v as any).talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
+    if (!v.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
 
-    const options = data.disposition === "attachment" ? { download: v.name as string } : undefined;
+    const options = { download: v.name as string };
     const { data: signed, error: sErr } = await supabase.storage
       .from("talent-documents")
       .createSignedUrl(v.storage_path as string, 60 * 30, options);
-    if (sErr) throw new Error(sErr.message);
+    if (sErr) throw databaseError(sErr);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -2369,7 +2382,7 @@ export const listAgencyFolderTemplates = createServerFn({ method: "GET" })
       .select("id, name, description, is_default, created_at, updated_at")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const ids = (templates ?? []).map((t: any) => t.id);
     let items: any[] = [];
@@ -2379,7 +2392,7 @@ export const listAgencyFolderTemplates = createServerFn({ method: "GET" })
         .select("id, template_id, folder_name, sort_order, default_retention_years")
         .in("template_id", ids)
         .order("sort_order", { ascending: true });
-      if (iErr) throw new Error(iErr.message);
+      if (iErr) throw databaseError(iErr);
       items = itemRows ?? [];
     }
     return { role, templates: templates ?? [], items };
@@ -2414,7 +2427,7 @@ export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
         })
         .eq("id", templateId)
         .eq("agency_id", agencyId);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
     } else {
       const { data: row, error } = await supabase
         .from("agency_folder_templates")
@@ -2426,7 +2439,7 @@ export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
         })
         .select("id")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       templateId = row.id;
     }
 
@@ -2441,7 +2454,7 @@ export const upsertAgencyFolderTemplate = createServerFn({ method: "POST" })
         required_docs: [],
       }));
       const { error } = await supabase.from("agency_folder_template_items").insert(rows);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
     }
 
     await logAgencyAudit(
@@ -2474,7 +2487,7 @@ export const deleteAgencyFolderTemplate = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select("id, name")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -2502,14 +2515,14 @@ export const applyAgencyFolderTemplate = createServerFn({ method: "POST" })
       .select("id, name, agency_id")
       .eq("id", data.template_id)
       .single();
-    if (tErr) throw new Error(tErr.message);
+    if (tErr) throw databaseError(tErr);
     if (tmpl.agency_id !== agencyId) throw new Error("Forbidden");
 
     const { data: items, error: iErr } = await supabase
       .from("agency_folder_template_items")
       .select("folder_name, default_retention_years")
       .eq("template_id", data.template_id);
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) throw databaseError(iErr);
 
     let created = 0;
     for (const it of items ?? []) {
@@ -2578,7 +2591,7 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
       )
       .eq("agency_id", agencyId)
       .order("issued_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return data ?? [];
   });
 
@@ -2658,7 +2671,7 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
         .eq("agency_id", agencyId)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       row = r;
     } else {
       const { data: r, error } = await supabase
@@ -2666,7 +2679,7 @@ export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
         .insert(payload)
         .select()
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       row = r;
     }
 
@@ -2700,7 +2713,7 @@ export const updateAgencyBillingDocStatus = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -2741,7 +2754,7 @@ export const deleteAgencyBillingDoc = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select("id, kind, number")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -2768,7 +2781,7 @@ export const setBillingDocShared = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -2805,7 +2818,7 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .eq("kind", "quote")
       .single();
-    if (qErr) throw new Error(qErr.message);
+    if (qErr) throw databaseError(qErr);
     if (!quote) throw new Error("Quote not found");
 
     // Guard: prevent re-conversion
@@ -2846,7 +2859,7 @@ export const convertQuoteToInvoice = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) throw databaseError(iErr);
 
     // Mark quote as accepted (conversion implies acceptance)
     await supabase
@@ -2910,7 +2923,7 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
     if (data.since) q = q.gte("created_at", data.since);
 
     const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const actorIds = Array.from(new Set((rows ?? []).map((r: any) => r.actor_id).filter(Boolean)));
     const actorMap = new Map<string, string>();
@@ -2962,7 +2975,7 @@ export const countAgencyAuditByAction = createServerFn({ method: "GET" })
       .limit(5000);
     if (data.since) q = q.gte("created_at", data.since);
     const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const byAction: Record<string, number> = {};
     for (const r of rows ?? [])
       byAction[r.action as string] = (byAction[r.action as string] ?? 0) + 1;
@@ -2979,7 +2992,7 @@ export const listAgencyAuditActions = createServerFn({ method: "GET" })
       .select("action")
       .eq("agency_id", agencyId)
       .limit(1000);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const actions = Array.from(
       new Set((data ?? []).map((r: any) => r.action as string)),
     ) as string[];
@@ -3004,7 +3017,7 @@ export const getAgencyContract = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!doc) throw new Error("Contract not found");
 
     let talentName = "Unassigned";
@@ -3083,7 +3096,7 @@ export const updateAgencyContractMeta = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select("id, name")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -3121,7 +3134,7 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
       .eq("id", data.contract_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (cErr) throw new Error(cErr.message);
+    if (cErr) throw databaseError(cErr);
     if (!contract) throw new Error("Contract not found");
 
     let talentName: string | null = null;
@@ -3154,7 +3167,7 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -3196,7 +3209,7 @@ export const listAgencyDocumentRequests = createServerFn({ method: "GET" })
       )
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const linkIds = Array.from(
       new Set((rows ?? []).map((r: any) => r.talent_link_id).filter(Boolean)),
@@ -3240,7 +3253,7 @@ export const getAgencyDocumentRequest = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!req) throw new Error("Request not found");
 
     const { data: history } = await supabase
@@ -3282,7 +3295,7 @@ export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -3322,7 +3335,7 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (rErr) throw new Error(rErr.message);
+    if (rErr) throw databaseError(rErr);
     if (!req) throw new Error("Request not found");
     await assertLinkNotEnded(supabase, req.talent_link_id);
 
@@ -3339,7 +3352,7 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     // History row — never delete previous submissions.
     await supabase.from("agency_document_request_history").insert({
@@ -3399,7 +3412,7 @@ export const updateOwnAgencyProfile = createServerFn({ method: "POST" })
       .eq("id", userId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -3510,7 +3523,7 @@ export const getMyAgencyProfile = createServerFn({ method: "GET" })
       )
       .eq("id", agencyId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return data;
   });
 
@@ -3540,7 +3553,7 @@ export const updateMyAgencyProfile = createServerFn({ method: "POST" })
       .eq("id", agencyId)
       .select()
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!updated) throw new Error("You do not have permission to update this agency profile.");
     await logAgencyAudit(
       supabase,
@@ -3582,7 +3595,7 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
       .eq("id", agencyId)
       .select()
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!updated) throw new Error("You do not have permission to update the main contact.");
     await logAgencyAudit(
       supabase,
@@ -3611,7 +3624,7 @@ export const getAgencyNotificationSettings = createServerFn({ method: "GET" })
       .select("expiry_notice_days")
       .eq("id", agencyId)
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { expiry_notice_days: data?.expiry_notice_days ?? 30 };
   });
 
@@ -3629,7 +3642,7 @@ export const updateAgencyNotificationSettings = createServerFn({ method: "POST" 
       .eq("id", agencyId)
       .select("expiry_notice_days")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -3660,7 +3673,7 @@ export const getAgencyBillingSettings = createServerFn({ method: "GET" })
       )
       .eq("id", agencyId)
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     let logo_url: string | null = null;
     if (data?.logo_path) {
       const { data: signed } = await supabase.storage
@@ -3705,7 +3718,7 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
       .eq("id", agencyId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -3754,7 +3767,7 @@ export const updateAgencyLogoPath = createServerFn({ method: "POST" })
       .from("agencies")
       .update({ logo_path: data.storage_path })
       .eq("id", agencyId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -3779,7 +3792,7 @@ export const getBillingDocFull = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const { data: lines } = await supabase
       .from("agency_billing_doc_lines")
       .select("*")
@@ -3936,7 +3949,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
         .eq("agency_id", agencyId)
         .select("id")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       docId = r.id;
     } else {
       const { data: r, error } = await supabase
@@ -3944,7 +3957,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
         .insert(payload)
         .select("id")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       docId = r.id;
     }
 
@@ -3958,7 +3971,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       sort_order: l.sort_order ?? i,
     }));
     const { error: lErr } = await supabase.from("agency_billing_doc_lines").insert(insertLines);
-    if (lErr) throw new Error(lErr.message);
+    if (lErr) throw databaseError(lErr);
 
     // "Save this client for next time" on a manually typed recipient: create the
     // client record and link this document to it, so the next quote or invoice
@@ -4097,7 +4110,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .single();
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
     if (!doc) throw new Error("Not found");
 
     const rawRecipients: string[] =
@@ -4124,7 +4137,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
         _agency_id: agencyId,
         _kind: doc.kind,
       });
-      if (mErr) throw new Error(mErr.message);
+      if (mErr) throw databaseError(mErr);
       number = minted as string;
     }
 
@@ -4146,7 +4159,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
       .select("id, description, quantity, unit_price_cents, vat_rate_bp, sort_order")
       .eq("doc_id", doc.id)
       .order("sort_order", { ascending: true });
-    if (lineErr) throw new Error(lineErr.message);
+    if (lineErr) throw databaseError(lineErr);
 
     const results: Array<{ to: string; sent: boolean; reason?: string }> = [];
     for (const to of recipients) {
@@ -4240,7 +4253,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -4273,7 +4286,7 @@ export const markAgencyBillingDocSentManually = createServerFn({ method: "POST" 
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (docError) throw new Error(docError.message);
+    if (docError) throw databaseError(docError);
     if (!billingDoc) throw new Error("Record not found");
     const label = billingDoc.kind === "quote" ? "quotation" : "invoice";
     if (billingDoc.status !== "draft" && !billingDoc.number.startsWith("DRAFT-")) {
@@ -4286,7 +4299,7 @@ export const markAgencyBillingDocSentManually = createServerFn({ method: "POST" 
         _agency_id: agencyId,
         _kind: billingDoc.kind,
       });
-      if (mintError) throw new Error(mintError.message);
+      if (mintError) throw databaseError(mintError);
       number = minted as string;
     }
 
@@ -4298,7 +4311,7 @@ export const markAgencyBillingDocSentManually = createServerFn({ method: "POST" 
       .eq("agency_id", agencyId)
       .select()
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!updated) throw new Error(`You do not have permission to update this ${label}`);
 
     await logAgencyAudit(
@@ -4340,7 +4353,7 @@ async function issueSenderVerification(
     .eq("id", agencyId)
     .select("name")
     .single();
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
 
   const { sendSenderVerificationEmail } = await import("@/lib/billing-email.server");
   return sendSenderVerificationEmail(email, agency?.name ?? "your agency", token);
@@ -4432,7 +4445,7 @@ export const clearAgencyBillingSender = createServerFn({ method: "POST" })
         billing_from_token_expires_at: null,
       })
       .eq("id", agencyId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAgencyAudit(
       supabase,
       agencyId,
@@ -4461,7 +4474,7 @@ export const listAgencyFolderSettings = createServerFn({ method: "GET" })
         "id, folder_name, applied_by_default, ai_filing_allowed, default_validity_rule, can_untick_during_onboarding",
       )
       .eq("agency_id", agencyId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     return { role, agencyId, settings: data ?? [] };
   });
@@ -4504,12 +4517,12 @@ export const upsertAgencyFolderSetting = createServerFn({ method: "POST" })
         .from("agency_folder_settings")
         .update(patch)
         .eq("id", existing.id);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
     } else {
       const { error } = await supabase
         .from("agency_folder_settings")
         .insert({ agency_id: agencyId, folder_name: data.folder_name, ...patch });
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
     }
 
     await logAgencyAudit(
@@ -4536,7 +4549,7 @@ export const resetAgencyFolderSettings = createServerFn({ method: "POST" })
       .from("agency_folder_settings")
       .delete()
       .eq("agency_id", agencyId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -4565,7 +4578,7 @@ export const getTalentInvitationByIdMine = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) return null;
     const { data: agency } = await supabase
       .from("agencies")
@@ -4623,7 +4636,7 @@ export const listFolderCatalogue = createServerFn({ method: "GET" })
     ]);
 
     for (const r of [cats, subs, tmpl, settings]) {
-      if ((r as any).error) throw new Error((r as any).error.message);
+      if ((r as any).error) throw databaseError((r as any).error);
     }
 
     return {
@@ -4675,7 +4688,7 @@ export const upsertAgencySubfolderSetting = createServerFn({ method: "POST" })
         .from("agency_folder_subfolder_settings")
         .update(patch)
         .eq("id", existing.id);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
     } else {
       const { error } = await supabase.from("agency_folder_subfolder_settings").insert({
         agency_id: agencyId,
@@ -4686,7 +4699,7 @@ export const upsertAgencySubfolderSetting = createServerFn({ method: "POST" })
         sort_order: data.sort_order ?? 500,
         retention_years: data.retention_years ?? null,
       });
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
     }
 
     await logAgencyAudit(
@@ -4717,7 +4730,7 @@ export const deleteAgencySubfolderSetting = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.id)
       .eq("agency_id", agencyId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -4746,7 +4759,7 @@ export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
       .eq("id", data.talent_link_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (linkErr) throw new Error(linkErr.message);
+    if (linkErr) throw databaseError(linkErr);
     if (!link) throw new Error("Talent not found on your roster");
     if (!canEditLink(link.status)) {
       throw new Error("The talent type can't be changed once a relationship has ended.");
@@ -4756,13 +4769,13 @@ export const updateTalentLinkTalentType = createServerFn({ method: "POST" })
       .from("agency_talent_links")
       .update({ talent_type: data.talent_type })
       .eq("id", link.id);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const { data: flagged, error: rpcErr } = await supabase.rpc("reconcile_talent_type_folders", {
       _talent_link_id: link.id,
       _new_talent_type: data.talent_type,
     });
-    if (rpcErr) throw new Error(rpcErr.message);
+    if (rpcErr) throw databaseError(rpcErr);
 
     await logAgencyAudit(
       supabase,
@@ -4797,7 +4810,7 @@ export const listInvoicePayments = createServerFn({ method: "GET" })
       .eq("id", data.doc_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
     if (!doc) throw new Error("Invoice not found.");
 
     const { data: rows, error } = await supabase
@@ -4806,7 +4819,7 @@ export const listInvoicePayments = createServerFn({ method: "GET" })
       .eq("doc_id", data.doc_id)
       .order("paid_on", { ascending: false })
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const received = (rows ?? []).reduce((n: number, r: any) => n + Number(r.amount_cents ?? 0), 0);
     return {
@@ -4841,7 +4854,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       .eq("id", data.doc_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
     if (!doc) throw new Error("Invoice not found.");
     if (doc.kind !== "invoice") throw new Error("Payments can only be recorded against invoices.");
     if (doc.status === "draft") {
@@ -4855,7 +4868,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       .from("agency_invoice_payments")
       .select("amount_cents")
       .eq("doc_id", data.doc_id);
-    if (eErr) throw new Error(eErr.message);
+    if (eErr) throw databaseError(eErr);
     const already = (existing ?? []).reduce(
       (n: number, r: any) => n + Number(r.amount_cents ?? 0),
       0,
@@ -4878,7 +4891,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       })
       .select("id, amount_cents, paid_on")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!row)
       throw new Error("The payment could not be recorded. Check your access and try again.");
 
@@ -4910,7 +4923,7 @@ export const deleteInvoicePayment = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select("id, doc_id, amount_cents")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!row)
       throw new Error("That payment could not be removed. Check your access and try again.");
 
@@ -4947,7 +4960,7 @@ export const listAgencyStaffRoster = createServerFn({ method: "GET" })
       .select("id, user_id, role, suspended, created_at")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const ids = (members ?? []).map((m: any) => m.user_id);
     const { data: profs } = ids.length
@@ -5000,7 +5013,7 @@ export const updateAgencyStaffRole = createServerFn({ method: "POST" })
       .eq("id", data.member_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (readErr) throw new Error(readErr.message);
+    if (readErr) throw databaseError(readErr);
     if (!member) throw new Error("Staff member not found for your agency.");
     if (member.role === "owner") throw new Error("The agency owner's role cannot be changed here.");
     if (member.suspended) throw new Error("A suspended team member's role cannot be changed.");
@@ -5012,7 +5025,7 @@ export const updateAgencyStaffRole = createServerFn({ method: "POST" })
       .eq("id", member.id)
       .select("id, role")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!updated) throw new Error("Role could not be updated — you may not have permission.");
 
     await logAgencyAudit(
@@ -5048,7 +5061,7 @@ export const removeAgencyStaffMember = createServerFn({ method: "POST" })
       .eq("id", data.member_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (readErr) throw new Error(readErr.message);
+    if (readErr) throw databaseError(readErr);
     if (!member) throw new Error("Staff member not found for your agency.");
     if (member.role === "owner") throw new Error("The agency owner cannot be removed.");
     if (member.user_id === userId) throw new Error("You cannot remove yourself.");
@@ -5059,7 +5072,7 @@ export const removeAgencyStaffMember = createServerFn({ method: "POST" })
       .eq("id", member.id)
       .select("id")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!removed) throw new Error("Removal failed — you may not have permission.");
 
     await logAgencyAudit(
@@ -5090,7 +5103,7 @@ export const getStaffInvitationByIdMine = createServerFn({ method: "GET" })
       .eq("agency_id", agencyId)
       .eq("kind", "staff")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) return null;
     const { data: agency } = await supabase
       .from("agencies")
@@ -5144,7 +5157,7 @@ async function loadClientRollups(supabase: any, agencyId: string) {
     .select("id, client_id, kind, status, total_cents, due_date, paid_at, issued_at, updated_at")
     .eq("agency_id", agencyId)
     .not("client_id", "is", null);
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   const rows = docs ?? [];
 
   const invoiceIds = rows.filter((d: any) => d.kind === "invoice").map((d: any) => d.id as string);
@@ -5157,7 +5170,7 @@ async function loadClientRollups(supabase: any, agencyId: string) {
       .select("doc_id, amount_cents")
       .eq("agency_id", agencyId)
       .in("doc_id", slice);
-    if (payErr) throw new Error(payErr.message);
+    if (payErr) throw databaseError(payErr);
     for (const p of pays ?? []) {
       const k = p.doc_id as string;
       paidByDoc.set(k, (paidByDoc.get(k) ?? 0) + Number(p.amount_cents ?? 0));
@@ -5202,7 +5215,7 @@ export const listAgencyClients = createServerFn({ method: "GET" })
     let q = supabase.from("agency_clients").select(CLIENT_COLUMNS).eq("agency_id", agencyId);
     if (!input?.includeArchived) q = q.is("archived_at", null);
     const { data, error } = await q.order("name", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const clients = data ?? [];
 
     const rollups = await loadClientRollups(supabase, agencyId);
@@ -5252,7 +5265,7 @@ export const getAgencyClientDetail = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!client) throw new Error("That client could not be found on your agency.");
 
     const { data: docs, error: docErr } = await supabase
@@ -5261,7 +5274,7 @@ export const getAgencyClientDetail = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .eq("client_id", data.id)
       .order("issued_at", { ascending: false });
-    if (docErr) throw new Error(docErr.message);
+    if (docErr) throw databaseError(docErr);
 
     let managerName: string | null = null;
     if (client.relationship_manager_user_id) {
@@ -5365,7 +5378,7 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
         .eq("agency_id", agencyId)
         .select("id")
         .maybeSingle();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       if (!r) throw new Error("That client could not be found on your agency.");
       clientId = r.id;
     } else {
@@ -5374,7 +5387,7 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
         .insert({ ...payload, created_by: userId })
         .select("id")
         .maybeSingle();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       if (!r) throw new Error("Could not save this client. Please try again.");
       clientId = r.id;
     }
@@ -5414,7 +5427,7 @@ export const checkAgencyClientDuplicates = createServerFn({ method: "POST" })
       .from("agency_clients")
       .select("id, name, emails, vat_number, archived_at")
       .eq("agency_id", agencyId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const { findClientDuplicates } = await import("@/lib/client-duplicates");
     return findClientDuplicates(data, rows ?? []);
   });
@@ -5432,7 +5445,7 @@ export const restoreAgencyClient = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select("id, name")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!r) throw new Error("That client could not be found on your agency.");
     await logAgencyAudit(supabase, agencyId, userId, claims?.email, "restore_agency_client", "agency_client", r.id, r.name, {});
     return { ok: true };
@@ -5460,7 +5473,7 @@ export const removeAgencyClient = createServerFn({ method: "POST" })
       .update({ archived_at: new Date().toISOString() })
       .eq("id", data.id)
       .eq("agency_id", agencyId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAgencyAudit(
       supabase,
@@ -5506,7 +5519,7 @@ export const setTalentManager = createServerFn({ method: "POST" })
       .eq("id", data.talent_link_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (readErr) throw new Error(readErr.message);
+    if (readErr) throw databaseError(readErr);
     if (!link) throw new Error("That talent could not be found on your roster.");
     if (["ended", "revoked", "expired"].includes(link.status)) {
       throw new Error("This talent relationship has ended — a manager can no longer be assigned.");
@@ -5520,7 +5533,7 @@ export const setTalentManager = createServerFn({ method: "POST" })
         .eq("user_id", data.manager_user_id)
         .eq("suspended", false)
         .maybeSingle();
-      if (memErr) throw new Error(memErr.message);
+      if (memErr) throw databaseError(memErr);
       if (!member) throw new Error("Choose a manager from your own team.");
     }
 
@@ -5531,7 +5544,7 @@ export const setTalentManager = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .select("id, manager_user_id")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!updated)
       throw new Error("The manager could not be updated — you may not have permission.");
 
@@ -5615,7 +5628,7 @@ export const getAgencyTalentDetail = createServerFn({ method: "POST" })
       .eq("id", data.talent_link_id)
       .eq("agency_id", agencyId)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!link) throw new Error("This talent is not on your roster, or is no longer available to you.");
 
     let email: string | null = null;
@@ -5637,7 +5650,7 @@ export const getAgencyTalentDetail = createServerFn({ method: "POST" })
       .or(`target_id.in.(${targets}),detail->>talent_link_id.eq.${link.id}`)
       .order("created_at", { ascending: false })
       .limit(50);
-    if (logErr) throw new Error(logErr.message);
+    if (logErr) throw databaseError(logErr);
 
     return {
       id: link.id as string,

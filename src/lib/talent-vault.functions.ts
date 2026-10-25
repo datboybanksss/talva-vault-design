@@ -1,9 +1,18 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
+import { allowedMimeClaim, documentIsValidated } from "./file-security";
+import { privateStoragePathOwned, privateFolderOwned } from "./share-security";
 
 const BUCKET = "talent-private-documents";
+
+async function requireOwnedFolder(db: any, userId: string, folderId: string | null | undefined) {
+  if (!folderId) return;
+  const { data, error } = await db.from("talent_private_folders").select("id, user_id, removed_at").eq("id", folderId).eq("user_id", userId).is("removed_at", null).maybeSingle();
+  if (error || !privateFolderOwned(data, userId)) throw new Error("That folder is no longer available in your private vault.");
+}
 
 /**
  * List the caller's private folder tree + documents.
@@ -27,11 +36,12 @@ export const listPrivateVault = createServerFn({ method: "GET" })
           "id, folder_id, name, storage_path, mime_type, size_bytes, reminder_at, expires_at, notes, pending_review, created_at, updated_at",
         )
         .eq("user_id", userId)
+        .not("validated_at", "is", null)
         .order("created_at", { ascending: false }),
     ]);
 
-    if (foldersRes.error) throw new Error(foldersRes.error.message);
-    if (docsRes.error) throw new Error(docsRes.error.message);
+    if (foldersRes.error) throw databaseError(foldersRes.error);
+    if (docsRes.error) throw databaseError(docsRes.error);
     return { folders: foldersRes.data ?? [], documents: docsRes.data ?? [] };
   });
 
@@ -73,7 +83,7 @@ export const createPrivateFolder = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { id: row.id };
   });
 
@@ -103,7 +113,7 @@ export const deletePrivateFolder = createServerFn({ method: "POST" })
         .from("talent_private_folders")
         .update({ removed_at: new Date().toISOString() })
         .eq("id", data.id);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       return { ok: true, soft: true };
     }
 
@@ -129,7 +139,7 @@ export const deletePrivateFolder = createServerFn({ method: "POST" })
     }
 
     const { error } = await supabase.from("talent_private_folders").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true, soft: false };
   });
 
@@ -155,6 +165,8 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CreateUploadUrlInput.parse(input))
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
+    await requireOwnedFolder(supabase, userId, data.folder_id);
+    if (!allowedMimeClaim(data.mime_type)) throw new Error("That file type is not supported. Upload a PDF, image, Office document or plain text file.");
     const safeName = data.file_name.replace(/[^\w.-]+/g, "_");
     const path = `${userId}/${crypto.randomUUID()}-${safeName}`;
 
@@ -162,7 +174,7 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
     const { data: signed, error: sErr } = await supabaseAdmin.storage
       .from(BUCKET)
       .createSignedUploadUrl(path);
-    if (sErr) throw new Error(sErr.message);
+    if (sErr) throw databaseError(sErr);
 
     const { data: row, error: iErr } = await supabase
       .from("talent_private_documents")
@@ -171,14 +183,15 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
         folder_id: data.folder_id ?? null,
         name: data.file_name,
         storage_path: path,
-        mime_type: data.mime_type ?? null,
+        mime_type: null,
         size_bytes: data.size_bytes ?? null,
+        validation_pending_since: new Date().toISOString(),
         // Awaiting the filing review; cleared when the review is confirmed.
         pending_review: true,
       })
       .select("id")
       .single();
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) throw databaseError(iErr);
 
     return { document_id: row.id, upload: signed, storage_path: path };
   });
@@ -197,12 +210,14 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
 
     const { data: doc, error } = await supabase
       .from("talent_private_documents")
-      .select("id, user_id, name, storage_path, mime_type")
+      .select("id, user_id, name, storage_path, mime_type, validated_at")
       .eq("id", data.document_id)
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (doc.user_id !== userId) throw new Error("Forbidden");
     if (!doc.storage_path) throw new Error("No file attached.");
+    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
+    if (doc.validated_at) return { ok: true as const, size_bytes: null };
 
     const { validateStoredUpload, UploadRejected } = await import("@/lib/file-validation.server");
     try {
@@ -212,10 +227,14 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
         claimedMime: doc.mime_type,
       });
       // Trust the size we measured, not the one the browser reported.
-      await supabase
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error: stampError } = await supabaseAdmin
         .from("talent_private_documents")
-        .update({ size_bytes: result.sizeBytes })
-        .eq("id", doc.id);
+        .update({ size_bytes: result.sizeBytes, mime_type: result.mimeType, validated_at: new Date().toISOString(), validation_pending_since: null })
+        .eq("id", doc.id)
+        .select("id")
+        .single();
+      if (stampError) throw new Error("We couldn't finish checking this file. Please try again.");
       const { recordTalentActivity } = await import("@/lib/talent-activity.server");
       await recordTalentActivity(supabase, userId, claims?.email, "vault_document_uploaded", {
         targetId: doc.id,
@@ -233,8 +252,10 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
     } catch (e) {
       // The object is already removed by validateStoredUpload; drop the row too
       // so the vault never shows a phantom document.
-      await supabase.from("talent_private_documents").delete().eq("id", doc.id);
-      if (e instanceof UploadRejected) throw new Error(e.message);
+      if (e instanceof UploadRejected) {
+        await supabase.from("talent_private_documents").delete().eq("id", doc.id);
+        throw databaseError(e);
+      }
       throw e;
     }
   });
@@ -248,17 +269,19 @@ export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: doc } = await supabase
       .from("talent_private_documents")
-      .select("id, name, storage_path, user_id")
+      .select("id, name, storage_path, user_id, validated_at")
       .eq("id", data.id)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+    if (!documentIsValidated(doc)) throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached.");
+    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error } = await supabaseAdmin.storage
       .from(BUCKET)
       .createSignedUrl(doc.storage_path, 60 * 30, { download: doc.name });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { url: signed.signedUrl, name: doc.name };
   });
 
@@ -279,7 +302,7 @@ export const deletePrivateDocument = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.id)
       .select("id");
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!gone || gone.length === 0) {
       throw new Error("This document couldn't be deleted. Refresh the page and try again.");
     }
@@ -306,12 +329,14 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => MoveDocInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
+    await requireOwnedFolder(supabase, userId, data.folder_id);
     const { data: moved, error } = await supabase
       .from("talent_private_documents")
       .update({ folder_id: data.folder_id })
       .eq("id", data.id)
+      .eq("user_id", userId)
       .select("id");
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!moved || moved.length === 0) {
       throw new Error("This document is no longer in your vault, so it couldn't be moved. Refresh the page to see the latest list.");
     }
@@ -342,8 +367,8 @@ export const listTalentVaultCatalogue = createServerFn({ method: "GET" })
         .select("id, category_slug, parent_name, name, kind, sort_order")
         .order("sort_order"),
     ]);
-    if (cats.error) throw new Error(cats.error.message);
-    if (subs.error) throw new Error(subs.error.message);
+    if (cats.error) throw databaseError(cats.error);
+    if (subs.error) throw databaseError(subs.error);
     return { categories: cats.data ?? [], subfolders: subs.data ?? [] };
   });
 
@@ -366,7 +391,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
       .select("slug, name, icon, tone, sort_order")
       .eq("name", data.name)
       .maybeSingle();
-    if (catErr) throw new Error(catErr.message);
+    if (catErr) throw databaseError(catErr);
     if (!cat) throw new Error("Unknown default category.");
 
     const { data: subs, error: subErr } = await supabase
@@ -374,7 +399,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
       .select("parent_name, name, kind, sort_order")
       .eq("category_slug", cat.slug)
       .order("sort_order");
-    if (subErr) throw new Error(subErr.message);
+    if (subErr) throw databaseError(subErr);
     const rowsAll = subs ?? [];
 
     const { data: existing } = await supabase
@@ -393,7 +418,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
         .from("talent_private_folders")
         .update({ removed_at: null })
         .eq("id", existing.id);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       return { id: existing.id, restored: true, unhidden: true };
     }
 
@@ -409,7 +434,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (topErr) throw new Error(topErr.message);
+    if (topErr) throw databaseError(topErr);
 
     const groups = rowsAll.filter((r) => r.kind === "group" && !r.parent_name);
     let otherOrder = 0;
@@ -426,7 +451,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
           })
           .select("id")
           .single();
-        if (gErr) throw new Error(gErr.message);
+        if (gErr) throw databaseError(gErr);
 
         const kids = rowsAll
           .filter((r) => r.kind === "folder" && r.parent_name === group.name)
@@ -438,7 +463,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
           }));
         if (kids.length) {
           const { error } = await supabase.from("talent_private_folders").insert(kids);
-          if (error) throw new Error(error.message);
+          if (error) throw databaseError(error);
         }
       }
       otherOrder = 99;
@@ -453,7 +478,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
             sort_order: r.sort_order,
           })),
         );
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         otherOrder = flat[flat.length - 1].sort_order + 1;
       }
     }
@@ -461,7 +486,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
     const { error: otherErr } = await supabase
       .from("talent_private_folders")
       .insert({ user_id: userId, parent_id: top.id, name: "Other", sort_order: otherOrder });
-    if (otherErr) throw new Error(otherErr.message);
+    if (otherErr) throw databaseError(otherErr);
 
     return { id: top.id, restored: true };
   });
@@ -491,7 +516,7 @@ export const listVaultCopyTargets = createServerFn({ method: "GET" })
       .eq("talent_user_id", userId)
       .eq("status", "active")
       .is("ended_at", null);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const rows = (links ?? []) as {
       id: string;
       agency_id: string;
@@ -546,11 +571,13 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
     // 1. The vault document must be the caller's own.
     const { data: doc } = await supabase
       .from("talent_private_documents")
-      .select("id, user_id, name, storage_path, mime_type, size_bytes")
+      .select("id, user_id, name, storage_path, mime_type, size_bytes, validated_at")
       .eq("id", data.document_id)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+    if (!documentIsValidated(doc)) throw new Error("This file must finish checking before it can be shared.");
     if (!doc.storage_path) throw new Error("This document has no file attached.");
+    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
 
     // 2. The link must be the caller's own, accepted and not ended.
     const { data: link } = await supabase
@@ -596,6 +623,8 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
     }
 
     // 5. Copy the file across buckets — the original object is untouched.
+    const { validateStoredUpload } = await import("@/lib/file-validation.server");
+    const checked = await validateStoredUpload({ bucket: BUCKET, path: doc.storage_path, removeOnFailure: false });
     const { data: file, error: dlErr } = await supabaseAdmin.storage
       .from(BUCKET)
       .download(doc.storage_path);
@@ -605,10 +634,10 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
     const { error: upErr } = await supabaseAdmin.storage
       .from("talent-documents")
       .upload(copyPath, file, {
-        contentType: doc.mime_type ?? undefined,
+        contentType: checked.mimeType,
         upsert: false,
       });
-    if (upErr) throw new Error(upErr.message);
+    if (upErr) throw databaseError(upErr);
 
     // 6. Register the copy as a talent-originated shared document.
     const now = new Date().toISOString();
@@ -626,12 +655,15 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
         folder_source: "user",
         pending_review: false,
         copied_from_vault_at: now,
+        validated_at: now,
+        mime_type: checked.mimeType,
+        size_bytes: checked.sizeBytes,
       })
       .select("id")
       .single();
     if (sErr) {
       await supabaseAdmin.storage.from("talent-documents").remove([copyPath]);
-      throw new Error(sErr.message);
+      throw databaseError(sErr);
     }
 
     await supabaseAdmin.from("talent_shared_document_versions").insert({
@@ -639,8 +671,9 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
       version_number: 1,
       storage_path: copyPath,
       name: doc.name,
-      size_bytes: doc.size_bytes ?? null,
-      mime_type: doc.mime_type ?? null,
+      size_bytes: checked.sizeBytes,
+      mime_type: checked.mimeType,
+      validated_at: now,
       uploaded_by: userId,
     });
 

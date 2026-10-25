@@ -1,7 +1,9 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
+import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
 
 /**
  * Returns the talent's profile + primary agency link (or null if the caller
@@ -120,7 +122,7 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
 async function linkReadUntil(linkId: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: linkId });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   return (data as string | null) ?? null;
 }
 
@@ -177,7 +179,7 @@ export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
       };
     }
     const { error } = await supabase.from("talent_profiles").update(patch).eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true, expiryNoticeDays: data.expiry_notice_days };
   });
 
@@ -218,7 +220,7 @@ export const listTalentNotifications = createServerFn({ method: "GET" })
     const { data: rows, error } = await q
       .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return (rows ?? []) as any[];
   });
 
@@ -252,7 +254,7 @@ export const markTalentNotificationRead = createServerFn({ method: "POST" })
       .update({ read_at: data.read ? new Date().toISOString() : null })
       .eq("id", data.id)
       .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -265,7 +267,7 @@ export const markAllTalentNotificationsRead = createServerFn({ method: "POST" })
       .update({ read_at: new Date().toISOString() })
       .eq("user_id", userId)
       .is("read_at", null);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -291,7 +293,7 @@ export const dismissTalentNotification = createServerFn({ method: "POST" })
       .update({ dismissed_at: new Date().toISOString() })
       .eq("id", data.id)
       .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -309,7 +311,7 @@ export const updateTalentProfile = createServerFn({ method: "POST" })
       .from("talent_profiles")
       .update({ full_name: data.full_name })
       .eq("user_id", userId);
-    if (pErr) throw new Error(pErr.message);
+    if (pErr) throw databaseError(pErr);
 
     if (data.talent_type !== undefined) {
       await supabase
@@ -356,7 +358,7 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
       )
       .eq("talent_link_id", link.id)
       .order("created_at", { ascending: false });
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
 
     // Folders — no talent-side RLS on agency_talent_folders. Use admin after
     // verifying the caller owns this link (already done above).
@@ -408,11 +410,12 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
     // RLS ensures the caller can only SELECT their own shared docs.
     const { data: doc, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, name, storage_path, talent_link_id")
+      .select("id, name, storage_path, talent_link_id, validated_at")
       .eq("id", data.document_id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!doc) throw new Error("Document not found.");
+    if (!doc.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached to this document.");
 
     // Double-check ownership defensively.
@@ -429,7 +432,7 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
     const { data: signed, error: sErr } = await supabaseAdmin.storage
       .from("talent-documents")
       .createSignedUrl(doc.storage_path, 60 * 30, { download: doc.name });
-    if (sErr) throw new Error(sErr.message);
+    if (sErr) throw databaseError(sErr);
     return { url: signed.signedUrl, name: doc.name };
   });
 
@@ -482,7 +485,7 @@ export const listTalentDocumentRequests = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(50),
     ]);
-    if (reqRes.error) throw new Error(reqRes.error.message);
+    if (reqRes.error) throw databaseError(reqRes.error);
 
     return {
       link: { id: link.id, agency_id: link.agency_id, status: link.status },
@@ -533,7 +536,7 @@ export const createTalentRequestUploadUrl = createServerFn({ method: "POST" })
     const { data: signed, error } = await supabaseAdmin.storage
       .from("talent-documents")
       .createSignedUploadUrl(path);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { path, token: signed.token, signedUrl: signed.signedUrl };
   });
 
@@ -578,6 +581,10 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
       throw new Error("This request is closed.");
     }
 
+    const expectedPrefix = `agency/${req.agency_id}/link/${link.id}/requests/${req.id}/`;
+    if (!data.storage_path.startsWith(expectedPrefix) || data.storage_path.includes("..")) throw new Error("That file does not belong to this request.");
+    const { validateStoredUpload } = await import("@/lib/file-validation.server");
+    const checkedUpload = await validateStoredUpload({ bucket: "talent-documents", path: data.storage_path, claimedMime: data.mime_type });
     const { data: doc, error: dErr } = await supabaseAdmin
       .from("talent_shared_documents")
       .insert({
@@ -588,10 +595,13 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
         status: "needs_review",
         storage_path: data.storage_path,
         uploaded_by: userId,
+        validated_at: new Date().toISOString(),
+        mime_type: checkedUpload.mimeType,
+        size_bytes: checkedUpload.sizeBytes,
       })
       .select("id")
       .single();
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
 
     // version row (v1) so agency-side history tools see the submission
     await supabaseAdmin.from("talent_shared_document_versions").insert({
@@ -599,8 +609,9 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
       version_number: 1,
       storage_path: data.storage_path,
       name: data.filename,
-      size_bytes: data.size_bytes ?? null,
-      mime_type: data.mime_type ?? null,
+      size_bytes: checkedUpload.sizeBytes,
+      mime_type: checkedUpload.mimeType,
+      validated_at: new Date().toISOString(),
       uploaded_by: userId,
     });
     await supabaseAdmin
@@ -617,7 +628,7 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
         review_notes: null,
       })
       .eq("id", req.id);
-    if (uErr) throw new Error(uErr.message);
+    if (uErr) throw databaseError(uErr);
 
     await supabaseAdmin.from("agency_document_request_history").insert({
       request_id: req.id,
@@ -944,7 +955,7 @@ export const dismissTalentReminder = createServerFn({ method: "POST" })
       },
       { onConflict: "user_id,kind" },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -982,7 +993,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
       status: string;
     }>) {
       const readUntil = await linkReadUntil(l.id);
-      if (readUntil && new Date(readUntil).getTime() <= Date.now()) continue;
+      if (!billingLinkReadable({ ...l, read_until: readUntil })) continue;
       myLinks.push({ ...l, read_until: readUntil });
     }
     const link = myLinks[0] ?? null;
@@ -991,30 +1002,19 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const COLS =
-      "id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, sent_at, accepted_at, currency, total_cents, status, description";
+      "id, agency_id, talent_link_id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, sent_at, accepted_at, currency, total_cents, status, description";
 
-    // Documents linked to one of the caller's own links, plus — until older
-    // documents are linked — the previous name match, scoped per link to that
-    // link's own agency and only where no talent link is set.
+    // Billing access is always linked by immutable roster ID, never a name.
     const fetchFor = async (shared: boolean) => {
       const out = new Map<string, any>();
       const linkIds = myLinks.map((l) => l.id);
-      const { data: direct } = await supabaseAdmin
+      const { data: direct, error } = await supabaseAdmin
         .from("agency_billing_docs")
         .select(COLS)
         .in("talent_link_id", linkIds)
         .eq("shared_with_talent", shared);
-      for (const d of direct ?? []) out.set(d.id, d);
-      for (const l of myLinks) {
-        const { data: legacy } = await supabaseAdmin
-          .from("agency_billing_docs")
-          .select(COLS)
-          .eq("agency_id", l.agency_id)
-          .is("talent_link_id", null)
-          .eq("shared_with_talent", shared)
-          .ilike("talent_name", l.display_name);
-        for (const d of legacy ?? []) out.set(d.id, d);
-      }
+      if (error) throw databaseError(error);
+      for (const d of direct ?? []) if (billingDocumentBelongsToLinks(d, myLinks)) out.set(d.id, d);
       return Array.from(out.values()).sort((x, y) =>
         String(y.issued_at).localeCompare(String(x.issued_at)),
       );

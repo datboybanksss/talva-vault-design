@@ -5,11 +5,26 @@ import wordWhite from "@/assets/talvault-word-white.png.asset.json";
 
 /**
  * Absolute base URL used in outbound email HTML (email clients cannot resolve
- * relative asset paths). Falls back to the stable project URL.
+ * relative asset paths). Outbound bearer links require explicit configuration.
  */
 export const PUBLIC_SITE_URL = (
-  process.env.PUBLIC_SITE_URL ?? "https://project--f47b509e-a49f-44ed-abf5-85631a6dc162.lovable.app"
+  process.env.PUBLIC_SITE_URL ?? ""
 ).replace(/\/$/, "");
+
+/** Trusted-contact bearer links must never silently fall back to a preview. */
+export function requirePublicSiteUrl(): string {
+  const configured = process.env.PUBLIC_SITE_URL;
+  try {
+    if (!configured) throw new Error("missing");
+    const url = new URL(configured);
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || url.pathname !== "/") throw new Error("invalid");
+    if (url.origin !== PUBLIC_SITE_URL) throw new Error("inconsistent");
+    return PUBLIC_SITE_URL;
+  } catch {
+    console.error("[share-email] PUBLIC_SITE_URL is missing or invalid; refusing to send a share link.");
+    throw new Error("We couldn't send this share email. Please try again later.");
+  }
+}
 
 export const EMAIL_LOGO_WHITE_URL = `${PUBLIC_SITE_URL}${lockupWhite.url}`;
 export const EMAIL_LOGO_TEAL_URL = `${PUBLIC_SITE_URL}${lockupTeal.url}`;

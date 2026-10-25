@@ -23,6 +23,7 @@
  */
 
 import { MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES } from "./file-validation";
+import { KIND_MIME, allowedMimeClaim, mimeClaimMatches } from "./file-security";
 
 export { MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES };
 
@@ -103,23 +104,6 @@ const IMAGE_KINDS: ReadonlySet<DetectedKind> = new Set<DetectedKind>([
  * Which detected kinds are consistent with a claimed MIME type. A client that
  * claims `application/pdf` must actually have shipped a PDF.
  */
-const MIME_EXPECTATIONS: { test: RegExp; kinds: DetectedKind[] }[] = [
-  { test: /^application\/pdf$/i, kinds: ["pdf"] },
-  { test: /^image\/jpe?g$/i, kinds: ["jpeg"] },
-  { test: /^image\/png$/i, kinds: ["png"] },
-  { test: /^image\/gif$/i, kinds: ["gif"] },
-  { test: /^image\/webp$/i, kinds: ["webp"] },
-  { test: /^image\/hei[cf]$/i, kinds: ["heic"] },
-  { test: /^image\/tiff$/i, kinds: ["tiff"] },
-  // OOXML documents are zip containers.
-  { test: /^application\/vnd\.openxmlformats-officedocument\./i, kinds: ["zip"] },
-  { test: /^application\/zip$/i, kinds: ["zip"] },
-  // Legacy Office is an OLE compound file.
-  { test: /^application\/vnd\.ms-(word|excel|powerpoint)$/i, kinds: ["ole"] },
-  { test: /^application\/msword$/i, kinds: ["ole", "rtf"] },
-  { test: /^application\/rtf$/i, kinds: ["rtf"] },
-  { test: /^text\//i, kinds: ["text"] },
-];
 
 function matches(head: Uint8Array, sig: Signature): boolean {
   if (head.length < sig.offset + sig.bytes.length) return false;
@@ -153,15 +137,10 @@ function looksLikeText(head: Uint8Array): boolean {
  */
 function looksLikeActiveMarkup(head: Uint8Array): boolean {
   const start = new TextDecoder("utf-8", { fatal: false })
-    .decode(head.subarray(0, 512))
+    .decode(head)
     .trimStart()
     .toLowerCase();
-  return (
-    start.startsWith("<svg") ||
-    start.startsWith("<html") ||
-    start.startsWith("<!doctype html") ||
-    (start.startsWith("<?xml") && start.includes("<svg"))
-  );
+  return /<\s*(?:svg|html|script|iframe|object|embed|body|head|img|link|style)\b|<!doctype\s+html|<\?xml\b/i.test(start);
 }
 
 export function detectKind(head: Uint8Array): DetectedKind | null {
@@ -196,6 +175,7 @@ export type ValidateOptions = {
 export type ValidateResult = {
   kind: DetectedKind;
   sizeBytes: number;
+  mimeType: string;
 };
 
 /**
@@ -263,16 +243,11 @@ export async function validateStoredUpload(opts: ValidateOptions): Promise<Valid
     );
   }
 
-  const claimed = (opts.claimedMime ?? "").trim();
-  if (claimed) {
-    const expectation = MIME_EXPECTATIONS.find((m) => m.test.test(claimed));
-    if (expectation && !expectation.kinds.includes(kind)) {
-      return fail(
-        "UPLOAD_TYPE_MISMATCH",
-        "The file's contents do not match its stated type. Re-save the file and try again.",
-      );
-    }
+  if (!allowedMimeClaim(opts.claimedMime)) {
+    return fail("UPLOAD_TYPE_NOT_ALLOWED", "That file type is not supported. Upload a PDF, image, Office document or plain text file.");
   }
-
-  return { kind, sizeBytes };
+  if (!mimeClaimMatches(opts.claimedMime, kind)) {
+    return fail("UPLOAD_TYPE_MISMATCH", "The file's contents do not match its stated type. Re-save the file and try again.");
+  }
+  return { kind, sizeBytes, mimeType: KIND_MIME[kind] };
 }

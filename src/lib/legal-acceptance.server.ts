@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { getRequest } from "@tanstack/react-start/server";
 
 export type LegalDocType = "agency" | "talent";
@@ -77,7 +78,7 @@ export async function recordLegalAcceptance(args: {
         .maybeSingle();
       return { proof_ref: existing?.proof_ref ?? null };
     }
-    throw new Error(error.message);
+    throw databaseError(error);
   }
   return { proof_ref: data?.proof_ref ?? null };
 }

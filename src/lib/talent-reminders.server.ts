@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import {
   documentReminderDue,
   expiryPhrase,
@@ -48,7 +49,7 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
     .not("user_id", "is", null);
   if (opts.userId) profileQ = profileQ.eq("user_id", opts.userId);
   const { data: profiles, error } = await profileQ;
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
 
   const pending: Pending[] = [];
   const now = Date.now();
@@ -111,13 +112,13 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
         .in("status", ["active", "read_only", "needs_review"])
         .is("ended_at", null)
         .order("created_at", { ascending: true });
-      if (linksError) throw new Error(linksError.message);
+      if (linksError) throw databaseError(linksError);
       for (const link of links ?? []) {
         const { data: until, error: untilError } = await supabaseAdmin.rpc(
           "talent_link_read_until",
           { _link_id: link.id },
         );
-        if (untilError) throw new Error(untilError.message);
+        if (untilError) throw databaseError(untilError);
         if (!reminderLinkReadable(link, until, now)) continue;
         const { data: shared } = await supabaseAdmin
           .from("talent_shared_documents")
@@ -223,7 +224,7 @@ export async function runTalentReminderScan(opts: { userId?: string } = {}) {
     .from("talent_notifications")
     .upsert(pending, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true })
     .select("id, user_id, title, detail, email_sent_at");
-  if (insErr) throw new Error(insErr.message);
+  if (insErr) throw databaseError(insErr);
 
   const emailed = await emailNewReminders(inserted ?? [], emailByUser);
 

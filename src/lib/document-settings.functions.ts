@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -19,7 +20,7 @@ export const getDocumentSettings = createServerFn({ method: "GET" })
       .select("value, updated_at")
       .eq("key", "documents")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { settings: parseDocumentSettings(data?.value), updatedAt: (data?.updated_at as string) ?? null };
   });
 
@@ -50,7 +51,7 @@ export const updateDocumentSettings = createServerFn({ method: "POST" })
     const { error } = await supabase
       .from("platform_settings")
       .upsert({ key: "documents", value, updated_at: new Date().toISOString(), updated_by: userId });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await supabase.from("admin_audit_log").insert({
       actor_id: userId,
       actor_email: claims?.email ?? null,
@@ -75,7 +76,7 @@ export const listBulkDeleteFlags = createServerFn({ method: "GET" })
       .is("reviewed_at", null)
       .order("last_deleted_at", { ascending: false })
       .limit(50);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const ids = Array.from(new Set((data ?? []).map((f: any) => f.agency_id)));
     const names = new Map<string, string>();
     if (ids.length) {
@@ -94,7 +95,7 @@ export const markBulkDeleteFlagReviewed = createServerFn({ method: "POST" })
       .from("document_bulk_delete_flags")
       .update({ reviewed_at: new Date().toISOString(), reviewed_by: userId })
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -108,7 +109,7 @@ export const adminListRecentlyDeleted = createServerFn({ method: "GET" })
     const { data: rows, error } = await supabase.rpc("list_recently_deleted_documents", {
       _agency_id: data.agencyId,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return (rows ?? []) as any[];
   });
 
@@ -120,7 +121,7 @@ export const adminRestoreDeletedDocument = createServerFn({ method: "POST" })
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
     if (!canEdit) throw new Error("You need edit permission to restore documents.");
     const { error } = await supabase.rpc("restore_deleted_document", { _doc_id: data.id });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 

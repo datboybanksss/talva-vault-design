@@ -701,6 +701,7 @@ export type Database = {
           size_bytes: number | null
           storage_path: string
           uploaded_by: string
+          validated_at: string | null
         }
         Insert: {
           agency_id?: string | null
@@ -714,6 +715,7 @@ export type Database = {
           size_bytes?: number | null
           storage_path: string
           uploaded_by: string
+          validated_at?: string | null
         }
         Update: {
           agency_id?: string | null
@@ -727,6 +729,7 @@ export type Database = {
           size_bytes?: number | null
           storage_path?: string
           uploaded_by?: string
+          validated_at?: string | null
         }
         Relationships: [
           {
@@ -2689,6 +2692,7 @@ export type Database = {
           size_bytes: number | null
           storage_path: string
           uploaded_by: string
+          validated_at: string | null
         }
         Insert: {
           created_at?: string
@@ -2700,6 +2704,7 @@ export type Database = {
           size_bytes?: number | null
           storage_path: string
           uploaded_by: string
+          validated_at?: string | null
         }
         Update: {
           created_at?: string
@@ -2711,6 +2716,7 @@ export type Database = {
           size_bytes?: number | null
           storage_path?: string
           uploaded_by?: string
+          validated_at?: string | null
         }
         Relationships: [
           {
@@ -2937,6 +2943,7 @@ export type Database = {
       talent_private_documents: {
         Row: {
           created_at: string
+          download_only: boolean
           expires_at: string | null
           expiry_source: string | null
           folder_id: string | null
@@ -2951,9 +2958,12 @@ export type Database = {
           storage_path: string | null
           updated_at: string
           user_id: string
+          validated_at: string | null
+          validation_pending_since: string | null
         }
         Insert: {
           created_at?: string
+          download_only?: boolean
           expires_at?: string | null
           expiry_source?: string | null
           folder_id?: string | null
@@ -2968,9 +2978,12 @@ export type Database = {
           storage_path?: string | null
           updated_at?: string
           user_id: string
+          validated_at?: string | null
+          validation_pending_since?: string | null
         }
         Update: {
           created_at?: string
+          download_only?: boolean
           expires_at?: string | null
           expiry_source?: string | null
           folder_id?: string | null
@@ -2985,6 +2998,8 @@ export type Database = {
           storage_path?: string | null
           updated_at?: string
           user_id?: string
+          validated_at?: string | null
+          validation_pending_since?: string | null
         }
         Relationships: [
           {
@@ -3168,6 +3183,7 @@ export type Database = {
           size_bytes: number | null
           storage_path: string
           uploaded_by: string | null
+          validated_at: string | null
           version_number: number
         }
         Insert: {
@@ -3184,6 +3200,7 @@ export type Database = {
           size_bytes?: number | null
           storage_path: string
           uploaded_by?: string | null
+          validated_at?: string | null
           version_number: number
         }
         Update: {
@@ -3200,6 +3217,7 @@ export type Database = {
           size_bytes?: number | null
           storage_path?: string
           uploaded_by?: string | null
+          validated_at?: string | null
           version_number?: number
         }
         Relationships: [
@@ -3234,6 +3252,7 @@ export type Database = {
           folder_source: string | null
           id: string
           locked_until: string | null
+          mime_type: string | null
           name: string
           originator: string
           pending_review: boolean
@@ -3247,11 +3266,13 @@ export type Database = {
           shared_with_talent_at: string | null
           sharing_stopped_at: string | null
           sharing_stopped_by: string | null
+          size_bytes: number | null
           status: Database["public"]["Enums"]["shared_document_status"]
           storage_path: string | null
           talent_link_id: string | null
           updated_at: string
           uploaded_by: string | null
+          validated_at: string | null
           validity_expires_at: string | null
         }
         Insert: {
@@ -3275,6 +3296,7 @@ export type Database = {
           folder_source?: string | null
           id?: string
           locked_until?: string | null
+          mime_type?: string | null
           name: string
           originator?: string
           pending_review?: boolean
@@ -3288,11 +3310,13 @@ export type Database = {
           shared_with_talent_at?: string | null
           sharing_stopped_at?: string | null
           sharing_stopped_by?: string | null
+          size_bytes?: number | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
           talent_link_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
+          validated_at?: string | null
           validity_expires_at?: string | null
         }
         Update: {
@@ -3316,6 +3340,7 @@ export type Database = {
           folder_source?: string | null
           id?: string
           locked_until?: string | null
+          mime_type?: string | null
           name?: string
           originator?: string
           pending_review?: boolean
@@ -3329,11 +3354,13 @@ export type Database = {
           shared_with_talent_at?: string | null
           sharing_stopped_at?: string | null
           sharing_stopped_by?: string | null
+          size_bytes?: number | null
           status?: Database["public"]["Enums"]["shared_document_status"]
           storage_path?: string | null
           talent_link_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
+          validated_at?: string | null
           validity_expires_at?: string | null
         }
         Relationships: [
@@ -3750,6 +3777,14 @@ export type Database = {
         Returns: number
       }
       purge_recently_deleted_documents: { Args: never; Returns: number }
+      queue_abandoned_private_uploads: {
+        Args: { _cutoff: string }
+        Returns: number
+      }
+      queue_abandoned_upload_objects: {
+        Args: { _cutoff: string }
+        Returns: number
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -3843,6 +3878,10 @@ export type Database = {
       talent_read_only_until: { Args: { _user_id: string }; Returns: string }
       terms_write_allowed: { Args: { _user_id: string }; Returns: boolean }
       tv_map_legacy_folder: { Args: { _name: string }; Returns: string }
+      validated_storage_object: {
+        Args: { _bucket: string; _path: string }
+        Returns: boolean
+      }
     }
     Enums: {
       admin_permission_level: "view_only" | "agency_support" | "edit"

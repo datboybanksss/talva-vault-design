@@ -227,7 +227,6 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
     await assertAdminCanEdit(supabase, userId);
     const removeOrphan = () => supabase.storage.from(BUCKET).remove([data.storage_path]);
     if (!data.storage_path.startsWith(`${data.invitation_id}/`)) {
-      await removeOrphan();
       throw new Error("Invalid storage path.");
     }
     const { data: inv } = await supabase
@@ -242,7 +241,7 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
 
     // The declared name/type/size come from the browser — verify the stored bytes.
     const { validateStoredUpload } = await import("@/lib/file-validation.server");
-    await validateStoredUpload({
+    const checkedUpload = await validateStoredUpload({
       bucket: BUCKET,
       path: data.storage_path,
       claimedMime: data.mime_type ?? null,
@@ -264,15 +263,17 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
       throw new Error("This document is already attached. Remove it first to replace it.");
     }
 
-    const { data: row, error } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
       .from("talent_invitation_documents")
       .insert({
         invitation_id: data.invitation_id,
         doc_slot: data.doc_slot,
         file_name: data.file_name,
         storage_path: data.storage_path,
-        mime_type: data.mime_type ?? null,
-        size_bytes: data.size_bytes ?? null,
+        mime_type: checkedUpload.mimeType,
+        validated_at: new Date().toISOString(),
+        size_bytes: checkedUpload.sizeBytes,
         uploaded_by: userId,
       })
       .select("id")
@@ -334,13 +335,13 @@ export const getIndependentTalentDocumentUrl = createServerFn({ method: "POST" }
     await assertAdmin(supabase, userId);
     const { data: doc } = await supabase
       .from("talent_invitation_documents")
-      .select("storage_path")
+      .select("storage_path, file_name, validated_at")
       .eq("id", data.id)
       .maybeSingle();
-    if (!doc) throw new Error("Document not found.");
+    if (!doc || !doc.validated_at) throw new Error("Document not available.");
     const { data: signed, error } = await supabase.storage
       .from(BUCKET)
-      .createSignedUrl(doc.storage_path, 60);
+      .createSignedUrl(doc.storage_path, 60, { download: doc.file_name });
     if (error || !signed) throw new Error("We couldn't open that document.");
     return { url: signed.signedUrl as string };
   });

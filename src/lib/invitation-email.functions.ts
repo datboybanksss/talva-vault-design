@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -33,7 +34,7 @@ export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
       _user_id: userId,
       _role: "admin",
     });
-    if (roleErr) throw new Error(roleErr.message);
+    if (roleErr) throw databaseError(roleErr);
     if (!isAdmin) throw new Error("Forbidden: admin only");
 
     const { data: inv, error } = await supabase
@@ -41,7 +42,7 @@ export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
       .select("id, email, status")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("Invitation not found");
     if (inv.status !== "pending") throw new Error("Only an open invitation can be emailed.");
 
@@ -78,7 +79,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
       .select("id, agency_id, email, talent_name, expires_at, status")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("Invitation not found");
 
     const { data: isOwner, error: roleErr } = await supabase.rpc("has_agency_role", {
@@ -86,7 +87,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
       _agency_id: inv.agency_id,
       _role: "owner",
     });
-    if (roleErr) throw new Error(roleErr.message);
+    if (roleErr) throw databaseError(roleErr);
     if (!isOwner) throw new Error("Forbidden: only agency owners may send talent invitations.");
     const { data: writable } = await supabase.rpc("agency_is_writable", {
       _agency_id: inv.agency_id,
@@ -203,7 +204,7 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
-    if (roleErr) throw new Error(roleErr.message);
+    if (roleErr) throw databaseError(roleErr);
     const { canInviteAdministrators } = await import("@/lib/admin-permissions");
     if (!role?.is_main_admin && !canInviteAdministrators(role?.permission_level)) {
       throw new Error(
@@ -216,7 +217,7 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
       .select("id, email, permission_level, expires_at, status")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("Invitation not found");
 
     const { buildInvitationEmail } = await import("@/lib/invitation-email");
@@ -279,7 +280,7 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("kind", "staff")
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("Invitation not found");
 
     const { data: isOwner, error: roleErr } = await supabase.rpc("has_agency_role", {
@@ -287,7 +288,7 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
       _agency_id: inv.agency_id,
       _role: "owner",
     });
-    if (roleErr) throw new Error(roleErr.message);
+    if (roleErr) throw databaseError(roleErr);
     if (!isOwner) throw new Error("Forbidden: only agency owners may send staff invitations.");
     const { data: writable } = await supabase.rpc("agency_is_writable", {
       _agency_id: inv.agency_id,

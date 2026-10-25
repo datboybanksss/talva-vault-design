@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { accountStatusCounts, agencyAccountStatus, talentAccountStatus } from "@/lib/account-filters";
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { createServerFn } from "@tanstack/react-start";
@@ -22,7 +23,7 @@ const TALENT_VAULT_ACTIONS = [
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
 }
 
@@ -74,7 +75,7 @@ async function activityRows(admin: any, fromIso: string, toIso: string) {
     .in("action", ACTIVITY_ACTIONS)
     .gte("created_at", fromIso)
     .lte("created_at", toIso);
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   return (data ?? []) as { actor_id: string; action: string; created_at: string }[];
 }
 
@@ -119,7 +120,7 @@ async function northStarPairs(
     .select("id, agency_id, talent_user_id, talent_invitation_id, display_name, created_at")
     .neq("status", "revoked")
     .lte("created_at", period.toIso);
-  if (linkErr) throw new Error(linkErr.message);
+  if (linkErr) throw databaseError(linkErr);
   // Inert invitations (can never be accepted) are not real relationships.
   const { data: inert } = await admin
     .from("talent_invite_private")
@@ -170,7 +171,7 @@ async function northStarPairs(
     .select("agency_id, action, target_type, target_id")
     .gte("created_at", period.fromIso)
     .lte("created_at", period.toIso);
-  if (agErr) throw new Error(agErr.message);
+  if (agErr) throw databaseError(agErr);
 
   const docIds = [
     ...new Set(
@@ -297,7 +298,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .select("id, status, created_at, accepted_at")
       .gte("created_at", period.fromIso)
       .lte("created_at", period.toIso);
-    if (invErr) throw new Error(invErr.message);
+    if (invErr) throw databaseError(invErr);
     const invitesSent = (invitesInPeriod ?? []).length;
     const invitesAccepted = (invitesInPeriod ?? []).filter((i: any) => i.accepted_at).length;
 
@@ -307,7 +308,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .not("accepted_at", "is", null)
       .gte("accepted_at", period.fromIso)
       .lte("accepted_at", period.toIso);
-    if (accErr) throw new Error(accErr.message);
+    if (accErr) throw databaseError(accErr);
     const daysToAccept = (acceptedInPeriod ?? []).map(
       (i: any) =>
         Math.round(
@@ -321,7 +322,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .select("id, talent_id, created_at")
       .gte("created_at", period.fromIso)
       .lte("created_at", period.toIso);
-    if (shareErr) throw new Error(shareErr.message);
+    if (shareErr) throw databaseError(shareErr);
     const shareTalentIds = [...new Set((sharesInPeriod ?? []).map((s: any) => s.talent_id))].filter(
       Boolean,
     );
@@ -353,7 +354,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .select("id, kind, status, total_cents, currency, issued_at, created_at")
       .gte("created_at", period.fromIso)
       .lte("created_at", period.toIso);
-    if (docErr) throw new Error(docErr.message);
+    if (docErr) throw databaseError(docErr);
     const quotes = (docsInPeriod ?? []).filter((d: any) => d.kind === "quote");
     const invoices = (docsInPeriod ?? []).filter(
       (d: any) => d.kind === "invoice" && d.status !== "cancelled",
@@ -364,7 +365,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .select("id, amount_cents, paid_on")
       .gte("paid_on", period.from)
       .lte("paid_on", period.to);
-    if (payErr) throw new Error(payErr.message);
+    if (payErr) throw databaseError(payErr);
     const receivedCents = (paymentsInPeriod ?? []).reduce(
       (n: number, p: any) => n + Number(p.amount_cents ?? 0),
       0,
@@ -391,7 +392,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .from("talent_audit_log")
       .select("actor_id, created_at")
       .in("action", ACTIVITY_ACTIONS);
-    if (actErr) throw new Error(actErr.message);
+    if (actErr) throw databaseError(actErr);
     const byTalent = new Map<string, number[]>();
     for (const a of allActivity ?? []) {
       const list = byTalent.get(a.actor_id) ?? [];
@@ -481,8 +482,8 @@ async function accountsByStatus(admin: any) {
       .select("activation_completed_at, paused_at, suspended_at, is_test")
       .is("deleted_at", null),
   ]);
-  if (ag.error) throw new Error(ag.error.message);
-  if (ta.error) throw new Error(ta.error.message);
+  if (ag.error) throw databaseError(ag.error);
+  if (ta.error) throw databaseError(ta.error);
   return accountStatusCounts([
     ...(ag.data ?? []).map((a: any) => ({ type: "agency" as const, status: agencyAccountStatus(a), is_test: a.is_test })),
     ...(ta.data ?? []).map((t: any) => ({
@@ -552,7 +553,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           .lte("created_at", period.toIso)
           .order("created_at", { ascending: false })
           .range(range.from, range.to);
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         return {
           total: count ?? 0,
           columns: ["Agency", "Status", "Country", "Contact", "Added"],
@@ -583,7 +584,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           count,
           error,
         } = await q.order("created_at", { ascending: false }).range(range.from, range.to);
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         return {
           total: count ?? 0,
           columns: ["Agency", "Email", "Status", "Invited", "Accepted", "Days to accept"],
@@ -689,7 +690,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           .lte("created_at", period.toIso)
           .order("created_at", { ascending: false })
           .range(range.from, range.to);
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         return {
           total: count ?? 0,
           columns: [
@@ -722,7 +723,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           .lte("created_at", period.toIso)
           .order("created_at", { ascending: false })
           .range(range.from, range.to);
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         const names = await agencyNames(
           admin,
           (rows ?? []).map((r: any) => r.agency_id),
@@ -767,7 +768,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           .lte("created_at", period.toIso)
           .order("created_at", { ascending: false })
           .range(range.from, range.to);
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         const names = await agencyNames(
           admin,
           (rows ?? []).map((r: any) => r.agency_id),
@@ -831,7 +832,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           .lte("paid_on", period.to)
           .order("paid_on", { ascending: false })
           .range(range.from, range.to);
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         const names = await agencyNames(
           admin,
           (rows ?? []).map((r: any) => r.agency_id),

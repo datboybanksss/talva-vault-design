@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 /**
  * Single definition of "onboarded talent", shared by the Admin Overview
  * dashboard and the Admin Reporting page so the two can never diverge.
@@ -40,7 +41,7 @@ export async function fetchOnboardedTalentLinks(
   if (toIso) q = q.lte("created_at", toIso);
 
   const { data, error } = await q;
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   const links = (data ?? []) as OnboardedTalent[];
   if (links.length === 0) return [];
 
@@ -49,7 +50,7 @@ export async function fetchOnboardedTalentLinks(
     .from("talent_profiles")
     .select("user_id, is_test, deleted_at")
     .in("user_id", userIds);
-  if (profErr) throw new Error(profErr.message);
+  if (profErr) throw databaseError(profErr);
 
   // Exclude test and soft-deleted talent. A link whose talent has no profile
   // row yet has not completed onboarding, so it is excluded too.
@@ -108,8 +109,8 @@ export async function fetchTalentSplit(client: any, toIso?: string): Promise<Tal
       .eq("status", "active")
       .not("talent_user_id", "is", null),
   ]);
-  if (pErr) throw new Error(pErr.message);
-  if (lErr) throw new Error(lErr.message);
+  if (pErr) throw databaseError(pErr);
+  if (lErr) throw databaseError(lErr);
   const linked = new Set((links ?? []).map((l: any) => l.talent_user_id));
   const people = new Set((profiles ?? []).map((p: any) => p.user_id as string));
   let agencyLinked = 0;

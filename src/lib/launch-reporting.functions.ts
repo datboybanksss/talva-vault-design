@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -18,7 +19,7 @@ import {
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
 }
 
@@ -37,7 +38,7 @@ const Filters = z.object({
 });
 
 function check<T>(res: { data: T | null; error: any }): T {
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) throw databaseError(res.error);
   return (res.data ?? []) as T;
 }
 
@@ -129,7 +130,7 @@ export const updateLaunchSettings = createServerFn({ method: "POST" })
     const { error } = await supabase
       .from("platform_settings")
       .upsert({ key: "launch", value: data, updated_at: new Date().toISOString(), updated_by: userId });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 

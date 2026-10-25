@@ -22,6 +22,55 @@
       "when": 1792918145973,
       "tag": "0002_defer_tva_sec_101",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792918497134,
+      "tag": "0003_validated_upload_quarantine_and_pause_gaps",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792918699819,
+      "tag": "0004_require_coded_active_shares",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792918858805,
+      "tag": "0005_atomic_abandoned_upload_cleanup",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792918985947,
+      "tag": "0006_download_only_legacy_storage_gate",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792919104629,
+      "tag": "0007_immutable_version_validation_receipt",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792919128473,
+      "tag": "0008_protect_download_only_uploads",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792919380603,
+      "tag": "0009_queue_abandoned_upload_objects",
+      "breakpoints": true
     }
   ]
 }
