@@ -39,4 +39,4 @@
 - Talent-portal agency visibility (active / previously shared / hidden) is decided only by classifyTalentLink in src/lib/talent-links-core.ts via loadTalentLinks; every agency-only talent endpoint and screen uses that list. Why: independent talent must never see agency items, on screen or from the server.
 - Terms acceptance reports (Admin acceptances and not-accepted lists) leave out Test accounts via testUserIds in src/lib/terms-gate-core.ts; the acceptances are still stored with the normal proof. Why: test data must never inflate Terms or launch figures.
 - Shared brand visuals use src/components/shared/brand.tsx and styles.css tokens; tones: Talent/contact warm, Agency business, Admin calm. Why: one themed look.
-- Read src/lib/AGENTS.md before changing server authentication rules.
+- Read src/lib/AGENTS.md before changing auth; TVA-SEC-101 deferred — 2FA owned by the live app.

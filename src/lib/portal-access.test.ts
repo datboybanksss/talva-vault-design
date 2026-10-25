@@ -7,25 +7,26 @@ vi.mock("@/lib/device", () => ({ browserSessionId: () => "test-session" }));
 
 import { checkMfaGate, MFA_ENFORCED } from "./portal-access";
 
-describe("mandatory two-factor sign-in", () => {
+describe("TVA-SEC-101 deferred — live app owns two-factor sign-in", () => {
   beforeEach(() => { getStatus.mockReset(); });
 
-  it("enforces two-factor sign-in", () => {
-    expect(MFA_ENFORCED).toBe(true);
+  it("keeps build-level two-factor enforcement off", () => {
+    expect(MFA_ENFORCED).toBe(false);
   });
 
-  it("requires an emailed code for an unverified enrolled session", async () => {
+  it("allows password-only access without requesting a code", async () => {
     getStatus.mockResolvedValue({ gate: "challenge" });
-    expect(await checkMfaGate()).toBe("challenge");
-    expect(getStatus).toHaveBeenCalledWith({ data: { device: "test-session" } });
+    expect(await checkMfaGate()).toBe("ok");
+    expect(getStatus).not.toHaveBeenCalled();
   });
 
-  it("requires enrolment for an account that has not completed two-factor setup", async () => {
+  it("does not require enrolment while build-level enforcement is off", async () => {
     getStatus.mockResolvedValue({ gate: "enrol" });
-    expect(await checkMfaGate()).toBe("enrol");
+    expect(await checkMfaGate()).toBe("ok");
   });
-  it("never grants access when the verification check fails", async () => {
+  it("does not block access on an unavailable code service", async () => {
     getStatus.mockRejectedValue(new Error("offline"));
-    expect(await checkMfaGate()).toBe("challenge");
+    expect(await checkMfaGate()).toBe("ok");
+    expect(getStatus).not.toHaveBeenCalled();
   });
 });

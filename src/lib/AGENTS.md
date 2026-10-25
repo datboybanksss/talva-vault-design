@@ -1,4 +1,3 @@
 # Server authentication
-- MFA is mandatory for every bearer RPC through the global requireMfaVerified middleware; exemptions use only compiled filename/name pairs in mfa-policy. Why: caller input cannot claim a bootstrap exemption.
-- MFA codes and verification markers bind only to verified JWT session_id; mfa_session_ok enforces the twelve-hour lifetime in SQL/RLS and the Data API pre-request guard. Why: passwords, browser IDs and other sessions cannot unlock data.
-- Keep the Data API my_account_access exemption limited to the existing paused-account bootstrap check; it must never expose private business data. Why: the paused-account guard also runs before code verification.
+- TVA-SEC-101 is deferred — 2FA owned by the live app; this build preserves legacy password-only access without MFA middleware, restrictive MFA policies or a Data API pre-request guard. Why: build-level emailed codes currently block sign-in.
+- MFA flow tables retain service-only INSERT/UPDATE/DELETE; the unused mfa_session_ok helper and nullable mfa_codes.session_id column remain inert. Why: preserve safe write hardening without enforcing build-level 2FA.
