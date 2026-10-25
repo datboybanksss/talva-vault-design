@@ -88,6 +88,7 @@ type VaultDoc = {
   pendingReview?: boolean;
   originator?: string;
   linkStatus?: string | null;
+  quarantineReason?: QuarantineReason | null;
 };
 type TalentLinkLite = {
   id: string;
@@ -120,6 +121,8 @@ import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { BlockedDocumentPill, blockedReason, explainBlocked } from "@/components/shared/blocked-document";
+import type { QuarantineReason } from "@/lib/document-quarantine";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { friendlyError } from "@/lib/friendly-error";
 
@@ -877,6 +880,14 @@ function VaultPage() {
                               >
                                 <strong>{d.name}</strong>
                               </Link>
+                            ) : d.quarantineReason ? (
+                              <button
+                                type="button"
+                                className="tvp-link"
+                                onClick={() => explainBlocked(d.quarantineReason!)}
+                              >
+                                <strong>{d.name}</strong>
+                              </button>
                             ) : (
                               <strong>{d.name}</strong>
                             )}
@@ -910,6 +921,7 @@ function VaultPage() {
                                 {lifecycleLabel("document", "pending_review")}
                               </span>
                             )}
+                            <BlockedDocumentPill reason={d.quarantineReason} />
                           </td>
                           <td className="tvp-muted">{formatValidity(d.validityExpiresAt)}</td>
                           <td>
@@ -921,6 +933,7 @@ function VaultPage() {
                                     label: "View document",
                                     icon: Eye,
                                     disabled: !d.storagePath || viewMut.isPending,
+                                    disabledReason: blockedReason(d.quarantineReason),
                                     title: d.storagePath
                                       ? undefined
                                       : "No file attached to this document",
@@ -931,9 +944,11 @@ function VaultPage() {
                                     label: "Download document",
                                     icon: Download,
                                     disabled: !d.storagePath || downloadMut.isPending,
+                                    disabledReason: blockedReason(d.quarantineReason),
                                     onSelect: () => downloadMut.mutate(d.id),
                                   },
                                   !readOnly &&
+                                    !d.quarantineReason &&
                                     d.pendingReview && {
                                       key: "review",
                                       label: "Finish filing review",
@@ -946,6 +961,7 @@ function VaultPage() {
                                       label: "Analyse with AI",
                                       icon: Sparkles,
                                       disabled: !d.storagePath || aiRow.isPending,
+                                      disabledReason: blockedReason(d.quarantineReason),
                                       onSelect: () =>
                                         aiRow.analyse({
                                           id: d.id,
