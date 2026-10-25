@@ -50,6 +50,13 @@
       "when": 1792918985947,
       "tag": "0006_download_only_legacy_storage_gate",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792919104629,
+      "tag": "0007_immutable_version_validation_receipt",
+      "breakpoints": true
     }
   ]
 }
