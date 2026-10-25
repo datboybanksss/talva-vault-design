@@ -10,7 +10,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: {
     } : { id: "doc", name: "legacy.svg", folder_id: null, storage_path: "owner/file.svg", user_id: "owner", mime_type: "image/svg+xml", validated_at: state.validated }, error: null }) };
     return q;
   },
-  storage: { from: () => ({ download: async () => { state.downloads++; return { data: new Blob(["svg"]), error: null }; } }) },
+  storage: { from: () => ({ download: async () => { state.downloads++; return { data: { stream: () => new Response("svg").body }, error: null }; } }) },
 } }));
 import { Route } from "@/routes/api/public/loved-one-file";
 const handler = (Route as unknown as { server: { handlers: { GET: (input: { request: Request }) => Promise<Response> } } }).server.handlers.GET;
