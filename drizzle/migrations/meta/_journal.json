@@ -43,6 +43,13 @@
       "when": 1792918858805,
       "tag": "0005_atomic_abandoned_upload_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792918985947,
+      "tag": "0006_download_only_legacy_storage_gate",
+      "breakpoints": true
     }
   ]
 }

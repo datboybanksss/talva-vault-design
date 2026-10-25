@@ -1888,8 +1888,7 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
       await logTalentVaultView(supabase, agencyId, userId, claims?.email, row.talent_link_id);
     }
 
-    const options =
-      data.disposition === "attachment" || !["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"].includes(row.mime_type ?? "") ? { download: row.name as string } : undefined;
+    const options = { download: row.name as string };
     const { data: signed, error: sErr } = await supabase.storage
       .from("talent-documents")
       .createSignedUrl(row.storage_path, 60 * 30, options);
@@ -2265,13 +2264,14 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
 
     let nextNumber = ((last?.version_number as number | undefined) ?? 0) + 1;
     if (!last && doc.storage_path && doc.storage_path !== data.storage_path) {
-      await supabaseAdmin.from("talent_shared_document_versions").insert({
+      const { error: preserveError } = await supabaseAdmin.from("talent_shared_document_versions").insert({
         document_id: data.document_id,
         version_number: 1,
         storage_path: doc.storage_path,
         name: doc.name,
         uploaded_by: userId,
       });
+      if (preserveError) throw databaseError(preserveError);
       nextNumber = 2;
     }
 
@@ -2291,7 +2291,7 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
       .single();
     if (error) throw databaseError(error);
 
-    await supabaseAdmin
+    const { error: currentError } = await supabaseAdmin
       .from("talent_shared_documents")
       .update({
         current_version_id: version.id,
@@ -2302,6 +2302,7 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
         name: data.name,
       })
       .eq("id", data.document_id);
+    if (currentError) throw databaseError(currentError);
 
     await logAgencyAudit(
       supabase,
@@ -2340,7 +2341,7 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
     if ((v as any).talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
     if (!v.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
 
-    const options = data.disposition === "attachment" || !["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"].includes(v.mime_type ?? "") ? { download: v.name as string } : undefined;
+    const options = { download: v.name as string };
     const { data: signed, error: sErr } = await supabase.storage
       .from("talent-documents")
       .createSignedUrl(v.storage_path as string, 60 * 30, options);

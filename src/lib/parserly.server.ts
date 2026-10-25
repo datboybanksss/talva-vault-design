@@ -107,10 +107,10 @@ async function loadDocument(scope: AnalysisScope, documentId: string) {
   if (scope === "talent") {
     const { data: doc } = await supabaseAdmin
       .from("talent_private_documents")
-      .select("id, user_id, name, storage_path, mime_type, validated_at")
+      .select("id, user_id, name, storage_path, mime_type, validated_at, download_only")
       .eq("id", documentId)
       .maybeSingle();
-    if (!doc?.storage_path || !doc.validated_at) return null;
+    if (!doc?.storage_path || !doc.validated_at || doc.download_only) return null;
     const { data: folders } = await supabaseAdmin
       .from("talent_private_folders")
       .select("id, parent_id, name")
