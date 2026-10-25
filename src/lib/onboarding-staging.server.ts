@@ -62,15 +62,13 @@ export async function attachStagedUploads(
   });
   const insert =
     target.kind === "agency"
-      ? supabaseAdmin
-          .from("agency_compliance_documents")
-          .insert(
-            owned.map((r) => ({
-              ...base(r),
-              agency_id: target.agencyId,
-              business_type: target.businessType,
-            })) as never,
-          )
+      ? supabaseAdmin.from("agency_compliance_documents").insert(
+          owned.map((r) => ({
+            ...base(r),
+            agency_id: target.agencyId,
+            business_type: target.businessType,
+          })) as never,
+        )
       : supabaseAdmin.from("talent_invitation_documents").insert(owned.map(base) as never);
   const { error: insErr } = await insert;
   if (insErr) {

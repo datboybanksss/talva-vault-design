@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type Ctx = { supabase: SupabaseClient; userId: string };
 import { parseInput } from "@/lib/admin.functions";
 import { reasonForRejection } from "@/lib/document-quarantine";
 
@@ -8,7 +11,7 @@ const Kind = z.enum(["agency", "talent"]);
 const SessionInput = z.object({ kind: Kind, session_id: z.string().uuid() });
 
 /** Only admins who can create invitations may stage files. */
-async function assertCanInvite(supabase: any, userId: string) {
+async function assertCanInvite(supabase: SupabaseClient, userId: string) {
   const { data: isAdmin, error } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
@@ -26,7 +29,7 @@ export const listStagedOnboardingDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(SessionInput, d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context as unknown as Ctx;
     await assertCanInvite(supabase, userId);
     // RLS also limits this to the caller's own staged rows.
     const { data: rows, error } = await supabase
@@ -54,7 +57,7 @@ export const stageOnboardingDocument = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context as unknown as Ctx;
     await assertCanInvite(supabase, userId);
     const { STAGING_BUCKET, stagedPathOwned } = await import("@/lib/onboarding-staging.server");
     const bucket = STAGING_BUCKET[data.kind];
@@ -128,7 +131,7 @@ export const deleteStagedOnboardingDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context as unknown as Ctx;
     await assertCanInvite(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
