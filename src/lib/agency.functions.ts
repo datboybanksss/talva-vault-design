@@ -1,3 +1,4 @@
+import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -1875,11 +1876,13 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("storage_path, agency_id, name, talent_link_id, mime_type, validated_at")
+      .select("storage_path, agency_id, name, talent_link_id, mime_type, validated_at, quarantine_reason")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw databaseError(error);
     if (!row) throw new Error("This document is no longer available.");
+    if (row.agency_id !== agencyId) throw new Error("Forbidden");
+    assertNotQuarantined(row);
     if (!row.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
     if (!row.storage_path) throw new Error("No file attached to this document.");
@@ -2334,11 +2337,12 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
 
     const { data: v, error } = await supabase
       .from("talent_shared_document_versions")
-      .select("storage_path, name, document_id, mime_type, validated_at, talent_shared_documents!inner(agency_id)")
+      .select("storage_path, name, document_id, mime_type, validated_at, quarantine_reason, talent_shared_documents!inner(agency_id)")
       .eq("id", data.version_id)
       .single();
     if (error) throw databaseError(error);
     if ((v as any).talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
+    assertNotQuarantined(v);
     if (!v.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
 
     const options = { download: v.name as string };

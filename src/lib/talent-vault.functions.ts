@@ -1,3 +1,4 @@
+import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
@@ -33,10 +34,10 @@ export const listPrivateVault = createServerFn({ method: "GET" })
       supabase
         .from("talent_private_documents")
         .select(
-          "id, folder_id, name, storage_path, mime_type, size_bytes, reminder_at, expires_at, notes, pending_review, created_at, updated_at",
+          "id, folder_id, name, storage_path, mime_type, size_bytes, reminder_at, expires_at, notes, pending_review, created_at, updated_at, validated_at, quarantine_reason",
         )
         .eq("user_id", userId)
-        .not("validated_at", "is", null)
+        .or("validated_at.not.is.null,quarantine_reason.not.is.null")
         .order("created_at", { ascending: false }),
     ]);
 
@@ -269,10 +270,11 @@ export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: doc } = await supabase
       .from("talent_private_documents")
-      .select("id, name, storage_path, user_id, validated_at")
+      .select("id, name, storage_path, user_id, validated_at, quarantine_reason")
       .eq("id", data.id)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+    assertNotQuarantined(doc);
     if (!documentIsValidated(doc)) throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached.");
     if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
@@ -571,10 +573,11 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
     // 1. The vault document must be the caller's own.
     const { data: doc } = await supabase
       .from("talent_private_documents")
-      .select("id, user_id, name, storage_path, mime_type, size_bytes, validated_at")
+      .select("id, user_id, name, storage_path, mime_type, size_bytes, validated_at, quarantine_reason")
       .eq("id", data.document_id)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
+    assertNotQuarantined(doc);
     if (!documentIsValidated(doc)) throw new Error("This file must finish checking before it can be shared.");
     if (!doc.storage_path) throw new Error("This document has no file attached.");
     if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
