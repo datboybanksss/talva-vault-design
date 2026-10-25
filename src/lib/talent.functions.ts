@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
+import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
 
 /**
  * Returns the talent's profile + primary agency link (or null if the caller
@@ -992,7 +993,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
       status: string;
     }>) {
       const readUntil = await linkReadUntil(l.id);
-      if (readUntil && new Date(readUntil).getTime() <= Date.now()) continue;
+      if (!billingLinkReadable({ ...l, read_until: readUntil })) continue;
       myLinks.push({ ...l, read_until: readUntil });
     }
     const link = myLinks[0] ?? null;
@@ -1001,18 +1002,19 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const COLS =
-      "id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, sent_at, accepted_at, currency, total_cents, status, description";
+      "id, agency_id, talent_link_id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, sent_at, accepted_at, currency, total_cents, status, description";
 
     // Billing access is always linked by immutable roster ID, never a name.
     const fetchFor = async (shared: boolean) => {
       const out = new Map<string, any>();
       const linkIds = myLinks.map((l) => l.id);
-      const { data: direct } = await supabaseAdmin
+      const { data: direct, error } = await supabaseAdmin
         .from("agency_billing_docs")
         .select(COLS)
         .in("talent_link_id", linkIds)
         .eq("shared_with_talent", shared);
-      for (const d of direct ?? []) out.set(d.id, d);
+      if (error) throw databaseError(error);
+      for (const d of direct ?? []) if (billingDocumentBelongsToLinks(d, myLinks)) out.set(d.id, d);
       return Array.from(out.values()).sort((x, y) =>
         String(y.issued_at).localeCompare(String(x.issued_at)),
       );
