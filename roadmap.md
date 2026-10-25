@@ -1,4 +1,9 @@
 # Roadmap
+- [ ] TVA-SEC-102/111: server-derived file types, validation quarantine, safe responses, legacy SVG downloads, daily cleanup, folder ownership.
+- [ ] TVA-SEC-103/104/110: atomic coded shares, fail-closed access, link-ID billing scope, configured email URLs.
+- [ ] TVA-SEC-105/106/109: escaped POST-only sender verification, exact invite email match, fail-closed public token limits.
+- [ ] TVA-SEC-107/108: fill paused-account data-policy gaps; replace raw database errors with logged friendly failures.
+- [ ] TVA-SEC-102–111: focused tests, database verification and permitted on-screen checks; do not modify any MFA code, rules or tables.
 - [ ] TVA-SEC-101 deferred — 2FA owned by the live app; requires a new product owner decision before build-level enforcement.
 - [x] Revert TVA-SEC-101: restored exact pre-change password-only code/routing; removed public/storage MFA policies and REST guard; retained safe MFA write revokes; 10 regressions pass; preview sign-in renders without errors.
 - [ ] Verify dedicated Test talent password sign-in to /talent and direct session table reads — blocked: no Test password available and Test-session mint approval unavailable in this context; never substitute a real account.
