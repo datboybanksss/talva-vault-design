@@ -27,62 +27,81 @@ export const PORTAL_FOR_DENIED_CODE: Record<string, PortalKey> = {
   not_talent: "talent",
 };
 
-async function runCheck(key: PortalKey, userId: string): Promise<AccessResult> {
-  if (key === "admin") {
-    const { data, error } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    if (error) return "error";
-    return data ? "granted" : "denied";
-  }
+/** One server answer: paused status and which portals this account may open. */
+export type PortalAccess = {
+  userId: string;
+  paused: boolean;
+  admin: boolean;
+  agency: boolean;
+  talent: boolean;
+  home: string | null;
+};
 
-  if (key === "agency") {
-    const { data, error } = await supabase
-      .from("agency_members")
-      .select("agency_id")
-      .eq("user_id", userId)
-      .eq("suspended", false)
-      .limit(1)
-      .maybeSingle();
-    if (error) return "error";
-    if (!data) return "denied";
-    // A suspended agency's staff lose all access once the read-only window ends.
-    const { data: canRead, error: rErr } = await supabase.rpc("is_agency_member", {
-      _user_id: userId,
-      _agency_id: data.agency_id,
-    });
-    if (rErr) return "error";
-    return canRead ? "granted" : "denied";
-  }
+/** How long a sign-in's access answer is reused by the portal gate. */
+export const ACCESS_CACHE_MS = 60_000;
 
-  const { data, error } = await supabase
-    .from("talent_profiles")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) return "error";
-  return data ? "granted" : "denied";
+// In memory only: a fresh page load always starts empty, so it re-checks.
+let cached: { access: PortalAccess; at: number } | null = null;
+
+export function cachePortalAccess(access: PortalAccess, now = Date.now()) {
+  cached = { access, at: now };
+}
+export function clearPortalAccessCache() {
+  cached = null;
+}
+/** The cached answer for this user, if it is younger than ACCESS_CACHE_MS. */
+export function cachedPortalAccess(userId: string, now = Date.now()): PortalAccess | null {
+  if (!cached || cached.access.userId !== userId) return null;
+  if (now - cached.at > ACCESS_CACHE_MS || now < cached.at) return null;
+  return cached.access;
+}
+
+export function parsePortalAccess(raw: unknown, userId: string): PortalAccess | null {
+  const r = raw as Record<string, unknown> | null;
+  if (!r || r.signed_in !== true || r.user_id !== userId) return null;
+  const home = typeof r.home === "string" && Object.values(PORTAL_HOME).includes(r.home) ? r.home : null;
+  return { userId, paused: r.paused === true, admin: r.admin === true, agency: r.agency === true, talent: r.talent === true, home };
+}
+
+/** One round-trip to the database function my_portal_access(); null on failure. */
+export async function fetchPortalAccess(userId: string): Promise<PortalAccess | null> {
+  const { data, error } = await supabase.rpc("my_portal_access" as never);
+  if (error) return null;
+  return parsePortalAccess(data, userId);
+}
+
+async function accessFor(userId: string, useCache: boolean): Promise<PortalAccess | null> {
+  if (useCache) {
+    const hit = cachedPortalAccess(userId);
+    if (hit) return hit;
+  }
+  const first = (await fetchPortalAccess(userId)) ?? (await fetchPortalAccess(userId));
+  if (first) cachePortalAccess(first);
+  return first;
+}
+
+export function accessResultFor(key: PortalKey, access: PortalAccess): AccessResult {
+  if (access.paused) return "paused";
+  return access[key] ? "granted" : "denied";
 }
 
 export async function checkPortalAccess(key: PortalKey): Promise<AccessResult> {
   // getSession() resolves once the client has hydrated its session from storage
   // (and refreshed it if needed), so the role check never runs against a
-  // half-initialised auth state. It also reports "no session" without the
-  // AuthSessionMissingError that getUser() throws when signed out.
+  // half-initialised auth state.
   const { data: sessRes, error: sessErr } = await supabase.auth.getSession();
   if (sessErr) return "error";
   const userId = sessRes.session?.user?.id;
   if (!userId) return "signed-out";
-  if (await isAccountPaused()) {
+  // A failed check returns "error", never "denied" (one retry inside).
+  const access = await accessFor(userId, true);
+  if (!access) return "error";
+  const result = accessResultFor(key, access);
+  if (result === "paused") {
+    clearPortalAccessCache();
     await supabase.auth.signOut();
-    return "paused";
   }
-
-  const first = await runCheck(key, userId);
-  if (first !== "error") return first;
-  // One retry: a single failed round-trip must not turn into a false denial.
-  return runCheck(key, userId);
+  return result;
 }
 
 export const PORTAL_HOME: Record<PortalKey, string> = {
@@ -94,20 +113,20 @@ export const PORTAL_HOME: Record<PortalKey, string> = {
 /**
  * Where should *this* account land after signing in, when no explicit `next`
  * was requested? Resolved from the account's actual access, never assumed.
- *
- * Assuming "/admin" for everyone is what produced the phantom denial banner:
- * a non-admin signing in was auto-sent to /admin, the admin gate settled a
- * genuine denial, and bounced them back to /auth?denied=not_admin — a denial
- * the user never asked for and could not clear by navigating to /auth again.
  */
 export async function resolvePortalHome(): Promise<string | null> {
   const { data: sessRes } = await supabase.auth.getSession();
   const userId = sessRes.session?.user?.id;
   if (!userId) return null;
-  for (const key of ["admin", "agency", "talent"] as PortalKey[]) {
-    if ((await runCheck(key, userId)) === "granted") return PORTAL_HOME[key];
-  }
-  return null;
+  return (await accessFor(userId, true))?.home ?? null;
+}
+
+/**
+ * Called straight after a password (or code) is accepted: one fresh check,
+ * cached briefly so the portal gate doesn't repeat it.
+ */
+export async function accessAfterSignIn(userId: string): Promise<PortalAccess | null> {
+  return accessFor(userId, false);
 }
 
 /**
