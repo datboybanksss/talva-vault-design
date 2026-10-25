@@ -1,3 +1,4 @@
+import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -335,10 +336,12 @@ export const getIndependentTalentDocumentUrl = createServerFn({ method: "POST" }
     await assertAdmin(supabase, userId);
     const { data: doc } = await supabase
       .from("talent_invitation_documents")
-      .select("storage_path, file_name, validated_at")
+      .select("storage_path, file_name, validated_at, quarantine_reason")
       .eq("id", data.id)
       .maybeSingle();
-    if (!doc || !doc.validated_at) throw new Error("Document not available.");
+    if (!doc) throw new Error("Document not available.");
+    assertNotQuarantined(doc);
+    if (!doc.validated_at) throw new Error("Document not available.");
     const { data: signed, error } = await supabase.storage
       .from(BUCKET)
       .createSignedUrl(doc.storage_path, 60, { download: doc.file_name });

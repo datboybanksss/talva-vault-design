@@ -1,3 +1,4 @@
+import { assertNotQuarantined, quarantineReason } from "@/lib/document-quarantine";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -1341,7 +1342,7 @@ export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 
 const VAULT_DOC_COLUMNS =
-  "id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review, originator";
+  "id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review, originator, validated_at, quarantine_reason";
 
 type TalentMap = Map<string, string> & { statuses?: Map<string, string> };
 
@@ -1363,6 +1364,7 @@ function mapVaultDoc(r: any, talentMap: TalentMap) {
     pendingReview: Boolean(r.pending_review),
     originator: (r.originator as string) ?? "agency",
     linkStatus: r.talent_link_id ? (talentMap.statuses?.get(r.talent_link_id) ?? null) : null,
+    quarantineReason: quarantineReason(r),
   };
 }
 
@@ -1875,11 +1877,13 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("storage_path, agency_id, name, talent_link_id, mime_type, validated_at")
+      .select("storage_path, agency_id, name, talent_link_id, mime_type, validated_at, quarantine_reason")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw databaseError(error);
     if (!row) throw new Error("This document is no longer available.");
+    if (row.agency_id !== agencyId) throw new Error("Forbidden");
+    assertNotQuarantined(row);
     if (!row.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
     if (!row.storage_path) throw new Error("No file attached to this document.");
@@ -2179,7 +2183,7 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
     const { data: versions, error } = await supabase
       .from("talent_shared_document_versions")
       .select(
-        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at, locked_until",
+        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at, locked_until, validated_at, quarantine_reason",
       )
       .eq("document_id", data.document_id)
       .order("version_number", { ascending: false });
@@ -2334,11 +2338,12 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
 
     const { data: v, error } = await supabase
       .from("talent_shared_document_versions")
-      .select("storage_path, name, document_id, mime_type, validated_at, talent_shared_documents!inner(agency_id)")
+      .select("storage_path, name, document_id, mime_type, validated_at, quarantine_reason, talent_shared_documents!inner(agency_id)")
       .eq("id", data.version_id)
       .single();
     if (error) throw databaseError(error);
     if ((v as any).talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
+    assertNotQuarantined(v);
     if (!v.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
 
     const options = { download: v.name as string };

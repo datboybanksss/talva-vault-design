@@ -84,6 +84,7 @@ type Entry = { label: string; st: StToken };
 export const LIFECYCLE_STATUS: Record<StatusFamily, Record<string, Entry>> = {
   document: {
     pending_review: { label: "Pending review", st: "incomplete" },
+    blocked_security: { label: "Blocked for security", st: "declined" },
   },
   /** public.agency_talent_link_status */
   talentLink: {

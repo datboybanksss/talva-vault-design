@@ -1,3 +1,4 @@
+import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -354,7 +355,7 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
     const { data: docs, error: dErr } = await supabase
       .from("talent_shared_documents")
       .select(
-        "id, name, folder, status, validity_expires_at, storage_path, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review",
+        "id, name, folder, status, validity_expires_at, storage_path, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review, validated_at, quarantine_reason",
       )
       .eq("talent_link_id", link.id)
       .order("created_at", { ascending: false });
@@ -410,11 +411,12 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
     // RLS ensures the caller can only SELECT their own shared docs.
     const { data: doc, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, name, storage_path, talent_link_id, validated_at")
+      .select("id, name, storage_path, talent_link_id, validated_at, quarantine_reason")
       .eq("id", data.document_id)
       .maybeSingle();
     if (error) throw databaseError(error);
     if (!doc) throw new Error("Document not found.");
+    assertNotQuarantined(doc);
     if (!doc.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached to this document.");
 

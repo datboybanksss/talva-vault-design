@@ -88,6 +88,7 @@ type VaultDoc = {
   pendingReview?: boolean;
   originator?: string;
   linkStatus?: string | null;
+  quarantineReason?: QuarantineReason | null;
 };
 type TalentLinkLite = {
   id: string;
@@ -120,6 +121,8 @@ import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { BlockedDocumentPill, blockedReason, explainBlocked } from "@/components/shared/blocked-document";
+import { quarantineReason, type QuarantineReason } from "@/lib/document-quarantine";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { friendlyError } from "@/lib/friendly-error";
 
@@ -877,6 +880,14 @@ function VaultPage() {
                               >
                                 <strong>{d.name}</strong>
                               </Link>
+                            ) : d.quarantineReason ? (
+                              <button
+                                type="button"
+                                className="tvp-link"
+                                onClick={() => explainBlocked(d.quarantineReason!)}
+                              >
+                                <strong>{d.name}</strong>
+                              </button>
                             ) : (
                               <strong>{d.name}</strong>
                             )}
@@ -910,6 +921,7 @@ function VaultPage() {
                                 {lifecycleLabel("document", "pending_review")}
                               </span>
                             )}
+                            <BlockedDocumentPill reason={d.quarantineReason} />
                           </td>
                           <td className="tvp-muted">{formatValidity(d.validityExpiresAt)}</td>
                           <td>
@@ -921,6 +933,7 @@ function VaultPage() {
                                     label: "View document",
                                     icon: Eye,
                                     disabled: !d.storagePath || viewMut.isPending,
+                                    disabledReason: blockedReason(d.quarantineReason),
                                     title: d.storagePath
                                       ? undefined
                                       : "No file attached to this document",
@@ -931,9 +944,11 @@ function VaultPage() {
                                     label: "Download document",
                                     icon: Download,
                                     disabled: !d.storagePath || downloadMut.isPending,
+                                    disabledReason: blockedReason(d.quarantineReason),
                                     onSelect: () => downloadMut.mutate(d.id),
                                   },
                                   !readOnly &&
+                                    !d.quarantineReason &&
                                     d.pendingReview && {
                                       key: "review",
                                       label: "Finish filing review",
@@ -946,6 +961,7 @@ function VaultPage() {
                                       label: "Analyse with AI",
                                       icon: Sparkles,
                                       disabled: !d.storagePath || aiRow.isPending,
+                                      disabledReason: blockedReason(d.quarantineReason),
                                       onSelect: () =>
                                         aiRow.analyse({
                                           id: d.id,
@@ -1777,7 +1793,10 @@ function VersionsDialog({
                     <strong>v{v.version_number}</strong>
                     {data?.currentVersionId === v.id ? " · current" : ""}
                   </td>
-                  <td>{v.name}</td>
+                  <td>
+                    {v.name}
+                    <BlockedDocumentPill reason={quarantineReason(v)} />
+                  </td>
                   <td>{v.uploaded_by_name ?? "—"}</td>
                   <td className="tvp-muted">{new Date(v.created_at).toLocaleString("en-GB")}</td>
                   <td className="tvp-muted">
@@ -1787,15 +1806,25 @@ function VersionsDialog({
                     <div className="flex gap-1 justify-end">
                       <button
                         className="tvp-mini-btn"
-                        title="View"
-                        onClick={() => open(v.id, "inline")}
+                        title={blockedReason(quarantineReason(v)) ?? "View"}
+                        aria-disabled={Boolean(quarantineReason(v))}
+                        onClick={() => {
+                          const r = quarantineReason(v);
+                          if (r) return explainBlocked(r);
+                          open(v.id, "inline");
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         className="tvp-mini-btn"
-                        title="Download"
-                        onClick={() => open(v.id, "attachment")}
+                        title={blockedReason(quarantineReason(v)) ?? "Download"}
+                        aria-disabled={Boolean(quarantineReason(v))}
+                        onClick={() => {
+                          const r = quarantineReason(v);
+                          if (r) return explainBlocked(r);
+                          open(v.id, "attachment");
+                        }}
                       >
                         <Download className="h-4 w-4" />
                       </button>

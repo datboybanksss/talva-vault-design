@@ -34,3 +34,5 @@
 - [ ] Platform look: Trusted contact portal (warm)
 - [ ] Platform look: Admin portal (calm tone)
 - [ ] Platform look: shared screens (sign-in, 2FA, activation wizards, Terms gate, error pages, emails)
+
+- [x] Delete two unmatched accounts; quarantine reasons + "Blocked for security" status; Google sign-in off
