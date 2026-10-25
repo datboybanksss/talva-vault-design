@@ -1,4 +1,4 @@
-import { assertNotQuarantined } from "@/lib/document-quarantine";
+import { assertNotQuarantined, quarantineReason } from "@/lib/document-quarantine";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -1342,7 +1342,7 @@ export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 
 const VAULT_DOC_COLUMNS =
-  "id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review, originator";
+  "id, name, folder, status, validity_expires_at, storage_path, talent_link_id, uploaded_by, created_at, updated_at, locked_until, current_version_id, pending_review, originator, validated_at, quarantine_reason";
 
 type TalentMap = Map<string, string> & { statuses?: Map<string, string> };
 
@@ -1364,6 +1364,7 @@ function mapVaultDoc(r: any, talentMap: TalentMap) {
     pendingReview: Boolean(r.pending_review),
     originator: (r.originator as string) ?? "agency",
     linkStatus: r.talent_link_id ? (talentMap.statuses?.get(r.talent_link_id) ?? null) : null,
+    quarantineReason: quarantineReason(r),
   };
 }
 
