@@ -18,7 +18,8 @@ export function requirePublicSiteUrl(): string {
     if (!configured) throw new Error("missing");
     const url = new URL(configured);
     if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || url.pathname !== "/") throw new Error("invalid");
-    return url.origin;
+    if (url.origin !== PUBLIC_SITE_URL) throw new Error("inconsistent");
+    return PUBLIC_SITE_URL;
   } catch {
     console.error("[share-email] PUBLIC_SITE_URL is missing or invalid; refusing to send a share link.");
     throw new Error("We couldn't send this share email. Please try again later.");

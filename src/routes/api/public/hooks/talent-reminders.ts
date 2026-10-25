@@ -66,8 +66,11 @@ export const Route = createFileRoute("/api/public/hooks/talent-reminders")({
           // Same daily run: remove files of permanently removed, never-shared documents.
           const { drainDocumentStoragePurgeQueue } = await import("@/lib/document-purge.server");
           await drainDocumentStoragePurgeQueue();
+          const { cleanupUnvalidatedUploads, checkLegacyUploads } = await import("@/lib/upload-maintenance.server");
+          await checkLegacyUploads();
+          const abandonedUploads = await cleanupUnvalidatedUploads();
           return new Response(
-            JSON.stringify({ ok: true, ...result, purged_invites: purged.invitations }),
+            JSON.stringify({ ok: true, ...result, purged_invites: purged.invitations, abandoned_uploads: abandonedUploads }),
             {
               headers: { "Content-Type": "application/json" },
             },
