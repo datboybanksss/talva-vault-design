@@ -1168,6 +1168,7 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
         email: z.string().email(),
         business_type: z.enum(["formal", "informal"]),
         expiry_days: z.number().int().min(1).max(60).default(14),
+        onboarding_session_id: z.string().uuid().optional(),
       }),
       d,
     ),
@@ -1222,6 +1223,27 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
       .single();
     if (error) throw databaseError(error);
 
+    // Files uploaded before the draft existed are attached in this same step.
+    let attached = 0;
+    if (data.onboarding_session_id) {
+      const { attachStagedUploads } = await import("@/lib/onboarding-staging.server");
+      try {
+        attached = await attachStagedUploads(userId, data.onboarding_session_id, {
+          kind: "agency",
+          invitationId: inv.id,
+          agencyId: agency.id,
+          businessType: data.business_type,
+        });
+      } catch (e) {
+        // Never leave a half-saved draft behind: undo it and keep the staged files.
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.from("agency_compliance_documents").delete().eq("invitation_id", inv.id);
+        await supabaseAdmin.from("agency_invitations").delete().eq("id", inv.id);
+        await supabaseAdmin.from("agencies").delete().eq("id", agency.id).eq("status", "invited");
+        throw e;
+      }
+    }
+
     await logAudit(
       supabase,
       userId,
@@ -1230,7 +1252,7 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
       "invitation",
       inv.id,
       data.agency_name,
-      { email: data.email },
+      { email: data.email, attached_documents: attached },
     );
     return inv;
   });

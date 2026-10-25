@@ -107,7 +107,7 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
     if (error || !inv) throw new Error("Invitation not found.");
     const { data: docs } = await supabase
       .from("talent_invitation_documents")
-      .select("id, doc_slot, file_name, mime_type, size_bytes, created_at")
+      .select("id, doc_slot, file_name, mime_type, size_bytes, created_at, validated_at, quarantine_reason")
       .eq("invitation_id", data.id)
       .order("created_at");
     const { token, ...rest } = inv;
@@ -127,6 +127,7 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
         email: z.string().trim().email().max(255),
         talent_type: z.string().trim().max(60).optional().or(z.literal("")),
         date_of_birth: dobSchema,
+        onboarding_session_id: z.string().uuid().optional(),
       }),
       d,
     ),
@@ -148,6 +149,22 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error("We couldn't save the draft. Please try again.");
+    // Files uploaded before the draft existed are attached in this same step.
+    let attached = 0;
+    if (data.onboarding_session_id) {
+      const { attachStagedUploads } = await import("@/lib/onboarding-staging.server");
+      try {
+        attached = await attachStagedUploads(userId, data.onboarding_session_id, {
+          kind: "talent",
+          invitationId: inv.id,
+        });
+      } catch (e) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.from("talent_invitation_documents").delete().eq("invitation_id", inv.id);
+        await supabaseAdmin.from("independent_talent_invitations").delete().eq("id", inv.id);
+        throw e;
+      }
+    }
     await audit(
       supabase,
       userId,
@@ -155,7 +172,7 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
       "create_independent_talent_draft",
       inv.id,
       data.talent_name,
-      { email: data.email },
+      { email: data.email, attached_documents: attached },
     );
     return { id: inv.id as string };
   });
