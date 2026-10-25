@@ -42,7 +42,7 @@ export async function cleanupUnvalidatedUploads(now = Date.now()): Promise<numbe
   let removed = 0;
   for (const doc of data ?? []) {
     const { data: locked } = await supabaseAdmin.from("talent_private_documents").select("id, storage_path").eq("id", doc.id).is("validated_at", null).lt("validation_pending_since", cutoff).maybeSingle();
-    if (!locked) continue;
+    if (!locked?.storage_path) continue;
     const { error: storageError } = await supabaseAdmin.storage.from("talent-private-documents").remove([locked.storage_path]);
     if (storageError) { console.error("[upload-cleanup]", { code: storageError.message }); continue; }
     const { error: rowError } = await supabaseAdmin.from("talent_private_documents").delete().eq("id", locked.id).is("validated_at", null).lt("validation_pending_since", cutoff);

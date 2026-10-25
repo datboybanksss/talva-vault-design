@@ -372,7 +372,7 @@ async function loadSharedBilling(talentId: string | null, owner: string | null) 
     .eq("talent_user_id", profile.user_id)
     .order("created_at", { ascending: true });
   if (linksError) throw new Error("We couldn't load these shared documents. Please try again.");
-  const links = [];
+  const links: NonNullable<typeof allLinks> = [];
   for (const link of allLinks ?? []) {
     const { data: readUntil, error } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: link.id });
     if (error) throw new Error("We couldn't check access to these documents. Please try again.");
