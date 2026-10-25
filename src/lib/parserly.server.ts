@@ -107,10 +107,10 @@ async function loadDocument(scope: AnalysisScope, documentId: string) {
   if (scope === "talent") {
     const { data: doc } = await supabaseAdmin
       .from("talent_private_documents")
-      .select("id, user_id, name, storage_path, mime_type")
+      .select("id, user_id, name, storage_path, mime_type, validated_at")
       .eq("id", documentId)
       .maybeSingle();
-    if (!doc?.storage_path) return null;
+    if (!doc?.storage_path || !doc.validated_at) return null;
     const { data: folders } = await supabaseAdmin
       .from("talent_private_folders")
       .select("id, parent_id, name")
@@ -138,10 +138,10 @@ async function loadDocument(scope: AnalysisScope, documentId: string) {
   }
   const { data: doc } = await supabaseAdmin
     .from("talent_shared_documents")
-    .select("id, agency_id, talent_link_id, name, storage_path")
+    .select("id, agency_id, talent_link_id, name, storage_path, validated_at, deleted_at")
     .eq("id", documentId)
     .maybeSingle();
-  if (!doc?.storage_path) return null;
+  if (!doc?.storage_path || !doc.validated_at || doc.deleted_at) return null;
   const { data: folders } = await supabaseAdmin
     .from("agency_talent_folders")
     .select("folder_name")

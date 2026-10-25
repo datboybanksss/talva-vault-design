@@ -36,6 +36,13 @@
       "when": 1792918699819,
       "tag": "0004_require_coded_active_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792918858805,
+      "tag": "0005_atomic_abandoned_upload_cleanup",
+      "breakpoints": true
     }
   ]
 }

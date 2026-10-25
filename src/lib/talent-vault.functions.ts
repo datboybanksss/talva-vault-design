@@ -210,13 +210,14 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
 
     const { data: doc, error } = await supabase
       .from("talent_private_documents")
-      .select("id, user_id, name, storage_path, mime_type")
+      .select("id, user_id, name, storage_path, mime_type, validated_at")
       .eq("id", data.document_id)
       .single();
     if (error) throw databaseError(error);
     if (doc.user_id !== userId) throw new Error("Forbidden");
     if (!doc.storage_path) throw new Error("No file attached.");
     if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
+    if (doc.validated_at) return { ok: true as const, size_bytes: null };
 
     const { validateStoredUpload, UploadRejected } = await import("@/lib/file-validation.server");
     try {
@@ -230,7 +231,9 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
       const { error: stampError } = await supabaseAdmin
         .from("talent_private_documents")
         .update({ size_bytes: result.sizeBytes, mime_type: result.mimeType, validated_at: new Date().toISOString(), validation_pending_since: null })
-        .eq("id", doc.id);
+        .eq("id", doc.id)
+        .select("id")
+        .single();
       if (stampError) throw new Error("We couldn't finish checking this file. Please try again.");
       const { recordTalentActivity } = await import("@/lib/talent-activity.server");
       await recordTalentActivity(supabase, userId, claims?.email, "vault_document_uploaded", {

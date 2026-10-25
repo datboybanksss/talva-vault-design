@@ -36,18 +36,9 @@ export async function checkLegacyUploads(): Promise<{ checked: number; unavailab
 export async function cleanupUnvalidatedUploads(now = Date.now()): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabaseAdmin.from("talent_private_documents")
-    .select("id, storage_path").is("validated_at", null).lt("validation_pending_since", cutoff).limit(500);
+  const { data, error } = await supabaseAdmin.rpc("queue_abandoned_private_uploads", { _cutoff: cutoff });
   if (error) throw new Error("The upload cleanup could not be completed.");
-  let removed = 0;
-  for (const doc of data ?? []) {
-    const { data: locked } = await supabaseAdmin.from("talent_private_documents").select("id, storage_path").eq("id", doc.id).is("validated_at", null).lt("validation_pending_since", cutoff).maybeSingle();
-    if (!locked?.storage_path) continue;
-    const { error: storageError } = await supabaseAdmin.storage.from("talent-private-documents").remove([locked.storage_path]);
-    if (storageError) { console.error("[upload-cleanup]", { code: storageError.message }); continue; }
-    const { error: rowError } = await supabaseAdmin.from("talent_private_documents").delete().eq("id", locked.id).is("validated_at", null).lt("validation_pending_since", cutoff);
-    if (rowError) { console.error("[upload-cleanup] row", rowError); continue; }
-    removed++;
-  }
-  return removed;
+  const { drainDocumentStoragePurgeQueue } = await import("./document-purge.server");
+  await drainDocumentStoragePurgeQueue();
+  return data ?? 0;
 }

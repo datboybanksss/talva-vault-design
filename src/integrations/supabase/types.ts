@@ -2943,6 +2943,7 @@ export type Database = {
       talent_private_documents: {
         Row: {
           created_at: string
+          download_only: boolean
           expires_at: string | null
           expiry_source: string | null
           folder_id: string | null
@@ -2962,6 +2963,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          download_only?: boolean
           expires_at?: string | null
           expiry_source?: string | null
           folder_id?: string | null
@@ -2981,6 +2983,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          download_only?: boolean
           expires_at?: string | null
           expiry_source?: string | null
           folder_id?: string | null
@@ -3774,6 +3777,10 @@ export type Database = {
         Returns: number
       }
       purge_recently_deleted_documents: { Args: never; Returns: number }
+      queue_abandoned_private_uploads: {
+        Args: { _cutoff: string }
+        Returns: number
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
