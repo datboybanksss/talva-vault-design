@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -177,7 +178,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
     _user_id: context.userId,
     _role: "admin",
   });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
 }
 
@@ -260,7 +261,7 @@ export const listTermsAcceptances = createServerFn({ method: "POST" })
           .select("id, doc_type, version, is_current, body_sha256")
           .order("effective_at"),
       ]);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       const testIds = await loadTestUserIds(sb);
       const accs = (allAccs ?? []).filter((a: any) => !testIds.has(a.user_id));
       const docHash = new Map((docs ?? []).map((d: any) => [d.id, d.body_sha256]));

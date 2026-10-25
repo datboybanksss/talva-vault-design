@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import {
   decideInviteEmailConflict,
   exactIlike,
@@ -63,5 +64,5 @@ export async function findInviteEmailConflict(args: Args): Promise<InviteEmailCo
 /** Throws the plain message when the email clashes; call before every insert or send. */
 export async function assertInviteEmailFree(args: Args): Promise<void> {
   const conflict = await findInviteEmailConflict(args);
-  if (conflict) throw new Error(conflict.message);
+  if (conflict) throw databaseError(conflict);
 }

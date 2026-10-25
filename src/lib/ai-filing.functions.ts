@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 /**
  * Document filing review — server functions.
  *
@@ -51,7 +52,7 @@ async function callerAiEnabled(supabase: any, userId: string): Promise<boolean> 
     .select("ai_filing_enabled")
     .eq("id", userId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   return data?.ai_filing_enabled !== false;
 }
 
@@ -64,7 +65,7 @@ async function callerAgencyId(supabase: any, userId: string) {
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: not an agency member");
   await assertTermsAccepted(supabase, userId, "agency");
   return data.agency_id as string;
@@ -74,7 +75,7 @@ async function callerAgencyId(supabase: any, userId: string) {
 async function writableAgencyId(supabase: any, userId: string) {
   const agencyId = await callerAgencyId(supabase, userId);
   const { data: ok, error } = await supabase.rpc("agency_is_writable", { _agency_id: agencyId });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!ok)
     throw new Error(
       "AGENCY_READ_ONLY: your agency's TalVault access has ended. Existing documents are view and download only.",
@@ -159,7 +160,7 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
         .select("id, user_id, name, folder_id, expires_at")
         .eq("id", data.document_id)
         .maybeSingle();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       if (!doc || doc.user_id !== userId) throw new Error("Not found.");
       fileName = doc.name;
       currentDestination = doc.folder_id ?? null;
@@ -207,7 +208,7 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
         .select("id, agency_id, talent_link_id, name, folder")
         .eq("id", data.document_id)
         .maybeSingle();
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       if (!doc || doc.agency_id !== agencyId) throw new Error("Not found.");
       fileName = doc.name;
       currentDestination = doc.folder ?? null;
@@ -274,7 +275,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
         .from("talent_private_documents")
         .update(patch)
         .eq("id", data.document_id);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
 
       await supabase.from("talent_audit_log").insert({
         actor_id: userId,
@@ -328,7 +329,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
       .from("talent_shared_documents")
       .update(patch)
       .eq("id", data.document_id);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await supabase.from("agency_audit_log").insert({
       agency_id: agencyId,
@@ -372,7 +373,7 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
         .from("talent_private_documents")
         .update({ pending_review: true })
         .eq("id", data.document_id);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       return { ok: true };
     }
 
@@ -388,7 +389,7 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
       .from("talent_shared_documents")
       .update({ pending_review: true })
       .eq("id", data.document_id);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await supabase.from("agency_audit_log").insert({
       agency_id: agencyId,
@@ -423,7 +424,7 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
       .from("profiles")
       .update({ ai_filing_enabled: data.ai_filing_enabled })
       .eq("id", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { cancelQueuedAnalysesFor } = await import("@/lib/document-ai.server");
@@ -432,7 +433,7 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
       .select("agency_id")
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
-    if (membershipError) throw new Error(membershipError.message);
+    if (membershipError) throw databaseError(membershipError);
 
     await applyAiPreferenceChange(data.ai_filing_enabled, {
       audit: async (next) => {
@@ -453,7 +454,7 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
               .from("agency_audit_log")
               .insert(agencyIds.map((agency_id) => ({ ...entry, agency_id })))
           : await (supabaseAdmin as any).from("talent_audit_log").insert(entry);
-        if (auditErr) throw new Error(auditErr.message);
+        if (auditErr) throw databaseError(auditErr);
       },
       cancelQueued: () => cancelQueuedAnalysesFor(userId),
     });

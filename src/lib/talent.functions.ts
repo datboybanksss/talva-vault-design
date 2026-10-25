@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
@@ -120,7 +121,7 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
 async function linkReadUntil(linkId: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: linkId });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   return (data as string | null) ?? null;
 }
 
@@ -177,7 +178,7 @@ export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
       };
     }
     const { error } = await supabase.from("talent_profiles").update(patch).eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true, expiryNoticeDays: data.expiry_notice_days };
   });
 
@@ -218,7 +219,7 @@ export const listTalentNotifications = createServerFn({ method: "GET" })
     const { data: rows, error } = await q
       .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return (rows ?? []) as any[];
   });
 
@@ -252,7 +253,7 @@ export const markTalentNotificationRead = createServerFn({ method: "POST" })
       .update({ read_at: data.read ? new Date().toISOString() : null })
       .eq("id", data.id)
       .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -265,7 +266,7 @@ export const markAllTalentNotificationsRead = createServerFn({ method: "POST" })
       .update({ read_at: new Date().toISOString() })
       .eq("user_id", userId)
       .is("read_at", null);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -291,7 +292,7 @@ export const dismissTalentNotification = createServerFn({ method: "POST" })
       .update({ dismissed_at: new Date().toISOString() })
       .eq("id", data.id)
       .eq("user_id", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -309,7 +310,7 @@ export const updateTalentProfile = createServerFn({ method: "POST" })
       .from("talent_profiles")
       .update({ full_name: data.full_name })
       .eq("user_id", userId);
-    if (pErr) throw new Error(pErr.message);
+    if (pErr) throw databaseError(pErr);
 
     if (data.talent_type !== undefined) {
       await supabase
@@ -356,7 +357,7 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
       )
       .eq("talent_link_id", link.id)
       .order("created_at", { ascending: false });
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
 
     // Folders — no talent-side RLS on agency_talent_folders. Use admin after
     // verifying the caller owns this link (already done above).
@@ -411,7 +412,7 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
       .select("id, name, storage_path, talent_link_id, validated_at")
       .eq("id", data.document_id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!doc) throw new Error("Document not found.");
     if (!doc.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached to this document.");
@@ -430,7 +431,7 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
     const { data: signed, error: sErr } = await supabaseAdmin.storage
       .from("talent-documents")
       .createSignedUrl(doc.storage_path, 60 * 30, { download: doc.name });
-    if (sErr) throw new Error(sErr.message);
+    if (sErr) throw databaseError(sErr);
     return { url: signed.signedUrl, name: doc.name };
   });
 
@@ -483,7 +484,7 @@ export const listTalentDocumentRequests = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(50),
     ]);
-    if (reqRes.error) throw new Error(reqRes.error.message);
+    if (reqRes.error) throw databaseError(reqRes.error);
 
     return {
       link: { id: link.id, agency_id: link.agency_id, status: link.status },
@@ -534,7 +535,7 @@ export const createTalentRequestUploadUrl = createServerFn({ method: "POST" })
     const { data: signed, error } = await supabaseAdmin.storage
       .from("talent-documents")
       .createSignedUploadUrl(path);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { path, token: signed.token, signedUrl: signed.signedUrl };
   });
 
@@ -599,7 +600,7 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
 
     // version row (v1) so agency-side history tools see the submission
     await supabaseAdmin.from("talent_shared_document_versions").insert({
@@ -626,7 +627,7 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
         review_notes: null,
       })
       .eq("id", req.id);
-    if (uErr) throw new Error(uErr.message);
+    if (uErr) throw databaseError(uErr);
 
     await supabaseAdmin.from("agency_document_request_history").insert({
       request_id: req.id,
@@ -953,7 +954,7 @@ export const dismissTalentReminder = createServerFn({ method: "POST" })
       },
       { onConflict: "user_id,kind" },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 

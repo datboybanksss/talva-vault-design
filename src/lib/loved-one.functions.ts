@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
@@ -27,7 +28,7 @@ export const listMyLovedOneShares = createServerFn({ method: "GET" })
       )
       .eq("created_by", userId)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return data ?? [];
   });
 
@@ -66,7 +67,7 @@ export const listLovedOneShareAccess = createServerFn({ method: "GET" })
       .eq("share_id", data.share_id)
       .order("created_at", { ascending: false })
       .limit(100);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return rows ?? [];
   });
 
@@ -111,7 +112,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
         .in("id", folderIds)
         .eq("user_id", userId)
         .is("removed_at", null);
-      if (fErr) throw new Error(fErr.message);
+      if (fErr) throw databaseError(fErr);
       if ((owned?.length ?? 0) !== new Set(folderIds).size) {
         throw new Error("One or more selected folders aren't available in your vault.");
       }
@@ -123,7 +124,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
         .in("id", docIds)
         .eq("user_id", userId)
         .not("validated_at", "is", null);
-      if (dErr) throw new Error(dErr.message);
+      if (dErr) throw databaseError(dErr);
       if ((owned?.length ?? 0) !== new Set(docIds).size) {
         throw new Error("One or more selected documents aren't available in your vault.");
       }
@@ -153,7 +154,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
       })
       .select("id, token")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     // ---- Notification email (never contains the access code) ----
     let email: { sent: boolean; reason?: string } = { sent: false, reason: "not_requested" };
@@ -212,7 +213,7 @@ export const revokeLovedOneShare = createServerFn({ method: "POST" })
       .update({ revoked_at: new Date().toISOString(), is_active: false })
       .eq("id", data.id)
       .eq("created_by", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -251,7 +252,7 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
       })
       .eq("id", share.id)
       .eq("created_by", userId);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     // Tell the Loved One a new code was issued (the code itself is never sent).
     // Graceful no-op while the sending domain is unverified — the caller is told

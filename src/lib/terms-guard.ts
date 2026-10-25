@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createMiddleware } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACCOUNT_READ_ONLY_MESSAGE, ACCOUNT_SUSPENDED_CODE } from "@/lib/account-state";
@@ -18,7 +19,7 @@ export async function assertTermsAccepted(
     _user_id: userId,
     _doc_type: docType,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error(TERMS_NOT_ACCEPTED_MESSAGE);
 }
 
@@ -33,7 +34,7 @@ export const requireTalentTermsAccepted = createMiddleware({ type: "function" })
 /** Suspended talent are read-only (database rule talent_account_writable). */
 export async function assertTalentWritable(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("talent_account_writable", { _user_id: userId });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error(`${ACCOUNT_SUSPENDED_CODE}: ${ACCOUNT_READ_ONLY_MESSAGE}`);
 }
 

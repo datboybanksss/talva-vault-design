@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
@@ -39,8 +40,8 @@ export const listPrivateVault = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false }),
     ]);
 
-    if (foldersRes.error) throw new Error(foldersRes.error.message);
-    if (docsRes.error) throw new Error(docsRes.error.message);
+    if (foldersRes.error) throw databaseError(foldersRes.error);
+    if (docsRes.error) throw databaseError(docsRes.error);
     return { folders: foldersRes.data ?? [], documents: docsRes.data ?? [] };
   });
 
@@ -82,7 +83,7 @@ export const createPrivateFolder = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { id: row.id };
   });
 
@@ -112,7 +113,7 @@ export const deletePrivateFolder = createServerFn({ method: "POST" })
         .from("talent_private_folders")
         .update({ removed_at: new Date().toISOString() })
         .eq("id", data.id);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       return { ok: true, soft: true };
     }
 
@@ -138,7 +139,7 @@ export const deletePrivateFolder = createServerFn({ method: "POST" })
     }
 
     const { error } = await supabase.from("talent_private_folders").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true, soft: false };
   });
 
@@ -173,7 +174,7 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
     const { data: signed, error: sErr } = await supabaseAdmin.storage
       .from(BUCKET)
       .createSignedUploadUrl(path);
-    if (sErr) throw new Error(sErr.message);
+    if (sErr) throw databaseError(sErr);
 
     const { data: row, error: iErr } = await supabase
       .from("talent_private_documents")
@@ -190,7 +191,7 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) throw databaseError(iErr);
 
     return { document_id: row.id, upload: signed, storage_path: path };
   });
@@ -212,7 +213,7 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
       .select("id, user_id, name, storage_path, mime_type")
       .eq("id", data.document_id)
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (doc.user_id !== userId) throw new Error("Forbidden");
     if (!doc.storage_path) throw new Error("No file attached.");
     if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
@@ -250,7 +251,7 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
       // so the vault never shows a phantom document.
       if (e instanceof UploadRejected) {
         await supabase.from("talent_private_documents").delete().eq("id", doc.id);
-        throw new Error(e.message);
+        throw databaseError(e);
       }
       throw e;
     }
@@ -277,7 +278,7 @@ export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
     const { data: signed, error } = await supabaseAdmin.storage
       .from(BUCKET)
       .createSignedUrl(doc.storage_path, 60 * 30, { download: doc.name });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { url: signed.signedUrl, name: doc.name };
   });
 
@@ -298,7 +299,7 @@ export const deletePrivateDocument = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.id)
       .select("id");
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!gone || gone.length === 0) {
       throw new Error("This document couldn't be deleted. Refresh the page and try again.");
     }
@@ -332,7 +333,7 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("user_id", userId)
       .select("id");
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!moved || moved.length === 0) {
       throw new Error("This document is no longer in your vault, so it couldn't be moved. Refresh the page to see the latest list.");
     }
@@ -363,8 +364,8 @@ export const listTalentVaultCatalogue = createServerFn({ method: "GET" })
         .select("id, category_slug, parent_name, name, kind, sort_order")
         .order("sort_order"),
     ]);
-    if (cats.error) throw new Error(cats.error.message);
-    if (subs.error) throw new Error(subs.error.message);
+    if (cats.error) throw databaseError(cats.error);
+    if (subs.error) throw databaseError(subs.error);
     return { categories: cats.data ?? [], subfolders: subs.data ?? [] };
   });
 
@@ -387,7 +388,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
       .select("slug, name, icon, tone, sort_order")
       .eq("name", data.name)
       .maybeSingle();
-    if (catErr) throw new Error(catErr.message);
+    if (catErr) throw databaseError(catErr);
     if (!cat) throw new Error("Unknown default category.");
 
     const { data: subs, error: subErr } = await supabase
@@ -395,7 +396,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
       .select("parent_name, name, kind, sort_order")
       .eq("category_slug", cat.slug)
       .order("sort_order");
-    if (subErr) throw new Error(subErr.message);
+    if (subErr) throw databaseError(subErr);
     const rowsAll = subs ?? [];
 
     const { data: existing } = await supabase
@@ -414,7 +415,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
         .from("talent_private_folders")
         .update({ removed_at: null })
         .eq("id", existing.id);
-      if (error) throw new Error(error.message);
+      if (error) throw databaseError(error);
       return { id: existing.id, restored: true, unhidden: true };
     }
 
@@ -430,7 +431,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (topErr) throw new Error(topErr.message);
+    if (topErr) throw databaseError(topErr);
 
     const groups = rowsAll.filter((r) => r.kind === "group" && !r.parent_name);
     let otherOrder = 0;
@@ -447,7 +448,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
           })
           .select("id")
           .single();
-        if (gErr) throw new Error(gErr.message);
+        if (gErr) throw databaseError(gErr);
 
         const kids = rowsAll
           .filter((r) => r.kind === "folder" && r.parent_name === group.name)
@@ -459,7 +460,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
           }));
         if (kids.length) {
           const { error } = await supabase.from("talent_private_folders").insert(kids);
-          if (error) throw new Error(error.message);
+          if (error) throw databaseError(error);
         }
       }
       otherOrder = 99;
@@ -474,7 +475,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
             sort_order: r.sort_order,
           })),
         );
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         otherOrder = flat[flat.length - 1].sort_order + 1;
       }
     }
@@ -482,7 +483,7 @@ export const restoreDefaultFolder = createServerFn({ method: "POST" })
     const { error: otherErr } = await supabase
       .from("talent_private_folders")
       .insert({ user_id: userId, parent_id: top.id, name: "Other", sort_order: otherOrder });
-    if (otherErr) throw new Error(otherErr.message);
+    if (otherErr) throw databaseError(otherErr);
 
     return { id: top.id, restored: true };
   });
@@ -512,7 +513,7 @@ export const listVaultCopyTargets = createServerFn({ method: "GET" })
       .eq("talent_user_id", userId)
       .eq("status", "active")
       .is("ended_at", null);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const rows = (links ?? []) as {
       id: string;
       agency_id: string;
@@ -633,7 +634,7 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
         contentType: checked.mimeType,
         upsert: false,
       });
-    if (upErr) throw new Error(upErr.message);
+    if (upErr) throw databaseError(upErr);
 
     // 6. Register the copy as a talent-originated shared document.
     const now = new Date().toISOString();
@@ -659,7 +660,7 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
       .single();
     if (sErr) {
       await supabaseAdmin.storage.from("talent-documents").remove([copyPath]);
-      throw new Error(sErr.message);
+      throw databaseError(sErr);
     }
 
     await supabaseAdmin.from("talent_shared_document_versions").insert({

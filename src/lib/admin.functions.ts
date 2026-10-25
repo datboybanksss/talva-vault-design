@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -86,14 +87,14 @@ async function assertAdmin(supabase: any, userId: string) {
     _user_id: userId,
     _role: "admin",
   });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
 }
 
 async function assertAdminCanEdit(supabase: any, userId: string) {
   await assertAdmin(supabase, userId);
   const { data, error } = await supabase.rpc("can_admin_edit", { _user_id: userId });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: view-only administrators cannot perform this action.");
 }
 
@@ -108,7 +109,7 @@ async function adminPermissionLevel(supabase: any, userId: string) {
     .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   const isMainAdmin = !!row?.is_main_admin;
   return {
     isMainAdmin,
@@ -134,7 +135,7 @@ async function assertAdminCanSupportAgencies(supabase: any, userId: string) {
 async function assertMainAdmin(supabase: any, userId: string) {
   await assertAdmin(supabase, userId);
   const { data, error } = await supabase.rpc("is_main_admin", { _user_id: userId });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: main administrator only.");
 }
 
@@ -151,7 +152,7 @@ async function assertCanInviteAdministrator(supabase: any, userId: string) {
     .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   const permissionLevel = (row?.permission_level ?? "view_only") as string;
   const isMainAdmin = !!row?.is_main_admin;
   if (!isMainAdmin && !canInviteAdministrators(permissionLevel)) {
@@ -298,7 +299,7 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
       .eq("id", userId)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAudit(
       supabase,
@@ -450,7 +451,7 @@ async function loadAgenciesWithInvitations(supabase: any) {
     .from("agencies")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
 
   // talent counts per agency — same definition as the dashboard and Reporting
   const talent = await fetchOnboardedTalentLinks(supabase);
@@ -537,7 +538,7 @@ export const listAccounts = createServerFn({ method: "GET" })
       .from("talent_profiles")
       .select("id, user_id, full_name, email, created_at, activation_completed_at, is_test, paused_at, suspended_at")
       .is("deleted_at", null);
-    if (pErr) throw new Error(pErr.message);
+    if (pErr) throw databaseError(pErr);
     const userIds = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
     const linksByUser = new Map<string, string[]>();
     if (userIds.length) {
@@ -546,7 +547,7 @@ export const listAccounts = createServerFn({ method: "GET" })
         .select("talent_user_id, agency_id, status")
         .in("talent_user_id", userIds)
         .in("status", ["active", "needs_review"]);
-      if (lErr) throw new Error(lErr.message);
+      if (lErr) throw databaseError(lErr);
       for (const l of links ?? []) {
         const name = agencyName.get(l.agency_id);
         if (!name) continue;
@@ -626,7 +627,7 @@ export const setAccountTest = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select(`id, ${label}`)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!row) throw new Error("We couldn't find that account.");
     await logAudit(
       supabase,
@@ -658,7 +659,7 @@ export const getTalentAccountById = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .is("deleted_at", null)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!p) return null;
     let agencies: { name: string; status: string }[] = [];
     if (p.user_id) {
@@ -687,7 +688,7 @@ export const getAgencyById = createServerFn({ method: "GET" })
       .select("*")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAudit(supabase, userId, claims?.email, "view_agency", "agency", data.id, agency?.name);
     return agency;
   });
@@ -699,7 +700,7 @@ export const getReadOnlyYears = createServerFn({ method: "GET" })
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase.rpc("post_end_read_only_years");
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { years: Number(data) };
   });
 
@@ -715,7 +716,7 @@ async function banUsers(admin: any, userIds: string[]): Promise<string[]> {
     const until = u?.user?.banned_until ? new Date(u.user.banned_until).getTime() : 0;
     if (until > Date.now()) continue; // already blocked for another reason: leave it alone
     const { error } = await admin.auth.admin.updateUserById(id, { ban_duration: BAN_DURATION });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     banned.push(id);
   }
   // End verified two-step sessions so nothing carries on after the pause.
@@ -726,7 +727,7 @@ async function banUsers(admin: any, userIds: string[]): Promise<string[]> {
 async function unbanUsers(admin: any, userIds: string[]) {
   for (const id of [...new Set(userIds)]) {
     const { error } = await admin.auth.admin.updateUserById(id, { ban_duration: "none" });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
   }
 }
 
@@ -762,7 +763,7 @@ export const changeAccountState = createServerFn({ method: "POST" })
     const admin = supabaseAdmin as any;
     const table = data.type === "agency" ? "agencies" : "talent_profiles";
     const { data: row, error: rErr } = await admin.from(table).select("*").eq("id", data.id).maybeSingle();
-    if (rErr) throw new Error(rErr.message);
+    if (rErr) throw databaseError(rErr);
     if (!row || (data.type === "talent" && row.deleted_at)) throw new Error("We couldn't find that account.");
     const state = {
       paused: !!row.paused_at,
@@ -818,7 +819,7 @@ export const changeAccountState = createServerFn({ method: "POST" })
     }
 
     const { error: uErr } = await admin.from(table).update(patch).eq("id", data.id);
-    if (uErr) throw new Error(uErr.message);
+    if (uErr) throw databaseError(uErr);
     const label = data.type === "agency" ? row.name : row.full_name || row.email;
     await logAudit(supabase, userId, claims?.email, `${data.action}_${data.type}`, data.type, data.id, label, {
       ...(needsReason
@@ -849,7 +850,7 @@ export const listAgencyInvitationsForAgency = createServerFn({ method: "GET" })
       .select("*")
       .eq("agency_id", data.agency_id)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return mapEffectiveStatus(rows);
   });
 
@@ -864,7 +865,7 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
       .select("*")
       .eq("agency_id", data.agency_id)
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     // Inert invitations (to staff/admin accounts etc.) are not real invitations.
     const inert = await inertInvitationIds(supabase);
     return mapEffectiveStatus((rows ?? []).filter((r: any) => !inert.has(r.id)));
@@ -881,7 +882,7 @@ export const getInvitationById = createServerFn({ method: "GET" })
       .select("*")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return inv;
   });
 
@@ -895,7 +896,7 @@ export const dismissNotification = createServerFn({ method: "POST" })
       .from("admin_notifications")
       .update({ dismissed_at: new Date().toISOString(), dismissed_by: userId })
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -916,7 +917,7 @@ export const dismissComputedNotification = createServerFn({ method: "POST" })
       },
       { onConflict: "user_id,kind" },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return { ok: true };
   });
 
@@ -932,7 +933,7 @@ export const listAgencyInvitations = createServerFn({ method: "GET" })
       .from("agency_invitations")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return mapEffectiveStatus(data);
   });
 
@@ -1003,7 +1004,7 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
     )
       .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     return {
       rows: mapEffectiveStatus(rows),
@@ -1065,8 +1066,8 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
           .limit(5000),
         supabase.from("independent_talent_invitations").select("id, talent_name, email").limit(5000),
       ]);
-      if (ag.error) throw new Error(ag.error.message);
-      if (ta.error) throw new Error(ta.error.message);
+      if (ag.error) throw databaseError(ag.error);
+      if (ta.error) throw databaseError(ta.error);
       searchIds.agency = (ag.data ?? [])
         .filter((r: any) => matchesSearch([r.agency_name, r.contact_person, r.email], term))
         .map((r: any) => r.id);
@@ -1137,7 +1138,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         )
           .order("created_at", { ascending: false })
           .range(0, window - 1);
-        if (error) throw new Error(error.message);
+        if (error) throw databaseError(error);
         return (rows ?? []).map((r: any) => ({
           ...r,
           type: t,
@@ -1203,7 +1204,7 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (agencyErr) throw new Error(agencyErr.message);
+    if (agencyErr) throw databaseError(agencyErr);
 
     const { data: inv, error } = await supabase
       .from("agency_invitations")
@@ -1219,7 +1220,7 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAudit(
       supabase,
@@ -1261,7 +1262,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
       .select("id, agency_id, agency_name, email, status")
       .eq("id", data.id)
       .single();
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) throw databaseError(iErr);
     if (inv.status !== "draft") {
       throw new Error(
         `This invitation is already ${inv.status} and can no longer be edited as a draft.`,
@@ -1305,7 +1306,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .single();
-    if (uErr) throw new Error(uErr.message);
+    if (uErr) throw databaseError(uErr);
 
     if (inv.agency_id) {
       const agencyPatch: Record<string, unknown> = {};
@@ -1360,7 +1361,7 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
       .select("id, agency_name, email, business_type, status")
       .eq("id", data.id)
       .single();
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) throw databaseError(iErr);
     if (inv.status !== "draft") {
       throw new Error(`Invitation is already ${inv.status}, cannot finalize.`);
     }
@@ -1402,7 +1403,7 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .single();
-    if (uErr) throw new Error(uErr.message);
+    if (uErr) throw databaseError(uErr);
 
     await logAudit(
       supabase,
@@ -1429,7 +1430,7 @@ export const listComplianceDocuments = createServerFn({ method: "GET" })
       .select("*")
       .eq("invitation_id", data.invitation_id)
       .order("created_at", { ascending: true });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return rows ?? [];
   });
 
@@ -1456,7 +1457,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
       .select("agency_id, business_type, agency_name")
       .eq("id", data.invitation_id)
       .single();
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) throw databaseError(iErr);
     if (!inv.business_type) throw new Error("Business type not set.");
     if (!data.storage_path.startsWith(`${data.invitation_id}/`)) {
       throw new Error("Invalid storage path.");
@@ -1478,7 +1479,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
       .from("agency_compliance_documents")
       .select("id, file_name")
       .eq("invitation_id", data.invitation_id);
-    if (exErr) throw new Error(exErr.message);
+    if (exErr) throw databaseError(exErr);
     const clash = (existingDocs ?? []).some(
       (d: { file_name: string }) => normalise(d.file_name) === normalise(data.file_name),
     );
@@ -1507,7 +1508,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAudit(
       supabase,
       userId,
@@ -1532,10 +1533,10 @@ export const deleteComplianceDocument = createServerFn({ method: "POST" })
       .select("id, storage_path, file_name, invitation_id")
       .eq("id", data.id)
       .single();
-    if (fErr) throw new Error(fErr.message);
+    if (fErr) throw databaseError(fErr);
     await supabase.storage.from("agency-compliance-docs").remove([doc.storage_path]);
     const { error } = await supabase.from("agency_compliance_documents").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAudit(
       supabase,
       userId,
@@ -1562,7 +1563,7 @@ export const deleteAgencyInvitation = createServerFn({ method: "POST" })
       .select("*")
       .eq("id", data.id)
       .single();
-    if (iErr) throw new Error(iErr.message);
+    if (iErr) throw databaseError(iErr);
     if (inv.status === "accepted") {
       throw new Error(
         "This invitation has been accepted — the agency is live. Use Suspend/Pause on the agency instead.",
@@ -1603,7 +1604,7 @@ export const deleteAgencyInvitation = createServerFn({ method: "POST" })
     }
 
     const { error: delErr } = await supabase.from("agency_invitations").delete().eq("id", data.id);
-    if (delErr) throw new Error(delErr.message);
+    if (delErr) throw databaseError(delErr);
 
     await logAudit(
       supabase,
@@ -1663,7 +1664,7 @@ export const resendInvitation = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAudit(
       supabase,
       userId,
@@ -1690,7 +1691,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
       .eq("status", "pending")
       .select()
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("Only an open invitation can be revoked.");
     await logAudit(
       supabase,
@@ -1717,7 +1718,7 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
       .select("status, email, agency_name")
       .eq("id", data.id)
       .single();
-    if (exErr) throw new Error(exErr.message);
+    if (exErr) throw databaseError(exErr);
     if (existing.status === "accepted") {
       throw new Error(
         "BR-INV-004: This invitation has been accepted. Update the email via account settings instead.",
@@ -1734,7 +1735,7 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAudit(
       supabase,
       userId,
@@ -1830,7 +1831,7 @@ export const listAuditLog = createServerFn({ method: "GET" })
       q = q.or(`actor_email.ilike.%${s}%,action.ilike.%${s}%,target_label.ilike.%${s}%`);
     }
     const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return rows ?? [];
   });
 
@@ -1845,7 +1846,7 @@ export const getAuditLogSummary = createServerFn({ method: "GET" })
       .select("action, actor_email, created_at")
       .order("created_at", { ascending: false })
       .limit(5000);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const rows = (data ?? []) as any[];
     const start = new Date();
     start.setHours(0, 0, 0, 0);
@@ -1872,7 +1873,7 @@ export const listBillingDocs = createServerFn({ method: "GET" })
       .from("agency_billing_docs")
       .select("*, agencies!inner(name)")
       .order("issued_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     await logAudit(
       supabase,
       userId,
@@ -1923,7 +1924,7 @@ export const listAdministrators = createServerFn({ method: "GET" })
         "user_id, role, is_main_admin, permission_level, created_at, suspended, suspended_at, suspended_reason",
       )
       .eq("role", "admin");
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     const ids = (roles ?? []).map((r: any) => r.user_id);
     if (ids.length === 0) return [];
     const { data: profs } = await supabase
@@ -1957,7 +1958,7 @@ export const listAdminInvitations = createServerFn({ method: "GET" })
       .from("admin_invitations")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return mapEffectiveStatus(data);
   });
 
@@ -1996,7 +1997,7 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
 
     await logAudit(
       supabase,
@@ -2042,7 +2043,7 @@ export const updateAdminInvitation = createServerFn({ method: "POST" })
       .select("id, email, permission_level, status")
       .eq("id", data.id)
       .maybeSingle();
-    if (cErr) throw new Error(cErr.message);
+    if (cErr) throw databaseError(cErr);
     if (!current) throw new Error("Invitation not found.");
     if (current.status !== "pending") {
       throw new Error(
@@ -2057,7 +2058,7 @@ export const updateAdminInvitation = createServerFn({ method: "POST" })
       .eq("status", "pending")
       .select()
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("This invitation could not be updated.");
 
     await logAudit(
@@ -2098,7 +2099,7 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
       .eq("status", "pending")
       .select()
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("Only an open invitation can be revoked.");
     await logAudit(
       supabase,
@@ -2132,7 +2133,7 @@ export const resendAdminInvitation = createServerFn({ method: "POST" })
       .select("id, email, status, permission_level")
       .eq("id", data.id)
       .maybeSingle();
-    if (exErr) throw new Error(exErr.message);
+    if (exErr) throw databaseError(exErr);
     if (!existing) throw new Error("Invitation not found.");
     if (existing.status !== "pending") {
       throw new Error(
@@ -2148,7 +2149,7 @@ export const resendAdminInvitation = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select()
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("You do not have permission to resend this invitation.");
 
     await logAudit(
@@ -2180,7 +2181,7 @@ export const deleteAdminInvitation = createServerFn({ method: "POST" })
       .select("id, email, status, permission_level, accepted_at")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     if (!inv) throw new Error("Invitation not found.");
     if (inv.status === "accepted" || inv.accepted_at) {
       throw new Error("An accepted invitation cannot be deleted.");
@@ -2193,7 +2194,7 @@ export const deleteAdminInvitation = createServerFn({ method: "POST" })
       .from("admin_invitations")
       .delete()
       .eq("id", data.id);
-    if (delErr) throw new Error(delErr.message);
+    if (delErr) throw databaseError(delErr);
 
     await logAudit(
       supabase,
@@ -2430,7 +2431,7 @@ export const updateAdministrator = createServerFn({ method: "POST" })
       .eq("user_id", data.user_id)
       .eq("role", "admin")
       .maybeSingle();
-    if (rErr) throw new Error(rErr.message);
+    if (rErr) throw databaseError(rErr);
     if (!targetRole) throw new Error("That user is not an administrator.");
 
     const { data: targetProfile } = await supabase
@@ -2454,7 +2455,7 @@ export const updateAdministrator = createServerFn({ method: "POST" })
           .from("profiles")
           .update({ designation: nextDesignation })
           .eq("id", data.user_id);
-        if (pErr) throw new Error(pErr.message);
+        if (pErr) throw databaseError(pErr);
         changes.designation = { from: currentDesignation, to: nextDesignation };
       }
     }
@@ -2469,7 +2470,7 @@ export const updateAdministrator = createServerFn({ method: "POST" })
         .update({ permission_level: data.permission_level })
         .eq("user_id", data.user_id)
         .eq("role", "admin");
-      if (uErr) throw new Error(uErr.message);
+      if (uErr) throw databaseError(uErr);
       changes.permission_level = {
         from: targetRole.permission_level,
         to: data.permission_level,
@@ -2523,7 +2524,7 @@ export const setAdministratorSuspended = createServerFn({ method: "POST" })
       .eq("user_id", data.user_id)
       .eq("role", "admin")
       .maybeSingle();
-    if (tErr) throw new Error(tErr.message);
+    if (tErr) throw databaseError(tErr);
     if (!target) throw new Error("That user is not an administrator.");
     if (target.is_main_admin) {
       throw new Error("The Main Administrator cannot be suspended.");
@@ -2545,7 +2546,7 @@ export const setAdministratorSuspended = createServerFn({ method: "POST" })
       })
       .eq("user_id", data.user_id)
       .eq("role", "admin");
-    if (uErr) throw new Error(uErr.message);
+    if (uErr) throw databaseError(uErr);
 
     await logAudit(
       supabase,
@@ -2577,7 +2578,7 @@ export const removeAdministrator = createServerFn({ method: "POST" })
       .eq("user_id", data.user_id)
       .eq("role", "admin")
       .maybeSingle();
-    if (tErr) throw new Error(tErr.message);
+    if (tErr) throw databaseError(tErr);
     if (!target) throw new Error("That user is not an administrator.");
     if (target.is_main_admin) {
       throw new Error("The Main Administrator cannot be removed.");
@@ -2594,7 +2595,7 @@ export const removeAdministrator = createServerFn({ method: "POST" })
       .delete()
       .eq("user_id", data.user_id)
       .eq("role", "admin");
-    if (dErr) throw new Error(dErr.message);
+    if (dErr) throw databaseError(dErr);
 
     await logAudit(
       supabase,
@@ -2621,6 +2622,6 @@ export const getAdminInvitationById = createServerFn({ method: "GET" })
       .select("*")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return inv;
   });

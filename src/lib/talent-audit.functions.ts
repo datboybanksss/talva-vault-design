@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -39,7 +40,7 @@ async function writeTalentAudit(
     detail,
     ...meta,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw databaseError(error);
   return { ok: true };
 }
 
@@ -187,6 +188,6 @@ export const listTalentAuditLog = createServerFn({ method: "GET" })
       .eq("actor_id", userId)
       .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
-    if (error) throw new Error(error.message);
+    if (error) throw databaseError(error);
     return (rows ?? []) as any[];
   });
