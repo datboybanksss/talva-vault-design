@@ -3781,6 +3781,10 @@ export type Database = {
         Args: { _cutoff: string }
         Returns: number
       }
+      queue_abandoned_upload_objects: {
+        Args: { _cutoff: string }
+        Returns: number
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

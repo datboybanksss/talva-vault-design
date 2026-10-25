@@ -64,6 +64,13 @@
       "when": 1792919128473,
       "tag": "0008_protect_download_only_uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792919380603,
+      "tag": "0009_queue_abandoned_upload_objects",
+      "breakpoints": true
     }
   ]
 }
