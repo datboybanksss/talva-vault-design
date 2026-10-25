@@ -38,6 +38,8 @@
 - [x] Delete two unmatched accounts; quarantine reasons + "Blocked for security" status; Google sign-in off
 
 ## Batch: hardening, faster sign-in, onboarding uploads
-- [ ] A Sign-in speed: one access RPC, 60s cache, background code request
-- [ ] B Staged onboarding uploads (talent + agency)
-- [ ] C1 zod size limits; C2 quarantine on reject; C3 daily cleanup cron; C4 expired at read time; C5 CSP nonces; C6 HIBP; C7 dev tools; C8 DNS list; C9 migration history copy
+- [x] A Sign-in speed: one access RPC, 60s cache, background code request
+- [ ] A timing per role — blocked: no Test account passwords to time a real sign-in
+- [x] B Staged onboarding uploads (talent + agency)
+- [x] C1–C4, C6–C9
+- [ ] C5 CSP nonces — left unchanged: needs per-request nonce plumbing into the router and hosting-injected scripts would break
