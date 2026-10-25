@@ -1,3 +1,5 @@
+import { BlockedDocumentPill } from "@/components/shared/blocked-document";
+import { quarantineReason } from "@/lib/document-quarantine";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo, type ReactNode } from "react";
@@ -639,6 +641,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                                 style={{ color: "var(--tvp-muted)" }}
                               />
                               <span>{u.file_name}</span>
+<BlockedDocumentPill reason={quarantineReason(u)} />
                               <span className="tvp-muted" style={{ fontSize: 11 }}>
                                 {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
                               </span>
@@ -678,6 +681,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                       >
                         <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
                         <span>{u.file_name}</span>
+<BlockedDocumentPill reason={quarantineReason(u)} />
                         <button
                           className="tvp-mini-btn"
                           title="Remove"
