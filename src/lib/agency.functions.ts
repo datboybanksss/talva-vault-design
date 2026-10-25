@@ -2579,10 +2579,7 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
-    // Invoices fall overdue with the calendar, not only when a payment is
-    // recorded. The hourly sweep keeps this true in the background; running it
-    // here means the list a person is looking at is never stale.
-    await supabase.rpc("sweep_overdue_invoices");
+    // Only the privileged hourly job may run the global overdue sweep.
 
     const { data, error } = await supabase
       .from("agency_billing_docs")

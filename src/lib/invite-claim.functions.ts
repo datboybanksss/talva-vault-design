@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { exactIlike, sameEmail } from "./invite-email-check";
+import { invitationClaimError } from "./invite-claim-error";
 
 /**
  * Invitations opened by people who *already* have a TalVault account.
@@ -228,7 +229,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
           is_main_admin: false,
         });
         if (roleErr && !/duplicate|unique/i.test(roleErr.message))
-          return { ok: false, code: "unknown", message: roleErr.message };
+          return { ok: false, code: "unknown", message: invitationClaimError(roleErr) };
       }
 
       await supabaseAdmin
@@ -301,7 +302,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
         _user_id: userId,
         _email: inv.email,
       });
-      if (rpcErr) return { ok: false, code: "unknown", message: rpcErr.message };
+      if (rpcErr) return { ok: false, code: "unknown", message: invitationClaimError(rpcErr) };
 
       return { ok: true, kind: data.kind, dest, already_linked: false };
     }
@@ -365,7 +366,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
           return {
             ok: false,
             code: "unknown",
-            message: agErr?.message ?? "Could not create the workspace.",
+            message: invitationClaimError(agErr),
           };
         agencyId = agency.id;
         await supabaseAdmin
@@ -394,7 +395,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
         .from("agency_members")
         .insert({ agency_id: agencyId, user_id: userId, role: memberRole, suspended: false });
       if (memErr && !/duplicate|unique/i.test(memErr.message))
-        return { ok: false, code: "unknown", message: memErr.message };
+        return { ok: false, code: "unknown", message: invitationClaimError(memErr) };
     }
 
     await supabaseAdmin
