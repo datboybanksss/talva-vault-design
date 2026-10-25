@@ -89,7 +89,10 @@ export async function cleanupUnvalidatedUploads(now = Date.now()): Promise<numbe
   if (error) throw new Error("The upload cleanup could not be completed.");
   const { data: orphaned, error: orphanError } = await supabaseAdmin.rpc("queue_abandoned_upload_objects", { _cutoff: cutoff });
   if (orphanError) throw new Error("The upload cleanup could not be completed.");
+  // Onboarding files staged before an invitation was saved, never attached.
+  const { data: staged, error: stagedError } = await supabaseAdmin.rpc("queue_stale_onboarding_uploads" as never, { _cutoff: cutoff } as never);
+  if (stagedError) throw new Error("The upload cleanup could not be completed.");
   const { drainDocumentStoragePurgeQueue } = await import("./document-purge.server");
   await drainDocumentStoragePurgeQueue();
-  return (data ?? 0) + (orphaned ?? 0);
+  return (data ?? 0) + (orphaned ?? 0) + ((staged as number | null) ?? 0);
 }
