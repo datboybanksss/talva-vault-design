@@ -1,5 +1,6 @@
 # Roadmap
-- [x] TVA-SEC-101: JWT-session-bound codes; global bearer guard; 65 restrictive public-table policies and private-storage policy; Data API RPC guard; code-screen routing; 23 regressions and real Test-session A/B flow verified. Published frontend rollout remains pending publication.
+- [ ] TVA-SEC-101 deferred — 2FA owned by the live app; requires a new product owner decision before build-level enforcement.
+- [ ] Revert TVA-SEC-101: restore password-only build access, remove database guards, retain safe MFA write revokes, verify dedicated Test access.
 - [x] Pause/Suspend for agencies and talent
 - [x] Row actions menu on every Accounts row
 - [x] Report why invited agencies appear in Accounts (awaiting Lara decision)
