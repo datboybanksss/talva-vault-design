@@ -2183,7 +2183,7 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
     const { data: versions, error } = await supabase
       .from("talent_shared_document_versions")
       .select(
-        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at, locked_until",
+        "id, version_number, name, storage_path, size_bytes, mime_type, uploaded_by, created_at, locked_until, validated_at, quarantine_reason",
       )
       .eq("document_id", data.document_id)
       .order("version_number", { ascending: false });
