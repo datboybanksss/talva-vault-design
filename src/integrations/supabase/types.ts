@@ -698,6 +698,7 @@ export type Database = {
           id: string
           invitation_id: string
           mime_type: string | null
+          quarantine_reason: string | null
           size_bytes: number | null
           storage_path: string
           uploaded_by: string
@@ -712,6 +713,7 @@ export type Database = {
           id?: string
           invitation_id: string
           mime_type?: string | null
+          quarantine_reason?: string | null
           size_bytes?: number | null
           storage_path: string
           uploaded_by: string
@@ -726,6 +728,7 @@ export type Database = {
           id?: string
           invitation_id?: string
           mime_type?: string | null
+          quarantine_reason?: string | null
           size_bytes?: number | null
           storage_path?: string
           uploaded_by?: string
@@ -2689,6 +2692,7 @@ export type Database = {
           id: string
           invitation_id: string
           mime_type: string | null
+          quarantine_reason: string | null
           size_bytes: number | null
           storage_path: string
           uploaded_by: string
@@ -2701,6 +2705,7 @@ export type Database = {
           id?: string
           invitation_id: string
           mime_type?: string | null
+          quarantine_reason?: string | null
           size_bytes?: number | null
           storage_path: string
           uploaded_by: string
@@ -2713,6 +2718,7 @@ export type Database = {
           id?: string
           invitation_id?: string
           mime_type?: string | null
+          quarantine_reason?: string | null
           size_bytes?: number | null
           storage_path?: string
           uploaded_by?: string
@@ -2953,6 +2959,7 @@ export type Database = {
           name: string
           notes: string | null
           pending_review: boolean
+          quarantine_reason: string | null
           reminder_at: string | null
           size_bytes: number | null
           storage_path: string | null
@@ -2973,6 +2980,7 @@ export type Database = {
           name: string
           notes?: string | null
           pending_review?: boolean
+          quarantine_reason?: string | null
           reminder_at?: string | null
           size_bytes?: number | null
           storage_path?: string | null
@@ -2993,6 +3001,7 @@ export type Database = {
           name?: string
           notes?: string | null
           pending_review?: boolean
+          quarantine_reason?: string | null
           reminder_at?: string | null
           size_bytes?: number | null
           storage_path?: string | null
@@ -3176,6 +3185,7 @@ export type Database = {
           locked_until: string | null
           mime_type: string | null
           name: string
+          quarantine_reason: string | null
           retention_min_years_at_upload: number | null
           retention_rule_id: string | null
           retention_stamped_at: string | null
@@ -3193,6 +3203,7 @@ export type Database = {
           locked_until?: string | null
           mime_type?: string | null
           name: string
+          quarantine_reason?: string | null
           retention_min_years_at_upload?: number | null
           retention_rule_id?: string | null
           retention_stamped_at?: string | null
@@ -3210,6 +3221,7 @@ export type Database = {
           locked_until?: string | null
           mime_type?: string | null
           name?: string
+          quarantine_reason?: string | null
           retention_min_years_at_upload?: number | null
           retention_rule_id?: string | null
           retention_stamped_at?: string | null
@@ -3257,6 +3269,7 @@ export type Database = {
           originator: string
           pending_review: boolean
           purge_after: string | null
+          quarantine_reason: string | null
           reminder_at: string | null
           retention_min_years_at_upload: number | null
           retention_rule_id: string | null
@@ -3301,6 +3314,7 @@ export type Database = {
           originator?: string
           pending_review?: boolean
           purge_after?: string | null
+          quarantine_reason?: string | null
           reminder_at?: string | null
           retention_min_years_at_upload?: number | null
           retention_rule_id?: string | null
@@ -3345,6 +3359,7 @@ export type Database = {
           originator?: string
           pending_review?: boolean
           purge_after?: string | null
+          quarantine_reason?: string | null
           reminder_at?: string | null
           retention_min_years_at_upload?: number | null
           retention_rule_id?: string | null
