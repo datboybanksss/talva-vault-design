@@ -1,4 +1,8 @@
 # Roadmap
+- [ ] TVA-SEC-112: verify invitation creation, disable public signup, check existing Google login and report unlinked accounts.
+- [ ] TVA-SEC-113: sanitise invitation claim database failures and test.
+- [ ] TVA-SEC-114/115: revoke anonymous function execution, preserve scheduled sweep and verify invoker-safe admin shares.
+- [ ] TVA-SEC-116: brand billing confirmation with existing tokens; verify light/dark desktop/mobile and POST-only escaping.
 - [x] TVA-SEC-102/111: derived file types, five-table validation receipts, safe streamed responses, legacy SVG download-only, atomic private-reservation cleanup, folder ownership.
 - [x] TVA-SEC-103/104/110: atomic coded shares, fail-closed access, link-ID billing scope, configured email URLs.
 - [x] TVA-SEC-105/106/109: escaped POST-only sender verification, exact invite email match, fail-closed public token limits.
