@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { documentIsValidated, fileResponseHeaders } from "@/lib/file-security";
+import { shareHasCode, privateStoragePathOwned } from "@/lib/share-security";
 
 const BUCKET = "talent-private-documents";
 
@@ -38,7 +40,7 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
         if (new Date(share.expires_at).getTime() < Date.now()) {
           return new Response("Link expired", { status: 403 });
         }
-        if (share.access_code_hash && !verifyTicket(ticket, share.id)) {
+        if (!shareHasCode(share.access_code_hash) || !verifyTicket(ticket, share.id)) {
           return new Response("Access code required", { status: 401 });
         }
         if (mode === "download" && share.permission !== "download") {
@@ -47,11 +49,13 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
 
         const { data: doc } = await supabaseAdmin
           .from("talent_private_documents")
-          .select("id, name, folder_id, storage_path, user_id, mime_type")
+          .select("id, name, folder_id, storage_path, user_id, mime_type, validated_at")
           .eq("id", docId)
           .maybeSingle();
         if (!doc || !doc.storage_path) return new Response("Not found", { status: 404 });
+        if (!documentIsValidated(doc)) return new Response("Document unavailable", { status: 404 });
         if (doc.user_id !== share.created_by) return new Response("Forbidden", { status: 403 });
+        if (!privateStoragePathOwned(doc.storage_path, share.created_by)) return new Response("Forbidden", { status: 403 });
 
         const { resolveShareFolders } = await import("@/lib/loved-one.functions");
         const { folderIds } = await resolveShareFolders(
@@ -68,17 +72,8 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
           .download(doc.storage_path);
         if (error || !file) return new Response("File unavailable", { status: 404 });
 
-        const safeName = doc.name.replace(/["\\\r\n]/g, "_");
         return new Response(file.stream(), {
-          headers: {
-            "Content-Type": doc.mime_type || "application/octet-stream",
-            "Content-Disposition":
-              mode === "download"
-                ? `attachment; filename="${safeName}"`
-                : `inline; filename="${safeName}"`,
-            "Cache-Control": "private, no-store, max-age=0",
-            "X-Robots-Tag": "noindex, nofollow",
-          },
+          headers: fileResponseHeaders(doc.mime_type, doc.name, mode === "download"),
         });
       },
     },

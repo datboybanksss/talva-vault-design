@@ -2,6 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
+import { documentIsValidated } from "./file-security";
+import { shareHasCode, privateStoragePathOwned } from "./share-security";
+import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
 
 async function ensureTalentProfile(supabase: any, userId: string) {
   const { data } = await supabase
@@ -118,7 +121,8 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
         .from("talent_private_documents")
         .select("id")
         .in("id", docIds)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .not("validated_at", "is", null);
       if (dErr) throw new Error(dErr.message);
       if ((owned?.length ?? 0) !== new Set(docIds).size) {
         throw new Error("One or more selected documents aren't available in your vault.");
@@ -127,12 +131,16 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
 
     const { generateAccessCode, hashAccessCode } = await import("@/lib/loved-one-access.server");
 
-    // Insert first so we have the DB-generated token to salt the code hash with.
+    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+    const accessCode = generateAccessCode();
+    // Token and code hash are created atomically with the share.
     const expires = new Date(Date.now() + data.days * 86400_000).toISOString();
     const { data: row, error } = await supabase
       .from("loved_one_shares")
       .insert({
         talent_id: talentId,
+        token,
+        access_code_hash: hashAccessCode(accessCode, token),
         created_by: userId,
         loved_one_name: data.loved_one_name,
         loved_one_email: data.loved_one_email,
@@ -147,14 +155,6 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const accessCode = generateAccessCode();
-    const { error: hashErr } = await supabase
-      .from("loved_one_shares")
-      .update({ access_code_hash: hashAccessCode(accessCode, row.token) })
-      .eq("id", row.id)
-      .eq("created_by", userId);
-    if (hashErr) throw new Error(hashErr.message);
-
     // ---- Notification email (never contains the access code) ----
     let email: { sent: boolean; reason?: string } = { sent: false, reason: "not_requested" };
     if (data.send_email) {
@@ -164,9 +164,8 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
         .select("full_name")
         .eq("id", talentId)
         .maybeSingle();
-      const origin =
-        process.env.PUBLIC_SITE_URL ??
-        "https://id-preview--f47b509e-a49f-44ed-abf5-85631a6dc162.lovable.app";
+      const { requirePublicSiteUrl } = await import("@/lib/brand-email");
+      const origin = requirePublicSiteUrl();
       const mail = buildShareEmail({
         lovedOneName: data.loved_one_name,
         sharerName: prof?.full_name ?? "A TalVault user",
@@ -261,7 +260,7 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
     try {
       const { buildRegeneratedCodeEmail } = await import("@/lib/loved-one-email.server");
       const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
-      const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
+      const { requirePublicSiteUrl } = await import("@/lib/brand-email");
       const { data: prof } = share.talent_id
         ? await supabase
             .from("talent_profiles")
@@ -272,7 +271,7 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
       const mail = buildRegeneratedCodeEmail({
         lovedOneName: share.loved_one_name ?? share.loved_one_email,
         sharerName: prof?.full_name ?? "A TalVault user",
-        link: `${PUBLIC_SITE_URL}/loved-one/${share.token}`,
+        link: `${requirePublicSiteUrl()}/loved-one/${share.token}`,
         expiresAt: share.expires_at,
       });
       const res = await sendInvitationEmail(
@@ -337,7 +336,8 @@ export async function resolveShareFolders(scopeFolderIds: string[], owner: strin
   const kept = new Map<string, any>();
   const queue = scopeFolderIds.filter((id) => byId.has(id));
   while (queue.length) {
-    const id = queue.shift()!;
+    const id = queue.shift();
+    if (!id) continue;
     if (kept.has(id)) continue;
     kept.set(id, byId.get(id));
     for (const f of rows) if (f.parent_id === id) queue.push(f.id);
@@ -353,7 +353,7 @@ export async function resolveShareFolders(scopeFolderIds: string[], owner: strin
  * quotes and invoices their Manager has shared with them. Nothing else in the
  * agency's books is reachable through a Loved One link.
  */
-async function loadSharedBilling(talentId: string | null) {
+async function loadSharedBilling(talentId: string | null, owner: string | null) {
   if (!talentId) return [] as any[];
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -361,28 +361,33 @@ async function loadSharedBilling(talentId: string | null) {
     .from("talent_profiles")
     .select("user_id")
     .eq("id", talentId)
+    .eq("user_id", owner ?? "")
     .maybeSingle();
   if (!profile?.user_id) return [] as any[];
 
-  const { data: link } = await supabaseAdmin
+  const { data: allLinks, error: linksError } = await supabaseAdmin
     .from("agency_talent_links")
-    .select("agency_id, display_name")
+    .select("id, agency_id, status")
     .eq("talent_user_id", profile.user_id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (!link) return [] as any[];
+    .order("created_at", { ascending: true });
+  if (linksError) throw new Error("We couldn't load these shared documents. Please try again.");
+  const links = [];
+  for (const link of allLinks ?? []) {
+    const { data: readUntil, error } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: link.id });
+    if (error) throw new Error("We couldn't check access to these documents. Please try again.");
+    if (billingLinkReadable({ ...link, read_until: readUntil })) links.push(link);
+  }
+  if (!links.length) return [] as any[];
 
   const { data: docs } = await supabaseAdmin
     .from("agency_billing_docs")
     .select(
-      "id, kind, number, client_name, talent_name, description, issued_at, due_date, currency, notes, status, recipient_address, recipient_vat_number, recipient_email, acceptance_window_days, payment_terms_days",
+      "id, agency_id, talent_link_id, kind, number, client_name, talent_name, description, issued_at, due_date, currency, notes, status, recipient_address, recipient_vat_number, recipient_email, acceptance_window_days, payment_terms_days",
     )
-    .eq("agency_id", link.agency_id)
+    .in("talent_link_id", links.map(link => link.id))
     .eq("shared_with_talent", true)
-    .ilike("talent_name", link.display_name)
     .order("issued_at", { ascending: false });
-  const rows = docs ?? [];
+  const rows = (docs ?? []).filter(doc => billingDocumentBelongsToLinks(doc, links));
   if (rows.length === 0) return [] as any[];
 
   const { data: lines } = await supabaseAdmin
@@ -394,19 +399,16 @@ async function loadSharedBilling(talentId: string | null) {
     )
     .order("sort_order", { ascending: true });
 
-  const { data: agency } = await supabaseAdmin
+  const { data: agencies } = await supabaseAdmin
     .from("agencies")
     .select(
-      "name, contact_email, phone, country, business_type, billing_address, is_vat_registered, vat_number, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, accent_color, default_invoice_payment_days, default_quote_acceptance_days, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions",
+      "id, name, contact_email, phone, country, business_type, billing_address, is_vat_registered, vat_number, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, accent_color, default_invoice_payment_days, default_quote_acceptance_days, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions",
     )
-    .eq("id", link.agency_id)
-    .maybeSingle();
-
-  const agencyDoc = { ...(agency ?? { name: "Your Manager" }), logo_url: null };
+    .in("id", links.map(link => link.agency_id));
 
   return rows.map((doc) => ({
     doc,
-    agency: agencyDoc,
+    agency: { ...(agencies?.find(agency => agency.id === doc.agency_id) ?? { name: "Your manager" }), logo_url: null },
     lines: (lines ?? [])
       .filter((l) => l.doc_id === doc.id)
       .map((l) => ({
@@ -490,7 +492,7 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
 
     // Gate: an access code is required and the caller must present a valid ticket.
     const { verifyTicket } = await import("@/lib/loved-one-access.server");
-    if (share.access_code_hash && !verifyTicket(data.ticket, share.id)) {
+    if (!shareHasCode(share.access_code_hash) || !verifyTicket(data.ticket, share.id)) {
       // Nothing about the documents is returned before the code is accepted.
       return {
         status: "code_required" as const,
@@ -516,6 +518,7 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
             .in("folder_id", folderIds)
             .eq("user_id", owner)
+            .not("validated_at", "is", null)
         : Promise.resolve({ data: [] as any[] }),
       docIds.length && owner
         ? supabaseAdmin
@@ -523,6 +526,7 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
             .select("id, name, folder_id, mime_type, size_bytes, created_at")
             .in("id", docIds)
             .eq("user_id", owner)
+            .not("validated_at", "is", null)
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
@@ -531,7 +535,7 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
     for (const d of docsInFolders.data ?? []) dedup.set(d.id, d);
     for (const d of singleDocs.data ?? []) dedup.set(d.id, d);
 
-    const billing = share.share_kind === "billing" ? await loadSharedBilling(share.talent_id) : [];
+    const billing = share.share_kind === "billing" ? await loadSharedBilling(share.talent_id, share.created_by) : [];
 
     const { data: counter } = await supabaseAdmin
       .from("loved_one_shares")
@@ -585,7 +589,7 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
     if (!share || "_invalid" in share) throw new Error("This link is no longer valid.");
 
     const { verifyTicket } = await import("@/lib/loved-one-access.server");
-    if (share.access_code_hash && !verifyTicket(data.ticket, share.id)) {
+    if (!shareHasCode(share.access_code_hash) || !verifyTicket(data.ticket, share.id)) {
       throw new Error("Enter the access code first.");
     }
     if (data.mode === "download" && share.permission !== "download") {
@@ -595,11 +599,13 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: doc } = await supabaseAdmin
       .from("talent_private_documents")
-      .select("id, name, folder_id, storage_path, user_id")
+      .select("id, name, folder_id, storage_path, user_id, validated_at")
       .eq("id", data.document_id)
       .maybeSingle();
     if (!doc || !doc.storage_path) throw new Error("Document not found.");
+    if (!documentIsValidated(doc)) throw new Error("This document is not available yet.");
     if (doc.user_id !== share.created_by) throw new Error("Not authorised.");
+    if (!privateStoragePathOwned(doc.storage_path, share.created_by)) throw new Error("Not authorised.");
 
     const { folderIds } = await resolveShareFolders(
       (share.scope as any)?.private_folder_ids ?? [],
