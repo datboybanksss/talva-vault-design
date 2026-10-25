@@ -122,7 +122,7 @@ import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { BlockedDocumentPill, blockedReason, explainBlocked } from "@/components/shared/blocked-document";
-import type { QuarantineReason } from "@/lib/document-quarantine";
+import { quarantineReason, type QuarantineReason } from "@/lib/document-quarantine";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { friendlyError } from "@/lib/friendly-error";
 
@@ -1793,7 +1793,10 @@ function VersionsDialog({
                     <strong>v{v.version_number}</strong>
                     {data?.currentVersionId === v.id ? " · current" : ""}
                   </td>
-                  <td>{v.name}</td>
+                  <td>
+                    {v.name}
+                    <BlockedDocumentPill reason={quarantineReason(v)} />
+                  </td>
                   <td>{v.uploaded_by_name ?? "—"}</td>
                   <td className="tvp-muted">{new Date(v.created_at).toLocaleString("en-GB")}</td>
                   <td className="tvp-muted">
@@ -1803,15 +1806,25 @@ function VersionsDialog({
                     <div className="flex gap-1 justify-end">
                       <button
                         className="tvp-mini-btn"
-                        title="View"
-                        onClick={() => open(v.id, "inline")}
+                        title={blockedReason(quarantineReason(v)) ?? "View"}
+                        aria-disabled={Boolean(quarantineReason(v))}
+                        onClick={() => {
+                          const r = quarantineReason(v);
+                          if (r) return explainBlocked(r);
+                          open(v.id, "inline");
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         className="tvp-mini-btn"
-                        title="Download"
-                        onClick={() => open(v.id, "attachment")}
+                        title={blockedReason(quarantineReason(v)) ?? "Download"}
+                        aria-disabled={Boolean(quarantineReason(v))}
+                        onClick={() => {
+                          const r = quarantineReason(v);
+                          if (r) return explainBlocked(r);
+                          open(v.id, "attachment");
+                        }}
                       >
                         <Download className="h-4 w-4" />
                       </button>
