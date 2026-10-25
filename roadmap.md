@@ -36,3 +36,8 @@
 - [ ] Platform look: shared screens (sign-in, 2FA, activation wizards, Terms gate, error pages, emails)
 
 - [x] Delete two unmatched accounts; quarantine reasons + "Blocked for security" status; Google sign-in off
+
+## Batch: hardening, faster sign-in, onboarding uploads
+- [ ] A Sign-in speed: one access RPC, 60s cache, background code request
+- [ ] B Staged onboarding uploads (talent + agency)
+- [ ] C1 zod size limits; C2 quarantine on reject; C3 daily cleanup cron; C4 expired at read time; C5 CSP nonces; C6 HIBP; C7 dev tools; C8 DNS list; C9 migration history copy
