@@ -600,9 +600,9 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                       className="tvp-callout"
                       style={{
                         padding: 12,
-                        border: `1px solid ${uploaded.length ? "var(--tvp-green)" : "var(--tvp-border)"}`,
+                        border: `1px solid ${usable.length ? "var(--tvp-green)" : "var(--tvp-border)"}`,
                         borderRadius: 8,
-                        background: uploaded.length ? "rgba(22,163,74,0.06)" : "var(--tvp-surface)",
+                        background: usable.length ? "rgba(22,163,74,0.06)" : "var(--tvp-surface)",
                       }}
                     >
                       <div
@@ -614,7 +614,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {uploaded.length ? (
+                          {usable.length ? (
                             <CheckCircle2
                               className="h-4 w-4"
                               style={{ color: "var(--tvp-green)" }}
@@ -627,14 +627,14 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                           )}
                           <strong style={{ fontSize: 14 }}>{slot.label}</strong>
                           <span className="tvp-muted" style={{ fontSize: 12 }}>
-                            {uploaded.length ? "Uploaded" : "Required"}
+                            {usable.length ? "Uploaded" : "Required"}
                           </span>
                         </div>
                         <label className="tvp-secondary" style={{ cursor: "pointer" }}>
                           <Upload className="h-4 w-4" />
                           {isUploading
                             ? "Uploading…"
-                            : uploaded.length
+                            : usable.length
                               ? "Replace / add"
                               : "Upload"}
                           <input
