@@ -1,0 +1,1 @@
+ALTER TABLE public.loved_one_shares VALIDATE CONSTRAINT active_share_requires_code;

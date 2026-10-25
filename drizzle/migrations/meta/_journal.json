@@ -29,6 +29,13 @@
       "when": 1792918497134,
       "tag": "0003_validated_upload_quarantine_and_pause_gaps",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792918699819,
+      "tag": "0004_require_coded_active_shares",
+      "breakpoints": true
     }
   ]
 }

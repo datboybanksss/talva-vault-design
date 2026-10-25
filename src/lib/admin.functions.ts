@@ -1465,7 +1465,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
     // TVA-SEC-004: compliance documents are uploaded browser -> storage, so the
     // declared name/type/size are untrusted. Verify the stored bytes.
     const { validateStoredUpload } = await import("@/lib/file-validation.server");
-    await validateStoredUpload({
+    const checkedUpload = await validateStoredUpload({
       bucket: "agency-compliance-docs",
       path: data.storage_path,
       claimedMime: data.mime_type ?? null,
@@ -1490,7 +1490,8 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
       );
     }
 
-    const { data: row, error } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
       .from("agency_compliance_documents")
       .insert({
         invitation_id: data.invitation_id,
@@ -1499,8 +1500,9 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
         doc_slot: data.doc_slot,
         file_name: data.file_name,
         storage_path: data.storage_path,
-        mime_type: data.mime_type ?? null,
-        size_bytes: data.size_bytes ?? null,
+        mime_type: checkedUpload.mimeType,
+        validated_at: new Date().toISOString(),
+        size_bytes: checkedUpload.sizeBytes,
         uploaded_by: userId,
       })
       .select()

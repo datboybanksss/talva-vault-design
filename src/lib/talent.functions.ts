@@ -408,11 +408,12 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
     // RLS ensures the caller can only SELECT their own shared docs.
     const { data: doc, error } = await supabase
       .from("talent_shared_documents")
-      .select("id, name, storage_path, talent_link_id")
+      .select("id, name, storage_path, talent_link_id, validated_at")
       .eq("id", data.document_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!doc) throw new Error("Document not found.");
+    if (!doc.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached to this document.");
 
     // Double-check ownership defensively.
@@ -578,6 +579,10 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
       throw new Error("This request is closed.");
     }
 
+    const expectedPrefix = `agency/${req.agency_id}/link/${link.id}/requests/${req.id}/`;
+    if (!data.storage_path.startsWith(expectedPrefix) || data.storage_path.includes("..")) throw new Error("That file does not belong to this request.");
+    const { validateStoredUpload } = await import("@/lib/file-validation.server");
+    const checkedUpload = await validateStoredUpload({ bucket: "talent-documents", path: data.storage_path, claimedMime: data.mime_type });
     const { data: doc, error: dErr } = await supabaseAdmin
       .from("talent_shared_documents")
       .insert({
@@ -588,6 +593,9 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
         status: "needs_review",
         storage_path: data.storage_path,
         uploaded_by: userId,
+        validated_at: new Date().toISOString(),
+        mime_type: checkedUpload.mimeType,
+        size_bytes: checkedUpload.sizeBytes,
       })
       .select("id")
       .single();
@@ -599,8 +607,9 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
       version_number: 1,
       storage_path: data.storage_path,
       name: data.filename,
-      size_bytes: data.size_bytes ?? null,
-      mime_type: data.mime_type ?? null,
+      size_bytes: checkedUpload.sizeBytes,
+      mime_type: checkedUpload.mimeType,
+      validated_at: new Date().toISOString(),
       uploaded_by: userId,
     });
     await supabaseAdmin
@@ -993,9 +1002,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
     const COLS =
       "id, kind, number, client_name, talent_name, issued_at, due_date, paid_at, sent_at, accepted_at, currency, total_cents, status, description";
 
-    // Documents linked to one of the caller's own links, plus — until older
-    // documents are linked — the previous name match, scoped per link to that
-    // link's own agency and only where no talent link is set.
+    // Billing access is always linked by immutable roster ID, never a name.
     const fetchFor = async (shared: boolean) => {
       const out = new Map<string, any>();
       const linkIds = myLinks.map((l) => l.id);
@@ -1005,16 +1012,6 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
         .in("talent_link_id", linkIds)
         .eq("shared_with_talent", shared);
       for (const d of direct ?? []) out.set(d.id, d);
-      for (const l of myLinks) {
-        const { data: legacy } = await supabaseAdmin
-          .from("agency_billing_docs")
-          .select(COLS)
-          .eq("agency_id", l.agency_id)
-          .is("talent_link_id", null)
-          .eq("shared_with_talent", shared)
-          .ilike("talent_name", l.display_name);
-        for (const d of legacy ?? []) out.set(d.id, d);
-      }
       return Array.from(out.values()).sort((x, y) =>
         String(y.issued_at).localeCompare(String(x.issued_at)),
       );
