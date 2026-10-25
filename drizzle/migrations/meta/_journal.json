@@ -92,6 +92,13 @@
       "when": 1792955327953,
       "tag": "0012_document_quarantine_reason",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792955402906,
+      "tag": "0013_version_quarantine_receipt",
+      "breakpoints": true
     }
   ]
 }

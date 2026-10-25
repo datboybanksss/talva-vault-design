@@ -1,0 +1,5 @@
+CREATE OR REPLACE FUNCTION public.tsdv_immutable() RETURNS trigger LANGUAGE plpgsql SET search_path TO 'pg_catalog','public' AS $function$ BEGIN IF TG_OP='UPDATE' THEN
+ IF auth.role()='service_role' AND OLD.validated_at IS NULL AND NEW.validated_at IS NOT NULL AND NEW.quarantine_reason IS NULL AND (to_jsonb(NEW)-ARRAY['validated_at','mime_type','size_bytes','quarantine_reason'])=(to_jsonb(OLD)-ARRAY['validated_at','mime_type','size_bytes','quarantine_reason']) THEN RETURN NEW; END IF;
+ IF auth.role()='service_role' AND OLD.validated_at IS NULL AND NEW.validated_at IS NULL AND (to_jsonb(NEW)-'quarantine_reason')=(to_jsonb(OLD)-'quarantine_reason') THEN RETURN NEW; END IF;
+ RAISE EXCEPTION 'VERSION_IMMUTABLE: earlier versions are kept exactly as uploaded.'; END IF;
+ IF OLD.locked_until IS NOT NULL AND OLD.locked_until>now() THEN RAISE EXCEPTION 'RETENTION_LOCKED: version % is protected until %',OLD.version_number,OLD.locked_until; END IF; RETURN OLD; END $function$;
