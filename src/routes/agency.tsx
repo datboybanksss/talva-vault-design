@@ -20,7 +20,6 @@ export const Route = createFileRoute("/agency")({
   }),
   beforeLoad: async ({ location }) => {
     const access = await checkPortalAccess("agency");
-    if (access === "mfa-required") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
     if (access === "paused") {
       throw redirect({ to: "/auth", search: { unavailable: "1" } as never });
     }
@@ -40,7 +39,7 @@ export const Route = createFileRoute("/agency")({
     }
     const mfa = await checkMfaGate();
     if (mfa === "enrol") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
-    if (mfa === "challenge") throw redirect({ to: "/enroll-2fa", search: { next: location.href } });
+    if (mfa === "challenge") throw redirect({ to: "/auth", search: { next: location.href } });
   },
   component: AgencyLayout,
 });
