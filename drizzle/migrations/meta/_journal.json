@@ -71,6 +71,20 @@
       "when": 1792919380603,
       "tag": "0009_queue_abandoned_upload_objects",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792947580291,
+      "tag": "0010_restrict_function_execution_and_admin_share_view",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792947791668,
+      "tag": "0011_verify_function_grants_and_share_rls",
+      "breakpoints": true
     }
   ]
 }
