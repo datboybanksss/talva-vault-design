@@ -1,3 +1,10 @@
+import { BlockedDocumentPill } from "@/components/shared/blocked-document";
+import { quarantineReason } from "@/lib/document-quarantine";
+import {
+  deleteStagedOnboardingDocument,
+  listStagedOnboardingDocuments,
+  stageOnboardingDocument,
+} from "@/lib/onboarding-staging.functions";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -95,6 +102,11 @@ export function TalentInviteForm({
   const revokeFn = useServerFn(revokeIndependentTalentInvitation);
   const deleteDraftFn = useServerFn(deleteIndependentTalentDraft);
   const logCopyFn = useServerFn(logTalentInviteCopyLink);
+  const stageFn = useServerFn(stageOnboardingDocument);
+  const listStagedFn = useServerFn(listStagedOnboardingDocuments);
+  const deleteStagedFn = useServerFn(deleteStagedOnboardingDocument);
+  // Files uploaded before the first Save draft are staged under this id.
+  const [onboardingSessionId] = useState(() => crypto.randomUUID());
 
   const [draftId, setDraftId] = useState(initialId ?? "");
   const [name, setName] = useState("");
@@ -121,7 +133,12 @@ export function TalentInviteForm({
     enabled: !!draftId,
   });
   const inv: any = invQ.data?.invitation;
-  const docs: any[] = invQ.data?.documents ?? [];
+  const stagedQ = useQuery({
+    queryKey: ["admin", "staged", "talent", onboardingSessionId],
+    queryFn: () => listStagedFn({ data: { kind: "talent", session_id: onboardingSessionId } }),
+    enabled: !draftId,
+  });
+  const docs: any[] = draftId ? (invQ.data?.documents ?? []) : (stagedQ.data ?? []);
   const status: string = inv?.status ?? "draft";
   // An existing draft is only editable once it has loaded successfully.
   const isDraft = !draftId || (invQ.isSuccess && status === "draft");
@@ -148,7 +165,8 @@ export function TalentInviteForm({
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin"] });
 
   const createM = useMutation({
-    mutationFn: () => createFn({ data: payload() }),
+    mutationFn: () =>
+      createFn({ data: { ...payload(), onboarding_session_id: onboardingSessionId } }),
     onSuccess: (row: any) => {
       refresh();
       setDraftId(row.id);
@@ -208,9 +226,11 @@ export function TalentInviteForm({
     onError: (e: any) => toast.error(friendlyError(e, "We couldn't delete the draft.")),
   });
   const deleteDocM = useMutation({
-    mutationFn: (id: string) => deleteDocFn({ data: { id } }),
+    mutationFn: (id: string) =>
+      draftId ? deleteDocFn({ data: { id } }) : deleteStagedFn({ data: { id } }),
     onSuccess: () => {
-      invQ.refetch();
+      if (draftId) invQ.refetch();
+      else stagedQ.refetch();
       refresh();
       toast.success("Document removed.");
     },
@@ -221,7 +241,6 @@ export function TalentInviteForm({
   const [slotErrors, setSlotErrors] = useState<Record<string, string>>({});
 
   async function uploadForSlot(slotKey: string, file: File) {
-    if (!draftId) return;
     const norm = (n: string) => n.trim().toLowerCase();
     if (docs.some((d) => norm(d.file_name ?? "") === norm(file.name))) {
       setSlotErrors((p) => ({
@@ -243,22 +262,43 @@ export function TalentInviteForm({
     setUploadingSlot(slotKey);
     try {
       const safe = file.name.replace(/[^A-Za-z0-9._-]/g, "_");
-      const path = `${draftId}/${slotKey}/${Date.now()}-${safe}`;
+      let path: string;
+      if (draftId) {
+        path = `${draftId}/${slotKey}/${Date.now()}-${safe}`;
+      } else {
+        const { data: sess } = await supabase.auth.getSession();
+        const uid = sess.session?.user.id;
+        if (!uid) throw new Error("Please sign in again to upload.");
+        path = `staging/${uid}/${onboardingSessionId}/${slotKey}/${Date.now()}-${safe}`;
+      }
       const { error } = await supabase.storage
         .from(BUCKET)
         .upload(path, file, { upsert: false, contentType: file.type });
       if (error) throw error;
-      await recordFn({
-        data: {
-          invitation_id: draftId,
-          doc_slot: slotKey as any,
-          file_name: file.name,
-          storage_path: path,
-          mime_type: file.type,
-          size_bytes: file.size,
-        },
-      });
-      invQ.refetch();
+      if (draftId) {
+        await recordFn({
+          data: {
+            invitation_id: draftId,
+            doc_slot: slotKey as any,
+            file_name: file.name,
+            storage_path: path,
+            mime_type: file.type,
+            size_bytes: file.size,
+          },
+        });
+        invQ.refetch();
+      } else {
+        await stageFn({
+          data: {
+            kind: "talent",
+            session_id: onboardingSessionId,
+            doc_slot: slotKey,
+            file_name: file.name,
+            storage_path: path,
+            mime_type: file.type,
+          },
+        }).finally(() => stagedQ.refetch());
+      }
       refresh();
       toast.success(`${file.name} uploaded.`);
     } catch (e: any) {
@@ -289,7 +329,7 @@ export function TalentInviteForm({
     }
   };
 
-  const uploaded = new Set(docs.map((d) => d.doc_slot));
+  const uploaded = new Set(docs.filter((d) => !quarantineReason(d)).map((d) => d.doc_slot));
   const missing = SLOTS.filter((s) => !uploaded.has(s.key));
   const emailCheck = useInviteEmailCheck("admin_talent", draftId || null);
   const saving = createM.isPending || updateM.isPending;
@@ -551,7 +591,7 @@ export function TalentInviteForm({
             )}
           </div>
 
-          {draftId && (isDraft || docs.length > 0) && (
+          {(isDraft || docs.length > 0) && (
             <div
               className="tvp-card tvp-panel"
               style={{ marginTop: 16 }}
@@ -566,7 +606,7 @@ export function TalentInviteForm({
               <div style={{ display: "grid", gap: 10 }}>
                 {SLOTS.map((slot) => {
                   const files = docs.filter((d) => d.doc_slot === slot.key);
-                  const has = files.length > 0;
+                  const has = files.some((f) => !quarantineReason(f));
                   const busy = uploadingSlot === slot.key;
                   return (
                     <div
@@ -642,9 +682,18 @@ export function TalentInviteForm({
                           }}
                         >
                           <FileText className="h-3.5 w-3.5" style={{ color: "var(--tvp-muted)" }} />
-                          <button type="button" className="tvp-link" onClick={() => openDoc(u.id)}>
-                            {u.file_name}
-                          </button>
+                          {draftId && !quarantineReason(u) ? (
+                            <button
+                              type="button"
+                              className="tvp-link"
+                              onClick={() => openDoc(u.id)}
+                            >
+                              {u.file_name}
+                            </button>
+                          ) : (
+                            <span>{u.file_name}</span>
+                          )}
+                          <BlockedDocumentPill reason={quarantineReason(u)} />
                           <span className="tvp-muted" style={{ fontSize: 11 }}>
                             {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
                           </span>

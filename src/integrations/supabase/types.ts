@@ -2447,6 +2447,51 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_staged_uploads: {
+        Row: {
+          admin_id: string
+          created_at: string
+          doc_slot: string
+          file_name: string
+          id: string
+          kind: string
+          mime_type: string | null
+          quarantine_reason: string | null
+          session_id: string
+          size_bytes: number | null
+          storage_path: string
+          validated_at: string | null
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          doc_slot: string
+          file_name: string
+          id?: string
+          kind: string
+          mime_type?: string | null
+          quarantine_reason?: string | null
+          session_id: string
+          size_bytes?: number | null
+          storage_path: string
+          validated_at?: string | null
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          doc_slot?: string
+          file_name?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          quarantine_reason?: string | null
+          session_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          validated_at?: string | null
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           key: string
@@ -3781,6 +3826,7 @@ export type Database = {
           requested_at: string
         }[]
       }
+      my_portal_access: { Args: never; Returns: Json }
       post_end_read_only_years: { Args: never; Returns: number }
       provision_talent_folders: {
         Args: {
@@ -3797,6 +3843,10 @@ export type Database = {
         Returns: number
       }
       queue_abandoned_upload_objects: {
+        Args: { _cutoff: string }
+        Returns: number
+      }
+      queue_stale_onboarding_uploads: {
         Args: { _cutoff: string }
         Returns: number
       }

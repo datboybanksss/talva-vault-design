@@ -163,7 +163,7 @@ export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
 const NotificationPrefsInput = z.object({
   expiry_notice_days: z.number().int().min(1).max(365),
   in_app_enabled: z.boolean().optional(),
-  in_app: z.record(z.string(), z.boolean()).optional(),
+  in_app: z.record(z.string().max(10000), z.boolean()).optional(),
 });
 
 export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
@@ -544,7 +544,7 @@ export const createTalentRequestUploadUrl = createServerFn({ method: "POST" })
 
 const SubmitRequestInput = z.object({
   request_id: z.string().uuid(),
-  storage_path: z.string().min(1),
+  storage_path: z.string().max(10000).min(1),
   filename: z.string().min(1).max(240),
   size_bytes: z.number().int().nonnegative().optional(),
   mime_type: z.string().max(120).optional(),

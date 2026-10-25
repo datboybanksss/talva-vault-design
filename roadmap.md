@@ -36,3 +36,10 @@
 - [ ] Platform look: shared screens (sign-in, 2FA, activation wizards, Terms gate, error pages, emails)
 
 - [x] Delete two unmatched accounts; quarantine reasons + "Blocked for security" status; Google sign-in off
+
+## Batch: hardening, faster sign-in, onboarding uploads
+- [x] A Sign-in speed: one access RPC, 60s cache, background code request
+- [ ] A timing per role — blocked: no Test account passwords to time a real sign-in
+- [x] B Staged onboarding uploads (talent + agency)
+- [x] C1–C4, C6–C9
+- [ ] C5 CSP nonces — left unchanged: needs per-request nonce plumbing into the router and hosting-injected scripts would break

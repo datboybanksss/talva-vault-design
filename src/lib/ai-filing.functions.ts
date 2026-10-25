@@ -31,9 +31,9 @@ const ConfirmInput = z.object({
   scope: ScopeEnum,
   document_id: z.string().uuid(),
   /** talent: folder uuid | agency: folder name. null = leave unfiled. */
-  destination: z.string().nullable(),
-  expires_at: z.string().nullable(),
-  reminder_at: z.string().nullable(),
+  destination: z.string().max(10000).nullable(),
+  expires_at: z.string().max(10000).nullable(),
+  reminder_at: z.string().max(10000).nullable(),
   /** Where the folder and expiry values came from. */
   folder_source: SourceEnum.nullable().default(null),
   expiry_source: SourceEnum.nullable().default(null),

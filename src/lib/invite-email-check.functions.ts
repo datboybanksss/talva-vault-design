@@ -10,7 +10,7 @@ export const checkInviteEmail = createServerFn({ method: "POST" })
     z
       .object({
         flow: z.enum(INVITE_FLOWS),
-        email: z.string().trim().email(),
+        email: z.string().max(10000).trim().email(),
         exclude_id: z.string().uuid().nullable().optional(),
       })
       .parse(v),

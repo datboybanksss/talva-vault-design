@@ -17,9 +17,18 @@ export async function recordQuarantineReasons(): Promise<
   Array<{ table: string; id: string; outcome: QuarantineReason | "validated"; detail: string }>
 > {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const out: Array<{ table: string; id: string; outcome: QuarantineReason | "validated"; detail: string }> = [];
+  const out: Array<{
+    table: string;
+    id: string;
+    outcome: QuarantineReason | "validated";
+    detail: string;
+  }> = [];
   for (const [table, bucket] of QUARANTINE_SOURCES) {
-    let query = supabaseAdmin.from(table).select("id, storage_path").is("validated_at", null).limit(200);
+    let query = supabaseAdmin
+      .from(table)
+      .select("id, storage_path")
+      .is("validated_at", null)
+      .limit(200);
     if (table === "talent_private_documents") query = query.is("validation_pending_since", null);
     const { data, error } = await query;
     if (error) throw new Error("The file check could not be completed.");
@@ -31,8 +40,21 @@ export async function recordQuarantineReasons(): Promise<
         detail = "NO_FILE: the record has no stored file";
       } else {
         try {
-          const result = await validateStoredUpload({ bucket, path: doc.storage_path, removeOnFailure: false });
-          await supabaseAdmin.from(table).update({ mime_type: result.mimeType, size_bytes: result.sizeBytes, validated_at: new Date().toISOString(), quarantine_reason: null } as never).eq("id", doc.id).is("validated_at", null);
+          const result = await validateStoredUpload({
+            bucket,
+            path: doc.storage_path,
+            removeOnFailure: false,
+          });
+          await supabaseAdmin
+            .from(table)
+            .update({
+              mime_type: result.mimeType,
+              size_bytes: result.sizeBytes,
+              validated_at: new Date().toISOString(),
+              quarantine_reason: null,
+            } as never)
+            .eq("id", doc.id)
+            .is("validated_at", null);
           out.push({ table, id: doc.id, outcome: "validated", detail: result.kind });
           continue;
         } catch (e) {
@@ -41,8 +63,15 @@ export async function recordQuarantineReasons(): Promise<
           detail = code;
         }
       }
-      const { error: upErr } = await supabaseAdmin.from(table).update({ quarantine_reason: reason } as never).eq("id", doc.id).is("validated_at", null);
-      if (upErr) { console.error("[quarantine]", upErr); throw new Error("The file check could not record its result."); }
+      const { error: upErr } = await supabaseAdmin
+        .from(table)
+        .update({ quarantine_reason: reason } as never)
+        .eq("id", doc.id)
+        .is("validated_at", null);
+      if (upErr) {
+        console.error("[quarantine]", upErr);
+        throw new Error("The file check could not record its result.");
+      }
       out.push({ table, id: doc.id, outcome: reason, detail });
     }
   }
@@ -52,7 +81,8 @@ export async function recordQuarantineReasons(): Promise<
 /** Non-destructive legacy checking; old files are never treated as abandoned uploads. */
 export async function checkLegacyUploads(): Promise<{ checked: number; unavailable: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  let checked = 0, unavailable = 0;
+  let checked = 0,
+    unavailable = 0;
   const sources = [
     ["talent_private_documents", "talent-private-documents"],
     ["talent_shared_documents", "talent-documents"],
@@ -61,15 +91,31 @@ export async function checkLegacyUploads(): Promise<{ checked: number; unavailab
     ["agency_compliance_documents", "agency-compliance-docs"],
   ] as const;
   for (const [table, bucket] of sources) {
-    let query = supabaseAdmin.from(table).select("id, storage_path").is("validated_at", null).limit(100);
+    let query = supabaseAdmin
+      .from(table)
+      .select("id, storage_path")
+      .is("validated_at", null)
+      .limit(100);
     if (table === "talent_private_documents") query = query.is("validation_pending_since", null);
     const { data, error } = await query;
     if (error) throw new Error("The file check could not be completed.");
     for (const doc of data ?? []) {
       if (!doc.storage_path) continue;
       try {
-        const result = await validateStoredUpload({ bucket, path: doc.storage_path, removeOnFailure: false });
-        const { error: stampError } = await supabaseAdmin.from(table).update({ mime_type: result.mimeType, size_bytes: result.sizeBytes, validated_at: new Date().toISOString() }).eq("id", doc.id).is("validated_at", null);
+        const result = await validateStoredUpload({
+          bucket,
+          path: doc.storage_path,
+          removeOnFailure: false,
+        });
+        const { error: stampError } = await supabaseAdmin
+          .from(table)
+          .update({
+            mime_type: result.mimeType,
+            size_bytes: result.sizeBytes,
+            validated_at: new Date().toISOString(),
+          })
+          .eq("id", doc.id)
+          .is("validated_at", null);
         if (stampError) throw stampError;
         checked++;
       } catch (error) {
@@ -85,11 +131,22 @@ export async function checkLegacyUploads(): Promise<{ checked: number; unavailab
 export async function cleanupUnvalidatedUploads(now = Date.now()): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabaseAdmin.rpc("queue_abandoned_private_uploads", { _cutoff: cutoff });
+  const { data, error } = await supabaseAdmin.rpc("queue_abandoned_private_uploads", {
+    _cutoff: cutoff,
+  });
   if (error) throw new Error("The upload cleanup could not be completed.");
-  const { data: orphaned, error: orphanError } = await supabaseAdmin.rpc("queue_abandoned_upload_objects", { _cutoff: cutoff });
+  const { data: orphaned, error: orphanError } = await supabaseAdmin.rpc(
+    "queue_abandoned_upload_objects",
+    { _cutoff: cutoff },
+  );
   if (orphanError) throw new Error("The upload cleanup could not be completed.");
+  // Onboarding files staged before an invitation was saved, never attached.
+  const { data: staged, error: stagedError } = await supabaseAdmin.rpc(
+    "queue_stale_onboarding_uploads" as never,
+    { _cutoff: cutoff } as never,
+  );
+  if (stagedError) throw new Error("The upload cleanup could not be completed.");
   const { drainDocumentStoragePurgeQueue } = await import("./document-purge.server");
   await drainDocumentStoragePurgeQueue();
-  return (data ?? 0) + (orphaned ?? 0);
+  return (data ?? 0) + (orphaned ?? 0) + ((staged as number | null) ?? 0);
 }

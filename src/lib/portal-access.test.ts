@@ -8,7 +8,9 @@ vi.mock("@/lib/device", () => ({ browserSessionId: () => "test-session" }));
 import { checkMfaGate, MFA_ENFORCED } from "./portal-access";
 
 describe("TVA-SEC-101 deferred — live app owns two-factor sign-in", () => {
-  beforeEach(() => { getStatus.mockReset(); });
+  beforeEach(() => {
+    getStatus.mockReset();
+  });
 
   it("keeps build-level two-factor enforcement off", () => {
     expect(MFA_ENFORCED).toBe(false);
