@@ -57,6 +57,13 @@
       "when": 1792919104629,
       "tag": "0007_immutable_version_validation_receipt",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792919128473,
+      "tag": "0008_protect_download_only_uploads",
+      "breakpoints": true
     }
   ]
 }
