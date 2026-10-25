@@ -4,14 +4,14 @@ import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
 import { allowedMimeClaim, documentIsValidated } from "./file-security";
-import { privateStoragePathOwned } from "./share-security";
+import { privateStoragePathOwned, privateFolderOwned } from "./share-security";
 
 const BUCKET = "talent-private-documents";
 
 async function requireOwnedFolder(db: any, userId: string, folderId: string | null | undefined) {
   if (!folderId) return;
-  const { data, error } = await db.from("talent_private_folders").select("id").eq("id", folderId).eq("user_id", userId).is("removed_at", null).maybeSingle();
-  if (error || !data) throw new Error("That folder is no longer available in your private vault.");
+  const { data, error } = await db.from("talent_private_folders").select("id, user_id, removed_at").eq("id", folderId).eq("user_id", userId).is("removed_at", null).maybeSingle();
+  if (error || !privateFolderOwned(data, userId)) throw new Error("That folder is no longer available in your private vault.");
 }
 
 /**

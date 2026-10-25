@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { allowedMimeClaim, mimeClaimMatches, documentIsValidated, fileResponseHeaders, KIND_MIME } from "./file-security";
 import { detectKind } from "./file-validation.server";
-import { shareHasCode, privateStoragePathOwned } from "./share-security";
+import { shareHasCode, privateStoragePathOwned, privateFolderOwned } from "./share-security";
 import { billingDocumentBelongsToLinks, billingLinkReadable } from "./billing-share-core";
 import { billingSenderPage, escapeHtml } from "./billing-sender-page";
 import { exactIlike, sameEmail } from "./invite-email-check";
@@ -62,4 +62,9 @@ it("TVA-SEC-111 refuses foreign or traversed private paths", () => {
   expect(privateStoragePathOwned("other/file.pdf", "owner")).toBe(false);
   expect(privateStoragePathOwned("owner/../file.pdf", "owner")).toBe(false);
   expect(privateStoragePathOwned("owner/file.pdf", "owner")).toBe(true);
+});
+it("TVA-SEC-111 requires a caller-owned folder that is not removed", () => {
+  expect(privateFolderOwned({ user_id: "other", removed_at: null }, "caller")).toBe(false);
+  expect(privateFolderOwned({ user_id: "caller", removed_at: "2026-10-25T00:00:00Z" }, "caller")).toBe(false);
+  expect(privateFolderOwned({ user_id: "caller", removed_at: null }, "caller")).toBe(true);
 });
