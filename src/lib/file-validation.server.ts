@@ -104,23 +104,6 @@ const IMAGE_KINDS: ReadonlySet<DetectedKind> = new Set<DetectedKind>([
  * Which detected kinds are consistent with a claimed MIME type. A client that
  * claims `application/pdf` must actually have shipped a PDF.
  */
-const MIME_EXPECTATIONS: { test: RegExp; kinds: DetectedKind[] }[] = [
-  { test: /^application\/pdf$/i, kinds: ["pdf"] },
-  { test: /^image\/jpe?g$/i, kinds: ["jpeg"] },
-  { test: /^image\/png$/i, kinds: ["png"] },
-  { test: /^image\/gif$/i, kinds: ["gif"] },
-  { test: /^image\/webp$/i, kinds: ["webp"] },
-  { test: /^image\/hei[cf]$/i, kinds: ["heic"] },
-  { test: /^image\/tiff$/i, kinds: ["tiff"] },
-  // OOXML documents are zip containers.
-  { test: /^application\/vnd\.openxmlformats-officedocument\./i, kinds: ["zip"] },
-  { test: /^application\/zip$/i, kinds: ["zip"] },
-  // Legacy Office is an OLE compound file.
-  { test: /^application\/vnd\.ms-(word|excel|powerpoint)$/i, kinds: ["ole"] },
-  { test: /^application\/msword$/i, kinds: ["ole", "rtf"] },
-  { test: /^application\/rtf$/i, kinds: ["rtf"] },
-  { test: /^text\/(plain|csv)$/i, kinds: ["text"] },
-];
 
 function matches(head: Uint8Array, sig: Signature): boolean {
   if (head.length < sig.offset + sig.bytes.length) return false;
