@@ -39,9 +39,9 @@ async function consume(
   windowSeconds: number,
   blockSeconds?: number,
 ): Promise<RateLimitVerdict> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   let result;
   try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     result = await supabaseAdmin.rpc("consume_rate_limit", {
     _bucket: bucket,
     _subject: subject,

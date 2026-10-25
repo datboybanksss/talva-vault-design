@@ -5,10 +5,10 @@ import wordWhite from "@/assets/talvault-word-white.png.asset.json";
 
 /**
  * Absolute base URL used in outbound email HTML (email clients cannot resolve
- * relative asset paths). Falls back to the stable project URL.
+ * relative asset paths). Outbound bearer links require explicit configuration.
  */
 export const PUBLIC_SITE_URL = (
-  process.env.PUBLIC_SITE_URL ?? "https://project--f47b509e-a49f-44ed-abf5-85631a6dc162.lovable.app"
+  process.env.PUBLIC_SITE_URL ?? ""
 ).replace(/\/$/, "");
 
 /** Trusted-contact bearer links must never silently fall back to a preview. */

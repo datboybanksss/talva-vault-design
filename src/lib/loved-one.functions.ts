@@ -90,6 +90,8 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const talentId = await ensureTalentProfile(supabase, userId);
+    const { requirePublicSiteUrl } = await import("@/lib/brand-email");
+    const emailOrigin = data.send_email ? requirePublicSiteUrl() : null;
 
     const isBilling = data.share_kind === "billing";
     const folderIds = data.share_kind === "document" || isBilling ? [] : data.private_folder_ids;
@@ -165,8 +167,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
         .select("full_name")
         .eq("id", talentId)
         .maybeSingle();
-      const { requirePublicSiteUrl } = await import("@/lib/brand-email");
-      const origin = requirePublicSiteUrl();
+      const origin = emailOrigin;
       const mail = buildShareEmail({
         lovedOneName: data.loved_one_name,
         sharerName: prof?.full_name ?? "A TalVault user",

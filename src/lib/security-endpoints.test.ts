@@ -34,13 +34,13 @@ it("TVA-SEC-105 GET never verifies and escapes stored agency/email values", asyn
   expect(response.status).toBe(200);
 });
 it("TVA-SEC-105 POST redeems a valid unexpired token", async () => {
-  const response = await verifyBillingSenderRequest(new Request("https://example.test/api/public/verify-billing-sender", { method: "POST", body: new URLSearchParams({ token: "123456789012345678901234" }) }));
+  const response = await verifyBillingSenderRequest(new Request("https://example.test/api/public/verify-billing-sender", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "token=123456789012345678901234" }));
   expect(state.writes).toBe(1);
   expect(response.status).toBe(200);
 });
 it("TVA-SEC-105 refuses an expired token without writing", async () => {
   state.expiry = "2026-01-01T00:00:00Z";
-  const response = await verifyBillingSenderRequest(new Request("https://example.test/api/public/verify-billing-sender", { method: "POST", body: new URLSearchParams({ token: "123456789012345678901234" }) }));
+  const response = await verifyBillingSenderRequest(new Request("https://example.test/api/public/verify-billing-sender", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "token=123456789012345678901234" }));
   expect(state.writes).toBe(0);
   expect(response.status).toBe(400);
 });
