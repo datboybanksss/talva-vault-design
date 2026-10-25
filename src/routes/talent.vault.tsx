@@ -2,6 +2,8 @@ import { FilterBar, type FilterDef } from "@/components/shared/filter-bar";
 import { EmptyState, FileTypeIcon, PageBand } from "@/components/shared/brand";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { BlockedDocumentPill, blockedReason, explainBlocked } from "@/components/shared/blocked-document";
+import { quarantineReason } from "@/lib/document-quarantine";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
@@ -212,6 +214,8 @@ type PrivateDoc = {
   pending_review?: boolean;
   created_at: string;
   updated_at: string;
+  validated_at?: string | null;
+  quarantine_reason?: string | null;
 };
 
 function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) | null> }) {
@@ -643,7 +647,8 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                     <tr key={d.id}>
                       <td>
                         <span className="tv-doc-name"><FileTypeIcon name={d.name} /><strong>{d.name}</strong></span>
-                        {d.pending_review && (
+                        <BlockedDocumentPill reason={quarantineReason(d)} />
+                        {d.pending_review && !quarantineReason(d) && (
                           <span
                             className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}
                           >
@@ -658,7 +663,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                         <div className="tvp-row-actions">
                           <RowActionsMenu
                             actions={[
-                              d.pending_review && {
+                              d.pending_review && !quarantineReason(d) && {
                                 key: "review",
                                 label: "Finish filing review",
                                 icon: Sparkles,
@@ -669,6 +674,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                                 label: "Analyse with AI",
                                 icon: Sparkles,
                                 disabled: !d.storage_path || aiRow.isPending,
+                                disabledReason: blockedReason(quarantineReason(d)),
                                 onSelect: () =>
                                   aiRow.analyse({
                                     id: d.id,
@@ -684,6 +690,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                                 title: d.storage_path
                                   ? undefined
                                   : "No file attached to this document",
+                                disabledReason: blockedReason(quarantineReason(d)),
                                 onSelect: () => onView(d.id, d.name),
                               },
                               {
@@ -694,6 +701,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                                 title: d.storage_path
                                   ? undefined
                                   : "No file attached to this document",
+                                disabledReason: blockedReason(quarantineReason(d)),
                                 onSelect: () => onDownload(d.id),
                               },
                               hasCopyTargets && {
@@ -704,6 +712,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                                 title: d.storage_path
                                   ? undefined
                                   : "No file attached to this document",
+                                disabledReason: blockedReason(quarantineReason(d)),
                                 onSelect: () => setCopyFor({ id: d.id, name: d.name }),
                               },
                               {
@@ -1147,6 +1156,7 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
                     <tr key={d.id}>
                       <td>
                         <strong>{d.name}</strong>
+                        <BlockedDocumentPill reason={quarantineReason(d as never)} />
                         {d.pending_review && (
                           <span
                             className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}
@@ -1168,7 +1178,17 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
                       </td>
                       <td>
                         <div className="tvp-row-actions">
-                          {d.storage_path ? (
+                          {quarantineReason(d as never) ? (
+                            <button
+                              title={blockedReason(quarantineReason(d as never)) ?? undefined}
+                              className="tvp-mini-btn"
+                              aria-disabled
+                              aria-label="Download unavailable"
+                              onClick={() => explainBlocked(quarantineReason(d as never)!)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                          ) : d.storage_path ? (
                             <button
                               title="Download document"
                               className="tvp-mini-btn"
