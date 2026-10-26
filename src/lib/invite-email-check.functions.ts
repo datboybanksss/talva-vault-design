@@ -16,7 +16,7 @@ export const checkInviteEmail = createServerFn({ method: "POST" })
       .parse(v),
   )
   .handler(async ({ data, context }): Promise<InviteEmailConflict | null> => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     let agencyId: string | null = null;
     if (data.flow.startsWith("admin_")) {
       const { data: isAdmin } = await supabase.rpc("has_role", {

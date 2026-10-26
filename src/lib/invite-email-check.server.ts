@@ -20,10 +20,11 @@ type Args = {
 /** Looks up account/pending clashes with the service role. Never returns other agencies' data. */
 export async function findInviteEmailConflict(args: Args): Promise<InviteEmailConflict | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const sb = supabaseAdmin as any;
+  const sb = supabaseAdmin;
   const pattern = exactIlike(args.email);
   const now = Date.now();
-  const keep = (rows: any[] | null) =>
+  type PendingRow = { id: string; email: string | null; status: string; expires_at: string | null };
+  const keep = (rows: PendingRow[] | null) =>
     (rows ?? []).filter((r) => r.id !== args.excludeId && isBlockingInvite(r, args.email, now));
   const cols = "id, email, status, expires_at";
 
