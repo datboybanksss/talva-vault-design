@@ -328,12 +328,13 @@ function AuthPage() {
         data: { token: pendingInvite.token, kind: pendingInvite.kind },
       });
       if (res.ok) {
-        nav({ to: res.dest as any, replace: true });
+        nav({ to: res.dest, replace: true });
         return;
       }
       setError(res.message);
-    } catch (e: any) {
-      setError(e?.message ?? "We couldn't accept that invitation. Please try the emailed link.");
+    } catch (e: unknown) {
+      const message = (e as { message?: string } | null)?.message;
+      setError(message ?? "We couldn't accept that invitation. Please try the emailed link.");
     } finally {
       setClaimingInvite(false);
     }
@@ -351,7 +352,7 @@ function AuthPage() {
           data: { token: search.invite, kind: search.invite_kind },
         });
         if (res.ok) {
-          nav({ to: res.dest as any, replace: true });
+          nav({ to: res.dest, replace: true });
           return;
         }
         setError(res.message);
@@ -368,7 +369,7 @@ function AuthPage() {
         );
         return;
       }
-      nav({ to: dest as any, replace });
+      nav({ to: dest, replace });
     },
     [search.next, search.invite, search.invite_kind, nav],
   );

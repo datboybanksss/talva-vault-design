@@ -68,11 +68,16 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
           return new Response("Forbidden", { status: 403 });
 
         const { resolveShareFolders } = await import("@/lib/loved-one.functions");
+        // scope is a JSON column; these are the only keys the share writer sets.
+        const scope = share.scope as {
+          private_folder_ids?: string[];
+          private_document_ids?: string[];
+        } | null;
         const { folderIds } = await resolveShareFolders(
-          (share.scope as any)?.private_folder_ids ?? [],
+          scope?.private_folder_ids ?? [],
           share.created_by as string | null,
         );
-        const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
+        const docIds: string[] = scope?.private_document_ids ?? [];
         const inScope =
           docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
         if (!inScope) return new Response("Forbidden", { status: 403 });
