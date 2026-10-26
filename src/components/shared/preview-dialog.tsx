@@ -46,7 +46,9 @@ export function PreviewDialog({
         setBlobUrl(objectUrl);
       } catch (err: unknown) {
         if (!cancelled)
-          setLoadError(err instanceof Error ? err.message : "Could not load this file for preview.");
+          setLoadError(
+            err instanceof Error ? err.message : "Could not load this file for preview.",
+          );
       }
     })();
 
