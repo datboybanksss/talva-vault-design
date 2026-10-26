@@ -44,7 +44,7 @@ export async function adminDisplayName(supabase: SupabaseClient, userId: string)
   return (data?.display_name ?? "").trim() || full;
 }
 
-export async function mergeFor(kind: AdminInviteKind, row: any, adminName: string) {
+export async function mergeFor(kind: AdminInviteKind, row: AdminInviteRow, adminName: string) {
   const { fmtLongDate } = await import("@/lib/notice-email");
   return {
     agencyName: row.agency_name ?? null,
@@ -63,7 +63,7 @@ export async function mergeFor(kind: AdminInviteKind, row: any, adminName: strin
  * subject, HTML and plain text that went out. Resends reuse the same wording.
  */
 export async function deliverAdminInvite(
-  supabase: any,
+  supabase: SupabaseClient,
   kind: AdminInviteKind,
   id: string,
   userId: string,
