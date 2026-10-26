@@ -9,7 +9,7 @@ import { advanceAnalysis } from "@/lib/document-ai-core";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin as any;
+  return supabaseAdmin;
 }
 
 /** A person's own "Organise documents with AI" switch (default on). */
@@ -106,7 +106,8 @@ export async function advanceDocumentAnalysis(input: {
     .maybeSingle();
   if (!row) return { status: null, suggestion: null, error_code: null };
 
-  const where = (q: any) => q.eq("scope", input.scope).eq("document_id", input.documentId);
+  const where = <Q extends { eq: (column: string, value: string) => Q }>(q: Q): Q =>
+    q.eq("scope", input.scope).eq("document_id", input.documentId);
   const { analyseDocument, pollAnalysis } = await import("@/lib/parserly.server");
 
   const next = await advanceAnalysis(row as AnalysisRow, {
@@ -147,5 +148,5 @@ export async function readAnalysis(scope: AnalysisScope, documentId: string) {
     .eq("scope", scope)
     .eq("document_id", documentId)
     .maybeSingle();
-  return (data ?? null) as { status: AnalysisStatus; suggestion: any } | null;
+  return (data ?? null) as { status: AnalysisStatus; suggestion: AnalysisRow["suggestion"] } | null;
 }
