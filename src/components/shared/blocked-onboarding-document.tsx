@@ -21,7 +21,7 @@ export function BlockedOnboardingDocument({ reason }: { reason: QuarantineReason
         <Info />
       </Button>
       {open && (
-        <ModalShell onClose={() => setOpen(false)} labelledBy="blocked-onboarding-title">
+        <ModalShell onClose={() => setOpen(false)} labelledBy="blocked-onboarding-title" className="p-6">
           <h2 id="blocked-onboarding-title" className="tvp-h2">
             Blocked for security
           </h2>
