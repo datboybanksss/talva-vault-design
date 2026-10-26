@@ -44,8 +44,9 @@ export function PreviewDialog({
         if (cancelled) return;
         objectUrl = URL.createObjectURL(blob);
         setBlobUrl(objectUrl);
-      } catch (err: any) {
-        if (!cancelled) setLoadError(err?.message ?? "Could not load this file for preview.");
+      } catch (err: unknown) {
+        if (!cancelled)
+          setLoadError(err instanceof Error ? err.message : "Could not load this file for preview.");
       }
     })();
 

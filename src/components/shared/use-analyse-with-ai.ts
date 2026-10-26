@@ -31,7 +31,7 @@ export function useAnalyseWithAi(scope: "talent" | "agency") {
       qc.setQueryData(["filing-analysis", scope, doc.id], view);
       doc.open();
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not start the analysis.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Could not start the analysis.")),
   });
 
   return {

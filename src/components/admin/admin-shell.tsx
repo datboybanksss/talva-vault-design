@@ -79,7 +79,7 @@ const settings: NavItem[] = [
   { to: "/admin/administrators", label: "Administrators", icon: <ShieldCheck /> },
 ];
 
-const toneIcon: Record<string, any> = {
+const toneIcon: Record<string, LucideIcon> = {
   amber: Clock,
   red: AlertTriangle,
   blue: Users,
@@ -131,8 +131,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
   });
 
   const items = [
-    ...(notifs?.computed ?? []).map((c: any) => ({ ...c, persisted: false })),
-    ...(notifs?.persisted ?? []).map((p: any) => ({
+    ...(notifs?.computed ?? []).map((c) => ({ ...c, persisted: false })),
+    ...(notifs?.persisted ?? []).map((p) => ({
       id: p.id,
       persisted: true,
       kind: p.kind,

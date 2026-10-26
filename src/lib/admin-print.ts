@@ -16,10 +16,61 @@ function card(value: string, label: string) {
   return `<div class="card"><div class="v">${esc(value)}</div><div class="l">${esc(label)}</div></div>`;
 }
 
+/** The reporting snapshot shape the Admin Reporting print view consumes. */
+export type AdminReportingPrintData = {
+  period: { from: string; to: string };
+  prior: { from: string; to: string };
+  generatedAt: string;
+  northStar: {
+    pct: number;
+    active: number;
+    total: number;
+    priorPct: number;
+    talentOnlyCount?: number;
+    agencyOnlyCount?: number;
+  };
+  growth: {
+    agenciesAdded: number;
+    agenciesAddedPrior: number;
+    acceptanceRate: number;
+    invitesAccepted: number;
+    invitesSent: number;
+    medianDaysToAccept: number | null;
+    acceptedInPeriod: number;
+  };
+  engagement: {
+    activeTalent: number;
+    totalTalent: number;
+    agenciesWithShare: number;
+    sharesCreated: number;
+    documentsUploaded: number;
+    sharedDocuments: number;
+    privateDocuments: number;
+  };
+  financials: {
+    quotesCount: number;
+    quotesValueCents: number;
+    invoicesCount: number;
+    invoicesValueCents: number;
+    receivedCents: number;
+    paymentsCount: number;
+    outstandingCents: number;
+  };
+  cohorts: Array<{
+    month: string;
+    size: number;
+    d30: CohortWindow | null;
+    d60: CohortWindow | null;
+    d90: CohortWindow | null;
+  }>;
+};
+
+type CohortWindow = { active: number; mature: number };
+
 /** Admin Reporting — the metrics snapshot currently shown on screen. */
-export function buildAdminReportingHtml(d: any) {
+export function buildAdminReportingHtml(d: AdminReportingPrintData) {
   const pct = (n: number, dn: number) => (dn > 0 ? `${Math.round((n / dn) * 100)}%` : "0%");
-  const window = (w: any) =>
+  const window = (w: CohortWindow | null | undefined) =>
     w?.mature
       ? `${Math.round((w.active / w.mature) * 100)}% (${w.active} of ${w.mature})`
       : "Not yet due";
@@ -97,7 +148,7 @@ ${
   <thead><tr><th>Onboarding month</th><th class="n">Talent onboarded</th><th class="n">Active at 30 days</th><th class="n">Active at 60 days</th><th class="n">Active at 90 days</th></tr></thead>
   <tbody>${d.cohorts
     .map(
-      (c: any) => `<tr>
+      (c) => `<tr>
     <td>${esc(new Date(`${c.month}-01T00:00:00Z`).toLocaleDateString("en-ZA", { month: "long", year: "numeric" }))}</td>
     <td class="n">${c.size}</td>
     <td class="n">${esc(window(c.d30))}</td>

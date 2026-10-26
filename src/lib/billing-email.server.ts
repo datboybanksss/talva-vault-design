@@ -64,9 +64,10 @@ async function send(
     );
     if (!res.success) return { sent: false, reason: "send_failed", detail: res.status };
     return { sent: true, message_id: res.message_id };
-  } catch (e: any) {
-    const status = typeof e?.status === "number" ? e.status : undefined;
-    const detail = String(e?.message ?? e);
+  } catch (e: unknown) {
+    const err = e as { status?: number; message?: string };
+    const status = typeof err.status === "number" ? err.status : undefined;
+    const detail = String(err.message ?? e);
     const domainIssue = status === 403 || /domain|verif|not allowed|sender/i.test(detail);
     return { sent: false, reason: domainIssue ? "domain_unverified" : "send_failed", detail };
   }

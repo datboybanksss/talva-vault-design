@@ -7,10 +7,24 @@ import {
   type AdminInviteMerge,
   type AdminInviteWording,
 } from "@/lib/invitation-email";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-const TABLE: Record<AdminInviteKind, string> = {
+const TABLE = {
   agency: "agency_invitations",
   talent: "independent_talent_invitations",
+} as const;
+
+/** The invitation fields the email merge reads, whichever table they came from. */
+type AdminInviteRow = {
+  email: string;
+  token: string | null;
+  expires_at: string | null;
+  agency_name?: string | null;
+  contact_person?: string | null;
+  talent_name?: string | null;
+  email_subject?: string | null;
+  email_greeting?: string | null;
+  email_message?: string | null;
 };
 
 export async function adminInviteUrl(kind: AdminInviteKind, token: string) {
@@ -20,7 +34,7 @@ export async function adminInviteUrl(kind: AdminInviteKind, token: string) {
     : `${PUBLIC_SITE_URL}/invite/talent/${token}`;
 }
 
-export async function adminDisplayName(supabase: any, userId: string): Promise<string> {
+export async function adminDisplayName(supabase: SupabaseClient, userId: string): Promise<string> {
   const { data } = await supabase
     .from("profiles")
     .select("display_name, first_name, last_name")
@@ -30,7 +44,7 @@ export async function adminDisplayName(supabase: any, userId: string): Promise<s
   return (data?.display_name ?? "").trim() || full;
 }
 
-export async function mergeFor(kind: AdminInviteKind, row: any, adminName: string) {
+export async function mergeFor(kind: AdminInviteKind, row: AdminInviteRow, adminName: string) {
   const { fmtLongDate } = await import("@/lib/notice-email");
   return {
     agencyName: row.agency_name ?? null,
@@ -49,7 +63,7 @@ export async function mergeFor(kind: AdminInviteKind, row: any, adminName: strin
  * subject, HTML and plain text that went out. Resends reuse the same wording.
  */
 export async function deliverAdminInvite(
-  supabase: any,
+  supabase: SupabaseClient,
   kind: AdminInviteKind,
   id: string,
   userId: string,

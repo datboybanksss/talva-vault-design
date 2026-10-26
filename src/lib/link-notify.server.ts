@@ -21,7 +21,7 @@ async function loadLink(linkId: string) {
   // the live expiry come from the private record and the invitation.
   if (!link.talent_user_id || !link.request_expires_at) {
     const [{ data: priv }, { data: inv }] = await Promise.all([
-      (supabaseAdmin as any)
+      supabaseAdmin
         .from("talent_invite_private")
         .select("talent_user_id, kind")
         .eq("link_id", linkId)
@@ -32,12 +32,11 @@ async function loadLink(linkId: string) {
             .select("expires_at")
             .eq("id", link.talent_invitation_id)
             .maybeSingle()
-        : Promise.resolve({ data: null as any }),
+        : Promise.resolve({ data: null as { expires_at: string } | null }),
     ]);
     if (!link.talent_user_id && priv?.kind === "link_request")
-      (link as any).talent_user_id = priv.talent_user_id;
-    if (!link.request_expires_at && inv?.expires_at)
-      (link as any).request_expires_at = inv.expires_at;
+      link.talent_user_id = priv.talent_user_id;
+    if (!link.request_expires_at && inv?.expires_at) link.request_expires_at = inv.expires_at;
   }
   const [{ data: agency }, { data: talent }] = await Promise.all([
     supabaseAdmin

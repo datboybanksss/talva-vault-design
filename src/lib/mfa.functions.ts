@@ -96,7 +96,6 @@ export type SendCodeResult = {
   message: string;
 };
 
-
 /** Issues a fresh code and emails it to the account's own address. */
 export const requestSignInCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

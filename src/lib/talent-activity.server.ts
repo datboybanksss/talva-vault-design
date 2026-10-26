@@ -1,4 +1,5 @@
 import { getRequest } from "@tanstack/react-start/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Canonical talent activity actions written to `talent_audit_log`.
@@ -38,8 +39,9 @@ function requestMeta(): { ip_address: string | null; user_agent: string | null }
  * Writes one talent activity entry. Logging must never break the action it
  * describes, so failures are swallowed rather than surfaced to the caller.
  */
+
 export async function recordTalentActivity(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   email: string | undefined | null,
   action: string,

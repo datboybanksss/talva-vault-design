@@ -45,13 +45,13 @@ async function markSeen(guide: TourGuide) {
       .select("seen_tours")
       .eq("id", uid)
       .maybeSingle();
-    const seen: string[] = ((data as any)?.seen_tours as string[] | null) ?? [];
+    const seen: string[] = data?.seen_tours ?? [];
     const next = seen.includes(guide.id) ? seen : [...seen, guide.id];
-    const patch: Record<string, unknown> = { seen_tours: next };
+    const patch: TablesUpdate<"profiles"> = { seen_tours: next };
     if (guide.kind === "overview") patch.has_seen_onboarding = true;
     await supabase
       .from("profiles")
-      .update(patch as any)
+      .update(patch)
       .eq("id", uid);
   } catch {
     /* non-blocking */
@@ -76,11 +76,11 @@ async function markAllSeen(portal: Portal) {
       .select("seen_tours")
       .eq("id", uid)
       .maybeSingle();
-    const seen: string[] = ((data as any)?.seen_tours as string[] | null) ?? [];
+    const seen: string[] = data?.seen_tours ?? [];
     const next = Array.from(new Set([...seen, ...ids]));
     await supabase
       .from("profiles")
-      .update({ seen_tours: next, has_seen_onboarding: true } as any)
+      .update({ seen_tours: next, has_seen_onboarding: true })
       .eq("id", uid);
   } catch {
     /* non-blocking */
@@ -258,8 +258,8 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
         .eq("id", uid)
         .maybeSingle();
       if (cancelled || !data) return;
-      seenRef.current = ((data as any).seen_tours as string[] | null) ?? [];
-      overviewDoneRef.current = (data as any).has_seen_onboarding !== false;
+      seenRef.current = data.seen_tours ?? [];
+      overviewDoneRef.current = data.has_seen_onboarding !== false;
       // Never launch straight into the walkthrough on a first login — ask first.
       if (!overviewDoneRef.current) setWelcome(true);
     })();
@@ -305,8 +305,8 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
           if (cancelled) return;
           try {
             await navigate({
-              to: step.route.to as any,
-              search: (step.route.search ?? {}) as any,
+              to: step.route.to,
+              search: step.route.search ?? {},
             });
           } catch {
             /* route may not accept these search params — carry on */

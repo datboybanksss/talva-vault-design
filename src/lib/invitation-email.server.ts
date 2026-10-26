@@ -55,9 +55,10 @@ export async function sendInvitationEmail(
     );
     if (!res.success) return { sent: false, reason: "send_failed", detail: res.status };
     return { sent: true, message_id: res.message_id };
-  } catch (e: any) {
-    const status = typeof e?.status === "number" ? e.status : undefined;
-    const detail = String(e?.message ?? e);
+  } catch (e: unknown) {
+    const err = e as { status?: number; message?: string };
+    const status = typeof err.status === "number" ? err.status : undefined;
+    const detail = String(err.message ?? e);
     const domainIssue = status === 403 || /domain|verif|not allowed|sender/i.test(detail);
     return {
       sent: false,
@@ -75,16 +76,16 @@ export async function sendInvitationEmail(
 export async function simulatedInvitationSend(): Promise<SendResult> {
   if (!process.env["LOVABLE_API_KEY"]) return { sent: false, reason: "email_not_configured" };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: inert } = await (supabaseAdmin as any)
+  const { data: inert } = await supabaseAdmin
     .from("talent_invite_private")
     .select("invitation_id")
     .eq("kind", "inert");
-  const skip = new Set(((inert ?? []) as any[]).map((r) => r.invitation_id));
+  const skip = new Set((inert ?? []).map((r) => r.invitation_id));
   const { data: recent } = await supabaseAdmin
     .from("talent_invitations")
     .select("id, email_sent_at")
     .order("created_at", { ascending: false })
     .limit(25);
-  const last = ((recent ?? []) as any[]).find((r) => !skip.has(r.id));
+  const last = (recent ?? []).find((r) => !skip.has(r.id));
   return last?.email_sent_at ? { sent: true } : { sent: false, reason: "domain_unverified" };
 }

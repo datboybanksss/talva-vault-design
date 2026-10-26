@@ -1,10 +1,20 @@
 import { PAUSE_REASONS, SUSPEND_REASONS } from "@/lib/account-state";
 
+/** The pause/suspension columns this panel reads, on either an agency or a talent row. */
+type AccountStateRow = {
+  paused_at?: string | null;
+  pause_reason?: string | null;
+  pause_note?: string | null;
+  suspended_at?: string | null;
+  suspension_reason?: string | null;
+  suspension_note?: string | null;
+};
+
 const fmt = (iso?: string | null) => (iso ? new Date(iso).toLocaleString("en-GB") : "—");
 const label = (map: Record<string, string>, v?: string | null) => (v ? (map[v] ?? v) : "—");
 
 /** Admin-only pause/suspension details for an agency or talent record. */
-export function AccountStateDetails({ row, suspended }: { row: any; suspended: boolean }) {
+export function AccountStateDetails({ row, suspended }: { row: AccountStateRow; suspended: boolean }) {
   return (
     <>
       {row.paused_at && (

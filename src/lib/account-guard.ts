@@ -32,11 +32,13 @@ export const blockPausedAccounts = createMiddleware({ type: "function" }).server
         const { data, error } = await sb.rpc("my_account_access" as never);
         if (error) {
           // An invalid or expired token is for the function's own auth to refuse.
-          const status = (error as any).status ?? (error as any).code;
+          // PostgREST errors carry an HTTP status at runtime that the typings lack.
+          const status =
+            (error as unknown as { status?: number }).status ?? error.code;
           if (!(status === 401 || status === "PGRST301" || /jwt/i.test(error.message))) {
             throw new Error("We couldn't check your account just now. Please try again.");
           }
-        } else if ((data as any)?.paused) {
+        } else if ((data as { paused?: boolean } | null)?.paused) {
           throw new Error(`${ACCOUNT_PAUSED_CODE}: ${ACCOUNT_UNAVAILABLE_MESSAGE}`);
         }
       }

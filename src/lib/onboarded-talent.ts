@@ -1,4 +1,5 @@
 import { databaseError } from "./security-errors";
+import type { SupabaseClient } from "@supabase/supabase-js";
 /**
  * Single definition of "onboarded talent", shared by the Admin Overview
  * dashboard and the Admin Reporting page so the two can never diverge.
