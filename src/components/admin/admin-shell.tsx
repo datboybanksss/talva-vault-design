@@ -7,6 +7,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import type { LucideIcon } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -133,7 +134,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const items = [
     ...(notifs?.computed ?? []).map((c) => ({ ...c, persisted: false })),
-    ...(notifs?.persisted ?? []).map((p) => ({
+    ...(notifs?.persisted ?? []).map((p: Tables<"admin_notifications">) => ({
       id: p.id,
       persisted: true,
       kind: p.kind,
