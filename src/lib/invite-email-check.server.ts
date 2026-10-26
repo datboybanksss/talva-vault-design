@@ -23,7 +23,13 @@ export async function findInviteEmailConflict(args: Args): Promise<InviteEmailCo
   const sb = supabaseAdmin;
   const pattern = exactIlike(args.email);
   const now = Date.now();
-  type PendingRow = { id: string; email: string | null; status: string | null; expires_at: string | null };
+  type PendingRow = {
+    id: string;
+    email: string | null;
+    status: string | null;
+    expires_at: string | null;
+    kind?: string | null;
+  };
   const keep = (rows: PendingRow[] | null) =>
     (rows ?? []).filter((r) => r.id !== args.excludeId && isBlockingInvite(r, args.email, now));
   const cols = "id, email, status, expires_at";
@@ -41,15 +47,23 @@ export async function findInviteEmailConflict(args: Args): Promise<InviteEmailCo
   let pendingLink: string | null | false = false;
   if (args.flow === "agency_staff" || args.flow === "agency_talent") {
     if (!args.agencyId) throw new Error("We couldn't check this email address. Please try again.");
-    const table = args.flow === "agency_staff" ? "agency_invitations" : "talent_invitations";
-    let q = sb
-      .from(table)
-      .select(cols)
-      .eq("agency_id", args.agencyId)
-      .ilike("email", pattern)
-      .eq("status", "pending");
-    if (args.flow === "agency_staff") q = q.eq("kind", "staff");
-    const { data } = await q.limit(20);
+    const { data } =
+      args.flow === "agency_staff"
+        ? await sb
+            .from("agency_invitations")
+            .select(cols)
+            .eq("agency_id", args.agencyId)
+            .ilike("email", pattern)
+            .eq("status", "pending")
+            .eq("kind", "staff")
+            .limit(20)
+        : await sb
+            .from("talent_invitations")
+            .select(cols)
+            .eq("agency_id", args.agencyId)
+            .ilike("email", pattern)
+            .eq("status", "pending")
+            .limit(20);
     if (keep(data).length) pendingLink = "/agency/invitations";
   } else {
     const [adm, ag, ind, tal] = await Promise.all([
