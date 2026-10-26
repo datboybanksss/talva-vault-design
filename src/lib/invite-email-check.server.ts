@@ -23,7 +23,7 @@ export async function findInviteEmailConflict(args: Args): Promise<InviteEmailCo
   const sb = supabaseAdmin;
   const pattern = exactIlike(args.email);
   const now = Date.now();
-  type PendingRow = { id: string; email: string | null; status: string; expires_at: string | null };
+  type PendingRow = { id: string; email: string | null; status: string | null; expires_at: string | null };
   const keep = (rows: PendingRow[] | null) =>
     (rows ?? []).filter((r) => r.id !== args.excludeId && isBlockingInvite(r, args.email, now));
   const cols = "id, email, status, expires_at";
