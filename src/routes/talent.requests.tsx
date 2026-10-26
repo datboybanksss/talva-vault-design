@@ -42,7 +42,7 @@ function RequestsPage() {
       );
       qc.invalidateQueries({ queryKey: ["talent"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Something went wrong.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Something went wrong.")),
   });
   const rows = q.data ?? [];
 
