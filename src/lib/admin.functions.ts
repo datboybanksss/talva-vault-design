@@ -1599,7 +1599,8 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
     const oldPaths = blockedReplacements(existingDocs ?? [], data.doc_slot, data.file_name).map(
       (r) => r.storage_path,
     );
-    if (oldPaths.length)
+    const storedOldPaths = oldPaths.filter((path): path is string => typeof path === "string");
+    if (storedOldPaths.length)
       await supabaseAdmin.storage.from("agency-compliance-docs").remove(storedOldPaths);
     const { removeBlockedStagedReplacement } = await import("./onboarding-replacement.server");
     await removeBlockedStagedReplacement(
