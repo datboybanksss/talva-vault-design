@@ -44,7 +44,10 @@ type SharedBillingDoc = BillingDocRecord & { id: string };
 type ShareState =
   | { status: "loading" }
   | { status: "error"; error?: string }
-  | { status: "not_found" | "expired" | "revoked" | "locked" }
+  | { status: "not_found" }
+  | { status: "expired" }
+  | { status: "revoked" }
+  | { status: "locked" }
   | {
       status: "code_required";
       sharer?: { full_name: string } | null;
