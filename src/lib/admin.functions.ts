@@ -973,7 +973,7 @@ export const dismissComputedNotification = createServerFn({ method: "POST" })
 export const listAgencyInvitations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("agency_invitations")

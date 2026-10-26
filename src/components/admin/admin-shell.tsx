@@ -6,6 +6,7 @@ import { type ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import type { LucideIcon } from "lucide-react";
 import {
   ChevronLeft,
   LayoutGrid,

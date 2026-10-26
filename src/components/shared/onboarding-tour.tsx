@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { TalVaultIcon } from "@/components/brand/talvault-logo";
 import {
