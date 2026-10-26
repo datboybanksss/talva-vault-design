@@ -72,6 +72,12 @@ export const Route = createFileRoute("/talent/sharing")({
   component: SharingPage,
 });
 
+/** One of the caller's trusted-contact shares, as listed by the server. */
+type MyShare = Awaited<ReturnType<typeof listMyLovedOneShares>>[number];
+type VaultData = Awaited<ReturnType<typeof listPrivateVault>>;
+type VaultFolder = VaultData["folders"][number];
+type VaultDoc = VaultData["documents"][number];
+
 type FreshShare = {
   link: string;
   code: string;
@@ -84,7 +90,7 @@ function SharingPage() {
   const load = useServerFn(listMyLovedOneShares);
   const revoke = useServerFn(revokeLovedOneShare);
   const regen = useServerFn(regenerateAccessCode);
-  const [historyShare, setHistoryShare] = useState<any | null>(null);
+  const [historyShare, setHistoryShare] = useState<MyShare | null>(null);
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [prefill, setPrefill] = useState<{
@@ -112,12 +118,12 @@ function SharingPage() {
       await revoke({ data: { id } });
       toast.success("Share revoked");
       qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Failed to revoke"));
     }
   }
 
-  async function onRegen(s: any) {
+  async function onRegen(s: MyShare) {
     const ok = await confirm({
       title: "Issue a new access code?",
       body: "The previous code stops working immediately.",
@@ -125,8 +131,8 @@ function SharingPage() {
     });
     if (!ok) return;
     try {
-      const res: any = await regen({ data: { id: s.id } });
-      const email = (res?.email ?? { sent: false }) as { sent: boolean; reason?: string };
+      const res = await regen({ data: { id: s.id } });
+      const email: { sent: boolean; reason?: string } = res?.email ?? { sent: false };
       setCodeModal({
         link: `${window.location.origin}/loved-one/${s.token}`,
         code: res.access_code,
@@ -143,12 +149,12 @@ function SharingPage() {
         );
       }
       qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Failed to regenerate code"));
     }
   }
 
-  const sharePage = usePagedList<any>(data ?? []);
+  const sharePage = usePagedList(data ?? []);
 
   function copyLink(token: string) {
     navigator.clipboard.writeText(`${window.location.origin}/loved-one/${token}`);
@@ -226,7 +232,7 @@ function SharingPage() {
                 </tr>
               </thead>
               <tbody>
-                {sharePage.visible.map((s: any) => {
+                {sharePage.visible.map((s) => {
                   const now = Date.now();
                   const exp = new Date(s.expires_at).getTime();
                   const revoked = !!s.revoked_at || s.is_active === false;
@@ -510,7 +516,7 @@ function NewShareModal({
     queryKey: ["talent", "billing-documents"],
     queryFn: () => loadBilling(),
   });
-  const hasBilling = ((billing as any)?.documents?.length ?? 0) > 0;
+  const hasBilling = (billing?.documents?.length ?? 0) > 0;
 
   const [name, setName] = useState(prefill?.name ?? "");
   const [email, setEmail] = useState(prefill?.email ?? "");
@@ -525,10 +531,10 @@ function NewShareModal({
   const [docSearch, setDocSearch] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const folders: any[] = useMemo(() => (vault as any)?.folders ?? [], [vault]);
-  const allDocs: any[] = useMemo(() => (vault as any)?.documents ?? [], [vault]);
+  const folders: VaultFolder[] = useMemo(() => vault?.folders ?? [], [vault]);
+  const allDocs: VaultDoc[] = useMemo(() => vault?.documents ?? [], [vault]);
   const childrenOf = useMemo(() => {
-    const m = new Map<string | null, any[]>();
+    const m = new Map<string | null, VaultFolder[]>();
     for (const f of folders) {
       const k = f.parent_id ?? null;
       m.set(k, [...(m.get(k) ?? []), f]);
@@ -556,7 +562,7 @@ function NewShareModal({
     [id, ...descendants(id)].reduce((n, fid) => n + (docCount.get(fid) ?? 0), 0);
   const filteredDocs = useMemo(() => {
     const q = docSearch.trim().toLowerCase();
-    const list = q ? allDocs.filter((d: any) => d.name.toLowerCase().includes(q)) : allDocs;
+    const list = q ? allDocs.filter((d) => d.name.toLowerCase().includes(q)) : allDocs;
     return list.slice(0, 50);
   }, [allDocs, docSearch]);
 
@@ -580,7 +586,7 @@ function NewShareModal({
     if (!canShare) return;
     setSaving(true);
     try {
-      const res: any = await create({
+      const res = await create({
         data: {
           loved_one_name: name.trim(),
           loved_one_email: email.trim(),
@@ -600,14 +606,14 @@ function NewShareModal({
         email: res.email,
         recipient: name.trim(),
       });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Failed to create share"));
     } finally {
       setSaving(false);
     }
   }
 
-  const renderFolder = (f: any, depth: number): React.ReactNode => {
+  const renderFolder = (f: VaultFolder, depth: number): React.ReactNode => {
     const n = totalCount(f.id);
     const kids = childrenOf.get(f.id) ?? [];
     return (
@@ -758,7 +764,7 @@ function NewShareModal({
                 </p>
               ) : (
                 <ul>
-                  {filteredDocs.map((d: any) => (
+                  {filteredDocs.map((d) => (
                     <li key={d.id}>
                       <label className="tvp-share-folder-row">
                         <input
@@ -850,11 +856,11 @@ const ACCESS_EVENT_LABEL: Record<string, string> = {
 };
 
 /** Real access history for one share: who reached what, and exactly when. */
-function ShareAccessHistoryModal({ share, onClose }: { share: any; onClose: () => void }) {
+function ShareAccessHistoryModal({ share, onClose }: { share: MyShare; onClose: () => void }) {
   const loadHistory = useServerFn(listLovedOneShareAccess);
   const { data, isLoading } = useQuery({
     queryKey: ["talent", "share-access", share.id],
-    queryFn: () => loadHistory({ data: { share_id: share.id } }) as Promise<any[]>,
+    queryFn: () => loadHistory({ data: { share_id: share.id } }),
   });
   const rows = data ?? [];
 
