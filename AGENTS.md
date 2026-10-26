@@ -22,7 +22,7 @@
 - Terms acceptance is decided only by public.has_accepted_current_terms() (admins always pass); talent server functions use the requireTalentTermsAccepted middleware, agency ones get the check inside getCallerAgency/callerAgencyId, and RLS adds restrictive "Terms not accepted" write policies via terms_write_allowed(). Why: one rule, enforced on the server and in the database, not only in the portal screen.
 - Lifecycle status labels and pill colours come only from statusLabel/statusPillClass in src/lib/status-labels.ts (colours = --st-* tokens), and Admin/Agency row actions only from src/lib/status-actions.ts, which the matching server functions also check. Why: one list logic in every portal, enforced on the server too.
 - Filing review provenance: every filed document stores folder_source/expiry_source ('ai' | 'filename' | 'user'); the filename heuristic is never labelled or recorded as AI, and the server accepts 'ai' only for a completed document_ai_analyses row whose values match (checkAiSources in src/lib/document-ai-core.ts). Why: nothing may claim to be AI that isn't.
-- Document AI: Parserly is reached only through src/lib/parserly.server.ts (analyseDocument/pollAnalysis); document_ai_analyses is written only by src/lib/document-ai.server.ts with the service role, which checks the requester's own profiles.ai_filing_enabled on the server before any file is sent. Why: one integration point, and a switched-off user's files can never leave TalVault.
+- Read src/lib/AGENTS.md before changing library code; it includes auth, Document AI and onboarding rules.
 
 - Document preview/filing use DocumentModal (Radix focus, portal-safe tvp tokens); AI preference changes go through syncAiFilingPreference; reminder rules live in document-reminder-core. Why: accessible modals, consistent caches, testable shared rules.
 
@@ -46,4 +46,4 @@
 - Billing confirmation bundles theme tokens under strict CSP. Why: no external assets.
 - Only cron sweeps overdue invoices. Why: no global writes by readers.
 
-- Onboarding duplicate names and blocked-row display use onboarding-documents; service-only insert triggers replace blocked rows atomically and queue old objects, and draft screens retain their staging session. Why: corrected files never erase valid files or hide missing slots.
+- Onboarding screens use the library's duplicate/display rules and retain their staging session. Why: no hidden missing slots.
