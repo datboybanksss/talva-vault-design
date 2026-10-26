@@ -1,4 +1,8 @@
-import { duplicateOnboardingName, blockedReplacements, type OnboardingDocument } from "./onboarding-documents";
+import {
+  duplicateOnboardingName,
+  blockedReplacements,
+  type OnboardingDocument,
+} from "./onboarding-documents";
 import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -318,7 +322,8 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
     const oldPaths = blockedReplacements(existing ?? [], data.doc_slot, data.file_name).map(
       (r) => r.storage_path,
     );
-    if (oldPaths.length) await supabaseAdmin.storage.from(BUCKET).remove(oldPaths);
+    const storedOldPaths = oldPaths.filter((path): path is string => typeof path === "string");
+    if (storedOldPaths.length) await supabaseAdmin.storage.from(BUCKET).remove(storedOldPaths);
     const { removeBlockedStagedReplacement } = await import("./onboarding-replacement.server");
     await removeBlockedStagedReplacement(
       userId,
