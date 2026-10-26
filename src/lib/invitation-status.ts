@@ -15,18 +15,20 @@ export function effectiveInvitationStatus(
   return new Date(expiresAt).getTime() < Date.now() ? "expired" : s;
 }
 
-export function withEffectiveStatus<T extends Record<string, any>>(
+type StatusRow = { status?: string | null; expires_at?: string | null };
+
+export function withEffectiveStatus<T extends StatusRow>(
   row: T,
 ): T & { status: string; stored_status: string } {
-  const stored = (row.status ?? "pending") as string;
+  const stored = row.status ?? "pending";
   return {
     ...row,
     stored_status: stored,
-    status: effectiveInvitationStatus(stored, row.expires_at as string | null),
+    status: effectiveInvitationStatus(stored, row.expires_at ?? null),
   };
 }
 
-export function mapEffectiveStatus<T extends Record<string, any>>(
+export function mapEffectiveStatus<T extends StatusRow>(
   rows: T[] | null | undefined,
 ): Array<T & { status: string; stored_status: string }> {
   return (rows ?? []).map(withEffectiveStatus);

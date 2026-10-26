@@ -2,6 +2,7 @@ import { databaseError } from "./security-errors";
 import { createMiddleware } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ACCOUNT_READ_ONLY_MESSAGE, ACCOUNT_SUSPENDED_CODE } from "@/lib/account-state";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Server-side Terms enforcement. The single rule lives in the database
@@ -11,7 +12,7 @@ export const TERMS_NOT_ACCEPTED_MESSAGE =
   "TERMS_NOT_ACCEPTED: please accept the current Terms & Conditions to continue";
 
 export async function assertTermsAccepted(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   docType: "talent" | "agency",
 ) {
@@ -27,12 +28,12 @@ export async function assertTermsAccepted(
 export const requireTalentTermsAccepted = createMiddleware({ type: "function" })
   .middleware([requireSupabaseAuth])
   .server(async ({ next, context }) => {
-    await assertTermsAccepted((context as any).supabase, (context as any).userId, "talent");
+    await assertTermsAccepted(context.supabase, context.userId, "talent");
     return next();
   });
 
 /** Suspended talent are read-only (database rule talent_account_writable). */
-export async function assertTalentWritable(supabase: any, userId: string) {
+export async function assertTalentWritable(supabase: SupabaseClient, userId: string) {
   const { data, error } = await supabase.rpc("talent_account_writable", { _user_id: userId });
   if (error) throw databaseError(error);
   if (!data) throw new Error(`${ACCOUNT_SUSPENDED_CODE}: ${ACCOUNT_READ_ONLY_MESSAGE}`);
@@ -42,6 +43,6 @@ export async function assertTalentWritable(supabase: any, userId: string) {
 export const requireTalentWritable = createMiddleware({ type: "function" })
   .middleware([requireTalentTermsAccepted])
   .server(async ({ next, context }) => {
-    await assertTalentWritable((context as any).supabase, (context as any).userId);
+    await assertTalentWritable(context.supabase, context.userId);
     return next();
   });
