@@ -1224,7 +1224,7 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
                     <tr key={d.id}>
                       <td>
                         <strong>{d.name}</strong>
-                        <BlockedDocumentPill reason={quarantineReason(d as never)} />
+                        <BlockedDocumentPill reason={quarantineReason(d)} />
                         {d.pending_review && (
                           <span
                             className={`${statusPillClass("document", "pending_review")} tvp-pending-pill`}
@@ -1246,13 +1246,13 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
                       </td>
                       <td>
                         <div className="tvp-row-actions">
-                          {quarantineReason(d as never) ? (
+                          {quarantineReason(d) ? (
                             <button
-                              title={blockedReason(quarantineReason(d as never)) ?? undefined}
+                              title={blockedReason(quarantineReason(d)) ?? undefined}
                               className="tvp-mini-btn"
                               aria-disabled
                               aria-label="Download unavailable"
-                              onClick={() => explainBlocked(quarantineReason(d as never)!)}
+                              onClick={() => explainBlocked(quarantineReason(d)!)}
                             >
                               <Download className="h-4 w-4" />
                             </button>
