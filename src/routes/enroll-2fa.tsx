@@ -222,8 +222,8 @@ function EnrollTwoFactorPage() {
                 step still keeps them out.
               </div>
               <div className="tv-auth-hint" style={{ marginTop: 12 }}>
-                <strong>How does it work?</strong> For your security, each time you sign in we email a
-                one-time code to <strong>{maskEmail(email)}</strong>. Enter it to continue.{" "}
+                <strong>How does it work?</strong> For your security, each time you sign in we email
+                a one-time code to <strong>{maskEmail(email)}</strong>. Enter it to continue.{" "}
                 {SIGN_IN_CODE_EXPIRY} It's required for everyone, and we never use text messages.
               </div>
 
