@@ -20,8 +20,29 @@ import {
   getLovedOneFileUrl,
   unlockLovedOneShare,
 } from "@/lib/loved-one.functions";
-import { BillingDocument } from "@/components/agency/billing-document";
+import {
+  BillingDocument,
+  type BillingDocAgency,
+  type BillingDocRecord,
+} from "@/components/agency/billing-document";
+import type { BillingLine } from "@/lib/billing";
 import { friendlyError } from "@/lib/friendly-error";
+
+/** A shared quote or invoice, as returned for a billing share. */
+type SharedBilling = { doc: BillingDocRecord; lines: BillingLine[]; agency: BillingDocAgency };
+/** A shared document's listing fields, as returned by the share loader. */
+type SharedDoc = {
+  id: string;
+  name: string;
+  folder_id: string | null;
+  size_bytes: number | null;
+  created_at: string;
+};
+type SharedFolder = { id: string; name: string };
+type ShareState =
+  | Awaited<ReturnType<typeof getLovedOneShareByToken>>
+  | { status: "loading" }
+  | { status: "error"; error?: string };
 
 /** Read-only rendering of a shared quote or invoice — data, not a file. */
 function BillingBlock({
@@ -29,7 +50,7 @@ function BillingBlock({
   watermarked,
   watermark,
 }: {
-  record: any;
+  record: SharedBilling;
   watermarked: boolean;
   watermark: string;
 }) {
@@ -128,7 +149,7 @@ function LovedOnePage() {
   const fileUrl = useServerFn(getLovedOneFileUrl);
   const unlock = useServerFn(unlockLovedOneShare);
 
-  const [state, setState] = useState<any>({ status: "loading" });
+  const [state, setState] = useState<ShareState>({ status: "loading" });
   const [ticket, setTicket] = useState<string | undefined>(() => {
     if (typeof window === "undefined") return undefined;
     return sessionStorage.getItem(ticketKey(token)) ?? undefined;
@@ -151,7 +172,7 @@ function LovedOnePage() {
   }, [refresh]);
 
   async function onUnlock(code: string) {
-    const res: any = await unlock({ data: { token, code } });
+    const res = await unlock({ data: { token, code } });
     if (res.ok) {
       sessionStorage.setItem(ticketKey(token), res.ticket);
       setTicket(res.ticket);
@@ -166,7 +187,7 @@ function LovedOnePage() {
       const { url, name } = await fileUrl({ data: { token, ticket, document_id: docId, mode } });
       if (mode === "download") window.open(url, "_blank", "noopener");
       else setViewer({ url, name });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Could not open document"));
     }
   }
@@ -223,10 +244,10 @@ function LovedOnePage() {
   const share = state.share;
   const canDownload = share.permission === "download";
   const isBilling = share.share_kind === "billing";
-  const billing: any[] = state.billing ?? [];
-  const folders: any[] = state.folders ?? [];
-  const documents: any[] = state.documents ?? [];
-  const byFolder = new Map<string | null, any[]>();
+  const billing: SharedBilling[] = state.billing ?? [];
+  const folders: SharedFolder[] = state.folders ?? [];
+  const documents: SharedDoc[] = state.documents ?? [];
+  const byFolder = new Map<string | null, SharedDoc[]>();
   for (const d of documents) {
     const k = d.folder_id ?? null;
     if (!byFolder.has(k)) byFolder.set(k, []);
@@ -296,7 +317,7 @@ function LovedOnePage() {
 
       {isBilling ? (
         <>
-          {billing.map((b: any) => (
+          {billing.map((b) => (
             <BillingBlock
               key={b.doc.id}
               record={b}
@@ -613,7 +634,7 @@ function FolderBlock({
   onOpen,
 }: {
   name: string;
-  docs: any[];
+  docs: SharedDoc[];
   canDownload: boolean;
   onOpen: (id: string, mode: "view" | "download") => void;
 }) {
