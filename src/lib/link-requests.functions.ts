@@ -7,14 +7,14 @@ import { z } from "zod";
 export const listMyLinkRequests = createServerFn({ method: "GET" })
   .middleware([requireTalentTermsAccepted])
   .handler(async ({ context }) => {
-    const { supabase } = context as any;
+    const { supabase } = context;
     const { data, error } = await supabase.rpc("my_link_requests");
     if (error) throw new Error("We couldn't load your requests. Please try again.");
-    return ((data ?? []) as any[]).map((r) => ({
-      id: r.link_id as string,
-      agencyName: (r.agency_name as string) ?? "An agency",
-      requestedAt: (r.requested_at as string) ?? null,
-      expiresAt: (r.expires_at as string) ?? null,
+    return (data ?? []).map((r) => ({
+      id: r.link_id,
+      agencyName: r.agency_name ?? "An agency",
+      requestedAt: r.requested_at ?? null,
+      expiresAt: r.expires_at ?? null,
     }));
   });
 
@@ -22,7 +22,7 @@ export const respondToLinkRequest = createServerFn({ method: "POST" })
   .middleware([requireTalentWritable])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), accept: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase } = context as any;
+    const { supabase } = context;
     const { error } = await supabase.rpc("respond_link_request", {
       _link_id: data.id,
       _accept: data.accept,
