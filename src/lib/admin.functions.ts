@@ -321,7 +321,9 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
 
 export const logOwnEmailChangeRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => parseInput(z.object({ new_email: z.string().max(10000).email() }), d))
+  .inputValidator((d: unknown) =>
+    parseInput(z.object({ new_email: z.string().max(10000).email() }), d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdmin(supabase, userId);
@@ -536,7 +538,9 @@ export const listAccounts = createServerFn({ method: "GET" })
 
     const { data: profiles, error: pErr } = await supabase
       .from("talent_profiles")
-      .select("id, user_id, full_name, email, created_at, activation_completed_at, is_test, paused_at, suspended_at")
+      .select(
+        "id, user_id, full_name, email, created_at, activation_completed_at, is_test, paused_at, suspended_at",
+      )
       .is("deleted_at", null);
     if (pErr) throw databaseError(pErr);
     const userIds = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
@@ -667,9 +671,20 @@ export const getTalentAccountById = createServerFn({ method: "GET" })
         .from("agency_talent_links")
         .select("status, agencies(name)")
         .eq("talent_user_id", p.user_id);
-      agencies = (links ?? []).map((l: any) => ({ name: l.agencies?.name ?? "—", status: l.status }));
+      agencies = (links ?? []).map((l: any) => ({
+        name: l.agencies?.name ?? "—",
+        status: l.status,
+      }));
     }
-    await logAudit(supabase, userId, claims?.email, "view_talent", "talent", data.id, p.full_name || p.email);
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      "view_talent",
+      "talent",
+      data.id,
+      p.full_name || p.email,
+    );
     return {
       ...p,
       status: talentAccountStatus(p.activation_completed_at, p),
@@ -753,7 +768,8 @@ export const changeAccountState = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     await assertAdminCanEdit(supabase, userId);
-    const { canApplyAccountAction, isValidReason, reasonsFor } = await import("@/lib/account-state");
+    const { canApplyAccountAction, isValidReason, reasonsFor } =
+      await import("@/lib/account-state");
     const needsReason = data.action === "pause" || data.action === "suspend";
     if (needsReason && !isValidReason(data.action as "pause" | "suspend", data.reason ?? "")) {
       throw new Error("Choose a reason.");
@@ -762,9 +778,14 @@ export const changeAccountState = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as any;
     const table = data.type === "agency" ? "agencies" : "talent_profiles";
-    const { data: row, error: rErr } = await admin.from(table).select("*").eq("id", data.id).maybeSingle();
+    const { data: row, error: rErr } = await admin
+      .from(table)
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
     if (rErr) throw databaseError(rErr);
-    if (!row || (data.type === "talent" && row.deleted_at)) throw new Error("We couldn't find that account.");
+    if (!row || (data.type === "talent" && row.deleted_at))
+      throw new Error("We couldn't find that account.");
     const state = {
       paused: !!row.paused_at,
       suspended: data.type === "agency" ? row.status === "suspended" : !!row.suspended_at,
@@ -778,7 +799,10 @@ export const changeAccountState = createServerFn({ method: "POST" })
     if (data.action === "pause") {
       let userIds: string[] = [];
       if (data.type === "agency") {
-        const { data: members } = await admin.from("agency_members").select("user_id").eq("agency_id", data.id);
+        const { data: members } = await admin
+          .from("agency_members")
+          .select("user_id")
+          .eq("agency_id", data.id);
         userIds = (members ?? []).map((m: any) => m.user_id).filter(Boolean);
       } else if (row.user_id) userIds = [row.user_id];
       const banned = await banUsers(admin, userIds);
@@ -787,11 +811,17 @@ export const changeAccountState = createServerFn({ method: "POST" })
         paused_by: userId,
         pause_reason: data.reason,
         pause_note: note,
-        ...(data.type === "agency" ? { paused_banned_user_ids: banned } : { paused_banned: banned.length > 0 }),
+        ...(data.type === "agency"
+          ? { paused_banned_user_ids: banned }
+          : { paused_banned: banned.length > 0 }),
       };
     } else if (data.action === "unpause") {
       const toUnban: string[] =
-        data.type === "agency" ? (row.paused_banned_user_ids ?? []) : row.paused_banned && row.user_id ? [row.user_id] : [];
+        data.type === "agency"
+          ? (row.paused_banned_user_ids ?? [])
+          : row.paused_banned && row.user_id
+            ? [row.user_id]
+            : [];
       await unbanUsers(admin, toUnban);
       patch = {
         paused_at: null,
@@ -821,12 +851,24 @@ export const changeAccountState = createServerFn({ method: "POST" })
     const { error: uErr } = await admin.from(table).update(patch).eq("id", data.id);
     if (uErr) throw databaseError(uErr);
     const label = data.type === "agency" ? row.name : row.full_name || row.email;
-    await logAudit(supabase, userId, claims?.email, `${data.action}_${data.type}`, data.type, data.id, label, {
-      ...(needsReason
-        ? { reason: data.reason, reason_label: reasonsFor(data.action as "pause" | "suspend")[data.reason!] }
-        : {}),
-      note,
-    });
+    await logAudit(
+      supabase,
+      userId,
+      claims?.email,
+      `${data.action}_${data.type}`,
+      data.type,
+      data.id,
+      label,
+      {
+        ...(needsReason
+          ? {
+              reason: data.reason,
+              reason_label: reasonsFor(data.action as "pause" | "suspend")[data.reason!],
+            }
+          : {}),
+        note,
+      },
+    );
     if (data.action === "suspend" && data.type === "agency") {
       await supabase.from("admin_notifications").insert({
         kind: "suspended_review",
@@ -903,7 +945,10 @@ export const dismissNotification = createServerFn({ method: "POST" })
 export const dismissComputedNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    parseInput(z.object({ kind: z.string().max(10000), snapshot: z.number().int().nonnegative() }), d),
+    parseInput(
+      z.object({ kind: z.string().max(10000), snapshot: z.number().int().nonnegative() }),
+      d,
+    ),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -1050,7 +1095,11 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     ]);
     const testAgencyIds: string[] = (testAg ?? []).map((r: any) => r.id);
     const testEmails: string[] = (testTal ?? [])
-      .map((r: any) => String(r.email ?? "").trim().toLowerCase())
+      .map((r: any) =>
+        String(r.email ?? "")
+          .trim()
+          .toLowerCase(),
+      )
       .filter(Boolean);
     // Search box: matched on the server across names, contact person and
     // email (accent-insensitive), then applied as an id filter so counts,
@@ -1064,7 +1113,10 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
           .select("id, agency_name, contact_person, email")
           .eq("kind", ADMIN_AGENCY_INVITATION_KIND)
           .limit(5000),
-        supabase.from("independent_talent_invitations").select("id, talent_name, email").limit(5000),
+        supabase
+          .from("independent_talent_invitations")
+          .select("id, talent_name, email")
+          .limit(5000),
       ]);
       if (ag.error) throw databaseError(ag.error);
       if (ta.error) throw databaseError(ta.error);
@@ -1080,7 +1132,8 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       if (scope === "all") return q;
       const ids = t === "agency" ? testAgencyIds : testEmails;
       const col = t === "agency" ? "agency_id" : "email";
-      if (scope === "test") return ids.length ? q.in(col, ids) : q.eq("id", "00000000-0000-0000-0000-000000000000");
+      if (scope === "test")
+        return ids.length ? q.in(col, ids) : q.eq("id", "00000000-0000-0000-0000-000000000000");
       if (!ids.length) return q;
       return t === "agency"
         ? q.or(`agency_id.is.null,agency_id.not.in.(${quoteList(ids)})`)
@@ -1089,7 +1142,11 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     const isTestRow = (r: any, t: InvitationType) =>
       t === "agency"
         ? !!r.agency_id && testAgencyIds.includes(r.agency_id)
-        : testEmails.includes(String(r.email ?? "").trim().toLowerCase());
+        : testEmails.includes(
+            String(r.email ?? "")
+              .trim()
+              .toLowerCase(),
+          );
     const TABLE = {
       agency: {
         table: "agency_invitations",
@@ -1106,7 +1163,10 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       const q1 = byScope(t === "agency" ? q0.eq("kind", ADMIN_AGENCY_INVITATION_KIND) : q0, t);
       const q2 = email ? q1.ilike("email", `%${email}%`) : q1;
       const ids = searchIds[t];
-      const q = ids === null ? q2 : q2.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+      const q =
+        ids === null
+          ? q2
+          : q2.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
       if (s !== "all") return q.eq("status", s);
@@ -1237,7 +1297,10 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
       } catch (e) {
         // Never leave a half-saved draft behind: undo it and keep the staged files.
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await supabaseAdmin.from("agency_compliance_documents").delete().eq("invitation_id", inv.id);
+        await supabaseAdmin
+          .from("agency_compliance_documents")
+          .delete()
+          .eq("invitation_id", inv.id);
         await supabaseAdmin.from("agency_invitations").delete().eq("id", inv.id);
         await supabaseAdmin.from("agencies").delete().eq("id", agency.id).eq("status", "invited");
         throw e;

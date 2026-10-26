@@ -1,7 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { checkInviteEmail } from "@/lib/invite-email-check.functions";
-import { normaliseInviteEmail, type InviteEmailConflict, type InviteFlow } from "@/lib/invite-email-check";
+import {
+  normaliseInviteEmail,
+  type InviteEmailConflict,
+  type InviteFlow,
+} from "@/lib/invite-email-check";
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 

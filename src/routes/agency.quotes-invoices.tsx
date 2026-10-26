@@ -122,7 +122,9 @@ export const Route = createFileRoute("/agency/quotes-invoices")({
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Quotes & invoices</h1>
-      <p className="tvp-muted">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
+      <p className="tvp-muted">
+        {friendlyError(error, "This page could not be loaded. Please try again.")}
+      </p>
     </div>
   ),
   notFoundComponent: () => <div>Not found</div>,
@@ -853,15 +855,66 @@ function QIPage() {
             </div>
 
             <FilterBar
-              search={{ value: search, onChange: setSearch, placeholder: "Search by client, talent or reference" }}
+              search={{
+                value: search,
+                onChange: setSearch,
+                placeholder: "Search by client, talent or reference",
+              }}
               active={filtersActive}
               onClear={resetFilters}
-              onChange={(k, v) => (k === "status" ? setStatusFilter(v) : k === "talent" ? setTalentFilter(v) : k === "type" ? setTypeFilter(v) : setSort(v as SortKey))}
+              onChange={(k, v) =>
+                k === "status"
+                  ? setStatusFilter(v)
+                  : k === "talent"
+                    ? setTalentFilter(v)
+                    : k === "type"
+                      ? setTypeFilter(v)
+                      : setSort(v as SortKey)
+              }
               filters={[
-                { key: "status", label: "Status", value: statusFilter, options: [{ value: "all", label: "All statuses" }, ...(Object.keys(STATUS_LABEL) as Row["status"][]).map((x) => ({ value: x, label: STATUS_LABEL[x] }))] },
-                { key: "talent", label: "Talent", value: talentFilter, options: [{ value: "all", label: "All talent" }, ...talents.map((t) => ({ value: t, label: t }))] },
-                { key: "type", label: "Type", value: typeFilter, options: [{ value: "all", label: "All types" }, { value: "quote", label: "Quote" }, { value: "invoice", label: "Invoice" }] },
-                { key: "sort", label: "Sort", value: sort, options: [{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "amount_desc", label: "Highest amount" }, { value: "amount_asc", label: "Lowest amount" }, { value: "due", label: "Due date" }] },
+                {
+                  key: "status",
+                  label: "Status",
+                  value: statusFilter,
+                  options: [
+                    { value: "all", label: "All statuses" },
+                    ...(Object.keys(STATUS_LABEL) as Row["status"][]).map((x) => ({
+                      value: x,
+                      label: STATUS_LABEL[x],
+                    })),
+                  ],
+                },
+                {
+                  key: "talent",
+                  label: "Talent",
+                  value: talentFilter,
+                  options: [
+                    { value: "all", label: "All talent" },
+                    ...talents.map((t) => ({ value: t, label: t })),
+                  ],
+                },
+                {
+                  key: "type",
+                  label: "Type",
+                  value: typeFilter,
+                  options: [
+                    { value: "all", label: "All types" },
+                    { value: "quote", label: "Quote" },
+                    { value: "invoice", label: "Invoice" },
+                  ],
+                },
+                {
+                  key: "sort",
+                  label: "Sort",
+                  value: sort,
+                  options: [
+                    { value: "newest", label: "Newest first" },
+                    { value: "oldest", label: "Oldest first" },
+                    { value: "amount_desc", label: "Highest amount" },
+                    { value: "amount_asc", label: "Lowest amount" },
+                    { value: "due", label: "Due date" },
+                  ],
+                },
               ]}
             />
 
@@ -879,200 +932,211 @@ function QIPage() {
             </div>
 
             <div className="tvp-table-wrap">
-            <table className="tvp-table" data-tour="billing-table">
-              <thead>
-                <tr>
-                  <th>Reference</th>
-                  <th>Type</th>
-                  <th>Talent</th>
-                  <th>Client</th>
-                  <th>Status</th>
-                  <th>Acceptance or due</th>
-                  <th className="tvp-num">Amount</th>
-                  <th aria-label="Actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.length === 0 && (
+              <table className="tvp-table" data-tour="billing-table">
+                <thead>
                   <tr>
-                    <td colSpan={8} className="tvp-muted" style={{ padding: 24 }}>
-                      {rows.length === 0
-                        ? "No quotes or invoices yet. Start with New quote or New invoice."
-                        : "No quotes or invoices match these filters."}
-                    </td>
+                    <th>Reference</th>
+                    <th>Type</th>
+                    <th>Talent</th>
+                    <th>Client</th>
+                    <th>Status</th>
+                    <th>Acceptance or due</th>
+                    <th className="tvp-num">Amount</th>
+                    <th aria-label="Actions"></th>
                   </tr>
-                )}
-                {visible.map((r) => {
-                  const linkedInvoice = r.kind === "quote" ? quoteToInvoice.get(r.id) : null;
-                  const sourceQuote =
-                    r.kind === "invoice" && r.converted_from_quote_id
-                      ? rowById.get(r.converted_from_quote_id)
-                      : null;
-                  return (
-                    <tr key={r.id}>
-                      <td>
-                        <strong>{r.number}</strong>
-                        {r.description && (
-                          <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                            {r.description}
-                          </div>
-                        )}
-                        {(linkedInvoice || sourceQuote) && (
-                          <div style={{ marginTop: 4 }}>
-                            {linkedInvoice && (
-                              <span
-                                className="tvp-status tvp-green"
-                                title={`Converted to invoice ${linkedInvoice.number}`}
-                              >
-                                <Link2 className="h-3 w-3 inline mr-1" />→ {linkedInvoice.number}
-                              </span>
-                            )}
-                            {sourceQuote && (
-                              <span
-                                className="tvp-status tvp-blue"
-                                title={`From quote ${sourceQuote.number}`}
-                              >
-                                <Link2 className="h-3 w-3 inline mr-1" />← {sourceQuote.number}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span
-                          className={`tvp-status tvp-${r.kind === "quote" ? "teal" : "purple"}`}
-                        >
-                          {r.kind === "quote" ? "Quote" : "Invoice"}
-                        </span>
-                      </td>
-                      <td>
-                        {r.talent_name ?? "—"}
-                        {!r.talent_link_id && (
-                          <div
-                            style={{
-                              marginTop: 4,
-                              display: "flex",
-                              gap: 6,
-                              alignItems: "center",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <span
-                              className="tvp-status tvp-amber"
-                              title="Not linked to a talent on your roster, so the talent may not see it"
-                            >
-                              Not linked
-                            </span>
-                            {linkingId === r.id ? (
-                              <select
-                                className="tvp-select"
-                                style={{ height: 28, fontSize: 12 }}
-                                defaultValue=""
-                                disabled={linkDoc.isPending}
-                                onChange={(e) =>
-                                  e.target.value &&
-                                  linkDoc.mutate({ doc_id: r.id, talent_link_id: e.target.value })
-                                }
-                                onBlur={() => !linkDoc.isPending && setLinkingId(null)}
-                                autoFocus
-                              >
-                                <option value="" disabled>
-                                  Choose talent…
-                                </option>
-                                {roster.map((t: any) => (
-                                  <option key={t.id} value={t.id}>
-                                    {t.displayName}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <button
-                                type="button"
-                                className="tvp-link"
-                                style={{ fontSize: 12 }}
-                                onClick={() => setLinkingId(r.id)}
-                              >
-                                Link to talent
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td>{r.client_name ?? "—"}</td>
-                      <td>
-                        <select
-                          className={`tvp-select tvp-status-select tvp-${STATUS_TONE[r.status]}`}
-                          value={r.status}
-                          onChange={(e) =>
-                            changeStatus.mutate({
-                              id: r.id,
-                              status: e.target.value as Row["status"],
-                            })
-                          }
-                          style={{ minWidth: 110, height: 32, fontSize: 12, fontWeight: 800 }}
-                        >
-                          {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
-                            <option key={s} value={s}>
-                              {STATUS_LABEL[s]}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <span className="tvp-muted" style={{ fontSize: 12 }}>
-                          {ruleText(r)}
-                        </span>
-                      </td>
-                      <td className="tvp-num">{fmtMoney(r.total_cents, r.currency)}</td>
-                      <td className="tvp-actions-cell">
-                        <RowActionsMenu
-                          label={`Actions for ${r.number}`}
-                          actions={[
-                            { key: "edit", label: "Edit", icon: Pencil, onSelect: () => openEdit(r) },
-                            r.kind === "quote" && !linkedInvoice && {
-                              key: "convert",
-                              label: "Convert to invoice",
-                              icon: ArrowRightLeft,
-                              onSelect: () => convert.mutate(r),
-                            },
-                            r.kind === "invoice" && r.status !== "draft" && {
-                              key: "payments",
-                              label: "Payments received",
-                              icon: Wallet,
-                              onSelect: () => setPaymentsDocId(r.id),
-                            },
-                            !!r.talent_name && {
-                              key: "share",
-                              label: r.shared_with_talent ? "Stop sharing with talent" : "Share with linked talent",
-                              icon: Link2,
-                              onSelect: () => toggleShare.mutate({ id: r.id, shared: !r.shared_with_talent }),
-                            },
-                            {
-                              key: "delete",
-                              label: "Delete",
-                              icon: Trash2,
-                              destructive: true,
-                              separatorBefore: true,
-                              onSelect: async () => {
-                                if (await askConfirm({ title: `Delete ${r.kind} ${r.number}?` })) del.mutate(r.id);
-                              },
-                            },
-                          ]}
-                        />
+                </thead>
+                <tbody>
+                  {visible.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="tvp-muted" style={{ padding: 24 }}>
+                        {rows.length === 0
+                          ? "No quotes or invoices yet. Start with New quote or New invoice."
+                          : "No quotes or invoices match these filters."}
                       </td>
                     </tr>
-                  );
-                })}
-                <LoadMoreRow
-                  colSpan={8}
-                  noun="documents"
-                  shown={page.shown}
-                  total={page.total}
-                  hasMore={page.hasMore}
-                  onLoadMore={page.loadMore}
-                />
-              </tbody>
-            </table>
+                  )}
+                  {visible.map((r) => {
+                    const linkedInvoice = r.kind === "quote" ? quoteToInvoice.get(r.id) : null;
+                    const sourceQuote =
+                      r.kind === "invoice" && r.converted_from_quote_id
+                        ? rowById.get(r.converted_from_quote_id)
+                        : null;
+                    return (
+                      <tr key={r.id}>
+                        <td>
+                          <strong>{r.number}</strong>
+                          {r.description && (
+                            <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                              {r.description}
+                            </div>
+                          )}
+                          {(linkedInvoice || sourceQuote) && (
+                            <div style={{ marginTop: 4 }}>
+                              {linkedInvoice && (
+                                <span
+                                  className="tvp-status tvp-green"
+                                  title={`Converted to invoice ${linkedInvoice.number}`}
+                                >
+                                  <Link2 className="h-3 w-3 inline mr-1" />→ {linkedInvoice.number}
+                                </span>
+                              )}
+                              {sourceQuote && (
+                                <span
+                                  className="tvp-status tvp-blue"
+                                  title={`From quote ${sourceQuote.number}`}
+                                >
+                                  <Link2 className="h-3 w-3 inline mr-1" />← {sourceQuote.number}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <span
+                            className={`tvp-status tvp-${r.kind === "quote" ? "teal" : "purple"}`}
+                          >
+                            {r.kind === "quote" ? "Quote" : "Invoice"}
+                          </span>
+                        </td>
+                        <td>
+                          {r.talent_name ?? "—"}
+                          {!r.talent_link_id && (
+                            <div
+                              style={{
+                                marginTop: 4,
+                                display: "flex",
+                                gap: 6,
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <span
+                                className="tvp-status tvp-amber"
+                                title="Not linked to a talent on your roster, so the talent may not see it"
+                              >
+                                Not linked
+                              </span>
+                              {linkingId === r.id ? (
+                                <select
+                                  className="tvp-select"
+                                  style={{ height: 28, fontSize: 12 }}
+                                  defaultValue=""
+                                  disabled={linkDoc.isPending}
+                                  onChange={(e) =>
+                                    e.target.value &&
+                                    linkDoc.mutate({ doc_id: r.id, talent_link_id: e.target.value })
+                                  }
+                                  onBlur={() => !linkDoc.isPending && setLinkingId(null)}
+                                  autoFocus
+                                >
+                                  <option value="" disabled>
+                                    Choose talent…
+                                  </option>
+                                  {roster.map((t: any) => (
+                                    <option key={t.id} value={t.id}>
+                                      {t.displayName}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="tvp-link"
+                                  style={{ fontSize: 12 }}
+                                  onClick={() => setLinkingId(r.id)}
+                                >
+                                  Link to talent
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td>{r.client_name ?? "—"}</td>
+                        <td>
+                          <select
+                            className={`tvp-select tvp-status-select tvp-${STATUS_TONE[r.status]}`}
+                            value={r.status}
+                            onChange={(e) =>
+                              changeStatus.mutate({
+                                id: r.id,
+                                status: e.target.value as Row["status"],
+                              })
+                            }
+                            style={{ minWidth: 110, height: 32, fontSize: 12, fontWeight: 800 }}
+                          >
+                            {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
+                              <option key={s} value={s}>
+                                {STATUS_LABEL[s]}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <span className="tvp-muted" style={{ fontSize: 12 }}>
+                            {ruleText(r)}
+                          </span>
+                        </td>
+                        <td className="tvp-num">{fmtMoney(r.total_cents, r.currency)}</td>
+                        <td className="tvp-actions-cell">
+                          <RowActionsMenu
+                            label={`Actions for ${r.number}`}
+                            actions={[
+                              {
+                                key: "edit",
+                                label: "Edit",
+                                icon: Pencil,
+                                onSelect: () => openEdit(r),
+                              },
+                              r.kind === "quote" &&
+                                !linkedInvoice && {
+                                  key: "convert",
+                                  label: "Convert to invoice",
+                                  icon: ArrowRightLeft,
+                                  onSelect: () => convert.mutate(r),
+                                },
+                              r.kind === "invoice" &&
+                                r.status !== "draft" && {
+                                  key: "payments",
+                                  label: "Payments received",
+                                  icon: Wallet,
+                                  onSelect: () => setPaymentsDocId(r.id),
+                                },
+                              !!r.talent_name && {
+                                key: "share",
+                                label: r.shared_with_talent
+                                  ? "Stop sharing with talent"
+                                  : "Share with linked talent",
+                                icon: Link2,
+                                onSelect: () =>
+                                  toggleShare.mutate({ id: r.id, shared: !r.shared_with_talent }),
+                              },
+                              {
+                                key: "delete",
+                                label: "Delete",
+                                icon: Trash2,
+                                destructive: true,
+                                separatorBefore: true,
+                                onSelect: async () => {
+                                  if (await askConfirm({ title: `Delete ${r.kind} ${r.number}?` }))
+                                    del.mutate(r.id);
+                                },
+                              },
+                            ]}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  <LoadMoreRow
+                    colSpan={8}
+                    noun="documents"
+                    shown={page.shown}
+                    total={page.total}
+                    hasMore={page.hasMore}
+                    onLoadMore={page.loadMore}
+                  />
+                </tbody>
+              </table>
             </div>
           </div>
         </>
@@ -1215,8 +1279,8 @@ function QIPage() {
                             >
                               client's page
                             </Link>
-                            . Drafts always use the latest details; once sent, this document keeps
-                            a copy that never changes.
+                            . Drafts always use the latest details; once sent, this document keeps a
+                            copy that never changes.
                           </div>
                         )}
                         {!editor.client_id && !financialsLocked && (
@@ -1443,15 +1507,21 @@ function QIPage() {
                       <dl className="tvp-totals-list">
                         <div>
                           <dt>Subtotal (excl. VAT)</dt>
-                          <dd className="tvp-num">{fmtMoney(editorTotals.subtotal_cents, editor.currency)}</dd>
+                          <dd className="tvp-num">
+                            {fmtMoney(editorTotals.subtotal_cents, editor.currency)}
+                          </dd>
                         </div>
                         <div>
                           <dt>VAT</dt>
-                          <dd className="tvp-num">{fmtMoney(editorTotals.vat_cents, editor.currency)}</dd>
+                          <dd className="tvp-num">
+                            {fmtMoney(editorTotals.vat_cents, editor.currency)}
+                          </dd>
                         </div>
                         <div className="tvp-totals-grand">
                           <dt>Total</dt>
-                          <dd className="tvp-num">{fmtMoney(editorTotals.total_cents, editor.currency)}</dd>
+                          <dd className="tvp-num">
+                            {fmtMoney(editorTotals.total_cents, editor.currency)}
+                          </dd>
                         </div>
                       </dl>
                     </div>
@@ -1574,13 +1644,15 @@ function QIPage() {
               : !editor.client_id
                 ? "Choose a client before sending."
                 : editor.recipient_emails.length === 0
-                ? "Add at least one recipient email address before sending."
-                : !settings?.billing_from_verified_at || !settings?.billing_from_email
-                  ? "Verify a sending address in Quotes & Invoices Settings before sending."
-                  : "This record has already been sent."
+                  ? "Add at least one recipient email address before sending."
+                  : !settings?.billing_from_verified_at || !settings?.billing_from_email
+                    ? "Verify a sending address in Quotes & Invoices Settings before sending."
+                    : "This record has already been sent."
           }
           canMarkSent={
-            !!editor.id && !!editor.client_id && (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
+            !!editor.id &&
+            !!editor.client_id &&
+            (editor.status === "draft" || (editor.number || "").startsWith("DRAFT-"))
           }
           markSentDisabledReason={
             !editor.id

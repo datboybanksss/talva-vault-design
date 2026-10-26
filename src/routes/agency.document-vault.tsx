@@ -121,7 +121,11 @@ import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
 import { PreviewDialog } from "@/components/shared/preview-dialog";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { BlockedDocumentPill, blockedReason, explainBlocked } from "@/components/shared/blocked-document";
+import {
+  BlockedDocumentPill,
+  blockedReason,
+  explainBlocked,
+} from "@/components/shared/blocked-document";
 import { quarantineReason, type QuarantineReason } from "@/lib/document-quarantine";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { friendlyError } from "@/lib/friendly-error";
@@ -175,7 +179,9 @@ export const Route = createFileRoute("/agency/document-vault")({
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Document Vault</h1>
-      <p className="tvp-muted">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
+      <p className="tvp-muted">
+        {friendlyError(error, "This page could not be loaded. Please try again.")}
+      </p>
     </div>
   ),
   notFoundComponent: () => <div>Not found</div>,
@@ -735,21 +741,21 @@ function VaultPage() {
                                 ` · ${c.children.length} ${c.children.length === 1 ? "subfolder" : "subfolders"}`}
                             </span>
                             {(c.reviewCount > 0 || c.expiringCount > 0 || c.needsReview) && (
-                            <span className="tvp-folder-flags">
-                              {c.reviewCount > 0 && (
-                                <span className="tvp-status tvp-purple">
-                                  {c.reviewCount} to review
-                                </span>
-                              )}
-                              {c.expiringCount > 0 && (
-                                <span className="tvp-status tvp-amber">
-                                  {c.expiringCount} expiring
-                                </span>
-                              )}
-                              {c.needsReview && (
-                                <span className="tvp-status tvp-amber">Folder needs review</span>
-                              )}
-                            </span>
+                              <span className="tvp-folder-flags">
+                                {c.reviewCount > 0 && (
+                                  <span className="tvp-status tvp-purple">
+                                    {c.reviewCount} to review
+                                  </span>
+                                )}
+                                {c.expiringCount > 0 && (
+                                  <span className="tvp-status tvp-amber">
+                                    {c.expiringCount} expiring
+                                  </span>
+                                )}
+                                {c.needsReview && (
+                                  <span className="tvp-status tvp-amber">Folder needs review</span>
+                                )}
+                              </span>
                             )}
                           </span>
                           <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
@@ -832,7 +838,31 @@ function VaultPage() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                   <div className="flex gap-2">
-                    <FilterBar onChange={(k, v) => (k === "folder" ? setFolderFilter(v) : setTalentFilter(v))} filters={[{ key: "folder", label: "Folder", value: folderFilter, options: [{ value: "all", label: "All folders" }, ...folderOptions.map((x: string) => ({ value: x, label: x }))] },{ key: "talent", label: "Talent", value: talentFilter, options: [{ value: "all", label: "All talent" }, ...talentLinks.map((l) => ({ value: l.id, label: l.displayName }))] }]} />
+                    <FilterBar
+                      onChange={(k, v) =>
+                        k === "folder" ? setFolderFilter(v) : setTalentFilter(v)
+                      }
+                      filters={[
+                        {
+                          key: "folder",
+                          label: "Folder",
+                          value: folderFilter,
+                          options: [
+                            { value: "all", label: "All folders" },
+                            ...folderOptions.map((x: string) => ({ value: x, label: x })),
+                          ],
+                        },
+                        {
+                          key: "talent",
+                          label: "Talent",
+                          value: talentFilter,
+                          options: [
+                            { value: "all", label: "All talent" },
+                            ...talentLinks.map((l) => ({ value: l.id, label: l.displayName })),
+                          ],
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
               )}
@@ -1002,7 +1032,9 @@ function VaultPage() {
                                           await stopSharingFn({ data: { id: d.id } });
                                           toast.success("Sharing stopped");
                                         } catch (e: any) {
-                                          toast.error(friendlyError(e, "Sharing couldn't be stopped."));
+                                          toast.error(
+                                            friendlyError(e, "Sharing couldn't be stopped."),
+                                          );
                                         }
                                       },
                                     },
@@ -1106,7 +1138,6 @@ function VaultPage() {
           }}
         />
       )}
-
     </>
   );
 }
@@ -1613,8 +1644,7 @@ function UploadDialog({
                               border: "none",
                               textAlign: "left",
                               fontSize: 13,
-                              background:
-                                folderId === c.id ? "var(--surface-soft)" : "transparent",
+                              background: folderId === c.id ? "var(--surface-soft)" : "transparent",
                               color: "var(--tvp-ink)",
                               cursor: "pointer",
                             }}
@@ -1634,7 +1664,8 @@ function UploadDialog({
         {/* Optional name override */}
         <div>
           <label className="tvp-form-label" htmlFor="upload-name">
-            Document name <span style={{ fontWeight: 400, color: "var(--tvp-muted)" }}>(optional)</span>
+            Document name{" "}
+            <span style={{ fontWeight: 400, color: "var(--tvp-muted)" }}>(optional)</span>
           </label>
           <input
             id="upload-name"
@@ -1648,7 +1679,11 @@ function UploadDialog({
 
         {/* Status + Expiry side by side */}
         <div
-          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 12,
+          }}
         >
           <div>
             <label className="tvp-form-label" htmlFor="upload-status">

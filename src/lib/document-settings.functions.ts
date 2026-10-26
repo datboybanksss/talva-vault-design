@@ -21,7 +21,10 @@ export const getDocumentSettings = createServerFn({ method: "GET" })
       .eq("key", "documents")
       .maybeSingle();
     if (error) throw databaseError(error);
-    return { settings: parseDocumentSettings(data?.value), updatedAt: (data?.updated_at as string) ?? null };
+    return {
+      settings: parseDocumentSettings(data?.value),
+      updatedAt: (data?.updated_at as string) ?? null,
+    };
   });
 
 const nullableInt = (max: number) => z.number().int().min(0).max(max).nullable();
@@ -48,9 +51,12 @@ export const updateDocumentSettings = createServerFn({ method: "POST" })
       .eq("key", "documents")
       .maybeSingle();
     const value: DocumentSettings = data;
-    const { error } = await supabase
-      .from("platform_settings")
-      .upsert({ key: "documents", value, updated_at: new Date().toISOString(), updated_by: userId });
+    const { error } = await supabase.from("platform_settings").upsert({
+      key: "documents",
+      value,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    });
     if (error) throw databaseError(error);
     await supabase.from("admin_audit_log").insert({
       actor_id: userId,
@@ -72,7 +78,9 @@ export const listBulkDeleteFlags = createServerFn({ method: "GET" })
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("document_bulk_delete_flags")
-      .select("id, agency_id, deleted_count, threshold, window_minutes, first_deleted_at, last_deleted_at, reviewed_at")
+      .select(
+        "id, agency_id, deleted_count, threshold, window_minutes, first_deleted_at, last_deleted_at, reviewed_at",
+      )
       .is("reviewed_at", null)
       .order("last_deleted_at", { ascending: false })
       .limit(50);
@@ -83,7 +91,10 @@ export const listBulkDeleteFlags = createServerFn({ method: "GET" })
       const { data: ags } = await supabase.from("agencies").select("id, name").in("id", ids);
       for (const a of ags ?? []) names.set(a.id, a.name);
     }
-    return (data ?? []).map((f: any) => ({ ...f, agency_name: names.get(f.agency_id) ?? "Unknown agency" }));
+    return (data ?? []).map((f: any) => ({
+      ...f,
+      agency_name: names.get(f.agency_id) ?? "Unknown agency",
+    }));
   });
 
 export const markBulkDeleteFlagReviewed = createServerFn({ method: "POST" })

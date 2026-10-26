@@ -54,7 +54,6 @@ const CHIPS: Array<{ key: ChipKey; label: string; tone: string }> = [
   { key: "overdue", label: "Overdue", tone: "red" },
 ];
 
-
 function daysAgo(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 3600 * 1000));
 }
@@ -246,9 +245,7 @@ function QuotesInvoicesPage() {
             <Wallet className="h-5 w-5" />
           </div>
           <div>
-            <div className="tvp-kpi-value">
-              {fmtMoney(kpis.outstanding, "ZAR")}
-            </div>
+            <div className="tvp-kpi-value">{fmtMoney(kpis.outstanding, "ZAR")}</div>
             <div className="tvp-kpi-label">Outstanding</div>
             <div
               className="tvp-kpi-sub"
@@ -263,9 +260,7 @@ function QuotesInvoicesPage() {
             <CheckCircle2 className="h-5 w-5" />
           </div>
           <div>
-            <div className="tvp-kpi-value">
-              {fmtMoney(kpis.paid30, "ZAR")}
-            </div>
+            <div className="tvp-kpi-value">{fmtMoney(kpis.paid30, "ZAR")}</div>
             <div className="tvp-kpi-label">Paid (last 30 days)</div>
             <div
               className="tvp-kpi-sub"
@@ -310,13 +305,34 @@ function QuotesInvoicesPage() {
 
       <div className="tvp-card tvp-panel">
         <FilterBar
-          search={{ value: search, onChange: setSearch, placeholder: "Search by number, client or agency" }}
+          search={{
+            value: search,
+            onChange: setSearch,
+            placeholder: "Search by number, client or agency",
+          }}
           active={filtersActive}
           onClear={resetFilters}
           onChange={(k, v) => (k === "agency" ? setAgencyFilter(v) : setTypeFilter(v))}
           filters={[
-            { key: "agency", label: "Agency", value: agencyFilter, options: [{ value: "all", label: "All agencies" }, ...agencies.map((a) => ({ value: a, label: a }))] },
-            { key: "type", label: "Type", value: typeFilter, options: [{ value: "all", label: "All types" }, { value: "quote", label: "Quote" }, { value: "invoice", label: "Invoice" }] },
+            {
+              key: "agency",
+              label: "Agency",
+              value: agencyFilter,
+              options: [
+                { value: "all", label: "All agencies" },
+                ...agencies.map((a) => ({ value: a, label: a })),
+              ],
+            },
+            {
+              key: "type",
+              label: "Type",
+              value: typeFilter,
+              options: [
+                { value: "all", label: "All types" },
+                { value: "quote", label: "Quote" },
+                { value: "invoice", label: "Invoice" },
+              ],
+            },
           ]}
         />
         <div className="tvp-table-wrap">
@@ -356,11 +372,21 @@ function QuotesInvoicesPage() {
                     <strong>{r.agency_name}</strong>
                   </td>
                   <td>
-                    <span className="tvp-status st-neutral">{r.kind === "quote" ? "Quote" : "Invoice"}</span>
+                    <span className="tvp-status st-neutral">
+                      {r.kind === "quote" ? "Quote" : "Invoice"}
+                    </span>
                   </td>
                   <td className="tvp-nowrap">{r.number}</td>
                   <td>{r.client_name ?? "—"}</td>
-                  <td className="tvp-nowrap">{r.issued_at ? new Date(r.issued_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</td>
+                  <td className="tvp-nowrap">
+                    {r.issued_at
+                      ? new Date(r.issued_at).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </td>
                   <td className="tvp-num">{fmtMoney(r.total_cents, r.currency)}</td>
                   <td>
                     <span className={`tvp-status tvp-${statusTone[r.status] ?? "neutral"}`}>
@@ -375,7 +401,10 @@ function QuotesInvoicesPage() {
                           key: "view",
                           label: "View (read-only)",
                           icon: Eye,
-                          onSelect: () => toast.info("Admins can view but not change agency quotes and invoices."),
+                          onSelect: () =>
+                            toast.info(
+                              "Admins can view but not change agency quotes and invoices.",
+                            ),
                         },
                       ]}
                     />

@@ -5,14 +5,22 @@ import { Send } from "lucide-react";
 import { CombinedInvitationsList } from "@/components/admin/combined-invitations-list";
 import { normaliseInvitationStatus, normaliseInvitationType } from "@/lib/invitation-filters";
 
-type InvitationsSearch = { type?: string; status?: string; email?: string; accounts?: string; q?: string };
+type InvitationsSearch = {
+  type?: string;
+  status?: string;
+  email?: string;
+  accounts?: string;
+  q?: string;
+};
 
 export const Route = createFileRoute("/admin/invitations/")({
   validateSearch: (raw: Record<string, unknown>): InvitationsSearch => ({
     ...(normaliseInvitationType(raw.type) !== "all" ? { type: String(raw.type) } : {}),
     ...(normaliseInvitationStatus(raw.status) !== "all" ? { status: String(raw.status) } : {}),
     ...(typeof raw.email === "string" && raw.email.trim() ? { email: raw.email.trim() } : {}),
-    ...(normaliseAccountScope(raw.accounts, "all") !== "all" ? { accounts: String(raw.accounts) } : {}),
+    ...(normaliseAccountScope(raw.accounts, "all") !== "all"
+      ? { accounts: String(raw.accounts) }
+      : {}),
     ...(searchParam(raw.q) ? { q: searchParam(raw.q) } : {}),
   }),
   head: () => ({

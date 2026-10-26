@@ -56,7 +56,10 @@ export function decideInviteEmailConflict(
   if (facts.hasAccount && flow !== "agency_talent") {
     return {
       code: "account",
-      message: flow === "agency_staff" ? INVITE_EMAIL_MESSAGES.staffAccount : INVITE_EMAIL_MESSAGES.account,
+      message:
+        flow === "agency_staff"
+          ? INVITE_EMAIL_MESSAGES.staffAccount
+          : INVITE_EMAIL_MESSAGES.account,
       link: null,
     };
   }
@@ -66,7 +69,12 @@ export function decideInviteEmailConflict(
   return null;
 }
 
-type PendingRow = { id: string; status: string | null; expires_at: string | null; email: string | null };
+type PendingRow = {
+  id: string;
+  status: string | null;
+  expires_at: string | null;
+  email: string | null;
+};
 
 /** A pending row blocks only while unexpired; revoked/expired/accepted never block. */
 export function isBlockingInvite(row: PendingRow, email: string, now = Date.now()): boolean {

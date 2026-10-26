@@ -1,5 +1,9 @@
 import { databaseError } from "./security-errors";
-import { accountStatusCounts, agencyAccountStatus, talentAccountStatus } from "@/lib/account-filters";
+import {
+  accountStatusCounts,
+  agencyAccountStatus,
+  talentAccountStatus,
+} from "@/lib/account-filters";
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -28,8 +32,14 @@ async function assertAdmin(supabase: any, userId: string) {
 }
 
 const PeriodInput = z.object({
-  from: z.string().max(10000).regex(/^\d{4}-\d{2}-\d{2}$/),
-  to: z.string().max(10000).regex(/^\d{4}-\d{2}-\d{2}$/),
+  from: z
+    .string()
+    .max(10000)
+    .regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z
+    .string()
+    .max(10000)
+    .regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 type Period = { fromIso: string; toIso: string; from: string; to: string };
@@ -485,7 +495,11 @@ async function accountsByStatus(admin: any) {
   if (ag.error) throw databaseError(ag.error);
   if (ta.error) throw databaseError(ta.error);
   return accountStatusCounts([
-    ...(ag.data ?? []).map((a: any) => ({ type: "agency" as const, status: agencyAccountStatus(a), is_test: a.is_test })),
+    ...(ag.data ?? []).map((a: any) => ({
+      type: "agency" as const,
+      status: agencyAccountStatus(a),
+      is_test: a.is_test,
+    })),
     ...(ta.data ?? []).map((t: any) => ({
       type: "talent" as const,
       status: talentAccountStatus(t.activation_completed_at, t),

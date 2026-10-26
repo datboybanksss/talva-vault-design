@@ -375,7 +375,9 @@ async function loadSharedBilling(talentId: string | null, owner: string | null) 
   if (linksError) throw new Error("We couldn't load these shared documents. Please try again.");
   const links: NonNullable<typeof allLinks> = [];
   for (const link of allLinks ?? []) {
-    const { data: readUntil, error } = await supabaseAdmin.rpc("talent_link_read_until", { _link_id: link.id });
+    const { data: readUntil, error } = await supabaseAdmin.rpc("talent_link_read_until", {
+      _link_id: link.id,
+    });
     if (error) throw new Error("We couldn't check access to these documents. Please try again.");
     if (billingLinkReadable({ ...link, read_until: readUntil })) links.push(link);
   }
@@ -386,10 +388,13 @@ async function loadSharedBilling(talentId: string | null, owner: string | null) 
     .select(
       "id, agency_id, talent_link_id, kind, number, client_name, talent_name, description, issued_at, due_date, currency, notes, status, recipient_address, recipient_vat_number, recipient_email, acceptance_window_days, payment_terms_days",
     )
-    .in("talent_link_id", links.map(link => link.id))
+    .in(
+      "talent_link_id",
+      links.map((link) => link.id),
+    )
     .eq("shared_with_talent", true)
     .order("issued_at", { ascending: false });
-  const rows = (docs ?? []).filter(doc => billingDocumentBelongsToLinks(doc, links));
+  const rows = (docs ?? []).filter((doc) => billingDocumentBelongsToLinks(doc, links));
   if (rows.length === 0) return [] as any[];
 
   const { data: lines } = await supabaseAdmin
@@ -406,11 +411,17 @@ async function loadSharedBilling(talentId: string | null, owner: string | null) 
     .select(
       "id, name, contact_email, phone, country, business_type, billing_address, is_vat_registered, vat_number, main_contact_first_name, main_contact_last_name, main_contact_email, main_contact_phone, accent_color, default_invoice_payment_days, default_quote_acceptance_days, bank_name, bank_account_holder, bank_account_number, bank_branch_code, payment_instructions",
     )
-    .in("id", links.map(link => link.agency_id));
+    .in(
+      "id",
+      links.map((link) => link.agency_id),
+    );
 
   return rows.map((doc) => ({
     doc,
-    agency: { ...(agencies?.find(agency => agency.id === doc.agency_id) ?? { name: "Your manager" }), logo_url: null },
+    agency: {
+      ...(agencies?.find((agency) => agency.id === doc.agency_id) ?? { name: "Your manager" }),
+      logo_url: null,
+    },
     lines: (lines ?? [])
       .filter((l) => l.doc_id === doc.id)
       .map((l) => ({
@@ -537,7 +548,10 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
     for (const d of docsInFolders.data ?? []) dedup.set(d.id, d);
     for (const d of singleDocs.data ?? []) dedup.set(d.id, d);
 
-    const billing = share.share_kind === "billing" ? await loadSharedBilling(share.talent_id, share.created_by) : [];
+    const billing =
+      share.share_kind === "billing"
+        ? await loadSharedBilling(share.talent_id, share.created_by)
+        : [];
 
     const { data: counter } = await supabaseAdmin
       .from("loved_one_shares")
@@ -607,7 +621,8 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
     if (!doc || !doc.storage_path) throw new Error("Document not found.");
     if (!documentIsValidated(doc)) throw new Error("This document is not available yet.");
     if (doc.user_id !== share.created_by) throw new Error("Not authorised.");
-    if (!privateStoragePathOwned(doc.storage_path, share.created_by)) throw new Error("Not authorised.");
+    if (!privateStoragePathOwned(doc.storage_path, share.created_by))
+      throw new Error("Not authorised.");
 
     const { folderIds } = await resolveShareFolders(
       (share.scope as any)?.private_folder_ids ?? [],

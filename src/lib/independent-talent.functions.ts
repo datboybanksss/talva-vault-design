@@ -107,7 +107,9 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
     if (error || !inv) throw new Error("Invitation not found.");
     const { data: docs } = await supabase
       .from("talent_invitation_documents")
-      .select("id, doc_slot, file_name, mime_type, size_bytes, created_at, validated_at, quarantine_reason")
+      .select(
+        "id, doc_slot, file_name, mime_type, size_bytes, created_at, validated_at, quarantine_reason",
+      )
       .eq("invitation_id", data.id)
       .order("created_at");
     const { token, ...rest } = inv;
@@ -160,7 +162,10 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
         });
       } catch (e) {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await supabaseAdmin.from("talent_invitation_documents").delete().eq("invitation_id", inv.id);
+        await supabaseAdmin
+          .from("talent_invitation_documents")
+          .delete()
+          .eq("invitation_id", inv.id);
         await supabaseAdmin.from("independent_talent_invitations").delete().eq("id", inv.id);
         throw e;
       }

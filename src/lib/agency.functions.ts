@@ -1877,14 +1877,17 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("talent_shared_documents")
-      .select("storage_path, agency_id, name, talent_link_id, mime_type, validated_at, quarantine_reason")
+      .select(
+        "storage_path, agency_id, name, talent_link_id, mime_type, validated_at, quarantine_reason",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw databaseError(error);
     if (!row) throw new Error("This document is no longer available.");
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
     assertNotQuarantined(row);
-    if (!row.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
+    if (!row.validated_at)
+      throw new Error("This file is still being checked. Please try again shortly.");
     if (row.agency_id !== agencyId) throw new Error("Forbidden");
     if (!row.storage_path) throw new Error("No file attached to this document.");
 
@@ -1914,11 +1917,12 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw databaseError(error);
     if (!row || row.agency_id !== agencyId) {
-      throw new Error("This document is no longer in your vault. Refresh the page to see the latest list.");
+      throw new Error(
+        "This document is no longer in your vault. Refresh the page to see the latest list.",
+      );
     }
-    const { agencyDocumentDeleteBlock, blockText, NO_FOLDER_ACCESS, latestLock } = await import(
-      "@/lib/document-blocks"
-    );
+    const { agencyDocumentDeleteBlock, blockText, NO_FOLDER_ACCESS, latestLock } =
+      await import("@/lib/document-blocks");
     let linkStatus: string | null = null;
     let talentName: string | null = null;
     if (row.talent_link_id) {
@@ -1965,12 +1969,16 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
           agencyReadOnly: false,
         });
         throw new Error(
-          again ? blockText(again) : "This document is protected, so it can't be deleted. You can upload a new version instead.",
+          again
+            ? blockText(again)
+            : "This document is protected, so it can't be deleted. You can upload a new version instead.",
         );
       }
       if (/NO_FOLDER_ACCESS/.test(m)) throw new Error(blockText(NO_FOLDER_ACCESS));
       if (/DOCUMENT_NOT_FOUND/.test(m))
-        throw new Error("This document is no longer in your vault. Refresh the page to see the latest list.");
+        throw new Error(
+          "This document is no longer in your vault. Refresh the page to see the latest list.",
+        );
       throw new Error(m);
     }
     return { ok: true, purgeAfter: (purgeAfter as string | null) ?? null };
@@ -1999,7 +2007,8 @@ export const restoreDeletedDocument = createServerFn({ method: "POST" })
     await getWritableCallerAgency(supabase, userId);
     const { error } = await supabase.rpc("restore_deleted_document", { _doc_id: data.id });
     if (error) {
-      if (/OWNER_ONLY/.test(error.message)) throw new Error("Only the agency owner can restore documents.");
+      if (/OWNER_ONLY/.test(error.message))
+        throw new Error("Only the agency owner can restore documents.");
       if (/DOCUMENT_NOT_FOUND/.test(error.message))
         throw new Error("This document is no longer in Recently deleted. Refresh the page.");
       throw databaseError(error);
@@ -2083,7 +2092,9 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
       throw new Error(NO_OVERRIDE_MESSAGE);
     }
     {
-      const { data: min } = await supabase.rpc("document_setting", { _name: "min_retention_years" });
+      const { data: min } = await supabase.rpc("document_setting", {
+        _name: "min_retention_years",
+      });
       const { retentionBelowMinimum } = await import("@/lib/document-settings");
       const below = retentionBelowMinimum(data.retention_years, (min as number | null) ?? null);
       if (below) throw new Error(below);
@@ -2188,7 +2199,9 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
       .eq("document_id", data.document_id)
       .order("version_number", { ascending: false });
     if (error) throw databaseError(error);
-    const ids = Array.from(new Set((versions ?? []).map((v: any) => v.uploaded_by).filter(Boolean)));
+    const ids = Array.from(
+      new Set((versions ?? []).map((v: any) => v.uploaded_by).filter(Boolean)),
+    );
     const names = new Map<string, string>();
     if (ids.length) {
       const { data: profs } = await supabase
@@ -2268,13 +2281,15 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
 
     let nextNumber = ((last?.version_number as number | undefined) ?? 0) + 1;
     if (!last && doc.storage_path && doc.storage_path !== data.storage_path) {
-      const { error: preserveError } = await supabaseAdmin.from("talent_shared_document_versions").insert({
-        document_id: data.document_id,
-        version_number: 1,
-        storage_path: doc.storage_path,
-        name: doc.name,
-        uploaded_by: userId,
-      });
+      const { error: preserveError } = await supabaseAdmin
+        .from("talent_shared_document_versions")
+        .insert({
+          document_id: data.document_id,
+          version_number: 1,
+          storage_path: doc.storage_path,
+          name: doc.name,
+          uploaded_by: userId,
+        });
       if (preserveError) throw databaseError(preserveError);
       nextNumber = 2;
     }
@@ -2338,13 +2353,16 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
 
     const { data: v, error } = await supabase
       .from("talent_shared_document_versions")
-      .select("storage_path, name, document_id, mime_type, validated_at, quarantine_reason, talent_shared_documents!inner(agency_id)")
+      .select(
+        "storage_path, name, document_id, mime_type, validated_at, quarantine_reason, talent_shared_documents!inner(agency_id)",
+      )
       .eq("id", data.version_id)
       .single();
     if (error) throw databaseError(error);
     if ((v as any).talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
     assertNotQuarantined(v);
-    if (!v.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
+    if (!v.validated_at)
+      throw new Error("This file is still being checked. Please try again shortly.");
 
     const options = { download: v.name as string };
     const { data: signed, error: sErr } = await supabase.storage
@@ -2966,7 +2984,9 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
 /** Per-action counts for the activity-log chips (independent of paging). */
 export const countAgencyAuditByAction = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ since: z.string().max(10000).optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) =>
+    z.object({ since: z.string().max(10000).optional() }).parse(d ?? {}),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     const { agencyId } = await getCallerAgency(supabase, userId);
@@ -3737,7 +3757,9 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
 
 export const updateAgencyLogoPath = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ storage_path: z.string().max(10000).nullable() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ storage_path: z.string().max(10000).nullable() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
@@ -5449,7 +5471,17 @@ export const restoreAgencyClient = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw databaseError(error);
     if (!r) throw new Error("That client could not be found on your agency.");
-    await logAgencyAudit(supabase, agencyId, userId, claims?.email, "restore_agency_client", "agency_client", r.id, r.name, {});
+    await logAgencyAudit(
+      supabase,
+      agencyId,
+      userId,
+      claims?.email,
+      "restore_agency_client",
+      "agency_client",
+      r.id,
+      r.name,
+      {},
+    );
     return { ok: true };
   });
 
@@ -5631,7 +5663,8 @@ export const getAgencyTalentDetail = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .maybeSingle();
     if (error) throw databaseError(error);
-    if (!link) throw new Error("This talent is not on your roster, or is no longer available to you.");
+    if (!link)
+      throw new Error("This talent is not on your roster, or is no longer available to you.");
 
     let email: string | null = null;
     if (link.talent_invitation_id) {

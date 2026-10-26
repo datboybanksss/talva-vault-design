@@ -61,7 +61,10 @@ export function ClientDetailView({ clientId }: { clientId: string }) {
               )}
             </div>
             <div className="tvp-entity-sub">
-              {[client.client_type, client.trading_name ? `trading as ${client.trading_name}` : null]
+              {[
+                client.client_type,
+                client.trading_name ? `trading as ${client.trading_name}` : null,
+              ]
                 .filter(Boolean)
                 .join(" · ") || "Client"}
             </div>
@@ -116,7 +119,9 @@ export function ClientDetailView({ clientId }: { clientId: string }) {
               <Row label="Billing address" value={formatClientAddress(client)} />
               <Row
                 label="Default payment terms"
-                value={client.payment_terms_days != null ? `${client.payment_terms_days} days` : null}
+                value={
+                  client.payment_terms_days != null ? `${client.payment_terms_days} days` : null
+                }
               />
               <Row label="Relationship manager" value={client.relationship_manager_name} />
               <Row label="Notes" value={client.notes} />
@@ -147,7 +152,11 @@ export function ClientDetailView({ clientId }: { clientId: string }) {
                 {documents.map((d) => (
                   <tr key={d.id}>
                     <td>
-                      <Link to="/agency/quotes-invoices" search={{ doc: d.number }} className="tvp-link">
+                      <Link
+                        to="/agency/quotes-invoices"
+                        search={{ doc: d.number }}
+                        className="tvp-link"
+                      >
                         {d.kind === "quote" ? "Quote" : "Invoice"} {d.number}
                       </Link>
                       {d.description ? <div className="tvp-muted">{d.description}</div> : null}

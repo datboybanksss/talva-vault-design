@@ -3,13 +3,15 @@ import { friendlyError } from "./friendly-error";
 
 describe("friendlyError", () => {
   it("hides raw Zod validation JSON", () => {
-    const zod = new Error('[{"validation":"uuid","code":"invalid_string","message":"Invalid uuid","path":["document_id"]}]');
+    const zod = new Error(
+      '[{"validation":"uuid","code":"invalid_string","message":"Invalid uuid","path":["document_id"]}]',
+    );
     expect(friendlyError(zod, "We couldn't save that.")).toBe("We couldn't save that.");
   });
   it("hides database errors", () => {
-    expect(friendlyError(new Error('new row violates row-level security policy for table "x"'))).toBe(
-      "Something went wrong. Please try again.",
-    );
+    expect(
+      friendlyError(new Error('new row violates row-level security policy for table "x"')),
+    ).toBe("Something went wrong. Please try again.");
   });
   it("maps the Terms code to a plain sentence", () => {
     expect(friendlyError(new Error("TERMS_NOT_ACCEPTED: please accept"))).toBe(

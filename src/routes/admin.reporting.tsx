@@ -284,7 +284,20 @@ function ReportingPage() {
 
       <div className="tvp-card" style={{ padding: 16, marginBottom: 18 }}>
         <div className="flex items-end gap-3" style={{ flexWrap: "wrap" }}>
-          <FilterBar onChange={(_, v) => setPreset(v as Preset)} filters={[{ key: "range", label: "Date range", value: preset, options: (Object.keys(PRESET_LABEL) as Preset[]).map((p) => ({ value: p, label: PRESET_LABEL[p] })) }]} />
+          <FilterBar
+            onChange={(_, v) => setPreset(v as Preset)}
+            filters={[
+              {
+                key: "range",
+                label: "Date range",
+                value: preset,
+                options: (Object.keys(PRESET_LABEL) as Preset[]).map((p) => ({
+                  value: p,
+                  label: PRESET_LABEL[p],
+                })),
+              },
+            ]}
+          />
           {preset === "custom" && (
             <>
               <div className="tvp-form-group">
@@ -495,8 +508,12 @@ function ReportingPage() {
                 ))}
               </tbody>
             </table>
-            <p className="tvp-muted" style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}>
-              Current status of real accounts; test accounts are left out. Not affected by the date range.
+            <p
+              className="tvp-muted"
+              style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}
+            >
+              Current status of real accounts; test accounts are left out. Not affected by the date
+              range.
             </p>
           </div>
 

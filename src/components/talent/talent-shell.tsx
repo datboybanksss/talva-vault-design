@@ -76,11 +76,10 @@ const buildManageNav = (
 const settings: NavItem[] = [{ to: "/talent/settings", label: "Settings", icon: <SettingsIcon /> }];
 
 /** Where a bell reminder leads when clicked — straight to the item it is about. */
-function bellTarget(n: {
-  kind: string;
-  target_type?: string | null;
-  target_id?: string | null;
-}): { to: string; search?: Record<string, unknown> } {
+function bellTarget(n: { kind: string; target_type?: string | null; target_id?: string | null }): {
+  to: string;
+  search?: Record<string, unknown>;
+} {
   if (n.kind === "doc_expiring" && n.target_id) {
     return n.target_type === "shared_document"
       ? { to: "/talent/vault", search: { tab: "agency", view: "folder", doc: n.target_id } }
@@ -109,7 +108,12 @@ function actionTarget(a: ActionItem): { to: string; search?: Record<string, unkn
   if (a.type === "request" && a.requestId)
     return {
       to: "/talent/vault",
-      search: { tab: "agency", view: "requests", request: a.requestId, ...(a.linkId ? { link: a.linkId } : {}) },
+      search: {
+        tab: "agency",
+        view: "requests",
+        request: a.requestId,
+        ...(a.linkId ? { link: a.linkId } : {}),
+      },
     };
   if (a.targetType === "shared_document" && a.targetId)
     return { to: "/talent/vault", search: { tab: "agency", view: "folder", doc: a.targetId } };
@@ -187,7 +191,9 @@ export function TalentShell({ children }: { children: ReactNode }) {
       .slice(0, 2)
       .join("")
       .toUpperCase() || "T";
-  const activeAgencies = (agencyLinks.data?.relationships ?? []).filter((r) => r.state === "active");
+  const activeAgencies = (agencyLinks.data?.relationships ?? []).filter(
+    (r) => r.state === "active",
+  );
   const agencyName = agencyLinks.isError
     ? "Agency details unavailable"
     : !agencyLinks.data
@@ -364,9 +370,16 @@ export function TalentShell({ children }: { children: ReactNode }) {
                             if (n.notificationId) markNotificationRead(n.notificationId);
                           }}
                         >
-                          <div className={`tvp-kpi-icon tvp-bg-${n.tone}`} style={{ width: 32, height: 32 }}>
+                          <div
+                            className={`tvp-kpi-icon tvp-bg-${n.tone}`}
+                            style={{ width: 32, height: 32 }}
+                          >
                             {n.type === "request" ? (
-                              n.tone === "amber" ? <AlertCircle className="h-4 w-4" /> : <Inbox className="h-4 w-4" />
+                              n.tone === "amber" ? (
+                                <AlertCircle className="h-4 w-4" />
+                              ) : (
+                                <Inbox className="h-4 w-4" />
+                              )
                             ) : (
                               <Clock className="h-4 w-4" />
                             )}
@@ -384,7 +397,9 @@ export function TalentShell({ children }: { children: ReactNode }) {
                     })}
                   </>
                 )}
-                {infoItems.length > 0 && actions.length > 0 && <div className="tvp-bell-group">Updates</div>}
+                {infoItems.length > 0 && actions.length > 0 && (
+                  <div className="tvp-bell-group">Updates</div>
+                )}
                 {infoItems.map((n: any) => (
                   <div key={n.id} style={{ position: "relative" }}>
                     <Link

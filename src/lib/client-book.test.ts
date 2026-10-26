@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import { findClientDuplicates, formatClientAddress } from "./client-duplicates";
 
 const rows = [
-  { id: "1", name: "Brightline Media", emails: ["Accounts@Brightline.co.za"], vat_number: "4123 456 789" },
+  {
+    id: "1",
+    name: "Brightline Media",
+    emails: ["Accounts@Brightline.co.za"],
+    vat_number: "4123 456 789",
+  },
   { id: "2", name: "Kalahari Retail", emails: [], vat_number: null, archived_at: "2026-01-01" },
 ];
 
@@ -12,7 +17,9 @@ describe("client book duplicate warning", () => {
     expect(findClientDuplicates({ name: "  brightline media " }, rows).name?.id).toBe("1");
   });
   it("matches any shared email address", () => {
-    expect(findClientDuplicates({ emails: ["accounts@brightline.co.za"] }, rows).email?.id).toBe("1");
+    expect(findClientDuplicates({ emails: ["accounts@brightline.co.za"] }, rows).email?.id).toBe(
+      "1",
+    );
   });
   it("matches VAT numbers with spaces removed", () => {
     expect(findClientDuplicates({ vat_number: "4123456789" }, rows).vat_number?.id).toBe("1");
@@ -31,7 +38,12 @@ describe("client book duplicate warning", () => {
 describe("billing address on documents", () => {
   it("joins the filled parts in South African order", () => {
     expect(
-      formatClientAddress({ address: "1 Long St", city: "Cape Town", postal_code: "8001", country: "South Africa" }),
+      formatClientAddress({
+        address: "1 Long St",
+        city: "Cape Town",
+        postal_code: "8001",
+        country: "South Africa",
+      }),
     ).toBe("1 Long St, Cape Town, 8001, South Africa");
   });
 });

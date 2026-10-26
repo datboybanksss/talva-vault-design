@@ -152,7 +152,13 @@ export function useTalentInvitationActions() {
         separatorBefore: true,
         title: "Also deletes any uploaded ID document and proof of talent",
         onSelect: async () => {
-          if (await askConfirm({ title: `Delete the draft invitation to ${row.talent_name}?`, destructive: true })) deleteM.mutate(row.id);
+          if (
+            await askConfirm({
+              title: `Delete the draft invitation to ${row.talent_name}?`,
+              destructive: true,
+            })
+          )
+            deleteM.mutate(row.id);
         },
       },
     ];

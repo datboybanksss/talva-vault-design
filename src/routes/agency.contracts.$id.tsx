@@ -29,7 +29,9 @@ export const Route = createFileRoute("/agency/contracts/$id")({
   errorComponent: ({ error }) => (
     <div className="tvp-card" style={{ padding: 24 }}>
       <h1 className="tvp-h1">Contract</h1>
-      <p className="tvp-muted">{friendlyError(error, "We couldn't load this contract. Please try again.")}</p>
+      <p className="tvp-muted">
+        {friendlyError(error, "We couldn't load this contract. Please try again.")}
+      </p>
       <Link to="/agency/document-vault" className="tvp-link">
         ← Back to Roster Shared Folder
       </Link>

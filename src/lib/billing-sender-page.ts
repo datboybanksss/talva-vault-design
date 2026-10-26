@@ -21,10 +21,30 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding-top: 20p
 `;
 
 export function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+  return value.replace(
+    /[&<>"']/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char,
+  );
 }
-export function billingSenderPage(title: string, body: string, status = 200, token?: string): Response {
-  return new Response(`<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · TalVault</title><meta name="description" content="Confirm the reply address for agency quotes and invoices in TalVault."><meta property="og:title" content="${escapeHtml(title)} · TalVault"><meta property="og:description" content="Confirm the reply address for agency quotes and invoices in TalVault."><meta property="og:type" content="website"><meta name="twitter:card" content="summary"><style>${pageStyles}</style></head><body><header><div class="brand">TalVault</div></header><main><h1>${escapeHtml(title)}</h1><p>${escapeHtml(body)}</p>${token ? `<form method="post"><input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit">Confirm this address</button></form>` : ""}<footer>Quotes &amp; invoices</footer></main></body></html>`, {
-    status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" },
-  });
+export function billingSenderPage(
+  title: string,
+  body: string,
+  status = 200,
+  token?: string,
+): Response {
+  return new Response(
+    `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · TalVault</title><meta name="description" content="Confirm the reply address for agency quotes and invoices in TalVault."><meta property="og:title" content="${escapeHtml(title)} · TalVault"><meta property="og:description" content="Confirm the reply address for agency quotes and invoices in TalVault."><meta property="og:type" content="website"><meta name="twitter:card" content="summary"><style>${pageStyles}</style></head><body><header><div class="brand">TalVault</div></header><main><h1>${escapeHtml(title)}</h1><p>${escapeHtml(body)}</p>${token ? `<form method="post"><input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit">Confirm this address</button></form>` : ""}<footer>Quotes &amp; invoices</footer></main></body></html>`,
+    {
+      status,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy":
+          "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+      },
+    },
+  );
 }

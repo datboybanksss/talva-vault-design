@@ -7,7 +7,8 @@ export const Route = createFileRoute("/agency/clients/")({
       { title: "Clients · TalVault" },
       {
         name: "description",
-        content: "Your agency's client book — the companies and people you send quotes and invoices to.",
+        content:
+          "Your agency's client book — the companies and people you send quotes and invoices to.",
       },
       { property: "og:title", content: "Clients · TalVault" },
       {

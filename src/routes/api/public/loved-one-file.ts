@@ -50,15 +50,22 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
 
         const { data: doc } = await supabaseAdmin
           .from("talent_private_documents")
-          .select("id, name, folder_id, storage_path, user_id, mime_type, validated_at, quarantine_reason")
+          .select(
+            "id, name, folder_id, storage_path, user_id, mime_type, validated_at, quarantine_reason",
+          )
           .eq("id", docId)
           .maybeSingle();
         if (!doc || !doc.storage_path) return new Response("Not found", { status: 404 });
         const blocked = quarantineReason(doc);
-        if (blocked) return Response.json({ code: QUARANTINE_CODES[blocked], message: QUARANTINE_MESSAGES[blocked] }, { status: 403 });
+        if (blocked)
+          return Response.json(
+            { code: QUARANTINE_CODES[blocked], message: QUARANTINE_MESSAGES[blocked] },
+            { status: 403 },
+          );
         if (!documentIsValidated(doc)) return new Response("Document unavailable", { status: 404 });
         if (doc.user_id !== share.created_by) return new Response("Forbidden", { status: 403 });
-        if (!privateStoragePathOwned(doc.storage_path, share.created_by)) return new Response("Forbidden", { status: 403 });
+        if (!privateStoragePathOwned(doc.storage_path, share.created_by))
+          return new Response("Forbidden", { status: 403 });
 
         const { resolveShareFolders } = await import("@/lib/loved-one.functions");
         const { folderIds } = await resolveShareFolders(

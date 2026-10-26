@@ -23,7 +23,10 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
-const day = z.string().max(10000).regex(/^\d{4}-\d{2}-\d{2}$/);
+const day = z
+  .string()
+  .max(10000)
+  .regex(/^\d{4}-\d{2}-\d{2}$/);
 const Filters = z.object({
   from: day,
   to: day,
@@ -47,11 +50,15 @@ export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
   const [ag, ind, tal, inert, testAg, testTal] = await Promise.all([
     admin
       .from("agency_invitations")
-      .select("id, agency_id, email, status, created_at, expires_at, first_sent_at, accepted_at, source, agency_name")
+      .select(
+        "id, agency_id, email, status, created_at, expires_at, first_sent_at, accepted_at, source, agency_name",
+      )
       .eq("kind", "agency_onboarding"),
     admin
       .from("independent_talent_invitations")
-      .select("id, email, status, created_at, expires_at, first_sent_at, accepted_at, source, talent_name"),
+      .select(
+        "id, email, status, created_at, expires_at, first_sent_at, accepted_at, source, talent_name",
+      ),
     admin
       .from("talent_invitations")
       .select("id, email, status, created_at, expires_at, first_sent_at, accepted_at, talent_name"),
@@ -61,7 +68,11 @@ export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
   ]);
   const testAgencies = new Set(check<any[]>(testAg).map((r) => r.id));
   const testEmails = new Set(
-    check<any[]>(testTal).map((r) => String(r.email ?? "").trim().toLowerCase()),
+    check<any[]>(testTal).map((r) =>
+      String(r.email ?? "")
+        .trim()
+        .toLowerCase(),
+    ),
   );
   const inertIds = new Set(check<any[]>(inert).map((r) => r.invitation_id));
   const map = (rows: any[], type: "agency" | "talent", segment: any, source: (r: any) => any) =>
@@ -70,7 +81,9 @@ export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
       type,
       segment,
       status: String(r.status),
-      email: String(r.email ?? "").trim().toLowerCase(),
+      email: String(r.email ?? "")
+        .trim()
+        .toLowerCase(),
       created_at: r.created_at,
       expires_at: r.expires_at,
       first_sent_at: r.first_sent_at,
@@ -82,7 +95,11 @@ export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
       is_test:
         type === "agency"
           ? !!r.agency_id && testAgencies.has(r.agency_id)
-          : testEmails.has(String(r.email ?? "").trim().toLowerCase()),
+          : testEmails.has(
+              String(r.email ?? "")
+                .trim()
+                .toLowerCase(),
+            ),
     }));
   return [
     ...map(check<any[]>(ag), "agency", null, (r) => r.source),
@@ -103,7 +120,11 @@ export const getLaunchSettings = createServerFn({ method: "GET" })
     const { supabase, userId } = context as any;
     await assertAdmin(supabase, userId);
     const row = check<any>(
-      await supabase.from("platform_settings").select("value, updated_at").eq("key", "launch").maybeSingle(),
+      await supabase
+        .from("platform_settings")
+        .select("value, updated_at")
+        .eq("key", "launch")
+        .maybeSingle(),
     );
     return { settings: parseLaunchSettings(row?.value), updatedAt: row?.updated_at ?? null };
   });
@@ -127,9 +148,12 @@ export const updateLaunchSettings = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
     if (!canEdit) throw new Error("You need edit permission to change launch settings.");
-    const { error } = await supabase
-      .from("platform_settings")
-      .upsert({ key: "launch", value: data, updated_at: new Date().toISOString(), updated_by: userId });
+    const { error } = await supabase.from("platform_settings").upsert({
+      key: "launch",
+      value: data,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    });
     if (error) throw databaseError(error);
     return { ok: true };
   });
@@ -149,26 +173,34 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const settings = parseLaunchSettings(settingsRow?.value);
     if (!settings) throw new Error("Launch settings are missing. Add them under Launch settings.");
 
-    const [talent, agencyAccepted, invites, members, links, acc, docs, agencyRows] = await Promise.all([
-      admin
-        .from("talent_profiles")
-        .select("user_id, full_name, email, created_at, activation_completed_at, is_test")
-        .is("deleted_at", null),
-      admin
-        .from("agency_invitations")
-        .select("id, agency_id, agency_name, email, first_sent_at, created_at, accepted_at, status")
-        .eq("kind", "agency_onboarding")
-        .eq("status", "accepted"),
-      loadInviteRows(admin),
-      admin.from("agency_members").select("user_id, agency_id"),
-      admin.from("agency_talent_links").select("talent_user_id, agency_id").eq("status", "active"),
-      admin
-        .from("legal_acceptances")
-        .select("id, user_id, document_id, doc_type, version, accepted_at, body_sha256, hash_retrospective, user_email, user_full_name, user_role, proof_ref")
-        .order("accepted_at", { ascending: false }),
-      admin.from("legal_documents").select("id, doc_type, version").eq("is_current", true),
-      admin.from("agencies").select("id, name, status, is_test"),
-    ]);
+    const [talent, agencyAccepted, invites, members, links, acc, docs, agencyRows] =
+      await Promise.all([
+        admin
+          .from("talent_profiles")
+          .select("user_id, full_name, email, created_at, activation_completed_at, is_test")
+          .is("deleted_at", null),
+        admin
+          .from("agency_invitations")
+          .select(
+            "id, agency_id, agency_name, email, first_sent_at, created_at, accepted_at, status",
+          )
+          .eq("kind", "agency_onboarding")
+          .eq("status", "accepted"),
+        loadInviteRows(admin),
+        admin.from("agency_members").select("user_id, agency_id"),
+        admin
+          .from("agency_talent_links")
+          .select("talent_user_id, agency_id")
+          .eq("status", "active"),
+        admin
+          .from("legal_acceptances")
+          .select(
+            "id, user_id, document_id, doc_type, version, accepted_at, body_sha256, hash_retrospective, user_email, user_full_name, user_role, proof_ref",
+          )
+          .order("accepted_at", { ascending: false }),
+        admin.from("legal_documents").select("id, doc_type, version").eq("is_current", true),
+        admin.from("agencies").select("id, name, status, is_test"),
+      ]);
     const scope = data.accounts;
     const inScope = (isTest: boolean | null | undefined) =>
       scope === "all" ? true : scope === "test" ? !!isTest : !isTest;
@@ -214,20 +246,31 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     for (const l of linkRows) {
       const n = agencyById.get(l.agency_id)?.name;
       if (!n) continue;
-      agenciesOfTalent.set(l.talent_user_id, [...(agenciesOfTalent.get(l.talent_user_id) ?? []), n]);
+      agenciesOfTalent.set(l.talent_user_id, [
+        ...(agenciesOfTalent.get(l.talent_user_id) ?? []),
+        n,
+      ]);
     }
-    const memberAgency = new Map<string, string>(check<any[]>(members).map((m) => [m.user_id, m.agency_id]));
+    const memberAgency = new Map<string, string>(
+      check<any[]>(members).map((m) => [m.user_id, m.agency_id]),
+    );
     const profiles = new Map<string, any>();
     const memberIds = [...new Set(check<any[]>(members).map((m) => m.user_id))].filter((id) =>
       inScope(agencyById.get(memberAgency.get(id) ?? "")?.is_test),
     );
     if (memberIds.length) {
       const p = check<any[]>(
-        await admin.from("profiles").select("id, email, display_name, first_name, last_name").in("id", memberIds),
+        await admin
+          .from("profiles")
+          .select("id, email, display_name, first_name, last_name")
+          .in("id", memberIds),
       );
       for (const r of p) profiles.set(r.id, r);
     }
-    const { data: adminRoles } = await admin.from("user_roles").select("user_id").eq("role", "admin");
+    const { data: adminRoles } = await admin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
     const admins = new Set(((adminRoles ?? []) as any[]).map((r) => r.user_id));
     const people: TermsPerson[] = [
       ...talentRows
@@ -244,7 +287,13 @@ export const getLaunchReports = createServerFn({ method: "GET" })
         .map((id) => {
           const p = profiles.get(id);
           const name = p?.display_name || [p?.first_name, p?.last_name].filter(Boolean).join(" ");
-          return { user_id: id, name: name ?? "", email: p?.email ?? "", docType: "agency" as const, segment: null };
+          return {
+            user_id: id,
+            name: name ?? "",
+            email: p?.email ?? "",
+            docType: "agency" as const,
+            segment: null,
+          };
         }),
     ];
     const peopleFiltered = people.filter(
@@ -256,25 +305,27 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const currentDocs = check<any[]>(docs);
     const currentIds = new Set(currentDocs.map((d) => d.id));
     const outstanding = termsOutstanding(peopleFiltered, accRows, currentDocs);
-    const scopedUsers = new Set<string>([
-      ...talentRows.map((t) => t.user_id),
-      ...memberIds,
-    ]);
+    const scopedUsers = new Set<string>([...talentRows.map((t) => t.user_id), ...memberIds]);
     const accInRange = accRows
       .filter((a) => scopedUsers.has(a.user_id))
       .filter((a) => a.accepted_at >= range.fromIso && a.accepted_at <= range.toIso)
       .filter((a) => data.type === "all" || a.doc_type === data.type)
       .map((a) => ({ ...a, is_current: currentIds.has(a.document_id) }));
 
-    const page = <T,>(rows: T[], offset: number) => rows.slice(offset, offset + data.limit);
+    const page = <T>(rows: T[], offset: number) => rows.slice(offset, offset + data.limit);
 
     // Raw records behind each card: same filters, so row counts equal the card figures.
     const inviteByEmail = new Map<string, any>();
-    for (const i of invites) if (i.type === "talent" && !inviteByEmail.has(i.email)) inviteByEmail.set(i.email, i);
+    for (const i of invites)
+      if (i.type === "talent" && !inviteByEmail.has(i.email)) inviteByEmail.set(i.email, i);
     const recordTalent = talentRows
       .filter((t) => inLaunchWindow(t.activation_completed_at, settings))
       .map((t) => {
-        const inv = inviteByEmail.get(String(t.email ?? "").trim().toLowerCase());
+        const inv = inviteByEmail.get(
+          String(t.email ?? "")
+            .trim()
+            .toLowerCase(),
+        );
         const ags = agenciesOfTalent.get(t.user_id) ?? [];
         return {
           id: t.user_id,
@@ -286,7 +337,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
           invited_at: inv?.first_sent_at ?? inv?.created_at ?? null,
           signed_up_at: t.activation_completed_at,
           status: "active",
-          offer_place: inv ? placeById.get(inv.id) ?? null : null,
+          offer_place: inv ? (placeById.get(inv.id) ?? null) : null,
         };
       });
     const recordAgencies = agencyAcc
@@ -314,7 +365,12 @@ export const getLaunchReports = createServerFn({ method: "GET" })
         email: r.email,
         type: r.type,
         is_test: !!r.is_test,
-        agency: r.type === "talent" ? (r.segment === "independent" ? "Independent" : "Agency-linked") : null,
+        agency:
+          r.type === "talent"
+            ? r.segment === "independent"
+              ? "Independent"
+              : "Agency-linked"
+            : null,
         invited_at: r.first_sent_at ?? r.created_at,
         signed_up_at: r.accepted_at,
         status: inviteBucket(r, nowIso),
@@ -327,11 +383,20 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       progress,
       records: { talent: recordTalent, agencies: recordAgencies, invitations: recordInvites },
       offer: {
-        talent: { places: offer.talent.places, allocated: offer.talent.allocated, used: offer.talent.used },
-        agency: { places: offer.agency.places, allocated: offer.agency.allocated, used: offer.agency.used },
+        talent: {
+          places: offer.talent.places,
+          allocated: offer.talent.allocated,
+          used: offer.talent.used,
+        },
+        agency: {
+          places: offer.agency.places,
+          allocated: offer.agency.allocated,
+          used: offer.agency.used,
+        },
         total: offerRows.length,
         rows: page(offerRows, data.offerOffset),
-        notRecordedSentBefore: invites.filter((i) => i.status !== "draft" && !i.first_sent_at).length,
+        notRecordedSentBefore: invites.filter((i) => i.status !== "draft" && !i.first_sent_at)
+          .length,
       },
       funnel,
       terms: {
@@ -344,4 +409,3 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       },
     };
   });
-

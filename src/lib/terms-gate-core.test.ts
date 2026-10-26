@@ -1,18 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { acceptTermsInput, parseAcceptTermsInput, reachedDocumentEnd, termsGateError, testUserIds } from "./terms-gate-core";
+import {
+  acceptTermsInput,
+  parseAcceptTermsInput,
+  reachedDocumentEnd,
+  termsGateError,
+  testUserIds,
+} from "./terms-gate-core";
 
 describe("Terms acceptance rules", () => {
   it.each([
     ["agency", "2908166d-8ecf-42f7-94bd-f0752084a87b"],
     ["talent", "316ca0dc-a390-4525-b444-0729118bf4bb"],
   ])("accepts the actual current %s UUID", (portal, document_id) => {
-    expect(acceptTermsInput.parse({ portal, document_id, body_sha256: "a".repeat(64) }).document_id).toBe(document_id);
+    expect(
+      acceptTermsInput.parse({ portal, document_id, body_sha256: "a".repeat(64) }).document_id,
+    ).toBe(document_id);
   });
   it("continues rejecting non-UUID document identifiers", () => {
-    expect(acceptTermsInput.safeParse({ portal: "agency", document_id: "agency-v1.1", body_sha256: "a".repeat(64) }).success).toBe(false);
+    expect(
+      acceptTermsInput.safeParse({
+        portal: "agency",
+        document_id: "agency-v1.1",
+        body_sha256: "a".repeat(64),
+      }).success,
+    ).toBe(false);
   });
   it("requires a displayed exact-body hash", () => {
-    expect(acceptTermsInput.safeParse({ portal: "agency", document_id: "2908166d-8ecf-42f7-94bd-f0752084a87b" }).success).toBe(false);
+    expect(
+      acceptTermsInput.safeParse({
+        portal: "agency",
+        document_id: "2908166d-8ecf-42f7-94bd-f0752084a87b",
+      }).success,
+    ).toBe(false);
   });
   it("does not unlock agreement before the document end", () => {
     expect(reachedDocumentEnd(0, 380, 1800)).toBe(false);
@@ -25,19 +44,38 @@ describe("Terms acceptance rules", () => {
   });
   it("a genuine ID/hash problem gives the 'verify' message", () => {
     let thrown: unknown;
-    try { parseAcceptTermsInput({ portal: "agency", document_id: "agency-v1.1", body_sha256: "a".repeat(64) }); } catch (e) { thrown = e; }
-    expect(termsGateError(thrown)).toBe("We couldn't verify this Terms document. Please reload the page and try again.");
+    try {
+      parseAcceptTermsInput({
+        portal: "agency",
+        document_id: "agency-v1.1",
+        body_sha256: "a".repeat(64),
+      });
+    } catch (e) {
+      thrown = e;
+    }
+    expect(termsGateError(thrown)).toBe(
+      "We couldn't verify this Terms document. Please reload the page and try again.",
+    );
   });
   it("raw validation text, database and unknown errors give the 'record' message", () => {
     for (const m of [
       '[{"validation":"uuid","code":"invalid_string","path":["document_id"]}]',
       "document_id is required",
-      'new row violates row-level security policy',
+      "new row violates row-level security policy",
       "Failed to fetch",
-    ]) expect(termsGateError(new Error(m))).toBe("We couldn't record your acceptance. Please try again.");
+    ])
+      expect(termsGateError(new Error(m))).toBe(
+        "We couldn't record your acceptance. Please try again.",
+      );
   });
   it("keeps the 'updated' message", () => {
-    expect(termsGateError(new Error("These Terms have been updated. Please reload the page and read the latest version."))).toMatch(/^These Terms have been updated\./);
+    expect(
+      termsGateError(
+        new Error(
+          "These Terms have been updated. Please reload the page and read the latest version.",
+        ),
+      ),
+    ).toMatch(/^These Terms have been updated\./);
   });
 });
 import { termsGateView } from "./terms-gate-core";
@@ -49,22 +87,34 @@ describe("termsGateView (three states)", () => {
     expect(termsGateView({ isPending: false, isError: true, data: undefined })).toBe("error");
   });
   it("accepted user passes", () => {
-    expect(termsGateView({ isPending: false, isError: false, data: { required: false, current: {} } })).toBe("accepted");
+    expect(
+      termsGateView({ isPending: false, isError: false, data: { required: false, current: {} } }),
+    ).toBe("accepted");
   });
   it("only a confirmed 'required' shows the gate", () => {
-    expect(termsGateView({ isPending: false, isError: false, data: { required: true, current: {} } })).toBe("needs_acceptance");
+    expect(
+      termsGateView({ isPending: false, isError: false, data: { required: true, current: {} } }),
+    ).toBe("needs_acceptance");
   });
   it("keeps the last confirmed answer while refetching in the background", () => {
-    expect(termsGateView({ isPending: false, isError: true, data: { required: false, current: {} } })).toBe("accepted");
+    expect(
+      termsGateView({ isPending: false, isError: true, data: { required: false, current: {} } }),
+    ).toBe("accepted");
   });
 });
-
 
 describe("testUserIds", () => {
   it("includes Test talent and every member of a Test agency, nobody else", () => {
     const ids = testUserIds(
-      [{ user_id: "t1", is_test: true }, { user_id: "t2", is_test: false }],
-      [{ user_id: "o1", agency_id: "A" }, { user_id: "s1", agency_id: "A" }, { user_id: "r1", agency_id: "B" }],
+      [
+        { user_id: "t1", is_test: true },
+        { user_id: "t2", is_test: false },
+      ],
+      [
+        { user_id: "o1", agency_id: "A" },
+        { user_id: "s1", agency_id: "A" },
+        { user_id: "r1", agency_id: "B" },
+      ],
       ["A"],
     );
     expect([...ids].sort()).toEqual(["o1", "s1", "t1"]);

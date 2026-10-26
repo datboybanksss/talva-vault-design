@@ -49,8 +49,10 @@ export function assertNotQuarantined(row: Row | null | undefined): void {
 /** Maps a server error back to the reason, so the UI can show the right explanation. */
 export function quarantineFromError(err: unknown): QuarantineReason | null {
   const text = err instanceof Error ? err.message : String(err ?? "");
-  if (text.includes(QUARANTINE_CODES.blocked_type) || text === QUARANTINE_MESSAGES.blocked_type) return "blocked_type";
-  if (text.includes(QUARANTINE_CODES.failed_check) || text === QUARANTINE_MESSAGES.failed_check) return "failed_check";
+  if (text.includes(QUARANTINE_CODES.blocked_type) || text === QUARANTINE_MESSAGES.blocked_type)
+    return "blocked_type";
+  if (text.includes(QUARANTINE_CODES.failed_check) || text === QUARANTINE_MESSAGES.failed_check)
+    return "failed_check";
   return null;
 }
 

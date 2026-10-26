@@ -136,11 +136,10 @@ function looksLikeText(head: Uint8Array): boolean {
  * sniff — but both can carry <script>. We never accept them as uploads.
  */
 function looksLikeActiveMarkup(head: Uint8Array): boolean {
-  const start = new TextDecoder("utf-8", { fatal: false })
-    .decode(head)
-    .trimStart()
-    .toLowerCase();
-  return /<\s*(?:svg|html|script|iframe|object|embed|body|head|img|link|style)\b|<!doctype\s+html|<\?xml\b/i.test(start);
+  const start = new TextDecoder("utf-8", { fatal: false }).decode(head).trimStart().toLowerCase();
+  return /<\s*(?:svg|html|script|iframe|object|embed|body|head|img|link|style)\b|<!doctype\s+html|<\?xml\b/i.test(
+    start,
+  );
 }
 
 export function detectKind(head: Uint8Array): DetectedKind | null {
@@ -244,10 +243,16 @@ export async function validateStoredUpload(opts: ValidateOptions): Promise<Valid
   }
 
   if (!allowedMimeClaim(opts.claimedMime)) {
-    return fail("UPLOAD_TYPE_NOT_ALLOWED", "That file type is not supported. Upload a PDF, image, Office document or plain text file.");
+    return fail(
+      "UPLOAD_TYPE_NOT_ALLOWED",
+      "That file type is not supported. Upload a PDF, image, Office document or plain text file.",
+    );
   }
   if (!mimeClaimMatches(opts.claimedMime, kind)) {
-    return fail("UPLOAD_TYPE_MISMATCH", "The file's contents do not match its stated type. Re-save the file and try again.");
+    return fail(
+      "UPLOAD_TYPE_MISMATCH",
+      "The file's contents do not match its stated type. Re-save the file and try again.",
+    );
   }
   return { kind, sizeBytes, mimeType: KIND_MIME[kind] };
 }

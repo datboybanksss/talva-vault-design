@@ -11,8 +11,15 @@ const BUCKET = "talent-private-documents";
 
 async function requireOwnedFolder(db: any, userId: string, folderId: string | null | undefined) {
   if (!folderId) return;
-  const { data, error } = await db.from("talent_private_folders").select("id, user_id, removed_at").eq("id", folderId).eq("user_id", userId).is("removed_at", null).maybeSingle();
-  if (error || !privateFolderOwned(data, userId)) throw new Error("That folder is no longer available in your private vault.");
+  const { data, error } = await db
+    .from("talent_private_folders")
+    .select("id, user_id, removed_at")
+    .eq("id", folderId)
+    .eq("user_id", userId)
+    .is("removed_at", null)
+    .maybeSingle();
+  if (error || !privateFolderOwned(data, userId))
+    throw new Error("That folder is no longer available in your private vault.");
 }
 
 /**
@@ -167,7 +174,10 @@ export const createPrivateUploadUrl = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
     await requireOwnedFolder(supabase, userId, data.folder_id);
-    if (!allowedMimeClaim(data.mime_type)) throw new Error("That file type is not supported. Upload a PDF, image, Office document or plain text file.");
+    if (!allowedMimeClaim(data.mime_type))
+      throw new Error(
+        "That file type is not supported. Upload a PDF, image, Office document or plain text file.",
+      );
     const safeName = data.file_name.replace(/[^\w.-]+/g, "_");
     const path = `${userId}/${crypto.randomUUID()}-${safeName}`;
 
@@ -217,7 +227,8 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
     if (error) throw databaseError(error);
     if (doc.user_id !== userId) throw new Error("Forbidden");
     if (!doc.storage_path) throw new Error("No file attached.");
-    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
+    if (!privateStoragePathOwned(doc.storage_path, userId))
+      throw new Error("That file is not in your private vault.");
     if (doc.validated_at) return { ok: true as const, size_bytes: null };
 
     const { validateStoredUpload, UploadRejected } = await import("@/lib/file-validation.server");
@@ -231,7 +242,12 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error: stampError } = await supabaseAdmin
         .from("talent_private_documents")
-        .update({ size_bytes: result.sizeBytes, mime_type: result.mimeType, validated_at: new Date().toISOString(), validation_pending_since: null })
+        .update({
+          size_bytes: result.sizeBytes,
+          mime_type: result.mimeType,
+          validated_at: new Date().toISOString(),
+          validation_pending_since: null,
+        })
         .eq("id", doc.id)
         .select("id")
         .single();
@@ -275,9 +291,11 @@ export const getPrivateDocumentDownloadUrl = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
     assertNotQuarantined(doc);
-    if (!documentIsValidated(doc)) throw new Error("This file is still being checked. Please try again shortly.");
+    if (!documentIsValidated(doc))
+      throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached.");
-    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
+    if (!privateStoragePathOwned(doc.storage_path, userId))
+      throw new Error("That file is not in your private vault.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error } = await supabaseAdmin.storage
@@ -340,7 +358,9 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
       .select("id");
     if (error) throw databaseError(error);
     if (!moved || moved.length === 0) {
-      throw new Error("This document is no longer in your vault, so it couldn't be moved. Refresh the page to see the latest list.");
+      throw new Error(
+        "This document is no longer in your vault, so it couldn't be moved. Refresh the page to see the latest list.",
+      );
     }
     const { recordTalentActivity } = await import("@/lib/talent-activity.server");
     await recordTalentActivity(supabase, userId, claims?.email, "vault_document_moved", {
@@ -573,14 +593,18 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
     // 1. The vault document must be the caller's own.
     const { data: doc } = await supabase
       .from("talent_private_documents")
-      .select("id, user_id, name, storage_path, mime_type, size_bytes, validated_at, quarantine_reason")
+      .select(
+        "id, user_id, name, storage_path, mime_type, size_bytes, validated_at, quarantine_reason",
+      )
       .eq("id", data.document_id)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) throw new Error("Not found.");
     assertNotQuarantined(doc);
-    if (!documentIsValidated(doc)) throw new Error("This file must finish checking before it can be shared.");
+    if (!documentIsValidated(doc))
+      throw new Error("This file must finish checking before it can be shared.");
     if (!doc.storage_path) throw new Error("This document has no file attached.");
-    if (!privateStoragePathOwned(doc.storage_path, userId)) throw new Error("That file is not in your private vault.");
+    if (!privateStoragePathOwned(doc.storage_path, userId))
+      throw new Error("That file is not in your private vault.");
 
     // 2. The link must be the caller's own, accepted and not ended.
     const { data: link } = await supabase
@@ -627,7 +651,11 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
 
     // 5. Copy the file across buckets — the original object is untouched.
     const { validateStoredUpload } = await import("@/lib/file-validation.server");
-    const checked = await validateStoredUpload({ bucket: BUCKET, path: doc.storage_path, removeOnFailure: false });
+    const checked = await validateStoredUpload({
+      bucket: BUCKET,
+      path: doc.storage_path,
+      removeOnFailure: false,
+    });
     const { data: file, error: dlErr } = await supabaseAdmin.storage
       .from(BUCKET)
       .download(doc.storage_path);

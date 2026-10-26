@@ -161,7 +161,12 @@ function SharingPage() {
       <PageBand
         icon={<Heart />}
         title={SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED}
-        subtitle={<>Share private documents with a {SHARE_RECIPIENT_TERM} using a secure link that expires, plus a one-time access code.</>}
+        subtitle={
+          <>
+            Share private documents with a {SHARE_RECIPIENT_TERM} using a secure link that expires,
+            plus a one-time access code.
+          </>
+        }
         tour="talent-share-new"
         actions={
           <button
@@ -198,8 +203,13 @@ function SharingPage() {
             Loading…
           </p>
         ) : (data ?? []).length === 0 ? (
-          <EmptyState icon={<Share2 />} tint="peach" title={<>No {SHARE_RECIPIENT_TERM_PLURAL} yet</>}>
-            Share selected documents with someone you trust — like a parent, partner or accountant. You choose what they see and for how long.
+          <EmptyState
+            icon={<Share2 />}
+            tint="peach"
+            title={<>No {SHARE_RECIPIENT_TERM_PLURAL} yet</>}
+          >
+            Share selected documents with someone you trust — like a parent, partner or accountant.
+            You choose what they see and for how long.
           </EmptyState>
         ) : (
           <div className="tvp-table-wrap">
@@ -709,8 +719,8 @@ function NewShareModal({
 
         {kind === "billing" ? (
           <p className="tvp-field-help">
-            Shares the quotes and invoices your agency has shared with you — the same set you see
-            on Budget &amp; Income. They open as read-only records, not downloadable files.
+            Shares the quotes and invoices your agency has shared with you — the same set you see on
+            Budget &amp; Income. They open as read-only records, not downloadable files.
           </p>
         ) : kind === "folders" ? (
           isLoading ? (

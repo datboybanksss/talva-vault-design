@@ -43,11 +43,11 @@ async function consume(
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     result = await supabaseAdmin.rpc("consume_rate_limit", {
-    _bucket: bucket,
-    _subject: subject,
-    _max_attempts: maxAttempts,
-    _window_seconds: windowSeconds,
-    _block_seconds: blockSeconds ?? undefined,
+      _bucket: bucket,
+      _subject: subject,
+      _max_attempts: maxAttempts,
+      _window_seconds: windowSeconds,
+      _block_seconds: blockSeconds ?? undefined,
     });
   } catch (error) {
     console.error("rate_limit_unavailable", { bucket, error });
@@ -63,7 +63,7 @@ async function consume(
   return {
     allowed: row?.allowed === true,
     remaining: row?.remaining ?? 0,
-    retryAfterSeconds: row?.retry_after_seconds ?? (blockSeconds ?? windowSeconds),
+    retryAfterSeconds: row?.retry_after_seconds ?? blockSeconds ?? windowSeconds,
   };
 }
 

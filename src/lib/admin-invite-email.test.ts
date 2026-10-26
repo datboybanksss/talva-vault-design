@@ -18,7 +18,13 @@ const agency = {
 describe("admin invitation email", () => {
   it("fills every merge field with real values and shows no placeholders", () => {
     const mail = renderAdminInvite("agency", agency, standardInviteWording("agency", agency));
-    for (const s of ["Hi Maya,", "NewTech Talent", "Lara Prasad", "5 November 2026", agency.inviteUrl])
+    for (const s of [
+      "Hi Maya,",
+      "NewTech Talent",
+      "Lara Prasad",
+      "5 November 2026",
+      agency.inviteUrl,
+    ])
       expect(mail.html).toContain(s);
     expect(mail.html + mail.text + mail.subject).not.toMatch(/\{\{|<name>/);
   });
@@ -37,7 +43,9 @@ describe("admin invitation email", () => {
   });
 
   it("refuses edited wording that still contains a placeholder or is empty", () => {
-    expect(wordingIssues({ subject: "Hi {{name}}", greeting: "Hi,", message: "x" })).toHaveLength(1);
+    expect(wordingIssues({ subject: "Hi {{name}}", greeting: "Hi,", message: "x" })).toHaveLength(
+      1,
+    );
     expect(wordingIssues({ subject: "S", greeting: "Hi <name>,", message: "x" })).toHaveLength(1);
     expect(wordingIssues({ subject: "S", greeting: "Hi,", message: " " })).toHaveLength(1);
   });

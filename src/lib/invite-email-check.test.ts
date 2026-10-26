@@ -40,7 +40,9 @@ describe("pending invitations", () => {
 describe("decideInviteEmailConflict", () => {
   it("admin flows refuse an existing account", () => {
     for (const flow of ["admin_agency", "admin_talent", "admin_admin"] as const) {
-      expect(decideInviteEmailConflict(flow, { hasAccount: true, pendingLink: false })?.message).toBe(M.account);
+      expect(
+        decideInviteEmailConflict(flow, { hasAccount: true, pendingLink: false })?.message,
+      ).toBe(M.account);
     }
   });
   it("agency staff gets the staff message without any account details", () => {
@@ -49,15 +51,22 @@ describe("decideInviteEmailConflict", () => {
     expect(c?.link).toBeNull();
   });
   it("agency talent never reveals an existing account (Agency T&C §6.3)", () => {
-    expect(decideInviteEmailConflict("agency_talent", { hasAccount: true, pendingLink: false })).toBeNull();
+    expect(
+      decideInviteEmailConflict("agency_talent", { hasAccount: true, pendingLink: false }),
+    ).toBeNull();
   });
   it("a pending invitation returns the pending message with its link", () => {
-    const c = decideInviteEmailConflict("admin_talent", { hasAccount: false, pendingLink: "/admin/invitations/talent/abc" });
+    const c = decideInviteEmailConflict("admin_talent", {
+      hasAccount: false,
+      pendingLink: "/admin/invitations/talent/abc",
+    });
     expect(c?.message).toBe(M.pending);
     expect(c?.link).toBe("/admin/invitations/talent/abc");
   });
   it("no clash returns null", () => {
-    expect(decideInviteEmailConflict("admin_agency", { hasAccount: false, pendingLink: false })).toBeNull();
+    expect(
+      decideInviteEmailConflict("admin_agency", { hasAccount: false, pendingLink: false }),
+    ).toBeNull();
   });
 });
 

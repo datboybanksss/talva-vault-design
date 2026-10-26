@@ -50,7 +50,9 @@ export async function recordLegalAcceptance(args: {
     (args.method === "activation" && !doc.is_current) ||
     (args.bodySha256 !== undefined && args.bodySha256 !== doc.body_sha256)
   )
-    throw new Error("These Terms have been updated. Please reload the page and read the latest version.");
+    throw new Error(
+      "These Terms have been updated. Please reload the page and read the latest version.",
+    );
 
   const meta = requestMeta();
   const { data, error } = await supabaseAdmin

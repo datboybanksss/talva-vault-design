@@ -171,7 +171,11 @@ export function CombinedInvitationsList({
                   {q ? (
                     <>
                       No results for ‘{q}’.{" "}
-                      <button type="button" className="tvp-link" onClick={() => onFilterChange({ q: "" })}>
+                      <button
+                        type="button"
+                        className="tvp-link"
+                        onClick={() => onFilterChange({ q: "" })}
+                      >
                         Clear search
                       </button>
                     </>

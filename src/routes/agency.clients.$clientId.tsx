@@ -29,7 +29,11 @@ function ClientDetailPage() {
     <>
       <div className="tvp-topbar">
         <div>
-          <Link to="/agency/clients" className="tvp-link" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+          <Link
+            to="/agency/clients"
+            className="tvp-link"
+            style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
+          >
             <ArrowLeft className="h-4 w-4" /> Clients
           </Link>
           <h1 className="tvp-h1">{client?.name ?? "Client"}</h1>

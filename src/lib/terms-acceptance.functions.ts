@@ -72,22 +72,24 @@ export const getMyTermsStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<TermsStatus> => {
     const sb = await admin();
     const userId = context.userId;
-    const [{ data: current, error: documentError }, { data: accs, error: acceptanceError }] = await Promise.all([
-      sb
-        .from("legal_documents")
-        .select("id, version, title, body, body_sha256, effective_at")
-        .eq("doc_type", data.portal)
-        .eq("is_current", true)
-        .maybeSingle(),
-      sb
-        .from("legal_acceptances")
-        .select(
-          "id, doc_type, version, accepted_at, proof_ref, acceptance_method, hash_retrospective, document_id",
-        )
-        .eq("user_id", userId)
-        .order("accepted_at", { ascending: false }),
-    ]);
-    if (documentError || acceptanceError) throw new Error("We couldn't load your Terms & Conditions. Please try again.");
+    const [{ data: current, error: documentError }, { data: accs, error: acceptanceError }] =
+      await Promise.all([
+        sb
+          .from("legal_documents")
+          .select("id, version, title, body, body_sha256, effective_at")
+          .eq("doc_type", data.portal)
+          .eq("is_current", true)
+          .maybeSingle(),
+        sb
+          .from("legal_acceptances")
+          .select(
+            "id, doc_type, version, accepted_at, proof_ref, acceptance_method, hash_retrospective, document_id",
+          )
+          .eq("user_id", userId)
+          .order("accepted_at", { ascending: false }),
+      ]);
+    if (documentError || acceptanceError)
+      throw new Error("We couldn't load your Terms & Conditions. Please try again.");
     const inPortal = await belongsToPortal(sb, userId, data.portal);
     const hasCurrent = !!current && (accs ?? []).some((a: any) => a.document_id === current.id);
     return {

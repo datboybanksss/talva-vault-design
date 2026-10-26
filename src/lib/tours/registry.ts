@@ -406,7 +406,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/quotes-invoices" },
         selector: '[data-tour="editor-recipients"]',
         title: "Step 7 — Recipient emails",
-        body: 'The document goes to every email address saved on the client. To change who receives it, edit the client on the Clients page — drafts pick up the change straight away.',
+        body: "The document goes to every email address saved on the client. To change who receives it, edit the client on the Clients page — drafts pick up the change straight away.",
         optional: true,
       },
       {
@@ -741,7 +741,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/agency/settings", search: { tab: "document-rules" } },
         selector: '[data-tour="document-rules"]',
         title: "Step 5 — no overrides",
-        body: 'Rules can\'t be overridden for a single document, by anyone. Any older per-document rules are listed for the record and stay as they were.',
+        body: "Rules can't be overridden for a single document, by anyone. Any older per-document rules are listed for the record and stay as they were.",
         optional: true,
       },
       {

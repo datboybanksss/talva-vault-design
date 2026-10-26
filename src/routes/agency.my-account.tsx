@@ -56,8 +56,8 @@ function MyAccountPage() {
         <div>
           <h1 className="tvp-h1">My Account</h1>
           <div className="tvp-subtitle">
-            Your personal profile, sign-in email, password and sign-in security. Changes only
-            affect your own account.
+            Your personal profile, sign-in email, password and sign-in security. Changes only affect
+            your own account.
           </div>
         </div>
       </div>

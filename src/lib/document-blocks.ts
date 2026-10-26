@@ -75,7 +75,8 @@ export function agencyDocumentDeleteBlock(d: AgencyDocFacts, now: Date = new Dat
 
 export const NO_FOLDER_ACCESS: DocBlock = {
   code: "no_folder_access",
-  message: "This document is in a restricted folder you don't have access to, so you can't delete it.",
+  message:
+    "This document is in a restricted folder you don't have access to, so you can't delete it.",
 };
 
 /** The full sentence shown in toasts and thrown by the server. */

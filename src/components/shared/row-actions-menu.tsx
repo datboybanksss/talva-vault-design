@@ -89,9 +89,7 @@ export function RowActionsMenu({
               {Icon ? <Icon className="h-4 w-4 shrink-0" /> : <span className="h-4 w-4 shrink-0" />}
               <span className="tvp-kebab-text">
                 <span>{a.label}</span>
-                {a.disabledReason && (
-                  <span className="tvp-kebab-reason">{a.disabledReason}</span>
-                )}
+                {a.disabledReason && <span className="tvp-kebab-reason">{a.disabledReason}</span>}
               </span>
             </>
           );

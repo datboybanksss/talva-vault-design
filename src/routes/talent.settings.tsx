@@ -152,10 +152,18 @@ function TalentSettings() {
       <PageBand
         icon={<SettingsIcon />}
         title="Settings"
-        subtitle={hasRelationship ? "Manage your profile, account, agency relationship and notifications." : "Manage your profile, account and notifications."}
+        subtitle={
+          hasRelationship
+            ? "Manage your profile, account, agency relationship and notifications."
+            : "Manage your profile, account and notifications."
+        }
       />
 
-      <div className="tvp-tabs tvp-roster-tabs tvp-settings-tabs" role="tablist" data-tour="talent-settings-tabs">
+      <div
+        className="tvp-tabs tvp-roster-tabs tvp-settings-tabs"
+        role="tablist"
+        data-tour="talent-settings-tabs"
+      >
         <button
           className={`tvp-tab${mode === "profile" ? " tvp-active" : ""}`}
           onClick={() => setMode("profile")}
@@ -203,7 +211,9 @@ function TalentSettings() {
             <div>
               <h2 className="tvp-h2">Talent Profile</h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-                {hasRelationship ? "Your display name and talent type as shown to your agency." : "Your display name and talent type."}
+                {hasRelationship
+                  ? "Your display name and talent type as shown to your agency."
+                  : "Your display name and talent type."}
               </p>
             </div>
             <button className="tvp-primary" onClick={saveProfile} disabled={savingProfile}>
@@ -297,9 +307,12 @@ function TalentSettings() {
           <div className="tv-pref-list">
             <div className="tv-pref-row">
               <div className="tv-pref-text">
-                <label htmlFor="pref-in-app" className="tv-pref-label">Show reminders in TalVault</label>
+                <label htmlFor="pref-in-app" className="tv-pref-label">
+                  Show reminders in TalVault
+                </label>
                 <p className="tv-pref-hint">
-                  Reminders appear in the notification bell. Switch this off and you won't get any reminders.
+                  Reminders appear in the notification bell. Switch this off and you won't get any
+                  reminders.
                 </p>
               </div>
               <Switch id="pref-in-app" checked={inAppEnabled} onCheckedChange={setInAppEnabled} />
@@ -311,7 +324,9 @@ function TalentSettings() {
             {IN_APP_CHANNELS.map((c) => (
               <div key={c.key} className="tv-pref-row">
                 <div className="tv-pref-text">
-                  <label htmlFor={`pref-${c.key}`} className="tv-pref-label">{c.label}</label>
+                  <label htmlFor={`pref-${c.key}`} className="tv-pref-label">
+                    {c.label}
+                  </label>
                   <p className="tv-pref-hint">{c.hint}</p>
                 </div>
                 <Switch
@@ -328,8 +343,12 @@ function TalentSettings() {
           <div className="tv-pref-list">
             <div className="tv-pref-row tv-pref-off">
               <div className="tv-pref-text">
-                <label htmlFor="pref-email" className="tv-pref-label">Email me the same reminders</label>
-                <p className="tv-pref-hint">Email reminders are coming once our email service is switched on.</p>
+                <label htmlFor="pref-email" className="tv-pref-label">
+                  Email me the same reminders
+                </label>
+                <p className="tv-pref-hint">
+                  Email reminders are coming once our email service is switched on.
+                </p>
               </div>
               <Switch id="pref-email" checked={false} disabled />
             </div>

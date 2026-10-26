@@ -575,7 +575,12 @@ function AdminsPage() {
                           permission_level: invitePerm,
                         });
                       }}
-                      disabled={invite.isPending || inviteEmailCheck.checking || !valid || !!inviteEmailCheck.conflict}
+                      disabled={
+                        invite.isPending ||
+                        inviteEmailCheck.checking ||
+                        !valid ||
+                        !!inviteEmailCheck.conflict
+                      }
                     >
                       {invite.isPending ? "Sending…" : valid ? "Invite" : "Add"}
                     </button>
@@ -689,7 +694,12 @@ function AdminsPage() {
                                         destructive: true,
                                         separatorBefore: true,
                                         onSelect: async () => {
-                                          if (await askConfirm({ title: `Revoke invitation to ${i.email}?`, destructive: true }))
+                                          if (
+                                            await askConfirm({
+                                              title: `Revoke invitation to ${i.email}?`,
+                                              destructive: true,
+                                            })
+                                          )
                                             revoke.mutate(i.id);
                                         },
                                       },
@@ -703,7 +713,12 @@ function AdminsPage() {
                                   separatorBefore: open,
                                   title: "Permanently remove this invitation from the list",
                                   onSelect: async () => {
-                                    if (await askConfirm({ title: `Permanently delete the invitation to ${i.email}?`, destructive: true }))
+                                    if (
+                                      await askConfirm({
+                                        title: `Permanently delete the invitation to ${i.email}?`,
+                                        destructive: true,
+                                      })
+                                    )
                                       deleteInvite.mutate(i.id);
                                   },
                                 },

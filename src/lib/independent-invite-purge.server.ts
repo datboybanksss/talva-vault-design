@@ -21,7 +21,8 @@ export async function purgeIndependentInviteDocuments(
   const paths = rows.map((d) => d.storage_path).filter(Boolean) as string[];
   if (paths.length) {
     const { error } = await supabaseAdmin.storage.from(BUCKET).remove(paths);
-    if (error) throw databaseError(error, "We couldn't remove these invitation files. Please try again.");
+    if (error)
+      throw databaseError(error, "We couldn't remove these invitation files. Please try again.");
   }
   await supabaseAdmin
     .from("talent_invitation_documents")
