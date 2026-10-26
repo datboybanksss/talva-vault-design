@@ -35,7 +35,11 @@ const inv = (o: Partial<InviteRow>): InviteRow => ({
   source: "admin",
   ...o,
 });
-const ALL = { ...sastRange("2026-11-01", "2026-12-31"), type: "all" as const, segment: "all" as const };
+const ALL = {
+  ...sastRange("2026-11-01", "2026-12-31"),
+  type: "all" as const,
+  segment: "all" as const,
+};
 
 describe("launch settings", () => {
   it("accepts the stored launch values and rejects bad ones", () => {
@@ -54,7 +58,10 @@ describe("SAST date boundaries", () => {
   });
   it("counts talent who joined just after SAST midnight on launch day, not just before", () => {
     const p = launchProgress(
-      { talentJoined: ["2026-11-16T21:59:59.999Z", "2026-11-16T22:00:00.000Z", null], agenciesJoined: [] },
+      {
+        talentJoined: ["2026-11-16T21:59:59.999Z", "2026-11-16T22:00:00.000Z", null],
+        agenciesJoined: [],
+      },
       S,
     );
     expect(p.talent).toBe(1);
@@ -62,7 +69,10 @@ describe("SAST date boundaries", () => {
   });
   it("the 3-month window ends exclusive at 17 Feb 2027 SAST", () => {
     const p = launchProgress(
-      { talentJoined: [], agenciesJoined: ["2027-02-16T21:59:59.000Z", "2027-02-16T22:00:00.000Z"] },
+      {
+        talentJoined: [],
+        agenciesJoined: ["2027-02-16T21:59:59.000Z", "2027-02-16T22:00:00.000Z"],
+      },
       S,
     );
     expect(p.agencies).toBe(1);
@@ -96,24 +106,41 @@ describe("invitation conversion", () => {
     expect(f.sent).toBe(1);
   });
   it("duplicate emails on separate invitations are separate invitations", () => {
-    const f = invitationFunnel([inv({ email: "a@x.com", status: "revoked" }), inv({ email: "a@x.com" })], ALL, NOW);
+    const f = invitationFunnel(
+      [inv({ email: "a@x.com", status: "revoked" }), inv({ email: "a@x.com" })],
+      ALL,
+      NOW,
+    );
     expect(f.total).toBe(2);
   });
   it("accepted without a recorded send time is not guessed into the median", () => {
-    const f = invitationFunnel([inv({ status: "accepted", first_sent_at: null, accepted_at: NOW, source: null })], ALL, NOW);
+    const f = invitationFunnel(
+      [inv({ status: "accepted", first_sent_at: null, accepted_at: NOW, source: null })],
+      ALL,
+      NOW,
+    );
     expect(f.medianHoursToAccept).toBeNull();
     expect(f.acceptedWithoutSendTime).toBe(1);
     expect(f.bySource.not_recorded!.accepted).toBe(1);
   });
   it("filters by type and talent segment", () => {
-    const rows = [inv({ type: "agency", segment: null }), inv({ segment: "agency_linked", source: "agency" }), inv({})];
+    const rows = [
+      inv({ type: "agency", segment: null }),
+      inv({ segment: "agency_linked", source: "agency" }),
+      inv({}),
+    ];
     expect(invitationFunnel(rows, { ...ALL, type: "agency" }, NOW).total).toBe(1);
-    expect(invitationFunnel(rows, { ...ALL, type: "talent", segment: "independent" }, NOW).total).toBe(1);
+    expect(
+      invitationFunnel(rows, { ...ALL, type: "talent", segment: "independent" }, NOW).total,
+    ).toBe(1);
     expect(invitationFunnel(rows, ALL, NOW).bySource.agency!.pending).toBe(1);
   });
   it("date range uses SAST midnight", () => {
     const r = sastRange("2026-11-20", "2026-11-20");
-    const rows = [inv({ created_at: "2026-11-19T21:59:59.999Z" }), inv({ created_at: "2026-11-19T22:00:00.000Z" })];
+    const rows = [
+      inv({ created_at: "2026-11-19T21:59:59.999Z" }),
+      inv({ created_at: "2026-11-19T22:00:00.000Z" }),
+    ];
     expect(invitationFunnel(rows, { ...r, type: "all", segment: "all" }, NOW).total).toBe(1);
   });
   it("empty data gives zeros and no rate", () => {
@@ -128,10 +155,42 @@ describe("launch offer", () => {
     const s = { ...S, offer_agency_places: 2 };
     const o = launchOffer(
       [
-        { id: "pre", type: "agency", name: "Pre", email: "", first_sent_at: "2026-11-10T00:00:00.000Z", accepted_at: "2026-11-11T00:00:00.000Z", status: "accepted" },
-        { id: "b", type: "agency", name: "B", email: "", first_sent_at: "2026-11-18T00:00:00.000Z", accepted_at: null, status: "pending" },
-        { id: "a", type: "agency", name: "A", email: "", first_sent_at: "2026-11-17T09:00:00.000Z", accepted_at: "2026-11-20T00:00:00.000Z", status: "accepted" },
-        { id: "c", type: "agency", name: "C", email: "", first_sent_at: "2026-11-19T00:00:00.000Z", accepted_at: "2026-11-19T00:00:00.000Z", status: "accepted" },
+        {
+          id: "pre",
+          type: "agency",
+          name: "Pre",
+          email: "",
+          first_sent_at: "2026-11-10T00:00:00.000Z",
+          accepted_at: "2026-11-11T00:00:00.000Z",
+          status: "accepted",
+        },
+        {
+          id: "b",
+          type: "agency",
+          name: "B",
+          email: "",
+          first_sent_at: "2026-11-18T00:00:00.000Z",
+          accepted_at: null,
+          status: "pending",
+        },
+        {
+          id: "a",
+          type: "agency",
+          name: "A",
+          email: "",
+          first_sent_at: "2026-11-17T09:00:00.000Z",
+          accepted_at: "2026-11-20T00:00:00.000Z",
+          status: "accepted",
+        },
+        {
+          id: "c",
+          type: "agency",
+          name: "C",
+          email: "",
+          first_sent_at: "2026-11-19T00:00:00.000Z",
+          accepted_at: "2026-11-19T00:00:00.000Z",
+          status: "accepted",
+        },
       ],
       s,
     );
@@ -146,7 +205,18 @@ describe("terms outstanding", () => {
   it("someone who accepted only an older version is outstanding, with their last version shown", () => {
     const out = termsOutstanding(
       [{ user_id: "u1", name: "U", email: "", docType: "talent", segment: "independent" }],
-      [{ id: "1", user_id: "u1", document_id: "t1", doc_type: "talent", version: "v1.1", accepted_at: NOW, body_sha256: "h", hash_retrospective: false }],
+      [
+        {
+          id: "1",
+          user_id: "u1",
+          document_id: "t1",
+          doc_type: "talent",
+          version: "v1.1",
+          accepted_at: NOW,
+          body_sha256: "h",
+          hash_retrospective: false,
+        },
+      ],
       current,
     );
     expect(out).toHaveLength(1);
@@ -155,7 +225,18 @@ describe("terms outstanding", () => {
   it("accepting the current document clears them; switching to agency-linked does not matter", () => {
     const out = termsOutstanding(
       [{ user_id: "u1", name: "U", email: "", docType: "talent", segment: "agency_linked" }],
-      [{ id: "1", user_id: "u1", document_id: "t2", doc_type: "talent", version: "v1.2", accepted_at: NOW, body_sha256: "h", hash_retrospective: false }],
+      [
+        {
+          id: "1",
+          user_id: "u1",
+          document_id: "t2",
+          doc_type: "talent",
+          version: "v1.2",
+          accepted_at: NOW,
+          body_sha256: "h",
+          hash_retrospective: false,
+        },
+      ],
       current,
     );
     expect(out).toHaveLength(0);
@@ -172,8 +253,14 @@ describe("test accounts and launch offer places", () => {
   it("never gives a test account a launch offer place", async () => {
     const { launchOffer: offer } = await import("./launch-reporting-core");
     const c = (id: string, sent: string, is_test: boolean) => ({
-      id, type: "agency" as const, name: id, email: `${id}@x.com`,
-      first_sent_at: sent, accepted_at: sent, status: "accepted", is_test,
+      id,
+      type: "agency" as const,
+      name: id,
+      email: `${id}@x.com`,
+      first_sent_at: sent,
+      accepted_at: sent,
+      status: "accepted",
+      is_test,
     });
     const r = offer(
       [c("test1", "2026-11-17T08:00:00Z", true), c("real1", "2026-11-18T08:00:00Z", false)],

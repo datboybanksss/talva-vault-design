@@ -79,7 +79,9 @@ function AgencyDetail() {
     mutationFn: (isTest: boolean) => setTestFn({ data: { type: "agency", id, isTest } }),
     onSuccess: (_r, isTest) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success(isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.");
+      toast.success(
+        isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.",
+      );
     },
     onError: (e: any) => toast.error(friendlyError(e, "We couldn't change the account type.")),
   });

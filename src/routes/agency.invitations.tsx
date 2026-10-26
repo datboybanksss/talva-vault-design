@@ -328,7 +328,9 @@ function InvitationsPage() {
                                 destructive: true,
                                 separatorBefore: true,
                                 onSelect: async () => {
-                                  if (await askConfirm({ title: `Revoke invitation to ${i.email}?` }))
+                                  if (
+                                    await askConfirm({ title: `Revoke invitation to ${i.email}?` })
+                                  )
                                     revokeM.mutate({ id: i.id, type: i.type });
                                 },
                               },

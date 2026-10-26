@@ -67,10 +67,16 @@ import { readFileSync } from "node:fs";
 
 describe("document rules: no override, versions, non-retroactive", () => {
   it("protected delete points to a new version, never a way round", () => {
-    const b = agencyDocumentDeleteBlock({
-      originator: "agency", talentName: "A", lockedUntil: "2031-03-12T00:00:00Z",
-      linkStatus: "active", agencyReadOnly: false,
-    }, new Date("2026-10-22"));
+    const b = agencyDocumentDeleteBlock(
+      {
+        originator: "agency",
+        talentName: "A",
+        lockedUntil: "2031-03-12T00:00:00Z",
+        linkStatus: "active",
+        agencyReadOnly: false,
+      },
+      new Date("2026-10-22"),
+    );
     expect(blockText(b!)).toBe(
       "This document is protected until 12 March 2031, so it can't be deleted. You can upload a new version instead.",
     );
@@ -90,7 +96,10 @@ describe("document rules: no override, versions, non-retroactive", () => {
     expect(NO_OVERRIDE_MESSAGE).toMatch(/aren't available/);
     const vault = readFileSync("src/routes/agency.document-vault.tsx", "utf8");
     expect(vault).not.toMatch(/retention override|force delete/i);
-    const sql = readFileSync("supabase/migrations/20261022230000_non_retroactive_rules_and_versions.sql", "utf8");
+    const sql = readFileSync(
+      "supabase/migrations/20261022230000_non_retroactive_rules_and_versions.sql",
+      "utf8",
+    );
     expect(sql).toContain("NO_RULE_OVERRIDE");
     expect(sql).toContain("VERSION_IMMUTABLE");
     expect(sql).toMatch(/retention_rule_refresh_docs[\s\S]*no-op/);

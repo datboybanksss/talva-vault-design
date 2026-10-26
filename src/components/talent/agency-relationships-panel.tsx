@@ -27,7 +27,9 @@ export function AgencyRelationshipsPanel() {
   if (isError)
     return (
       <div className="tvp-card tvp-panel">
-        <p className="tvr-meta">{friendlyError(error, "Your agency details couldn't be loaded. Please try again.")}</p>
+        <p className="tvr-meta">
+          {friendlyError(error, "Your agency details couldn't be loaded. Please try again.")}
+        </p>
       </div>
     );
 
@@ -52,7 +54,11 @@ export function AgencyRelationshipsPanel() {
                   {r.state === "previous" && r.endedAt ? ` · Ended on ${fmt(r.endedAt)}` : null}
                 </span>
               </div>
-              <span className={r.state === "active" ? "tvp-status st-accepted" : "tvp-status st-neutral"}>
+              <span
+                className={
+                  r.state === "active" ? "tvp-status st-accepted" : "tvp-status st-neutral"
+                }
+              >
                 {r.state === "active" ? "Active" : "Ended"}
               </span>
             </div>

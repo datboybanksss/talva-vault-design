@@ -93,7 +93,9 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
   const q = useQuery({
     queryKey: ["admin", "launch-reports", base, offerOffset, termsOffset, outstandingOffset],
     queryFn: () =>
-      fn({ data: { ...base, offerOffset, termsOffset, outstandingOffset, limit: PAGE_SIZE } }) as Promise<any>,
+      fn({
+        data: { ...base, offerOffset, termsOffset, outstandingOffset, limit: PAGE_SIZE },
+      }) as Promise<any>,
   });
   const d = q.data;
 
@@ -119,22 +121,53 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
         download(`launch-offer_${stamp}.csv`, [
           ["Place", "Type", "Name", "Email", "First sent", "Accepted", "Free until"],
           ...all.offer.rows.map((r: any) => [
-            r.place, r.type, r.name, r.email, r.first_sent_at, r.accepted_at ?? "", r.freeUntil ?? "",
+            r.place,
+            r.type,
+            r.name,
+            r.email,
+            r.first_sent_at,
+            r.accepted_at ?? "",
+            r.freeUntil ?? "",
           ]),
         ]);
       } else if (kind === "terms") {
         download(`terms-acceptances_${stamp}.csv`, [
-          ["Name", "Email", "Role", "Terms", "Version", "Current", "Accepted at", "Document ID", "Body SHA-256", "Proof reference", "Hash added later"],
+          [
+            "Name",
+            "Email",
+            "Role",
+            "Terms",
+            "Version",
+            "Current",
+            "Accepted at",
+            "Document ID",
+            "Body SHA-256",
+            "Proof reference",
+            "Hash added later",
+          ],
           ...all.terms.acceptances.map((a: any) => [
-            a.user_full_name, a.user_email, a.user_role, a.doc_type, a.version, a.is_current ? "Yes" : "No",
-            a.accepted_at, a.document_id, a.body_sha256, a.proof_ref, a.hash_retrospective ? "Yes" : "No",
+            a.user_full_name,
+            a.user_email,
+            a.user_role,
+            a.doc_type,
+            a.version,
+            a.is_current ? "Yes" : "No",
+            a.accepted_at,
+            a.document_id,
+            a.body_sha256,
+            a.proof_ref,
+            a.hash_retrospective ? "Yes" : "No",
           ]),
         ]);
       } else {
         download(`terms-not-accepted_${stamp}.csv`, [
           ["Name", "Email", "Terms", "Current version", "Last accepted version"],
           ...all.terms.outstanding.map((p: any) => [
-            p.name, p.email, p.docType, p.currentVersion, p.lastAcceptedVersion ?? "None",
+            p.name,
+            p.email,
+            p.docType,
+            p.currentVersion,
+            p.lastAcceptedVersion ?? "None",
           ]),
         ]);
       }
@@ -143,16 +176,32 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
     }
   }
 
-  const Pager = ({ offset, total, set }: { offset: number; total: number; set: (n: number) => void }) =>
+  const Pager = ({
+    offset,
+    total,
+    set,
+  }: {
+    offset: number;
+    total: number;
+    set: (n: number) => void;
+  }) =>
     total > PAGE_SIZE ? (
       <div className="tvp-footer-actions">
         <span className="tvp-muted">
           {offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of {total}
         </span>
-        <button className="tvp-secondary" disabled={offset === 0} onClick={() => set(offset - PAGE_SIZE)}>
+        <button
+          className="tvp-secondary"
+          disabled={offset === 0}
+          onClick={() => set(offset - PAGE_SIZE)}
+        >
           Previous
         </button>
-        <button className="tvp-secondary" disabled={offset + PAGE_SIZE >= total} onClick={() => set(offset + PAGE_SIZE)}>
+        <button
+          className="tvp-secondary"
+          disabled={offset + PAGE_SIZE >= total}
+          onClick={() => set(offset + PAGE_SIZE)}
+        >
           Next
         </button>
       </div>
@@ -176,7 +225,17 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
         <FilterBar
           active={type !== "all" || segment !== "all" || accounts !== "real"}
           onChange={setFilter}
-          onClear={() => navigate({ search: (prev) => ({ ...prev, type: undefined, talent: undefined, accounts: undefined }), replace: true })}
+          onClear={() =>
+            navigate({
+              search: (prev) => ({
+                ...prev,
+                type: undefined,
+                talent: undefined,
+                accounts: undefined,
+              }),
+              replace: true,
+            })
+          }
           filters={[
             {
               key: "type",
@@ -211,7 +270,11 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
           ]}
         />
         {q.isLoading && <p className="tvp-muted">Loading launch reports…</p>}
-        {q.isError && <p className="tvp-muted">{friendlyError(q.error, "We couldn't load the launch reports.")}</p>}
+        {q.isError && (
+          <p className="tvp-muted">
+            {friendlyError(q.error, "We couldn't load the launch reports.")}
+          </p>
+        )}
       </div>
 
       {d && (
@@ -226,13 +289,27 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             <div className="tvp-kpi-pair">
               {(
                 [
-                  ["talent", "Talent signed up", d.progress.talent, d.progress.talentTarget, d.progress.talentPct],
-                  ["agencies", "Agencies signed up", d.progress.agencies, d.progress.agencyTarget, d.progress.agencyPct],
+                  [
+                    "talent",
+                    "Talent signed up",
+                    d.progress.talent,
+                    d.progress.talentTarget,
+                    d.progress.talentPct,
+                  ],
+                  [
+                    "agencies",
+                    "Agencies signed up",
+                    d.progress.agencies,
+                    d.progress.agencyTarget,
+                    d.progress.agencyPct,
+                  ],
                 ] as const
               ).map(([key, label, n, t, pct]) => (
                 <div key={key} className="tvp-card tvp-kpi">
                   <div>
-                    <div className="tvp-kpi-value">{n} / {t}</div>
+                    <div className="tvp-kpi-value">
+                      {n} / {t}
+                    </div>
                     <div className="tvp-kpi-label">{label}</div>
                     <div className="tvp-kpi-sub">{pct}% of target</div>
                     <button type="button" className="tvp-link" onClick={() => setViewing(key)}>
@@ -250,25 +327,44 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
               <Csv kind="offer" />
             </div>
             <p className="tvp-muted">
-              Places go to the first invitations sent on or after launch, in send order. A place is used once accepted; the
-              free period runs from acceptance. Talent: {d.offer.talent.used} of {d.offer.talent.places} used
-              ({d.offer.talent.allocated} allocated). Agencies: {d.offer.agency.used} of {d.offer.agency.places} used
-              ({d.offer.agency.allocated} allocated).
+              Places go to the first invitations sent on or after launch, in send order. A place is
+              used once accepted; the free period runs from acceptance. Talent:{" "}
+              {d.offer.talent.used} of {d.offer.talent.places} used ({d.offer.talent.allocated}{" "}
+              allocated). Agencies: {d.offer.agency.used} of {d.offer.agency.places} used (
+              {d.offer.agency.allocated} allocated).
             </p>
             <div className="tvp-table-wrap">
               <table className="tvp-table">
                 <thead>
-                  <tr><th>Place</th><th>Name</th><th>Type</th><th>First sent</th><th>Accepted</th><th>Free until</th></tr>
+                  <tr>
+                    <th>Place</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>First sent</th>
+                    <th>Accepted</th>
+                    <th>Free until</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {d.offer.rows.length === 0 && (
-                    <tr><td colSpan={6} className="tvp-muted">No invitations have been sent since the launch date yet.</td></tr>
+                    <tr>
+                      <td colSpan={6} className="tvp-muted">
+                        No invitations have been sent since the launch date yet.
+                      </td>
+                    </tr>
                   )}
                   {d.offer.rows.map((r: any) => (
                     <tr key={r.id}>
                       <td>{r.place}</td>
-                      <td><strong>{r.name}</strong><div className="tvp-muted">{r.email}</div></td>
-                      <td><span className="tvp-status st-neutral">{r.type === "agency" ? "Agency" : "Talent"}</span></td>
+                      <td>
+                        <strong>{r.name}</strong>
+                        <div className="tvp-muted">{r.email}</div>
+                      </td>
+                      <td>
+                        <span className="tvp-status st-neutral">
+                          {r.type === "agency" ? "Agency" : "Talent"}
+                        </span>
+                      </td>
                       <td>{fmtDate(r.first_sent_at)}</td>
                       <td>{fmtDate(r.accepted_at)}</td>
                       <td>{fmtDate(r.freeUntil)}</td>
@@ -284,42 +380,62 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Invitation conversion</h2>
               <div className="tvp-actions">
-                <button type="button" className="tvp-link" onClick={() => setViewing("invitations")}>
+                <button
+                  type="button"
+                  className="tvp-link"
+                  onClick={() => setViewing("invitations")}
+                >
                   View data
                 </button>
                 <Csv kind="funnel" />
               </div>
             </div>
             <p className="tvp-muted">
-              Invitations created in the date range. Each invitation counts once, however often it was resent.
+              Invitations created in the date range. Each invitation counts once, however often it
+              was resent.
             </p>
             <div className="tvp-table-wrap">
               <table className="tvp-table">
                 <thead>
                   <tr>
-                    <th>Status</th><th>Total</th>
-                    {Object.keys(d.funnel.bySource).map((k) => <th key={k}>{SOURCE_LABEL[k] ?? k}</th>)}
+                    <th>Status</th>
+                    <th>Total</th>
+                    {Object.keys(d.funnel.bySource).map((k) => (
+                      <th key={k}>{SOURCE_LABEL[k] ?? k}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {d.funnel.total === 0 && (
-                    <tr><td colSpan={2} className="tvp-muted">No invitations in this date range.</td></tr>
+                    <tr>
+                      <td colSpan={2} className="tvp-muted">
+                        No invitations in this date range.
+                      </td>
+                    </tr>
                   )}
                   {d.funnel.total > 0 &&
                     FUNNEL_BUCKETS.map((b) => (
                       <tr key={b}>
-                        <td><span className={statusPillClass("invitation", b)}>{statusLabel("invitation", b)}</span></td>
+                        <td>
+                          <span className={statusPillClass("invitation", b)}>
+                            {statusLabel("invitation", b)}
+                          </span>
+                        </td>
                         <td>{d.funnel.counts[b]}</td>
-                        {Object.values(d.funnel.bySource).map((s: any, i) => <td key={i}>{s[b]}</td>)}
+                        {Object.values(d.funnel.bySource).map((s: any, i) => (
+                          <td key={i}>{s[b]}</td>
+                        ))}
                       </tr>
                     ))}
                 </tbody>
               </table>
             </div>
             <p className="tvp-muted">
-              Acceptance rate: {d.funnel.acceptanceRate == null ? "—" : `${d.funnel.acceptanceRate}%`} of {d.funnel.sent} sent ·
-              Median time to accept:{" "}
-              {d.funnel.medianHoursToAccept == null ? "—" : `${d.funnel.medianHoursToAccept} hours`} ({d.funnel.acceptedMeasured} measured
+              Acceptance rate:{" "}
+              {d.funnel.acceptanceRate == null ? "—" : `${d.funnel.acceptanceRate}%`} of{" "}
+              {d.funnel.sent} sent · Median time to accept:{" "}
+              {d.funnel.medianHoursToAccept == null ? "—" : `${d.funnel.medianHoursToAccept} hours`}{" "}
+              ({d.funnel.acceptedMeasured} measured
               {d.funnel.acceptedWithoutSendTime > 0
                 ? `; ${d.funnel.acceptedWithoutSendTime} sent before ${RECORDING_SINCE}, send time not recorded`
                 : ""}
@@ -333,26 +449,46 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
               <Csv kind="terms" />
             </div>
             <p className="tvp-muted">
-              Current: {d.terms.current.map((c: any) => `${c.doc_type === "agency" ? "Agency" : "Talent"} ${c.version}`).join(" · ") || "None"}.
-              Accepted in the date range: {d.terms.acceptancesTotal}.
+              Current:{" "}
+              {d.terms.current
+                .map((c: any) => `${c.doc_type === "agency" ? "Agency" : "Talent"} ${c.version}`)
+                .join(" · ") || "None"}
+              . Accepted in the date range: {d.terms.acceptancesTotal}.
             </p>
             <div className="tvp-table-wrap">
               <table className="tvp-table">
                 <thead>
-                  <tr><th>Name</th><th>Terms</th><th>Version</th><th>Accepted</th><th>Proof</th></tr>
+                  <tr>
+                    <th>Name</th>
+                    <th>Terms</th>
+                    <th>Version</th>
+                    <th>Accepted</th>
+                    <th>Proof</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {d.terms.acceptances.length === 0 && (
-                    <tr><td colSpan={5} className="tvp-muted">No Terms were accepted in this date range.</td></tr>
+                    <tr>
+                      <td colSpan={5} className="tvp-muted">
+                        No Terms were accepted in this date range.
+                      </td>
+                    </tr>
                   )}
                   {d.terms.acceptances.map((a: any) => (
                     <tr key={a.id}>
-                      <td><strong>{a.user_full_name ?? "—"}</strong><div className="tvp-muted">{a.user_email}</div></td>
+                      <td>
+                        <strong>{a.user_full_name ?? "—"}</strong>
+                        <div className="tvp-muted">{a.user_email}</div>
+                      </td>
                       <td>{a.doc_type === "agency" ? "Agency" : "Talent"}</td>
-                      <td>{a.version}{a.is_current ? "" : " (older)"}</td>
+                      <td>
+                        {a.version}
+                        {a.is_current ? "" : " (older)"}
+                      </td>
                       <td>{fmtDate(a.accepted_at)}</td>
                       <td title={a.body_sha256 ?? ""}>
-                        {a.document_id.slice(0, 8)} · {a.body_sha256 ? a.body_sha256.slice(0, 12) : "—"}
+                        {a.document_id.slice(0, 8)} ·{" "}
+                        {a.body_sha256 ? a.body_sha256.slice(0, 12) : "—"}
                         {a.hash_retrospective ? " · hash added later" : ""}
                       </td>
                     </tr>
@@ -365,20 +501,39 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
 
           <div className="tvp-card tvp-panel">
             <div className="tvp-panel-head">
-              <h2 className="tvp-h2">Not yet accepted the current Terms · {d.terms.outstandingTotal}</h2>
+              <h2 className="tvp-h2">
+                Not yet accepted the current Terms · {d.terms.outstandingTotal}
+              </h2>
               <Csv kind="outstanding" />
             </div>
-            <p className="tvp-muted">Everyone who must accept today, regardless of the date range. Administrators are exempt.</p>
+            <p className="tvp-muted">
+              Everyone who must accept today, regardless of the date range. Administrators are
+              exempt.
+            </p>
             <div className="tvp-table-wrap">
               <table className="tvp-table">
-                <thead><tr><th>Name</th><th>Terms</th><th>Current version</th><th>Last accepted</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Terms</th>
+                    <th>Current version</th>
+                    <th>Last accepted</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {d.terms.outstanding.length === 0 && (
-                    <tr><td colSpan={4} className="tvp-muted">Everyone in this view has accepted the current Terms.</td></tr>
+                    <tr>
+                      <td colSpan={4} className="tvp-muted">
+                        Everyone in this view has accepted the current Terms.
+                      </td>
+                    </tr>
                   )}
                   {d.terms.outstanding.map((p: any) => (
                     <tr key={`${p.user_id}-${p.docType}`}>
-                      <td><strong>{p.name || "—"}</strong><div className="tvp-muted">{p.email}</div></td>
+                      <td>
+                        <strong>{p.name || "—"}</strong>
+                        <div className="tvp-muted">{p.email}</div>
+                      </td>
                       <td>{p.docType === "agency" ? "Agency" : "Talent"}</td>
                       <td>{p.currentVersion}</td>
                       <td>{p.lastAcceptedVersion ?? "None"}</td>
@@ -387,7 +542,11 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                 </tbody>
               </table>
             </div>
-            <Pager offset={outstandingOffset} total={d.terms.outstandingTotal} set={setOutstandingOffset} />
+            <Pager
+              offset={outstandingOffset}
+              total={d.terms.outstandingTotal}
+              set={setOutstandingOffset}
+            />
           </div>
         </>
       )}
@@ -444,23 +603,48 @@ function RecordsDialog({
       : statusLabel("invitation", r.status);
   const csv = () =>
     download(fileName, [
-      ["Name", "Email", "Type", "Account", "Agency link", "Invited", "Accepted / signed up", "Status", "Launch-offer place"],
+      [
+        "Name",
+        "Email",
+        "Type",
+        "Account",
+        "Agency link",
+        "Invited",
+        "Accepted / signed up",
+        "Status",
+        "Launch-offer place",
+      ],
       ...shown.map((r) => [
-        r.name, r.email, r.type === "agency" ? "Agency" : "Talent", r.is_test ? "Test" : "Real",
-        r.agency ?? "", r.invited_at ?? "", r.signed_up_at ?? "", statusText(r), r.offer_place ?? "",
+        r.name,
+        r.email,
+        r.type === "agency" ? "Agency" : "Talent",
+        r.is_test ? "Test" : "Real",
+        r.agency ?? "",
+        r.invited_at ?? "",
+        r.signed_up_at ?? "",
+        statusText(r),
+        r.offer_place ?? "",
       ]),
     ]);
   return (
     <ModalShell onClose={onClose} maxWidth={1040} labelledBy="lr-records-title">
       <div className="tvp-panel-head">
-        <h2 className="tvp-h2" id="lr-records-title">{title} · {term ? `${shown.length} of ${rows.length}` : rows.length}</h2>
+        <h2 className="tvp-h2" id="lr-records-title">
+          {title} · {term ? `${shown.length} of ${rows.length}` : rows.length}
+        </h2>
       </div>
       <FilterBar filters={[]} onChange={() => {}} search={{ value: term, onChange: setTerm }} />
       <div className="tvp-table-wrap">
         <table className="tvp-table">
           <thead>
             <tr>
-              <th>Name</th><th>Type</th><th>Agency link</th><th>Invited</th><th>Signed up</th><th>Status</th><th>Offer place</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Agency link</th>
+              <th>Invited</th>
+              <th>Signed up</th>
+              <th>Status</th>
+              <th>Offer place</th>
             </tr>
           </thead>
           <tbody>
@@ -470,7 +654,9 @@ function RecordsDialog({
                   {term ? (
                     <>
                       No results for ‘{term}’.{" "}
-                      <button type="button" className="tvp-link" onClick={() => setTerm("")}>Clear search</button>
+                      <button type="button" className="tvp-link" onClick={() => setTerm("")}>
+                        Clear search
+                      </button>
                     </>
                   ) : (
                     "No records match these filters."
@@ -485,7 +671,11 @@ function RecordsDialog({
                   {r.is_test && <span className="tvp-status st-neutral tvp-test-label">Test</span>}
                   <div className="tvp-muted">{r.email}</div>
                 </td>
-                <td><span className="tvp-status st-neutral">{r.type === "agency" ? "Agency" : "Talent"}</span></td>
+                <td>
+                  <span className="tvp-status st-neutral">
+                    {r.type === "agency" ? "Agency" : "Talent"}
+                  </span>
+                </td>
                 <td>{r.agency ?? "—"}</td>
                 <td>{fmtDate(r.invited_at)}</td>
                 <td>{fmtDate(r.signed_up_at)}</td>
@@ -500,7 +690,9 @@ function RecordsDialog({
         <button className="tvp-secondary" onClick={csv}>
           <Download className="h-4 w-4" /> CSV
         </button>
-        <button className="tvp-primary" onClick={onClose}>Close</button>
+        <button className="tvp-primary" onClick={onClose}>
+          Close
+        </button>
       </div>
     </ModalShell>
   );
@@ -510,7 +702,10 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const getFn = useServerFn(getLaunchSettings);
   const saveFn = useServerFn(updateLaunchSettings);
-  const s = useQuery({ queryKey: ["admin", "launch-settings"], queryFn: () => getFn() as Promise<any> });
+  const s = useQuery({
+    queryKey: ["admin", "launch-settings"],
+    queryFn: () => getFn() as Promise<any>,
+  });
   const [form, setForm] = useState<LaunchSettings | null>(null);
   useEffect(() => {
     if (s.data?.settings && !form) setForm(s.data.settings);
@@ -525,9 +720,17 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
     onError: (e) => toast.error(friendlyError(e, "We couldn't save the launch settings.")),
   });
   return (
-    <div role="dialog" aria-modal="true" aria-label="Launch settings" className="tvp-modal-backdrop" onClick={onClose}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Launch settings"
+      className="tvp-modal-backdrop"
+      onClick={onClose}
+    >
       <div className="tvp-card tvp-panel tvp-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="tvp-panel-head"><h2 className="tvp-h2">Launch settings</h2></div>
+        <div className="tvp-panel-head">
+          <h2 className="tvp-h2">Launch settings</h2>
+        </div>
         {!form && <p className="tvp-muted">Loading…</p>}
         {form &&
           LAUNCH_SETTING_KEYS.map((k) => (
@@ -539,14 +742,23 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
                 min={0}
                 value={form[k] as any}
                 onChange={(e) =>
-                  setForm({ ...form, [k]: k === "launch_date" ? e.target.value : Number(e.target.value) })
+                  setForm({
+                    ...form,
+                    [k]: k === "launch_date" ? e.target.value : Number(e.target.value),
+                  })
                 }
               />
             </div>
           ))}
         <div className="tvp-footer-actions">
-          <button className="tvp-secondary" onClick={onClose}>Cancel</button>
-          <button className="tvp-primary" disabled={!form || save.isPending} onClick={() => form && save.mutate(form)}>
+          <button className="tvp-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="tvp-primary"
+            disabled={!form || save.isPending}
+            onClick={() => form && save.mutate(form)}
+          >
             {save.isPending ? "Saving…" : "Save settings"}
           </button>
         </div>

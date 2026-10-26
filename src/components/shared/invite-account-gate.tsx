@@ -171,7 +171,9 @@ export function InviteAccountGatePanel({
     <>
       <div className="tv-auth-eyebrow">{eyebrow}</div>
       <h2 className="tv-auth-title">{existingTitle ?? "This invitation can no longer be used"}</h2>
-      <p className="tv-auth-tag">{existingBody ?? INVITE_EMAIL_MESSAGES.inviteTokenAccountExists}</p>
+      <p className="tv-auth-tag">
+        {existingBody ?? INVITE_EMAIL_MESSAGES.inviteTokenAccountExists}
+      </p>
       <div style={{ marginTop: 24, display: "grid", gap: 12 }}>
         <Link
           to="/auth"

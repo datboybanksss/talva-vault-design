@@ -3,8 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ChevronRight, Folder, Loader2 } from "lucide-react";
-import { listPrivateVault, restoreDefaultFolder, deletePrivateFolder } from "@/lib/talent-vault.functions";
-import { useTalentVaultCatalogue, subfolderCount, type VaultCategory } from "@/lib/talent-vault-catalogue";
+import {
+  listPrivateVault,
+  restoreDefaultFolder,
+  deletePrivateFolder,
+} from "@/lib/talent-vault.functions";
+import {
+  useTalentVaultCatalogue,
+  subfolderCount,
+  type VaultCategory,
+} from "@/lib/talent-vault-catalogue";
 import { friendlyError } from "@/lib/friendly-error";
 import { Switch } from "@/components/ui/switch";
 import { useConfirm } from "@/components/shared/use-confirm";
@@ -114,7 +122,10 @@ export function VaultFoldersPanel() {
             aria-expanded={expanded}
             onClick={() => setOpen(expanded ? null : c.slug)}
           >
-            <ChevronRight className={`h-4 w-4 tvf-chev${expanded ? " tvf-chev-open" : ""}`} aria-hidden />
+            <ChevronRight
+              className={`h-4 w-4 tvf-chev${expanded ? " tvf-chev-open" : ""}`}
+              aria-hidden
+            />
             <span className={`tvf-icon tvp-bg-${c.tone}`} aria-hidden>
               <Folder className="h-4 w-4" />
             </span>
@@ -125,7 +136,9 @@ export function VaultFoldersPanel() {
               </span>
             </span>
           </button>
-          {isBusy ? <Loader2 className="h-4 w-4 tvf-spin animate-spin" aria-label="Saving" /> : null}
+          {isBusy ? (
+            <Loader2 className="h-4 w-4 tvf-spin animate-spin" aria-label="Saving" />
+          ) : null}
           <Switch
             checked={on}
             disabled={busy !== null}
@@ -154,11 +167,12 @@ export function VaultFoldersPanel() {
         <div>
           <h2 className="tvp-h2">Manage folders</h2>
           <p className="tvf-desc">
-            Choose which folders appear in your private vault. Turning a folder off only hides it — any documents
-            inside are kept and come back when you turn it on again.
+            Choose which folders appear in your private vault. Turning a folder off only hides it —
+            any documents inside are kept and come back when you turn it on again.
           </p>
           <p className="tvf-desc">
-            This only changes your private vault. Folders shared with an agency are set by the agency.
+            This only changes your private vault. Folders shared with an agency are set by the
+            agency.
           </p>
         </div>
       </div>

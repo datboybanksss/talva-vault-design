@@ -74,7 +74,8 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
     .eq("talent_user_id", userId)
     .order("created_at", { ascending: true });
   // A failed read must never look like "independent talent".
-  if (rowsError) throw new Error("We couldn't load your agency details. Please refresh and try again.");
+  if (rowsError)
+    throw new Error("We couldn't load your agency details. Please refresh and try again.");
   const out: TalentLinkView[] = [];
   const candidates = (rows ?? []) as any[];
   if (candidates.length === 0) return out;
@@ -87,7 +88,8 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
       "id",
       candidates.map((r) => r.agency_id),
     );
-  if (agenciesError) throw new Error("We couldn't load your agency details. Please refresh and try again.");
+  if (agenciesError)
+    throw new Error("We couldn't load your agency details. Please refresh and try again.");
   const names = new Map((agencies ?? []).map((a: any) => [a.id, (a.name as string)?.trim()]));
   for (const r of candidates) {
     if (!r.ended_at && ["invited", "needs_review", "expired"].includes(r.status)) continue;
@@ -96,7 +98,8 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
       .from("talent_shared_documents")
       .select("id", { count: "exact", head: true })
       .eq("talent_link_id", r.id);
-    if (countError) throw new Error("We couldn't load your agency details. Please refresh and try again.");
+    if (countError)
+      throw new Error("We couldn't load your agency details. Please refresh and try again.");
     const shared = count ?? 0;
     const state = classifyTalentLink({
       status: r.status,
@@ -344,7 +347,11 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
     const visible = await loadTalentLinks(supabase, userId);
     const chosen = input?.link_id ? visible.find((l) => l.id === input.link_id) : visible[0];
     const link = chosen
-      ? { id: chosen.id, agency_id: chosen.agency_id, status: chosen.state === "active" ? "active" : "ended" }
+      ? {
+          id: chosen.id,
+          agency_id: chosen.agency_id,
+          status: chosen.state === "active" ? "active" : "ended",
+        }
       : null;
 
     if (!link) return { link: null, folders: [], documents: [], read_until: null as string | null };
@@ -392,7 +399,9 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
               const used = new Set((docs ?? []).map((d: any) => d.folder));
               const keep = (folders ?? []).filter((f: any) => used.has(f.folder_name));
               const parents = new Set(keep.map((f: any) => f.parent_folder_id).filter(Boolean));
-              return (folders ?? []).filter((f: any) => used.has(f.folder_name) || parents.has(f.id));
+              return (folders ?? []).filter(
+                (f: any) => used.has(f.folder_name) || parents.has(f.id),
+              );
             })()
           : (folders ?? []),
       documents: docs ?? [],
@@ -417,7 +426,8 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
     if (error) throw databaseError(error);
     if (!doc) throw new Error("Document not found.");
     assertNotQuarantined(doc);
-    if (!doc.validated_at) throw new Error("This file is still being checked. Please try again shortly.");
+    if (!doc.validated_at)
+      throw new Error("This file is still being checked. Please try again shortly.");
     if (!doc.storage_path) throw new Error("No file attached to this document.");
 
     // Double-check ownership defensively.
@@ -521,7 +531,8 @@ export const createTalentRequestUploadUrl = createServerFn({ method: "POST" })
     const link = reqLink?.talent_link_id
       ? await getCallerLink(supabase, userId, reqLink.talent_link_id as string)
       : null;
-    if (!link) throw new Error("Requests can only be answered while you are linked to this agency.");
+    if (!link)
+      throw new Error("Requests can only be answered while you are linked to this agency.");
     if (await linkReadUntil(link.id)) throw new Error(READ_ONLY_MESSAGE);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -569,7 +580,8 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
     const link = reqLink?.talent_link_id
       ? await getCallerLink(supabase, userId, reqLink.talent_link_id as string)
       : null;
-    if (!link) throw new Error("Requests can only be answered while you are linked to this agency.");
+    if (!link)
+      throw new Error("Requests can only be answered while you are linked to this agency.");
     if (await linkReadUntil(link.id)) throw new Error(READ_ONLY_MESSAGE);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -584,9 +596,14 @@ export const submitTalentDocumentRequest = createServerFn({ method: "POST" })
     }
 
     const expectedPrefix = `agency/${req.agency_id}/link/${link.id}/requests/${req.id}/`;
-    if (!data.storage_path.startsWith(expectedPrefix) || data.storage_path.includes("..")) throw new Error("That file does not belong to this request.");
+    if (!data.storage_path.startsWith(expectedPrefix) || data.storage_path.includes(".."))
+      throw new Error("That file does not belong to this request.");
     const { validateStoredUpload } = await import("@/lib/file-validation.server");
-    const checkedUpload = await validateStoredUpload({ bucket: "talent-documents", path: data.storage_path, claimedMime: data.mime_type });
+    const checkedUpload = await validateStoredUpload({
+      bucket: "talent-documents",
+      path: data.storage_path,
+      claimedMime: data.mime_type,
+    });
     const { data: doc, error: dErr } = await supabaseAdmin
       .from("talent_shared_documents")
       .insert({
@@ -798,7 +815,9 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       }
       const { data: notifs } = await supabase
         .from("talent_notifications")
-        .select("id, kind, title, detail, tone, target_type, target_id, due_at, read_at, created_at")
+        .select(
+          "id, kind, title, detail, tone, target_type, target_id, due_at, read_at, created_at",
+        )
         .eq("user_id", userId)
         .is("dismissed_at", null)
         .order("due_at", { ascending: true })
@@ -826,14 +845,19 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     // and document-expiry reminders, from the same feed/thresholds as the bell.
     // Security alerts and share expiries stay under the bell only.
     const todo = attention.filter(
-      (a) =>
-        a.type === "request" ||
-        (a.notificationId && todoNotifIds.has(a.notificationId)),
+      (a) => a.type === "request" || (a.notificationId && todoNotifIds.has(a.notificationId)),
     );
 
     // Manager name (named person on the link), recent documents, trusted contacts.
     let managerName: string | null = null;
-    const recent: { id: string; name: string; folder: string; date: string; area: "private" | "shared"; linkId?: string | null }[] = [];
+    const recent: {
+      id: string;
+      name: string;
+      folder: string;
+      date: string;
+      area: "private" | "shared";
+      linkId?: string | null;
+    }[] = [];
     {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       if (visibleIds.length) {
@@ -858,7 +882,14 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .order("created_at", { ascending: false })
           .limit(4);
         for (const d of sd ?? [])
-          recent.push({ id: d.id, name: d.name, folder: d.folder, date: d.created_at, area: "shared", linkId: d.talent_link_id });
+          recent.push({
+            id: d.id,
+            name: d.name,
+            folder: d.folder,
+            date: d.created_at,
+            area: "shared",
+            linkId: d.talent_link_id,
+          });
       }
       const { data: pd } = await supabase
         .from("talent_private_documents")
@@ -866,7 +897,9 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(4);
-      const folderIds = [...new Set((pd ?? []).map((d) => d.folder_id).filter(Boolean))] as string[];
+      const folderIds = [
+        ...new Set((pd ?? []).map((d) => d.folder_id).filter(Boolean)),
+      ] as string[];
       const folderNames = new Map<string, string>();
       if (folderIds.length) {
         const { data: fs } = await supabase
@@ -1063,7 +1096,8 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
     const links = await loadTalentLinks(supabase, userId);
     const { data: reqs } = await supabase.rpc("my_link_requests");
     const pendingConnectionRequests = ((reqs as any[]) ?? []).length;
-    if (links.length === 0) return { relationships: [], hasActiveLink: false, pendingConnectionRequests };
+    if (links.length === 0)
+      return { relationships: [], hasActiveLink: false, pendingConnectionRequests };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: linkRows, error: e1 }, { data: agencies, error: e2 }] = await Promise.all([
       supabaseAdmin
@@ -1081,10 +1115,16 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
           links.map((l) => l.agency_id),
         ),
     ]);
-    if (e1 || e2) throw new Error("We couldn't load your agency details. Please refresh and try again.");
-    const managerIds = [...new Set((linkRows ?? []).map((r: any) => r.manager_user_id).filter(Boolean))];
+    if (e1 || e2)
+      throw new Error("We couldn't load your agency details. Please refresh and try again.");
+    const managerIds = [
+      ...new Set((linkRows ?? []).map((r: any) => r.manager_user_id).filter(Boolean)),
+    ];
     const { data: managers } = managerIds.length
-      ? await supabaseAdmin.from("profiles").select("id, display_name, first_name, last_name, email, phone").in("id", managerIds)
+      ? await supabaseAdmin
+          .from("profiles")
+          .select("id, display_name, first_name, last_name, email, phone")
+          .in("id", managerIds)
       : { data: [] as any[] };
     const clean = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
     const out = [];
@@ -1094,7 +1134,9 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
       const m: any = (managers ?? []).find((x: any) => x.id === row.manager_user_id);
       let logoUrl: string | null = null;
       if (a.logo_path) {
-        const { data: signed } = await supabaseAdmin.storage.from("agency-branding").createSignedUrl(a.logo_path, 3600);
+        const { data: signed } = await supabaseAdmin.storage
+          .from("agency-branding")
+          .createSignedUrl(a.logo_path, 3600);
         logoUrl = signed?.signedUrl ?? null;
       }
       const managerName = m

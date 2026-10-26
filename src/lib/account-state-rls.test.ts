@@ -8,10 +8,14 @@ import { describe, expect, it } from "vitest";
  * real agency staff member whose agency holds shared documents.
  */
 function runAs(sql: string): string {
-  const result = spawnSync("psql", [process.env.RLS_TEST_DB_URL ?? "", "-v", "ON_ERROR_STOP=1", "-At", "-q"], {
-    input: sql,
-    encoding: "utf8",
-  });
+  const result = spawnSync(
+    "psql",
+    [process.env.RLS_TEST_DB_URL ?? "", "-v", "ON_ERROR_STOP=1", "-At", "-q"],
+    {
+      input: sql,
+      encoding: "utf8",
+    },
+  );
   if (result.status !== 0) throw new Error(result.stderr || "psql failed");
   return result.stdout.trim().split("\n").filter(Boolean).pop() ?? "";
 }
@@ -31,9 +35,11 @@ const actAs = (who: string) => `
   SELECT set_config('request.jwt.claims', json_build_object('sub', (SELECT u FROM pick), 'role', 'authenticated')::text, true);
   SET LOCAL ROLE authenticated;`;
 
-describe.skipIf(!process.env.RLS_TEST_DB_URL)("live: pause and suspend enforced in the database", () => {
-  it("a paused talent can read nothing; unpausing restores the same rows", () => {
-    const out = runAs(`
+describe.skipIf(!process.env.RLS_TEST_DB_URL)(
+  "live: pause and suspend enforced in the database",
+  () => {
+    it("a paused talent can read nothing; unpausing restores the same rows", () => {
+      const out = runAs(`
       BEGIN;
       CREATE TEMP TABLE pick AS SELECT ${TALENT} AS u; GRANT SELECT ON pick TO authenticated;
       ${actAs("talent")}
@@ -49,14 +55,14 @@ describe.skipIf(!process.env.RLS_TEST_DB_URL)("live: pause and suspend enforced 
       UPDATE r SET after = (SELECT count(*) FROM public.talent_private_documents);
       SELECT json_build_object('before', before, 'paused', paused, 'after', after) FROM r;
       ROLLBACK;`);
-    const r = JSON.parse(out);
-    expect(r.before).toBeGreaterThan(0);
-    expect(r.paused).toBe(0);
-    expect(r.after).toBe(r.before);
-  });
+      const r = JSON.parse(out);
+      expect(r.before).toBeGreaterThan(0);
+      expect(r.paused).toBe(0);
+      expect(r.after).toBe(r.before);
+    });
 
-  it("a suspended talent can still read but can't add anything", () => {
-    const out = runAs(`
+    it("a suspended talent can still read but can't add anything", () => {
+      const out = runAs(`
       BEGIN;
       CREATE TEMP TABLE pick AS SELECT ${TALENT} AS u; GRANT SELECT ON pick TO authenticated;
       UPDATE public.talent_profiles SET suspended_at = now() WHERE user_id = (SELECT u FROM pick);
@@ -71,13 +77,13 @@ describe.skipIf(!process.env.RLS_TEST_DB_URL)("live: pause and suspend enforced 
       END $$;
       SELECT json_build_object('readable', readable, 'write_blocked', write_blocked) FROM r;
       ROLLBACK;`);
-    const r = JSON.parse(out);
-    expect(r.readable).toBeGreaterThan(0);
-    expect(r.write_blocked).toBe(true);
-  });
+      const r = JSON.parse(out);
+      expect(r.readable).toBeGreaterThan(0);
+      expect(r.write_blocked).toBe(true);
+    });
 
-  it("staff of a paused agency can read nothing", () => {
-    const out = runAs(`
+    it("staff of a paused agency can read nothing", () => {
+      const out = runAs(`
       BEGIN;
       CREATE TEMP TABLE pick AS SELECT ${STAFF} AS u; GRANT SELECT ON pick TO authenticated;
       ${actAs("staff")}
@@ -90,13 +96,13 @@ describe.skipIf(!process.env.RLS_TEST_DB_URL)("live: pause and suspend enforced 
       UPDATE r SET paused = (SELECT count(*) FROM public.talent_shared_documents);
       SELECT json_build_object('before', before, 'paused', paused) FROM r;
       ROLLBACK;`);
-    const r = JSON.parse(out);
-    expect(r.before).toBeGreaterThan(0);
-    expect(r.paused).toBe(0);
-  });
+      const r = JSON.parse(out);
+      expect(r.before).toBeGreaterThan(0);
+      expect(r.paused).toBe(0);
+    });
 
-  it("only an administrator can change pause or suspension details", () => {
-    const out = runAs(`
+    it("only an administrator can change pause or suspension details", () => {
+      const out = runAs(`
       BEGIN;
       CREATE TEMP TABLE pick AS SELECT ${TALENT} AS u; GRANT SELECT ON pick TO authenticated;
       CREATE TEMP TABLE r(blocked boolean); GRANT ALL ON r TO authenticated;
@@ -108,6 +114,7 @@ describe.skipIf(!process.env.RLS_TEST_DB_URL)("live: pause and suspend enforced 
       END $$;
       SELECT json_build_object('blocked', blocked) FROM r;
       ROLLBACK;`);
-    expect(JSON.parse(out).blocked).toBe(true);
-  });
-});
+      expect(JSON.parse(out).blocked).toBe(true);
+    });
+  },
+);

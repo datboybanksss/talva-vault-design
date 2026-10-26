@@ -366,7 +366,40 @@ function AgencyDashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 pb-3">
-          <FilterBar onChange={(k, v) => (k === "status" ? setStatusFilter(v) : k === "manager" ? setManager(v) : setType(v))} filters={[{ key: "status", label: "Status", value: statusFilter, options: [{ value: "all", label: "All statuses" }, ...CHIP_ORDER.map((c) => ({ value: c.key, label: STATUS_LABEL[c.key] }))] },{ key: "manager", label: "Manager", value: manager, options: [{ value: "all", label: "All managers" }, ...managerOptions.map((m) => ({ value: m, label: m }))] },{ key: "type", label: "Talent type", value: type, options: [{ value: "all", label: "All talent types" }, ...typeOptions.map((t) => ({ value: t, label: t }))] }]} />
+          <FilterBar
+            onChange={(k, v) =>
+              k === "status" ? setStatusFilter(v) : k === "manager" ? setManager(v) : setType(v)
+            }
+            filters={[
+              {
+                key: "status",
+                label: "Status",
+                value: statusFilter,
+                options: [
+                  { value: "all", label: "All statuses" },
+                  ...CHIP_ORDER.map((c) => ({ value: c.key, label: STATUS_LABEL[c.key] })),
+                ],
+              },
+              {
+                key: "manager",
+                label: "Manager",
+                value: manager,
+                options: [
+                  { value: "all", label: "All managers" },
+                  ...managerOptions.map((m) => ({ value: m, label: m })),
+                ],
+              },
+              {
+                key: "type",
+                label: "Talent type",
+                value: type,
+                options: [
+                  { value: "all", label: "All talent types" },
+                  ...typeOptions.map((t) => ({ value: t, label: t })),
+                ],
+              },
+            ]}
+          />
           {(statusFilter !== "all" || manager !== "all" || type !== "all") && (
             <button
               className="tvp-select"

@@ -103,8 +103,10 @@ function nextActionLabel(r: TalentRow) {
 function TalentPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const openTalent = (id: string, search: { tab?: "documents"; filter?: "all" | "awaiting" | "expiring" } = {}) =>
-    navigate({ to: "/agency/talent/$linkId", params: { linkId: id }, search });
+  const openTalent = (
+    id: string,
+    search: { tab?: "documents"; filter?: "all" | "awaiting" | "expiring" } = {},
+  ) => navigate({ to: "/agency/talent/$linkId", params: { linkId: id }, search });
   const catalogue = useFolderCatalogue();
   const [typeEditor, setTypeEditor] = useState<TalentRow | null>(null);
   const [typeDraft, setTypeDraft] = useState("");
@@ -259,9 +261,7 @@ function TalentPage() {
       <div className="tvp-topbar">
         <div>
           <h1 className="tvp-h1">Talent roster</h1>
-          <div className="tvp-subtitle">
-            See your talent, their documents and invitations.
-          </div>
+          <div className="tvp-subtitle">See your talent, their documents and invitations.</div>
         </div>
         <div className="tvp-actions">
           <button className="tvp-secondary" onClick={exportCsv}>
@@ -292,7 +292,11 @@ function TalentPage() {
 
       <div className="tvp-card tvp-panel">
         <FilterBar
-          search={{ value: search, onChange: setSearch, placeholder: "Search by name, type or lead" }}
+          search={{
+            value: search,
+            onChange: setSearch,
+            placeholder: "Search by name, type or lead",
+          }}
           active={tab !== "active" || manager !== "all" || type !== "all" || search !== ""}
           onClear={clearFilters}
           onChange={(k, v) => (k === "lead" ? setManager(v) : setType(v))}
@@ -301,13 +305,19 @@ function TalentPage() {
               key: "lead",
               label: "Lead",
               value: manager,
-              options: [{ value: "all", label: "All leads" }, ...managerOptions.map((m) => ({ value: m, label: m }))],
+              options: [
+                { value: "all", label: "All leads" },
+                ...managerOptions.map((m) => ({ value: m, label: m })),
+              ],
             },
             {
               key: "type",
               label: "Talent type",
               value: type,
-              options: [{ value: "all", label: "All types" }, ...typeOptions.map((t) => ({ value: t, label: t }))],
+              options: [
+                { value: "all", label: "All types" },
+                ...typeOptions.map((t) => ({ value: t, label: t })),
+              ],
             },
           ]}
         />
@@ -363,7 +373,10 @@ function TalentPage() {
                   photoUrl={r.avatarUrl}
                   onClick={() => openTalent(r.id)}
                   ariaLabel={`Open ${r.displayName}`}
-                  subtitle={[r.talentType ?? "Talent type not set", `Manager: ${r.managerName || "Unassigned"}`]}
+                  subtitle={[
+                    r.talentType ?? "Talent type not set",
+                    `Manager: ${r.managerName || "Unassigned"}`,
+                  ]}
                   pills={
                     <>
                       <span className={statusPillClass("talentLink", r.status)}>

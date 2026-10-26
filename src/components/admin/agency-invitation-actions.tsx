@@ -167,7 +167,10 @@ export function useAgencyInvitationActions(): {
         destructive: true,
         separatorBefore: true,
         onSelect: async () => {
-          if (await askConfirm({ title: `Revoke invitation to ${i.agency_name}?`, destructive: true })) revokeM.mutate(i.id);
+          if (
+            await askConfirm({ title: `Revoke invitation to ${i.agency_name}?`, destructive: true })
+          )
+            revokeM.mutate(i.id);
         },
       },
       (allowed.includes("delete") || i.status === "pending") && {

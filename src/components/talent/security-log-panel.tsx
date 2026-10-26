@@ -40,8 +40,8 @@ export function SecurityLogPanel() {
         <div>
           <h2 className="tvp-h2">Security log</h2>
           <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-            Every account security change on your profile — password updates and sign-in code activity.
-            Passwords and sign-in codes are never recorded.
+            Every account security change on your profile — password updates and sign-in code
+            activity. Passwords and sign-in codes are never recorded.
           </p>
         </div>
         <span className="tvp-status tvp-teal">
@@ -72,7 +72,8 @@ export function SecurityLogPanel() {
             {!q.isPending && rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="tvp-muted">
-                  No security events yet — sign-ins, password changes and sign-in code activity appear here.
+                  No security events yet — sign-ins, password changes and sign-in code activity
+                  appear here.
                 </td>
               </tr>
             )}

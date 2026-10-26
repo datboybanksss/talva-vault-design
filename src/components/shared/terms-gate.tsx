@@ -41,27 +41,49 @@ export function TermsGate({ portal, children }: { portal: TermsPortal; children:
         <p>We couldn't check your account just now. Please try again.</p>
         <div className="tvp-terms-actions">
           <SignOut />
-          <Button className="tvp-primary" onClick={() => void refetch()}>Try again</Button>
+          <Button className="tvp-primary" onClick={() => void refetch()}>
+            Try again
+          </Button>
         </div>
       </div>
     );
   if (view === "accepted" || !data?.current) return <>{children}</>;
-  return <TermsAgreement key={`${portal}:${data.current.id}:${data.current.body_sha256}`} portal={portal} doc={data.current} hadPrevious={data.acceptances.some((a) => a.doc_type === portal)} />;
+  return (
+    <TermsAgreement
+      key={`${portal}:${data.current.id}:${data.current.body_sha256}`}
+      portal={portal}
+      doc={data.current}
+      hadPrevious={data.acceptances.some((a) => a.doc_type === portal)}
+    />
+  );
 }
 
 function SignOut({ disabled = false }: { disabled?: boolean }) {
-  return <Button variant="secondary" className="tvp-secondary" disabled={disabled} onClick={async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      window.location.href = "/auth";
-    } catch {
-      toast.error("We couldn't sign you out. Please try again.");
-    }
-  }}>Sign out</Button>;
+  return (
+    <Button
+      variant="secondary"
+      className="tvp-secondary"
+      disabled={disabled}
+      onClick={async () => {
+        try {
+          const { error } = await supabase.auth.signOut();
+          if (error) throw error;
+          window.location.href = "/auth";
+        } catch {
+          toast.error("We couldn't sign you out. Please try again.");
+        }
+      }}
+    >
+      Sign out
+    </Button>
+  );
 }
 
-function TermsAgreement({ portal, doc, hadPrevious }: {
+function TermsAgreement({
+  portal,
+  doc,
+  hadPrevious,
+}: {
   portal: TermsPortal;
   doc: NonNullable<TermsStatus["current"]>;
   hadPrevious: boolean;
@@ -79,14 +101,25 @@ function TermsAgreement({ portal, doc, hadPrevious }: {
       ? "Before your team uses TalVault, please read and accept our Terms."
       : "Before you start using your vault, please read and accept our Terms.";
   const effective = new Date(doc.effective_at);
-  const effectiveDate = Number.isNaN(effective.getTime()) ? null : effective.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const effectiveDate = Number.isNaN(effective.getTime())
+    ? null
+    : effective.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      });
 
   async function accept() {
     if (!readToEnd || !agreed || busy) return;
     setBusy(true);
     try {
-      const res = await acceptFn({ data: { portal, document_id: doc.id, body_sha256: doc.body_sha256 } });
-      toast.success(res.proof_ref ? `Thank you. Your proof reference is ${res.proof_ref}.` : "Thank you.");
+      const res = await acceptFn({
+        data: { portal, document_id: doc.id, body_sha256: doc.body_sha256 },
+      });
+      toast.success(
+        res.proof_ref ? `Thank you. Your proof reference is ${res.proof_ref}.` : "Thank you.",
+      );
       await qc.invalidateQueries();
     } catch (error: unknown) {
       const msg = termsGateError(error);
@@ -112,22 +145,41 @@ function TermsAgreement({ portal, doc, hadPrevious }: {
         <p className="tvp-terms-document-title">{doc.title}</p>
         <div className="tvp-terms-meta">
           <span>Version {doc.version}</span>
-          {effectiveDate && <span>Effective{" "}<time dateTime={doc.effective_at}>{effectiveDate}</time></span>}
+          {effectiveDate && (
+            <span>
+              Effective <time dateTime={doc.effective_at}>{effectiveDate}</time>
+            </span>
+          )}
         </div>
       </header>
       <LegalDocumentView body={doc.body} maxHeight={380} onReachedEnd={reachedEnd} />
       <div className="tvp-terms-agreement">
         <p id="terms-scroll-help" className="tvp-terms-helper" aria-live="polite">
-          {readToEnd ? "You can now confirm your agreement." : "Scroll to the end of the document to enable the agreement checkbox."}
+          {readToEnd
+            ? "You can now confirm your agreement."
+            : "Scroll to the end of the document to enable the agreement checkbox."}
         </p>
         <div className="tvp-terms-checkbox-row">
-          <Checkbox id="terms-agreed" aria-describedby="terms-scroll-help" checked={agreed} disabled={!readToEnd || busy} onCheckedChange={(checked) => setAgreed(checked === true)} />
-          <label htmlFor="terms-agreed">I have read and accept these Terms & Conditions (version {doc.version}).</label>
+          <Checkbox
+            id="terms-agreed"
+            aria-describedby="terms-scroll-help"
+            checked={agreed}
+            disabled={!readToEnd || busy}
+            onCheckedChange={(checked) => setAgreed(checked === true)}
+          />
+          <label htmlFor="terms-agreed">
+            I have read and accept these Terms & Conditions (version {doc.version}).
+          </label>
         </div>
       </div>
       <footer className="tvp-terms-actions">
         <SignOut disabled={busy} />
-        <Button className="tvp-primary" disabled={!readToEnd || !agreed || busy} aria-busy={busy} onClick={accept}>
+        <Button
+          className="tvp-primary"
+          disabled={!readToEnd || !agreed || busy}
+          aria-busy={busy}
+          onClick={accept}
+        >
           {busy && <LoaderCircle className="tvp-terms-spinner" aria-hidden="true" />}
           {busy ? "Recording…" : "Accept and continue"}
         </Button>

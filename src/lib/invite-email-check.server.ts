@@ -29,7 +29,11 @@ export async function findInviteEmailConflict(args: Args): Promise<InviteEmailCo
 
   let hasAccount = false;
   if (args.flow !== "agency_talent") {
-    const { data: profs } = await sb.from("profiles").select("id, email").ilike("email", pattern).limit(5);
+    const { data: profs } = await sb
+      .from("profiles")
+      .select("id, email")
+      .ilike("email", pattern)
+      .limit(5);
     hasAccount = (profs ?? []).some((p: any) => sameEmail(p.email, args.email));
   }
 
@@ -37,16 +41,41 @@ export async function findInviteEmailConflict(args: Args): Promise<InviteEmailCo
   if (args.flow === "agency_staff" || args.flow === "agency_talent") {
     if (!args.agencyId) throw new Error("We couldn't check this email address. Please try again.");
     const table = args.flow === "agency_staff" ? "agency_invitations" : "talent_invitations";
-    let q = sb.from(table).select(cols).eq("agency_id", args.agencyId).ilike("email", pattern).eq("status", "pending");
+    let q = sb
+      .from(table)
+      .select(cols)
+      .eq("agency_id", args.agencyId)
+      .ilike("email", pattern)
+      .eq("status", "pending");
     if (args.flow === "agency_staff") q = q.eq("kind", "staff");
     const { data } = await q.limit(20);
     if (keep(data).length) pendingLink = "/agency/invitations";
   } else {
     const [adm, ag, ind, tal] = await Promise.all([
-      sb.from("admin_invitations").select(cols).ilike("email", pattern).eq("status", "pending").limit(20),
-      sb.from("agency_invitations").select(`${cols}, kind`).ilike("email", pattern).eq("status", "pending").limit(20),
-      sb.from("independent_talent_invitations").select(cols).ilike("email", pattern).eq("status", "pending").limit(20),
-      sb.from("talent_invitations").select(cols).ilike("email", pattern).eq("status", "pending").limit(20),
+      sb
+        .from("admin_invitations")
+        .select(cols)
+        .ilike("email", pattern)
+        .eq("status", "pending")
+        .limit(20),
+      sb
+        .from("agency_invitations")
+        .select(`${cols}, kind`)
+        .ilike("email", pattern)
+        .eq("status", "pending")
+        .limit(20),
+      sb
+        .from("independent_talent_invitations")
+        .select(cols)
+        .ilike("email", pattern)
+        .eq("status", "pending")
+        .limit(20),
+      sb
+        .from("talent_invitations")
+        .select(cols)
+        .ilike("email", pattern)
+        .eq("status", "pending")
+        .limit(20),
     ]);
     const a = keep(adm.data)[0];
     const g = keep(ag.data)[0];

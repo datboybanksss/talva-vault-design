@@ -1,4 +1,10 @@
-import { BlockedDocumentPill } from "@/components/shared/blocked-document";
+import {
+  duplicateOnboardingName,
+  onboardingPanelDocuments,
+  onboardingSession,
+  rememberOnboardingSession,
+} from "@/lib/onboarding-documents";
+import { BlockedOnboardingDocument } from "@/components/shared/blocked-onboarding-document";
 import { quarantineReason } from "@/lib/document-quarantine";
 import {
   deleteStagedOnboardingDocument,
@@ -106,7 +112,7 @@ export function TalentInviteForm({
   const listStagedFn = useServerFn(listStagedOnboardingDocuments);
   const deleteStagedFn = useServerFn(deleteStagedOnboardingDocument);
   // Files uploaded before the first Save draft are staged under this id.
-  const [onboardingSessionId] = useState(() => crypto.randomUUID());
+  const [onboardingSessionId] = useState(() => onboardingSession(initialId));
 
   const [draftId, setDraftId] = useState(initialId ?? "");
   const [name, setName] = useState("");
@@ -136,9 +142,11 @@ export function TalentInviteForm({
   const stagedQ = useQuery({
     queryKey: ["admin", "staged", "talent", onboardingSessionId],
     queryFn: () => listStagedFn({ data: { kind: "talent", session_id: onboardingSessionId } }),
-    enabled: !draftId,
   });
-  const docs: any[] = draftId ? (invQ.data?.documents ?? []) : (stagedQ.data ?? []);
+  const docs = onboardingPanelDocuments(
+    draftId ? (invQ.data?.documents ?? []) : null,
+    stagedQ.data ?? [],
+  );
   const status: string = inv?.status ?? "draft";
   // An existing draft is only editable once it has loaded successfully.
   const isDraft = !draftId || (invQ.isSuccess && status === "draft");
@@ -169,6 +177,7 @@ export function TalentInviteForm({
       createFn({ data: { ...payload(), onboarding_session_id: onboardingSessionId } }),
     onSuccess: (row: any) => {
       refresh();
+      rememberOnboardingSession(row.id, onboardingSessionId);
       setDraftId(row.id);
       toast.success("Draft saved. You can keep editing it until you send.");
       nav({ to: "/admin/invitations/talent/$id", params: { id: row.id }, replace: true });
@@ -227,10 +236,12 @@ export function TalentInviteForm({
   });
   const deleteDocM = useMutation({
     mutationFn: (id: string) =>
-      draftId ? deleteDocFn({ data: { id } }) : deleteStagedFn({ data: { id } }),
+      stagedQ.data?.some((row) => row.id === id)
+        ? deleteStagedFn({ data: { id } })
+        : deleteDocFn({ data: { id } }),
     onSuccess: () => {
       if (draftId) invQ.refetch();
-      else stagedQ.refetch();
+      stagedQ.refetch();
       refresh();
       toast.success("Document removed.");
     },
@@ -241,8 +252,7 @@ export function TalentInviteForm({
   const [slotErrors, setSlotErrors] = useState<Record<string, string>>({});
 
   async function uploadForSlot(slotKey: string, file: File) {
-    const norm = (n: string) => n.trim().toLowerCase();
-    if (docs.some((d) => norm(d.file_name ?? "") === norm(file.name))) {
+    if (duplicateOnboardingName(docs, file.name)) {
       setSlotErrors((p) => ({
         ...p,
         [slotKey]: `A document named "${file.name}" has already been uploaded for this invitation.`,
@@ -284,6 +294,7 @@ export function TalentInviteForm({
             storage_path: path,
             mime_type: file.type,
             size_bytes: file.size,
+            onboarding_session_id: onboardingSessionId,
           },
         });
         invQ.refetch();
@@ -304,6 +315,7 @@ export function TalentInviteForm({
     } catch (e: any) {
       setSlotErrors((p) => ({ ...p, [slotKey]: e?.message ?? "Upload failed" }));
     } finally {
+      void stagedQ.refetch();
       setUploadingSlot(null);
     }
   }
@@ -693,7 +705,7 @@ export function TalentInviteForm({
                           ) : (
                             <span>{u.file_name}</span>
                           )}
-                          <BlockedDocumentPill reason={quarantineReason(u)} />
+                          <BlockedOnboardingDocument reason={quarantineReason(u)} />
                           <span className="tvp-muted" style={{ fontSize: 11 }}>
                             {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
                           </span>

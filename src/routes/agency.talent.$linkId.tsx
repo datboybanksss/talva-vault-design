@@ -180,11 +180,7 @@ function TalentDetailPage() {
         </div>
         <div className="tvp-actions">
           {canUpload && (
-            <Link
-              to="/agency/document-vault"
-              search={{ talent: row.id }}
-              className="tvp-primary"
-            >
+            <Link to="/agency/document-vault" search={{ talent: row.id }} className="tvp-primary">
               <Upload className="h-4 w-4" />
               Upload document
             </Link>
@@ -305,7 +301,9 @@ function TalentDetailPage() {
           {docs.isLoading ? (
             <p className="tvp-muted">Loading documents…</p>
           ) : docs.isError ? (
-            <p className="tvp-muted">{friendlyError(docs.error, "Documents could not be loaded.")}</p>
+            <p className="tvp-muted">
+              {friendlyError(docs.error, "Documents could not be loaded.")}
+            </p>
           ) : (docs.data?.rows ?? []).length === 0 ? (
             <p className="tvp-muted">No documents in this view.</p>
           ) : (

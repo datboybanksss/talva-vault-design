@@ -3,7 +3,10 @@ import { z } from "zod";
 export const acceptTermsInput = z.object({
   portal: z.enum(["talent", "agency"]),
   document_id: z.string().uuid(),
-  body_sha256: z.string().max(10000).regex(/^[a-f0-9]{64}$/),
+  body_sha256: z
+    .string()
+    .max(10000)
+    .regex(/^[a-f0-9]{64}$/),
 });
 
 export function reachedDocumentEnd(scrollTop: number, clientHeight: number, scrollHeight: number) {
@@ -29,7 +32,9 @@ export function parseAcceptTermsInput(v: unknown) {
  */
 export function termsGateError(error: unknown): string {
   const message =
-    error && typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : "";
   if (message === TERMS_INVALID_INPUT_MESSAGE) return TERMS_INVALID_INPUT_MESSAGE;
   if (message.startsWith("These Terms have been updated.")) return TERMS_UPDATED_MESSAGE;
   return TERMS_RECORD_FAILED_MESSAGE;

@@ -2,7 +2,11 @@ import { FilterBar, type FilterDef } from "@/components/shared/filter-bar";
 import { EmptyState, FileTypeIcon, PageBand } from "@/components/shared/brand";
 import { usePagedList } from "@/lib/pagination";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { BlockedDocumentPill, blockedReason, explainBlocked } from "@/components/shared/blocked-document";
+import {
+  BlockedDocumentPill,
+  blockedReason,
+  explainBlocked,
+} from "@/components/shared/blocked-document";
 import { quarantineReason } from "@/lib/document-quarantine";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
@@ -76,7 +80,9 @@ export const Route = createFileRoute("/talent/vault")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>): {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
     tab?: Mode;
     view?: AgencyView;
     doc?: string;
@@ -88,9 +94,12 @@ export const Route = createFileRoute("/talent/vault")({
     // Legacy deep links used ?tab=requests before Requests was merged into
     // the Agency Shared Folder tab.
     if (t === "requests") return { tab: "agency", view: "requests" };
-    const out: { tab?: Mode; view?: AgencyView; doc?: string; link?: string; request?: string } = {};
-    if (typeof search.request === "string" && /^[0-9a-f-]{36}$/i.test(search.request)) out.request = search.request;
-    if (typeof search.link === "string" && /^[0-9a-f-]{36}$/i.test(search.link)) out.link = search.link;
+    const out: { tab?: Mode; view?: AgencyView; doc?: string; link?: string; request?: string } =
+      {};
+    if (typeof search.request === "string" && /^[0-9a-f-]{36}$/i.test(search.request))
+      out.request = search.request;
+    if (typeof search.link === "string" && /^[0-9a-f-]{36}$/i.test(search.link))
+      out.link = search.link;
     if (t === "private" || t === "agency") out.tab = t;
     if (v === "requests" || v === "folder") out.view = v;
     if (typeof search.doc === "string" && search.doc) out.doc = search.doc;
@@ -139,10 +148,19 @@ function VaultPage() {
       <PageBand
         icon={<Lock />}
         title="Vault"
-        subtitle={showAgency ? "Documents you and your agency both see." : "Your private documents — only you can see these."}
+        subtitle={
+          showAgency
+            ? "Documents you and your agency both see."
+            : "Your private documents — only you can see these."
+        }
         actions={
           !showAgency ? (
-            <button type="button" className="tvp-primary" data-tour="talent-vault-upload" onClick={() => uploadRef.current?.()}>
+            <button
+              type="button"
+              className="tvp-primary"
+              data-tour="talent-vault-upload"
+              onClick={() => uploadRef.current?.()}
+            >
               <Upload className="h-4 w-4" /> Upload document
             </button>
           ) : undefined
@@ -150,30 +168,37 @@ function VaultPage() {
       />
 
       {links.length > 0 && (
-      <div className="tvp-tabs tvp-roster-tabs tv-page-tabs" role="tablist" aria-label="Vault" data-tour="talent-vault-tabs">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!showAgency}
-          className={`tvp-tab${!showAgency ? " tvp-active" : ""}`}
-          onClick={() => goTo("private")}
+        <div
+          className="tvp-tabs tvp-roster-tabs tv-page-tabs"
+          role="tablist"
+          aria-label="Vault"
+          data-tour="talent-vault-tabs"
         >
-          <Lock className="h-4 w-4" /> Private Vault
-        </button>
-        {links.map((l) => (
           <button
-            key={l.id}
             type="button"
             role="tab"
-            aria-selected={showAgency && selected?.id === l.id}
-            className={`tvp-tab${showAgency && selected?.id === l.id ? " tvp-active" : ""}`}
-            onClick={() => goTo("agency", l.id)}
+            aria-selected={!showAgency}
+            className={`tvp-tab${!showAgency ? " tvp-active" : ""}`}
+            onClick={() => goTo("private")}
           >
-            <FileStack className="h-4 w-4" />{" "}
-            {l.state === "active" ? `Shared with ${l.agency_name}` : `Previously shared with ${l.agency_name}`}
+            <Lock className="h-4 w-4" /> Private Vault
           </button>
-        ))}
-      </div>
+          {links.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              role="tab"
+              aria-selected={showAgency && selected?.id === l.id}
+              className={`tvp-tab${showAgency && selected?.id === l.id ? " tvp-active" : ""}`}
+              onClick={() => goTo("agency", l.id)}
+            >
+              <FileStack className="h-4 w-4" />{" "}
+              {l.state === "active"
+                ? `Shared with ${l.agency_name}`
+                : `Previously shared with ${l.agency_name}`}
+            </button>
+          ))}
+        </div>
       )}
 
       <div data-tour="talent-vault-body">
@@ -445,7 +470,9 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
   if (isError) {
     return (
       <div className="tvp-card tvp-panel">
-        <p className="tvp-warn">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
+        <p className="tvp-warn">
+          {friendlyError(error, "This page could not be loaded. Please try again.")}
+        </p>
       </div>
     );
   }
@@ -459,7 +486,17 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
         search={search}
         onSearch={setSearch}
         placeholder="Search private documents"
-        folder={{ key: "folder", label: "Folder", value: filterFolder, options: [{ value: "__all", label: "All folders" }, { value: "__unfiled", label: "Unfiled" }, { value: "__pending", label: "Pending review", count: pendingCount || undefined }, ...topFolders.map((x) => ({ value: x.id, label: x.name }))] }}
+        folder={{
+          key: "folder",
+          label: "Folder",
+          value: filterFolder,
+          options: [
+            { value: "__all", label: "All folders" },
+            { value: "__unfiled", label: "Unfiled" },
+            { value: "__pending", label: "Pending review", count: pendingCount || undefined },
+            ...topFolders.map((x) => ({ value: x.id, label: x.name })),
+          ],
+        }}
         onFolder={setFilterFolder}
         showAll={docsVisible}
         onShowAll={setShowAllDocs}
@@ -510,7 +547,8 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                         </span>
                         <span className="tvp-folder-meta" style={{ display: "block" }}>
                           {docCount} {docCount === 1 ? "document" : "documents"}
-                          {subs.length > 0 && ` · ${subs.length} ${subs.length === 1 ? "subfolder" : "subfolders"}`}
+                          {subs.length > 0 &&
+                            ` · ${subs.length} ${subs.length === 1 ? "subfolder" : "subfolders"}`}
                         </span>
                       </span>
                       <ChevronDown className="h-4 w-4 tvp-folder-chevron" />
@@ -646,7 +684,10 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                   {docPage.visible.map((d) => (
                     <tr key={d.id}>
                       <td>
-                        <span className="tv-doc-name"><FileTypeIcon name={d.name} /><strong>{d.name}</strong></span>
+                        <span className="tv-doc-name">
+                          <FileTypeIcon name={d.name} />
+                          <strong>{d.name}</strong>
+                        </span>
                         <BlockedDocumentPill reason={quarantineReason(d)} />
                         {d.pending_review && !quarantineReason(d) && (
                           <span
@@ -663,12 +704,13 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
                         <div className="tvp-row-actions">
                           <RowActionsMenu
                             actions={[
-                              d.pending_review && !quarantineReason(d) && {
-                                key: "review",
-                                label: "Finish filing review",
-                                icon: Sparkles,
-                                onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
-                              },
+                              d.pending_review &&
+                                !quarantineReason(d) && {
+                                  key: "review",
+                                  label: "Finish filing review",
+                                  icon: Sparkles,
+                                  onSelect: () => setAiReviewFor({ id: d.id, name: d.name }),
+                                },
                               aiRow.canAnalyse(d.pending_review) && {
                                 key: "analyse",
                                 label: "Analyse with AI",
@@ -953,7 +995,11 @@ function AgencySharedFolder({
 
   const go = (next: AgencyView) => {
     setView(next);
-    navigate({ to: "/talent/vault", search: { tab: "agency", view: next, link: linkId }, replace: true });
+    navigate({
+      to: "/talent/vault",
+      search: { tab: "agency", view: next, link: linkId },
+      replace: true,
+    });
   };
 
   // Ended relationship: read-only list of what was shared — no requests, no upload.
@@ -983,7 +1029,11 @@ function AgencySharedFolder({
         </button>
       </div>
 
-      {view === "folder" ? <SharedDocumentsView linkId={linkId} /> : <ManagerRequests linkId={linkId} />}
+      {view === "folder" ? (
+        <SharedDocumentsView linkId={linkId} />
+      ) : (
+        <ManagerRequests linkId={linkId} />
+      )}
     </>
   );
 }
@@ -1008,7 +1058,11 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
   useEffect(() => {
     if (!docParam || !data) return;
     const d = (data.documents ?? []).find((x: any) => x.id === docParam);
-    navigateDoc({ to: "/talent/vault", search: { tab: "agency", view: "folder", link: linkId }, replace: true });
+    navigateDoc({
+      to: "/talent/vault",
+      search: { tab: "agency", view: "folder", link: linkId },
+      replace: true,
+    });
     if (d) onDownload(d.id);
     else toast.info("This document is no longer available to you.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1033,7 +1087,9 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
   if (isError) {
     return (
       <div className="tvp-card tvp-panel">
-        <p className="tvp-warn">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
+        <p className="tvp-warn">
+          {friendlyError(error, "This page could not be loaded. Please try again.")}
+        </p>
       </div>
     );
   }
@@ -1042,8 +1098,8 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
       <div className="tvp-card tvp-panel">
         <h2 className="tvp-h2">No active manager link</h2>
         <p className="tvp-muted" style={{ marginTop: 6 }}>
-          You aren't currently linked to an agency. Once you're invited and accepted, the
-          Agency Shared Folder appears here.
+          You aren't currently linked to an agency. Once you're invited and accepted, the Agency
+          Shared Folder appears here.
         </p>
       </div>
     );
@@ -1062,7 +1118,15 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
         search={search}
         onSearch={setSearch}
         placeholder="Search shared documents"
-        folder={{ key: "folder", label: "Folder", value: folderFilter, options: [{ value: "__all", label: "All folders" }, ...folders.map((x) => ({ value: x.folder_name, label: x.folder_name }))] }}
+        folder={{
+          key: "folder",
+          label: "Folder",
+          value: folderFilter,
+          options: [
+            { value: "__all", label: "All folders" },
+            ...folders.map((x) => ({ value: x.folder_name, label: x.folder_name })),
+          ],
+        }}
         onFolder={setFolderFilter}
         showAll={docsVisible}
         onShowAll={setShowAllDocs}
@@ -1074,13 +1138,17 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
           <div className="tvp-panel-head">
             <div>
               <h2 className="tvp-h2">
-                {(data.link as any).state === "previous" ? "Previously shared with " : "Shared with "}
+                {(data.link as any).state === "previous"
+                  ? "Previously shared with "
+                  : "Shared with "}
                 {(data.link as any).agency_name}
               </h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
                 {folders.filter((f: any) => f.parent_folder_id).length || folders.length} folder
-                {(folders.filter((f: any) => f.parent_folder_id).length || folders.length) === 1 ? "" : "s"} · {data.documents.length}{" "}
-                document{data.documents.length === 1 ? "" : "s"}
+                {(folders.filter((f: any) => f.parent_folder_id).length || folders.length) === 1
+                  ? ""
+                  : "s"}{" "}
+                · {data.documents.length} document{data.documents.length === 1 ? "" : "s"}
               </p>
             </div>
             <span
@@ -1226,7 +1294,12 @@ function SharedFolderTree({
   documents,
   onOpenFolder,
 }: {
-  folders: { id: string; folder_name: string; parent_folder_id: string | null; retention_years: number | null }[];
+  folders: {
+    id: string;
+    folder_name: string;
+    parent_folder_id: string | null;
+    retention_years: number | null;
+  }[];
   documents: { folder: string }[];
   onOpenFolder: (name: string) => void;
 }) {
@@ -1247,7 +1320,9 @@ function SharedFolderTree({
               type="button"
               className="tvp-folder-head"
               aria-expanded={kids.length ? isOpen : undefined}
-              onClick={() => (kids.length ? setOpen(isOpen ? null : c.id) : onOpenFolder(c.folder_name))}
+              onClick={() =>
+                kids.length ? setOpen(isOpen ? null : c.id) : onOpenFolder(c.folder_name)
+              }
             >
               <span className={`tvp-kpi-icon tvp-bg-${tone}`} style={{ width: 40, height: 40 }}>
                 <FolderOpen className="h-4 w-4" />
@@ -1257,7 +1332,9 @@ function SharedFolderTree({
                   {c.folder_name}
                 </span>
                 <span className="tvp-folder-meta" style={{ display: "block" }}>
-                  {kids.length ? `${kids.length} ${kids.length === 1 ? "folder" : "folders"} · ` : ""}
+                  {kids.length
+                    ? `${kids.length} ${kids.length === 1 ? "folder" : "folders"} · `
+                    : ""}
                   {total} {total === 1 ? "document" : "documents"}
                 </span>
               </span>
@@ -1275,7 +1352,11 @@ function SharedFolderTree({
                   const n = countOf(k.folder_name);
                   return (
                     <li key={k.id}>
-                      <button type="button" className="tvp-link" onClick={() => onOpenFolder(k.folder_name)}>
+                      <button
+                        type="button"
+                        className="tvp-link"
+                        onClick={() => onOpenFolder(k.folder_name)}
+                      >
                         {k.folder_name}
                       </button>
                       <span className="tvp-folder-meta">
@@ -1326,7 +1407,9 @@ function ManagerRequests({ linkId }: { linkId: string }) {
     const isOpen = r && ["pending", "resubmission_required"].includes(r.status);
     if (!isOpen) {
       toast.info(
-        r ? "That request is already done — nothing more to upload." : "That request is no longer available.",
+        r
+          ? "That request is already done — nothing more to upload."
+          : "That request is no longer available.",
       );
       return;
     }
@@ -1378,7 +1461,9 @@ function ManagerRequests({ linkId }: { linkId: string }) {
   if (isError)
     return (
       <div className="tvp-card tvp-panel">
-        <p className="tvp-warn">{friendlyError(error, "This page could not be loaded. Please try again.")}</p>
+        <p className="tvp-warn">
+          {friendlyError(error, "This page could not be loaded. Please try again.")}
+        </p>
       </div>
     );
   if (!data?.link) {
@@ -1396,7 +1481,8 @@ function ManagerRequests({ linkId }: { linkId: string }) {
     (r: any) =>
       r.status === "pending" || r.status === "resubmission_required" || r.status === "submitted",
   );
-  const focusId = requestParam && open.some((r: any) => r.id === requestParam) ? requestParam : null;
+  const focusId =
+    requestParam && open.some((r: any) => r.id === requestParam) ? requestParam : null;
   const closed = (data.requests ?? []).filter(
     (r: any) => r.status === "completed" || r.status === "cancelled",
   );
@@ -1612,10 +1698,22 @@ function VaultFilters({
         onChange={(_, v) => onFolder(v)}
       />
       <div className="tv-seg" role="tablist" aria-label={label}>
-        <button type="button" role="tab" aria-selected={!showAll} className={!showAll ? "tvp-active" : ""} onClick={() => onShowAll(false)}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!showAll}
+          className={!showAll ? "tvp-active" : ""}
+          onClick={() => onShowAll(false)}
+        >
           <Folder className="h-4 w-4" aria-hidden="true" /> By folder
         </button>
-        <button type="button" role="tab" aria-selected={showAll} className={showAll ? "tvp-active" : ""} onClick={() => onShowAll(true)}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={showAll}
+          className={showAll ? "tvp-active" : ""}
+          onClick={() => onShowAll(true)}
+        >
           <FileStack className="h-4 w-4" aria-hidden="true" /> All documents
         </button>
       </div>

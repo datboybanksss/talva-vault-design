@@ -89,19 +89,21 @@ function NotificationsPage() {
         icon={<Bell />}
         title="All reminders"
         subtitle="Everything TalVault has flagged for you — expiring documents, shared access and new sign-ins. Clearing the bell marks a reminder as read; nothing is removed from this list."
-        actions={<>
-          <button
-            className="tvp-secondary"
-            onClick={() => setUnreadOnly((v) => !v)}
-            title={unreadOnly ? "Show every reminder" : "Show unread only"}
-          >
-            {unreadOnly ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-            {unreadOnly ? "Show all" : "Unread only"}
-          </button>
-          <button className="tvp-primary" onClick={markAll} disabled={unread === 0}>
-            <CheckCheck className="h-4 w-4" /> Mark all as read
-          </button>
-        </>}
+        actions={
+          <>
+            <button
+              className="tvp-secondary"
+              onClick={() => setUnreadOnly((v) => !v)}
+              title={unreadOnly ? "Show every reminder" : "Show unread only"}
+            >
+              {unreadOnly ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+              {unreadOnly ? "Show all" : "Unread only"}
+            </button>
+            <button className="tvp-primary" onClick={markAll} disabled={unread === 0}>
+              <CheckCheck className="h-4 w-4" /> Mark all as read
+            </button>
+          </>
+        }
       />
 
       <div className="tvp-card tvp-panel">

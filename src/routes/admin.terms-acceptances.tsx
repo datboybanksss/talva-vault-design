@@ -239,7 +239,60 @@ function TermsAcceptancesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <FilterBar onChange={(k, v) => (k === "type" ? setType(v) : k === "version" ? setVersion(v) : k === "role" ? setRole(v) : setAgency(v))} filters={[{ key: "type", label: "Terms type", value: type, options: [{ value: "all", label: "All types" }, { value: "talent", label: "Talent" }, { value: "agency", label: "Agency" }] }, ...(view === "accepted" ? [{ key: "version", label: "Version", value: version, options: [{ value: "all", label: "All versions" }, ...versions.map((v) => ({ value: v, label: v }))] }] : []), { key: "role", label: "Role", value: role, options: [{ value: "all", label: "All roles" }, ...Object.entries(ROLE_LABEL).map(([k, v]) => ({ value: k, label: v }))] }, { key: "agency", label: "Agency", value: agency, options: [{ value: "all", label: "All agencies" }, ...agencies.map(([id, name]) => ({ value: id, label: name }))] }]} />
+          <FilterBar
+            onChange={(k, v) =>
+              k === "type"
+                ? setType(v)
+                : k === "version"
+                  ? setVersion(v)
+                  : k === "role"
+                    ? setRole(v)
+                    : setAgency(v)
+            }
+            filters={[
+              {
+                key: "type",
+                label: "Terms type",
+                value: type,
+                options: [
+                  { value: "all", label: "All types" },
+                  { value: "talent", label: "Talent" },
+                  { value: "agency", label: "Agency" },
+                ],
+              },
+              ...(view === "accepted"
+                ? [
+                    {
+                      key: "version",
+                      label: "Version",
+                      value: version,
+                      options: [
+                        { value: "all", label: "All versions" },
+                        ...versions.map((v) => ({ value: v, label: v })),
+                      ],
+                    },
+                  ]
+                : []),
+              {
+                key: "role",
+                label: "Role",
+                value: role,
+                options: [
+                  { value: "all", label: "All roles" },
+                  ...Object.entries(ROLE_LABEL).map(([k, v]) => ({ value: k, label: v })),
+                ],
+              },
+              {
+                key: "agency",
+                label: "Agency",
+                value: agency,
+                options: [
+                  { value: "all", label: "All agencies" },
+                  ...agencies.map(([id, name]) => ({ value: id, label: name })),
+                ],
+              },
+            ]}
+          />
           {view === "accepted" && (
             <>
               <input

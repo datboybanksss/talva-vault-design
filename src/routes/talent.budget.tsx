@@ -14,7 +14,8 @@ export const Route = createFileRoute("/talent/budget")({
       { property: "og:title", content: "Budget & Income — coming soon · TalVault Talent" },
       {
         property: "og:description",
-        content: "Coming soon: follow the quotes and invoices your agency shares with you, in one private, read-only place.",
+        content:
+          "Coming soon: follow the quotes and invoices your agency shares with you, in one private, read-only place.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -35,15 +36,17 @@ function BudgetPage() {
         <IconTile icon={<Wallet />} tint="lavender" size="lg" />
         <h2>A clear view of your quotes and invoices</h2>
         <p>
-          Budget &amp; Income will give you one private place to follow the quotes and invoices your agency
-          shares with you. You'll be able to see:
+          Budget &amp; Income will give you one private place to follow the quotes and invoices your
+          agency shares with you. You'll be able to see:
         </p>
         <ul>
           <li>the amount on each quote and invoice</li>
           <li>its dates</li>
           <li>whether it has been paid</li>
         </ul>
-        <p>Everything here will be read-only — only your agency can create or change these records.</p>
+        <p>
+          Everything here will be read-only — only your agency can create or change these records.
+        </p>
       </div>
     </div>
   );

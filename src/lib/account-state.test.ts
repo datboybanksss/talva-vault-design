@@ -8,11 +8,7 @@ import {
   applyAccountAction,
   isValidReason,
 } from "./account-state";
-import {
-  accountStatusCounts,
-  agencyAccountStatus,
-  talentAccountStatus,
-} from "./account-filters";
+import { accountStatusCounts, agencyAccountStatus, talentAccountStatus } from "./account-filters";
 import { friendlyError } from "./friendly-error";
 import { friendlyAuthError } from "./password";
 
@@ -52,7 +48,10 @@ describe("actions shown for each status", () => {
     expect(accountStateActions({ paused: true, suspended: true }, true)).toEqual(["unpause"]);
   });
   it("suspended shows Unsuspend and Pause", () => {
-    expect(accountStateActions({ paused: false, suspended: true }, true)).toEqual(["unsuspend", "pause"]);
+    expect(accountStateActions({ paused: false, suspended: true }, true)).toEqual([
+      "unsuspend",
+      "pause",
+    ]);
   });
   it("admins without edit rights get no actions", () => {
     expect(accountStateActions(active, false)).toEqual([]);
@@ -104,7 +103,9 @@ describe("what a paused or suspended account is told", () => {
     expect(friendlyAuthError(new Error("User is banned"))).toBe(
       "Your account is temporarily unavailable. Please contact hello@talvault.com.",
     );
-    expect(friendlyError(new Error(`${ACCOUNT_PAUSED_CODE}: anything`))).toBe(ACCOUNT_UNAVAILABLE_MESSAGE);
+    expect(friendlyError(new Error(`${ACCOUNT_PAUSED_CODE}: anything`))).toBe(
+      ACCOUNT_UNAVAILABLE_MESSAGE,
+    );
   });
   it("a refused write from a suspended account reads as read-only", () => {
     expect(friendlyError(new Error(`${ACCOUNT_SUSPENDED_CODE}: x`))).toMatch(/read-only/);

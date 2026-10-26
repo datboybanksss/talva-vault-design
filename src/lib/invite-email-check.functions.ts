@@ -19,7 +19,10 @@ export const checkInviteEmail = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     let agencyId: string | null = null;
     if (data.flow.startsWith("admin_")) {
-      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
       if (!isAdmin) throw new Error("You don't have permission to do that.");
     } else {
       const { data: aid } = await supabase.rpc("current_user_agency_id");

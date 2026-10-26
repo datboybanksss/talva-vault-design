@@ -1,3 +1,8 @@
+import {
+  duplicateOnboardingName,
+  blockedReplacements,
+  type OnboardingDocument,
+} from "./onboarding-documents";
 import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -107,7 +112,9 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
     if (error || !inv) throw new Error("Invitation not found.");
     const { data: docs } = await supabase
       .from("talent_invitation_documents")
-      .select("id, doc_slot, file_name, mime_type, size_bytes, created_at, validated_at, quarantine_reason")
+      .select(
+        "id, doc_slot, file_name, mime_type, size_bytes, created_at, validated_at, quarantine_reason",
+      )
       .eq("invitation_id", data.id)
       .order("created_at");
     const { token, ...rest } = inv;
@@ -160,7 +167,10 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
         });
       } catch (e) {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await supabaseAdmin.from("talent_invitation_documents").delete().eq("invitation_id", inv.id);
+        await supabaseAdmin
+          .from("talent_invitation_documents")
+          .delete()
+          .eq("invitation_id", inv.id);
         await supabaseAdmin.from("independent_talent_invitations").delete().eq("id", inv.id);
         throw e;
       }
@@ -236,6 +246,7 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
         storage_path: z.string().max(10000).min(1),
         mime_type: z.string().max(10000).optional(),
         size_bytes: z.number().optional(),
+        onboarding_session_id: z.string().uuid().optional(),
       }),
       d,
     ),
@@ -265,18 +276,25 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
       claimedMime: data.mime_type ?? null,
     });
 
-    const norm = (n: string) => n.trim().toLowerCase();
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("talent_invitation_documents")
-      .select("id, doc_slot, file_name")
+      .select("id, doc_slot, file_name, quarantine_reason, storage_path")
       .eq("invitation_id", data.invitation_id);
-    if ((existing ?? []).some((d: any) => norm(d.file_name) === norm(data.file_name))) {
+    if (existingError)
+      throw new Error("We couldn't load the uploaded documents. Please try again.");
+    if (duplicateOnboardingName(existing ?? [], data.file_name)) {
       await removeOrphan();
       throw new Error(
         `A document named "${data.file_name}" has already been uploaded for this invitation.`,
       );
     }
-    if ((existing ?? []).some((d: any) => d.doc_slot === data.doc_slot)) {
+    if (
+      (existing ?? []).some(
+        (d: OnboardingDocument) =>
+          d.doc_slot === data.doc_slot &&
+          !blockedReplacements([d], data.doc_slot, data.file_name).length,
+      )
+    ) {
       await removeOrphan();
       throw new Error("This document is already attached. Remove it first to replace it.");
     }
@@ -300,6 +318,20 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
       await removeOrphan();
       throw new Error("We couldn't attach that document. Please try again.");
     }
+    // Blocked attached rows are replaced atomically by the insert trigger.
+    const oldPaths = blockedReplacements(existing ?? [], data.doc_slot, data.file_name).map(
+      (r) => r.storage_path,
+    );
+    const storedOldPaths = oldPaths.filter((path): path is string => typeof path === "string");
+    if (storedOldPaths.length) await supabaseAdmin.storage.from(BUCKET).remove(storedOldPaths);
+    const { removeBlockedStagedReplacement } = await import("./onboarding-replacement.server");
+    await removeBlockedStagedReplacement(
+      userId,
+      data.onboarding_session_id,
+      "talent",
+      data.doc_slot,
+      data.file_name,
+    );
     await audit(
       supabase,
       userId,
@@ -401,7 +433,9 @@ export const finalizeIndependentTalentInvitation = createServerFn({ method: "POS
     const { data: docs } = await supabase
       .from("talent_invitation_documents")
       .select("doc_slot")
-      .eq("invitation_id", data.id);
+      .eq("invitation_id", data.id)
+      .not("validated_at", "is", null)
+      .is("quarantine_reason", null);
     const have = new Set((docs ?? []).map((d: any) => d.doc_slot));
     const missing = INDEPENDENT_DOC_SLOTS.filter((s) => !have.has(s));
     if (missing.length) throw new Error("Attach the ID document and proof of talent to send.");

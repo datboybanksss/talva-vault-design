@@ -56,7 +56,11 @@ export function useAccountStateActions() {
   const dialog = open ? (
     <AccountStateDialog target={open.target} action={open.action} onClose={() => setOpen(null)} />
   ) : null;
-  return { actionsFor, dialog, openAction: (target: Target, action: AccountStateAction) => setOpen({ target, action }) };
+  return {
+    actionsFor,
+    dialog,
+    openAction: (target: Target, action: AccountStateAction) => setOpen({ target, action }),
+  };
 }
 
 function AccountStateDialog({
@@ -105,42 +109,40 @@ function AccountStateDialog({
         </h2>
       </div>
       <div className="tvp-modal-body">
-      <p>
-        {years.data
-          ? accountActionEffect(action, target.type, years.data.years)
-          : "Loading…"}
-      </p>
-      {needsReason && (
+        <p>
+          {years.data ? accountActionEffect(action, target.type, years.data.years) : "Loading…"}
+        </p>
+        {needsReason && (
+          <div className="tvp-form-group">
+            <label htmlFor="account-state-reason">Reason</label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger id="account-state-reason" className="tvp-modal-control">
+                <SelectValue placeholder="Choose a reason" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(reasons).map(([k, label]) => (
+                  <SelectItem key={k} value={k}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="tvp-form-group">
-          <label htmlFor="account-state-reason">Reason</label>
-          <Select value={reason} onValueChange={setReason}>
-            <SelectTrigger id="account-state-reason" className="tvp-modal-control">
-              <SelectValue placeholder="Choose a reason" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(reasons).map(([k, label]) => (
-                <SelectItem key={k} value={k}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <label htmlFor="account-state-note">Note (optional)</label>
+          <textarea
+            id="account-state-note"
+            rows={3}
+            maxLength={1000}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
         </div>
-      )}
-      <div className="tvp-form-group">
-        <label htmlFor="account-state-note">Note (optional)</label>
-        <textarea
-          id="account-state-note"
-          rows={3}
-          maxLength={1000}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </div>
-      <p className="tvp-muted">
-        The reason and note are kept in the audit log for administrators only. They're never shown to
-        the account.
-      </p>
+        <p className="tvp-muted">
+          The reason and note are kept in the audit log for administrators only. They're never shown
+          to the account.
+        </p>
       </div>
       <div className="tvp-modal-foot">
         <button type="button" className="tvp-secondary" onClick={onClose}>

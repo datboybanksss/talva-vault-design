@@ -3,10 +3,33 @@ import { matchesSearch, normaliseSearch, searchParam } from "@/lib/search";
 import { accountOptionCounts, filterAccounts, type AccountRow } from "@/lib/account-filters";
 
 const rows: (AccountRow & { name: string })[] = [
-  { name: "NPI Talent Management", type: "agency", status: "accepted", search_text: ["NPI Talent Management", "Israel Noko", "israel@npiconsulting.co.za"] },
-  { name: "Omar Talent Agency", type: "agency", status: "invited", is_test: true, search_text: ["Omar Talent Agency", "omartabengwa@gmail.com"] },
-  { name: "Zoë Mokoena", type: "talent", status: "active", linked_agencies: ["NPI Talent Management"], search_text: ["Zoë Mokoena", "zoe@example.com", "NPI Talent Management"] },
-  { name: "Sipho Dlamini", type: "talent", status: "incomplete", linked_agencies: [], search_text: ["Sipho Dlamini", "sipho@example.com"] },
+  {
+    name: "NPI Talent Management",
+    type: "agency",
+    status: "accepted",
+    search_text: ["NPI Talent Management", "Israel Noko", "israel@npiconsulting.co.za"],
+  },
+  {
+    name: "Omar Talent Agency",
+    type: "agency",
+    status: "invited",
+    is_test: true,
+    search_text: ["Omar Talent Agency", "omartabengwa@gmail.com"],
+  },
+  {
+    name: "Zoë Mokoena",
+    type: "talent",
+    status: "active",
+    linked_agencies: ["NPI Talent Management"],
+    search_text: ["Zoë Mokoena", "zoe@example.com", "NPI Talent Management"],
+  },
+  {
+    name: "Sipho Dlamini",
+    type: "talent",
+    status: "incomplete",
+    linked_agencies: [],
+    search_text: ["Sipho Dlamini", "sipho@example.com"],
+  },
 ];
 const base = { type: "all" as const, status: "all", link: "all" as const, scope: "all" as const };
 const names = (q: string, f = {}) => filterAccounts(rows, { ...base, ...f, q }).map((r) => r.name);

@@ -43,3 +43,11 @@
 - [x] B Staged onboarding uploads (talent + agency)
 - [x] C1–C4, C6–C9
 - [ ] C5 CSP nonces — left unchanged: needs per-request nonce plumbing into the router and hosting-injected scripts would break
+
+## Follow-up fixes
+- [x] Corrected onboarding files may replace blocked files with the same name, including post-draft uploads; agency staging flow checked on screen.
+- [x] Blocked staged files remain visible and removable after saving a draft; shared state tests pass. Saved-draft/talent and mobile/dark walkthroughs not completed.
+- [x] All scheduled app URLs use production; reminder target updated to configured primary host, hook available, secret timestamp unchanged.
+- [x] Failed sign-in access lookup discards local session; two tests pass.
+- [x] Safe automatic style fixes; 266 tests pass, five environment-dependent checks skipped; automatic type/build checks pass.
+- [ ] Remaining lint: 1,031 errors and 43 warnings — 1,028 explicit-any, three protected MFA formatting, 39 refresh and four dependency warnings. Unsafe type/logic refactors and forbidden MFA edits left unchanged.

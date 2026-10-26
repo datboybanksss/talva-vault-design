@@ -16,7 +16,10 @@ export const Route = createFileRoute("/talent/")({
         content: "Your to-do list, vault summary and sharing at a glance.",
       },
       { property: "og:title", content: "Dashboard · TalVault Talent" },
-      { property: "og:description", content: "Your to-do list, vault summary and sharing at a glance." },
+      {
+        property: "og:description",
+        content: "Your to-do list, vault summary and sharing at a glance.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -29,7 +32,10 @@ const fmtDate = (v: string) =>
 
 function TalentDashboard() {
   const load = useServerFn(getTalentDashboard);
-  const { data, isError: dashError } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => load() });
+  const { data, isError: dashError } = useQuery({
+    queryKey: ["talent", "dashboard"],
+    queryFn: () => load(),
+  });
   const agency = useTalentAgencyLinks();
 
   const rootMatch = useRouterState({
@@ -57,11 +63,16 @@ function TalentDashboard() {
   const contacts = data?.trustedContacts ?? [];
 
   let managedLine = "";
-  if (agency.isError) managedLine = "We couldn't load your agency details. Please refresh the page.";
+  if (agency.isError)
+    managedLine = "We couldn't load your agency details. Please refresh the page.";
   else if (agency.data) {
     managedLine = active.length
       ? `Managed by ${active
-          .map((r) => (active.length === 1 && r.manager?.name ? `${r.agencyName} · ${r.manager.name}` : r.agencyName))
+          .map((r) =>
+            active.length === 1 && r.manager?.name
+              ? `${r.agencyName} · ${r.manager.name}`
+              : r.agencyName,
+          )
           .join(", ")}`
       : "Independent talent";
   }
@@ -92,7 +103,11 @@ function TalentDashboard() {
         </div>
       </header>
 
-      {dashError && <p className="tvd-meta">Some of your dashboard couldn't be loaded. Please refresh the page.</p>}
+      {dashError && (
+        <p className="tvd-meta">
+          Some of your dashboard couldn't be loaded. Please refresh the page.
+        </p>
+      )}
 
       <div className="tvd-layout">
         <div className="tvd-main">
@@ -104,7 +119,11 @@ function TalentDashboard() {
               </Link>
             </div>
             <div className="tvd-cards">
-              <Link to="/talent/vault" search={{ tab: "private" }} className="tvd-tile tvd-tint-teal">
+              <Link
+                to="/talent/vault"
+                search={{ tab: "private" }}
+                className="tvd-tile tvd-tint-teal"
+              >
                 <span className="tvd-tile-icon">
                   <Lock className="h-5 w-5" />
                 </span>
@@ -148,7 +167,9 @@ function TalentDashboard() {
 
             <h3 className="tvd-sub">Recent documents</h3>
             {recent.length === 0 ? (
-              <p className="tvd-meta">Nothing here yet — upload your first document and it'll show up here.</p>
+              <p className="tvd-meta">
+                Nothing here yet — upload your first document and it'll show up here.
+              </p>
             ) : (
               <ul className="tvp-review-list tvd-list">
                 {recent.map((d) => {
@@ -173,7 +194,11 @@ function TalentDashboard() {
                             {d.folder} · {fmtDate(d.date)}
                           </span>
                         </span>
-                        <span className={d.area === "shared" ? "tvp-status tvp-purple" : "tvp-status tvp-teal"}>
+                        <span
+                          className={
+                            d.area === "shared" ? "tvp-status tvp-purple" : "tvp-status tvp-teal"
+                          }
+                        >
                           {d.area === "shared" ? "Shared" : "Private"}
                         </span>
                         <ChevronRight className="h-4 w-4 tvd-chev" aria-hidden />
@@ -190,7 +215,8 @@ function TalentDashboard() {
           <section className="tvp-card tvp-panel tvd-share">
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">
-                <Heart className="h-4 w-4 tvd-share-heart" aria-hidden /> {SHARE_RECIPIENT_TERM_PLURAL.replace(/^./, (c) => c.toUpperCase())}
+                <Heart className="h-4 w-4 tvd-share-heart" aria-hidden />{" "}
+                {SHARE_RECIPIENT_TERM_PLURAL.replace(/^./, (c) => c.toUpperCase())}
               </h2>
               <Link to="/talent/sharing" className="tvp-link">
                 Manage →
@@ -199,8 +225,8 @@ function TalentDashboard() {
             {contacts.length === 0 ? (
               <div className="tvd-share-empty">
                 <p className="tvd-meta">
-                  Share selected documents with someone you trust — like a parent, partner or accountant. You choose
-                  what they see and for how long.
+                  Share selected documents with someone you trust — like a parent, partner or
+                  accountant. You choose what they see and for how long.
                 </p>
                 <Link to="/talent/sharing" className="tvp-primary">
                   <Share2 className="h-4 w-4" /> Share with a {SHARE_RECIPIENT_TERM}

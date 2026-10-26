@@ -7,7 +7,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Ban, CircleStop, Eye, Link2, RefreshCw, RotateCcw, Send, Tags, UserCog } from "lucide-react";
+import {
+  Ban,
+  CircleStop,
+  Eye,
+  Link2,
+  RefreshCw,
+  RotateCcw,
+  Send,
+  Tags,
+  UserCog,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { RowAction } from "@/components/shared/row-actions-menu";
 import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
@@ -125,8 +135,7 @@ export function useTalentLinkRowActions(opts: {
               key: "open",
               label: "View details",
               icon: Eye,
-              onSelect: () =>
-                navigate({ to: "/agency/talent/$linkId", params: { linkId: r.id } }),
+              onSelect: () => navigate({ to: "/agency/talent/$linkId", params: { linkId: r.id } }),
             });
           break;
         case "resend":

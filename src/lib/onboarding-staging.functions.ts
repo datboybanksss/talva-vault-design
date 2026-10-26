@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Ctx = { supabase: SupabaseClient; userId: string };
 import { parseInput } from "@/lib/admin.functions";
+import { duplicateOnboardingName, blockedReplacements } from "./onboarding-documents";
 import { reasonForRejection } from "@/lib/document-quarantine";
 
 const Kind = z.enum(["agency", "talent"]);
@@ -65,17 +66,20 @@ export const stageOnboardingDocument = createServerFn({ method: "POST" })
     if (!stagedPathOwned(data.storage_path, userId, data.session_id)) {
       throw new Error("That file does not belong to this invitation.");
     }
-    const norm = (n: string) => n.trim().toLowerCase();
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from("onboarding_staged_uploads")
-      .select("file_name, doc_slot, validated_at")
+      .select("id, file_name, doc_slot, validated_at, quarantine_reason, storage_path")
       .eq("admin_id", userId)
       .eq("session_id", data.session_id)
       .eq("kind", data.kind);
-    const dup = (existing ?? []).some((r) => norm(r.file_name) === norm(data.file_name));
+    if (existingError)
+      throw new Error("We couldn't load the uploaded documents. Please try again.");
+    const dup = duplicateOnboardingName(existing ?? [], data.file_name);
     const slotTaken =
       data.kind === "talent" &&
-      (existing ?? []).some((r) => r.doc_slot === data.doc_slot && r.validated_at);
+      (existing ?? []).some(
+        (r) => r.doc_slot === data.doc_slot && r.validated_at && !r.quarantine_reason,
+      );
     if (dup || slotTaken) {
       await supabaseAdmin.storage.from(bucket).remove([data.storage_path]);
       throw new Error(
@@ -124,6 +128,11 @@ export const stageOnboardingDocument = createServerFn({ method: "POST" })
       throw new Error("We couldn't save that document. Please try again.");
     }
     if (rejected) throw new Error(rejected.message);
+    // The insert trigger atomically replaces blocked rows and queues cleanup.
+    const oldPaths = blockedReplacements(existing ?? [], data.doc_slot, data.file_name).map(
+      (r) => r.storage_path,
+    );
+    if (oldPaths.length) await supabaseAdmin.storage.from(bucket).remove(oldPaths);
     return saved;
   });
 

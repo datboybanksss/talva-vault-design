@@ -166,8 +166,7 @@ export function useAgencyClients(includeArchived = false) {
   const listFn = useServerFn(listAgencyClients);
   return useQuery({
     queryKey: ["agency", "clients", includeArchived ? "all" : "active"],
-    queryFn: () =>
-      listFn({ data: { includeArchived } }) as Promise<{ clients: AgencyClient[] }>,
+    queryFn: () => listFn({ data: { includeArchived } }) as Promise<{ clients: AgencyClient[] }>,
   });
 }
 
@@ -214,7 +213,10 @@ export function ClientsPanel() {
   );
   const counts = useMemo(() => {
     const searched = all.filter((c) =>
-      matchesSearch([c.name, c.trading_name, c.contact_person, c.vat_number, ...(c.emails ?? [])], search),
+      matchesSearch(
+        [c.name, c.trading_name, c.contact_person, c.vat_number, ...(c.emails ?? [])],
+        search,
+      ),
     );
     return {
       active: searched.filter((c) => !c.archived_at).length,
@@ -257,8 +259,8 @@ export function ClientsPanel() {
         <div>
           <h1 className="tvp-h1">Clients</h1>
           <div className="tvp-subtitle">
-            Everyone you send quotes and invoices to. Save their details once and pick them from
-            the list on any quote or invoice.
+            Everyone you send quotes and invoices to. Save their details once and pick them from the
+            list on any quote or invoice.
           </div>
         </div>
         <div className="tvp-actions">
@@ -624,17 +626,21 @@ export function ClientFormModal({
             )}
             {dupNote("email")}
           </div>
-          {text("contact_person", "Contact person", { max: 200, placeholder: "e.g. Nomsa Dlamini" })}
+          {text("contact_person", "Contact person", {
+            max: 200,
+            placeholder: "e.g. Nomsa Dlamini",
+          })}
           {text("phone", "Phone", { max: 40, placeholder: "+27 82 000 0000" })}
           {text("vat_number", "VAT number", { max: 64, placeholder: "e.g. 4123456789" })}
           {text("company_registration_number", "Company registration number", {
             max: 80,
             placeholder: "e.g. 2019/123456/07",
           })}
-          {!compact && text("trading_name", "Trading name", {
-            max: 200,
-            placeholder: "If different to the registered name",
-          })}
+          {!compact &&
+            text("trading_name", "Trading name", {
+              max: 200,
+              placeholder: "If different to the registered name",
+            })}
           {!compact && (
             <div className="tvp-form-group">
               <Label htmlFor="client-type">Client type</Label>
@@ -686,9 +692,7 @@ export function ClientFormModal({
               <Label htmlFor="client-manager">Relationship manager</Label>
               <Select
                 value={form.relationship_manager_user_id || "none"}
-                onValueChange={(v) =>
-                  set({ relationship_manager_user_id: v === "none" ? "" : v })
-                }
+                onValueChange={(v) => set({ relationship_manager_user_id: v === "none" ? "" : v })}
               >
                 <SelectTrigger id="client-manager" className="tvp-modal-control">
                   <SelectValue placeholder="Select a team member…" />

@@ -43,7 +43,9 @@ export function LegalDocumentView({
         }
       }}
     >
-      <ReactMarkdown remarkPlugins={[remarkBreaks]} skipHtml>{body}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkBreaks]} skipHtml>
+        {body}
+      </ReactMarkdown>
     </div>
   );
 }

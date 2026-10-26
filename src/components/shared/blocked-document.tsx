@@ -1,7 +1,11 @@
 import { ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
-import { QUARANTINE_MESSAGES, quarantineFromError, type QuarantineReason } from "@/lib/document-quarantine";
+import {
+  QUARANTINE_MESSAGES,
+  quarantineFromError,
+  type QuarantineReason,
+} from "@/lib/document-quarantine";
 
 /** Status pill for a document the file checker blocked. Icon + text, never colour alone. */
 export function BlockedDocumentPill({ reason }: { reason: QuarantineReason | null | undefined }) {

@@ -64,7 +64,13 @@ import { FilterBar } from "@/components/shared/filter-bar";
 import { ACCOUNT_SCOPE_LABEL, normaliseAccountScope } from "@/lib/account-filters";
 import { friendlyError } from "@/lib/friendly-error";
 
-type AccountsSearch = { type?: string; status?: string; link?: string; accounts?: string; q?: string };
+type AccountsSearch = {
+  type?: string;
+  status?: string;
+  link?: string;
+  accounts?: string;
+  q?: string;
+};
 const DESC = "Agencies and talent in one list, with status, linked agency and actions.";
 
 export const Route = createFileRoute("/admin/accounts")({
@@ -72,7 +78,9 @@ export const Route = createFileRoute("/admin/accounts")({
     ...(normaliseAccountType(raw.type) !== "all" ? { type: String(raw.type) } : {}),
     ...(normaliseAccountStatus(raw.status) !== "all" ? { status: String(raw.status) } : {}),
     ...(normaliseTalentLink(raw.link) !== "all" ? { link: String(raw.link) } : {}),
-    ...(normaliseAccountScope(raw.accounts, "all") !== "all" ? { accounts: String(raw.accounts) } : {}),
+    ...(normaliseAccountScope(raw.accounts, "all") !== "all"
+      ? { accounts: String(raw.accounts) }
+      : {}),
     ...(searchParam(raw.q) ? { q: searchParam(raw.q) } : {}),
   }),
   head: () => ({
@@ -128,7 +136,17 @@ function AccountsPage() {
     queryKey: ["admin", "accounts", type, status, link, scope, q],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
-      listFn({ data: { type, status, link, accounts: scope, q, limit: PAGE_SIZE, offset: pageParam as number } }),
+      listFn({
+        data: {
+          type,
+          status,
+          link,
+          accounts: scope,
+          q,
+          limit: PAGE_SIZE,
+          offset: pageParam as number,
+        },
+      }),
     getNextPageParam: (last: any, all: any[]) => {
       const loaded = all.reduce((n, p: any) => n + (p.rows?.length ?? 0), 0);
       return loaded < (last?.total ?? 0) ? loaded : undefined;
@@ -143,14 +161,22 @@ function AccountsPage() {
   const counts = firstPage?.counts ?? { type: {}, status: {}, link: {}, scope: {} };
   const setTestFn = useServerFn(setAccountTest);
   const testM = useMutation({
-    mutationFn: (v: { type: "agency" | "talent"; id: string; isTest: boolean }) => setTestFn({ data: v }),
+    mutationFn: (v: { type: "agency" | "talent"; id: string; isTest: boolean }) =>
+      setTestFn({ data: v }),
     onSuccess: (_r, v) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success(v.isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.");
+      toast.success(
+        v.isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.",
+      );
     },
     onError: (e) => toast.error(friendlyError(e, "We couldn't change the account type.")),
   });
-  const toggleTest = async (type: "agency" | "talent", id: string, name: string, isTest: boolean) => {
+  const toggleTest = async (
+    type: "agency" | "talent",
+    id: string,
+    name: string,
+    isTest: boolean,
+  ) => {
     const msg = isTest
       ? `Mark ${name} as a test account? It will be left out of reports and launch offer places by default.`
       : `Mark ${name} as a real account? It will be counted in reports again.`;
@@ -244,7 +270,6 @@ function AccountsPage() {
     URL.revokeObjectURL(url);
   };
 
-
   const copyInviteLink = async (invitation: any) => {
     if (!invitation?.token) {
       toast.error("No invitation link found for this agency.");
@@ -260,7 +285,8 @@ function AccountsPage() {
     }
   };
 
-  const filtersActive = type !== "all" || status !== "all" || link !== "all" || scope !== "all" || !!q;
+  const filtersActive =
+    type !== "all" || status !== "all" || link !== "all" || scope !== "all" || !!q;
   const activeFilterText = [
     type !== "all" ? `Type: ${ACCOUNT_TYPE_LABEL[type]}` : null,
     status !== "all" ? `Status: ${accountStatusOptionLabel(status)}` : null,
@@ -374,7 +400,11 @@ function AccountsPage() {
                     {q ? (
                       <>
                         No results for ‘{q}’.{" "}
-                        <button type="button" className="tvp-link" onClick={() => setFilters({ q: "" })}>
+                        <button
+                          type="button"
+                          className="tvp-link"
+                          onClick={() => setFilters({ q: "" })}
+                        >
                           Clear search
                         </button>
                       </>
@@ -404,7 +434,9 @@ function AccountsPage() {
                         <Link to="/admin/talent/$id" params={{ id: a.id }}>
                           <strong>{a.name}</strong>
                         </Link>
-                        {a.is_test && <span className="tvp-status st-neutral tvp-test-label">Test</span>}
+                        {a.is_test && (
+                          <span className="tvp-status st-neutral tvp-test-label">Test</span>
+                        )}
                         {a.email && (
                           <>
                             <br />
@@ -467,7 +499,9 @@ function AccountsPage() {
                       <Link to="/admin/agencies/$id" params={{ id: a.id }}>
                         <strong>{a.name}</strong>
                       </Link>
-                      {a.is_test && <span className="tvp-status st-neutral tvp-test-label">Test</span>}
+                      {a.is_test && (
+                        <span className="tvp-status st-neutral tvp-test-label">Test</span>
+                      )}
                       {inviteEmail && (
                         <>
                           <br />

@@ -300,7 +300,8 @@ export function FolderTemplatesPanel() {
                               className="tvp-mini-btn"
                               title="Delete"
                               onClick={async () => {
-                                if (await askConfirm({ title: `Delete template "${t.name}"?` })) del.mutate(t.id);
+                                if (await askConfirm({ title: `Delete template "${t.name}"?` }))
+                                  del.mutate(t.id);
                               }}
                             >
                               <Trash2 className="h-4 w-4" />

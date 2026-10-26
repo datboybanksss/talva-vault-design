@@ -66,9 +66,7 @@ export function RecentlyDeletedList({
             </td>
             <td className="tvp-muted">
               {r.purge_after ? fmtLongDate(r.purge_after) : "Recovery period not set yet"}
-              {r.shared_with_talent ? (
-                <div>The talent keeps access</div>
-              ) : null}
+              {r.shared_with_talent ? <div>The talent keeps access</div> : null}
             </td>
             <td>
               <button
@@ -92,7 +90,16 @@ export function RecentlyDeletedDialog({ onClose }: { onClose: () => void }) {
   return (
     <div
       onClick={onClose}
-      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 24 }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+        padding: 24,
+      }}
     >
       <div
         className="tvp-card"
@@ -108,8 +115,8 @@ export function RecentlyDeletedDialog({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <p className="tvp-muted" style={{ marginBottom: "var(--sp-16)" }}>
-          Deleted documents stay here until their recovery period ends. Anything already shared
-          with a talent stays available to them.
+          Deleted documents stay here until their recovery period ends. Anything already shared with
+          a talent stays available to them.
         </p>
         <RecentlyDeletedList
           queryKey={["agency", "recently-deleted"]}

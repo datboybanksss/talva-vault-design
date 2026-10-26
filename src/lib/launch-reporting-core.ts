@@ -110,12 +110,24 @@ export type InviteRow = {
   is_test?: boolean;
 };
 
-export const FUNNEL_BUCKETS = ["draft", "pending", "accepted", "expired", "revoked", "declined"] as const;
+export const FUNNEL_BUCKETS = [
+  "draft",
+  "pending",
+  "accepted",
+  "expired",
+  "revoked",
+  "declined",
+] as const;
 export type FunnelBucket = (typeof FUNNEL_BUCKETS)[number];
 
-export function inviteBucket(r: Pick<InviteRow, "status" | "expires_at">, nowIso: string): FunnelBucket {
+export function inviteBucket(
+  r: Pick<InviteRow, "status" | "expires_at">,
+  nowIso: string,
+): FunnelBucket {
   if (r.status === "pending" && r.expires_at && r.expires_at < nowIso) return "expired";
-  return (FUNNEL_BUCKETS as readonly string[]).includes(r.status) ? (r.status as FunnelBucket) : "pending";
+  return (FUNNEL_BUCKETS as readonly string[]).includes(r.status)
+    ? (r.status as FunnelBucket)
+    : "pending";
 }
 
 export type InviteFilter = {
@@ -143,7 +155,10 @@ export function sourceKey(s: string | null): "admin" | "agency" | "waiting_list"
  */
 export function invitationFunnel(rows: InviteRow[], f: InviteFilter, nowIso: string) {
   const picked = rows.filter((r) => matchesInviteFilter(r, f));
-  const counts = Object.fromEntries(FUNNEL_BUCKETS.map((b) => [b, 0])) as Record<FunnelBucket, number>;
+  const counts = Object.fromEntries(FUNNEL_BUCKETS.map((b) => [b, 0])) as Record<
+    FunnelBucket,
+    number
+  >;
   const bySource: Record<string, Record<FunnelBucket, number>> = {};
   const hours: number[] = [];
   let acceptedWithoutSendTime = 0;
@@ -151,7 +166,10 @@ export function invitationFunnel(rows: InviteRow[], f: InviteFilter, nowIso: str
     const b = inviteBucket(r, nowIso);
     counts[b]++;
     const sk = sourceKey(r.source);
-    bySource[sk] ??= Object.fromEntries(FUNNEL_BUCKETS.map((x) => [x, 0])) as Record<FunnelBucket, number>;
+    bySource[sk] ??= Object.fromEntries(FUNNEL_BUCKETS.map((x) => [x, 0])) as Record<
+      FunnelBucket,
+      number
+    >;
     bySource[sk][b]++;
     if (b === "accepted") {
       if (r.first_sent_at && r.accepted_at) {
@@ -206,13 +224,24 @@ export function launchOffer(cands: OfferCandidate[], s: LaunchSettings) {
   const build = (type: InviteType, places: number) => {
     const ordered = cands
       .filter((c) => c.type === type && !c.is_test && c.first_sent_at && c.first_sent_at >= start)
-      .sort((a, b) => (a.first_sent_at! < b.first_sent_at! ? -1 : a.first_sent_at! > b.first_sent_at! ? 1 : a.id < b.id ? -1 : 1))
+      .sort((a, b) =>
+        a.first_sent_at! < b.first_sent_at!
+          ? -1
+          : a.first_sent_at! > b.first_sent_at!
+            ? 1
+            : a.id < b.id
+              ? -1
+              : 1,
+      )
       .slice(0, places);
     const rows = ordered.map((c, i) => ({
       place: i + 1,
       ...c,
       used: c.status === "accepted" && !!c.accepted_at,
-      freeUntil: c.status === "accepted" && c.accepted_at ? addMonths(c.accepted_at, s.offer_free_months) : null,
+      freeUntil:
+        c.status === "accepted" && c.accepted_at
+          ? addMonths(c.accepted_at, s.offer_free_months)
+          : null,
     }));
     return { places, allocated: rows.length, used: rows.filter((r) => r.used).length, rows };
   };
@@ -246,7 +275,11 @@ export type TermsAcceptance = {
 export type CurrentDoc = { id: string; doc_type: string; version: string };
 
 /** Who must accept which current document, and who has not yet. Admins are never in `people`. */
-export function termsOutstanding(people: TermsPerson[], acc: TermsAcceptance[], current: CurrentDoc[]) {
+export function termsOutstanding(
+  people: TermsPerson[],
+  acc: TermsAcceptance[],
+  current: CurrentDoc[],
+) {
   const cur = new Map(current.map((d) => [d.doc_type, d]));
   const accepted = new Set(acc.map((a) => `${a.user_id}|${a.document_id}`));
   return people
@@ -258,7 +291,11 @@ export function termsOutstanding(people: TermsPerson[], acc: TermsAcceptance[], 
       const older = acc
         .filter((a) => a.user_id === p.user_id && a.doc_type === p.docType)
         .sort((a, b) => (a.accepted_at < b.accepted_at ? 1 : -1))[0];
-      return { ...p, currentVersion: cur.get(p.docType)!.version, lastAcceptedVersion: older?.version ?? null };
+      return {
+        ...p,
+        currentVersion: cur.get(p.docType)!.version,
+        lastAcceptedVersion: older?.version ?? null,
+      };
     });
 }
 

@@ -17,9 +17,15 @@ export const Route = createFileRoute("/admin/talent/$id")({
   head: () => ({
     meta: [
       { title: "Talent account · TalVault Admin" },
-      { name: "description", content: "A talent account's status, agency links and admin actions." },
+      {
+        name: "description",
+        content: "A talent account's status, agency links and admin actions.",
+      },
       { property: "og:title", content: "Talent account · TalVault Admin" },
-      { property: "og:description", content: "A talent account's status, agency links and admin actions." },
+      {
+        property: "og:description",
+        content: "A talent account's status, agency links and admin actions.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -29,7 +35,9 @@ export const Route = createFileRoute("/admin/talent/$id")({
 });
 
 const fmtDate = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  iso
+    ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "—";
 
 function TalentAccountPage() {
   const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
@@ -40,20 +48,32 @@ function TalentAccountPage() {
   const sessionReady = useSessionReady();
   const qc = useQueryClient();
   const accountState = useAccountStateActions();
-  const q = useQuery({ queryKey: ["admin", "talent-account", id], queryFn: () => getFn({ data: { id } }) });
-  const me = useQuery({ queryKey: ["whoami"], queryFn: () => whoamiFn(), enabled: sessionReady, retry: false });
+  const q = useQuery({
+    queryKey: ["admin", "talent-account", id],
+    queryFn: () => getFn({ data: { id } }),
+  });
+  const me = useQuery({
+    queryKey: ["whoami"],
+    queryFn: () => whoamiFn(),
+    enabled: sessionReady,
+    retry: false,
+  });
   const canEdit = !!me.data?.canEdit;
   const t = q.data as any;
   const testM = useMutation({
     mutationFn: (isTest: boolean) => setTestFn({ data: { type: "talent", id, isTest } }),
     onSuccess: (_r, isTest) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success(isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.");
+      toast.success(
+        isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.",
+      );
     },
     onError: (e) => toast.error(friendlyError(e, "We couldn't change the account type.")),
   });
   const name = t ? t.full_name || t.email || "Unnamed talent" : "";
-  const state = t ? { paused: !!t.paused_at, suspended: !!t.suspended_at } : { paused: false, suspended: false };
+  const state = t
+    ? { paused: !!t.paused_at, suspended: !!t.suspended_at }
+    : { paused: false, suspended: false };
 
   return (
     <>
@@ -65,8 +85,13 @@ function TalentAccountPage() {
           </Link>
           <h1 className="tvp-h1">{t ? name : q.isLoading ? "Loading…" : "Talent not found"}</h1>
           {t && (
-            <div className="tvp-subtitle" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <span className={accountStatusPill("talent", t.status)}>{accountStatusLabel("talent", t.status)}</span>
+            <div
+              className="tvp-subtitle"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
+              <span className={accountStatusPill("talent", t.status)}>
+                {accountStatusLabel("talent", t.status)}
+              </span>
               {t.is_test && <span className="tvp-status st-neutral">Test</span>}
               {t.email}
             </div>
@@ -92,8 +117,12 @@ function TalentAccountPage() {
                 key={action}
                 className="tvp-secondary"
                 disabled={!canEdit}
-                title={canEdit ? undefined : "You need full edit access to pause or suspend an account."}
-                onClick={() => accountState.openAction({ type: "talent", id: t.id, name, ...state }, action)}
+                title={
+                  canEdit ? undefined : "You need full edit access to pause or suspend an account."
+                }
+                onClick={() =>
+                  accountState.openAction({ type: "talent", id: t.id, name, ...state }, action)
+                }
               >
                 {ACCOUNT_ACTION_LABEL[action]}
               </button>
@@ -122,7 +151,9 @@ function TalentAccountPage() {
                 <br />
                 {t.agencies.length === 0
                   ? "Independent"
-                  : t.agencies.map((l: any) => `${l.name} (${statusLabel("talentLink", l.status)})`).join(", ")}
+                  : t.agencies
+                      .map((l: any) => `${l.name} (${statusLabel("talentLink", l.status)})`)
+                      .join(", ")}
               </p>
             </div>
             <div>

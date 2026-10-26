@@ -57,7 +57,15 @@ export function PageBand({
   );
 }
 
-export function IconTile({ icon, tint = "teal", size = "md" }: { icon: ReactNode; tint?: BrandTint; size?: "sm" | "md" | "lg" }) {
+export function IconTile({
+  icon,
+  tint = "teal",
+  size = "md",
+}: {
+  icon: ReactNode;
+  tint?: BrandTint;
+  size?: "sm" | "md" | "lg";
+}) {
   return (
     <span className={`tv-icon-tile tv-icon-${tint} tv-icon-${size}`} aria-hidden>
       {icon}
@@ -94,7 +102,8 @@ export function fileKind(name: string): { Icon: typeof FileText; tone: string; l
   if (ext === "pdf") return { Icon: FileText, tone: "amber", label: "PDF" };
   if (["jpg", "jpeg", "png", "gif", "webp", "heic", "svg"].includes(ext))
     return { Icon: FileImage, tone: "green", label: "Image" };
-  if (["xls", "xlsx", "csv", "numbers"].includes(ext)) return { Icon: FileSpreadsheet, tone: "blue", label: "Spreadsheet" };
+  if (["xls", "xlsx", "csv", "numbers"].includes(ext))
+    return { Icon: FileSpreadsheet, tone: "blue", label: "Spreadsheet" };
   return { Icon: FileText, tone: "purple", label: "Document" };
 }
 
