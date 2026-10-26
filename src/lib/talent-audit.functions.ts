@@ -1,5 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -24,12 +22,12 @@ function extractRequestMeta(): { ip_address: string | null; user_agent: string |
 
 /** Writes a talent security-log entry. Never store passwords or 2FA secrets. */
 async function writeTalentAudit(
-  supabase: SupabaseClient<Database>,
+  supabase: any,
   userId: string,
   email: string | undefined,
   action: string,
   targetLabel?: string,
-  detail: { [key: string]: Json | undefined } = {},
+  detail: Record<string, unknown> = {},
 ) {
   const meta = extractRequestMeta();
   const { error } = await supabase.from("talent_audit_log").insert({
@@ -49,7 +47,7 @@ async function writeTalentAudit(
 export const logTalentPasswordChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context;
+    const { supabase, userId, claims } = context as any;
     return writeTalentAudit(
       supabase,
       userId,
@@ -63,7 +61,7 @@ export const logTalentMfaEnrolled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ factor_type: z.string().max(40) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context;
+    const { supabase, userId, claims } = context as any;
     return writeTalentAudit(
       supabase,
       userId,
@@ -79,7 +77,7 @@ export const logTalentMfaEnrolled = createServerFn({ method: "POST" })
 export const logTalentMfaDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context;
+    const { supabase, userId, claims } = context as any;
     return writeTalentAudit(
       supabase,
       userId,
@@ -96,7 +94,7 @@ export const logTalentMfaDisabled = createServerFn({ method: "POST" })
 export const logTalentSignIn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context;
+    const { supabase, userId, claims } = context as any;
     const { recordTalentActivity, TALENT_LOGIN_ACTION } =
       await import("@/lib/talent-activity.server");
     const meta = extractRequestMeta();
@@ -113,7 +111,8 @@ export const logTalentSignIn = createServerFn({ method: "POST" })
         .eq("actor_id", userId)
         .order("created_at", { ascending: false })
         .limit(300);
-      isNewDevice = !!meta.user_agent && !(past ?? []).some((r) => deviceKey(r.user_agent) === key);
+      isNewDevice =
+        !!meta.user_agent && !(past ?? []).some((r: any) => deviceKey(r.user_agent) === key);
     } catch {
       /* detection is best-effort */
     }
@@ -190,5 +189,5 @@ export const listTalentAuditLog = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
     if (error) throw databaseError(error);
-    return rows ?? [];
+    return (rows ?? []) as any[];
   });

@@ -50,12 +50,12 @@ function NotificationsPage() {
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       listFn({
-        data: { limit: PAGE_SIZE, offset: pageParam, unread_only: unreadOnly },
-      }),
+        data: { limit: PAGE_SIZE, offset: pageParam as number, unread_only: unreadOnly },
+      }) as Promise<any[]>,
     getNextPageParam: (last, all) =>
       last.length < PAGE_SIZE ? undefined : all.reduce((n, p) => n + p.length, 0),
   });
-  const rows = (q.data?.pages ?? []).flat();
+  const rows: any[] = (q.data?.pages ?? []).flat();
   const unread = rows.filter((r) => !r.read_at).length;
 
   async function refresh() {
@@ -64,11 +64,11 @@ function NotificationsPage() {
     await qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
   }
 
-  async function toggleRead(row: (typeof rows)[number]) {
+  async function toggleRead(row: any) {
     try {
       await markFn({ data: { id: row.id, read: !row.read_at } });
       await refresh();
-    } catch (e: unknown) {
+    } catch (e: any) {
       toast.error(friendlyError(e, "Could not update this reminder"));
     }
   }
@@ -78,7 +78,7 @@ function NotificationsPage() {
       await markAllFn();
       toast.success("All reminders marked as read");
       await refresh();
-    } catch (e: unknown) {
+    } catch (e: any) {
       toast.error(friendlyError(e, "Could not mark reminders as read"));
     }
   }

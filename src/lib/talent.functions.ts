@@ -225,7 +225,7 @@ export const listTalentNotifications = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .range(data.offset, data.offset + data.limit - 1);
     if (error) throw databaseError(error);
-    return rows ?? [];
+    return (rows ?? []) as any[];
   });
 
 /** Bell feed: unread reminders plus the unread count, gated by the in-app preference. */

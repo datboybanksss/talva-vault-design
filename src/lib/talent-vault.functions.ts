@@ -1,5 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
@@ -11,11 +9,7 @@ import { privateStoragePathOwned, privateFolderOwned } from "./share-security";
 
 const BUCKET = "talent-private-documents";
 
-async function requireOwnedFolder(
-  db: SupabaseClient<Database>,
-  userId: string,
-  folderId: string | null | undefined,
-) {
+async function requireOwnedFolder(db: any, userId: string, folderId: string | null | undefined) {
   if (!folderId) return;
   const { data, error } = await db
     .from("talent_private_folders")
@@ -223,7 +217,7 @@ export const finalisePrivateUpload = createServerFn({ method: "POST" })
   .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => z.object({ document_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { userId, supabase, claims } = context;
+    const { userId, supabase, claims } = context as any;
 
     const { data: doc, error } = await supabase
       .from("talent_private_documents")
@@ -315,7 +309,7 @@ export const deletePrivateDocument = createServerFn({ method: "POST" })
   .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => DocIdInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context;
+    const { supabase, userId, claims } = context as any;
     const { data: doc } = await supabase
       .from("talent_private_documents")
       .select("id, name, storage_path, user_id")
@@ -354,7 +348,7 @@ export const movePrivateDocument = createServerFn({ method: "POST" })
   .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => MoveDocInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context;
+    const { supabase, userId, claims } = context as any;
     await requireOwnedFolder(supabase, userId, data.folder_id);
     const { data: moved, error } = await supabase
       .from("talent_private_documents")
@@ -561,7 +555,7 @@ export const listVaultCopyTargets = createServerFn({ method: "GET" })
         "id",
         rows.map((r) => r.agency_id),
       );
-    const agencyName = new Map((agencies ?? []).map((a) => [a.id, a.name]));
+    const agencyName = new Map((agencies ?? []).map((a: any) => [a.id, a.name as string]));
 
     const { data: folders } = await supabaseAdmin
       .from("agency_talent_folders")
@@ -579,8 +573,8 @@ export const listVaultCopyTargets = createServerFn({ method: "GET" })
         agency_id: r.agency_id,
         agency_name: agencyName.get(r.agency_id) ?? "Your agency",
         folders: (folders ?? [])
-          .filter((f) => f.talent_link_id === r.id)
-          .map((f) => ({ id: f.id, name: f.folder_name })),
+          .filter((f: any) => f.talent_link_id === r.id)
+          .map((f: any) => ({ id: f.id as string, name: f.folder_name as string })),
       })),
     };
   });
@@ -594,7 +588,7 @@ export const copyPrivateDocumentToAgency = createServerFn({ method: "POST" })
   .middleware([requireTalentWritable])
   .inputValidator((input: unknown) => CopyToAgencyInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context;
+    const { supabase, userId, claims } = context as any;
 
     // 1. The vault document must be the caller's own.
     const { data: doc } = await supabase
