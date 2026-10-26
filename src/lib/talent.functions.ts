@@ -4,6 +4,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
 
 /**
@@ -31,15 +33,15 @@ export const getTalentContext = createServerFn({ method: "GET" })
 
     const links = await loadTalentLinks(supabase, userId);
     const first = links.find((l) => l.state === "active") ?? null;
-    let link: any = null;
-    if (first) {
-      const { data } = await supabase
-        .from("agency_talent_links")
-        .select("id, agency_id, status, display_name, talent_type, created_at, ended_at")
-        .eq("id", first.id)
-        .maybeSingle();
-      link = data ?? null;
-    }
+    const link = first
+      ? ((
+          await supabase
+            .from("agency_talent_links")
+            .select("id, agency_id, status, display_name, talent_type, created_at, ended_at")
+            .eq("id", first.id)
+            .maybeSingle()
+        ).data ?? null)
+      : null;
     const { data: reqs } = await supabase.rpc("my_link_requests");
     return {
       profile,
@@ -47,7 +49,7 @@ export const getTalentContext = createServerFn({ method: "GET" })
       agency: first ? { id: first.agency_id, name: first.agency_name } : null,
       links,
       hasActiveLink: !!first,
-      pendingConnectionRequests: ((reqs as any[]) ?? []).length,
+      pendingConnectionRequests: (reqs ?? []).length,
     };
   });
 
@@ -67,7 +69,9 @@ export type TalentLinkView = {
  * actually shared. Invited/unaccepted links never appear. Every agency-only
  * surface (UI and server) decides visibility from this one list.
  */
-export async function loadTalentLinks(supabase: any, userId: string): Promise<TalentLinkView[]> {
+export async function loadTalentLinks(
+  supabase: SupabaseClient<Database>,
+  userId: string): Promise<TalentLinkView[]> {
   const { data: rows, error: rowsError } = await supabase
     .from("agency_talent_links")
     .select("id, agency_id, status, ended_at, created_at")
@@ -77,7 +81,7 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
   if (rowsError)
     throw new Error("We couldn't load your agency details. Please refresh and try again.");
   const out: TalentLinkView[] = [];
-  const candidates = (rows ?? []) as any[];
+  const candidates = rows ?? [];
   if (candidates.length === 0) return out;
   const { classifyTalentLink } = await import("@/lib/talent-links-core");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -90,7 +94,7 @@ export async function loadTalentLinks(supabase: any, userId: string): Promise<Ta
     );
   if (agenciesError)
     throw new Error("We couldn't load your agency details. Please refresh and try again.");
-  const names = new Map((agencies ?? []).map((a: any) => [a.id, (a.name as string)?.trim()]));
+  const names = new Map((agencies ?? []).map((a) => [a.id, a.name?.trim()]));
   for (const r of candidates) {
     if (!r.ended_at && ["invited", "needs_review", "expired"].includes(r.status)) continue;
     const readUntil = await linkReadUntil(r.id);
@@ -133,6 +137,23 @@ async function linkReadUntil(linkId: string): Promise<string | null> {
 const READ_ONLY_MESSAGE =
   "This connection has ended. Items from this agency are view and download only.";
 
+/** Shape of talent_profiles.notification_prefs (a JSON column), narrowed where read. */
+type NotificationPrefs = { in_app_enabled?: boolean; in_app?: Record<string, boolean> };
+
+function readNotificationPrefs(v: Json | undefined): NotificationPrefs {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const inApp = v.in_app;
+  return {
+    in_app_enabled: typeof v.in_app_enabled === "boolean" ? v.in_app_enabled : undefined,
+    in_app:
+      inApp && typeof inApp === "object" && !Array.isArray(inApp)
+        ? Object.fromEntries(
+            Object.entries(inApp).filter((e): e is [string, boolean] => typeof e[1] === "boolean"),
+          )
+        : undefined,
+  };
+}
+
 const DEFAULT_IN_APP = {
   agency_share: true,
   doc_expiring: true,
@@ -153,7 +174,7 @@ export const getTalentNotificationPrefs = createServerFn({ method: "GET" })
       .select("expiry_notice_days, notification_prefs")
       .eq("user_id", userId)
       .maybeSingle();
-    const prefs = (data?.notification_prefs ?? {}) as any;
+    const prefs = readNotificationPrefs(data?.notification_prefs);
     return {
       expiryNoticeDays: data?.expiry_notice_days ?? 30,
       inAppEnabled: prefs.in_app_enabled !== false,
@@ -174,7 +195,7 @@ export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => NotificationPrefsInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const patch: any = { expiry_notice_days: data.expiry_notice_days };
+    const patch: TablesUpdate<"talent_profiles"> = { expiry_notice_days: data.expiry_notice_days };
     if (data.in_app || data.in_app_enabled !== undefined) {
       patch.notification_prefs = {
         in_app_enabled: data.in_app_enabled !== false,
@@ -188,13 +209,13 @@ export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
   });
 
 /** True when the caller has in-app reminders switched on. */
-async function inAppRemindersEnabled(supabase: any, userId: string): Promise<boolean> {
+async function inAppRemindersEnabled(supabase: SupabaseClient<Database>, userId: string): Promise<boolean> {
   const { data } = await supabase
     .from("talent_profiles")
     .select("notification_prefs")
     .eq("user_id", userId)
     .maybeSingle();
-  return ((data?.notification_prefs ?? {}) as any).in_app_enabled !== false;
+  return readNotificationPrefs(data?.notification_prefs).in_app_enabled !== false;
 }
 
 /**
@@ -234,7 +255,11 @@ export const getTalentBellFeed = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const enabled = await inAppRemindersEnabled(supabase, userId);
-    if (!enabled) return { enabled: false, unreadCount: 0, items: [] as any[] };
+    const none: Pick<
+      Tables<"talent_notifications">,
+      "id" | "kind" | "title" | "detail" | "tone" | "target_type" | "target_id" | "due_at" | "created_at"
+    >[] = [];
+    if (!enabled) return { enabled: false, unreadCount: 0, items: none };
     const { data: rows } = await supabase
       .from("talent_notifications")
       .select("id, kind, title, detail, tone, target_type, target_id, due_at, created_at")
@@ -242,7 +267,7 @@ export const getTalentBellFeed = createServerFn({ method: "GET" })
       .is("read_at", null)
       .order("created_at", { ascending: false })
       .limit(20);
-    const items = (rows ?? []) as any[];
+    const items = rows ?? [];
     return { enabled: true, unreadCount: items.length, items };
   });
 
@@ -396,11 +421,11 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
         ? []
         : chosen!.state === "previous"
           ? (() => {
-              const used = new Set((docs ?? []).map((d: any) => d.folder));
-              const keep = (folders ?? []).filter((f: any) => used.has(f.folder_name));
-              const parents = new Set(keep.map((f: any) => f.parent_folder_id).filter(Boolean));
+              const used = new Set((docs ?? []).map((d) => d.folder));
+              const keep = (folders ?? []).filter((f) => used.has(f.folder_name));
+              const parents = new Set(keep.map((f) => f.parent_folder_id).filter(Boolean));
               return (folders ?? []).filter(
-                (f: any) => used.has(f.folder_name) || parents.has(f.id),
+                (f) => used.has(f.folder_name) || parents.has(f.id),
               );
             })()
           : (folders ?? []),
@@ -453,7 +478,7 @@ export const getSharedDocumentDownloadUrl = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 
 /** An ACTIVE link of the caller (requests only exist while linked). */
-async function getCallerLink(supabase: any, userId: string, linkId?: string) {
+async function getCallerLink(supabase: SupabaseClient<Database>, userId: string, linkId?: string) {
   const active = (await loadTalentLinks(supabase, userId)).filter((l) => l.state === "active");
   const l = linkId ? active.find((x) => x.id === linkId) : active[0];
   return l ? { id: l.id, agency_id: l.agency_id, status: "active" } : null;
@@ -492,7 +517,7 @@ export const listTalentDocumentRequests = createServerFn({ method: "GET" })
               .from("agency_document_requests")
               .select("id")
               .eq("talent_link_id", link.id)
-          ).data?.map((r: any) => r.id) ?? ["00000000-0000-0000-0000-000000000000"],
+          ).data?.map((r) => r.id) ?? ["00000000-0000-0000-0000-000000000000"],
         )
         .order("created_at", { ascending: false })
         .limit(50),
@@ -781,7 +806,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       // already carries them (count + per-document reminders). The dashboard
       // keeps the "Expiring soon" KPI count only.
       const items = [
-        ...(reqRows.data ?? []).map((r: any) => ({
+        ...(reqRows.data ?? []).map((r) => ({
           key: `doc_request:${r.id}`,
           requestId: r.id as string,
           linkId: r.talent_link_id as string,
@@ -810,8 +835,8 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       try {
         const { runTalentReminderScan } = await import("@/lib/talent-reminders.server");
         await runTalentReminderScan({ userId });
-      } catch (e: any) {
-        console.error("[talent reminder scan]", e?.message);
+      } catch (e) {
+        console.error("[talent reminder scan]", e instanceof Error ? e.message : undefined);
       }
       const { data: notifs } = await supabase
         .from("talent_notifications")
@@ -872,7 +897,13 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
             .select("full_name")
             .eq("id", l.manager_user_id)
             .maybeSingle();
-          managerName = (p as any)?.full_name ?? null;
+          // profiles has no full_name column (pre-existing; reported, not changed), so
+          // the row is read as unknown and narrowed — this stays null as before.
+          const row: unknown = p;
+          managerName =
+            row && typeof row === "object" && "full_name" in row && typeof row.full_name === "string"
+              ? row.full_name
+              : null;
         }
         const { data: sd } = await supabaseAdmin
           .from("talent_shared_documents")
@@ -934,7 +965,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       links,
       managerName,
       recentDocs: recent.slice(0, 4),
-      trustedContacts: (contactRows ?? []).map((c: any) => ({
+      trustedContacts: (contactRows ?? []).map((c) => ({
         id: c.id as string,
         name: c.loved_one_name as string,
         expiresAt: c.expires_at as string | null,
@@ -1033,7 +1064,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
     }
     const link = myLinks[0] ?? null;
 
-    if (!link) return { link: null, documents: [] as any[], unshared_count: 0 };
+    if (!link) return { link: null, documents: [], unshared_count: 0 };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const COLS =
@@ -1041,7 +1072,6 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
 
     // Billing access is always linked by immutable roster ID, never a name.
     const fetchFor = async (shared: boolean) => {
-      const out = new Map<string, any>();
       const linkIds = myLinks.map((l) => l.id);
       const { data: direct, error } = await supabaseAdmin
         .from("agency_billing_docs")
@@ -1049,6 +1079,7 @@ export const listTalentBillingDocuments = createServerFn({ method: "GET" })
         .in("talent_link_id", linkIds)
         .eq("shared_with_talent", shared);
       if (error) throw databaseError(error);
+      const out = new Map<string, NonNullable<typeof direct>[number]>();
       for (const d of direct ?? []) if (billingDocumentBelongsToLinks(d, myLinks)) out.set(d.id, d);
       return Array.from(out.values()).sort((x, y) =>
         String(y.issued_at).localeCompare(String(x.issued_at)),
@@ -1095,7 +1126,7 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const links = await loadTalentLinks(supabase, userId);
     const { data: reqs } = await supabase.rpc("my_link_requests");
-    const pendingConnectionRequests = ((reqs as any[]) ?? []).length;
+    const pendingConnectionRequests = (reqs ?? []).length;
     if (links.length === 0)
       return { relationships: [], hasActiveLink: false, pendingConnectionRequests };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -1118,22 +1149,24 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
     if (e1 || e2)
       throw new Error("We couldn't load your agency details. Please refresh and try again.");
     const managerIds = [
-      ...new Set((linkRows ?? []).map((r: any) => r.manager_user_id).filter(Boolean)),
+      ...new Set(
+        (linkRows ?? []).map((r) => r.manager_user_id).filter((v): v is string => !!v),
+      ),
     ];
     const { data: managers } = managerIds.length
       ? await supabaseAdmin
           .from("profiles")
           .select("id, display_name, first_name, last_name, email, phone")
           .in("id", managerIds)
-      : { data: [] as any[] };
+      : { data: null };
     const clean = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
     const out = [];
     for (const l of links) {
-      const row: any = (linkRows ?? []).find((r: any) => r.id === l.id) ?? {};
-      const a: any = (agencies ?? []).find((x: any) => x.id === l.agency_id) ?? {};
-      const m: any = (managers ?? []).find((x: any) => x.id === row.manager_user_id);
+      const row = (linkRows ?? []).find((r) => r.id === l.id);
+      const a = (agencies ?? []).find((x) => x.id === l.agency_id);
+      const m = (managers ?? []).find((x) => x.id === row?.manager_user_id);
       let logoUrl: string | null = null;
-      if (a.logo_path) {
+      if (a?.logo_path) {
         const { data: signed } = await supabaseAdmin.storage
           .from("agency-branding")
           .createSignedUrl(a.logo_path, 3600);
@@ -1147,11 +1180,11 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
         state: l.state,
         agencyName: l.agency_name,
         logoUrl,
-        agencyEmail: clean(a.contact_email),
-        agencyPhone: clean(a.phone),
+        agencyEmail: clean(a?.contact_email),
+        agencyPhone: clean(a?.phone),
         manager: m ? { name: managerName, email: clean(m.email), phone: clean(m.phone) } : null,
-        linkedSince: (row.responded_at ?? row.created_at ?? null) as string | null,
-        endedAt: (row.ended_at ?? null) as string | null,
+        linkedSince: row?.responded_at ?? row?.created_at ?? null,
+        endedAt: row?.ended_at ?? null,
         sharedDocs: l.shared_docs,
       });
     }

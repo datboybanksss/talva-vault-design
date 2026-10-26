@@ -7,6 +7,8 @@ import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { parseInput } from "@/lib/admin.functions";
 import { ageOn, MINIMUM_TALENT_AGE } from "@/lib/terms";
 
@@ -20,25 +22,25 @@ import { ageOn, MINIMUM_TALENT_AGE } from "@/lib/terms";
 const BUCKET = "talent-invite-docs";
 export const INDEPENDENT_DOC_SLOTS = ["id_document", "proof_of_talent"] as const;
 
-async function assertAdmin(supabase: any, userId: string) {
+async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw new Error("We couldn't confirm your access. Please try again.");
   if (!data) throw new Error("Forbidden: admin only");
 }
-async function assertAdminCanEdit(supabase: any, userId: string) {
+async function assertAdminCanEdit(supabase: SupabaseClient<Database>, userId: string) {
   await assertAdmin(supabase, userId);
   const { data } = await supabase.rpc("can_admin_edit", { _user_id: userId });
   if (!data) throw new Error("Forbidden: view-only administrators cannot perform this action.");
 }
 
 async function audit(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   userId: string,
   email: string | undefined,
   action: string,
   id: string,
   label: string,
-  detail: Record<string, unknown> = {},
+  detail: { [key: string]: Json | undefined } = {},
 ) {
   await supabase.from("admin_audit_log").insert({
     actor_id: userId,
@@ -76,7 +78,7 @@ const dobSchema = z
 export const listIndependentTalentInvitations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const [{ data: rows }, { data: docs }] = await Promise.all([
       supabase
@@ -90,7 +92,7 @@ export const listIndependentTalentInvitations = createServerFn({ method: "GET" }
     const docCount = new Map<string, number>();
     for (const d of docs ?? [])
       docCount.set(d.invitation_id, (docCount.get(d.invitation_id) ?? 0) + 1);
-    return (rows ?? []).map((r: any) => ({
+    return (rows ?? []).map((r) => ({
       ...r,
       status: effectiveStatus(r),
       stored_status: r.status as string,
@@ -102,7 +104,7 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: inv, error } = await supabase
       .from("independent_talent_invitations")
@@ -140,7 +142,7 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     await assertEmailFree(data.email);
     const { data: inv, error } = await supabase
@@ -202,7 +204,7 @@ export const updateIndependentTalentDraft = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: inv } = await supabase
       .from("independent_talent_invitations")
@@ -252,7 +254,7 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const removeOrphan = () => supabase.storage.from(BUCKET).remove([data.storage_path]);
     if (!data.storage_path.startsWith(`${data.invitation_id}/`)) {
@@ -348,7 +350,7 @@ export const deleteIndependentTalentDocument = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: doc } = await supabase
       .from("talent_invitation_documents")
@@ -381,7 +383,7 @@ export const getIndependentTalentDocumentUrl = createServerFn({ method: "POST" }
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: doc } = await supabase
       .from("talent_invitation_documents")
@@ -398,16 +400,16 @@ export const getIndependentTalentDocumentUrl = createServerFn({ method: "POST" }
     return { url: signed.signedUrl as string };
   });
 
-async function sendInviteEmail(supabase: any, id: string, userId: string) {
+async function sendInviteEmail(supabase: SupabaseClient<Database>, id: string, userId: string) {
   // Same renderer and approved wording as the Review email step.
   const { deliverAdminInvite } = await import("@/lib/admin-invite-email.server");
-  return deliverAdminInvite(supabase, "talent", id, userId).catch((e: any) => ({
+  return deliverAdminInvite(supabase, "talent", id, userId).catch((e: unknown) => ({
     url: null as string | null,
     subject: null,
     result: {
       sent: false as const,
       reason: "send_failed" as const,
-      detail: String(e?.message ?? e),
+      detail: String((e && typeof e === "object" && "message" in e ? e.message : undefined) ?? e),
     },
   }));
 }
@@ -421,7 +423,7 @@ export const finalizeIndependentTalentInvitation = createServerFn({ method: "POS
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: inv } = await supabase
       .from("independent_talent_invitations")
@@ -436,7 +438,7 @@ export const finalizeIndependentTalentInvitation = createServerFn({ method: "POS
       .eq("invitation_id", data.id)
       .not("validated_at", "is", null)
       .is("quarantine_reason", null);
-    const have = new Set((docs ?? []).map((d: any) => d.doc_slot));
+    const have = new Set((docs ?? []).map((d) => d.doc_slot));
     const missing = INDEPENDENT_DOC_SLOTS.filter((s) => !have.has(s));
     if (missing.length) throw new Error("Attach the ID document and proof of talent to send.");
     if (inv.date_of_birth && ageOn(inv.date_of_birth) < MINIMUM_TALENT_AGE) {
@@ -491,7 +493,7 @@ export const resendIndependentTalentInvitation = createServerFn({ method: "POST"
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: inv } = await supabase
       .from("independent_talent_invitations")
@@ -539,7 +541,7 @@ export const revokeIndependentTalentInvitation = createServerFn({ method: "POST"
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: inv } = await supabase
       .from("independent_talent_invitations")
@@ -595,7 +597,7 @@ export const deleteIndependentTalentDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: inv } = await supabase
       .from("independent_talent_invitations")
@@ -610,7 +612,7 @@ export const deleteIndependentTalentDraft = createServerFn({ method: "POST" })
       .from("talent_invitation_documents")
       .select("storage_path")
       .eq("invitation_id", data.id);
-    const paths = (docs ?? []).map((d: any) => d.storage_path);
+    const paths = (docs ?? []).map((d) => d.storage_path);
     if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
     await supabase.from("independent_talent_invitations").delete().eq("id", data.id);
     await audit(

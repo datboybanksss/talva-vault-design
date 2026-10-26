@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { validateNewPassword } from "@/lib/password";
 import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
 
@@ -14,7 +16,9 @@ type LoadedInvite = {
 };
 
 /** Talent invitation tokens live in two tables: agency invites and admin (independent) invites. */
-async function loadTalentInvite(supabaseAdmin: any, token: string): Promise<LoadedInvite | null> {
+async function loadTalentInvite(
+  supabaseAdmin: SupabaseClient<Database>,
+  token: string): Promise<LoadedInvite | null> {
   const { data: inv } = await supabaseAdmin
     .from("talent_invitations")
     .select("id, agency_id, talent_name, email, status, expires_at")
@@ -82,7 +86,7 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
     // Connection requests show the same page as any invitation (the agency can
     // open copied links). Inert invitations can never be accepted.
     if (inv.kind === "agency") {
-      const { data: priv } = await (supabaseAdmin as any)
+      const { data: priv } = await supabaseAdmin
         .from("talent_invite_private")
         .select("kind")
         .eq("invitation_id", inv.id)
@@ -167,7 +171,7 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
     if (!inv)
       return { ok: false, code: "invalid_token", message: "This invitation link is invalid." };
     if (inv.kind === "agency") {
-      const { data: priv } = await (supabaseAdmin as any)
+      const { data: priv } = await supabaseAdmin
         .from("talent_invite_private")
         .select("kind")
         .eq("invitation_id", inv.id)
@@ -246,13 +250,17 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
         bodySha256: data.terms_body_sha256,
         method: "activation",
       });
-    } catch (e: any) {
+    } catch (e) {
+      const errMessage =
+        e && typeof e === "object" && "message" in e && typeof e.message === "string"
+          ? e.message
+          : undefined;
       await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => undefined);
       return {
         ok: false,
         code: "unknown",
         message:
-          e?.message ??
+          errMessage ??
           "We couldn't record your acceptance of the Terms & Conditions. Please try again.",
       };
     }
