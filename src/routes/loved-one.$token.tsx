@@ -29,7 +29,7 @@ import type { BillingLine } from "@/lib/billing";
 import { friendlyError } from "@/lib/friendly-error";
 
 /** A shared quote or invoice, as returned for a billing share. */
-type SharedBilling = { doc: BillingDocRecord; lines: BillingLine[]; agency: BillingDocAgency };
+type SharedBilling = { doc: SharedBillingDoc; lines: BillingLine[]; agency: BillingDocAgency };
 /** A shared document's listing fields, as returned by the share loader. */
 type SharedDoc = {
   id: string;
@@ -39,10 +39,32 @@ type SharedDoc = {
   created_at: string;
 };
 type SharedFolder = { id: string; name: string };
+type SharedBillingDoc = BillingDocRecord & { id: string };
+/** What the page reads from each getLovedOneShareByToken outcome. */
 type ShareState =
-  | Awaited<ReturnType<typeof getLovedOneShareByToken>>
   | { status: "loading" }
-  | { status: "error"; error?: string };
+  | { status: "error"; error?: string }
+  | { status: "not_found" | "expired" | "revoked" | "locked" }
+  | {
+      status: "code_required";
+      sharer?: { full_name: string } | null;
+      share?: { loved_one_name: string | null };
+    }
+  | {
+      status: "ok";
+      sharer: { full_name: string };
+      share: {
+        loved_one_name: string | null;
+        loved_one_email: string | null;
+        expires_at: string;
+        note: string | null;
+        permission: "view" | "download";
+        share_kind: "folders" | "document" | "billing";
+      };
+      folders: SharedFolder[];
+      documents: SharedDoc[];
+      billing: SharedBilling[];
+    };
 
 /** Read-only rendering of a shared quote or invoice — data, not a file. */
 function BillingBlock({
@@ -378,7 +400,7 @@ function CodeGate({
   onUnlock,
 }: {
   sharerName: string;
-  lovedOneName?: string;
+  lovedOneName?: string | null;
   onUnlock: (code: string) => Promise<{ ok: boolean; reason?: string; remaining?: number }>;
 }) {
   const [code, setCode] = useState("");
