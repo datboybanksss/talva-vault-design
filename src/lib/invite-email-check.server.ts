@@ -35,7 +35,7 @@ export async function findInviteEmailConflict(args: Args): Promise<InviteEmailCo
       .select("id, email")
       .ilike("email", pattern)
       .limit(5);
-    hasAccount = (profs ?? []).some((p: any) => sameEmail(p.email, args.email));
+    hasAccount = (profs ?? []).some((p) => sameEmail(p.email, args.email));
   }
 
   let pendingLink: string | null | false = false;
