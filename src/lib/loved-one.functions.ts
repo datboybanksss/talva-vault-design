@@ -436,7 +436,23 @@ async function loadSharedBilling(talentId: string | null, owner: string | null) 
   return rows.map((doc) => ({
     doc,
     agency: {
-      ...(agencies?.find((agency) => agency.id === doc.agency_id) ?? { name: "Your manager" }),
+      // Fallback when the agency row is unreadable: same name as before; the other
+      // fields were previously absent and are now explicit nulls (renders the same).
+      ...(agencies?.find((agency) => agency.id === doc.agency_id) ?? {
+        name: "Your manager",
+        contact_email: null,
+        phone: null,
+        country: null,
+        business_type: null,
+        billing_address: null,
+        is_vat_registered: null,
+        vat_number: null,
+        main_contact_first_name: null,
+        main_contact_last_name: null,
+        main_contact_email: null,
+        main_contact_phone: null,
+        accent_color: null,
+      }),
       logo_url: null,
     },
     lines: (lines ?? [])
