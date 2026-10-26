@@ -1,3 +1,4 @@
+import { duplicateOnboardingName, onboardingPanelDocuments, onboardingSession, rememberOnboardingSession } from "@/lib/onboarding-documents";
 import { BlockedDocumentPill } from "@/components/shared/blocked-document";
 import { quarantineReason } from "@/lib/document-quarantine";
 import {
@@ -130,7 +131,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
   const listStagedFn = useServerFn(listStagedOnboardingDocuments);
   const deleteStagedFn = useServerFn(deleteStagedOnboardingDocument);
   // Files uploaded before the first Save draft are staged under this id.
-  const [onboardingSessionId] = useState(() => crypto.randomUUID());
+  const [onboardingSessionId] = useState(() => onboardingSession(draftIdFromUrl));
 
   const [draftId, setDraftId] = useState<string>(draftIdFromUrl || "");
   const [step, setStep] = useState<"details" | "review">("details");
@@ -189,6 +190,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
       }),
     onSuccess: (row: any) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
+      rememberOnboardingSession(row.id, onboardingSessionId);
       setDraftId(row.id);
       toast.success("Draft saved. You can keep editing it until you send.");
       nav({ to: "/admin/invitations/new", search: { draft: row.id } as any, replace: true });
@@ -228,9 +230,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
   const stagedQ = useQuery({
     queryKey: ["admin", "staged", "agency", onboardingSessionId],
     queryFn: () => listStagedFn({ data: { kind: "agency", session_id: onboardingSessionId } }),
-    enabled: !draftId,
   });
-  const docs: any[] = draftId ? (docsQ.data ?? []) : (stagedQ.data ?? []);
+  const docs = onboardingPanelDocuments(draftId ? (docsQ.data ?? []) : null, stagedQ.data ?? []);
 
   const finalizeM = useMutation({
     mutationFn: async () => {
@@ -277,7 +278,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
 
   const deleteDocM = useMutation({
     mutationFn: (id: string) =>
-      draftId ? deleteDocFn({ data: { id } }) : deleteStagedFn({ data: { id } }),
+      stagedQ.data?.some((row) => row.id === id) ? deleteStagedFn({ data: { id } }) : deleteDocFn({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       qc.invalidateQueries({ queryKey: ["admin", "staged", "agency", onboardingSessionId] });
@@ -297,8 +298,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
     });
 
   async function uploadForSlot(slotKey: string, file: File) {
-    const normalise = (n: string) => n.trim().toLowerCase();
-    const duplicate = docs.some((d: any) => normalise(d.file_name ?? "") === normalise(file.name));
+    const duplicate = duplicateOnboardingName(docs, file.name);
     if (duplicate) {
       setSlotErrors((prev) => ({
         ...prev,
@@ -332,6 +332,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
             storage_path: path,
             mime_type: file.type,
             size_bytes: file.size,
+            onboarding_session_id: onboardingSessionId,
           },
         });
       } else {
@@ -352,6 +353,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
       const msg = e?.message ?? "Upload failed";
       setSlotErrors((prev) => ({ ...prev, [slotKey]: msg }));
     } finally {
+      void stagedQ.refetch();
       setUploadingSlot(null);
     }
   }
@@ -363,7 +365,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
 
   const slotList = businessType ? SLOTS[businessType as BusinessType] : [];
   const slotKeys = new Set(slotList.map((s) => s.key));
-  const uploadedSlots = new Set(docs.map((d) => d.doc_slot));
+  const uploadedSlots = new Set(docs.filter((d) => !quarantineReason(d) && d.validated_at).map((d) => d.doc_slot));
   const missingSlots = slotList.filter((s) => !uploadedSlots.has(s.key));
   const staleDocs = docs.filter((d) => !slotKeys.has(d.doc_slot));
   const missingPhone =

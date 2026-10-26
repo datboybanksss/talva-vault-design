@@ -1,3 +1,4 @@
+import { requireSignInAccess } from "@/lib/sign-in-access";
 import { ACCOUNT_UNAVAILABLE_MESSAGE } from "@/lib/account-state";
 import { SIGN_IN_CODE_EXPIRY, SIGN_IN_CODE_MISSING } from "@/lib/mfa-copy";
 import {
@@ -464,6 +465,11 @@ function AuthPage() {
         // One round-trip: paused status and portal home, cached briefly so
         // the portal gate doesn't repeat the same checks.
         const access = signedIn.user ? await accessAfterSignIn(signedIn.user.id) : null;
+        await requireSignInAccess(access, async () => {
+          clearPortalAccessCache();
+          await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          clearStoredSession();
+        });
         if (access?.paused) {
           clearPortalAccessCache();
           await supabase.auth.signOut();
