@@ -39,7 +39,7 @@ function requestMeta(): { ip_address: string | null; user_agent: string | null }
  * describes, so failures are swallowed rather than surfaced to the caller.
  */
 export async function recordTalentActivity(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   email: string | undefined | null,
   action: string,

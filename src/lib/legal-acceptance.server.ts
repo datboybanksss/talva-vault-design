@@ -70,7 +70,7 @@ export async function recordLegalAcceptance(args: {
     .single();
 
   if (error) {
-    if ((error as any).code === "23505") {
+    if (error.code === "23505") {
       const { data: existing } = await supabaseAdmin
         .from("legal_acceptances")
         .select("proof_ref")
