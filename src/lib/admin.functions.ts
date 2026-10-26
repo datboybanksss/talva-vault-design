@@ -1,3 +1,4 @@
+import { duplicateOnboardingName, blockedReplacements } from "./onboarding-documents";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -1459,7 +1460,9 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
     const { data: docs } = await supabase
       .from("agency_compliance_documents")
       .select("doc_slot")
-      .eq("invitation_id", data.id);
+      .eq("invitation_id", data.id)
+      .not("validated_at", "is", null)
+      .is("quarantine_reason", null);
     const uploadedSlots = new Set((docs ?? []).map((d: any) => d.doc_slot));
     const missing = REQUIRED_FILE_SLOTS[bt].filter((s) => !uploadedSlots.has(s));
     if (missing.length > 0) {
@@ -1530,6 +1533,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
         storage_path: z.string().max(10000).min(1),
         mime_type: z.string().max(10000).optional(),
         size_bytes: z.number().optional(),
+        onboarding_session_id: z.string().uuid().optional(),
       }),
       d,
     ),
@@ -1559,15 +1563,12 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
 
     // A given file name may only be uploaded once per agency onboarding record,
     // across every document slot. Compared case-insensitively.
-    const normalise = (n: string) => n.trim().toLowerCase();
     const { data: existingDocs, error: exErr } = await supabase
       .from("agency_compliance_documents")
-      .select("id, file_name")
+      .select("id, doc_slot, file_name, quarantine_reason, storage_path")
       .eq("invitation_id", data.invitation_id);
     if (exErr) throw databaseError(exErr);
-    const clash = (existingDocs ?? []).some(
-      (d: { file_name: string }) => normalise(d.file_name) === normalise(data.file_name),
-    );
+    const clash = duplicateOnboardingName(existingDocs ?? [], data.file_name);
     if (clash) {
       // Remove the just-uploaded object so no orphan is left in storage.
       await supabase.storage.from("agency-compliance-docs").remove([data.storage_path]);
@@ -1594,6 +1595,20 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw databaseError(error);
+    // Blocked attached rows are replaced atomically by the insert trigger.
+    const oldPaths = blockedReplacements(existingDocs ?? [], data.doc_slot, data.file_name).map(
+      (r) => r.storage_path,
+    );
+    if (oldPaths.length)
+      await supabaseAdmin.storage.from("agency-compliance-docs").remove(oldPaths);
+    const { removeBlockedStagedReplacement } = await import("./onboarding-replacement.server");
+    await removeBlockedStagedReplacement(
+      userId,
+      data.onboarding_session_id,
+      "agency",
+      data.doc_slot,
+      data.file_name,
+    );
     await logAudit(
       supabase,
       userId,

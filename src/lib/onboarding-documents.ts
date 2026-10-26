@@ -14,11 +14,23 @@ export function duplicateOnboardingName(rows: OnboardingDocument[], name: string
   return rows.some((row) => !quarantineReason(row) && normalise(row.file_name) === normalise(name));
 }
 
-export function blockedReplacements<T extends OnboardingDocument>(rows: T[], slot: string, name: string): T[] {
-  return rows.filter((row) => quarantineReason(row) && row.doc_slot === slot && normalise(row.file_name) === normalise(name));
+export function blockedReplacements<T extends OnboardingDocument>(
+  rows: T[],
+  slot: string,
+  name: string,
+): T[] {
+  return rows.filter(
+    (row) =>
+      quarantineReason(row) &&
+      row.doc_slot === slot &&
+      normalise(row.file_name) === normalise(name),
+  );
 }
 
-export function onboardingPanelDocuments<T extends OnboardingDocument>(draft: T[] | null, staged: T[]) {
+export function onboardingPanelDocuments<T extends OnboardingDocument>(
+  draft: T[] | null,
+  staged: T[],
+) {
   return draft === null ? staged : [...draft, ...staged.filter((row) => quarantineReason(row))];
 }
 

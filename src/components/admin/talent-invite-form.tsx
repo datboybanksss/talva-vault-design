@@ -1,4 +1,9 @@
-import { duplicateOnboardingName, onboardingPanelDocuments, onboardingSession, rememberOnboardingSession } from "@/lib/onboarding-documents";
+import {
+  duplicateOnboardingName,
+  onboardingPanelDocuments,
+  onboardingSession,
+  rememberOnboardingSession,
+} from "@/lib/onboarding-documents";
 import { BlockedDocumentPill } from "@/components/shared/blocked-document";
 import { quarantineReason } from "@/lib/document-quarantine";
 import {
@@ -138,7 +143,10 @@ export function TalentInviteForm({
     queryKey: ["admin", "staged", "talent", onboardingSessionId],
     queryFn: () => listStagedFn({ data: { kind: "talent", session_id: onboardingSessionId } }),
   });
-  const docs = onboardingPanelDocuments(draftId ? (invQ.data?.documents ?? []) : null, stagedQ.data ?? []);
+  const docs = onboardingPanelDocuments(
+    draftId ? (invQ.data?.documents ?? []) : null,
+    stagedQ.data ?? [],
+  );
   const status: string = inv?.status ?? "draft";
   // An existing draft is only editable once it has loaded successfully.
   const isDraft = !draftId || (invQ.isSuccess && status === "draft");
@@ -228,7 +236,9 @@ export function TalentInviteForm({
   });
   const deleteDocM = useMutation({
     mutationFn: (id: string) =>
-      stagedQ.data?.some((row) => row.id === id) ? deleteStagedFn({ data: { id } }) : deleteDocFn({ data: { id } }),
+      stagedQ.data?.some((row) => row.id === id)
+        ? deleteStagedFn({ data: { id } })
+        : deleteDocFn({ data: { id } }),
     onSuccess: () => {
       if (draftId) invQ.refetch();
       stagedQ.refetch();

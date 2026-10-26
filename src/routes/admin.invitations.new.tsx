@@ -1,4 +1,9 @@
-import { duplicateOnboardingName, onboardingPanelDocuments, onboardingSession, rememberOnboardingSession } from "@/lib/onboarding-documents";
+import {
+  duplicateOnboardingName,
+  onboardingPanelDocuments,
+  onboardingSession,
+  rememberOnboardingSession,
+} from "@/lib/onboarding-documents";
 import { BlockedDocumentPill } from "@/components/shared/blocked-document";
 import { quarantineReason } from "@/lib/document-quarantine";
 import {
@@ -278,7 +283,9 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
 
   const deleteDocM = useMutation({
     mutationFn: (id: string) =>
-      stagedQ.data?.some((row) => row.id === id) ? deleteStagedFn({ data: { id } }) : deleteDocFn({ data: { id } }),
+      stagedQ.data?.some((row) => row.id === id)
+        ? deleteStagedFn({ data: { id } })
+        : deleteDocFn({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       qc.invalidateQueries({ queryKey: ["admin", "staged", "agency", onboardingSessionId] });
@@ -365,7 +372,9 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
 
   const slotList = businessType ? SLOTS[businessType as BusinessType] : [];
   const slotKeys = new Set(slotList.map((s) => s.key));
-  const uploadedSlots = new Set(docs.filter((d) => !quarantineReason(d) && d.validated_at).map((d) => d.doc_slot));
+  const uploadedSlots = new Set(
+    docs.filter((d) => !quarantineReason(d) && d.validated_at).map((d) => d.doc_slot),
+  );
   const missingSlots = slotList.filter((s) => !uploadedSlots.has(s.key));
   const staleDocs = docs.filter((d) => !slotKeys.has(d.doc_slot));
   const missingPhone =

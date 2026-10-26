@@ -72,11 +72,14 @@ export const stageOnboardingDocument = createServerFn({ method: "POST" })
       .eq("admin_id", userId)
       .eq("session_id", data.session_id)
       .eq("kind", data.kind);
-    if (existingError) throw new Error("We couldn't load the uploaded documents. Please try again.");
+    if (existingError)
+      throw new Error("We couldn't load the uploaded documents. Please try again.");
     const dup = duplicateOnboardingName(existing ?? [], data.file_name);
     const slotTaken =
       data.kind === "talent" &&
-      (existing ?? []).some((r) => r.doc_slot === data.doc_slot && r.validated_at && !r.quarantine_reason);
+      (existing ?? []).some(
+        (r) => r.doc_slot === data.doc_slot && r.validated_at && !r.quarantine_reason,
+      );
     if (dup || slotTaken) {
       await supabaseAdmin.storage.from(bucket).remove([data.storage_path]);
       throw new Error(
@@ -126,7 +129,9 @@ export const stageOnboardingDocument = createServerFn({ method: "POST" })
     }
     if (rejected) throw new Error(rejected.message);
     // The insert trigger atomically replaces blocked rows and queues cleanup.
-    const oldPaths = blockedReplacements(existing ?? [], data.doc_slot, data.file_name).map((r) => r.storage_path);
+    const oldPaths = blockedReplacements(existing ?? [], data.doc_slot, data.file_name).map(
+      (r) => r.storage_path,
+    );
     if (oldPaths.length) await supabaseAdmin.storage.from(bucket).remove(oldPaths);
     return saved;
   });
