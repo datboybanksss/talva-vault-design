@@ -26,7 +26,6 @@ export const Route = createFileRoute("/talent/")({
   }),
   component: TalentDashboard,
 });
-export const __tsProbe: number = "probe";
 
 const fmtDate = (v: string) =>
   new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
