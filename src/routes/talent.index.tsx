@@ -129,7 +129,7 @@ function TalentDashboard() {
                 <Link
                   key={r.linkId}
                   to="/talent/vault"
-                  search={{ tab: "agency", link: r.linkId } as any}
+                  search={{ tab: "agency", link: r.linkId }}
                   className="tvd-tile tvd-tint-purple"
                 >
                   <span className="tvd-tile-icon">
@@ -173,9 +173,14 @@ function TalentDashboard() {
                       <Link
                         to="/talent/vault"
                         search={
-                          (d.area === "shared"
-                            ? { tab: "agency", view: "folder", doc: d.id, link: (d as any).linkId }
-                            : { tab: "private", doc: d.id }) as any
+                          d.area === "shared"
+                            ? {
+                                tab: "agency",
+                                view: "folder",
+                                doc: d.id,
+                                link: d.linkId ?? undefined,
+                              }
+                            : { tab: "private", doc: d.id }
                         }
                         className="tvp-review-row tvd-row"
                       >
