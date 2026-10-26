@@ -110,9 +110,9 @@ export function RowActionsMenu({
               >
                 {a.to && !a.disabled && !a.disabledReason ? (
                   <Link
-                    to={a.to as any}
-                    params={a.params as any}
-                    search={a.search as any}
+                    to={a.to}
+                    params={a.params}
+                    search={a.search}
                     className={itemClass}
                   >
                     {inner}

@@ -135,23 +135,23 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const loadDash = useServerFn(getTalentDashboard);
   const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
 
-  const vaultBadge = ((dash as any)?.privateDocs ?? 0) + ((dash as any)?.sharedDocs ?? 0);
-  const sharesBadge = (dash as any)?.activeShares ?? 0;
+  const vaultBadge = (dash?.privateDocs ?? 0) + (dash?.sharedDocs ?? 0);
+  const sharesBadge = dash?.activeShares ?? 0;
   // Reminder-engine notifications (unread) — surfaced in the bell AND as a
   // badge on the Dashboard nav item so a pending reminder is visible at a glance.
   const loadBell = useServerFn(getTalentBellFeed);
   const markReadFn = useServerFn(markTalentNotificationRead);
   const { data: bell } = useQuery({
     queryKey: ["talent", "bell-feed"],
-    queryFn: () => loadBell() as Promise<{ enabled: boolean; unreadCount: number; items: any[] }>,
+    queryFn: () => loadBell(),
   });
   const bellItems = bell?.enabled ? (bell.items ?? []) : [];
 
   // "Action needed" = things the talent must do (agency requests incl.
   // resubmissions, expiring documents). They come from the same rules and
   // thresholds as before and stay until done, not just until read.
-  const actions = ((dash as any)?.todo ?? []) as ActionItem[];
-  const infoItems = bellItems.filter((n: any) => n.kind !== "doc_expiring");
+  const actions = dash?.todo ?? [];
+  const infoItems = bellItems.filter((n) => n.kind !== "doc_expiring");
   const bellCount = actions.length + infoItems.length;
   const agencyLinks = useTalentAgencyLinks();
   const manage = buildManageNav(
@@ -363,7 +363,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
                         <Link
                           key={n.key}
                           to={t.to}
-                          search={t.search as any}
+                          search={t.search}
                           className="tvp-notification-item"
                           onClick={() => {
                             setBellOpen(false);
@@ -400,7 +400,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
                 {infoItems.length > 0 && actions.length > 0 && (
                   <div className="tvp-bell-group">Updates</div>
                 )}
-                {infoItems.map((n: any) => (
+                {infoItems.map((n) => (
                   <div key={n.id} style={{ position: "relative" }}>
                     <Link
                       to={bellTarget(n).to}

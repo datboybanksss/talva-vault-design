@@ -67,7 +67,7 @@ export function VaultFoldersPanel() {
       }
       toast.success(on ? `${name} turned on.` : `${name} turned off. Documents inside are kept.`);
       refresh();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(friendlyError(e, "That folder couldn't be changed just now. Please try again."));
     } finally {
       setBusy(null);
@@ -92,7 +92,7 @@ export function VaultFoldersPanel() {
       }
       toast.success(on ? "All folders turned on." : "All folders turned off. Documents are kept.");
       refresh();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(friendlyError(e, "Some folders couldn't be changed. Please try again."));
       refresh();
     } finally {

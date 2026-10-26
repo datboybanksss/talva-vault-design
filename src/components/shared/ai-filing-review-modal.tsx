@@ -482,7 +482,7 @@ export function AiFilingReviewModal({
       toast.success("Filing saved.");
       onDone();
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not save filing.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Could not save filing.")),
   });
 
   const skip = useMutation({
@@ -491,7 +491,7 @@ export function AiFilingReviewModal({
       toast.success("Skipped — find it later under Pending review.");
       onDone();
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not skip this document.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Could not skip this document.")),
   });
 
   const retry = useMutation({
@@ -501,7 +501,7 @@ export function AiFilingReviewModal({
       return startFn({ data: { scope, document_id: documentId } }) as Promise<AnalysisView>;
     },
     onSuccess: (view) => qc.setQueryData(analysisKey, view),
-    onError: (e: any) => toast.error(friendlyError(e, "Could not start the analysis.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Could not start the analysis.")),
   });
 
   const toggleAi = useMutation({
@@ -534,7 +534,7 @@ export function AiFilingReviewModal({
     onSettled: () => {
       togglePending.current = false;
     },
-    onError: (e: any, next) => {
+    onError: (e: unknown, next) => {
       togglePending.current = false;
       setAiOverride(null);
       toast.error(friendlyError(e, "Could not change this preference."));

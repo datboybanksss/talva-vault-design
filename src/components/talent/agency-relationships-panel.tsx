@@ -102,7 +102,7 @@ export function AgencyRelationshipsPanel() {
                 </div>
                 <Link
                   to="/talent/vault"
-                  search={{ tab: "agency", link: r.linkId } as any}
+                  search={{ tab: "agency", link: r.linkId }}
                   className="tvp-link tvr-contact"
                 >
                   <FileStack className="h-3.5 w-3.5" aria-hidden /> View shared documents
