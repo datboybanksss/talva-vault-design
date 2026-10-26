@@ -77,7 +77,10 @@ export async function fetchOnboardedTalent(
 }
 
 /** Convenience wrapper for dashboards that only need the headline number. */
-export async function countOnboardedTalent(client: SupabaseClient<Database>, toIso?: string): Promise<number> {
+export async function countOnboardedTalent(
+  client: SupabaseClient<Database>,
+  toIso?: string,
+): Promise<number> {
   return (await fetchOnboardedTalent(client, toIso)).length;
 }
 
@@ -95,7 +98,10 @@ export type TalentSplit = { agencyLinked: number; independent: number; total: nu
  * Link status is the current status, so period figures are "as of today" for
  * the talent who existed by the end of the period.
  */
-export async function fetchTalentSplit(client: SupabaseClient<Database>, toIso?: string): Promise<TalentSplit> {
+export async function fetchTalentSplit(
+  client: SupabaseClient<Database>,
+  toIso?: string,
+): Promise<TalentSplit> {
   let pq = client
     .from("talent_profiles")
     .select("user_id")
