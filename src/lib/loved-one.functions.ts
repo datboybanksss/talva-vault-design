@@ -3,11 +3,28 @@ import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
 import { requireTalentTermsAccepted, requireTalentWritable } from "@/lib/terms-guard";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/integrations/supabase/types";
+
+/** Shape of loved_one_shares.scope (a JSON column) — the only keys the share writer sets. */
+export type ShareScope = { private_folder_ids: string[]; private_document_ids: string[] };
+
+/** Narrows the stored scope JSON; anything that isn't a list of IDs reads as empty. */
+export function readShareScope(scope: Json | null | undefined): ShareScope {
+  const ids = (v: Json | undefined) =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  if (!scope || typeof scope !== "object" || Array.isArray(scope))
+    return { private_folder_ids: [], private_document_ids: [] };
+  return {
+    private_folder_ids: ids(scope.private_folder_ids),
+    private_document_ids: ids(scope.private_document_ids),
+  };
+}
 import { documentIsValidated } from "./file-security";
 import { shareHasCode, privateStoragePathOwned } from "./share-security";
 import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
 
-async function ensureTalentProfile(supabase: any, userId: string) {
+async function ensureTalentProfile(supabase: SupabaseClient<Database>, userId: string) {
   const { data } = await supabase
     .from("talent_profiles")
     .select("id")
@@ -88,7 +105,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
   .middleware([requireTalentWritable])
   .inputValidator((i: unknown) => CreateShareInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const talentId = await ensureTalentProfile(supabase, userId);
     const { requirePublicSiteUrl } = await import("@/lib/brand-email");
     const emailOrigin = data.send_email ? requirePublicSiteUrl() : null;
@@ -269,7 +286,7 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
             .select("full_name")
             .eq("id", share.talent_id)
             .maybeSingle()
-        : { data: null as any };
+        : { data: null };
       const mail = buildRegeneratedCodeEmail({
         lovedOneName: share.loved_one_name ?? share.loved_one_email,
         sharerName: prof?.full_name ?? "A TalVault user",
@@ -326,7 +343,7 @@ async function loadShareByToken(token: string) {
  */
 export async function resolveShareFolders(scopeFolderIds: string[], owner: string | null) {
   if (!owner || scopeFolderIds.length === 0)
-    return { folders: [] as any[], folderIds: [] as string[] };
+    return { folders: [] as { id: string; name: string }[], folderIds: [] as string[] };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: all } = await supabaseAdmin
     .from("talent_private_folders")
@@ -334,8 +351,8 @@ export async function resolveShareFolders(scopeFolderIds: string[], owner: strin
     .eq("user_id", owner)
     .is("removed_at", null);
   const rows = all ?? [];
-  const byId = new Map(rows.map((f: any) => [f.id, f]));
-  const kept = new Map<string, any>();
+  const byId = new Map(rows.map((f) => [f.id, f]));
+  const kept = new Map<string, (typeof rows)[number] | undefined>();
   const queue = scopeFolderIds.filter((id) => byId.has(id));
   while (queue.length) {
     const id = queue.shift();
@@ -345,7 +362,7 @@ export async function resolveShareFolders(scopeFolderIds: string[], owner: strin
     for (const f of rows) if (f.parent_id === id) queue.push(f.id);
   }
   return {
-    folders: Array.from(kept.values()).map((f: any) => ({ id: f.id, name: f.name })),
+    folders: Array.from(kept.values()).flatMap((f) => (f ? [{ id: f.id, name: f.name }] : [])),
     folderIds: Array.from(kept.keys()),
   };
 }
@@ -356,7 +373,7 @@ export async function resolveShareFolders(scopeFolderIds: string[], owner: strin
  * agency's books is reachable through a Loved One link.
  */
 async function loadSharedBilling(talentId: string | null, owner: string | null) {
-  if (!talentId) return [] as any[];
+  if (!talentId) return [];
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const { data: profile } = await supabaseAdmin
@@ -365,7 +382,7 @@ async function loadSharedBilling(talentId: string | null, owner: string | null) 
     .eq("id", talentId)
     .eq("user_id", owner ?? "")
     .maybeSingle();
-  if (!profile?.user_id) return [] as any[];
+  if (!profile?.user_id) return [];
 
   const { data: allLinks, error: linksError } = await supabaseAdmin
     .from("agency_talent_links")
@@ -381,7 +398,7 @@ async function loadSharedBilling(talentId: string | null, owner: string | null) 
     if (error) throw new Error("We couldn't check access to these documents. Please try again.");
     if (billingLinkReadable({ ...link, read_until: readUntil })) links.push(link);
   }
-  if (!links.length) return [] as any[];
+  if (!links.length) return [];
 
   const { data: docs } = await supabaseAdmin
     .from("agency_billing_docs")
@@ -395,7 +412,7 @@ async function loadSharedBilling(talentId: string | null, owner: string | null) 
     .eq("shared_with_talent", true)
     .order("issued_at", { ascending: false });
   const rows = (docs ?? []).filter((doc) => billingDocumentBelongsToLinks(doc, links));
-  if (rows.length === 0) return [] as any[];
+  if (rows.length === 0) return [];
 
   const { data: lines } = await supabaseAdmin
     .from("agency_billing_doc_lines")
@@ -482,6 +499,16 @@ export const unlockLovedOneShare = createServerFn({ method: "POST" })
     return { ok: true as const, ticket: issueTicket(share.id) };
   });
 
+/** Listing fields of a shared private document, as returned to the recipient. */
+type SharedListingDoc = {
+  id: string;
+  name: string;
+  folder_id: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+};
+
 export const getLovedOneShareByToken = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) =>
     TokenInput.extend({ ticket: z.string().max(400).optional() }).parse(i),
@@ -500,7 +527,7 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
           .select("full_name")
           .eq("id", share.talent_id)
           .maybeSingle()
-      : { data: null as any };
+      : { data: null };
     const sharer = { full_name: sharerRes.data?.full_name ?? "A TalVault user" };
 
     // Gate: an access code is required and the caller must present a valid ticket.
@@ -517,8 +544,9 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
     }
 
     const owner = share.created_by as string | null;
-    const scopeFolderIds: string[] = (share.scope as any)?.private_folder_ids ?? [];
-    const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
+    const scope = readShareScope(share.scope);
+    const scopeFolderIds = scope.private_folder_ids;
+    const docIds = scope.private_document_ids;
 
     // Every lookup below is owner-scoped, so a share row pointing at someone
     // else's folder or document can never surface their names or metadata.
@@ -532,7 +560,7 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
             .in("folder_id", folderIds)
             .eq("user_id", owner)
             .not("validated_at", "is", null)
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: null }),
       docIds.length && owner
         ? supabaseAdmin
             .from("talent_private_documents")
@@ -540,11 +568,11 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
             .in("id", docIds)
             .eq("user_id", owner)
             .not("validated_at", "is", null)
-        : Promise.resolve({ data: [] as any[] }),
+        : Promise.resolve({ data: null }),
     ]);
 
     const folders = { data: sharedFolders };
-    const dedup = new Map<string, any>();
+    const dedup = new Map<string, SharedListingDoc>();
     for (const d of docsInFolders.data ?? []) dedup.set(d.id, d);
     for (const d of singleDocs.data ?? []) dedup.set(d.id, d);
 
@@ -625,10 +653,10 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
       throw new Error("Not authorised.");
 
     const { folderIds } = await resolveShareFolders(
-      (share.scope as any)?.private_folder_ids ?? [],
+      readShareScope(share.scope).private_folder_ids,
       share.created_by as string | null,
     );
-    const docIds: string[] = (share.scope as any)?.private_document_ids ?? [];
+    const docIds = readShareScope(share.scope).private_document_ids;
     const inScope =
       docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
     if (!inScope) throw new Error("This document isn't in the share scope.");
