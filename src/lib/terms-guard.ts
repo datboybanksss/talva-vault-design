@@ -33,7 +33,7 @@ export const requireTalentTermsAccepted = createMiddleware({ type: "function" })
   });
 
 /** Suspended talent are read-only (database rule talent_account_writable). */
-export async function assertTalentWritable(supabase: SupabaseClient, userId: string) {
+export async function assertTalentWritable(supabase: Pick<SupabaseClient, "rpc">, userId: string) {
   const { data, error } = await supabase.rpc("talent_account_writable", { _user_id: userId });
   if (error) throw databaseError(error);
   if (!data) throw new Error(`${ACCOUNT_SUSPENDED_CODE}: ${ACCOUNT_READ_ONLY_MESSAGE}`);

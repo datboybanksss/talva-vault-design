@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { skipToken, useQuery } from "@tanstack/react-query";
 import { TalVaultIcon } from "@/components/brand/talvault-logo";
 import {
@@ -49,10 +50,7 @@ async function markSeen(guide: TourGuide) {
     const next = seen.includes(guide.id) ? seen : [...seen, guide.id];
     const patch: TablesUpdate<"profiles"> = { seen_tours: next };
     if (guide.kind === "overview") patch.has_seen_onboarding = true;
-    await supabase
-      .from("profiles")
-      .update(patch)
-      .eq("id", uid);
+    await supabase.from("profiles").update(patch).eq("id", uid);
   } catch {
     /* non-blocking */
   }

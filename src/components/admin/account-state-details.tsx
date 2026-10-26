@@ -14,7 +14,13 @@ const fmt = (iso?: string | null) => (iso ? new Date(iso).toLocaleString("en-GB"
 const label = (map: Record<string, string>, v?: string | null) => (v ? (map[v] ?? v) : "—");
 
 /** Admin-only pause/suspension details for an agency or talent record. */
-export function AccountStateDetails({ row, suspended }: { row: AccountStateRow; suspended: boolean }) {
+export function AccountStateDetails({
+  row,
+  suspended,
+}: {
+  row: AccountStateRow;
+  suspended: boolean;
+}) {
   return (
     <>
       {row.paused_at && (

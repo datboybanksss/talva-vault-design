@@ -12,6 +12,7 @@ import {
   scorePassword,
   validateNewPassword,
   friendlyAuthError,
+  type PasswordStepProps,
 } from "@/lib/password";
 import { permissionLabel } from "@/lib/invitation-email";
 import {
@@ -207,7 +208,7 @@ function Wizard({
       // /admin/enroll-2fa on first sign-in, so no 2FA step belongs here.
       onDone();
     },
-    onError: (e: any) => setError(e?.message ?? "Activation failed."),
+    onError: (e: Error) => setError(e?.message ?? "Activation failed."),
   });
 
   const goNext = () => {
@@ -445,7 +446,7 @@ function Step3({
   onBack,
   onContinue,
   error,
-}: any) {
+}: PasswordStepProps) {
   return (
     <>
       <h2 className="tv-auth-title">Create your password</h2>

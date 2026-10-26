@@ -109,12 +109,7 @@ export function RowActionsMenu({
                 asChild={Boolean(a.to && !a.disabled && !a.disabledReason)}
               >
                 {a.to && !a.disabled && !a.disabledReason ? (
-                  <Link
-                    to={a.to}
-                    params={a.params}
-                    search={a.search}
-                    className={itemClass}
-                  >
+                  <Link to={a.to} params={a.params} search={a.search} className={itemClass}>
                     {inner}
                   </Link>
                 ) : (

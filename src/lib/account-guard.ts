@@ -33,8 +33,7 @@ export const blockPausedAccounts = createMiddleware({ type: "function" }).server
         if (error) {
           // An invalid or expired token is for the function's own auth to refuse.
           // PostgREST errors carry an HTTP status at runtime that the typings lack.
-          const status =
-            (error as unknown as { status?: number }).status ?? error.code;
+          const status = (error as unknown as { status?: number }).status ?? error.code;
           if (!(status === 401 || status === "PGRST301" || /jwt/i.test(error.message))) {
             throw new Error("We couldn't check your account just now. Please try again.");
           }

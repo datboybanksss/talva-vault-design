@@ -1,3 +1,4 @@
+import type { Database } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 /**
@@ -30,7 +31,7 @@ export type OnboardedTalent = {
  * @param toIso   optional upper bound on link creation, for period reporting
  */
 export async function fetchOnboardedTalentLinks(
-  client: any,
+  client: SupabaseClient<Database>,
   toIso?: string,
 ): Promise<OnboardedTalent[]> {
   let q = client
@@ -56,14 +57,14 @@ export async function fetchOnboardedTalentLinks(
   // Exclude test and soft-deleted talent. A link whose talent has no profile
   // row yet has not completed onboarding, so it is excluded too.
   const eligible = new Set(
-    (profiles ?? []).filter((p: any) => !p.is_test && !p.deleted_at).map((p: any) => p.user_id),
+    (profiles ?? []).filter((p) => !p.is_test && !p.deleted_at).map((p) => p.user_id),
   );
   return links.filter((l) => eligible.has(l.talent_user_id));
 }
 
 /** Distinct onboarded people (a talent linked to two agencies counts once). */
 export async function fetchOnboardedTalent(
-  client: any,
+  client: SupabaseClient<Database>,
   toIso?: string,
 ): Promise<OnboardedTalent[]> {
   const links = await fetchOnboardedTalentLinks(client, toIso);
@@ -76,7 +77,10 @@ export async function fetchOnboardedTalent(
 }
 
 /** Convenience wrapper for dashboards that only need the headline number. */
-export async function countOnboardedTalent(client: any, toIso?: string): Promise<number> {
+export async function countOnboardedTalent(
+  client: SupabaseClient<Database>,
+  toIso?: string,
+): Promise<number> {
   return (await fetchOnboardedTalent(client, toIso)).length;
 }
 
@@ -94,7 +98,10 @@ export type TalentSplit = { agencyLinked: number; independent: number; total: nu
  * Link status is the current status, so period figures are "as of today" for
  * the talent who existed by the end of the period.
  */
-export async function fetchTalentSplit(client: any, toIso?: string): Promise<TalentSplit> {
+export async function fetchTalentSplit(
+  client: SupabaseClient<Database>,
+  toIso?: string,
+): Promise<TalentSplit> {
   let pq = client
     .from("talent_profiles")
     .select("user_id")
@@ -112,8 +119,8 @@ export async function fetchTalentSplit(client: any, toIso?: string): Promise<Tal
   ]);
   if (pErr) throw databaseError(pErr);
   if (lErr) throw databaseError(lErr);
-  const linked = new Set((links ?? []).map((l: any) => l.talent_user_id));
-  const people = new Set((profiles ?? []).map((p: any) => p.user_id as string));
+  const linked = new Set((links ?? []).map((l) => l.talent_user_id));
+  const people = new Set((profiles ?? []).map((p) => p.user_id));
   let agencyLinked = 0;
   for (const id of people) if (linked.has(id)) agencyLinked += 1;
   return { agencyLinked, independent: people.size - agencyLinked, total: people.size };

@@ -83,11 +83,12 @@ export const Route = createFileRoute("/api/public/hooks/talent-reminders")({
               headers: { "Content-Type": "application/json" },
             },
           );
-        } catch (e: any) {
+        } catch (e: unknown) {
           // TVA-SEC-008: full detail server-side only. The caller gets an opaque
           // code it can quote in a support request, never the exception text.
           const ref = crypto.randomUUID();
-          console.error("[talent-reminders]", ref, e?.stack ?? e?.message ?? e);
+          const err = e as { stack?: string; message?: string } | null;
+          console.error("[talent-reminders]", ref, err?.stack ?? err?.message ?? e);
           return new Response(JSON.stringify({ ok: false, error: "scan_failed", ref }), {
             status: 500,
             headers: { "Content-Type": "application/json" },

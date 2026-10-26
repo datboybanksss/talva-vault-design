@@ -50,7 +50,7 @@ async function loadLink(linkId: string) {
           .select("email, full_name")
           .eq("user_id", link.talent_user_id)
           .maybeSingle()
-      : Promise.resolve({ data: null as any }),
+      : Promise.resolve({ data: null }),
   ]);
   return {
     link,

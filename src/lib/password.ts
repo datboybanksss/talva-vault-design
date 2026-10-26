@@ -116,3 +116,16 @@ export function friendlyAuthError(err: unknown): string {
     return "That password has appeared in a known data breach. Please choose a different one.";
   return msg;
 }
+
+/** Props shared by every invitation wizard's "Create your password" step. */
+export type PasswordStepProps = {
+  password: string;
+  setPassword: (value: string) => void;
+  confirmPw: string;
+  setConfirmPw: (value: string) => void;
+  strength: StrengthResult;
+  req: PasswordRequirements;
+  onBack: () => void;
+  onContinue: () => void;
+  error: string | null;
+};
