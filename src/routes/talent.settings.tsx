@@ -97,7 +97,7 @@ function TalentSettings() {
 
   useEffect(() => {
     getTalentNotificationPrefs()
-      .then((r: any) => {
+      .then((r) => {
         setExpiryDays(String(r?.expiryNoticeDays ?? 30));
         setInAppEnabled(r?.inAppEnabled !== false);
         if (r?.inApp) setInApp((p) => ({ ...p, ...r.inApp }));
@@ -117,7 +117,7 @@ function TalentSettings() {
         data: { expiry_notice_days: n, in_app_enabled: inAppEnabled, in_app: inApp },
       });
       toast.success(`You'll be warned ${n} days before a document expires`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(friendlyError(e, "Could not save notification settings"));
     } finally {
       setSavingPrefs(false);
@@ -140,7 +140,7 @@ function TalentSettings() {
         data: { full_name: fullName.trim(), talent_type: talentType || null },
       });
       toast.success("Profile updated");
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(friendlyError(e, "Failed to update profile"));
     } finally {
       setSavingProfile(false);
