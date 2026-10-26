@@ -897,7 +897,13 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
             .select("full_name")
             .eq("id", l.manager_user_id)
             .maybeSingle();
-          managerName = p?.full_name ?? null;
+          // profiles has no full_name column (pre-existing; reported, not changed), so
+          // the row is read as unknown and narrowed — this stays null as before.
+          const row: unknown = p;
+          managerName =
+            row && typeof row === "object" && "full_name" in row && typeof row.full_name === "string"
+              ? row.full_name
+              : null;
         }
         const { data: sd } = await supabaseAdmin
           .from("talent_shared_documents")
