@@ -28,11 +28,12 @@ export function SecurityLogPanel() {
     queryKey: ["talent", "audit-log"],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
-      listFn({ data: { limit: PAGE_SIZE, offset: pageParam as number } }) as Promise<any[]>,
+      listFn({ data: { limit: PAGE_SIZE, offset: pageParam as number } }),
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length < PAGE_SIZE ? undefined : allPages.reduce((n, p) => n + p.length, 0),
   });
-  const rows: any[] = (q.data?.pages ?? []).flat();
+  type AuditEntry = Awaited<ReturnType<typeof listTalentAuditLog>>[number];
+  const rows: AuditEntry[] = (q.data?.pages ?? []).flat();
 
   return (
     <div className="tvp-card tvp-panel">
@@ -77,7 +78,7 @@ export function SecurityLogPanel() {
                 </td>
               </tr>
             )}
-            {rows.map((e: any) => (
+            {rows.map((e) => (
               <tr key={e.id}>
                 <td>
                   {new Date(e.created_at).toLocaleString("en-GB", {
