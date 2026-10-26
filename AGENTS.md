@@ -45,3 +45,5 @@
 - Database failures use security-errors/invite-claim-error. Why: safe messages.
 - Billing confirmation bundles theme tokens under strict CSP. Why: no external assets.
 - Only cron sweeps overdue invoices. Why: no global writes by readers.
+
+- Onboarding duplicate names and blocked-row display use onboarding-documents; service-only insert triggers replace blocked rows atomically and queue old objects, and draft screens retain their staging session. Why: corrected files never erase valid files or hide missing slots.

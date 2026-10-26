@@ -4,7 +4,7 @@ import {
   onboardingSession,
   rememberOnboardingSession,
 } from "@/lib/onboarding-documents";
-import { BlockedDocumentPill } from "@/components/shared/blocked-document";
+import { BlockedOnboardingDocument } from "@/components/shared/blocked-onboarding-document";
 import { quarantineReason } from "@/lib/document-quarantine";
 import {
   deleteStagedOnboardingDocument,
@@ -705,7 +705,7 @@ export function TalentInviteForm({
                           ) : (
                             <span>{u.file_name}</span>
                           )}
-                          <BlockedDocumentPill reason={quarantineReason(u)} />
+                          <BlockedOnboardingDocument reason={quarantineReason(u)} />
                           <span className="tvp-muted" style={{ fontSize: 11 }}>
                             {u.size_bytes ? `${Math.round(u.size_bytes / 1024)} KB` : ""}
                           </span>
