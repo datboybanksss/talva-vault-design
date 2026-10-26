@@ -12,6 +12,7 @@ import {
   scorePassword,
   validateNewPassword,
   friendlyAuthError,
+  type PasswordStepProps,
 } from "@/lib/password";
 import {
   resolveAgencyInvitationToken,
@@ -220,7 +221,7 @@ function Wizard({
       }
       onDone();
     },
-    onError: (e: any) => setError(e?.message ?? "Activation failed."),
+    onError: (e: Error) => setError(e?.message ?? "Activation failed."),
   });
 
   const goNext = () => {
@@ -479,7 +480,7 @@ function Step3({
   onBack,
   onContinue,
   error,
-}: any) {
+}: PasswordStepProps) {
   return (
     <>
       <h2 className="tv-auth-title">Create your password</h2>

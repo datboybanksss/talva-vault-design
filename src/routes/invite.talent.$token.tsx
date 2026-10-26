@@ -17,6 +17,7 @@ import {
   scorePassword,
   validateNewPassword,
   friendlyAuthError,
+  type PasswordStepProps,
 } from "@/lib/password";
 import {
   resolveTalentInvitationToken,
@@ -251,7 +252,7 @@ function Wizard({
       }
       setStep(5);
     },
-    onError: (e: any) => setError(e?.message ?? "Activation failed."),
+    onError: (e: Error) => setError(e?.message ?? "Activation failed."),
   });
 
   const goNext = () => {
@@ -550,7 +551,7 @@ function Step3({
   onBack,
   onContinue,
   error,
-}: any) {
+}: PasswordStepProps) {
   return (
     <>
       <h2 className="tv-auth-title">Create your password</h2>
@@ -726,7 +727,7 @@ function TwoFactorStep() {
       <button
         type="button"
         className="tv-auth-submit"
-        onClick={() => nav({ to: "/enroll-2fa", search: { next: "/talent" } as any })}
+        onClick={() => nav({ to: "/enroll-2fa", search: { next: "/talent" } })}
         style={{
           marginTop: 20,
           height: 46,
