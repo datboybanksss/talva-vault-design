@@ -1,4 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 import type { SupabaseClient } from "@supabase/supabase-js";
