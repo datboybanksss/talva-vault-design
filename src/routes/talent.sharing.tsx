@@ -41,6 +41,7 @@ import {
   createLovedOneShare,
   revokeLovedOneShare,
   regenerateAccessCode,
+  readShareScope,
 } from "@/lib/loved-one.functions";
 import { listPrivateVault } from "@/lib/talent-vault.functions";
 import { listTalentBillingDocuments } from "@/lib/talent.functions";
@@ -252,7 +253,7 @@ function SharingPage() {
                       ? "Quotes & invoices"
                       : s.share_kind === "document"
                         ? "1 document"
-                        : `${s.scope?.private_folder_ids?.length ?? 0} folder(s)`;
+                        : `${readShareScope(s.scope).private_folder_ids.length} folder(s)`;
                   return (
                     <tr key={s.id}>
                       <td>
@@ -554,7 +555,7 @@ function NewShareModal({
     return out;
   };
   const docCount = useMemo(() => {
-    const direct = new Map<string, number>();
+    const direct = new Map<string | null, number>();
     for (const d of allDocs) direct.set(d.folder_id, (direct.get(d.folder_id) ?? 0) + 1);
     return direct;
   }, [allDocs]);
