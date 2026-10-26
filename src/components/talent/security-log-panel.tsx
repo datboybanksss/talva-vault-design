@@ -27,8 +27,7 @@ export function SecurityLogPanel() {
   const q = useInfiniteQuery({
     queryKey: ["talent", "audit-log"],
     initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
-      listFn({ data: { limit: PAGE_SIZE, offset: pageParam as number } }),
+    queryFn: ({ pageParam }) => listFn({ data: { limit: PAGE_SIZE, offset: pageParam as number } }),
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length < PAGE_SIZE ? undefined : allPages.reduce((n, p) => n + p.length, 0),
   });
