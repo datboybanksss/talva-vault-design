@@ -118,11 +118,7 @@ function VaultPage() {
   const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
   // One shared section per agency the portal shows (active, or ended with
   // shared items). Independent talent see only the Private Vault.
-  const links = ((dash as any)?.links ?? []) as {
-    id: string;
-    agency_name: string;
-    state: "active" | "previous";
-  }[];
+  const links = dash?.links ?? [];
   const [mode, setMode] = useState<Mode>(tab ?? "private");
   const selected = links.find((l) => l.id === linkParam) ?? links[0];
 
@@ -340,7 +336,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
           : "Subfolder permanently deleted.",
       );
       invalidate();
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Could not delete."));
     }
   }
@@ -381,7 +377,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
       invalidate();
 
       if (document_id) setAiReviewFor({ id: document_id as string, name: file.name });
-    } catch (err: any) {
+    } catch (err) {
       toast.error(friendlyError(err, "Upload failed."));
     }
   }
@@ -390,7 +386,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
     try {
       const { url } = await download({ data: { id } });
       window.open(url, "_blank");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Could not open file."));
     }
   }
@@ -399,7 +395,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
     try {
       const { url } = await download({ data: { id } });
       setPreview({ url, name });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Could not open file."));
     }
   }
@@ -416,7 +412,7 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
       await deleteDoc({ data: { id } });
       toast.success("Document deleted.");
       invalidate();
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Could not delete."));
     }
   }
@@ -859,7 +855,7 @@ function CopyToAgencyDialog({
       });
       toast.success(`Copied to your shared folder with ${target.agency_name}.`);
       onClose();
-    } catch (e: any) {
+    } catch (e) {
       setError(friendlyError(e, "The document couldn't be copied."));
     } finally {
       setBusy(false);
@@ -989,7 +985,7 @@ function AgencySharedFolder({
     queryFn: () => loadReq({ data: { link_id: linkId } }),
     enabled: !readOnly,
   });
-  const actionRequests = ((reqData as any)?.requests ?? []).filter((r: any) =>
+  const actionRequests = (reqData?.requests ?? []).filter((r) =>
     ["pending", "resubmission_required"].includes(r.status),
   ).length;
 
@@ -1057,7 +1053,7 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
   const navigateDoc = useNavigate();
   useEffect(() => {
     if (!docParam || !data) return;
-    const d = (data.documents ?? []).find((x: any) => x.id === docParam);
+    const d = (data.documents ?? []).find((x) => x.id === docParam);
     navigateDoc({
       to: "/talent/vault",
       search: { tab: "agency", view: "folder", link: linkId },
@@ -1072,7 +1068,7 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
     try {
       const { url } = await download({ data: { document_id: id } });
       window.open(url, "_blank");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Could not open file."));
     }
   }
@@ -1138,14 +1134,14 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
           <div className="tvp-panel-head">
             <div>
               <h2 className="tvp-h2">
-                {(data.link as any).state === "previous"
+                {data.link.state === "previous"
                   ? "Previously shared with "
                   : "Shared with "}
-                {(data.link as any).agency_name}
+                {data.link.agency_name}
               </h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-                {folders.filter((f: any) => f.parent_folder_id).length || folders.length} folder
-                {(folders.filter((f: any) => f.parent_folder_id).length || folders.length) === 1
+                {folders.filter((f) => f.parent_folder_id).length || folders.length} folder
+                {(folders.filter((f) => f.parent_folder_id).length || folders.length) === 1
                   ? ""
                   : "s"}{" "}
                 · {data.documents.length} document{data.documents.length === 1 ? "" : "s"}
@@ -1176,7 +1172,7 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
             </p>
           ) : (
             <SharedFolderTree
-              folders={folders as any[]}
+              folders={folders}
               documents={data.documents}
               onOpenFolder={(name) => setFolderFilter(name)}
             />
@@ -1403,7 +1399,7 @@ function ManagerRequests({ linkId }: { linkId: string }) {
   const { request: requestParam } = useSearch({ from: "/talent/vault" });
   useEffect(() => {
     if (!requestParam || !data) return;
-    const r = (data.requests ?? []).find((x: any) => x.id === requestParam);
+    const r = (data.requests ?? []).find((x) => x.id === requestParam);
     const isOpen = r && ["pending", "resubmission_required"].includes(r.status);
     if (!isOpen) {
       toast.info(
@@ -1445,7 +1441,7 @@ function ManagerRequests({ linkId }: { linkId: string }) {
       qc.invalidateQueries({ queryKey: ["talent", "doc-requests"] });
       qc.invalidateQueries({ queryKey: ["talent", "roster-shared"] });
       qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Upload failed"));
     } finally {
       setUploadingId(null);
@@ -1478,13 +1474,13 @@ function ManagerRequests({ linkId }: { linkId: string }) {
   }
 
   const open = (data.requests ?? []).filter(
-    (r: any) =>
+    (r) =>
       r.status === "pending" || r.status === "resubmission_required" || r.status === "submitted",
   );
   const focusId =
-    requestParam && open.some((r: any) => r.id === requestParam) ? requestParam : null;
+    requestParam && open.some((r) => r.id === requestParam) ? requestParam : null;
   const closed = (data.requests ?? []).filter(
-    (r: any) => r.status === "completed" || r.status === "cancelled",
+    (r) => r.status === "completed" || r.status === "cancelled",
   );
 
   return (
@@ -1515,7 +1511,7 @@ function ManagerRequests({ linkId }: { linkId: string }) {
           </p>
         ) : (
           <div className="tvp-doc-grid" style={{ marginTop: 10 }}>
-            {open.map((r: any) => (
+            {open.map((r) => (
               <div
                 key={r.id}
                 id={`tv-request-${r.id}`}
@@ -1625,7 +1621,7 @@ function ManagerRequests({ linkId }: { linkId: string }) {
           </div>
 
           <ul className="tvp-history-list">
-            {closed.slice(0, 20).map((r: any) => {
+            {closed.slice(0, 20).map((r) => {
               const done = r.status === "completed";
               return (
                 <li key={r.id} className="tvp-history-row">
