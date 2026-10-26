@@ -69,11 +69,11 @@ describe("security-blocked documents", () => {
       ["src/lib/talent.functions.ts", /assertNotQuarantined\(doc\)/],
       [
         "src/lib/talent-vault.functions.ts",
-        /assertNotQuarantined\(doc\);\n\s+if \(!documentIsValidated\(doc\)\) throw new Error\("This file is still/,
+        /assertNotQuarantined\(doc\);\s+if \(!documentIsValidated\(doc\)\)\s+throw new Error\("This file is still/,
       ],
       [
         "src/lib/talent-vault.functions.ts",
-        /assertNotQuarantined\(doc\);\n\s+if \(!documentIsValidated\(doc\)\) throw new Error\("This file must finish/,
+        /assertNotQuarantined\(doc\);\s+if \(!documentIsValidated\(doc\)\)\s+throw new Error\("This file must finish/,
       ],
       ["src/lib/independent-talent.functions.ts", /assertNotQuarantined\(doc\)/],
       ["src/routes/api/public/loved-one-file.ts", /QUARANTINE_CODES\[blocked\]/],

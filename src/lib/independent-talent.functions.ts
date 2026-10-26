@@ -1,4 +1,4 @@
-import { duplicateOnboardingName, blockedReplacements } from "./onboarding-documents";
+import { duplicateOnboardingName, blockedReplacements, type OnboardingDocument } from "./onboarding-documents";
 import { assertNotQuarantined } from "@/lib/document-quarantine";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -286,7 +286,7 @@ export const recordIndependentTalentDocument = createServerFn({ method: "POST" }
     }
     if (
       (existing ?? []).some(
-        (d) =>
+        (d: OnboardingDocument) =>
           d.doc_slot === data.doc_slot &&
           !blockedReplacements([d], data.doc_slot, data.file_name).length,
       )

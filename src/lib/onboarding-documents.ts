@@ -6,6 +6,7 @@ export type OnboardingDocument = {
   doc_slot: string;
   quarantine_reason?: string | null;
   validated_at?: string | null;
+  storage_path?: string;
 };
 
 const normalise = (name: string) => name.trim().toLowerCase();
