@@ -1,5 +1,5 @@
 import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_PLURAL } from "@/lib/terms";
-import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, useLoaderData } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getTalentDashboard } from "@/lib/talent.functions";
@@ -38,13 +38,7 @@ function TalentDashboard() {
   });
   const agency = useTalentAgencyLinks();
 
-  const rootMatch = useRouterState({
-    select: (s) => s.matches.find((m) => m.routeId === "/talent"),
-  });
-  const ctx = (rootMatch?.loaderData ?? null) as {
-    profile: { full_name: string } | null;
-    link: { talent_type?: string | null } | null;
-  } | null;
+  const ctx = useLoaderData({ from: "/talent" });
   const fullName = ctx?.profile?.full_name ?? "";
   const firstName = fullName.split(/\s+/)[0] || "there";
   const initials =
