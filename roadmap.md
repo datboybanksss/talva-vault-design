@@ -43,3 +43,10 @@
 - [x] B Staged onboarding uploads (talent + agency)
 - [x] C1–C4, C6–C9
 - [ ] C5 CSP nonces — left unchanged: needs per-request nonce plumbing into the router and hosting-injected scripts would break
+
+## Follow-up fixes
+- [ ] Corrected onboarding files may replace blocked files with the same name, including post-draft uploads.
+- [ ] Blocked staged files remain visible and removable after saving a draft.
+- [ ] Verify all scheduled app URLs against configured published site, preserving hook secret.
+- [ ] Failed sign-in access lookup discards local session.
+- [ ] Safe automatic style fixes, full tests and automatic type/build verification; report remaining lint.
