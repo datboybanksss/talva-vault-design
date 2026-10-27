@@ -94,9 +94,7 @@ export function QuotesInvoicesSettingsPanel() {
   }, [data, form]);
 
   const save = useMutation({
-    mutationFn: () => {
-      // Save is only exposed after the existing form-loading guard has passed.
-      const current = form as BillingSettingsForm;
+    mutationFn: (current: BillingSettingsForm) => {
       return saveFn({
         data: {
           default_quote_acceptance_days: Number(current.default_quote_acceptance_days),
@@ -117,11 +115,7 @@ export function QuotesInvoicesSettingsPanel() {
       });
     },
     onSuccess: (updated) => {
-      // A successful save originates from the populated form, as before.
-      setForm((current) => ({
-        ...(current as BillingSettingsForm),
-        accent_color: updated.accent_color,
-      }));
+      setForm((current) => current ? ({ ...current, accent_color: updated.accent_color }) : current);
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
     },
@@ -434,7 +428,7 @@ export function QuotesInvoicesSettingsPanel() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-        <button className="tvp-primary" onClick={() => save.mutate()} disabled={save.isPending}>
+        <button className="tvp-primary" onClick={() => save.mutate(form)} disabled={save.isPending}>
           <Save className="h-4 w-4" />
           {save.isPending ? "Saving…" : "Save settings"}
         </button>
