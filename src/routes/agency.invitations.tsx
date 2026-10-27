@@ -46,19 +46,13 @@ import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { invitationActions, invitationIsOpen } from "@/lib/status-actions";
 import { useAgencyReadOnly } from "@/components/agency/agency-read-only";
 import { friendlyError } from "@/lib/friendly-error";
+import { invitationDate as fmtDate } from "@/lib/invitation-display";
 
 export const Route = createFileRoute("/agency/invitations")({
   head: () => ({ meta: [{ title: "Invitations · TalVault" }] }),
   component: InvitationsPage,
 });
 
-function fmtDate(iso: string | null) {
-  return new Date(iso as string).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 function daysBetween(iso: string) {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
 }
@@ -262,9 +256,7 @@ function InvitationsPage() {
                 )}
                 {visible.map((i) => {
                   const dLeft = daysBetween(i.expires_at);
-                  const isOpen =
-                    ((i as InvitationRow & { stored_status?: string }).stored_status ??
-                      i.status) === "pending";
+                  const isOpen = (i.stored_status ?? i.status) === "pending";
                   const expiryTone =
                     isOpen && dLeft < 0 ? "red" : isOpen && dLeft <= 3 ? "amber" : "neutral";
                   const expiryLabel = !isOpen
@@ -298,14 +290,12 @@ function InvitationsPage() {
                           actions={(() => {
                             const allowed = invitationActions({
                               status: i.status,
-                              storedStatus: (i as InvitationRow & { stored_status?: string })
-                                .stored_status,
+                              storedStatus: i.stored_status,
                               viewer: isOwner ? "agency_owner" : "agency_staff",
                               canWrite: !readOnly,
                             });
                             const open = invitationIsOpen(
-                              (i as InvitationRow & { stored_status?: string }).stored_status ??
-                                i.status,
+                              i.stored_status ?? i.status,
                             );
                             return [
                               allowed.includes("edit_email") && {
