@@ -6315,14 +6315,9 @@ a.tvp-entity-card:focus-visible {
 .tvd .tvd-meta { color: var(--tvp-muted); font-size: 13px; margin: 0; }
 .tvd .tvd-empty { display: flex; align-items: center; gap: var(--sp-2, 8px); color: var(--tvp-muted); font-size: 13px; margin: 0; }
 .tvd .tvd-count-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; margin-left: 6px; border-radius: 999px; background: var(--tvp-teal-50); color: var(--tvp-teal); font-size: 12px; font-weight: 800; vertical-align: middle; }
-.tvd .tvd-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.tvd .tvd-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; align-items: stretch; }
 .tvd .tvd-cards .tvp-kpi-label { overflow-wrap: anywhere; }
 .tvd .tvd-sub { font-size: 13px; font-weight: 800; color: var(--tvp-text); margin: var(--sp-5, 20px) 0 0; }
-.tvd .tvd-share-empty { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--sp-3, 12px); flex: 1; }
-.tvd .tvd-share { display: flex; flex-direction: column; }
-.tvd .tvd-share-empty-icon { background: color-mix(in oklab, var(--amber) 18%, transparent); color: var(--amber); }
-.tvd .tvd-share-viewall { display: inline-block; margin-top: var(--sp-3, 12px); }
-@media (max-width: 1080px) { .tvd .tvd-layout { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) {
   .tvd .tvd-actions { width: 100%; flex-direction: column; margin-left: 0; }
   .tvd .tvd-actions > a { justify-content: center; }
@@ -6393,6 +6388,8 @@ a.tvp-entity-card:focus-visible {
 .tvd .tvd-tint-teal .tvd-tile-icon { background: var(--surface); color: var(--tvp-teal); }
 .tvd .tvd-tint-purple { background: var(--purple-bg); }
 .tvd .tvd-tint-purple .tvd-tile-icon { background: var(--surface); color: var(--purple); }
+.tvd .tvd-tint-amber { background: var(--amber-bg); }
+.tvd .tvd-tint-amber .tvd-tile-icon { background: var(--surface); color: var(--amber); }
 .tvd .tvd-tile-icon { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: var(--sp-2); }
 .tvd .tvd-tile-count { font-size: 34px; font-weight: 800; line-height: 1.1; }
 .tvd .tvd-tile-label { font-weight: 800; font-size: 14px; overflow-wrap: anywhere; }
