@@ -8,7 +8,15 @@ import { z } from "zod";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { canEditLink, canEndRelationship, canReactivateRelationship } from "@/lib/status-actions";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Tables, Database } from "@/integrations/supabase/types";
+import type {
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Database,
+  Json,
+} from "@/integrations/supabase/types";
+
+type AgencyAuditDetail = { [key: string]: Json | undefined };
 
 type AgencyReminder = {
   id: string;
@@ -42,15 +50,15 @@ function extractRequestMeta(): { ip_address: string | null; user_agent: string |
 }
 
 async function logAgencyAudit(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   agencyId: string,
   userId: string,
   email: string | undefined,
   action: string,
   targetType?: string,
   targetId?: string,
-  targetLabel?: string,
-  detail: Record<string, unknown> = {},
+  targetLabel?: string | null,
+  detail: AgencyAuditDetail = {},
 ) {
   const { ip_address, user_agent } = extractRequestMeta();
   await supabase.from("agency_audit_log").insert({
@@ -81,7 +89,7 @@ const VAULT_VIEW_ACTION = "talent_vault_viewed";
 const VAULT_VIEW_WINDOW_MS = 30 * 60 * 1000;
 
 async function logTalentVaultView(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   agencyId: string,
   userId: string,
   email: string | undefined,
@@ -114,7 +122,7 @@ async function logTalentVaultView(
       VAULT_VIEW_ACTION,
       "talent_link",
       talentLinkId,
-      link?.display_name ?? (null as any),
+      link?.display_name ?? null,
     );
   } catch {
     /* activity logging is best-effort */
@@ -1387,7 +1395,27 @@ const VAULT_DOC_COLUMNS =
 
 type TalentMap = Map<string, string> & { statuses?: Map<string, string> };
 
-function mapVaultDoc(r: any, talentMap: TalentMap) {
+type VaultDocRow = Pick<
+  Tables<"talent_shared_documents">,
+  | "id"
+  | "name"
+  | "folder"
+  | "status"
+  | "validity_expires_at"
+  | "storage_path"
+  | "talent_link_id"
+  | "uploaded_by"
+  | "created_at"
+  | "updated_at"
+  | "locked_until"
+  | "current_version_id"
+  | "pending_review"
+  | "originator"
+  | "validated_at"
+  | "quarantine_reason"
+>;
+
+function mapVaultDoc(r: VaultDocRow, talentMap: TalentMap) {
   return {
     id: r.id as string,
     name: r.name as string,
@@ -1409,8 +1437,13 @@ function mapVaultDoc(r: any, talentMap: TalentMap) {
   };
 }
 
-async function resolveTalentNames(supabase: any, rows: any[]) {
-  const linkIds = Array.from(new Set(rows.map((r: any) => r.talent_link_id).filter(Boolean)));
+async function resolveTalentNames(
+  supabase: SupabaseClient<Database>,
+  rows: Pick<Tables<"talent_shared_documents">, "talent_link_id">[],
+) {
+  const linkIds = Array.from(
+    new Set(rows.map((r) => r.talent_link_id).filter((id): id is string => Boolean(id))),
+  );
   const talentMap: TalentMap = new Map<string, string>();
   talentMap.statuses = new Map<string, string>();
   if (linkIds.length) {
@@ -1449,14 +1482,22 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
       .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     if (data.talentLinkId) {
       await logTalentVaultView(supabase, agencyId, userId, claims?.email, data.talentLinkId);
     }
 
-    const applyFilters = (q: any) => {
+    const vaultQueries = () => ({
+      list: supabase.from("talent_shared_documents").select(VAULT_DOC_COLUMNS),
+      count: supabase.from("talent_shared_documents").select("id", { count: "exact", head: true }),
+    });
+    const applyFilters = <
+      Q extends ReturnType<typeof vaultQueries>["list"] | ReturnType<typeof vaultQueries>["count"],
+    >(
+      q: Q,
+    ) => {
       let out = q.eq("agency_id", agencyId);
       if (data.talentLinkId) out = out.eq("talent_link_id", data.talentLinkId);
       if (data.folderNames?.length) out = out.in("folder", data.folderNames);
@@ -1474,7 +1515,7 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
       if (data.tab === "recently_updated") {
         out = out.gte("updated_at", new Date(Date.now() - 30 * 86400000).toISOString());
       }
-      return out;
+      return out as Q;
     };
 
     const term = data.search.trim().replace(/[%,()]/g, " ");
@@ -1488,7 +1529,7 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
         .eq("agency_id", agencyId)
         .ilike("display_name", `%${term}%`)
         .limit(500);
-      const ids = (links ?? []).map((l: any) => l.id);
+      const ids = (links ?? []).map((l) => l.id);
       searchClause =
         `name.ilike.%${term}%,folder.ilike.%${term}%` +
         (ids.length ? `,talent_link_id.in.(${ids.join(",")})` : "");
@@ -1514,7 +1555,7 @@ export const listAgencyVaultDocuments = createServerFn({ method: "POST" })
 
     const rows = docs ?? [];
     const talentMap = await resolveTalentNames(supabase, rows);
-    return { rows: rows.map((r: any) => mapVaultDoc(r, talentMap)), total: count ?? 0 };
+    return { rows: rows.map((r) => mapVaultDoc(r, talentMap)), total: count ?? 0 };
   });
 
 /** Documents expiring within N days, smallest window first (dashboard strip). */
@@ -1529,7 +1570,7 @@ export const listAgencyVaultExpiring = createServerFn({ method: "POST" })
       .parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: docs, error } = await supabase
       .from("talent_shared_documents")
@@ -1543,7 +1584,7 @@ export const listAgencyVaultExpiring = createServerFn({ method: "POST" })
     if (error) throw databaseError(error);
     const rows = docs ?? [];
     const talentMap = await resolveTalentNames(supabase, rows);
-    return rows.map((r: any) => mapVaultDoc(r, talentMap));
+    return rows.map((r) => mapVaultDoc(r, talentMap));
   });
 
 /** Grouped per-talent document/folder counts for the vault talent picker. */
@@ -1715,7 +1756,7 @@ export const endTalentRelationship = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
@@ -1764,7 +1805,7 @@ export const reactivateTalentRelationship = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
@@ -1820,7 +1861,7 @@ export const registerAgencyVaultDocument = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     // Storage path must live under this agency's folder (defense in depth; storage RLS also enforces).
@@ -1913,7 +1954,7 @@ export const getAgencyVaultSignedUrl = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: row, error } = await supabase
@@ -1948,7 +1989,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: row, error } = await supabase
@@ -1982,7 +2023,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
       .eq("document_id", row.id);
     const effectiveLock = latestLock([
       row.locked_until as string | null,
-      ...(versions ?? []).map((v: any) => v.locked_until as string | null),
+      ...(versions ?? []).map((v) => v.locked_until as string | null),
     ]);
     const block = agencyDocumentDeleteBlock({
       originator: row.originator,
@@ -2028,23 +2069,23 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
 export const listRecentlyDeletedDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase.rpc("list_recently_deleted_documents", {
       _agency_id: agencyId,
     });
     if (error) {
-      if (/OWNER_ONLY/.test(error.message)) return { canView: false, rows: [] as any[] };
+      if (/OWNER_ONLY/.test(error.message)) return { canView: false, rows: [] };
       throw databaseError(error);
     }
-    return { canView: true, rows: (data ?? []) as any[] };
+    return { canView: true, rows: data ?? [] };
   });
 
 export const restoreDeletedDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await getWritableCallerAgency(supabase, userId);
     const { error } = await supabase.rpc("restore_deleted_document", { _doc_id: data.id });
     if (error) {
@@ -2061,7 +2102,7 @@ export const stopSharingDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await getWritableCallerAgency(supabase, userId);
     const { error } = await supabase.rpc("stop_sharing_document", { _doc_id: data.id });
     if (error) throw databaseError(error);
@@ -2074,7 +2115,7 @@ export const stopSharingDocument = createServerFn({ method: "POST" })
 export const listAgencyRetentionRules = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_retention_rules")
@@ -2086,7 +2127,7 @@ export const listAgencyRetentionRules = createServerFn({ method: "GET" })
       .order("scope_value", { ascending: true });
     if (error) throw databaseError(error);
 
-    const docIds = (data ?? []).map((r: any) => r.document_id).filter(Boolean);
+    const docIds = (data ?? []).map((r) => r.document_id).filter((id): id is string => Boolean(id));
     const docMap = new Map<string, { name: string; folder: string }>();
     if (docIds.length) {
       const { data: docs } = await supabase
@@ -2096,7 +2137,7 @@ export const listAgencyRetentionRules = createServerFn({ method: "GET" })
       for (const d of docs ?? []) docMap.set(d.id, { name: d.name, folder: d.folder });
     }
 
-    return (data ?? []).map((r: any) => ({
+    return (data ?? []).map((r) => ({
       id: r.id as string,
       scope: r.scope as "folder" | "document",
       scopeValue: (r.scope_value as string) ?? null,
@@ -2125,7 +2166,7 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     if (data.scope === "document") {
@@ -2141,7 +2182,7 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
       if (below) throw new Error(below);
     }
 
-    const payload: Record<string, unknown> = {
+    const payload: TablesInsert<"agency_retention_rules"> = {
       agency_id: agencyId,
       scope: data.scope,
       scope_value: data.scope_value ?? null,
@@ -2151,7 +2192,7 @@ export const upsertAgencyRetentionRule = createServerFn({ method: "POST" })
       created_by: userId,
     };
 
-    let row: any;
+    let row: Tables<"agency_retention_rules">;
     if (data.id) {
       const { data: r, error } = await supabase
         .from("agency_retention_rules")
@@ -2190,7 +2231,7 @@ export const deleteAgencyRetentionRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const { data: row, error } = await supabase
@@ -2275,7 +2316,7 @@ export const registerAgencyDocumentVersion = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     if (!data.storage_path.startsWith(`${agencyId}/`)) {
@@ -2389,7 +2430,7 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: v, error } = await supabase
@@ -2400,7 +2441,7 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
       .eq("id", data.version_id)
       .single();
     if (error) throw databaseError(error);
-    if ((v as any).talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
+    if (v.talent_shared_documents.agency_id !== agencyId) throw new Error("Forbidden");
     assertNotQuarantined(v);
     if (!v.validated_at)
       throw new Error("This file is still being checked. Please try again shortly.");
@@ -2414,7 +2455,7 @@ export const getAgencyVersionSignedUrl = createServerFn({ method: "POST" })
       supabase,
       agencyId,
       userId,
-      (context as any).claims?.email,
+      context.claims?.email,
       data.disposition === "attachment" ? "download_document_version" : "view_document_version",
       "talent_shared_document",
       v.document_id as string,
