@@ -955,34 +955,21 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       recent.sort((a, b) => b.date.localeCompare(a.date));
     }
 
-    const { data: contactRows } = await supabase
+    // True count of active trusted contacts (not a limited list).
+    const { count: trustedContactCount } = await supabase
       .from("loved_one_shares")
-      .select("id, loved_one_name, relationship, expires_at, scope")
+      .select("id", { count: "exact", head: true })
       .eq("talent_id", userId)
       .eq("is_active", true)
       .is("revoked_at", null)
-      .gt("expires_at", new Date().toISOString())
-      .order("expires_at", { ascending: true })
-      .limit(5);
+      .gt("expires_at", new Date().toISOString());
 
     return {
       hasLink: !!link,
       links,
       managerName,
       recentDocs: recent.slice(0, 4),
-      trustedContacts: (contactRows ?? []).map((c) => {
-        const scope = (c.scope ?? {}) as {
-          private_folder_ids?: string[];
-          private_document_ids?: string[];
-        };
-        return {
-          id: c.id as string,
-          name: c.loved_one_name as string,
-          relationship: (c.relationship as string | null) ?? null,
-          expiresAt: c.expires_at as string | null,
-          sharedDocs: scope.private_document_ids?.length ?? 0,
-        };
-      }),
+      trustedContactCount: trustedContactCount ?? 0,
       todo,
       privateDocs: privDocs.count ?? 0,
       activeShares,
