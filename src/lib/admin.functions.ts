@@ -1747,7 +1747,7 @@ export const resendInvitation = createServerFn({ method: "POST" })
     parseInput(z.object({ id: z.string().max(10000), extend_days: z.number().default(14) }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanSupportAgencies(supabase, userId);
     const expires_at = new Date(Date.now() + data.extend_days * 24 * 3600 * 1000).toISOString();
     const { data: current } = await supabase
@@ -1794,7 +1794,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanSupportAgencies(supabase, userId);
     const { data: inv, error } = await supabase
       .from("agency_invitations")
@@ -1823,7 +1823,7 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
     parseInput(z.object({ id: z.string().max(10000), email: z.string().max(10000).email() }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanSupportAgencies(supabase, userId);
     const { data: existing, error: exErr } = await supabase
       .from("agency_invitations")
@@ -1865,7 +1865,7 @@ export const logCopyLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanSupportAgencies(supabase, userId);
     const { data: inv } = await supabase
       .from("agency_invitations")
@@ -1889,7 +1889,7 @@ export const logTalentInviteCopyLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     const { data: inv } = await supabase
       .from("independent_talent_invitations")
@@ -1928,7 +1928,7 @@ export const listAuditLog = createServerFn({ method: "GET" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     let q = supabase
       .from("admin_audit_log")
@@ -1951,7 +1951,7 @@ export const listAuditLog = createServerFn({ method: "GET" })
 export const getAuditLogSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("admin_audit_log")
@@ -1959,7 +1959,7 @@ export const getAuditLogSummary = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(5000);
     if (error) throw databaseError(error);
-    const rows = (data ?? []) as any[];
+    const rows = (data ?? []);
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const byAction: Record<string, number> = {};
@@ -2019,7 +2019,7 @@ export const logBillingExport = createServerFn({ method: "POST" })
     parseInput(z.object({ scope: z.string().max(10000), row_count: z.number() }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -2040,7 +2040,7 @@ export const logBillingExport = createServerFn({ method: "POST" })
 export const listAdministrators = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: roles, error } = await supabase
       .from("user_roles")
@@ -2049,18 +2049,18 @@ export const listAdministrators = createServerFn({ method: "GET" })
       )
       .eq("role", "admin");
     if (error) throw databaseError(error);
-    const ids = (roles ?? []).map((r: any) => r.user_id);
+    const ids = (roles ?? []).map((r) => r.user_id);
     if (ids.length === 0) return [];
     const { data: profs } = await supabase
       .from("profiles")
       .select("id, email, display_name, designation")
       .in("id", ids);
-    const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
-    return (roles ?? []).map((r: any) => ({
+    const profMap = new Map((profs ?? []).map((p) => [p.id, p]));
+    return (roles ?? []).map((r) => ({
       user_id: r.user_id,
-      email: (profMap.get(r.user_id) as any)?.email ?? "",
-      display_name: (profMap.get(r.user_id) as any)?.display_name ?? "",
-      designation: (profMap.get(r.user_id) as any)?.designation ?? "",
+      email: profMap.get(r.user_id)?.email ?? "",
+      display_name: profMap.get(r.user_id)?.display_name ?? "",
+      designation: profMap.get(r.user_id)?.designation ?? "",
       is_main_admin: r.is_main_admin,
       permission_level: r.permission_level as "view_only" | "agency_support" | "edit",
       suspended: !!r.suspended,
@@ -2076,7 +2076,7 @@ export const listAdministrators = createServerFn({ method: "GET" })
 export const listAdminInvitations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("admin_invitations")
@@ -2099,7 +2099,7 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     // Any administrator at the highest permission level may invite colleagues;
     // the Main Administrator retains this ability too. Enforced server-side.
     const inviter = await assertCanInviteAdministrator(supabase, userId);
@@ -2158,7 +2158,7 @@ export const updateAdminInvitation = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const editor = await assertCanInviteAdministrator(supabase, userId);
     assertGrantablePermission(editor.permissionLevel, data.permission_level);
 
