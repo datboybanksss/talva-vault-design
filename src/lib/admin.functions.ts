@@ -3,6 +3,12 @@ import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
+
+type AdminClient = SupabaseClient<Database>;
+type AdminAuditDetail = Record<string, Json | undefined>;
 import { isValidPhone, normalisePhone, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
 import { mapEffectiveStatus, effectiveInvitationStatus } from "@/lib/invitation-status";
 import {
@@ -58,10 +64,10 @@ export function parseInput<T extends z.ZodTypeAny>(schema: T, d: unknown): z.inf
 
   const messages = result.error.issues.map((issue) => {
     const label = fieldLabel(issue.path as (string | number)[]);
-    if (issue.code === "invalid_string" && (issue as any).validation === "email") {
+    if (issue.code === "invalid_string" && issue.validation === "email") {
       return "Invalid email address";
     }
-    if (issue.code === "invalid_type" && (issue as any).received === "undefined") {
+    if (issue.code === "invalid_type" && issue.received === "undefined") {
       return label ? `${label} is required` : "A required value is missing";
     }
     const detail = issue.message.replace(/^String must contain/, "Must contain");
@@ -83,7 +89,7 @@ const phoneSchema = z
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
-async function assertAdmin(supabase: any, userId: string) {
+async function assertAdmin(supabase: AdminClient, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
@@ -92,7 +98,7 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
-async function assertAdminCanEdit(supabase: any, userId: string) {
+async function assertAdminCanEdit(supabase: AdminClient, userId: string) {
   await assertAdmin(supabase, userId);
   const { data, error } = await supabase.rpc("can_admin_edit", { _user_id: userId });
   if (error) throw databaseError(error);
@@ -103,7 +109,7 @@ async function assertAdminCanEdit(supabase: any, userId: string) {
  * Reads the caller's stored admin permission level. The Main Administrator is
  * always treated as holding the highest level.
  */
-async function adminPermissionLevel(supabase: any, userId: string) {
+async function adminPermissionLevel(supabase: AdminClient, userId: string) {
   const { data: row, error } = await supabase
     .from("user_roles")
     .select("is_main_admin, permission_level")
@@ -124,7 +130,7 @@ async function adminPermissionLevel(supabase: any, userId: string) {
  * Agency-support actions (resend/revoke/correct/copy an AGENCY invitation) are
  * open to Agency Support administrators as well as full-edit ones.
  */
-async function assertAdminCanSupportAgencies(supabase: any, userId: string) {
+async function assertAdminCanSupportAgencies(supabase: AdminClient, userId: string) {
   await assertAdmin(supabase, userId);
   const { permissionLevel } = await adminPermissionLevel(supabase, userId);
   if (!canSupportAgencies(permissionLevel)) {
@@ -133,7 +139,7 @@ async function assertAdminCanSupportAgencies(supabase: any, userId: string) {
   return permissionLevel;
 }
 
-async function assertMainAdmin(supabase: any, userId: string) {
+async function assertMainAdmin(supabase: AdminClient, userId: string) {
   await assertAdmin(supabase, userId);
   const { data, error } = await supabase.rpc("is_main_admin", { _user_id: userId });
   if (error) throw databaseError(error);
@@ -145,7 +151,7 @@ async function assertMainAdmin(supabase: any, userId: string) {
  * administrator holding the highest permission level. Returns the inviter's
  * own level so the caller can cap what they are allowed to grant.
  */
-async function assertCanInviteAdministrator(supabase: any, userId: string) {
+async function assertCanInviteAdministrator(supabase: AdminClient, userId: string) {
   await assertAdmin(supabase, userId);
   const { data: row, error } = await supabase
     .from("user_roles")
@@ -177,23 +183,23 @@ function assertGrantablePermission(inviterLevel: string, requested: string) {
 }
 
 /** Agency talent invitations that can never be accepted; excluded from admin counts. */
-async function inertInvitationIds(supabase: any): Promise<Set<string>> {
+async function inertInvitationIds(supabase: AdminClient): Promise<Set<string>> {
   const { data } = await supabase
     .from("talent_invite_private")
     .select("invitation_id")
     .eq("kind", "inert");
-  return new Set(((data ?? []) as any[]).map((r) => r.invitation_id as string));
+  return new Set((data ?? []).map((r) => r.invitation_id));
 }
 
 async function logAudit(
-  supabase: any,
+  supabase: AdminClient,
   userId: string,
   email: string | undefined,
   action: string,
   targetType?: string,
   targetId?: string,
-  targetLabel?: string,
-  detail: Record<string, unknown> = {},
+  targetLabel?: string | null,
+  detail: AdminAuditDetail = {},
 ) {
   await supabase.from("admin_audit_log").insert({
     actor_id: userId,
@@ -212,7 +218,7 @@ async function logAudit(
 export const whoami = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role, is_main_admin, permission_level")
@@ -222,12 +228,12 @@ export const whoami = createServerFn({ method: "GET" })
       .select("id, email, display_name, avatar_url, first_name, last_name, designation")
       .eq("id", userId)
       .maybeSingle();
-    const adminRow = (roles ?? []).find((r: any) => r.role === "admin");
+    const adminRow = (roles ?? []).find((r) => r.role === "admin");
     const isAdmin = !!adminRow;
     const isMain = !!adminRow?.is_main_admin;
     const permissionLevel: "view_only" | "agency_support" | "edit" = isMain
       ? "edit"
-      : ((adminRow?.permission_level as any) ?? "edit");
+      : (adminRow?.permission_level ?? "edit");
     const canEdit = isAdmin && permissionLevel === "edit";
     // Agency Support sits between view-only and full edit: it may act on
     // agency invitations but not suspend agencies or manage administrators.
@@ -262,7 +268,7 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
 
     // Load current profile + is-main-admin so we can enforce that only Main
@@ -326,7 +332,7 @@ export const logOwnEmailChangeRequest = createServerFn({ method: "POST" })
     parseInput(z.object({ new_email: z.string().max(10000).email() }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -347,7 +353,7 @@ export const logOwnEmailChangeRequest = createServerFn({ method: "POST" })
 export const getDashboardMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
 
     // Counts use head-only exact counts so the dashboard never streams whole
@@ -383,7 +389,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
         .gt("expires_at", nowIso),
       // Open connection requests live in the private record (agencies can't
       // see them); inert invitations are not requests.
-      (supabase as any)
+      supabase
         .from("talent_invite_private")
         .select("invitation_id, talent_invitations!inner(status, expires_at)", {
           count: "exact",
@@ -424,7 +430,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     const totalTalent = talentSplit.total;
     const totalDocs =
       (docs.data ?? []).reduce(
-        (sum: number, d: any) => sum + (d.shared_folder_count ?? 0) + (d.private_vault_count ?? 0),
+        (sum: number, d) => sum + (d.shared_folder_count ?? 0) + (d.private_vault_count ?? 0),
         0,
       ) ?? 0;
     const activeShares = shares.count ?? 0;
@@ -449,7 +455,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
 // -----------------------------------------------------------------------------
 // Agencies
 // -----------------------------------------------------------------------------
-async function loadAgenciesWithInvitations(supabase: any) {
+async function loadAgenciesWithInvitations(supabase: AdminClient) {
   const { data, error } = await supabase
     .from("agencies")
     .select("*")
@@ -472,9 +478,10 @@ async function loadAgenciesWithInvitations(supabase: any) {
     .neq("status", "revoked")
     .order("created_at", { ascending: false });
 
-  const invitationByAgencyId = new Map<string, any>();
-  const invitationByEmail = new Map<string, any>();
-  const invitationByName = new Map<string, any>();
+  type AgencyInvitation = NonNullable<typeof invitations>[number];
+  const invitationByAgencyId = new Map<string, AgencyInvitation>();
+  const invitationByEmail = new Map<string, AgencyInvitation>();
+  const invitationByName = new Map<string, AgencyInvitation>();
   for (const inv of invitations ?? []) {
     if (inv.agency_id && !invitationByAgencyId.has(inv.agency_id)) {
       invitationByAgencyId.set(inv.agency_id, inv);
@@ -485,7 +492,7 @@ async function loadAgenciesWithInvitations(supabase: any) {
     if (nameKey && !invitationByName.has(nameKey)) invitationByName.set(nameKey, inv);
   }
 
-  return (data ?? []).map((a: any) => ({
+  return (data ?? []).map((a) => ({
     ...a,
     talent_count: talentByAgency.get(a.id) ?? 0,
     invitation:
@@ -499,7 +506,7 @@ async function loadAgenciesWithInvitations(supabase: any) {
 export const listAgencies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     return loadAgenciesWithInvitations(supabase);
   });
@@ -525,7 +532,7 @@ export const listAccounts = createServerFn({ method: "GET" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const filters = {
       type: normaliseAccountType(data.type),
@@ -535,7 +542,7 @@ export const listAccounts = createServerFn({ method: "GET" })
       q: normaliseSearch(data.q),
     };
     const agencies = await loadAgenciesWithInvitations(supabase);
-    const agencyName = new Map<string, string>(agencies.map((a: any) => [a.id, a.name]));
+    const agencyName = new Map<string, string>(agencies.map((a) => [a.id, a.name]));
 
     const { data: profiles, error: pErr } = await supabase
       .from("talent_profiles")
@@ -544,8 +551,8 @@ export const listAccounts = createServerFn({ method: "GET" })
       )
       .is("deleted_at", null);
     if (pErr) throw databaseError(pErr);
-    const userIds = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
-    const linksByUser = new Map<string, string[]>();
+    const userIds = (profiles ?? []).map((p) => p.user_id).filter(Boolean);
+    const linksByUser = new Map<string | null, string[]>();
     if (userIds.length) {
       const { data: links, error: lErr } = await supabase
         .from("agency_talent_links")
@@ -563,7 +570,7 @@ export const listAccounts = createServerFn({ method: "GET" })
     }
 
     const all = [
-      ...agencies.map((a: any) => ({
+      ...agencies.map((a) => ({
         ...a,
         key: `agency-${a.id}`,
         type: "agency" as const,
@@ -583,7 +590,7 @@ export const listAccounts = createServerFn({ method: "GET" })
           a.invitation?.email,
         ],
       })),
-      ...(profiles ?? []).map((p: any) => ({
+      ...(profiles ?? []).map((p) => ({
         key: `talent-${p.id}`,
         id: p.id,
         user_id: p.user_id,
@@ -599,13 +606,13 @@ export const listAccounts = createServerFn({ method: "GET" })
         // Linked agency names: searching an agency also finds its talent.
         search_text: [p.full_name, p.email, ...(linksByUser.get(p.user_id) ?? [])],
       })),
-    ].sort((a: any, b: any) => (a.joined_at < b.joined_at ? 1 : -1));
+    ].sort((a, b) => (a.joined_at < b.joined_at ? 1 : -1));
 
     const matching = filterAccounts(all, filters);
     return {
       rows: matching
         .slice(data.offset, data.offset + data.limit)
-        .map(({ search_text: _s, ...r }: any) => r),
+        .map(({ search_text: _s, ...r }) => r),
       total: matching.length,
       counts: accountOptionCounts(all, filters),
     };
@@ -621,17 +628,19 @@ export const setAccountTest = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const table = data.type === "agency" ? "agencies" : "talent_profiles";
     const label = data.type === "agency" ? "name" : "full_name";
-    const { data: row, error } = await (supabaseAdmin as any)
+    const { data: row, error } = await supabaseAdmin
       .from(table)
       .update({ is_test: data.isTest })
       .eq("id", data.id)
       .select(`id, ${label}`)
-      .maybeSingle();
+      // The table and label are paired above; dynamic projection inference cannot retain that pairing.
+      .maybeSingle()
+      .overrideTypes<{ id: string; name?: string; full_name?: string | null }, { merge: false }>();
     if (error) throw databaseError(error);
     if (!row) throw new Error("We couldn't find that account.");
     await logAudit(
@@ -652,10 +661,10 @@ export const getTalentAccountById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin as any;
+    const admin = supabaseAdmin;
     const { data: p, error } = await admin
       .from("talent_profiles")
       .select(
@@ -672,7 +681,7 @@ export const getTalentAccountById = createServerFn({ method: "GET" })
         .from("agency_talent_links")
         .select("status, agencies(name)")
         .eq("talent_user_id", p.user_id);
-      agencies = (links ?? []).map((l: any) => ({
+      agencies = (links ?? []).map((l) => ({
         name: l.agencies?.name ?? "—",
         status: l.status,
       }));
@@ -697,7 +706,7 @@ export const getAgencyById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     const { data: agency, error } = await supabase
       .from("agencies")
@@ -713,7 +722,7 @@ export const getAgencyById = createServerFn({ method: "GET" })
 export const getReadOnlyYears = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase.rpc("post_end_read_only_years");
     if (error) throw databaseError(error);
@@ -723,7 +732,7 @@ export const getReadOnlyYears = createServerFn({ method: "GET" })
 const BAN_DURATION = "876000h"; // ~100 years; lifted on unpause
 
 /** Blocks sign-in (and token refresh) for these users; returns the ones we banned. */
-async function banUsers(admin: any, userIds: string[]): Promise<string[]> {
+async function banUsers(admin: AdminClient, userIds: string[]): Promise<string[]> {
   const banned: string[] = [];
   for (const id of [...new Set(userIds)]) {
     const { data: isAdmin } = await admin.rpc("has_role", { _user_id: id, _role: "admin" });
@@ -740,7 +749,7 @@ async function banUsers(admin: any, userIds: string[]): Promise<string[]> {
   return banned;
 }
 
-async function unbanUsers(admin: any, userIds: string[]) {
+async function unbanUsers(admin: AdminClient, userIds: string[]) {
   for (const id of [...new Set(userIds)]) {
     const { error } = await admin.auth.admin.updateUserById(id, { ban_duration: "none" });
     if (error) throw databaseError(error);
@@ -767,7 +776,7 @@ export const changeAccountState = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { canApplyAccountAction, isValidReason, reasonsFor } =
       await import("@/lib/account-state");
@@ -777,14 +786,17 @@ export const changeAccountState = createServerFn({ method: "POST" })
     }
     const note = data.note?.trim() || null;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin as any;
+    const admin = supabaseAdmin;
     const table = data.type === "agency" ? "agencies" : "talent_profiles";
-    const { data: row, error: rErr } = await admin
+    const { data: selectedRow, error: rErr } = await admin
       .from(table)
       .select("*")
       .eq("id", data.id)
       .maybeSingle();
     if (rErr) throw databaseError(rErr);
+    // The selected table determines these variant fields; keep the existing type-based accesses unchanged.
+    const row = selectedRow as (Tables<"agencies"> | Tables<"talent_profiles">) &
+      Partial<Tables<"agencies"> & Tables<"talent_profiles">>;
     if (!row || (data.type === "talent" && row.deleted_at))
       throw new Error("We couldn't find that account.");
     const state = {
@@ -795,7 +807,20 @@ export const changeAccountState = createServerFn({ method: "POST" })
       throw new Error("That action isn't available for this account's current status.");
     }
     const now = new Date().toISOString();
-    let patch: Record<string, unknown> = {};
+    let patch: Pick<
+      TablesUpdate<"agencies">,
+      | "paused_at"
+      | "paused_by"
+      | "pause_reason"
+      | "pause_note"
+      | "paused_banned_user_ids"
+      | "status"
+      | "suspended_at"
+      | "suspended_by"
+      | "suspension_reason"
+      | "suspension_note"
+    > &
+      Pick<TablesUpdate<"talent_profiles">, "paused_banned"> = {};
 
     if (data.action === "pause") {
       let userIds: string[] = [];
@@ -804,7 +829,7 @@ export const changeAccountState = createServerFn({ method: "POST" })
           .from("agency_members")
           .select("user_id")
           .eq("agency_id", data.id);
-        userIds = (members ?? []).map((m: any) => m.user_id).filter(Boolean);
+        userIds = (members ?? []).map((m) => m.user_id).filter(Boolean);
       } else if (row.user_id) userIds = [row.user_id];
       const banned = await banUsers(admin, userIds);
       patch = {
@@ -849,7 +874,23 @@ export const changeAccountState = createServerFn({ method: "POST" })
       };
     }
 
-    const { error: uErr } = await admin.from(table).update(patch).eq("id", data.id);
+    const { error: uErr } = await admin
+      .from(table)
+      // Variant-only patch keys are selected by data.type above; the dynamic table union loses that correlation.
+      .update(
+        patch as Pick<
+          TablesUpdate<"agencies">,
+          | "paused_at"
+          | "paused_by"
+          | "pause_reason"
+          | "pause_note"
+          | "suspended_at"
+          | "suspended_by"
+          | "suspension_reason"
+          | "suspension_note"
+        >,
+      )
+      .eq("id", data.id);
     if (uErr) throw databaseError(uErr);
     const label = data.type === "agency" ? row.name : row.full_name || row.email;
     await logAudit(
@@ -886,7 +927,7 @@ export const listAgencyInvitationsForAgency = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ agency_id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_invitations")
@@ -901,7 +942,7 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ agency_id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: rows, error } = await supabase
       .from("talent_invitations")
@@ -911,14 +952,14 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
     if (error) throw databaseError(error);
     // Inert invitations (to staff/admin accounts etc.) are not real invitations.
     const inert = await inertInvitationIds(supabase);
-    return mapEffectiveStatus((rows ?? []).filter((r: any) => !inert.has(r.id)));
+    return mapEffectiveStatus((rows ?? []).filter((r) => !inert.has(r.id)));
   });
 
 export const getInvitationById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: inv, error } = await supabase
       .from("agency_invitations")
@@ -933,7 +974,7 @@ export const dismissNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { error } = await supabase
       .from("admin_notifications")
@@ -952,7 +993,7 @@ export const dismissComputedNotification = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { error } = await supabase.from("admin_notification_dismissals").upsert(
       {
@@ -1005,25 +1046,40 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const nowIso = new Date().toISOString();
 
-    const applyFilters = (q: any, status: string) => {
-      let out = q;
+    const invitationQueries = () => ({
+      list: supabase.from("agency_invitations").select("*", { count: "exact" }),
+      count: supabase.from("agency_invitations").select("id", { count: "exact", head: true }),
+    });
+    const applyFilters = <
+      Q extends
+        | ReturnType<typeof invitationQueries>["list"]
+        | ReturnType<typeof invitationQueries>["count"],
+    >(
+      q: Q,
+      status: string,
+    ) => {
+      let out:
+        | ReturnType<typeof invitationQueries>["list"]
+        | ReturnType<typeof invitationQueries>["count"] = q;
       if (status === "expired") {
         out = out.eq("status", "pending").lt("expires_at", nowIso);
       } else if (status === "pending") {
         out = out.eq("status", "pending").gte("expires_at", nowIso);
       } else if (status !== "all") {
-        out = out.eq("status", status);
+        // The existing validator allows arbitrary strings; preserve database handling rather than adding validation.
+        out = out.eq("status", status as Tables<"agency_invitations">["status"]);
       }
       const term = data.search.trim();
       if (term) {
         const like = `%${term.replace(/[%,()]/g, "")}%`;
         out = out.or(`agency_name.ilike.${like},email.ilike.${like},contact_person.ilike.${like}`);
       }
-      return out;
+      // Filters preserve the caller's selected row projection.
+      return out as Q;
     };
 
     const tabs = ["all", "draft", "pending", "accepted", "expired", "declined", "revoked"];
@@ -1082,7 +1138,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const type = normaliseInvitationType(data.type);
     const status = normaliseInvitationStatus(data.status);
@@ -1094,9 +1150,9 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       supabase.from("agencies").select("id").eq("is_test", true),
       supabase.from("talent_profiles").select("email").eq("is_test", true),
     ]);
-    const testAgencyIds: string[] = (testAg ?? []).map((r: any) => r.id);
+    const testAgencyIds: string[] = (testAg ?? []).map((r) => r.id);
     const testEmails: string[] = (testTal ?? [])
-      .map((r: any) =>
+      .map((r) =>
         String(r.email ?? "")
           .trim()
           .toLowerCase(),
@@ -1122,14 +1178,28 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       if (ag.error) throw databaseError(ag.error);
       if (ta.error) throw databaseError(ta.error);
       searchIds.agency = (ag.data ?? [])
-        .filter((r: any) => matchesSearch([r.agency_name, r.contact_person, r.email], term))
-        .map((r: any) => r.id);
+        .filter((r) => matchesSearch([r.agency_name, r.contact_person, r.email], term))
+        .map((r) => r.id);
       searchIds.talent = (ta.data ?? [])
-        .filter((r: any) => matchesSearch([r.talent_name, r.email], term))
-        .map((r: any) => r.id);
+        .filter((r) => matchesSearch([r.talent_name, r.email], term))
+        .map((r) => r.id);
     }
     const quoteList = (xs: string[]) => xs.map((x) => `"${x.replace(/"/g, "")}"`).join(",");
-    const byScope = (q: any, t: InvitationType) => {
+    type AgencyInvite = Tables<"agency_invitations">;
+    type TalentInvite = Tables<"independent_talent_invitations">;
+    type InvitationFilterRow = {
+      [K in keyof AgencyInvite | keyof TalentInvite]?:
+        | (K extends keyof AgencyInvite ? AgencyInvite[K] : never)
+        | (K extends keyof TalentInvite ? TalentInvite[K] : never);
+    };
+    type InvitationQuery<R> = PostgrestFilterBuilder<
+      Database["__InternalSupabase"],
+      Database["public"],
+      AgencyInvite | TalentInvite,
+      R,
+      "agency_invitations" | "independent_talent_invitations"
+    >;
+    const byScope = <R>(q: InvitationQuery<R>, t: InvitationType) => {
       if (scope === "all") return q;
       const ids = t === "agency" ? testAgencyIds : testEmails;
       const col = t === "agency" ? "agency_id" : "email";
@@ -1140,7 +1210,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         ? q.or(`agency_id.is.null,agency_id.not.in.(${quoteList(ids)})`)
         : q.not("email", "in", `(${quoteList(ids)})`);
     };
-    const isTestRow = (r: any, t: InvitationType) =>
+    const isTestRow = (r: Pick<InvitationFilterRow, "agency_id" | "email">, t: InvitationType) =>
       t === "agency"
         ? !!r.agency_id && testAgencyIds.includes(r.agency_id)
         : testEmails.includes(
@@ -1160,8 +1230,17 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     } as const;
     // Only agency onboarding invitations: agency staff invitations share the
     // agency_invitations table (kind = 'staff') and are not Admin invitations.
-    const byStatus = (q0: any, s: string, t: InvitationType) => {
-      const q1 = byScope(t === "agency" ? q0.eq("kind", ADMIN_AGENCY_INVITATION_KIND) : q0, t);
+    const byStatus = <R>(q0: InvitationQuery<R>, s: string, t: InvitationType) => {
+      const q1 = byScope(
+        t === "agency"
+          ? // Only agency queries take this branch; the union exposes common column keys only.
+            (q0.eq as (column: "kind", value: AgencyInvite["kind"]) => InvitationQuery<R>)(
+              "kind",
+              ADMIN_AGENCY_INVITATION_KIND,
+            )
+          : q0,
+        t,
+      );
       const q2 = email ? q1.ilike("email", `%${email}%`) : q1;
       const ids = searchIds[t];
       const q =
@@ -1170,7 +1249,9 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
           : q2.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
-      if (s !== "all") return q.eq("status", s);
+      if (s !== "all")
+        // Normalisation precedes this helper; keep its existing string contract and database filter.
+        return q.eq("status", s as Tables<"agency_invitations">["status"]);
       return q;
     };
 
@@ -1198,12 +1279,49 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
           t,
         )
           .order("created_at", { ascending: false })
-          .range(0, window - 1);
+          .range(0, window - 1)
+          // Table and columns are paired by t; dynamic select inference otherwise cross-combines them.
+          .overrideTypes<
+            Array<
+              | Pick<
+                  AgencyInvite,
+                  | "id"
+                  | "agency_id"
+                  | "agency_name"
+                  | "contact_person"
+                  | "email"
+                  | "status"
+                  | "expires_at"
+                  | "created_at"
+                  | "updated_at"
+                  | "last_sent_at"
+                  | "send_count"
+                  | "token"
+                >
+              | Pick<
+                  TalentInvite,
+                  | "id"
+                  | "talent_name"
+                  | "email"
+                  | "status"
+                  | "expires_at"
+                  | "created_at"
+                  | "updated_at"
+                  | "last_sent_at"
+                  | "send_count"
+                >
+            >,
+            { merge: false }
+          >();
         if (error) throw databaseError(error);
-        return (rows ?? []).map((r: any) => ({
+        return (rows ?? []).map((r) => ({
           ...r,
           type: t,
-          name: t === "agency" ? r.agency_name : r.talent_name,
+          // The table discriminator selects the matching name field; retain the original direct field access.
+          name:
+            t === "agency"
+              ? (r as { agency_name?: AgencyInvite["agency_name"] }).agency_name
+              : (r as { talent_name?: TalentInvite["talent_name"] }).talent_name,
           stored_status: r.status as string,
           status: effectiveInvitationStatus(r.status, r.expires_at),
           is_test: isTestRow(r, t),
@@ -1212,7 +1330,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     );
     const rows = fetched
       .flat()
-      .sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1))
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
       .slice(data.offset, window);
     const total = types.reduce((n, t) => n + (counts[t][status] ?? 0), 0);
     return { rows, total, counts };
@@ -1235,7 +1353,7 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
 
     const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
@@ -1340,7 +1458,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
 
     const { data: inv, error: iErr } = await supabase
@@ -1372,7 +1490,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
       }
     }
 
-    const patch: Record<string, unknown> = {};
+    const patch: TablesUpdate<"agency_invitations"> = {};
     if (data.agency_name !== undefined) patch.agency_name = data.agency_name;
     if (data.contact_person !== undefined) patch.contact_person = data.contact_person || null;
     if (data.email !== undefined) patch.email = data.email;
@@ -1395,7 +1513,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
     if (uErr) throw databaseError(uErr);
 
     if (inv.agency_id) {
-      const agencyPatch: Record<string, unknown> = {};
+      const agencyPatch: TablesUpdate<"agencies"> = {};
       if (data.agency_name !== undefined) agencyPatch.name = data.agency_name;
       if (data.email !== undefined) agencyPatch.contact_email = nextEmail;
       if (data.contact_person !== undefined)
@@ -1439,7 +1557,7 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
 
     const { data: inv, error: iErr } = await supabase
@@ -1463,7 +1581,7 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
       .eq("invitation_id", data.id)
       .not("validated_at", "is", null)
       .is("quarantine_reason", null);
-    const uploadedSlots = new Set((docs ?? []).map((d: any) => d.doc_slot));
+    const uploadedSlots = new Set((docs ?? []).map((d) => d.doc_slot));
     const missing = REQUIRED_FILE_SLOTS[bt].filter((s) => !uploadedSlots.has(s));
     if (missing.length > 0) {
       throw new Error(
@@ -1511,7 +1629,7 @@ export const listComplianceDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ invitation_id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_compliance_documents")
@@ -1539,7 +1657,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: inv, error: iErr } = await supabase
       .from("agency_invitations")
@@ -1627,7 +1745,7 @@ export const deleteComplianceDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: doc, error: fErr } = await supabase
       .from("agency_compliance_documents")
@@ -1656,7 +1774,7 @@ export const deleteAgencyInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
 
     const { data: inv, error: iErr } = await supabase
@@ -1676,7 +1794,7 @@ export const deleteAgencyInvitation = createServerFn({ method: "POST" })
       .from("agency_compliance_documents")
       .select("storage_path")
       .eq("invitation_id", data.id);
-    const paths = (docs ?? []).map((d: any) => d.storage_path);
+    const paths = (docs ?? []).map((d) => d.storage_path);
     if (paths.length > 0) {
       await supabase.storage.from("agency-compliance-docs").remove(paths);
     }
@@ -1736,7 +1854,7 @@ export const resendInvitation = createServerFn({ method: "POST" })
     parseInput(z.object({ id: z.string().max(10000), extend_days: z.number().default(14) }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanSupportAgencies(supabase, userId);
     const expires_at = new Date(Date.now() + data.extend_days * 24 * 3600 * 1000).toISOString();
     const { data: current } = await supabase
@@ -1783,7 +1901,7 @@ export const revokeInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanSupportAgencies(supabase, userId);
     const { data: inv, error } = await supabase
       .from("agency_invitations")
@@ -1812,7 +1930,7 @@ export const updateInvitationEmail = createServerFn({ method: "POST" })
     parseInput(z.object({ id: z.string().max(10000), email: z.string().max(10000).email() }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanSupportAgencies(supabase, userId);
     const { data: existing, error: exErr } = await supabase
       .from("agency_invitations")
@@ -1854,7 +1972,7 @@ export const logCopyLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanSupportAgencies(supabase, userId);
     const { data: inv } = await supabase
       .from("agency_invitations")
@@ -1878,7 +1996,7 @@ export const logTalentInviteCopyLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     const { data: inv } = await supabase
       .from("independent_talent_invitations")
@@ -1917,7 +2035,7 @@ export const listAuditLog = createServerFn({ method: "GET" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     let q = supabase
       .from("admin_audit_log")
@@ -1940,7 +2058,7 @@ export const listAuditLog = createServerFn({ method: "GET" })
 export const getAuditLogSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("admin_audit_log")
@@ -1948,7 +2066,7 @@ export const getAuditLogSummary = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(5000);
     if (error) throw databaseError(error);
-    const rows = (data ?? []) as any[];
+    const rows = data ?? [];
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const byAction: Record<string, number> = {};
@@ -2008,7 +2126,7 @@ export const logBillingExport = createServerFn({ method: "POST" })
     parseInput(z.object({ scope: z.string().max(10000), row_count: z.number() }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -2029,7 +2147,7 @@ export const logBillingExport = createServerFn({ method: "POST" })
 export const listAdministrators = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: roles, error } = await supabase
       .from("user_roles")
@@ -2038,18 +2156,18 @@ export const listAdministrators = createServerFn({ method: "GET" })
       )
       .eq("role", "admin");
     if (error) throw databaseError(error);
-    const ids = (roles ?? []).map((r: any) => r.user_id);
+    const ids = (roles ?? []).map((r) => r.user_id);
     if (ids.length === 0) return [];
     const { data: profs } = await supabase
       .from("profiles")
       .select("id, email, display_name, designation")
       .in("id", ids);
-    const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
-    return (roles ?? []).map((r: any) => ({
+    const profMap = new Map((profs ?? []).map((p) => [p.id, p]));
+    return (roles ?? []).map((r) => ({
       user_id: r.user_id,
-      email: (profMap.get(r.user_id) as any)?.email ?? "",
-      display_name: (profMap.get(r.user_id) as any)?.display_name ?? "",
-      designation: (profMap.get(r.user_id) as any)?.designation ?? "",
+      email: profMap.get(r.user_id)?.email ?? "",
+      display_name: profMap.get(r.user_id)?.display_name ?? "",
+      designation: profMap.get(r.user_id)?.designation ?? "",
       is_main_admin: r.is_main_admin,
       permission_level: r.permission_level as "view_only" | "agency_support" | "edit",
       suspended: !!r.suspended,
@@ -2065,7 +2183,7 @@ export const listAdministrators = createServerFn({ method: "GET" })
 export const listAdminInvitations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("admin_invitations")
@@ -2088,7 +2206,7 @@ export const inviteAdministrator = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     // Any administrator at the highest permission level may invite colleagues;
     // the Main Administrator retains this ability too. Enforced server-side.
     const inviter = await assertCanInviteAdministrator(supabase, userId);
@@ -2147,7 +2265,7 @@ export const updateAdminInvitation = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const editor = await assertCanInviteAdministrator(supabase, userId);
     assertGrantablePermission(editor.permissionLevel, data.permission_level);
 
@@ -2198,7 +2316,7 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertCanInviteAdministrator(supabase, userId);
 
     const { data: inv, error } = await supabase
@@ -2238,7 +2356,7 @@ export const resendAdminInvitation = createServerFn({ method: "POST" })
     parseInput(z.object({ id: z.string().max(10000), extend_days: z.number().default(14) }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertCanInviteAdministrator(supabase, userId);
 
     const { data: existing, error: exErr } = await supabase
@@ -2286,7 +2404,7 @@ export const deleteAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertCanInviteAdministrator(supabase, userId);
 
     const { data: inv, error } = await supabase
@@ -2328,7 +2446,7 @@ export const deleteAdminInvitation = createServerFn({ method: "POST" })
 export const logOwnPasswordChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -2348,7 +2466,7 @@ export const logOwnPasswordChange = createServerFn({ method: "POST" })
 export const listNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
 
     const now = new Date();
@@ -2437,7 +2555,7 @@ export const listNotifications = createServerFn({ method: "GET" })
         "/admin/agencies",
       );
     // Inert invitations are not real invitations.
-    const { count: inertPending } = await (supabase as any)
+    const { count: inertPending } = await supabase
       .from("talent_invite_private")
       .select("invitation_id, talent_invitations!inner(status)", { count: "exact", head: true })
       .eq("kind", "inert")
@@ -2468,7 +2586,7 @@ export const listNotifications = createServerFn({ method: "GET" })
       .select("kind, snapshot")
       .eq("user_id", userId);
     const dismissedMap = new Map<string, number>(
-      (dismissals ?? []).map((d: any) => [d.kind, d.snapshot]),
+      (dismissals ?? []).map((d) => [d.kind, d.snapshot]),
     );
     const visibleComputed = computed.filter((c) => dismissedMap.get(c.kind) !== c.snapshot);
 
@@ -2484,7 +2602,7 @@ export const logMfaEnrolled = createServerFn({ method: "POST" })
     parseInput(z.object({ factor_type: z.string().max(10000).default("email_code") }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -2502,7 +2620,7 @@ export const logMfaEnrolled = createServerFn({ method: "POST" })
 export const logMfaDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -2533,7 +2651,7 @@ export const updateAdministrator = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertMainAdmin(supabase, userId);
 
     // Load target role + profile to build a proper audit diff and to protect
@@ -2624,7 +2742,7 @@ export const setAdministratorSuspended = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertMainAdmin(supabase, userId);
 
     if (data.user_id === userId) {
@@ -2678,7 +2796,7 @@ export const removeAdministrator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ user_id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertMainAdmin(supabase, userId);
 
     if (data.user_id === userId) {
@@ -2728,7 +2846,7 @@ export const getAdminInvitationById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: inv, error } = await supabase
       .from("admin_invitations")
