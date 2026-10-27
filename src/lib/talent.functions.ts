@@ -957,7 +957,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
 
     const { data: contactRows } = await supabase
       .from("loved_one_shares")
-      .select("id, loved_one_name, expires_at")
+      .select("id, loved_one_name, relationship, expires_at, scope")
       .eq("talent_id", userId)
       .eq("is_active", true)
       .is("revoked_at", null)
