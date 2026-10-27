@@ -298,7 +298,8 @@ function InvitationsPage() {
                           actions={(() => {
                             const allowed = invitationActions({
                               status: i.status,
-                              storedStatus: (i as InvitationRow & { stored_status?: string }).stored_status,
+                              storedStatus: (i as InvitationRow & { stored_status?: string })
+                                .stored_status,
                               viewer: isOwner ? "agency_owner" : "agency_staff",
                               canWrite: !readOnly,
                             });
