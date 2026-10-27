@@ -115,7 +115,9 @@ export function QuotesInvoicesSettingsPanel() {
       });
     },
     onSuccess: (updated) => {
-      setForm((current) => current ? ({ ...current, accent_color: updated.accent_color }) : current);
+      setForm((current) =>
+        current ? { ...current, accent_color: updated.accent_color } : current,
+      );
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
     },
