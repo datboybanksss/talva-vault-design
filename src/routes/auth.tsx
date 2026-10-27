@@ -11,7 +11,7 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  MFA_ENFORCED,
+  isMfaEnforced,
   PORTAL_FOR_DENIED_CODE,
   checkPortalAccess,
   accessAfterSignIn,
@@ -36,7 +36,6 @@ import {
   requestSignInCode,
   verifySignInCode,
 } from "@/lib/mfa.functions";
-import { browserSessionId } from "@/lib/device";
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
 function recordSignIn() {
@@ -390,9 +389,9 @@ function AuthPage() {
   // What happens once the password has been accepted: the account's own
   // records decide whether it needs first-time set-up, a code, or nothing.
   const afterPassword = useCallback(async () => {
-    // Temporary: while MFA_ENFORCED is off (sending domain unverified), a
-    // correct password is enough on its own.
-    if (!MFA_ENFORCED) {
+    // While the database switch mfa_enforced is off, a correct password is
+    // enough on its own.
+    if (!(await isMfaEnforced())) {
       recordSignIn();
       await goNext(true);
       return;
@@ -400,8 +399,8 @@ function AuthPage() {
     // Every password sign-in earns a fresh code, even on a browser that was
     // verified earlier today. The code screen appears straight away.
     setCodeStage(true);
-    await beginSignInChallenge({ data: { device: browserSessionId() } }).catch(() => {});
-    const status = await getMfaStatus({ data: { device: browserSessionId() } });
+    await beginSignInChallenge({ data: {} }).catch(() => {});
+    const status = await getMfaStatus({ data: {} });
     if (status.gate === "enrol") {
       setCodeStage(false);
       nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
@@ -494,7 +493,7 @@ function AuthPage() {
     setBusy(true);
     try {
       const res = await verifySignInCode({
-        data: { code: mfaCode.trim(), device: browserSessionId() },
+        data: { code: mfaCode.trim() },
       });
       if (!res.ok) {
         setInfo(null);

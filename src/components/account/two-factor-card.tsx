@@ -5,7 +5,6 @@ import { MailCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMfaStatus } from "@/lib/mfa.functions";
-import { browserSessionId } from "@/lib/device";
 import { SectionHeader } from "./section-header";
 
 /**
@@ -20,8 +19,8 @@ export function TwoFactorCard({ contextLabel = "account" }: { contextLabel?: str
   const getStatus = useServerFn(getMfaStatus);
 
   const status = useQuery({
-    queryKey: ["mfa", "status", browserSessionId()],
-    queryFn: () => getStatus({ data: { device: browserSessionId() } }),
+    queryKey: ["mfa", "status"],
+    queryFn: () => getStatus({ data: {} }),
   });
 
   const [email, setEmail] = useState<string | null>(null);
