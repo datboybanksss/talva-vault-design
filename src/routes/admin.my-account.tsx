@@ -66,7 +66,7 @@ function MyAccountPage() {
 
 /* ----------------------------- Profile ----------------------------- */
 
-function ProfileCard({ me }: { me: any }) {
+function ProfileCard({ me }: { me: Awaited<ReturnType<typeof whoami>> }) {
   const qc = useQueryClient();
   const updateFn = useServerFn(updateOwnProfile);
 
@@ -94,7 +94,7 @@ function ProfileCard({ me }: { me: any }) {
       qc.invalidateQueries({ queryKey: ["whoami"] });
       qc.invalidateQueries({ queryKey: ["admin", "administrators"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update profile")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to update profile")),
   });
 
   const dirty =
@@ -171,7 +171,7 @@ function ProfileCard({ me }: { me: any }) {
 
 /* ------------------------------ Email ------------------------------ */
 
-function EmailCard({ me }: { me: any }) {
+function EmailCard({ me }: { me: Awaited<ReturnType<typeof whoami>> }) {
   const logEmailFn = useServerFn(logOwnEmailChangeRequest);
   const [email, setEmail] = useState(me.email ?? "");
   const [busy, setBusy] = useState(false);
