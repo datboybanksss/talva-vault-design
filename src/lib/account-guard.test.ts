@@ -11,7 +11,12 @@ import { assertTalentWritable } from "./terms-guard";
 
 const run = () => {
   const next = vi.fn(async () => "ran");
-  const server = (blockPausedAccounts as any).options.server;
+  // The isolated guard test substitutes a string-returning next() for the framework envelope.
+  const server = blockPausedAccounts.options.server as (input: {
+    next: () => Promise<string>;
+    context: Record<string, never>;
+    data: undefined;
+  }) => Promise<string>;
   return { next, result: server({ next, context: {}, data: undefined }) };
 };
 
