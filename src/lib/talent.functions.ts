@@ -980,8 +980,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           name: c.loved_one_name as string,
           relationship: (c.relationship as string | null) ?? null,
           expiresAt: c.expires_at as string | null,
-          sharedDocs:
-            (scope.private_document_ids?.length ?? 0) + (scope.private_folder_ids?.length ?? 0),
+          sharedDocs: scope.private_document_ids?.length ?? 0,
         };
       }),
       todo,
