@@ -5,7 +5,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { useTalentInvitationActions } from "@/components/admin/talent-invitation-actions";
-import { useAgencyInvitationActions } from "@/components/admin/agency-invitation-actions";
+import {
+  useAgencyInvitationActions,
+  type AgencyInviteRow,
+} from "@/components/admin/agency-invitation-actions";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 import { FilterBar } from "@/components/shared/filter-bar";
@@ -236,7 +239,12 @@ export function CombinedInvitationsList({
                 </td>
                 <td>
                   <RowActionsMenu
-                    actions={r.type === "talent" ? talentActions(r) : agencyActions.actionsFor(r)}
+                    // The combined server projection widens type; each branch retains its invitation fields.
+                    actions={
+                      r.type === "talent"
+                        ? talentActions(r as Extract<typeof r, { talent_name: string }>)
+                        : agencyActions.actionsFor(r as AgencyInviteRow)
+                    }
                   />
                 </td>
               </tr>
