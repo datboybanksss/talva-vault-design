@@ -2686,7 +2686,7 @@ export const applyAgencyFolderTemplate = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 
 const billingKind = z.enum(["quote", "invoice"]);
-const billingStatus = z.enum(["draft", "sent", "accepted", "paid", "overdue", "cancelled"]);
+const billingStatus = z.enum(["draft", "sent", "accepted", "declined", "partial", "paid", "overdue", "cancelled"]);
 
 export const listAgencyBillingDocs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

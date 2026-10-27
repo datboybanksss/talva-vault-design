@@ -1,6 +1,8 @@
 import type React from "react";
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, fmtMoney } from "@/lib/billing";
+import { BILLING_DOC_STATUS_LABEL } from "@/lib/status-labels";
+import { DEFAULT_BILLING_ACCENT } from "@/lib/billing-brand";
 
 export type BillingDocAgency = {
   name: string;
@@ -65,7 +67,7 @@ export function BillingDocument({
   agency: BillingDocAgency;
 }) {
   const totals = computeTotals(lines);
-  const accent = agency.accent_color || "#064E58";
+  const accent = agency.accent_color || DEFAULT_BILLING_ACCENT;
   const isVat = !!agency.is_vat_registered;
   const showVatCol = lines.some((l) => l.vat_rate_bp > 0);
   const heading = doc.kind === "quote" ? "Quotation" : isVat ? "Tax Invoice" : "Invoice";
@@ -163,6 +165,7 @@ export function BillingDocument({
             {heading}
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>{doc.number}</div>
+          <div>{BILLING_DOC_STATUS_LABEL[doc.status] ?? doc.status}</div>
           <div style={{ fontSize: 12, color: "#555", marginTop: 8 }}>
             <div>
               <strong>Issued:</strong> {doc.issued_at}
