@@ -1,6 +1,7 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { blockPausedAccounts } from "@/lib/account-guard";
+import { requireMfaSession } from "@/lib/mfa-gate";
 
 import { renderErrorPage } from "./lib/error-page";
 import { publicFunctionError } from "./lib/public-function-error";
@@ -36,5 +37,10 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware],
-  functionMiddleware: [functionErrorMiddleware, attachSupabaseAuth, blockPausedAccounts],
+  functionMiddleware: [
+    functionErrorMiddleware,
+    attachSupabaseAuth,
+    blockPausedAccounts,
+    requireMfaSession,
+  ],
 }));
