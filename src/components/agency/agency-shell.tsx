@@ -366,7 +366,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                           aria-label="Dismiss notification"
                           onClick={(e) => {
                             e.stopPropagation();
-                            dismissItem(n);
+                            dismissItem(n as typeof n & { key: string; snapshot: number });
                           }}
                         >
                           <X className="h-4 w-4" />
