@@ -19,6 +19,8 @@ import { AiFilingPreferenceCard } from "@/components/account/ai-filing-preferenc
 import { MyTermsAcceptances } from "@/components/shared/my-terms-acceptances";
 import { friendlyError } from "@/lib/friendly-error";
 
+type AgencyIdentity = Awaited<ReturnType<typeof agencyWhoami>>;
+
 export const Route = createFileRoute("/agency/my-account")({
   ssr: false,
   head: () => ({
@@ -88,7 +90,7 @@ function MyAccountPage() {
 
 /* ----------------------------- Profile ----------------------------- */
 
-function ProfileCard({ me }: { me: any }) {
+function ProfileCard({ me }: { me: AgencyIdentity }) {
   const qc = useQueryClient();
   const updateFn = useServerFn(updateOwnAgencyProfile);
 
@@ -112,7 +114,7 @@ function ProfileCard({ me }: { me: any }) {
       toast.success("Profile updated.");
       qc.invalidateQueries({ queryKey: ["agency", "whoami"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update profile")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to update profile")),
   });
 
   const dirty =
@@ -178,7 +180,7 @@ function ProfileCard({ me }: { me: any }) {
 
 /* ------------------------------ Email ------------------------------ */
 
-function EmailCard({ me }: { me: any }) {
+function EmailCard({ me }: { me: AgencyIdentity }) {
   const logEmailFn = useServerFn(logOwnAgencyEmailChangeRequest);
   const [email, setEmail] = useState(me.email ?? "");
   const [busy, setBusy] = useState(false);
