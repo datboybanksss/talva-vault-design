@@ -3698,7 +3698,7 @@ export type Database = {
         }[]
       }
       attach_talent_invite_private: {
-        Args: { _actor: string; _actor_email: string; _invitation_id: string }
+        Args: { _actor: string; _actor_email?: string; _invitation_id: string }
         Returns: string
       }
       billing_client_address: {
@@ -3986,6 +3986,8 @@ export type Database = {
         | "paid"
         | "overdue"
         | "cancelled"
+        | "declined"
+        | "partial"
       invitation_status:
         | "pending"
         | "accepted"
@@ -4164,7 +4166,16 @@ export const Constants = {
         "resubmission_required",
         "cancelled",
       ],
-      doc_status: ["draft", "sent", "accepted", "paid", "overdue", "cancelled"],
+      doc_status: [
+        "draft",
+        "sent",
+        "accepted",
+        "paid",
+        "overdue",
+        "cancelled",
+        "declined",
+        "partial",
+      ],
       invitation_status: [
         "pending",
         "accepted",
