@@ -29,3 +29,9 @@
 - Run full tests, separate source/other-target lint and automatic TypeScript/build validation. Keep authored explicit-any at zero.
 - No test-session minting or real-person Terms acceptance. State authenticated screen-check limitations honestly.
 - Report exact changes, actual erased/deleted counts, schema mismatches, structural rollback and irreversible effects.
+
+## Additional approved pre-launch fixes
+- Add environment-file ignore rules and a placeholder-only example. Confirm whether Lovable Cloud supplies the required browser configuration to preview/published builds before changing tracked-file status; leave managed `.env` tracked if that cannot be established safely. Scan the visible repository and available history for private credentials without printing their values.
+- Locate the earlier 116-site raw-error audit and rescan authored code. Route technical database/auth/network errors through the existing shared friendly-error helpers, preserving deliberate friendly messages and stable rule codes. Exclude two-factor files, MFA_ENFORCED and eslint configuration from changes; report any affected sites in those protected files as left unchanged.
+- Extend the mapper for permissions, duplicates, save constraints and connection failures; test that technical internals cannot reach user messages and that a representative server function returns friendly text. Log technical details server-side only.
+- Report actual sites/files fixed and leftovers, environment tracking status, full-suite results, separate lint totals and final automatic validation; mark each task complete only after verification.
