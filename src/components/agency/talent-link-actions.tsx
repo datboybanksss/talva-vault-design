@@ -7,7 +7,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   Ban,
   CircleStop,

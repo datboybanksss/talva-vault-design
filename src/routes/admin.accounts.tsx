@@ -29,7 +29,6 @@ import { useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { siteLinkFallback } from "@/lib/site-link-client";
-import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   listAccounts,
   setAccountTest,
