@@ -393,7 +393,14 @@ export function QuotesInvoicesSettingsPanel() {
                 className="tvp-qi-colour"
               />
               <span className="tvp-small">{form.accent_color}</span>
-              <Button type="button" variant="ghost" size="icon" title="Reset to default" aria-label="Reset to default" onClick={() => update("accent_color", DEFAULT_BILLING_ACCENT)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Reset to default"
+                aria-label="Reset to default"
+                onClick={() => update("accent_color", DEFAULT_BILLING_ACCENT)}
+              >
                 <RotateCcw />
               </Button>
             </div>

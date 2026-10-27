@@ -411,17 +411,22 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       .eq("state", "declined")
       .gte("responded_at", sinceIso);
     if (declineError) throw databaseError(declineError);
-    const declinedIds = (declines ?? []).flatMap((r) => r.link_id ? [r.link_id] : []);
+    const declinedIds = (declines ?? []).flatMap((r) => (r.link_id ? [r.link_id] : []));
     if (declinedIds.length) {
       const { data: declinedLinks, error: linksError } = await supabase
         .from("agency_talent_links")
-        .select("id, display_name, status, responded_at, declined_at, request_expires_at, updated_at")
+        .select(
+          "id, display_name, status, responded_at, declined_at, request_expires_at, updated_at",
+        )
         .eq("agency_id", agencyId)
         .in("id", declinedIds);
       if (linksError) throw databaseError(linksError);
       for (const link of declinedLinks ?? []) {
         const decline = declines?.find((r) => r.link_id === link.id);
-        responseMap.set(link.id, { ...link, declined_at: decline?.declined_at ?? link.declined_at });
+        responseMap.set(link.id, {
+          ...link,
+          declined_at: decline?.declined_at ?? link.declined_at,
+        });
       }
     }
     for (const r of responseMap.values()) computed.push(connectionResponseReminder(r));
@@ -2686,7 +2691,16 @@ export const applyAgencyFolderTemplate = createServerFn({ method: "POST" })
 // -----------------------------------------------------------------------------
 
 const billingKind = z.enum(["quote", "invoice"]);
-const billingStatus = z.enum(["draft", "sent", "accepted", "declined", "partial", "paid", "overdue", "cancelled"]);
+const billingStatus = z.enum([
+  "draft",
+  "sent",
+  "accepted",
+  "declined",
+  "partial",
+  "paid",
+  "overdue",
+  "cancelled",
+]);
 
 export const listAgencyBillingDocs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -2712,7 +2726,8 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
         .select("doc_id, amount_cents")
         .in("doc_id", ids);
       if (paymentError) throw databaseError(paymentError);
-      for (const p of payments ?? []) received.set(p.doc_id, (received.get(p.doc_id) ?? 0) + p.amount_cents);
+      for (const p of payments ?? [])
+        received.set(p.doc_id, (received.get(p.doc_id) ?? 0) + p.amount_cents);
     }
     return rows.map((r) => ({ ...r, received_cents: received.get(r.id) ?? 0 }));
   });

@@ -24,7 +24,22 @@ import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/quotes-invoices")({
-  head: () => ({ meta: [{ title: "Quotes & Invoices · TalVault Admin" }, { name: "description", content: "Review agency quotes, invoices and outstanding balances in TalVault." }, { property: "og:title", content: "Quotes & Invoices · TalVault Admin" }, { property: "og:description", content: "Review agency quotes, invoices and outstanding balances in TalVault." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({
+    meta: [
+      { title: "Quotes & Invoices · TalVault Admin" },
+      {
+        name: "description",
+        content: "Review agency quotes, invoices and outstanding balances in TalVault.",
+      },
+      { property: "og:title", content: "Quotes & Invoices · TalVault Admin" },
+      {
+        property: "og:description",
+        content: "Review agency quotes, invoices and outstanding balances in TalVault.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: QuotesInvoicesPage,
 });
 
@@ -37,8 +52,16 @@ const CHIPS: Array<{ key: ChipKey; label: string; tone: string }> = [
   { key: "draft", label: "Drafts", tone: "neutral" },
   { key: "sent", label: "Sent", tone: "blue" },
   { key: "accepted", label: "Accepted", tone: "green" },
-  { key: "declined", label: BILLING_DOC_STATUS_LABEL.declined, tone: BILLING_DOC_STATUS_TONE.declined },
-  { key: "partial", label: BILLING_DOC_STATUS_LABEL.partial, tone: BILLING_DOC_STATUS_TONE.partial },
+  {
+    key: "declined",
+    label: BILLING_DOC_STATUS_LABEL.declined,
+    tone: BILLING_DOC_STATUS_TONE.declined,
+  },
+  {
+    key: "partial",
+    label: BILLING_DOC_STATUS_LABEL.partial,
+    tone: BILLING_DOC_STATUS_TONE.partial,
+  },
   { key: "paid", label: "Paid", tone: "green" },
   { key: "overdue", label: "Overdue", tone: "red" },
 ];

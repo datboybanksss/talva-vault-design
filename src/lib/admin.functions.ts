@@ -1992,7 +1992,8 @@ export const listBillingDocs = createServerFn({ method: "GET" })
         .select("doc_id, amount_cents")
         .in("doc_id", ids);
       if (paymentError) throw databaseError(paymentError);
-      for (const p of payments ?? []) received.set(p.doc_id, (received.get(p.doc_id) ?? 0) + p.amount_cents);
+      for (const p of payments ?? [])
+        received.set(p.doc_id, (received.get(p.doc_id) ?? 0) + p.amount_cents);
     }
     return (data ?? []).map((r) => ({
       ...r,
