@@ -80,7 +80,7 @@ function EnrollTwoFactorPage() {
           return;
         }
         setEmail(user.email ?? "");
-        const status = await getMfaStatus({ data: { device: browserSessionId() } });
+        const status = await getMfaStatus({ data: {} });
         if (status.gate === "ok") {
           await goHome();
           return;
@@ -122,7 +122,7 @@ function EnrollTwoFactorPage() {
     setBusy(true);
     try {
       const res = await verifySignInCode({
-        data: { code: code.trim(), device: browserSessionId() },
+        data: { code: code.trim() },
       });
       if (!res.ok) {
         setError(res.message);

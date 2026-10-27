@@ -154,9 +154,19 @@ export async function resolveDeniedDestination(
 export type MfaGate = "ok" | "enrol" | "challenge";
 
 /**
- * TEMPORARILY OFF for testing at Lara's request (22 Oct 2026). Set back to true to restore.
+ * Whether two-step sign-in is enforced. The only switch is the database
+ * setting `mfa_enforced` (read through mfa_enforced()), which the server gate
+ * and the database policies also use, so they can never disagree. A failed
+ * read counts as "off" here only; the server and database still enforce.
  */
-export const MFA_ENFORCED = false;
+export async function isMfaEnforced(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc("mfa_enforced");
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Two-step sign-in state for the current session, resolved server-side from
@@ -165,11 +175,10 @@ export const MFA_ENFORCED = false;
  *  - "challenge" → enrolled, but this session hasn't entered a code yet
  */
 export async function checkMfaGate(): Promise<MfaGate> {
-  if (!MFA_ENFORCED) return "ok";
+  if (!(await isMfaEnforced())) return "ok";
   try {
     const { getMfaStatus } = await import("@/lib/mfa.functions");
-    const { browserSessionId } = await import("@/lib/device");
-    const status = await getMfaStatus({ data: { device: browserSessionId() } });
+    const status = await getMfaStatus({ data: {} });
     return status.gate;
   } catch {
     // A transient failure must never lock a legitimate user out of the portal.

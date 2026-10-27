@@ -20,8 +20,8 @@ export function TwoFactorCard({ contextLabel = "account" }: { contextLabel?: str
   const getStatus = useServerFn(getMfaStatus);
 
   const status = useQuery({
-    queryKey: ["mfa", "status", browserSessionId()],
-    queryFn: () => getStatus({ data: { device: browserSessionId() } }),
+    queryKey: ["mfa", "status"],
+    queryFn: () => getStatus({ data: {} }),
   });
 
   const [email, setEmail] = useState<string | null>(null);
