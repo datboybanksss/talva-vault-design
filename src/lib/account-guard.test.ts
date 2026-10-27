@@ -14,8 +14,11 @@ const run = () => {
   const server = blockPausedAccounts.options.server;
   if (!server) throw new Error("Guard middleware has no server handler");
   // The isolated test supplies only fields read by the guard, with a string-returning next().
-  const input = { next, context: {}, data: undefined } as Parameters<typeof server>[0];
-  return { next, result: blockPausedAccounts.options.server?.(input) };
+  const input: unknown = { next, context: {}, data: undefined };
+  return {
+    next,
+    result: blockPausedAccounts.options.server?.(input as Parameters<typeof server>[0]),
+  };
 };
 
 describe("server enforcement: paused accounts can't call any server function", () => {
