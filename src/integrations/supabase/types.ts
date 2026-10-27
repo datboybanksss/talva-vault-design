@@ -3808,6 +3808,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      mfa_enforced: { Args: never; Returns: boolean }
       mfa_session_ok: { Args: never; Returns: boolean }
       mint_billing_doc_number: {
         Args: { _agency_id: string; _kind: string }

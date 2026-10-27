@@ -141,6 +141,13 @@
       "when": 1793115918392,
       "tag": "0019_talent_privacy_guard_row_safe",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793124726437,
+      "tag": "0020_mfa_switch_and_session_check",
+      "breakpoints": true
     }
   ]
 }
