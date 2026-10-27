@@ -2262,7 +2262,7 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ document_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: doc, error: dErr } = await supabase
@@ -2282,7 +2282,7 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
       .order("version_number", { ascending: false });
     if (error) throw databaseError(error);
     const ids = Array.from(
-      new Set((versions ?? []).map((v: any) => v.uploaded_by).filter(Boolean)),
+      new Set((versions ?? []).map((v) => v.uploaded_by).filter((id): id is string => Boolean(id))),
     );
     const names = new Map<string, string>();
     if (ids.length) {
@@ -2290,14 +2290,22 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
         .from("profiles")
         .select("id, full_name, email")
         .in("id", ids);
-      for (const p of profs ?? []) names.set(p.id, p.full_name || p.email || "");
+      // Preserve the existing query for the absent full_name column; inspect only its legacy result fields.
+      for (const value of profs ?? []) {
+        const p: unknown = value;
+        if (p && typeof p === "object" && "id" in p && typeof p.id === "string") {
+          const fullName = "full_name" in p && typeof p.full_name === "string" ? p.full_name : null;
+          const email = "email" in p && typeof p.email === "string" ? p.email : null;
+          names.set(p.id, fullName || email || "");
+        }
+      }
     }
     return {
       currentVersionId: (doc.current_version_id as string) ?? null,
       currentStoragePath: (doc.storage_path as string) ?? null,
-      versions: (versions ?? []).map((v: any) => ({
+      versions: (versions ?? []).map((v) => ({
         ...v,
-        uploaded_by_name: names.get(v.uploaded_by) || null,
+        uploaded_by_name: names.get(v.uploaded_by as string) || null,
       })),
     };
   });
