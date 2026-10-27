@@ -222,7 +222,8 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
         .from("agency_talent_folders")
         .select("folder_name, sort_order")
         .eq("agency_id", agencyId)
-        .eq("talent_link_id", doc.talent_link_id)
+        // Preserve the existing nullable filter; the generated eq signature excludes null.
+        .eq("talent_link_id", doc.talent_link_id as string)
         .order("sort_order", { ascending: true });
       catalog = ((folders ?? []) as { folder_name: string }[]).map((f) => ({
         id: f.folder_name,
@@ -312,7 +313,8 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
         .from("agency_talent_folders")
         .select("folder_name")
         .eq("agency_id", agencyId)
-        .eq("talent_link_id", doc.talent_link_id)
+        // Preserve the existing nullable filter; the generated eq signature excludes null.
+        .eq("talent_link_id", doc.talent_link_id as string)
         .eq("folder_name", data.destination)
         .maybeSingle();
       if (!allowed && data.destination !== doc.folder) {
