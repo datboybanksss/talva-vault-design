@@ -86,7 +86,7 @@ function TalentDetailPage() {
   const listFn = useServerFn(listAgencyTalent);
   const roster = useQuery({ queryKey: ["agency", "talent"], queryFn: () => listFn() });
   const row = useMemo(
-    () => ((roster.data ?? []) as any[]).find((r) => r.id === linkId) ?? null,
+    () => (roster.data ?? []).find((r) => r.id === linkId) ?? null,
     [roster.data, linkId],
   );
 
@@ -100,7 +100,7 @@ function TalentDetailPage() {
   const whoFn = useServerFn(agencyWhoami);
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoFn() });
   const rowActions = useTalentLinkRowActions({
-    isOwner: (who.data as any)?.role === "owner",
+    isOwner: who.data?.role === "owner",
     hideOpen: true,
   });
 
@@ -114,7 +114,7 @@ function TalentDetailPage() {
           tab: filter === "awaiting" ? "needs_review" : filter === "expiring" ? "expiring" : "all",
           limit: 50,
         },
-      }) as Promise<{ rows: any[]; total: number }>,
+      }),
     enabled: tab === "documents" && !!row,
   });
 
@@ -125,7 +125,7 @@ function TalentDetailPage() {
     enabled: tab === "billing" && !!row,
   });
   const billingRows = useMemo(
-    () => ((billing.data ?? []) as any[]).filter((b) => b.talent_link_id === linkId),
+    () => (billing.data ?? []).filter((b) => b.talent_link_id === linkId),
     [billing.data, linkId],
   );
 
@@ -308,7 +308,7 @@ function TalentDetailPage() {
             <p className="tvp-muted">No documents in this view.</p>
           ) : (
             <ul className="tvp-list">
-              {docs.data!.rows.map((d: any) => (
+              {docs.data?.rows.map((d) => (
                 <li key={d.id} className="tvp-list-item">
                   <FileText className="h-5 w-5" aria-hidden="true" />
                   <div>
@@ -340,7 +340,7 @@ function TalentDetailPage() {
             <p className="tvp-muted">No quotes or invoices for this talent yet.</p>
           ) : (
             <ul className="tvp-list">
-              {billingRows.map((b: any) => (
+              {billingRows.map((b) => (
                 <li key={b.id} className="tvp-list-item">
                   <FileText className="h-5 w-5" aria-hidden="true" />
                   <div>
@@ -353,9 +353,9 @@ function TalentDetailPage() {
                   </div>
                   <strong>{fmtMoney(b.total_cents ?? 0, b.currency ?? "ZAR")}</strong>
                   <span
-                    className={`tvp-status tvp-${(BILLING_DOC_STATUS_TONE as any)[b.status] ?? "neutral"}`}
+                    className={`tvp-status tvp-${BILLING_DOC_STATUS_TONE[b.status] ?? "neutral"}`}
                   >
-                    {(BILLING_DOC_STATUS_LABEL as any)[b.status] ?? b.status}
+                    {BILLING_DOC_STATUS_LABEL[b.status] ?? b.status}
                   </span>
                 </li>
               ))}
@@ -373,7 +373,7 @@ function TalentDetailPage() {
             <p className="tvp-muted">No activity recorded for this talent yet.</p>
           ) : (
             <ul className="tvp-list">
-              {detail.data!.activity.map((a: any) => (
+              {detail.data?.activity.map((a) => (
                 <li key={a.id} className="tvp-list-item">
                   <div>
                     <strong>{humanAction(a.action)}</strong>
