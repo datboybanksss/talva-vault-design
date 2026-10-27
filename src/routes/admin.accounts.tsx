@@ -29,7 +29,6 @@ import { useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { siteLinkFallback } from "@/lib/site-link-client";
-import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   listAccounts,
   setAccountTest,
@@ -281,8 +280,7 @@ function AccountsPage() {
       return;
     }
     try {
-      const { url } = await getInviteLink({ data: { kind: "agency", token: invitation.token } });
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(`${window.location.origin}/invite/${invitation.token}`);
       await logCopyFn({ data: { id: invitation.id } });
       qc.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success("Link copied. Copy does not extend expiry.");

@@ -7,7 +7,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   Ban,
   CircleStop,
@@ -108,8 +107,9 @@ export function useTalentLinkRowActions(opts: {
   const copyLink = async (r: TalentLinkRowLike) => {
     if (!r.inviteToken || !r.talentInvitationId) return;
     try {
-      const { url } = await getInviteLink({ data: { kind: "talent", token: r.inviteToken } });
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/invite/talent/${r.inviteToken}`,
+      );
       await logCopyFn({ data: { id: r.talentInvitationId, type: "talent" } });
       toast.success("Link copied. Copy does not extend expiry.");
     } catch (e) {

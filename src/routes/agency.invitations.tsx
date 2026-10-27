@@ -15,7 +15,6 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { siteLinkFallback } from "@/lib/site-link-client";
-import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   Link2,
   RefreshCw,
@@ -164,10 +163,8 @@ function InvitationsPage() {
 
   const copyLink = async (inv: InvitationRow) => {
     try {
-      const { url } = await getInviteLink({
-        data: { kind: inv.type === "talent" ? "talent" : "agency", token: inv.token },
-      });
-      await navigator.clipboard.writeText(url);
+      const path = inv.type === "talent" ? `/invite/talent/${inv.token}` : `/invite/${inv.token}`;
+      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
       await logCopyFn({ data: { id: inv.id, type: inv.type } });
       toast.success("Link copied. Copy does not extend expiry.");
     } catch (e) {

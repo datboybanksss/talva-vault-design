@@ -20,7 +20,6 @@ import { parseInput } from "@/lib/admin.functions";
 
 const BUCKET = "talent-invite-docs";
 import { friendlyError } from "./friendly-error";
-import { invitePath, siteLinkOrNull } from "./brand-email";
 export const INDEPENDENT_DOC_SLOTS = ["proof_of_talent"] as const;
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
@@ -120,8 +119,10 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
           : effectiveStatus(inv),
       },
       documents: docs ?? [],
-      invite_url: live ? siteLinkOrNull(invitePath("talent", token)) : null,
-      invite_link_unavailable: live && !siteLinkOrNull(invitePath("talent", token)),
+      // The copy-link button builds the URL in the browser from this token;
+      // only exposed for live pending invitations, and this function is
+      // admin-only (assertAdmin above).
+      invite_token: live ? token : null,
     };
   });
 

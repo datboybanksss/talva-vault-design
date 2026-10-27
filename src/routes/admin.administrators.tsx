@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { siteLinkFallback } from "@/lib/site-link-client";
-import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   Users,
   ShieldCheck,
@@ -692,10 +691,9 @@ function AdminsPage() {
                                         title: "Copying does not extend expiry",
                                         onSelect: async () => {
                                           try {
-                                            const { url } = await getInviteLink({
-                                              data: { kind: "admin", token: i.token },
-                                            });
-                                            await navigator.clipboard.writeText(url);
+                                            await navigator.clipboard.writeText(
+                                              `${window.location.origin}/invite/admin/${i.token}`,
+                                            );
                                             toast.success("Invite link copied.");
                                           } catch (e) {
                                             toast.error(
