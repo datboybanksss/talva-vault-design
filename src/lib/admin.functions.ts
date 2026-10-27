@@ -196,7 +196,7 @@ async function logAudit(
   action: string,
   targetType?: string,
   targetId?: string,
-  targetLabel?: string,
+  targetLabel?: string | null,
   detail: Record<string, Json | undefined> = {},
 ) {
   await supabase.from("admin_audit_log").insert({
@@ -637,8 +637,8 @@ export const setAccountTest = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .select(`id, ${label}`)
       // The table and label are paired above; dynamic projection inference cannot retain that pairing.
-      .overrideTypes<Array<{ id: string; name?: string; full_name?: string | null }>, { merge: false }>()
-      .maybeSingle();
+      .maybeSingle()
+      .overrideTypes<{ id: string; name?: string; full_name?: string | null }, { merge: false }>();
     if (error) throw databaseError(error);
     if (!row) throw new Error("We couldn't find that account.");
     await logAudit(
@@ -804,7 +804,7 @@ export const changeAccountState = createServerFn({ method: "POST" })
       throw new Error("That action isn't available for this account's current status.");
     }
     const now = new Date().toISOString();
-    let patch: TablesUpdate<"agencies"> & TablesUpdate<"talent_profiles"> = {};
+    let patch: Pick<TablesUpdate<"agencies">, "paused_at" | "paused_by" | "pause_reason" | "pause_note" | "paused_banned_user_ids" | "status" | "suspended_at" | "suspended_by" | "suspension_reason" | "suspension_note"> & Pick<TablesUpdate<"talent_profiles">, "paused_banned"> = {};
 
     if (data.action === "pause") {
       let userIds: string[] = [];
