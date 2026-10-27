@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Tables } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -46,7 +48,11 @@ async function admin() {
   return (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 }
 
-async function belongsToPortal(sb: any, userId: string, portal: TermsPortal): Promise<boolean> {
+async function belongsToPortal(
+  sb: SupabaseClient<Database>,
+  userId: string,
+  portal: TermsPortal,
+): Promise<boolean> {
   if (portal === "talent") {
     const { data } = await sb
       .from("talent_profiles")
@@ -91,11 +97,11 @@ export const getMyTermsStatus = createServerFn({ method: "POST" })
     if (documentError || acceptanceError)
       throw new Error("We couldn't load your Terms & Conditions. Please try again.");
     const inPortal = await belongsToPortal(sb, userId, data.portal);
-    const hasCurrent = !!current && (accs ?? []).some((a: any) => a.document_id === current.id);
+    const hasCurrent = !!current && (accs ?? []).some((a) => a.document_id === current.id);
     return {
       required: inPortal && !!current && !hasCurrent,
       current: current ?? null,
-      acceptances: (accs ?? []).map(({ document_id: _d, ...a }: any) => a),
+      acceptances: (accs ?? []).map(({ document_id: _d, ...a }) => a),
     };
   });
 
@@ -175,7 +181,7 @@ export const getAcceptedTermsText = createServerFn({ method: "POST" })
 
 // ---------------------------------------------------------------- admin ----
 
-async function assertAdmin(context: { supabase: any; userId: string }) {
+async function assertAdmin(context: { supabase: SupabaseClient<Database>; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
@@ -207,34 +213,48 @@ export type AdminAcceptanceRow = {
   text_verified: boolean;
 };
 
-async function identityMaps(sb: any, userIds: string[]) {
+async function identityMaps(sb: SupabaseClient<Database>, userIds: (string | null)[]) {
   const ids = [...new Set(userIds)];
   if (ids.length === 0)
-    return { prof: new Map(), talent: new Map(), member: new Map(), agencies: new Map() };
+    return {
+      prof: new Map<string | null, Pick<Tables<"profiles">, "id" | "email" | "display_name">>(),
+      talent: new Map<string | null, Pick<Tables<"talent_profiles">, "user_id" | "full_name">>(),
+      member: new Map<string, Pick<Tables<"agency_members">, "user_id" | "agency_id" | "role">>(),
+      agencies: new Map<string, string>(),
+    };
   const [{ data: profs }, { data: tps }, { data: mems }] = await Promise.all([
-    sb.from("profiles").select("id, email, display_name").in("id", ids),
-    sb.from("talent_profiles").select("user_id, full_name").in("user_id", ids),
-    sb.from("agency_members").select("user_id, agency_id, role").in("user_id", ids),
+    sb
+      .from("profiles")
+      .select("id, email, display_name") // Preserve nullable IDs in this existing filter; eq/in generated signatures exclude null.
+      .in("id", ids as string[]),
+    sb
+      .from("talent_profiles")
+      .select("user_id, full_name") // Preserve nullable IDs in this existing filter; generated signatures exclude null.
+      .in("user_id", ids as string[]),
+    sb
+      .from("agency_members")
+      .select("user_id, agency_id, role") // Preserve nullable IDs in this existing filter; generated signatures exclude null.
+      .in("user_id", ids as string[]),
   ]);
-  const agencyIds = [...new Set((mems ?? []).map((m: any) => m.agency_id))];
+  const agencyIds = [...new Set((mems ?? []).map((m) => m.agency_id))];
   const { data: ags } = agencyIds.length
     ? await sb.from("agencies").select("id, name").in("id", agencyIds)
     : { data: [] };
   return {
-    prof: new Map((profs ?? []).map((p: any) => [p.id, p])),
-    talent: new Map((tps ?? []).map((t: any) => [t.user_id, t])),
-    member: new Map((mems ?? []).map((m: any) => [m.user_id, m])),
-    agencies: new Map((ags ?? []).map((a: any) => [a.id, a.name])),
+    prof: new Map((profs ?? []).map((p) => [p.id, p])),
+    talent: new Map((tps ?? []).map((t) => [t.user_id, t])),
+    member: new Map((mems ?? []).map((m) => [m.user_id, m])),
+    agencies: new Map((ags ?? []).map((a) => [a.id, a.name])),
   };
 }
 
 /** Test accounts are left out of every Terms acceptance report. */
-async function loadTestUserIds(sb: any): Promise<Set<string>> {
+async function loadTestUserIds(sb: SupabaseClient<Database>): Promise<Set<string>> {
   const [{ data: tps }, { data: ags }] = await Promise.all([
     sb.from("talent_profiles").select("user_id, is_test").eq("is_test", true),
     sb.from("agencies").select("id").eq("is_test", true),
   ]);
-  const agencyIds = (ags ?? []).map((a: any) => a.id as string);
+  const agencyIds = (ags ?? []).map((a) => a.id as string);
   const { data: mems } = agencyIds.length
     ? await sb.from("agency_members").select("user_id, agency_id").in("agency_id", agencyIds)
     : { data: [] };
@@ -265,23 +285,26 @@ export const listTermsAcceptances = createServerFn({ method: "POST" })
       ]);
       if (error) throw databaseError(error);
       const testIds = await loadTestUserIds(sb);
-      const accs = (allAccs ?? []).filter((a: any) => !testIds.has(a.user_id));
-      const docHash = new Map((docs ?? []).map((d: any) => [d.id, d.body_sha256]));
+      const accs = (allAccs ?? []).filter((a) => !testIds.has(a.user_id));
+      const docHash = new Map((docs ?? []).map((d) => [d.id, d.body_sha256]));
       const maps = await identityMaps(
         sb,
-        (accs ?? []).map((a: any) => a.user_id),
+        (accs ?? []).map((a) => a.user_id),
       );
       const extraAgencyIds = (accs ?? [])
-        .map((a: any) => a.agency_id)
+        .map((a) => a.agency_id)
         .filter((id: string | null) => id && !maps.agencies.has(id));
       if (extraAgencyIds.length) {
-        const { data: ags } = await sb.from("agencies").select("id, name").in("id", extraAgencyIds);
+        const { data: ags } = await sb
+          .from("agencies")
+          .select("id, name") // The existing truthy predicate removes null IDs but does not declare a type guard.
+          .in("id", extraAgencyIds as string[]);
         for (const a of ags ?? []) maps.agencies.set(a.id, a.name);
       }
-      const rows = (accs ?? []).map((a: any): AdminAcceptanceRow => {
-        const p: any = maps.prof.get(a.user_id);
-        const t: any = maps.talent.get(a.user_id);
-        const m: any = maps.member.get(a.user_id);
+      const rows = (accs ?? []).map((a): AdminAcceptanceRow => {
+        const p = maps.prof.get(a.user_id);
+        const t = maps.talent.get(a.user_id);
+        const m = maps.member.get(a.user_id);
         const stamped = !!a.user_email;
         const fallbackRole =
           a.doc_type === "talent"
@@ -317,7 +340,7 @@ export const listTermsAcceptances = createServerFn({ method: "POST" })
       });
       return {
         rows,
-        versions: (docs ?? []).map((d: any) => ({
+        versions: (docs ?? []).map((d) => ({
           doc_type: d.doc_type,
           version: d.version,
           is_current: d.is_current,
@@ -358,23 +381,23 @@ export const listTermsNotAccepted = createServerFn({ method: "POST" })
         .order("accepted_at"),
     ]);
     const testIds = await loadTestUserIds(sb);
-    const memsReal = (mems ?? []).filter((m: any) => !testIds.has(m.user_id));
-    const current = new Map((docs ?? []).map((d: any) => [d.doc_type, d]));
-    const accepted = new Set((accs ?? []).map((a: any) => `${a.user_id}:${a.document_id}`));
+    const memsReal = (mems ?? []).filter((m) => !testIds.has(m.user_id));
+    const current = new Map((docs ?? []).map((d) => [d.doc_type, d]));
+    const accepted = new Set((accs ?? []).map((a) => `${a.user_id}:${a.document_id}`));
     const last = new Map<string, string>();
     for (const a of accs ?? []) last.set(`${a.user_id}:${a.doc_type}`, a.version);
 
     const out: NotAcceptedRow[] = [];
-    const talentDoc: any = current.get("talent");
-    const agencyDoc: any = current.get("agency");
+    const talentDoc = current.get("talent");
+    const agencyDoc = current.get("agency");
     const maps = await identityMaps(sb, [
-      ...(tps ?? []).map((t: any) => t.user_id),
-      ...memsReal.map((m: any) => m.user_id),
+      ...(tps ?? []).map((t) => t.user_id),
+      ...memsReal.map((m) => m.user_id),
     ]);
     if (talentDoc) {
       for (const t of tps ?? []) {
         if (accepted.has(`${t.user_id}:${talentDoc.id}`)) continue;
-        const p: any = maps.prof.get(t.user_id);
+        const p = maps.prof.get(t.user_id);
         out.push({
           user_id: t.user_id as string,
           name: t.full_name ?? p?.display_name ?? null,
@@ -394,7 +417,7 @@ export const listTermsNotAccepted = createServerFn({ method: "POST" })
         if (seen.has(m.user_id)) continue;
         seen.add(m.user_id);
         if (accepted.has(`${m.user_id}:${agencyDoc.id}`)) continue;
-        const p: any = maps.prof.get(m.user_id);
+        const p = maps.prof.get(m.user_id);
         out.push({
           user_id: m.user_id,
           name: p?.display_name ?? null,

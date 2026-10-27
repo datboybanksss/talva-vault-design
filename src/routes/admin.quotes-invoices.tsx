@@ -85,7 +85,7 @@ function QuotesInvoicesPage() {
 
   const rows = useMemo(() => q.data ?? [], [q.data]);
   const agencies = useMemo(
-    () => Array.from(new Set(rows.map((r: any) => r.agency_name))) as string[],
+    () => Array.from(new Set(rows.map((r) => r.agency_name))) as string[],
     [rows],
   );
 
@@ -134,7 +134,7 @@ function QuotesInvoicesPage() {
 
   const filteredRows = useMemo(() => {
     const s = search.trim().toLowerCase();
-    return rows.filter((r: any) => {
+    return rows.filter((r) => {
       if (agencyFilter !== "all" && r.agency_name !== agencyFilter) return false;
       if (typeFilter !== "all" && r.kind !== typeFilter) return false;
       if (chipFilter !== "all" && r.status !== chipFilter) return false;
@@ -170,7 +170,7 @@ function QuotesInvoicesPage() {
 
   const exportCsv = () => {
     const headers = ["Agency", "Type", "Number", "Client", "Issued", "Currency", "Total", "Status"];
-    const csvRows = filteredRows.map((r: any) => [
+    const csvRows = filteredRows.map((r) => [
       r.agency_name,
       r.kind,
       r.number,
@@ -210,7 +210,7 @@ function QuotesInvoicesPage() {
   }, [agencyFilter, typeFilter, chipFilter, search, filteredRows.length]);
 
   const printPdf = () => {
-    printHtmlDocument(buildAdminBillingHtml(filteredRows as any, kpis, filterLabel, statusLabel));
+    printHtmlDocument(buildAdminBillingHtml(filteredRows, kpis, filterLabel, statusLabel));
     logExport.mutate("pdf-export");
     toast.success("Print view opened and logged to audit.");
   };
@@ -380,7 +380,7 @@ function QuotesInvoicesPage() {
                   </td>
                 </tr>
               )}
-              {visible.map((r: any) => (
+              {visible.map((r) => (
                 <tr key={r.id}>
                   <td>
                     <strong>{r.agency_name}</strong>

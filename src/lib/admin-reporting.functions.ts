@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Tables } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 import {
   accountStatusCounts,
@@ -25,7 +27,7 @@ const TALENT_VAULT_ACTIONS = [
 // Helpers
 // -----------------------------------------------------------------------------
 
-async function assertAdmin(supabase: any, userId: string) {
+async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
@@ -78,7 +80,7 @@ function median(values: number[]): number | null {
 }
 
 /** Every activity row in a window, keyed by the talent who generated it. */
-async function activityRows(admin: any, fromIso: string, toIso: string) {
+async function activityRows(admin: SupabaseClient<Database>, fromIso: string, toIso: string) {
   const { data, error } = await admin
     .from("talent_audit_log")
     .select("actor_id, action, created_at")
@@ -93,8 +95,8 @@ async function activityRows(admin: any, fromIso: string, toIso: string) {
  * Onboarded talent — shared definition with the Admin Overview dashboard.
  * See src/lib/onboarded-talent.ts.
  */
-async function onboardedTalent(admin: any, toIso: string) {
-  return (await fetchOnboardedTalent(admin, toIso)) as any[];
+async function onboardedTalent(admin: SupabaseClient<Database>, toIso: string) {
+  return await fetchOnboardedTalent(admin, toIso);
 }
 
 // -----------------------------------------------------------------------------
@@ -120,7 +122,7 @@ export type NorthStarPair = {
 };
 
 async function northStarPairs(
-  admin: any,
+  admin: SupabaseClient<Database>,
   period: { fromIso: string; toIso: string },
 ): Promise<NorthStarPair[]> {
   // Denominator: every live (non-revoked) relationship that existed by the end
@@ -136,8 +138,8 @@ async function northStarPairs(
     .from("talent_invite_private")
     .select("invitation_id")
     .eq("kind", "inert");
-  const inertIds = new Set(((inert ?? []) as any[]).map((r) => r.invitation_id));
-  const live = ((links ?? []) as any[]).filter(
+  const inertIds = new Set((inert ?? []).map((r) => r.invitation_id));
+  const live = (links ?? []).filter(
     (l) => !l.talent_invitation_id || !inertIds.has(l.talent_invitation_id),
   );
   if (live.length === 0) return [];
@@ -186,8 +188,8 @@ async function northStarPairs(
   const docIds = [
     ...new Set(
       (agencyRows ?? [])
-        .filter((r: any) => r.target_type === "document" && r.target_id)
-        .map((r: any) => r.target_id as string),
+        .filter((r) => r.target_type === "document" && r.target_id)
+        .map((r) => r.target_id as string),
     ),
   ];
   const docToLink = new Map<string, string>();
@@ -249,7 +251,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => PeriodInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
@@ -310,7 +312,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .lte("created_at", period.toIso);
     if (invErr) throw databaseError(invErr);
     const invitesSent = (invitesInPeriod ?? []).length;
-    const invitesAccepted = (invitesInPeriod ?? []).filter((i: any) => i.accepted_at).length;
+    const invitesAccepted = (invitesInPeriod ?? []).filter((i) => i.accepted_at).length;
 
     const { data: acceptedInPeriod, error: accErr } = await admin
       .from("agency_invitations")
@@ -320,7 +322,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .lte("accepted_at", period.toIso);
     if (accErr) throw databaseError(accErr);
     const daysToAccept = (acceptedInPeriod ?? []).map(
-      (i: any) =>
+      (i) =>
         Math.round(
           ((new Date(i.accepted_at).getTime() - new Date(i.created_at).getTime()) / 86400000) * 10,
         ) / 10,
@@ -333,7 +335,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .gte("created_at", period.fromIso)
       .lte("created_at", period.toIso);
     if (shareErr) throw databaseError(shareErr);
-    const shareTalentIds = [...new Set((sharesInPeriod ?? []).map((s: any) => s.talent_id))].filter(
+    const shareTalentIds = [...new Set((sharesInPeriod ?? []).map((s) => s.talent_id))].filter(
       Boolean,
     );
     let agenciesWithShare = 0;
@@ -342,7 +344,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
         .from("talent_profiles")
         .select("id, agency_id")
         .in("id", shareTalentIds as string[]);
-      agenciesWithShare = new Set((profs ?? []).map((p: any) => p.agency_id).filter(Boolean)).size;
+      agenciesWithShare = new Set((profs ?? []).map((p) => p.agency_id).filter(Boolean)).size;
     }
 
     const [{ count: sharedDocs }, { count: privateDocs }] = await Promise.all([
@@ -365,9 +367,9 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .gte("created_at", period.fromIso)
       .lte("created_at", period.toIso);
     if (docErr) throw databaseError(docErr);
-    const quotes = (docsInPeriod ?? []).filter((d: any) => d.kind === "quote");
+    const quotes = (docsInPeriod ?? []).filter((d) => d.kind === "quote");
     const invoices = (docsInPeriod ?? []).filter(
-      (d: any) => d.kind === "invoice" && d.status !== "cancelled",
+      (d) => d.kind === "invoice" && d.status !== "cancelled",
     );
 
     const { data: paymentsInPeriod, error: payErr } = await admin
@@ -377,13 +379,13 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       .lte("paid_on", period.to);
     if (payErr) throw databaseError(payErr);
     const receivedCents = (paymentsInPeriod ?? []).reduce(
-      (n: number, p: any) => n + Number(p.amount_cents ?? 0),
+      (n: number, p) => n + Number(p.amount_cents ?? 0),
       0,
     );
 
     // Outstanding: invoices raised in the period, less everything received
     // against them whenever that payment was made.
-    const invoiceIds = invoices.map((i: any) => i.id);
+    const invoiceIds = invoices.map((i) => i.id);
     let paidOnPeriodInvoices = 0;
     if (invoiceIds.length > 0) {
       const { data: pays } = await admin
@@ -391,11 +393,11 @@ export const getReportingSummary = createServerFn({ method: "GET" })
         .select("amount_cents")
         .in("doc_id", invoiceIds);
       paidOnPeriodInvoices = (pays ?? []).reduce(
-        (n: number, p: any) => n + Number(p.amount_cents ?? 0),
+        (n: number, p) => n + Number(p.amount_cents ?? 0),
         0,
       );
     }
-    const invoicedCents = invoices.reduce((n: number, i: any) => n + Number(i.total_cents ?? 0), 0);
+    const invoicedCents = invoices.reduce((n: number, i) => n + Number(i.total_cents ?? 0), 0);
 
     // ---- Cohort retention ----------------------------------------------------
     const { data: allActivity, error: actErr } = await admin
@@ -409,7 +411,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       list.push(new Date(a.created_at).getTime());
       byTalent.set(a.actor_id, list);
     }
-    const cohortMap = new Map<string, any[]>();
+    const cohortMap = new Map<string, typeof talentNow>();
     for (const t of talentNow) {
       const month = String(t.created_at).slice(0, 7);
       cohortMap.set(month, [...(cohortMap.get(month) ?? []), t]);
@@ -471,7 +473,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       financials: {
         currency: "ZAR",
         quotesCount: quotes.length,
-        quotesValueCents: quotes.reduce((n: number, q: any) => n + Number(q.total_cents ?? 0), 0),
+        quotesValueCents: quotes.reduce((n: number, q) => n + Number(q.total_cents ?? 0), 0),
         invoicesCount: invoices.length,
         invoicesValueCents: invoicedCents,
         receivedCents,
@@ -484,7 +486,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
   });
 
 /** Current status of every real agency and talent account (pause overlays status). */
-async function accountsByStatus(admin: any) {
+async function accountsByStatus(admin: SupabaseClient<Database>) {
   const [ag, ta] = await Promise.all([
     admin.from("agencies").select("status, paused_at, is_test"),
     admin
@@ -495,12 +497,12 @@ async function accountsByStatus(admin: any) {
   if (ag.error) throw databaseError(ag.error);
   if (ta.error) throw databaseError(ta.error);
   return accountStatusCounts([
-    ...(ag.data ?? []).map((a: any) => ({
+    ...(ag.data ?? []).map((a) => ({
       type: "agency" as const,
       status: agencyAccountStatus(a),
       is_test: a.is_test,
     })),
-    ...(ta.data ?? []).map((t: any) => ({
+    ...(ta.data ?? []).map((t) => ({
       type: "talent" as const,
       status: talentAccountStatus(t.activation_completed_at, t),
       is_test: t.is_test,
@@ -535,18 +537,21 @@ const RawInput = PeriodInput.extend({
 });
 
 /** Agency names for a set of agency ids, for readable raw rows. */
-async function agencyNames(admin: any, ids: string[]) {
+async function agencyNames(admin: SupabaseClient<Database>, ids: (string | undefined)[]) {
   const unique = [...new Set(ids.filter(Boolean))];
   if (unique.length === 0) return new Map<string, string>();
-  const { data } = await admin.from("agencies").select("id, name").in("id", unique);
-  return new Map<string, string>((data ?? []).map((a: any) => [a.id, a.name]));
+  const { data } = await admin
+    .from("agencies")
+    .select("id, name") // Existing Boolean filter removes undefined without declaring a type guard.
+    .in("id", unique as string[]);
+  return new Map<string | undefined, string>((data ?? []).map((a) => [a.id, a.name]));
 }
 
 export const getReportingRawRows = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => RawInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
@@ -571,7 +576,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         return {
           total: count ?? 0,
           columns: ["Agency", "Status", "Country", "Contact", "Added"],
-          rows: (rows ?? []).map((r: any) => [
+          rows: (rows ?? []).map((r) => [
             r.name,
             r.status,
             r.country ?? "—",
@@ -602,7 +607,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         return {
           total: count ?? 0,
           columns: ["Agency", "Email", "Status", "Invited", "Accepted", "Days to accept"],
-          rows: (rows ?? []).map((r: any) => [
+          rows: (rows ?? []).map((r) => [
             r.agency_name,
             r.email,
             r.status,
@@ -654,7 +659,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
       case "active_talent": {
         const rows = await activityRows(admin, period.fromIso, period.toIso);
         const talent = await onboardedTalent(admin, period.toIso);
-        const byUser = new Map<string, any>();
+        const byUser = new Map<string | null, (typeof talent)[number]>();
         for (const t of talent) byUser.set(t.talent_user_id, t);
         const sets = activeSets(rows.filter((r) => byUser.has(r.actor_id)));
         const qualifying = [...sets.any];
@@ -715,7 +720,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
             "Active",
             "Created",
           ],
-          rows: (rows ?? []).map((r: any) => [
+          rows: (rows ?? []).map((r) => [
             r.loved_one_name ?? "—",
             r.loved_one_email,
             r.share_kind,
@@ -740,7 +745,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         if (error) throw databaseError(error);
         const names = await agencyNames(
           admin,
-          (rows ?? []).map((r: any) => r.agency_id),
+          (rows ?? []).map((r) => r.agency_id),
         );
         const { count: privateCount } = await admin
           .from("talent_private_documents")
@@ -754,7 +759,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
               ? `${privateCount} private vault document${(privateCount ?? 0) === 1 ? "" : "s"} are counted in the summary but never listed — vault contents stay private.`
               : undefined,
           columns: ["Document", "Folder", "Status", "Agency", "Uploaded"],
-          rows: (rows ?? []).map((r: any) => [
+          rows: (rows ?? []).map((r) => [
             r.name,
             r.folder,
             r.status,
@@ -785,9 +790,9 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         if (error) throw databaseError(error);
         const names = await agencyNames(
           admin,
-          (rows ?? []).map((r: any) => r.agency_id),
+          (rows ?? []).map((r) => r.agency_id),
         );
-        const ids = (rows ?? []).map((r: any) => r.id);
+        const ids = (rows ?? []).map((r) => r.id);
         const paid = new Map<string, number>();
         if (ids.length > 0) {
           const { data: pays } = await admin
@@ -813,7 +818,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
                   "Outstanding",
                   "Status",
                 ],
-          rows: (rows ?? []).map((r: any) => {
+          rows: (rows ?? []).map((r) => {
             const base = [
               names.get(r.agency_id) ?? "—",
               r.number,
@@ -849,10 +854,16 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         if (error) throw databaseError(error);
         const names = await agencyNames(
           admin,
-          (rows ?? []).map((r: any) => r.agency_id),
+          (rows ?? []).map((r) => r.agency_id),
         );
-        const docIds = [...new Set((rows ?? []).map((r: any) => r.doc_id))];
-        const docs = new Map<string, any>();
+        const docIds = [...new Set((rows ?? []).map((r) => r.doc_id))];
+        const docs = new Map<
+          string,
+          Pick<
+            Tables<"agency_billing_docs">,
+            "id" | "number" | "client_name" | "total_cents" | "status"
+          >
+        >();
         if (docIds.length > 0) {
           const { data: d } = await admin
             .from("agency_billing_docs")
@@ -872,7 +883,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
             "Method",
             "Status",
           ],
-          rows: (rows ?? []).map((r: any) => {
+          rows: (rows ?? []).map((r) => {
             const d = docs.get(r.doc_id);
             return [
               names.get(r.agency_id) ?? "—",

@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, TablesUpdate } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 /**
  * Document filing review — server functions.
@@ -46,7 +48,10 @@ const SkipInput = z.object({
 });
 
 /** The caller's own "Organise documents with AI" preference (default on). */
-async function callerAiEnabled(supabase: any, userId: string): Promise<boolean> {
+async function callerAiEnabled(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<boolean> {
   const { data, error } = await supabase
     .from("profiles")
     .select("ai_filing_enabled")
@@ -56,7 +61,7 @@ async function callerAiEnabled(supabase: any, userId: string): Promise<boolean> 
   return data?.ai_filing_enabled !== false;
 }
 
-async function callerAgencyId(supabase: any, userId: string) {
+async function callerAgencyId(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase
     .from("agency_members")
     .select("agency_id")
@@ -72,7 +77,7 @@ async function callerAgencyId(supabase: any, userId: string) {
 }
 
 /** Filing changes are writes: refused while the agency is suspended (read-only). */
-async function writableAgencyId(supabase: any, userId: string) {
+async function writableAgencyId(supabase: SupabaseClient<Database>, userId: string) {
   const agencyId = await callerAgencyId(supabase, userId);
   const { data: ok, error } = await supabase.rpc("agency_is_writable", { _agency_id: agencyId });
   if (error) throw databaseError(error);
@@ -114,7 +119,7 @@ async function assertSourcesAllowed(
 
 /** Authorise the caller for a document before any analysis work. */
 async function authoriseForDocument(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   userId: string,
   scope: "talent" | "agency",
   documentId: string,
@@ -146,7 +151,7 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CatalogInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
 
     let catalog: { id: string; label: string }[] = [];
     let defaultReminderDays = 30;
@@ -217,7 +222,8 @@ export const getFilingCatalog = createServerFn({ method: "POST" })
         .from("agency_talent_folders")
         .select("folder_name, sort_order")
         .eq("agency_id", agencyId)
-        .eq("talent_link_id", doc.talent_link_id)
+        // Preserve the existing nullable filter; the generated eq signature excludes null.
+        .eq("talent_link_id", doc.talent_link_id as string)
         .order("sort_order", { ascending: true });
       catalog = ((folders ?? []) as { folder_name: string }[]).map((f) => ({
         id: f.folder_name,
@@ -248,7 +254,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ConfirmInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const aiEnabled = await callerAiEnabled(supabase, userId);
     await assertSourcesAllowed(aiEnabled, data.scope, data.document_id, data);
 
@@ -261,7 +267,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
         .maybeSingle();
       if (!doc || doc.user_id !== userId) throw new Error("Not found.");
 
-      const patch: Record<string, unknown> = {
+      const patch: TablesUpdate<"talent_private_documents"> = {
         expires_at: data.expires_at,
         reminder_at: data.reminder_at,
         pending_review: false,
@@ -307,7 +313,8 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
         .from("agency_talent_folders")
         .select("folder_name")
         .eq("agency_id", agencyId)
-        .eq("talent_link_id", doc.talent_link_id)
+        // Preserve the existing nullable filter; the generated eq signature excludes null.
+        .eq("talent_link_id", doc.talent_link_id as string)
         .eq("folder_name", data.destination)
         .maybeSingle();
       if (!allowed && data.destination !== doc.folder) {
@@ -315,7 +322,7 @@ export const confirmDocumentFiling = createServerFn({ method: "POST" })
       }
     }
 
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"talent_shared_documents"> = {
       validity_expires_at: data.expires_at,
       reminder_at: data.reminder_at,
       pending_review: false,
@@ -358,7 +365,7 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SkipInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
 
     if (data.scope === "talent") {
       await assertTalentWritable(supabase, userId);
@@ -411,7 +418,7 @@ export const skipDocumentFiling = createServerFn({ method: "POST" })
 export const getAiFilingPreference = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     return { aiEnabled: await callerAiEnabled(supabase, userId) };
   });
 
@@ -419,7 +426,7 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ ai_filing_enabled: z.boolean() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { error } = await supabase
       .from("profiles")
       .update({ ai_filing_enabled: data.ai_filing_enabled })
@@ -450,10 +457,10 @@ export const setAiFilingPreference = createServerFn({ method: "POST" })
           ...new Set((memberships ?? []).map((m: { agency_id: string }) => m.agency_id)),
         ];
         const { error: auditErr } = agencyIds.length
-          ? await (supabaseAdmin as any)
+          ? await supabaseAdmin
               .from("agency_audit_log")
               .insert(agencyIds.map((agency_id) => ({ ...entry, agency_id })))
-          : await (supabaseAdmin as any).from("talent_audit_log").insert(entry);
+          : await supabaseAdmin.from("talent_audit_log").insert(entry);
         if (auditErr) throw databaseError(auditErr);
       },
       cancelQueued: () => cancelQueuedAnalysesFor(userId),
@@ -471,7 +478,7 @@ export const getDocumentAnalysis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AnalysisInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await authoriseForDocument(supabase, userId, data.scope, data.document_id);
     const { advanceDocumentAnalysis } = await import("@/lib/document-ai.server");
     return advanceDocumentAnalysis({
@@ -486,7 +493,7 @@ export const startDocumentAnalysis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AnalysisInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     if (data.scope === "talent") await assertTalentWritable(supabase, userId);
     const { agencyId } = await authoriseForDocument(supabase, userId, data.scope, data.document_id);
     const { restartAnalysis } = await import("@/lib/document-ai.server");

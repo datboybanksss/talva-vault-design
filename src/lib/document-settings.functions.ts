@@ -1,10 +1,12 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { parseDocumentSettings, type DocumentSettings } from "@/lib/document-settings";
 
-async function assertAdmin(supabase: any, userId: string) {
+async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
   const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (!data) throw new Error("Only administrators can do this.");
 }
@@ -13,7 +15,7 @@ async function assertAdmin(supabase: any, userId: string) {
 export const getDocumentSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("platform_settings")
@@ -42,7 +44,7 @@ export const updateDocumentSettings = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
     if (!canEdit) throw new Error("You need edit permission to change document rules.");
     const { data: before } = await supabase
@@ -74,7 +76,7 @@ export const updateDocumentSettings = createServerFn({ method: "POST" })
 export const listBulkDeleteFlags = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("document_bulk_delete_flags")
@@ -85,13 +87,13 @@ export const listBulkDeleteFlags = createServerFn({ method: "GET" })
       .order("last_deleted_at", { ascending: false })
       .limit(50);
     if (error) throw databaseError(error);
-    const ids = Array.from(new Set((data ?? []).map((f: any) => f.agency_id)));
+    const ids = Array.from(new Set((data ?? []).map((f) => f.agency_id)));
     const names = new Map<string, string>();
     if (ids.length) {
       const { data: ags } = await supabase.from("agencies").select("id, name").in("id", ids);
       for (const a of ags ?? []) names.set(a.id, a.name);
     }
-    return (data ?? []).map((f: any) => ({
+    return (data ?? []).map((f) => ({
       ...f,
       agency_name: names.get(f.agency_id) ?? "Unknown agency",
     }));
@@ -101,7 +103,7 @@ export const markBulkDeleteFlagReviewed = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { error } = await supabase
       .from("document_bulk_delete_flags")
       .update({ reviewed_at: new Date().toISOString(), reviewed_by: userId })
@@ -115,20 +117,20 @@ export const adminListRecentlyDeleted = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ agencyId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: rows, error } = await supabase.rpc("list_recently_deleted_documents", {
       _agency_id: data.agencyId,
     });
     if (error) throw databaseError(error);
-    return (rows ?? []) as any[];
+    return rows ?? [];
   });
 
 export const adminRestoreDeletedDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
     if (!canEdit) throw new Error("You need edit permission to restore documents.");
     const { error } = await supabase.rpc("restore_deleted_document", { _doc_id: data.id });
@@ -140,7 +142,7 @@ export const adminRestoreDeletedDocument = createServerFn({ method: "POST" })
 export const getRetentionMinimum = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase } = context as any;
+    const { supabase } = context;
     const { data } = await supabase.rpc("document_setting", { _name: "min_retention_years" });
     return { minRetentionYears: (data as number | null) ?? null };
   });

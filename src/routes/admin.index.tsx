@@ -64,7 +64,8 @@ function AdminDashboard() {
     iq?: string;
   }) =>
     nav({
-      search: (prev: any) => {
+      to: ".",
+      search: (prev) => {
         const merged = { ...prev, ...next };
         const out: Record<string, string> = {};
         if (merged.itype && merged.itype !== "all") out.itype = merged.itype;
@@ -74,11 +75,11 @@ function AdminDashboard() {
           const iq = searchParam(merged.iq);
           if (iq) out.iq = iq;
         }
-        return out as any;
+        return out;
       },
       replace: true,
     });
-  const clearFilters = () => nav({ search: {} as any, replace: true });
+  const clearFilters = () => nav({ to: ".", search: {}, replace: true });
 
   const [refreshedAt, setRefreshedAt] = useState(() => new Date());
 
