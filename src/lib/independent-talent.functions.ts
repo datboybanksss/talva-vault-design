@@ -59,11 +59,6 @@ function effectiveStatus(row: { status: string; expires_at: string }) {
   return row.status;
 }
 
-async function inviteUrlFor(token: string) {
-  const { requireInviteLink } = await import("@/lib/brand-email");
-  return requireInviteLink("talent", token);
-}
-
 /** Refuses an email that already has an account or a pending, unexpired invitation anywhere. */
 async function assertEmailFree(email: string, excludeId?: string) {
   const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
