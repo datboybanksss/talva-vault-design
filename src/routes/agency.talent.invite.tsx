@@ -326,21 +326,21 @@ function InviteTalent() {
                       const on = customSelection.includes(f);
                       const rec = defaultFolders.includes(f);
                       return (
-                        <label
-                          key={f}
-                          className="tvp-rule-card"
-                          style={{ alignItems: "flex-start" }}
-                        >
+                        <label key={f} className="tvp-rule-card" style={{ height: "100%" }}>
                           <span>
                             <input type="checkbox" checked={on} onChange={() => toggle(f)} /> {f}
-                            {on && (
-                              <span
-                                className="tvp-small tvp-muted"
-                                style={{ display: "block", marginTop: 4 }}
-                              >
-                                {subfolderPreview(f)}
-                              </span>
-                            )}
+                            <span
+                              className="tvp-small tvp-muted"
+                              style={{
+                                display: "block",
+                                marginTop: 4,
+                                minHeight: "2.6em",
+                                visibility: on ? "visible" : "hidden",
+                              }}
+                              aria-hidden={!on}
+                            >
+                              {on ? subfolderPreview(f) : " "}
+                            </span>
                           </span>
                           <span className="tvp-small">{rec ? "Recommended" : "Optional"}</span>
                         </label>
