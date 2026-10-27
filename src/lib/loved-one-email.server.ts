@@ -163,7 +163,11 @@ export async function sendShareEmail(
     console.error(
       `${SHARE_RECIPIENT_TERM_CAPITALISED} share email failed [${res.status}]: ${body}`,
     );
-    return { sent: false as const, reason: "send_failed" as const, detail: "Something went wrong. Please try again." };
+    return {
+      sent: false as const,
+      reason: "send_failed" as const,
+      detail: "Something went wrong. Please try again.",
+    };
   }
   return { sent: true as const };
 }

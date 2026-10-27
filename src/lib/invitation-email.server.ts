@@ -54,7 +54,8 @@ export async function sendInvitationEmail(
       },
       { apiKey, idempotencyKey: key },
     );
-    if (!res.success) return { sent: false, reason: "send_failed", detail: friendlyError(undefined) };
+    if (!res.success)
+      return { sent: false, reason: "send_failed", detail: friendlyError(undefined) };
     return { sent: true, message_id: res.message_id };
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };
