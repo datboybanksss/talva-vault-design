@@ -58,7 +58,7 @@ function EmailPreviewPage() {
     queryKey: ["agency", "invitation-email", type, id],
     queryFn: async () => (isStaff ? getStaffFn({ data: { id } }) : getTalentFn({ data: { id } })),
   });
-  const inv = q.data as any;
+  const inv = q.data;
 
   const defaultSubject = isStaff
     ? DEFAULT_STAFF_INVITATION_SUBJECT
@@ -92,7 +92,7 @@ function EmailPreviewPage() {
       const payload = { data: { id, subject, body, invite_url: inviteUrl } };
       return isStaff ? sendStaffFn(payload) : sendTalentFn(payload);
     },
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       if (res?.sent) {
         setStatus({ kind: "ok", message: `Email sent to ${inv?.email}.` });
         toast.success("Invitation email sent.");
@@ -101,11 +101,11 @@ function EmailPreviewPage() {
       const msg =
         res?.reason === "domain_unverified" || res?.reason === "email_not_configured"
           ? EMAIL_FALLBACK_NOTICE
-          : `Send failed: ${res?.detail ?? "unknown error"}. Copy the link and send it yourself for now.`;
+          : `Send failed: ${("detail" in res ? res.detail : undefined) ?? "unknown error"}. Copy the link and send it yourself for now.`;
       setStatus({ kind: "error", message: msg });
       toast.error("Email not sent — see the status message.");
     },
-    onError: (e: any) => {
+    onError: (e) => {
       setStatus({
         kind: "error",
         message: `Send failed: ${e?.message ?? "unknown error"}. Copy the link and send it yourself for now.`,
@@ -186,8 +186,12 @@ function EmailPreviewPage() {
           inviteUrl={inviteUrl}
           expiryDate={expiryDate}
           tokens={{
-            talent_name: isStaff ? null : inv.talent_name,
-            contact_person: isStaff ? inv.contact_person : null,
+            talent_name: isStaff ? null : "talent_name" in inv ? inv.talent_name : undefined,
+            contact_person: isStaff
+              ? "contact_person" in inv
+                ? inv.contact_person
+                : undefined
+              : null,
             agency_name: inv.agency_name,
             email: inv.email,
             expiry_date: expiryDate,

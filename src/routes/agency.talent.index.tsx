@@ -114,7 +114,7 @@ function TalentPage() {
   const updateType = useMutation({
     mutationFn: (input: { talent_link_id: string; talent_type: string }) =>
       updateTypeFn({ data: input }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["agency", "talent"] });
       toast.success(
         res?.flaggedForReview
@@ -123,7 +123,7 @@ function TalentPage() {
       );
       setTypeEditor(null);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not update talent type")),
+    onError: (e) => toast.error(friendlyError(e, "Could not update talent type")),
   });
   // Manager assignment (post-acceptance roster action)
   const [managerEditor, setManagerEditor] = useState<TalentRow | null>(null);
@@ -138,18 +138,18 @@ function TalentPage() {
   const saveManager = useMutation({
     mutationFn: (input: { talent_link_id: string; manager_user_id: string | null }) =>
       setManagerFn({ data: input }),
-    onSuccess: (_res: any, input) => {
+    onSuccess: (_res, input) => {
       qc.invalidateQueries({ queryKey: ["agency", "talent"] });
       toast.success(input.manager_user_id ? "Manager assigned" : "Manager cleared");
       setManagerEditor(null);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not update the manager")),
+    onError: (e) => toast.error(friendlyError(e, "Could not update the manager")),
   });
 
   const whoFn = useServerFn(agencyWhoami);
   const who = useQuery({ queryKey: ["agency", "whoami"], queryFn: () => whoFn() });
   const rowActions = useTalentLinkRowActions({
-    isOwner: (who.data as any)?.role === "owner",
+    isOwner: who.data?.role === "owner",
     onChangeType: (r) => {
       setTypeEditor(r as TalentRow);
       setTypeDraft(r.talentType ?? "");
@@ -517,7 +517,7 @@ function TalentPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {(staff.data ?? []).map((m: any) => (
+                  {(staff.data ?? []).map((m) => (
                     <SelectItem key={m.userId} value={m.userId}>
                       {m.name}
                     </SelectItem>

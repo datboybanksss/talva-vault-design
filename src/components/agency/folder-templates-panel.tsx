@@ -144,7 +144,7 @@ export function FolderTemplatesPanel() {
       toast.success(editingId ? "Template updated" : "Template created");
       setEditorOpen(false);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
+    onError: (e) => toast.error(friendlyError(e, "Save failed")),
   });
 
   const del = useMutation({
@@ -153,16 +153,16 @@ export function FolderTemplatesPanel() {
       qc.invalidateQueries({ queryKey: ["agency", "folder-templates"] });
       toast.success("Template deleted");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Delete failed")),
+    onError: (e) => toast.error(friendlyError(e, "Delete failed")),
   });
 
   const apply = useMutation({
     mutationFn: (id: string) => applyFn({ data: { template_id: id } }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["agency", "retention", "rules"] });
       toast.success(`Template applied · ${res?.rules_created ?? 0} retention rule(s) created`);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Apply failed")),
+    onError: (e) => toast.error(friendlyError(e, "Apply failed")),
   });
 
   return (

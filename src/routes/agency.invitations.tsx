@@ -52,8 +52,8 @@ export const Route = createFileRoute("/agency/invitations")({
   component: InvitationsPage,
 });
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+function fmtDate(iso: string | null) {
+  return new Date(iso as string).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -64,6 +64,22 @@ function daysBetween(iso: string) {
 }
 
 type InviteType = "talent" | "staff";
+type InvitationRow = Awaited<ReturnType<typeof listAgencyInvitationsMine>>[number];
+type StaffRow = Awaited<ReturnType<typeof listAgencyStaffRoster>>[number];
+type TalentInvitationPayload = {
+  talent_name: string;
+  email: string;
+  expiry_days: number;
+  folder_mode: "standard" | "custom";
+  folder_selection: { name: string; sort_order: number; retention_years: number | null }[];
+};
+type StaffInvitationPayload = {
+  contact_person?: string;
+  email: string;
+  role: string;
+  expiry_days: number;
+};
+type InvitationPayload = TalentInvitationPayload | StaffInvitationPayload;
 
 const EMPTY_STATE: Record<"all" | "talent" | "staff" | "expired" | "revoked", string> = {
   all: "No invitations yet — invite your first talent or staff member to get started.",
@@ -108,13 +124,13 @@ function InvitationsPage() {
       case "all":
         return list;
       case "talent":
-        return list.filter((i: any) => i.type === "talent");
+        return list.filter((i) => i.type === "talent");
       case "staff":
-        return list.filter((i: any) => i.type === "staff");
+        return list.filter((i) => i.type === "staff");
       case "expired":
-        return list.filter((i: any) => i.status === "expired");
+        return list.filter((i) => i.status === "expired");
       case "revoked":
-        return list.filter((i: any) => i.status === "revoked");
+        return list.filter((i) => i.status === "revoked");
     }
   }, [list, tab]);
 
@@ -124,10 +140,10 @@ function InvitationsPage() {
   const counts = useMemo(
     () => ({
       all: list.length,
-      talent: list.filter((i: any) => i.type === "talent").length,
-      staff: list.filter((i: any) => i.type === "staff").length,
-      expired: list.filter((i: any) => i.status === "expired").length,
-      revoked: list.filter((i: any) => i.status === "revoked").length,
+      talent: list.filter((i) => i.type === "talent").length,
+      staff: list.filter((i) => i.type === "staff").length,
+      expired: list.filter((i) => i.status === "expired").length,
+      revoked: list.filter((i) => i.status === "revoked").length,
     }),
     [list],
   );
@@ -139,7 +155,7 @@ function InvitationsPage() {
       qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
       toast.success("Invitation resent · expiry refreshed · logged.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to resend")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to resend")),
   });
   const revokeM = useMutation({
     mutationFn: (v: { id: string; type: InviteType }) => revokeFn({ data: v }),
@@ -147,10 +163,10 @@ function InvitationsPage() {
       qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
       toast.success("Invitation revoked and logged.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to revoke")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to revoke")),
   });
 
-  const copyLink = async (inv: any) => {
+  const copyLink = async (inv: InvitationRow) => {
     const url =
       inv.type === "talent"
         ? `${window.location.origin}/invite/talent/${inv.token}`
@@ -244,9 +260,11 @@ function InvitationsPage() {
                     </td>
                   </tr>
                 )}
-                {visible.map((i: any) => {
+                {visible.map((i) => {
                   const dLeft = daysBetween(i.expires_at);
-                  const isOpen = (i.stored_status ?? i.status) === "pending";
+                  const isOpen =
+                    ((i as InvitationRow & { stored_status?: string }).stored_status ??
+                      i.status) === "pending";
                   const expiryTone =
                     isOpen && dLeft < 0 ? "red" : isOpen && dLeft <= 3 ? "amber" : "neutral";
                   const expiryLabel = !isOpen
@@ -280,11 +298,15 @@ function InvitationsPage() {
                           actions={(() => {
                             const allowed = invitationActions({
                               status: i.status,
-                              storedStatus: i.stored_status,
+                              storedStatus: (i as InvitationRow & { stored_status?: string })
+                                .stored_status,
                               viewer: isOwner ? "agency_owner" : "agency_staff",
                               canWrite: !readOnly,
                             });
-                            const open = invitationIsOpen(i.stored_status ?? i.status);
+                            const open = invitationIsOpen(
+                              (i as InvitationRow & { stored_status?: string }).stored_status ??
+                                i.status,
+                            );
                             return [
                               allowed.includes("edit_email") && {
                                 key: "email",
@@ -366,7 +388,7 @@ function InvitationsPage() {
               if (openForm === "talent") {
                 // The server sends the email itself and always replies with the
                 // same neutral message, whether or not the person has an account.
-                const res: any = await createTalent({ data: payload as any });
+                const res = await createTalent({ data: payload as TalentInvitationPayload });
                 toast.success(
                   res?.message ??
                     "If this person is on TalVault they'll receive a request to connect; otherwise they'll receive an invitation.",
@@ -374,8 +396,8 @@ function InvitationsPage() {
                 );
                 qc.invalidateQueries({ queryKey: ["agency", "talent"] });
               } else {
-                const inv: any = await createStaff({ data: payload as any });
-                const res: any = await sendStaffInvitationEmail({
+                const inv = await createStaff({ data: payload as StaffInvitationPayload });
+                const res = await sendStaffInvitationEmail({
                   data: {
                     id: inv.id,
                     subject: DEFAULT_STAFF_INVITATION_SUBJECT,
@@ -388,7 +410,7 @@ function InvitationsPage() {
               }
               qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
               setOpenForm(null);
-            } catch (e: any) {
+            } catch (e) {
               toast.error(friendlyError(e, "Failed to send invitation"));
             }
           }}
@@ -407,7 +429,7 @@ function NewInvitationModal({
 }: {
   type: InviteType;
   onClose: () => void;
-  onSubmit: (payload: any) => Promise<void>;
+  onSubmit: (payload: InvitationPayload) => Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -430,12 +452,12 @@ function NewInvitationModal({
   const { standardFolders, allFolders } = useMemo(() => {
     const tpls = templates.data?.templates ?? [];
     const items = templates.data?.items ?? [];
-    const defaultTpl = tpls.find((t: any) => t.is_default) ?? tpls[0];
+    const defaultTpl = tpls.find((t) => t.is_default) ?? tpls[0];
     const std: FolderItem[] = defaultTpl
       ? items
-          .filter((i: any) => i.template_id === defaultTpl.id)
-          .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-          .map((i: any) => ({
+          .filter((i) => i.template_id === defaultTpl.id)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map((i) => ({
             name: i.folder_name as string,
             sort_order: i.sort_order as number,
             retention_years: (i.default_retention_years ?? null) as number | null,
@@ -804,7 +826,7 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
   const rosterFn = useServerFn(listAgencyStaffRoster);
   const roleFn = useServerFn(updateAgencyStaffRole);
   const removeStaffFn = useServerFn(removeAgencyStaffMember);
-  const [confirmRemove, setConfirmRemove] = useState<any | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<StaffRow | null>(null);
 
   const staff = useQuery({
     queryKey: ["agency", "staff-roster"],
@@ -817,7 +839,7 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
       qc.invalidateQueries({ queryKey: ["agency", "staff-roster"] });
       toast.success("Role updated and logged.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update role")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to update role")),
   });
 
   const removeStaff = useMutation({
@@ -827,10 +849,10 @@ function ActiveStaffCard({ isOwner }: { isOwner: boolean }) {
       setConfirmRemove(null);
       toast.success("Staff member removed and logged.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to remove staff member")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to remove staff member")),
   });
 
-  const rows = (staff.data ?? []) as any[];
+  const rows = staff.data ?? [];
 
   return (
     <div className="tvp-card">

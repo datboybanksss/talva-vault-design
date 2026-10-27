@@ -38,6 +38,7 @@ import {
   RefreshCw,
   Plane,
   Briefcase,
+  type LucideIcon,
 } from "lucide-react";
 import {
   useMutation,
@@ -197,7 +198,7 @@ const tabs = [
   "Requests",
 ] as const;
 type Tab = (typeof tabs)[number];
-const FOLDER_META: Record<string, { description: string; icon: any }> = {
+const FOLDER_META: Record<string, { description: string; icon: LucideIcon }> = {
   "Identity & Personal": { description: "Passport, ID, visa, work authorisation", icon: IdCard },
   "Contracts & Agreements": { description: "Agreements, riders, addenda", icon: FileSignature },
   "Banking, Tax & Financial": { description: "Invoices, tax and banking records", icon: Receipt },
@@ -353,7 +354,7 @@ function VaultPage() {
       toast.success("Moved to Recently deleted");
       qc.invalidateQueries({ queryKey: ["agency", "vault"] });
     },
-    onError: (e: any) => {
+    onError: (e) => {
       toast.error(friendlyError(e, "This document couldn't be deleted. Please try again."));
       qc.invalidateQueries({ queryKey: ["agency", "vault"] });
     },
@@ -362,8 +363,7 @@ function VaultPage() {
   const viewMut = useMutation({
     mutationFn: (id: string) => signedFn({ data: { id, disposition: "inline" } }),
     onSuccess: ({ url, name }) => setPreview({ url, name }),
-    onError: (e: any) =>
-      toast.error(friendlyError(e, "This document is no longer available to you.")),
+    onError: (e) => toast.error(friendlyError(e, "This document is no longer available to you.")),
   });
 
   // Deep link from a bell notification: open the document straight away, or
@@ -380,7 +380,7 @@ function VaultPage() {
   const downloadMut = useMutation({
     mutationFn: (id: string) => signedFn({ data: { id, disposition: "attachment" } }),
     onSuccess: ({ url }) => window.open(url, "_blank", "noopener"),
-    onError: (e: any) => toast.error(friendlyError(e, "Could not download file")),
+    onError: (e) => toast.error(friendlyError(e, "Could not download file")),
   });
 
   // ---- Folder tree for the selected talent, live from agency_talent_folders ----
@@ -1031,7 +1031,7 @@ function VaultPage() {
                                         try {
                                           await stopSharingFn({ data: { id: d.id } });
                                           toast.success("Sharing stopped");
-                                        } catch (e: any) {
+                                        } catch (e) {
                                           toast.error(
                                             friendlyError(e, "Sharing couldn't be stopped."),
                                           );
@@ -1306,7 +1306,7 @@ function UploadDialog({
           : displayName.trim() + ext
         : file.name;
 
-      const inserted: any = await registerFn({
+      const inserted = await registerFn({
         data: {
           name: finalName,
           folder: selectedFolder.folderName,
@@ -1320,7 +1320,7 @@ function UploadDialog({
 
       toast.success("Uploaded and shared");
       onDone(inserted?.id ? { id: inserted.id as string, name: finalName } : undefined);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(friendlyError(err, "Upload failed"));
     } finally {
       setBusy(false);
@@ -1693,7 +1693,7 @@ function UploadDialog({
               id="upload-status"
               className="tvp-select"
               value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+              onChange={(e) => setStatus(e.target.value as "filed" | "needs_review")}
             >
               <option value="needs_review">Needs review</option>
               <option value="filed">Filed</option>
@@ -1755,7 +1755,7 @@ function VersionsDialog({
       const { url, name } = await signedFn({ data: { version_id: versionId, disposition } });
       if (disposition === "inline") setPreview({ url, name });
       else window.open(url, "_blank", "noopener");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Could not open version"));
     }
   }
@@ -1822,7 +1822,7 @@ function VersionsDialog({
               </tr>
             </thead>
             <tbody>
-              {versions.map((v: any) => (
+              {versions.map((v) => (
                 <tr key={v.id}>
                   <td>
                     <strong>v{v.version_number}</strong>
@@ -1922,7 +1922,7 @@ function NewVersionDialog({
       });
       toast.success("New version uploaded");
       onDone();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(friendlyError(err, "Upload failed"));
     } finally {
       setBusy(false);

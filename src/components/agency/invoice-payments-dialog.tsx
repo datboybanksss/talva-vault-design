@@ -33,7 +33,7 @@ export function InvoicePaymentsDialog({ docId, onClose }: { docId: string; onClo
 
   const q = useQuery({
     queryKey: ["agency", "billing", "payments", docId],
-    queryFn: () => listFn({ data: { doc_id: docId } }) as Promise<any>,
+    queryFn: () => listFn({ data: { doc_id: docId } }),
   });
 
   const refresh = () => {
@@ -64,7 +64,7 @@ export function InvoicePaymentsDialog({ docId, onClose }: { docId: string; onClo
       refresh();
       toast.success("Payment recorded");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "The payment could not be recorded.")),
+    onError: (e) => toast.error(friendlyError(e, "The payment could not be recorded.")),
   });
 
   const remove = useMutation({
@@ -73,12 +73,12 @@ export function InvoicePaymentsDialog({ docId, onClose }: { docId: string; onClo
       refresh();
       toast.success("Payment removed");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "The payment could not be removed.")),
+    onError: (e) => toast.error(friendlyError(e, "The payment could not be removed.")),
   });
 
   const doc = q.data?.doc;
   const currency = doc?.currency ?? "ZAR";
-  const payments: any[] = q.data?.payments ?? [];
+  const payments = q.data?.payments ?? [];
 
   return (
     <div
@@ -118,7 +118,7 @@ export function InvoicePaymentsDialog({ docId, onClose }: { docId: string; onClo
               <div className="tvp-card" style={{ padding: 12 }}>
                 <div className="tvp-kpi-label">Invoice total</div>
                 <div className="tvp-kpi-value" style={{ fontSize: 20 }}>
-                  {fmtMoney(doc.total_cents, currency)}
+                  {fmtMoney(q.data.doc.total_cents, currency)}
                 </div>
               </div>
               <div className="tvp-card" style={{ padding: 12 }}>

@@ -39,6 +39,23 @@ const ACCENT_PRESETS = [
   { name: "Rose", value: "#BE185D" },
 ];
 
+type BillingSettingsForm = {
+  default_quote_acceptance_days: number | string;
+  default_quote_reminder_days: number | string;
+  default_invoice_payment_days: number | string;
+  invoice_overdue_grace_days: number | string;
+  default_vat_rate_bp: number;
+  is_vat_registered: boolean;
+  vat_number: string;
+  billing_address: string;
+  accent_color: string;
+  bank_name: string;
+  bank_account_holder: string;
+  bank_account_number: string;
+  bank_branch_code: string;
+  payment_instructions: string;
+};
+
 export function QuotesInvoicesSettingsPanel() {
   const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
@@ -51,7 +68,7 @@ export function QuotesInvoicesSettingsPanel() {
     queryFn: () => getFn(),
   });
 
-  const [form, setForm] = useState<any>(null);
+  const [form, setForm] = useState<BillingSettingsForm | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -67,41 +84,44 @@ export function QuotesInvoicesSettingsPanel() {
         default_vat_rate_bp: data.default_vat_rate_bp ?? 1500,
         billing_address: data.billing_address ?? "",
         accent_color: data.accent_color ?? DEFAULT_BILLING_ACCENT,
-        bank_name: (data as any).bank_name ?? "",
-        bank_account_holder: (data as any).bank_account_holder ?? "",
-        bank_account_number: (data as any).bank_account_number ?? "",
-        bank_branch_code: (data as any).bank_branch_code ?? "",
-        payment_instructions: (data as any).payment_instructions ?? "",
+        bank_name: data.bank_name ?? "",
+        bank_account_holder: data.bank_account_holder ?? "",
+        bank_account_number: data.bank_account_number ?? "",
+        bank_branch_code: data.bank_branch_code ?? "",
+        payment_instructions: data.payment_instructions ?? "",
       });
     }
   }, [data, form]);
 
   const save = useMutation({
-    mutationFn: () =>
-      saveFn({
+    mutationFn: (current: BillingSettingsForm) => {
+      return saveFn({
         data: {
-          default_quote_acceptance_days: Number(form.default_quote_acceptance_days),
-          default_quote_reminder_days: Number(form.default_quote_reminder_days),
-          default_invoice_payment_days: Number(form.default_invoice_payment_days),
-          invoice_overdue_grace_days: Number(form.invoice_overdue_grace_days),
-          is_vat_registered: !!form.is_vat_registered,
-          vat_number: form.vat_number?.trim() || null,
-          default_vat_rate_bp: Number(form.default_vat_rate_bp),
-          billing_address: form.billing_address?.trim() || null,
-          accent_color: form.accent_color || null,
-          bank_name: form.bank_name?.trim() || null,
-          bank_account_holder: form.bank_account_holder?.trim() || null,
-          bank_account_number: form.bank_account_number?.trim() || null,
-          bank_branch_code: form.bank_branch_code?.trim() || null,
-          payment_instructions: form.payment_instructions?.trim() || null,
+          default_quote_acceptance_days: Number(current.default_quote_acceptance_days),
+          default_quote_reminder_days: Number(current.default_quote_reminder_days),
+          default_invoice_payment_days: Number(current.default_invoice_payment_days),
+          invoice_overdue_grace_days: Number(current.invoice_overdue_grace_days),
+          is_vat_registered: !!current.is_vat_registered,
+          vat_number: current.vat_number?.trim() || null,
+          default_vat_rate_bp: Number(current.default_vat_rate_bp),
+          billing_address: current.billing_address?.trim() || null,
+          accent_color: current.accent_color || null,
+          bank_name: current.bank_name?.trim() || null,
+          bank_account_holder: current.bank_account_holder?.trim() || null,
+          bank_account_number: current.bank_account_number?.trim() || null,
+          bank_branch_code: current.bank_branch_code?.trim() || null,
+          payment_instructions: current.payment_instructions?.trim() || null,
         },
-      }),
+      });
+    },
     onSuccess: (updated) => {
-      setForm((current: typeof form) => ({ ...current, accent_color: updated.accent_color }));
+      setForm((current) =>
+        current ? { ...current, accent_color: updated.accent_color } : current,
+      );
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
+    onError: (e) => toast.error(friendlyError(e, "Save failed")),
   });
 
   async function handleLogoUpload(file: File) {
@@ -121,7 +141,7 @@ export function QuotesInvoicesSettingsPanel() {
       await logoFn({ data: { storage_path: path } });
       toast.success("Logo uploaded");
       qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Upload failed"));
     } finally {
       setUploading(false);
@@ -144,7 +164,8 @@ export function QuotesInvoicesSettingsPanel() {
     );
   }
 
-  const update = (k: string, v: any) => setForm({ ...form, [k]: v });
+  const update = <K extends keyof BillingSettingsForm>(k: K, v: BillingSettingsForm[K]) =>
+    setForm({ ...form, [k]: v });
 
   return (
     <>
@@ -160,10 +181,10 @@ export function QuotesInvoicesSettingsPanel() {
 
       <div className="tvp-qi-grid">
         <BillingSenderCard
-          email={(data as any)?.billing_from_email ?? null}
-          displayName={(data as any)?.billing_from_name ?? null}
-          verifiedAt={(data as any)?.billing_from_verified_at ?? null}
-          pendingUntil={(data as any)?.billing_from_token_expires_at ?? null}
+          email={data?.billing_from_email ?? null}
+          displayName={data?.billing_from_name ?? null}
+          verifiedAt={data?.billing_from_verified_at ?? null}
+          pendingUntil={data?.billing_from_token_expires_at ?? null}
         />
 
         <div className="tvp-card tvp-panel">
@@ -409,7 +430,7 @@ export function QuotesInvoicesSettingsPanel() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-        <button className="tvp-primary" onClick={() => save.mutate()} disabled={save.isPending}>
+        <button className="tvp-primary" onClick={() => save.mutate(form)} disabled={save.isPending}>
           <Save className="h-4 w-4" />
           {save.isPending ? "Saving…" : "Save settings"}
         </button>

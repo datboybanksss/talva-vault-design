@@ -289,11 +289,11 @@ function QIPage() {
     queryFn: () => rosterFn(),
   });
   const roster = useMemo(
-    () => (rosterData ?? []).filter((t: any) => t.status !== "revoked"),
+    () => (rosterData ?? []).filter((t) => t.status !== "revoked"),
     [rosterData],
   );
   const rosterNames = useMemo(
-    () => new Set(roster.map((t: any) => t.displayName.trim().toLowerCase())),
+    () => new Set(roster.map((t) => t.displayName.trim().toLowerCase())),
     [roster],
   );
 
@@ -306,7 +306,7 @@ function QIPage() {
       setLinkingId(null);
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't link this document.")),
+    onError: (e) => toast.error(friendlyError(e, "We couldn't link this document.")),
   });
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -461,7 +461,7 @@ function QIPage() {
     setEditorOpen(true);
     try {
       const full = await getFullFn({ data: { id: r.id } });
-      const lines: BillingLine[] = (full.lines ?? []).map((l: any, i: number) => ({
+      const lines: BillingLine[] = (full.lines ?? []).map((l, i) => ({
         id: l.id,
         description: l.description,
         quantity: Number(l.quantity),
@@ -497,7 +497,7 @@ function QIPage() {
         payment_terms_days: full.doc.payment_terms_days ? String(full.doc.payment_terms_days) : "",
         lines: lines.length > 0 ? lines : [emptyLine(0, settings?.default_vat_rate_bp ?? 1500)],
       });
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Failed to load record"));
       setEditorOpen(false);
     } finally {
@@ -506,7 +506,7 @@ function QIPage() {
   }
 
   const sendFromLabel = useMemo(() => {
-    const s: any = settings;
+    const s = settings;
     const verified = !!s?.billing_from_verified_at && !!s?.billing_from_email;
     const name = (verified && s?.billing_from_name) || s?.name || "TalVault";
     return verified
@@ -564,12 +564,12 @@ function QIPage() {
         },
       });
     },
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success(editor.id ? "Record updated" : "Record created");
       setEditor((prev) => ({ ...prev, id: res.id }));
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
+    onError: (e) => toast.error(friendlyError(e, "Save failed")),
   });
 
   const send = useMutation({
@@ -580,9 +580,9 @@ function QIPage() {
         throw new Error("Add at least one recipient email address");
       return sendFn({ data: { id: editor.id, recipients: editor.recipient_emails } });
     },
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
-      const delivered = (res.delivery ?? []).filter((d: any) => d.sent).length;
+      const delivered = (res.delivery ?? []).filter((d) => d.sent).length;
       const total = (res.delivery ?? []).length;
       toast.success(
         total
@@ -593,7 +593,7 @@ function QIPage() {
       setPreviewOpen(false);
       setEditorOpen(false);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to send")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to send")),
   });
 
   const changeStatus = useMutation({
@@ -603,7 +603,7 @@ function QIPage() {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success("Status updated");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
+    onError: (e) => toast.error(friendlyError(e, "Failed")),
   });
 
   const markPreviewSent = useMutation({
@@ -612,14 +612,14 @@ function QIPage() {
       if (!editor.client_id) throw new Error("Choose a client before sending");
       return markSentFn({ data: { id: editor.id } });
     },
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success(`${editor.kind === "quote" ? "Quotation" : "Invoice"} marked as sent manually`);
       setEditor((prev) => ({ ...prev, number: res.number, status: "sent" }));
       setPreviewOpen(false);
       setEditorOpen(false);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not update this record")),
+    onError: (e) => toast.error(friendlyError(e, "Could not update this record")),
   });
 
   const del = useMutation({
@@ -628,7 +628,7 @@ function QIPage() {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success("Record deleted");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Delete failed")),
+    onError: (e) => toast.error(friendlyError(e, "Delete failed")),
   });
 
   const toggleShare = useMutation({
@@ -637,7 +637,7 @@ function QIPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
+    onError: (e) => toast.error(friendlyError(e, "Failed")),
   });
 
   const convert = useMutation({
@@ -651,7 +651,7 @@ function QIPage() {
       qc.invalidateQueries({ queryKey: ["agency", "billing"] });
       toast.success("Invoice created from quote");
     },
-    onError: (e: any) => {
+    onError: (e) => {
       if (e.message !== "Cancelled") toast.error(friendlyError(e, "Conversion failed"));
     },
   });
@@ -693,11 +693,11 @@ function QIPage() {
         accent_color: settings.accent_color,
         default_invoice_payment_days: settings.default_invoice_payment_days,
         default_quote_acceptance_days: settings.default_quote_acceptance_days,
-        bank_name: (settings as any).bank_name ?? null,
-        bank_account_holder: (settings as any).bank_account_holder ?? null,
-        bank_account_number: (settings as any).bank_account_number ?? null,
-        bank_branch_code: (settings as any).bank_branch_code ?? null,
-        payment_instructions: (settings as any).payment_instructions ?? null,
+        bank_name: settings.bank_name ?? null,
+        bank_account_holder: settings.bank_account_holder ?? null,
+        bank_account_number: settings.bank_account_number ?? null,
+        bank_branch_code: settings.bank_branch_code ?? null,
+        payment_instructions: settings.payment_instructions ?? null,
       }
     : null;
 
@@ -1032,7 +1032,7 @@ function QIPage() {
                                   <option value="" disabled>
                                     Choose talent…
                                   </option>
-                                  {roster.map((t: any) => (
+                                  {roster.map((t) => (
                                     <option key={t.id} value={t.id}>
                                       {t.displayName}
                                     </option>
@@ -1309,7 +1309,7 @@ function QIPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={NO_TALENT}>No talent (client-only)</SelectItem>
-                        {roster.map((t: any) => (
+                        {roster.map((t) => (
                           <SelectItem key={t.id} value={t.displayName}>
                             {t.displayName}
                           </SelectItem>

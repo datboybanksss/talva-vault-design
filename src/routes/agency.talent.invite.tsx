@@ -124,7 +124,7 @@ function InviteTalent() {
           talent_type: talentType || null,
         },
       }),
-    onSuccess: async (res: any) => {
+    onSuccess: async (res) => {
       qc.invalidateQueries({ queryKey: ["agency", "invitations"] });
       qc.invalidateQueries({ queryKey: ["agency", "talent"] });
       // Deliberately the same reply whether or not this person already has a
@@ -136,7 +136,7 @@ function InviteTalent() {
       );
       navigate({ to: "/agency/invitations" });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "The invitation could not be sent.")),
+    onError: (e) => toast.error(friendlyError(e, "The invitation could not be sent.")),
   });
 
   const canContinue = step !== 1 || detailsValid;

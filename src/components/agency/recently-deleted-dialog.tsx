@@ -36,7 +36,7 @@ export function RecentlyDeletedList({
       qc.invalidateQueries({ queryKey });
       qc.invalidateQueries({ queryKey: ["agency", "vault"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "This document couldn't be restored.")),
+    onError: (e) => toast.error(friendlyError(e, "This document couldn't be restored.")),
   });
 
   if (isLoading) return <p className="tvp-muted">Loading…</p>;

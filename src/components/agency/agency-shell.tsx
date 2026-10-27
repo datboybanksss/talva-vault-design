@@ -22,6 +22,7 @@ import {
   Clock,
   X,
   Building2,
+  type LucideIcon,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +70,7 @@ const settings: NavItem[] = [
   { to: "/agency/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
 
-const toneIcon: Record<string, any> = {
+const toneIcon: Record<string, LucideIcon> = {
   amber: Clock,
   red: AlertTriangle,
   blue: Users,
@@ -320,7 +321,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                     All caught up.
                   </div>
                 )}
-                {items.map((n: any) => {
+                {items.map((n) => {
                   const Icon = toneIcon[n.tone] ?? Info;
                   const body = (
                     <>
@@ -365,7 +366,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                           aria-label="Dismiss notification"
                           onClick={(e) => {
                             e.stopPropagation();
-                            dismissItem(n);
+                            dismissItem(n as typeof n & { key: string; snapshot: number });
                           }}
                         >
                           <X className="h-4 w-4" />

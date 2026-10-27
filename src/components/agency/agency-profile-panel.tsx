@@ -59,7 +59,7 @@ export function AgencyProfilePanel() {
       toast.success("Agency profile saved");
       qc.invalidateQueries({ queryKey: ["agency", "my-profile"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to save")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to save")),
   });
 
   const saveContact = useMutation({
@@ -68,7 +68,7 @@ export function AgencyProfilePanel() {
       toast.success("Main contact saved");
       qc.invalidateQueries({ queryKey: ["agency", "my-profile"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to save")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to save")),
   });
 
   return (
