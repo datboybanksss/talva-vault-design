@@ -5,8 +5,15 @@ let stagedRows: Array<Record<string, unknown>> = [];
 
 function builder(table: string) {
   const filters: Record<string, unknown> = {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- minimal query-builder test double
-  const b: any = {
+  type Builder = {
+    select: () => Builder;
+    eq: (col: string, v: unknown) => Builder;
+    not: () => Builder;
+    order: () => Promise<{ data: typeof stagedRows; error: null }>;
+    insert: (rows: unknown) => Promise<{ error: null }>;
+    delete: () => { in: (column: string, ids: unknown) => Promise<{ error: null }> };
+  };
+  const b: Builder = {
     select: () => b,
     eq: (col: string, v: unknown) => ((filters[col] = v), b),
     not: () => b,
