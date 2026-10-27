@@ -24,6 +24,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import {
   ClipboardList,
+  type LucideIcon,
   Plus,
   CheckCircle2,
   AlertTriangle,
@@ -65,10 +66,10 @@ const REASONS = [
   { code: "incomplete", label: "Incomplete or missing pages" },
   { code: "wrong_person", label: "Wrong person" },
   { code: "other", label: "Other" },
-];
+] as const;
 
 function statusPill(status: string) {
-  const map: Record<string, { tone: string; label: string; Icon: any }> = {
+  const map: Record<string, { tone: string; label: string; Icon: LucideIcon }> = {
     pending: { tone: "amber", label: "Pending", Icon: Clock },
     submitted: { tone: "blue", label: "Submitted", Icon: ClipboardList },
     completed: { tone: "green", label: "Completed", Icon: CheckCircle2 },
@@ -283,7 +284,7 @@ function NewRequestDialog({
 
   const folderRule = useMemo(() => {
     const rules = rulesQ.data ?? [];
-    return rules.find((r: any) => r.scope === "folder" && r.scopeValue === f.folder) as
+    return rules.find((r) => r.scope === "folder" && r.scopeValue === f.folder) as
       | { retentionYears: number; description: string | null }
       | undefined;
   }, [rulesQ.data, f.folder]);
@@ -303,7 +304,7 @@ function NewRequestDialog({
       toast.success("Request created");
       onDone();
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
+    onError: (e) => toast.error(friendlyError(e, "Failed")),
   });
   return (
     <ModalShell onClose={onClose} labelledBy="new-document-request-title">
@@ -457,7 +458,7 @@ function ReviewDialog({
   const [outcome, setOutcome] = useState<"completed" | "resubmission_required" | "cancelled">(
     "completed",
   );
-  const [reason, setReason] = useState<string>("illegible");
+  const [reason, setReason] = useState<(typeof REASONS)[number]["code"]>("illegible");
   const [notes, setNotes] = useState("");
 
   const mut = useMutation({
@@ -466,7 +467,7 @@ function ReviewDialog({
         data: {
           id: request.id,
           outcome,
-          reason_code: outcome === "resubmission_required" ? (reason as any) : undefined,
+          reason_code: outcome === "resubmission_required" ? reason : undefined,
           notes: notes || undefined,
         },
       }),
@@ -480,7 +481,7 @@ function ReviewDialog({
       );
       onDone();
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
+    onError: (e) => toast.error(friendlyError(e, "Failed")),
   });
 
   return (
@@ -517,22 +518,24 @@ function ReviewDialog({
           Outcome
         </h4>
         <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr", marginTop: 8 }}>
-          {[
-            { key: "completed", label: "Complete", icon: CheckCircle2, tone: "green" },
-            {
-              key: "resubmission_required",
-              label: "Resubmission required",
-              icon: AlertTriangle,
-              tone: "amber",
-            },
-            { key: "cancelled", label: "Cancel request", icon: XCircle, tone: "red" },
-          ].map((o) => {
+          {(
+            [
+              { key: "completed", label: "Complete", icon: CheckCircle2, tone: "green" },
+              {
+                key: "resubmission_required",
+                label: "Resubmission required",
+                icon: AlertTriangle,
+                tone: "amber",
+              },
+              { key: "cancelled", label: "Cancel request", icon: XCircle, tone: "red" },
+            ] as const
+          ).map((o) => {
             const Icon = o.icon;
             return (
               <button
                 key={o.key}
                 type="button"
-                onClick={() => setOutcome(o.key as any)}
+                onClick={() => setOutcome(o.key)}
                 className={`tvp-rule-card ${outcome === o.key ? "tvp-active" : ""}`}
                 style={{ flexDirection: "column", alignItems: "flex-start", cursor: "pointer" }}
               >
@@ -577,7 +580,7 @@ function ReviewDialog({
           </p>
         ) : (
           <div className="tvp-list" style={{ marginTop: 6 }}>
-            {detail.data?.history.map((h: any) => (
+            {detail.data?.history.map((h) => (
               <div key={h.id} className="tvp-list-item">
                 <ClipboardList className="h-4 w-4 text-[var(--tvp-muted)]" />
                 <div>
