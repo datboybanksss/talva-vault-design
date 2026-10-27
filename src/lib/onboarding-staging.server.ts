@@ -5,6 +5,7 @@
  * creates an invitation, a token or an email.
  */
 export type StagingKind = "agency" | "talent";
+import { talentOnboardingSlotAllowed } from "./talent-registration-core";
 
 export const STAGING_BUCKET: Record<StagingKind, string> = {
   agency: "agency-compliance-docs",
@@ -48,7 +49,7 @@ export async function attachStagedUploads(
     console.error("[onboarding-staging] read failed", error);
     throw new Error("We couldn't attach the uploaded documents. Please try again.");
   }
-  const owned = (rows ?? []).filter((r) => stagedPathOwned(r.storage_path, adminId, sessionId));
+  const owned = (rows ?? []).filter((r) => stagedPathOwned(r.storage_path, adminId, sessionId) && talentOnboardingSlotAllowed(target.kind, r.doc_slot));
   if (!owned.length) return 0;
   const base = (r: (typeof owned)[number]) => ({
     invitation_id: target.invitationId,

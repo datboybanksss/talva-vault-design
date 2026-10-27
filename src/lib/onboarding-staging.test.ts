@@ -56,7 +56,7 @@ const row = (admin: string, extra: Record<string, unknown> = {}) => ({
   admin_id: admin,
   session_id: session,
   kind: "talent",
-  doc_slot: "id_document",
+  doc_slot: "proof_of_talent",
   file_name: "id.pdf",
   storage_path: `${stagingPrefix(admin, session)}id_document/1-id.pdf`,
   mime_type: "application/pdf",
@@ -79,7 +79,7 @@ describe("staged onboarding uploads", () => {
     expect(insert.table).toBe("talent_invitation_documents");
     expect((insert.args[0] as Array<Record<string, unknown>>)[0]).toMatchObject({
       invitation_id: "inv-1",
-      doc_slot: "id_document",
+      doc_slot: "proof_of_talent",
       uploaded_by: adminA,
     });
     expect(calls.some((c) => c.op === "delete" && c.table === "onboarding_staged_uploads")).toBe(

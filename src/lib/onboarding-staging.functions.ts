@@ -7,6 +7,7 @@ type Ctx = { supabase: SupabaseClient; userId: string };
 import { parseInput } from "@/lib/admin.functions";
 import { duplicateOnboardingName, blockedReplacements } from "./onboarding-documents";
 import { reasonForRejection } from "@/lib/document-quarantine";
+import { talentOnboardingSlotAllowed } from "./talent-registration-core";
 
 const Kind = z.enum(["agency", "talent"]);
 const SessionInput = z.object({ kind: Kind, session_id: z.string().uuid() });
@@ -63,6 +64,11 @@ export const stageOnboardingDocument = createServerFn({ method: "POST" })
     const { STAGING_BUCKET, stagedPathOwned } = await import("@/lib/onboarding-staging.server");
     const bucket = STAGING_BUCKET[data.kind];
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (!talentOnboardingSlotAllowed(data.kind, data.doc_slot)) {
+      await supabaseAdmin.storage.from(bucket).remove([data.storage_path]);
+      const { registrationCopy } = await import("./registration-copy.server");
+      throw new Error((await registrationCopy()).id_not_collected);
+    }
     if (!stagedPathOwned(data.storage_path, userId, data.session_id)) {
       throw new Error("That file does not belong to this invitation.");
     }
