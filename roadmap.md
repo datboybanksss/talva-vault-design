@@ -1,4 +1,12 @@
 # Roadmap
+- [x] Next run 0: full suite 301 passed / 5 existing skips; src lint 0 errors / 43 warnings, other targets 0 / 0; authored explicit-any 0; automatic validation `=== build 2026-10-27T17:36:41Z === build OK`.
+- [x] Next run 1: removed safe-space-frames_260825.backup via Storage API, then database_export_25_08_26 bucket; database confirms object_count=0 and bucket_count=0. No backup/copy made.
+- [ ] Next run 2: single database mfa_enforced switch (OFF here), verified JWT session binding, restrictive table/private-storage policies, global authenticated function gate/allow-list, code-screen redirect, deployment/rollback notes and regressions; final OFF/password-only check. No session minting.
+
+### 27 October — coherent checkpoint after new enforcement request
+- Item 2 is not implemented: current password-only behaviour unchanged; `MFA_ENFORCED=false`, no `mfa_enforced` setting row yet. No new MFA policies or allow-list installed. It must ship as one reviewed/tested unit rather than an incomplete gate that can lock users out.
+- Previous history scan: 4,050 unique blobs; 0 service-role JWTs, 0 private-key blocks, 0 sk_live/sk_test secret-shaped keys. One password-shaped literal occurs in a historical blacklist guard, not active credentials; no value reproduced. Reference-bearing blobs: service_role 73, SUPABASE_SERVICE 8, password= 74. These are history reference counts, not credential counts. Original temporary scan script is no longer available in this sandbox; findings retained here.
+- Warning rules remain 39 react-refresh/only-export-components and 4 react-hooks/exhaustive-deps. No test sessions minted. Authenticated password-only sign-in was not exercised: no approved Test password/session is available.
 - [ ] POPIA registration (revised, approved): proof-of-talent-only Admin invites; no talent ID collection/Admin DOB; early/final adult checks and neutral rejection; irreversible legacy erasure without backup; structural rollback; agency onboarding audit only; preserve two-factor.
 - [ ] Pre-launch environment files: example added and history scanned; blocked: .gitignore is platform read-only and published environment provenance cannot be verified. Managed .env stays tracked; no untracking attempted.
 - [x] Pre-launch raw errors: rescan, direct-display/email-result sanitisation and global function boundary; mappings, stable-code and representative server regressions; original 116-site report unavailable. Protected two-factor sites remain unchanged.
