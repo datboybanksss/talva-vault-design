@@ -390,7 +390,7 @@ export function TalentInviteForm({
 
   const outstanding = [
     ...(detailsComplete ? [] : ["talent details"]),
-    ...missing.map((s) => s.label.toLowerCase()),
+    ...missing.map(() => copy?.proof_label.toLowerCase() ?? ""),
   ];
 
   return (
@@ -643,7 +643,7 @@ export function TalentInviteForm({
                               style={{ color: "var(--tvp-amber)" }}
                             />
                           )}
-                          <strong style={{ fontSize: 14 }}>{slot.label}</strong>
+                          <strong style={{ fontSize: 14 }}>{copy?.proof_label}</strong>
                           <span className="tvp-muted" style={{ fontSize: 12 }}>
                             {has ? "Uploaded" : "Required"}
                           </span>
