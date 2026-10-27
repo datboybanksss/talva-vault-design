@@ -108,7 +108,7 @@ function AdminsPage() {
   const invite = useMutation({
     mutationFn: (input: { email: string; permission_level: AdminPermissionLevel }) =>
       inviteFn({ data: input }),
-    onSuccess: async (inv: any) => {
+    onSuccess: async (inv) => {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
       setInviteOpen(false);
       setInviteEmail("");
@@ -116,7 +116,7 @@ function AdminsPage() {
 
       // Send the invitation email. Delivery failure never discards the
       // invitation — the link can still be copied and sent manually.
-      const res: any = await sendAdminEmailFn({
+      const res = await sendAdminEmailFn({
         data: {
           id: inv.id,
           subject: DEFAULT_ADMIN_INVITATION_SUBJECT,
@@ -127,7 +127,7 @@ function AdminsPage() {
       if (res?.sent) toast.success("Administrator invitation sent.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to invite")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to invite")),
   });
 
   const revoke = useMutation({
@@ -136,16 +136,16 @@ function AdminsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
       toast.success("Invitation revoked.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed")),
+    onError: (e) => toast.error(friendlyError(e, "Failed")),
   });
 
   // Reopens a lapsed (or simply forgotten) invitation: refresh the expiry,
   // then re-send the same email the invite flow sends.
   const resend = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
-    onSuccess: async (inv: any) => {
+    onSuccess: async (inv) => {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
-      const res: any = await sendAdminEmailFn({
+      const res = await sendAdminEmailFn({
         data: {
           id: inv.id,
           subject: DEFAULT_ADMIN_INVITATION_SUBJECT,
@@ -171,7 +171,7 @@ function AdminsPage() {
         );
       }
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to resend invitation")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to resend invitation")),
   });
 
   const deleteInvite = useMutation({
@@ -180,17 +180,21 @@ function AdminsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "admin-invitations"] });
       toast.success("Invitation deleted.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to delete invitation")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to delete invitation")),
   });
 
   // Editing the access level carried by a still-pending invitation, so a
   // mis-set level can be corrected without revoking and re-inviting.
   const updateInviteFn = useServerFn(updateAdminInvitation);
-  const [editInvite, setEditInvite] = useState<any | null>(null);
+  const [editInvite, setEditInvite] = useState<
+    Awaited<ReturnType<typeof listAdminInvitations>>[number] | null
+  >(null);
   const [editInvitePerm, setEditInvitePerm] = useState<AdminPermissionLevel>("edit");
 
   useEffect(() => {
-    if (editInvite) setEditInvitePerm(editInvite.permission_level ?? "edit");
+    // Stored invitation permissions are constrained by the administrator permission contract.
+    if (editInvite)
+      setEditInvitePerm((editInvite.permission_level ?? "edit") as AdminPermissionLevel);
   }, [editInvite]);
 
   const updateInviteMut = useMutation({
@@ -201,7 +205,7 @@ function AdminsPage() {
       toast.success("Invitation access level updated.");
       setEditInvite(null);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update invitation")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to update invitation")),
   });
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -209,7 +213,9 @@ function AdminsPage() {
   const [invitePerm, setInvitePerm] = useState<AdminPermissionLevel>("edit");
 
   // Per-row edit (Main-admin only)
-  const [editAdmin, setEditAdmin] = useState<any | null>(null);
+  const [editAdmin, setEditAdmin] = useState<
+    Awaited<ReturnType<typeof listAdministrators>>[number] | null
+  >(null);
   const [editDesignation, setEditDesignation] = useState("");
   const [editPermission, setEditPermission] = useState<AdminPermissionLevel>("edit");
 
@@ -232,7 +238,7 @@ function AdminsPage() {
       toast.success("Administrator updated.");
       setEditAdmin(null);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update administrator")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to update administrator")),
   });
 
   const suspendAdminMut = useMutation({
@@ -246,10 +252,12 @@ function AdminsPage() {
           : "Administrator access restored.",
       );
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update administrator")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to update administrator")),
   });
 
-  const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState<any | null>(null);
+  const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState<
+    Awaited<ReturnType<typeof listAdministrators>>[number] | null
+  >(null);
 
   const removeAdminMut = useMutation({
     mutationFn: (input: { user_id: string }) => removeAdminFn({ data: input }),
@@ -258,14 +266,14 @@ function AdminsPage() {
       setConfirmRemoveAdmin(null);
       toast.success("Administrator removed.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to remove administrator")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to remove administrator")),
   });
 
   const list = useMemo(() => admins.data ?? [], [admins.data]);
   const stats = useMemo(() => {
     return {
       total: list.length,
-      main: list.filter((a: any) => a.is_main_admin).length,
+      main: list.filter((a) => a.is_main_admin).length,
     };
   }, [list]);
 
@@ -274,8 +282,8 @@ function AdminsPage() {
 
   // `status` is the effective status (a stored "pending" whose expiry has
   // passed reads as "expired"), so a lapsed invite never counts as pending.
-  const pendingInvites = (invitations.data ?? []).filter((i: any) => i.status === "pending");
-  const expiredInvites = (invitations.data ?? []).filter((i: any) => i.status === "expired");
+  const pendingInvites = (invitations.data ?? []).filter((i) => i.status === "pending");
+  const expiredInvites = (invitations.data ?? []).filter((i) => i.status === "expired");
 
   return (
     <>
@@ -387,7 +395,7 @@ function AdminsPage() {
                     </td>
                   </tr>
                 )}
-                {adminPage.visible.map((a: any) => (
+                {adminPage.visible.map((a) => (
                   <tr key={a.user_id}>
                     <td>
                       <strong>{a.display_name || a.email.split("@")[0]}</strong>
@@ -546,7 +554,11 @@ function AdminsPage() {
                 </div>
                 <div className="tvp-form-group">
                   <label>Access level</label>
-                  <select value={invitePerm} onChange={(e) => setInvitePerm(e.target.value as any)}>
+                  {/* Options carry only grantable administrator permission values. */}
+                  <select
+                    value={invitePerm}
+                    onChange={(e) => setInvitePerm(e.target.value as AdminPermissionLevel)}
+                  >
                     {grantable.map((p) => (
                       <option key={p.value} value={p.value}>
                         {p.optionLabel}
@@ -610,7 +622,7 @@ function AdminsPage() {
                   </td>
                 </tr>
               )}
-              {invitePage.visible.map((i: any) => (
+              {invitePage.visible.map((i) => (
                 <tr key={i.id}>
                   <td>
                     <strong>{i.email}</strong>
@@ -793,9 +805,10 @@ function AdminsPage() {
             </div>
             <div className="tvp-form-group">
               <label>Permission level</label>
+              {/* Options carry only administrator permission values. */}
               <select
                 value={editPermission}
-                onChange={(e) => setEditPermission(e.target.value as any)}
+                onChange={(e) => setEditPermission(e.target.value as AdminPermissionLevel)}
                 disabled={editAdmin.is_main_admin}
               >
                 {ADMIN_PERMISSION_LEVELS.map((p) => (
@@ -866,9 +879,10 @@ function AdminsPage() {
             </p>
             <div className="tvp-form-group">
               <label>Access level</label>
+              {/* Options carry only grantable administrator permission values. */}
               <select
                 value={editInvitePerm}
-                onChange={(e) => setEditInvitePerm(e.target.value as any)}
+                onChange={(e) => setEditInvitePerm(e.target.value as AdminPermissionLevel)}
                 disabled={updateInviteMut.isPending}
               >
                 {grantable.map((p) => (
