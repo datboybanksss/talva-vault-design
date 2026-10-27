@@ -126,8 +126,6 @@ const activateInput = z.object({
     .string()
     .trim()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter your date of birth."),
-  tax_number: z.string().trim().max(40).optional().or(z.literal("")),
-  is_provisional_taxpayer: z.boolean().optional(),
   phone_number: z.string().trim().max(40).optional().or(z.literal("")),
   password: z.string().min(12).max(200),
   terms_accepted: z.literal(true),
@@ -299,8 +297,6 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       .update({
         full_name: data.full_name,
         date_of_birth: data.date_of_birth,
-        tax_number: nz(data.tax_number),
-        is_provisional_taxpayer: data.is_provisional_taxpayer ?? false,
         phone_number: nz(data.phone_number),
         activation_completed_at: new Date().toISOString(),
       })

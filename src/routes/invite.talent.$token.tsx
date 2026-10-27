@@ -212,8 +212,6 @@ function Wizard({
   const [fullName, setFullName] = useState(invite.talent_name ?? "");
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
-  const [taxNumber, setTaxNumber] = useState("");
-  const [provisional, setProvisional] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [terms, setTerms] = useState(false);
@@ -249,8 +247,6 @@ function Wizard({
           email: invite.email,
           full_name: fullName.trim(),
           date_of_birth: dob,
-          tax_number: taxNumber.trim() || undefined,
-          is_provisional_taxpayer: provisional,
           phone_number: phone.trim() || undefined,
           password,
           terms_accepted: true as const,
@@ -293,8 +289,6 @@ function Wizard({
             setFullName("");
             setDob("");
             setPhone("");
-            setTaxNumber("");
-            setProvisional(false);
             setPassword("");
             setConfirmPw("");
             setTerms(false);
@@ -358,10 +352,6 @@ function Wizard({
           setDob={setDob}
           phone={phone}
           setPhone={setPhone}
-          taxNumber={taxNumber}
-          setTaxNumber={setTaxNumber}
-          provisional={provisional}
-          setProvisional={setProvisional}
           onBack={goBack}
           onContinue={goNext}
           error={error}
@@ -477,10 +467,6 @@ function Step2({
   setDob,
   phone,
   setPhone,
-  taxNumber,
-  setTaxNumber,
-  provisional,
-  setProvisional,
   onBack,
   onContinue,
   error,
@@ -492,10 +478,6 @@ function Step2({
   setDob: (v: string) => void;
   phone: string;
   setPhone: (v: string) => void;
-  taxNumber: string;
-  setTaxNumber: (v: string) => void;
-  provisional: boolean;
-  setProvisional: (v: boolean) => void;
   onBack: () => void;
   onContinue: () => void;
   error: string | null;
@@ -529,33 +511,6 @@ function Step2({
           autoComplete="tel"
         />
       </div>
-      <div className="tv-auth-field">
-        <label htmlFor="tax-number">Tax reference number (optional)</label>
-        <input
-          id="tax-number"
-          value={taxNumber}
-          onChange={(e) => setTaxNumber(e.target.value)}
-          placeholder="SARS tax number"
-        />
-      </div>
-      <label
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "flex-start",
-          marginTop: 4,
-          cursor: "pointer",
-          fontSize: 14,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={provisional}
-          onChange={(e) => setProvisional(e.target.checked)}
-          style={{ marginTop: 3, width: 16, height: 16 }}
-        />
-        <span>I am a registered provisional taxpayer.</span>
-      </label>
       {error && (
         <div className="tv-auth-alert" style={{ marginTop: 12 }}>
           {error}
