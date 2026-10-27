@@ -54,7 +54,7 @@ function TalentDashboard() {
   const rels = agency.data?.relationships ?? [];
   const active = rels.filter((r) => r.state === "active");
   const recent = data?.recentDocs ?? [];
-  const contacts = data?.trustedContacts ?? [];
+  const contactCount = data?.trustedContactCount ?? 0;
 
   let managedLine = "";
   if (agency.isError)
