@@ -1,6 +1,7 @@
-import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
+import { checkRows as check, checkRow } from "./query-results";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -41,11 +42,6 @@ const Filters = z.object({
   // CSV export asks for every row with the same rules as the screen.
   limit: z.number().int().min(1).max(5000).default(10),
 });
-
-function check<T>(res: { data: T | null; error: PostgrestError | null }): T {
-  if (res.error) throw databaseError(res.error);
-  return (res.data ?? []) as T;
-}
 
 /** Loads every invitation the reports count (admin agency onboarding, independent and agency talent; inert excluded). */
 export async function loadInviteRows(
@@ -137,7 +133,7 @@ export const getLaunchSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
-    const row = check<Pick<Tables<"platform_settings">, "value" | "updated_at">>(
+    const row = checkRow<Pick<Tables<"platform_settings">, "value" | "updated_at">>(
       await supabase
         .from("platform_settings")
         .select("value, updated_at")
@@ -185,7 +181,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     const nowIso = new Date().toISOString();
 
-    const settingsRow = check<Pick<Tables<"platform_settings">, "value">>(
+    const settingsRow = checkRow<Pick<Tables<"platform_settings">, "value">>(
       await admin.from("platform_settings").select("value").eq("key", "launch").maybeSingle(),
     );
     const settings = parseLaunchSettings(settingsRow?.value);

@@ -1,5 +1,7 @@
 import { duplicateOnboardingName, blockedReplacements } from "./onboarding-documents";
 import { databaseError } from "./security-errors";
+import { allQueryRows } from "./query-results";
+import { agencyInvitationStatusInput } from "./invitation-status-input";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -1037,7 +1039,7 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
     parseInput(
       z.object({
-        status: z.string().max(10000).default("all"),
+        status: agencyInvitationStatusInput.default("all"),
         search: z.string().max(10000).default(""),
         limit: z.number().int().min(1).max(100).default(10),
         offset: z.number().int().min(0).default(0),
@@ -1060,7 +1062,7 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
         | ReturnType<typeof invitationQueries>["count"],
     >(
       q: Q,
-      status: string,
+      status: z.infer<typeof agencyInvitationStatusInput>,
     ) => {
       let out:
         | ReturnType<typeof invitationQueries>["list"]
@@ -1070,8 +1072,7 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
       } else if (status === "pending") {
         out = out.eq("status", "pending").gte("expires_at", nowIso);
       } else if (status !== "all") {
-        // The existing validator allows arbitrary strings; preserve database handling rather than adding validation.
-        out = out.eq("status", status as Tables<"agency_invitations">["status"]);
+        out = out.eq("status", status);
       }
       const term = data.search.trim();
       if (term) {
@@ -1082,7 +1083,7 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
       return out as Q;
     };
 
-    const tabs = ["all", "draft", "pending", "accepted", "expired", "declined", "revoked"];
+    const tabs = ["all", "draft", "pending", "accepted", "expired", "declined", "revoked"] as const;
     const countResults = await Promise.all(
       tabs.map((t) =>
         applyFilters(
@@ -1165,22 +1166,26 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     const searchIds: Record<InvitationType, string[] | null> = { agency: null, talent: null };
     if (term) {
       const [ag, ta] = await Promise.all([
-        supabase
-          .from("agency_invitations")
-          .select("id, agency_name, contact_person, email")
-          .eq("kind", ADMIN_AGENCY_INVITATION_KIND)
-          .limit(5000),
-        supabase
-          .from("independent_talent_invitations")
-          .select("id, talent_name, email")
-          .limit(5000),
+        allQueryRows((from, to) =>
+          supabase
+            .from("agency_invitations")
+            .select("id, agency_name, contact_person, email")
+            .eq("kind", ADMIN_AGENCY_INVITATION_KIND)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        allQueryRows((from, to) =>
+          supabase
+            .from("independent_talent_invitations")
+            .select("id, talent_name, email")
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ]);
-      if (ag.error) throw databaseError(ag.error);
-      if (ta.error) throw databaseError(ta.error);
-      searchIds.agency = (ag.data ?? [])
+      searchIds.agency = ag
         .filter((r) => matchesSearch([r.agency_name, r.contact_person, r.email], term))
         .map((r) => r.id);
-      searchIds.talent = (ta.data ?? [])
+      searchIds.talent = ta
         .filter((r) => matchesSearch([r.talent_name, r.email], term))
         .map((r) => r.id);
     }

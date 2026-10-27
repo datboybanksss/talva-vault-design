@@ -1,5 +1,6 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { matchesSearch } from "@/lib/search";
+import { proofDocumentId } from "@/lib/proof-display";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -487,8 +488,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                       </td>
                       <td>{fmtDate(a.accepted_at)}</td>
                       <td title={a.body_sha256 ?? ""}>
-                        {/* Preserve the existing direct slice; legacy nullable document IDs are a deferred runtime bug. */}
-                        {(a.document_id as string).slice(0, 8)} ·{" "}
+                        {proofDocumentId(a.document_id)} ·{" "}
                         {a.body_sha256 ? a.body_sha256.slice(0, 12) : "—"}
                         {a.hash_retrospective ? " · hash added later" : ""}
                       </td>
