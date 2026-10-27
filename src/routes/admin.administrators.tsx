@@ -6,6 +6,7 @@ import { useSessionReady } from "@/hooks/use-session-ready";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { siteLinkFallback } from "@/lib/site-link-client";
 import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   Users,
@@ -124,7 +125,7 @@ function AdminsPage() {
           body: DEFAULT_ADMIN_INVITATION_BODY,
           invite_url: `${window.location.origin}/invite/admin/${inv.token}`,
         },
-      }).catch(() => ({ sent: false }));
+      }).catch(siteLinkFallback);
       if (res?.sent) toast.success("Administrator invitation sent.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
@@ -153,7 +154,7 @@ function AdminsPage() {
           body: DEFAULT_ADMIN_INVITATION_BODY,
           invite_url: `${window.location.origin}/invite/admin/${inv.token}`,
         },
-      }).catch(() => ({ sent: false }));
+      }).catch(siteLinkFallback);
       if (res?.sent) {
         toast.success("Invitation resent · expiry refreshed · logged.");
       } else {
