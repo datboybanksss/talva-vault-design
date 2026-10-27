@@ -626,16 +626,18 @@ export const setAccountTest = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const table = data.type === "agency" ? "agencies" : "talent_profiles";
     const label = data.type === "agency" ? "name" : "full_name";
-    const { data: row, error } = await (supabaseAdmin as any)
+    const { data: row, error } = await supabaseAdmin
       .from(table)
       .update({ is_test: data.isTest })
       .eq("id", data.id)
       .select(`id, ${label}`)
+      // The table and label are paired above; dynamic projection inference cannot retain that pairing.
+      .overrideTypes<Array<{ id: string; name?: string; full_name?: string | null }>, { merge: false }>()
       .maybeSingle();
     if (error) throw databaseError(error);
     if (!row) throw new Error("We couldn't find that account.");
@@ -657,10 +659,10 @@ export const getTalentAccountById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin as any;
+    const admin = supabaseAdmin;
     const { data: p, error } = await admin
       .from("talent_profiles")
       .select(
@@ -677,7 +679,7 @@ export const getTalentAccountById = createServerFn({ method: "GET" })
         .from("agency_talent_links")
         .select("status, agencies(name)")
         .eq("talent_user_id", p.user_id);
-      agencies = (links ?? []).map((l: any) => ({
+      agencies = (links ?? []).map((l) => ({
         name: l.agencies?.name ?? "—",
         status: l.status,
       }));
@@ -702,7 +704,7 @@ export const getAgencyById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     const { data: agency, error } = await supabase
       .from("agencies")
@@ -718,7 +720,7 @@ export const getAgencyById = createServerFn({ method: "GET" })
 export const getReadOnlyYears = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase.rpc("post_end_read_only_years");
     if (error) throw databaseError(error);
@@ -728,7 +730,7 @@ export const getReadOnlyYears = createServerFn({ method: "GET" })
 const BAN_DURATION = "876000h"; // ~100 years; lifted on unpause
 
 /** Blocks sign-in (and token refresh) for these users; returns the ones we banned. */
-async function banUsers(admin: any, userIds: string[]): Promise<string[]> {
+async function banUsers(admin: AdminClient, userIds: string[]): Promise<string[]> {
   const banned: string[] = [];
   for (const id of [...new Set(userIds)]) {
     const { data: isAdmin } = await admin.rpc("has_role", { _user_id: id, _role: "admin" });
@@ -745,7 +747,7 @@ async function banUsers(admin: any, userIds: string[]): Promise<string[]> {
   return banned;
 }
 
-async function unbanUsers(admin: any, userIds: string[]) {
+async function unbanUsers(admin: AdminClient, userIds: string[]) {
   for (const id of [...new Set(userIds)]) {
     const { error } = await admin.auth.admin.updateUserById(id, { ban_duration: "none" });
     if (error) throw databaseError(error);
@@ -772,7 +774,7 @@ export const changeAccountState = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { canApplyAccountAction, isValidReason, reasonsFor } =
       await import("@/lib/account-state");
@@ -782,14 +784,16 @@ export const changeAccountState = createServerFn({ method: "POST" })
     }
     const note = data.note?.trim() || null;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin as any;
+    const admin = supabaseAdmin;
     const table = data.type === "agency" ? "agencies" : "talent_profiles";
-    const { data: row, error: rErr } = await admin
+    const { data: selectedRow, error: rErr } = await admin
       .from(table)
       .select("*")
       .eq("id", data.id)
       .maybeSingle();
     if (rErr) throw databaseError(rErr);
+    // The selected table determines these variant fields; keep the existing type-based accesses unchanged.
+    const row = selectedRow as (Tables<"agencies"> | Tables<"talent_profiles">) & Partial<Tables<"agencies"> & Tables<"talent_profiles">>;
     if (!row || (data.type === "talent" && row.deleted_at))
       throw new Error("We couldn't find that account.");
     const state = {
@@ -800,7 +804,7 @@ export const changeAccountState = createServerFn({ method: "POST" })
       throw new Error("That action isn't available for this account's current status.");
     }
     const now = new Date().toISOString();
-    let patch: Record<string, unknown> = {};
+    let patch: TablesUpdate<"agencies"> & TablesUpdate<"talent_profiles"> = {};
 
     if (data.action === "pause") {
       let userIds: string[] = [];
@@ -809,7 +813,7 @@ export const changeAccountState = createServerFn({ method: "POST" })
           .from("agency_members")
           .select("user_id")
           .eq("agency_id", data.id);
-        userIds = (members ?? []).map((m: any) => m.user_id).filter(Boolean);
+        userIds = (members ?? []).map((m) => m.user_id).filter(Boolean);
       } else if (row.user_id) userIds = [row.user_id];
       const banned = await banUsers(admin, userIds);
       patch = {
