@@ -147,10 +147,10 @@ function AgencyDashboard() {
   const [activityFilter, setActivityFilter] = useState<string>("all");
   const activity = useQuery({
     queryKey: ["agency", "dashboard-activity"],
-    queryFn: () => listActivityFn({ data: {} }) as Promise<any[]>,
+    queryFn: () => listActivityFn({ data: {} }),
     refetchInterval: 60_000,
   });
-  const activityRows: any[] = useMemo(() => activity.data ?? [], [activity.data]);
+  const activityRows = useMemo(() => activity.data ?? [], [activity.data]);
   const filteredActivity = useMemo(() => {
     const f = ACTIVITY_FILTERS.find((x) => x.key === activityFilter);
     const list =
