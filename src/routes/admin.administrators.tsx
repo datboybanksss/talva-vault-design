@@ -6,6 +6,8 @@ import { useSessionReady } from "@/hooks/use-session-ready";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { siteLinkFallback } from "@/lib/site-link-client";
+import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   Users,
   ShieldCheck,
@@ -123,7 +125,7 @@ function AdminsPage() {
           body: DEFAULT_ADMIN_INVITATION_BODY,
           invite_url: `${window.location.origin}/invite/admin/${inv.token}`,
         },
-      }).catch(() => ({ sent: false }));
+      }).catch(siteLinkFallback);
       if (res?.sent) toast.success("Administrator invitation sent.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
@@ -152,7 +154,7 @@ function AdminsPage() {
           body: DEFAULT_ADMIN_INVITATION_BODY,
           invite_url: `${window.location.origin}/invite/admin/${inv.token}`,
         },
-      }).catch(() => ({ sent: false }));
+      }).catch(siteLinkFallback);
       if (res?.sent) {
         toast.success("Invitation resent · expiry refreshed · logged.");
       } else {
@@ -690,12 +692,18 @@ function AdminsPage() {
                                         title: "Copying does not extend expiry",
                                         onSelect: async () => {
                                           try {
-                                            await navigator.clipboard.writeText(
-                                              `${window.location.origin}/invite/admin/${i.token}`,
-                                            );
+                                            const { url } = await getInviteLink({
+                                              data: { kind: "admin", token: i.token },
+                                            });
+                                            await navigator.clipboard.writeText(url);
                                             toast.success("Invite link copied.");
-                                          } catch {
-                                            toast.error("Copy failed");
+                                          } catch (e) {
+                                            toast.error(
+                                              friendlyError(
+                                                e,
+                                                "We couldn't copy the invitation link.",
+                                              ),
+                                            );
                                           }
                                         },
                                       },

@@ -1,6 +1,6 @@
 import { sendLovableEmail } from "@lovable.dev/email-js";
 import { friendlyError } from "./friendly-error";
-import { PUBLIC_SITE_URL, emailHeaderHtml } from "@/lib/brand-email";
+import { emailHeaderHtml, requireSiteLink } from "@/lib/brand-email";
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, fmtMoney } from "@/lib/billing";
 import { BILLING_DOC_STATUS_LABEL } from "@/lib/status-labels";
@@ -103,7 +103,9 @@ export async function sendSenderVerificationEmail(
   agencyName: string,
   token: string,
 ): Promise<BillingSendResult> {
-  const url = `${PUBLIC_SITE_URL}/api/public/verify-billing-sender?token=${encodeURIComponent(token)}`;
+  const url = requireSiteLink(
+    `/api/public/verify-billing-sender?token=${encodeURIComponent(token)}`,
+  );
   const subject = `Verify ${to} as a sending address for ${agencyName}`;
   const html = shell(
     "Verify sending address",

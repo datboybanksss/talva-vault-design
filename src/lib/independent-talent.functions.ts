@@ -20,6 +20,7 @@ import { parseInput } from "@/lib/admin.functions";
 
 const BUCKET = "talent-invite-docs";
 import { friendlyError } from "./friendly-error";
+import { invitePath, siteLinkOrNull } from "./brand-email";
 export const INDEPENDENT_DOC_SLOTS = ["proof_of_talent"] as const;
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
@@ -56,11 +57,6 @@ async function audit(
 function effectiveStatus(row: { status: string; expires_at: string }) {
   if (row.status === "pending" && new Date(row.expires_at).getTime() < Date.now()) return "expired";
   return row.status;
-}
-
-async function inviteUrlFor(token: string) {
-  const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
-  return `${PUBLIC_SITE_URL}/invite/talent/${token}`;
 }
 
 /** Refuses an email that already has an account or a pending, unexpired invitation anywhere. */
@@ -114,6 +110,7 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
       .eq("invitation_id", data.id)
       .order("created_at");
     const { token, ...rest } = inv;
+    const live = inv.status === "pending" && !inv.acceptance_unavailable_at;
     const { registrationCopy } = await import("./registration-copy.server");
     return {
       invitation: {
@@ -123,10 +120,8 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
           : effectiveStatus(inv),
       },
       documents: docs ?? [],
-      invite_url:
-        inv.status === "pending" && !inv.acceptance_unavailable_at
-          ? await inviteUrlFor(token)
-          : null,
+      invite_url: live ? siteLinkOrNull(invitePath("talent", token)) : null,
+      invite_link_unavailable: live && !siteLinkOrNull(invitePath("talent", token)),
     };
   });
 

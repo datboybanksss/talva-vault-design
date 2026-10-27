@@ -1,4 +1,4 @@
-import { emailHeaderHtml, PUBLIC_SITE_URL } from "@/lib/brand-email";
+import { emailHeaderHtml, requireSiteLink } from "@/lib/brand-email";
 
 function escapeHtml(s: string) {
   return s.replace(
@@ -17,7 +17,7 @@ export function buildReminderEmail(input: {
   detail?: string | null;
   ctaPath?: string;
 }) {
-  const link = `${PUBLIC_SITE_URL}${input.ctaPath ?? "/talent"}`;
+  const link = requireSiteLink(input.ctaPath ?? "/talent");
   const subject = `TalVault reminder: ${input.title}`;
 
   const text = [

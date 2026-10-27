@@ -1119,7 +1119,7 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
           DEFAULT_TALENT_INVITATION_SUBJECT,
         } = await import("@/lib/invitation-email");
         const { sendInvitationEmail } = await import("@/lib/invitation-email.server");
-        const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
+        const { requireInviteLink } = await import("@/lib/brand-email");
         const { fmtLongDate } = await import("@/lib/notice-email");
         const { data: ag } = await supabase
           .from("agencies")
@@ -1133,7 +1133,7 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
           agencyName: ag?.name ?? null,
           talentName: data.talent_name.split(" ")[0],
           recipientEmail: data.email,
-          inviteUrl: `${PUBLIC_SITE_URL}/invite/talent/${inv.token}`,
+          inviteUrl: requireInviteLink("talent", inv.token),
           expiryDate: fmtLongDate(expires_at),
         });
         const r = await sendInvitationEmail(

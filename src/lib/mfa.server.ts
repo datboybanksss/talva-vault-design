@@ -1,5 +1,5 @@
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
-import { emailHeaderHtml, PUBLIC_SITE_URL } from "@/lib/brand-email";
+import { emailHeaderHtml, publicSiteUrl } from "@/lib/brand-email";
 
 /** Sign-in codes are short-lived and single use. */
 export { CODE_TTL_MINUTES } from "@/lib/mfa-copy";
@@ -42,7 +42,7 @@ export function buildSignInCodeEmail(code: string) {
     "",
     "If you didn't try to sign in, you can ignore this email — nobody can get in with your password alone.",
     "",
-    PUBLIC_SITE_URL,
+    publicSiteUrl() ?? "",
   ].join("\n");
 
   const html = `<!doctype html>

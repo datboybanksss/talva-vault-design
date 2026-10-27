@@ -28,10 +28,8 @@ type AdminInviteRow = {
 };
 
 export async function adminInviteUrl(kind: AdminInviteKind, token: string) {
-  const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
-  return kind === "agency"
-    ? `${PUBLIC_SITE_URL}/invite/${token}`
-    : `${PUBLIC_SITE_URL}/invite/talent/${token}`;
+  const { requireInviteLink } = await import("@/lib/brand-email");
+  return requireInviteLink(kind === "agency" ? "agency" : "talent", token);
 }
 
 export async function adminDisplayName(supabase: SupabaseClient, userId: string): Promise<string> {

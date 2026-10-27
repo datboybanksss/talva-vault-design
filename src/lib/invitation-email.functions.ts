@@ -153,7 +153,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
       agencyName: agency?.name ?? "Your Manager",
       talentName: inv.talent_name,
       recipientEmail: inv.email,
-      inviteUrl: data.invite_url,
+      inviteUrl: await serverInviteUrl(data.invite_url),
       expiryDate: fmtExpiry(inv.expires_at),
     });
 
@@ -229,7 +229,7 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
       body: data.body,
       permissionLevel: inv.permission_level,
       recipientEmail: inv.email,
-      inviteUrl: data.invite_url,
+      inviteUrl: await serverInviteUrl(data.invite_url),
       expiryDate: fmtExpiry(inv.expires_at),
     });
 
@@ -308,7 +308,7 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
       agencyName: inv.agency_name ?? "Your agency",
       contactPerson: inv.contact_person,
       recipientEmail: inv.email,
-      inviteUrl: data.invite_url,
+      inviteUrl: await serverInviteUrl(data.invite_url),
       expiryDate: fmtExpiry(inv.expires_at),
     });
 
@@ -340,3 +340,17 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
 
     return result;
   });
+
+/**
+ * The browser may only suggest which invitation path to link; the origin is
+ * always the validated server setting, so emails never carry relative or
+ * preview links.
+ */
+async function serverInviteUrl(suggested: string): Promise<string> {
+  const { requireSiteLink } = await import("@/lib/brand-email");
+  const path = new URL(suggested).pathname;
+  if (!/^\/invite\/(?:(?:talent|admin)\/)?[^/]+$/.test(path)) {
+    throw new Error("That invitation link isn't valid. Please refresh and try again.");
+  }
+  return requireSiteLink(path);
+}
