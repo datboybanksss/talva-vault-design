@@ -1,3 +1,5 @@
+import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
+import type { Database, Tables } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -17,7 +19,7 @@ import {
   type TermsPerson,
 } from "@/lib/launch-reporting-core";
 
-async function assertAdmin(supabase: any, userId: string) {
+async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
@@ -40,13 +42,13 @@ const Filters = z.object({
   limit: z.number().int().min(1).max(5000).default(10),
 });
 
-function check<T>(res: { data: T | null; error: any }): T {
+function check<T>(res: { data: T | null; error: PostgrestError | null }): T {
   if (res.error) throw databaseError(res.error);
   return (res.data ?? []) as T;
 }
 
 /** Loads every invitation the reports count (admin agency onboarding, independent and agency talent; inert excluded). */
-export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
+export async function loadInviteRows(admin: SupabaseClient<Database>): Promise<InviteRow[]> {
   const [ag, ind, tal, inert, testAg, testTal] = await Promise.all([
     admin
       .from("agency_invitations")
@@ -66,16 +68,16 @@ export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
     admin.from("agencies").select("id").eq("is_test", true),
     admin.from("talent_profiles").select("email").eq("is_test", true),
   ]);
-  const testAgencies = new Set(check<any[]>(testAg).map((r) => r.id));
+  const testAgencies = new Set(check(testAg).map((r) => r.id));
   const testEmails = new Set(
-    check<any[]>(testTal).map((r) =>
+    check(testTal).map((r) =>
       String(r.email ?? "")
         .trim()
         .toLowerCase(),
     ),
   );
-  const inertIds = new Set(check<any[]>(inert).map((r) => r.invitation_id));
-  const map = (rows: any[], type: "agency" | "talent", segment: any, source: (r: any) => any) =>
+  const inertIds = new Set(check(inert).map((r) => r.invitation_id));
+  const map = (rows: any[], type: "agency" | "talent", segment: any, source: (r) => any) =>
     rows.map((r) => ({
       id: r.id,
       type,
@@ -102,24 +104,24 @@ export async function loadInviteRows(admin: any): Promise<InviteRow[]> {
             ),
     }));
   return [
-    ...map(check<any[]>(ag), "agency", null, (r) => r.source),
-    ...map(check<any[]>(ind), "talent", "independent", (r) => r.source),
+    ...map(check(ag), "agency", null, (r) => r.source),
+    ...map(check(ind), "talent", "independent", (r) => r.source),
     // Agency-sent talent invitations are sourced by that agency.
     ...map(
-      check<any[]>(tal).filter((r) => !inertIds.has(r.id)),
+      check(tal).filter((r) => !inertIds.has(r.id)),
       "talent",
       "agency_linked",
       () => "agency",
     ),
-  ] as InviteRow[];
+  ];
 }
 
 export const getLaunchSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
-    const row = check<any>(
+    const row = check(
       await supabase
         .from("platform_settings")
         .select("value, updated_at")
@@ -145,7 +147,7 @@ export const updateLaunchSettings = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
     if (!canEdit) throw new Error("You need edit permission to change launch settings.");
     const { error } = await supabase.from("platform_settings").upsert({
@@ -162,12 +164,12 @@ export const getLaunchReports = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Filters.parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     const nowIso = new Date().toISOString();
 
-    const settingsRow = check<any>(
+    const settingsRow = check(
       await admin.from("platform_settings").select("value").eq("key", "launch").maybeSingle(),
     );
     const settings = parseLaunchSettings(settingsRow?.value);
@@ -204,10 +206,10 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const scope = data.accounts;
     const inScope = (isTest: boolean | null | undefined) =>
       scope === "all" ? true : scope === "test" ? !!isTest : !isTest;
-    const agencyById = new Map<string, any>(check<any[]>(agencyRows).map((a) => [a.id, a]));
-    const allTalent = check<any[]>(talent);
+    const agencyById = new Map(check(agencyRows).map((a) => [a.id, a]));
+    const allTalent = check(talent);
     const talentRows = allTalent.filter((t) => inScope(t.is_test));
-    const agencyAcc = check<any[]>(agencyAccepted).filter((a) =>
+    const agencyAcc = check(agencyAccepted).filter((a) =>
       inScope(a.agency_id ? agencyById.get(a.agency_id)?.is_test : false),
     );
     const scopedInvites = invites.filter((i) => inScope(i.is_test));
@@ -223,7 +225,8 @@ export const getLaunchReports = createServerFn({ method: "GET" })
 
     // 2. Launch offer.
     // Places are always allocated over real invitations only (test accounts never use one).
-    const offer = launchOffer(invites as unknown as OfferCandidate[], settings);
+    // loadInviteRows supplies name at runtime; InviteRow omits it from its declared report contract.
+    const offer = launchOffer(invites as OfferCandidate[], settings);
     const placeById = new Map<string, number>(
       [...offer.agency.rows, ...offer.talent.rows].map((r) => [r.id, r.place]),
     );
@@ -240,9 +243,9 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     );
 
     // 4. Terms.
-    const linkRows = check<any[]>(links);
+    const linkRows = check(links);
     const linked = new Set(linkRows.map((l) => l.talent_user_id));
-    const agenciesOfTalent = new Map<string, string[]>();
+    const agenciesOfTalent = new Map<string | null, string[]>();
     for (const l of linkRows) {
       const n = agencyById.get(l.agency_id)?.name;
       if (!n) continue;
@@ -252,14 +255,17 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       ]);
     }
     const memberAgency = new Map<string, string>(
-      check<any[]>(members).map((m) => [m.user_id, m.agency_id]),
+      check(members).map((m) => [m.user_id, m.agency_id]),
     );
-    const profiles = new Map<string, any>();
-    const memberIds = [...new Set(check<any[]>(members).map((m) => m.user_id))].filter((id) =>
+    const profiles = new Map<
+      string,
+      Pick<Tables<"profiles">, "id" | "email" | "display_name" | "first_name" | "last_name">
+    >();
+    const memberIds = [...new Set(check(members).map((m) => m.user_id))].filter((id) =>
       inScope(agencyById.get(memberAgency.get(id) ?? "")?.is_test),
     );
     if (memberIds.length) {
-      const p = check<any[]>(
+      const p = check(
         await admin
           .from("profiles")
           .select("id, email, display_name, first_name, last_name")
@@ -271,7 +277,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       .from("user_roles")
       .select("user_id")
       .eq("role", "admin");
-    const admins = new Set(((adminRoles ?? []) as any[]).map((r) => r.user_id));
+    const admins = new Set((adminRoles ?? []).map((r) => r.user_id));
     const people: TermsPerson[] = [
       ...talentRows
         .filter((t) => t.user_id && !admins.has(t.user_id))
@@ -301,11 +307,11 @@ export const getLaunchReports = createServerFn({ method: "GET" })
         (data.type === "all" || p.docType === data.type) &&
         (data.segment === "all" || p.docType !== "talent" || p.segment === data.segment),
     );
-    const accRows = check<any[]>(acc);
-    const currentDocs = check<any[]>(docs);
+    const accRows = check(acc);
+    const currentDocs = check(docs);
     const currentIds = new Set(currentDocs.map((d) => d.id));
     const outstanding = termsOutstanding(peopleFiltered, accRows, currentDocs);
-    const scopedUsers = new Set<string>([...talentRows.map((t) => t.user_id), ...memberIds]);
+    const scopedUsers = new Set<string | null>([...talentRows.map((t) => t.user_id), ...memberIds]);
     const accInRange = accRows
       .filter((a) => scopedUsers.has(a.user_id))
       .filter((a) => a.accepted_at >= range.fromIso && a.accepted_at <= range.toIso)
@@ -315,7 +321,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const page = <T>(rows: T[], offset: number) => rows.slice(offset, offset + data.limit);
 
     // Raw records behind each card: same filters, so row counts equal the card figures.
-    const inviteByEmail = new Map<string, any>();
+    const inviteByEmail = new Map<string, InviteRow>();
     for (const i of invites)
       if (i.type === "talent" && !inviteByEmail.has(i.email)) inviteByEmail.set(i.email, i);
     const recordTalent = talentRows
@@ -359,7 +365,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       });
     const recordInvites = scopedInvites
       .filter((r) => matchesInviteFilter(r, { ...range, type: data.type, segment: data.segment }))
-      .map((r: any) => ({
+      .map((r) => ({
         id: r.id,
         name: r.name ?? "",
         email: r.email,
