@@ -14,6 +14,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   Link2,
   RefreshCw,
@@ -161,16 +162,15 @@ function InvitationsPage() {
   });
 
   const copyLink = async (inv: InvitationRow) => {
-    const url =
-      inv.type === "talent"
-        ? `${window.location.origin}/invite/talent/${inv.token}`
-        : `${window.location.origin}/invite/${inv.token}`;
     try {
+      const { url } = await getInviteLink({
+        data: { kind: inv.type === "talent" ? "talent" : "agency", token: inv.token },
+      });
       await navigator.clipboard.writeText(url);
       await logCopyFn({ data: { id: inv.id, type: inv.type } });
       toast.success("Link copied. Copy does not extend expiry.");
-    } catch {
-      toast.error("Copy failed");
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't copy the invitation link."));
     }
   };
 

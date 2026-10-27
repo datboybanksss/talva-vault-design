@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { getInviteLink } from "@/lib/invite-links.functions";
 import { toast } from "sonner";
 import { Ban, FileEdit, Link2, Mail, Pencil, RefreshCw, Send, Trash2, X } from "lucide-react";
 import { invitationActions } from "@/lib/status-actions";
@@ -92,14 +93,14 @@ export function useAgencyInvitationActions(): {
   });
 
   const copyLink = async (inv: AgencyInviteRow) => {
-    const url = `${window.location.origin}/invite/${inv.token}`;
     try {
+      const { url } = await getInviteLink({ data: { kind: "agency", token: inv.token } });
       await navigator.clipboard.writeText(url);
       await logCopyFn({ data: { id: inv.id } });
       qc.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success("Link copied. Copy does not extend expiry.");
-    } catch {
-      toast.error("Copy failed");
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't copy the invitation link."));
     }
   };
 

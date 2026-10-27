@@ -2,6 +2,7 @@ import { useConfirm } from "@/components/shared/use-confirm";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { SITE_LINK_MISSING_MESSAGE } from "@/lib/brand-email";
 import { toast } from "sonner";
 import { Ban, FileEdit, Link2, Mail, RefreshCw, Eye, Send, Trash2 } from "lucide-react";
 import { invitationActions } from "@/lib/status-actions";
@@ -56,7 +57,11 @@ export function useTalentInvitationActions() {
   const copyLink = async (id: string) => {
     try {
       const res = await getFn({ data: { id } });
-      if (!res?.invite_url) throw new Error("This invitation has no live link.");
+      if (!res?.invite_url) {
+        throw new Error(
+          res?.invite_link_unavailable ? SITE_LINK_MISSING_MESSAGE : "This invitation has no live link.",
+        );
+      }
       await navigator.clipboard.writeText(res.invite_url);
       await logCopyFn({ data: { id } }).catch(() => undefined);
       toast.success("Link copied. Copy does not extend expiry.");

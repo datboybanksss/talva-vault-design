@@ -28,6 +28,7 @@ import {
 import { useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { getInviteLink } from "@/lib/invite-links.functions";
 import {
   listAccounts,
   setAccountTest,
@@ -279,12 +280,13 @@ function AccountsPage() {
       return;
     }
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/invite/${invitation.token}`);
+      const { url } = await getInviteLink({ data: { kind: "agency", token: invitation.token } });
+      await navigator.clipboard.writeText(url);
       await logCopyFn({ data: { id: invitation.id } });
       qc.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success("Link copied. Copy does not extend expiry.");
-    } catch {
-      toast.error("Copy failed");
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't copy the invitation link."));
     }
   };
 

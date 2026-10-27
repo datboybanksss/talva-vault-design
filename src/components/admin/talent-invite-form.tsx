@@ -19,6 +19,7 @@ import { InvitationTypeField } from "@/components/admin/invitation-type-field";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { SITE_LINK_MISSING_MESSAGE } from "@/lib/brand-email";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -338,7 +339,10 @@ export function TalentInviteForm({
 
   const copyLink = async () => {
     const url = invQ.data?.invite_url;
-    if (!url) return;
+    if (!url) {
+      if (invQ.data?.invite_link_unavailable) toast.error(SITE_LINK_MISSING_MESSAGE);
+      return;
+    }
     try {
       await navigator.clipboard.writeText(url);
       await logCopyFn({ data: { id: draftId } }).catch(() => undefined);
