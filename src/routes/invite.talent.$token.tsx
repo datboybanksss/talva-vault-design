@@ -289,8 +289,6 @@ function Wizard({
             setFullName("");
             setDob("");
             setPhone("");
-            setTaxNumber("");
-            setProvisional(false);
             setPassword("");
             setConfirmPw("");
             setTerms(false);
