@@ -970,11 +970,20 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       links,
       managerName,
       recentDocs: recent.slice(0, 4),
-      trustedContacts: (contactRows ?? []).map((c) => ({
-        id: c.id as string,
-        name: c.loved_one_name as string,
-        expiresAt: c.expires_at as string | null,
-      })),
+      trustedContacts: (contactRows ?? []).map((c) => {
+        const scope = (c.scope ?? {}) as {
+          private_folder_ids?: string[];
+          private_document_ids?: string[];
+        };
+        return {
+          id: c.id as string,
+          name: c.loved_one_name as string,
+          relationship: (c.relationship as string | null) ?? null,
+          expiresAt: c.expires_at as string | null,
+          sharedDocs:
+            (scope.private_document_ids?.length ?? 0) + (scope.private_folder_ids?.length ?? 0),
+        };
+      }),
       todo,
       privateDocs: privDocs.count ?? 0,
       activeShares,
