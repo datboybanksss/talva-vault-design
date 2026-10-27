@@ -57,6 +57,15 @@
 - [x] Batch 2 — Talent portal: all 13 files at 0 explicit-any (148 → 0); project 891 → 771; automatic validation: 0 TypeScript errors, build OK; 266 tests pass.
   - Found, not changed: profiles has no full_name column, so the dashboard's server-side managerName is always null (UI uses the agency-links manager instead).
 - [ ] Batch 3 — lib/agency.functions.ts (203) on its own
+  - Partial validated run: 203 → 136 explicit-any; project 771 → 704; lint 713 errors / 43 warnings; 266 tests passed / 5 skipped. Typed agency access helpers, notifications, metrics, roster, invitation/staff reads and writes, billing-link resolver, folder/count reads; remaining document operations, billing, settings and audit typing deferred. Batch remains unticked.
+  - Automatic validation after the final functional edit: `=== build 2026-10-27T13:17:23Z === build OK`; no TypeScript errors in that entry. No queries restructured and no runtime changes intended.
+
+### Found during type clean-up
+- Batch 2 (unchanged): `profiles.full_name` does not exist; dashboard server managerName remains null while UI uses agency-link details.
+- Batch 3 (unchanged): connection-response notifications filter `declined_at IS NULL`, so their subsequent declined-response branch cannot run.
+- Batch 3 (typing blocked, unchanged): `attach_talent_invite_private` is called with `_actor_email: claims?.email ?? null`, but the generated RPC argument is `string`. Its existing `as any` was retained rather than changing the argument or generated types. Review the RPC nullability contract separately.
+
+## Remaining type-safety batches
 - [ ] Batch 4 — Agency UI (~170): routes/agency.invitations.tsx (28), agency.quotes-invoices.tsx (24), agency.document-vault.tsx (11), agency.talent.$linkId.tsx (9), agency.contracts.$id.tsx (6), agency.talent.index.tsx (6), agency.invitations.$id.email-preview.tsx (3), agency.my-account.tsx (3), agency.index.tsx (2), agency.talent.invite.tsx (2), agency.document-requests.tsx (1); components/agency/* (72)
 - [ ] Batch 5 — lib/admin.functions.ts (110) on its own
 - [ ] Batch 6 — Admin server + reporting (~135): lib/admin-reporting.functions.ts (41), launch-reporting.functions.ts (32), terms-acceptance.functions.ts (30), ai-filing.functions.ts (13), document-settings.functions.ts (11), invitation-email.functions.ts (6), admin-invite-email.functions.ts (5)
