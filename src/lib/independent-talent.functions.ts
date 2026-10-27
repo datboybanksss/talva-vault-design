@@ -10,7 +10,6 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { parseInput } from "@/lib/admin.functions";
-import { ageOn, MINIMUM_TALENT_AGE } from "@/lib/terms";
 
 /**
  * Admin → independent talent invitations (no agency). Mirrors the agency
@@ -20,7 +19,7 @@ import { ageOn, MINIMUM_TALENT_AGE } from "@/lib/terms";
  */
 
 const BUCKET = "talent-invite-docs";
-export const INDEPENDENT_DOC_SLOTS = ["id_document", "proof_of_talent"] as const;
+export const INDEPENDENT_DOC_SLOTS = ["proof_of_talent"] as const;
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
@@ -68,12 +67,6 @@ async function assertEmailFree(email: string, excludeId?: string) {
   const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
   await assertInviteEmailFree({ flow: "admin_talent", email, excludeId: excludeId ?? null });
 }
-
-const dobSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the format YYYY-MM-DD")
-  .optional()
-  .or(z.literal(""));
 
 export const listIndependentTalentInvitations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -135,7 +128,6 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
         talent_name: z.string().trim().min(2).max(120),
         email: z.string().trim().email().max(255),
         talent_type: z.string().trim().max(60).optional().or(z.literal("")),
-        date_of_birth: dobSchema,
         onboarding_session_id: z.string().uuid().optional(),
       }),
       d,
@@ -151,7 +143,6 @@ export const createIndependentTalentDraft = createServerFn({ method: "POST" })
         talent_name: data.talent_name,
         email: data.email.toLowerCase(),
         talent_type: data.talent_type || null,
-        date_of_birth: data.date_of_birth || null,
         status: "draft",
         invited_by: userId,
       })
@@ -198,7 +189,6 @@ export const updateIndependentTalentDraft = createServerFn({ method: "POST" })
         talent_name: z.string().trim().min(2).max(120),
         email: z.string().trim().email().max(255),
         talent_type: z.string().trim().max(60).optional().or(z.literal("")),
-        date_of_birth: dobSchema,
       }),
       d,
     ),
@@ -222,7 +212,6 @@ export const updateIndependentTalentDraft = createServerFn({ method: "POST" })
         talent_name: data.talent_name,
         email: data.email.toLowerCase(),
         talent_type: data.talent_type || null,
-        date_of_birth: data.date_of_birth || null,
       })
       .eq("id", data.id);
     if (error) throw new Error("We couldn't save the draft. Please try again.");
@@ -440,11 +429,9 @@ export const finalizeIndependentTalentInvitation = createServerFn({ method: "POS
       .is("quarantine_reason", null);
     const have = new Set((docs ?? []).map((d) => d.doc_slot));
     const missing = INDEPENDENT_DOC_SLOTS.filter((s) => !have.has(s));
-    if (missing.length) throw new Error("Attach the ID document and proof of talent to send.");
-    if (inv.date_of_birth && ageOn(inv.date_of_birth) < MINIMUM_TALENT_AGE) {
-      throw new Error(
-        "TalVault is for adults (18 and over) at this stage, so this invitation can't be sent.",
-      );
+    if (missing.length) {
+      const { registrationCopy } = await import("./registration-copy.server");
+      throw new Error((await registrationCopy()).proof_required);
     }
     await assertEmailFree(inv.email, inv.id);
 
