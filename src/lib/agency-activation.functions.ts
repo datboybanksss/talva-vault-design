@@ -173,13 +173,14 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
         bodySha256: data.terms_body_sha256,
         method: "activation",
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       await supabaseAdmin.auth.admin.deleteUser(created.user.id).catch(() => undefined);
       return {
         ok: false,
         code: "unknown",
         message:
-          e?.message ??
+          // Acceptance failures carry a message; preserve the existing rollback and fallback.
+          (e as { message?: string } | null)?.message ??
           "We couldn't record your acceptance of the Terms & Conditions. Please try again.",
       };
     }
