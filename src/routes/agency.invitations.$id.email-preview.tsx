@@ -56,7 +56,7 @@ function EmailPreviewPage() {
 
   const q = useQuery({
     queryKey: ["agency", "invitation-email", type, id],
-    queryFn: () => (isStaff ? getStaffFn({ data: { id } }) : getTalentFn({ data: { id } })),
+    queryFn: async () => (isStaff ? getStaffFn({ data: { id } }) : getTalentFn({ data: { id } })),
   });
   const inv = q.data as any;
 
