@@ -212,8 +212,6 @@ function Wizard({
   const [fullName, setFullName] = useState(invite.talent_name ?? "");
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
-  const [taxNumber, setTaxNumber] = useState("");
-  const [provisional, setProvisional] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [terms, setTerms] = useState(false);
@@ -249,8 +247,6 @@ function Wizard({
           email: invite.email,
           full_name: fullName.trim(),
           date_of_birth: dob,
-          tax_number: taxNumber.trim() || undefined,
-          is_provisional_taxpayer: provisional,
           phone_number: phone.trim() || undefined,
           password,
           terms_accepted: true as const,
