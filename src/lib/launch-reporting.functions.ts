@@ -48,7 +48,9 @@ function check<T>(res: { data: T | null; error: PostgrestError | null }): T {
 }
 
 /** Loads every invitation the reports count (admin agency onboarding, independent and agency talent; inert excluded). */
-export async function loadInviteRows(admin: SupabaseClient<Database>): Promise<InviteRow[]> {
+export async function loadInviteRows(
+  admin: SupabaseClient<Database>,
+): Promise<(InviteRow & { name: string })[]> {
   const [ag, ind, tal, inert, testAg, testTal] = await Promise.all([
     admin
       .from("agency_invitations")
@@ -77,7 +79,21 @@ export async function loadInviteRows(admin: SupabaseClient<Database>): Promise<I
     ),
   );
   const inertIds = new Set(check(inert).map((r) => r.invitation_id));
-  const map = (rows: any[], type: "agency" | "talent", segment: any, source: (r) => any) =>
+  type InviteSourceRow = Pick<
+    Tables<"talent_invitations">,
+    "id" | "email" | "status" | "created_at" | "expires_at" | "first_sent_at" | "accepted_at"
+  > & {
+    agency_name?: string;
+    talent_name?: string | null;
+    agency_id?: string | null;
+    source?: string | null;
+  };
+  const map = <R extends InviteSourceRow>(
+    rows: R[],
+    type: "agency" | "talent",
+    segment: InviteRow["segment"],
+    source: (r: R) => InviteRow["source"],
+  ) =>
     rows.map((r) => ({
       id: r.id,
       type,
@@ -121,7 +137,7 @@ export const getLaunchSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
-    const row = check(
+    const row = check<Pick<Tables<"platform_settings">, "value" | "updated_at">>(
       await supabase
         .from("platform_settings")
         .select("value, updated_at")
@@ -169,7 +185,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     const nowIso = new Date().toISOString();
 
-    const settingsRow = check(
+    const settingsRow = check<Pick<Tables<"platform_settings">, "value">>(
       await admin.from("platform_settings").select("value").eq("key", "launch").maybeSingle(),
     );
     const settings = parseLaunchSettings(settingsRow?.value);
@@ -226,7 +242,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     // 2. Launch offer.
     // Places are always allocated over real invitations only (test accounts never use one).
     // loadInviteRows supplies name at runtime; InviteRow omits it from its declared report contract.
-    const offer = launchOffer(invites as OfferCandidate[], settings);
+    const offer = launchOffer(invites, settings);
     const placeById = new Map<string, number>(
       [...offer.agency.rows, ...offer.talent.rows].map((r) => [r.id, r.place]),
     );
@@ -282,7 +298,8 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       ...talentRows
         .filter((t) => t.user_id && !admins.has(t.user_id))
         .map((t) => ({
-          user_id: t.user_id,
+          // The preceding truthy filter excludes null without declaring a type guard.
+          user_id: t.user_id as string,
           name: t.full_name ?? "",
           email: t.email ?? "",
           docType: "talent" as const,
@@ -309,8 +326,13 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     );
     const accRows = check(acc);
     const currentDocs = check(docs);
-    const currentIds = new Set(currentDocs.map((d) => d.id));
-    const outstanding = termsOutstanding(peopleFiltered, accRows, currentDocs);
+    const currentIds = new Set<string | null>(currentDocs.map((d) => d.id));
+    const outstanding = termsOutstanding(
+      peopleFiltered,
+      // Preserve legacy nullable document IDs; the reporting helper declares a non-null contract.
+      accRows as ((typeof accRows)[number] & { document_id: string })[],
+      currentDocs,
+    );
     const scopedUsers = new Set<string | null>([...talentRows.map((t) => t.user_id), ...memberIds]);
     const accInRange = accRows
       .filter((a) => scopedUsers.has(a.user_id))
