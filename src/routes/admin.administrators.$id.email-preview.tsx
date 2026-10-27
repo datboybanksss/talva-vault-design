@@ -33,7 +33,7 @@ function AdminEmailPreviewPage() {
     queryKey: ["admin", "admin-invitation", id],
     queryFn: () => getFn({ data: { id } }),
   });
-  const inv = q.data as any;
+  const inv = q.data;
 
   // A lapsed invitation carries a dead link: sending it again would just email
   // a link that fails on arrival, so the expiry has to be refreshed first.
@@ -47,7 +47,7 @@ function AdminEmailPreviewPage() {
       setStatus({ kind: "ok", message: "Expiry refreshed — this invitation can be sent again." });
       toast.success("Invitation reopened · expiry refreshed.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not refresh the expiry.")),
+    onError: (e) => toast.error(friendlyError(e, "Could not refresh the expiry.")),
   });
 
   const [subject, setSubject] = useState(DEFAULT_ADMIN_INVITATION_SUBJECT);
@@ -70,7 +70,7 @@ function AdminEmailPreviewPage() {
 
   const sendM = useMutation({
     mutationFn: () => sendFn({ data: { id, subject, body, invite_url: inviteUrl } }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       if (res?.sent) {
         setStatus({ kind: "ok", message: `Email sent to ${inv?.email}.` });
         toast.success("Invitation email sent.");
@@ -83,7 +83,7 @@ function AdminEmailPreviewPage() {
       setStatus({ kind: "error", message: msg });
       toast.error("Email not sent — see the status message.");
     },
-    onError: (e: any) => {
+    onError: (e) => {
       setStatus({
         kind: "error",
         message: `Send failed: ${e?.message ?? "unknown error"}. Copy the link and send it yourself for now.`,
