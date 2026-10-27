@@ -1150,7 +1150,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     type AgencyInvite = Tables<"agency_invitations">;
     type TalentInvite = Tables<"independent_talent_invitations">;
     type InvitationFilterRow = { [K in keyof AgencyInvite | keyof TalentInvite]?: (K extends keyof AgencyInvite ? AgencyInvite[K] : never) | (K extends keyof TalentInvite ? TalentInvite[K] : never) };
-    type InvitationQuery<R> = PostgrestFilterBuilder<Database["__InternalSupabase"], Database["public"], InvitationFilterRow, R, "agency_invitations" | "independent_talent_invitations">;
+    type InvitationQuery<R> = PostgrestFilterBuilder<Database["__InternalSupabase"], Database["public"], AgencyInvite | TalentInvite, R, "agency_invitations" | "independent_talent_invitations">;
     const byScope = <R>(q: InvitationQuery<R>, t: InvitationType) => {
       if (scope === "all") return q;
       const ids = t === "agency" ? testAgencyIds : testEmails;
