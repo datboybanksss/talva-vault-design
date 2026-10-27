@@ -363,8 +363,7 @@ function VaultPage() {
   const viewMut = useMutation({
     mutationFn: (id: string) => signedFn({ data: { id, disposition: "inline" } }),
     onSuccess: ({ url, name }) => setPreview({ url, name }),
-    onError: (e) =>
-      toast.error(friendlyError(e, "This document is no longer available to you.")),
+    onError: (e) => toast.error(friendlyError(e, "This document is no longer available to you.")),
   });
 
   // Deep link from a bell notification: open the document straight away, or
