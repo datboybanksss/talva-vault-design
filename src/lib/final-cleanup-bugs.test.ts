@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, PostgrestError } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
 import { invitationDate } from "./invitation-display";
@@ -82,7 +82,7 @@ const client = createClient<Database>("https://database.example.test", "test-key
           created_at: isAgency ? "2026-10-27" : "2026-10-26", updated_at: "2026-10-27",
           agency_id: null, last_sent_at: null, send_count: 0, token: "token",
         }));
-        const matching = idFilter ? rows.filter((r) => idFilter.includes(`"${r.id}"`)) : rows;
+        const matching = idFilter ? rows.filter((r) => idFilter.slice(3, -1).split(",").map((id) => id.replaceAll('"', "")).includes(r.id)) : rows;
         body = matching.slice(offset, offset + limit);
         return new Response(init?.method === "HEAD" ? null : JSON.stringify(body), {
           headers: { "content-type": "application/json", "content-range": `0-0/${matching.length}` },
@@ -157,7 +157,7 @@ describe("final approved clean-up fixes", () => {
     expect(checkRows({ data: null, error: null })).toEqual([]);
   });
   it("refuses failed search pages and singleton reads", async () => {
-    const error = { message: "read failed", code: "XX000", details: "", hint: "", name: "PostgrestError" };
+    const error = new PostgrestError({ message: "read failed", code: "XX000", details: "", hint: "" });
     await expect(allQueryRows(async () => ({ data: null, error }))).rejects.toThrow(/Please try again/);
     expect(() => checkRow({ data: null, error })).toThrow(/Please try again/);
   });
