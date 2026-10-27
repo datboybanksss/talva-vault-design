@@ -60,9 +60,7 @@ function ContractDetail() {
   const createInvFn = useServerFn(createInvoiceForContract);
 
   const invoiced = c.invoices.reduce((s, i) => s + (i.totalCents ?? 0), 0);
-  const paid = c.invoices
-    .filter((i) => i.status === "paid")
-    .reduce((s, i) => s + i.totalCents, 0);
+  const paid = c.invoices.filter((i) => i.status === "paid").reduce((s, i) => s + i.totalCents, 0);
   const outstanding = invoiced - paid;
   const ccy = c.currency || c.invoices[0]?.currency || "ZAR";
 
