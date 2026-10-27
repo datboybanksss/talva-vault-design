@@ -398,7 +398,7 @@ async function sendInviteEmail(supabase: SupabaseClient<Database>, id: string, u
     result: {
       sent: false as const,
       reason: "send_failed" as const,
-      detail: String((e && typeof e === "object" && "message" in e ? e.message : undefined) ?? e),
+      detail: friendlyError(e),
     },
   }));
 }

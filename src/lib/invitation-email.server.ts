@@ -1,4 +1,5 @@
 import { sendLovableEmail } from "@lovable.dev/email-js";
+import { friendlyError } from "./friendly-error";
 
 type SendResult =
   | { sent: true; message_id?: string }
@@ -53,17 +54,18 @@ export async function sendInvitationEmail(
       },
       { apiKey, idempotencyKey: key },
     );
-    if (!res.success) return { sent: false, reason: "send_failed", detail: res.status };
+    if (!res.success) return { sent: false, reason: "send_failed", detail: friendlyError(undefined) };
     return { sent: true, message_id: res.message_id };
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };
     const status = typeof err.status === "number" ? err.status : undefined;
     const detail = String(err.message ?? e);
     const domainIssue = status === 403 || /domain|verif|not allowed|sender/i.test(detail);
+    console.error("[invitation email] send failed", e);
     return {
       sent: false,
       reason: domainIssue ? "domain_unverified" : "send_failed",
-      detail,
+      detail: friendlyError(e),
     };
   }
 }
