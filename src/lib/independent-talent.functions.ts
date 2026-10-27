@@ -20,6 +20,7 @@ import { parseInput } from "@/lib/admin.functions";
 
 const BUCKET = "talent-invite-docs";
 import { friendlyError } from "./friendly-error";
+import { invitePath, siteLinkOrNull } from "./brand-email";
 export const INDEPENDENT_DOC_SLOTS = ["proof_of_talent"] as const;
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
@@ -114,6 +115,7 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
       .eq("invitation_id", data.id)
       .order("created_at");
     const { token, ...rest } = inv;
+    const live = inv.status === "pending" && !inv.acceptance_unavailable_at;
     const { registrationCopy } = await import("./registration-copy.server");
     return {
       invitation: {
