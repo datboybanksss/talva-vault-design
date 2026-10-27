@@ -1065,7 +1065,7 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     if (linkErr) throw new Error("We couldn't add this talent to your roster. Please try again.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: outcome, error: attachErr } = await supabaseAdmin.rpc(
+    const { data: outcome, error: attachErr } = await (supabaseAdmin as any).rpc(
       "attach_talent_invite_private",
       {
         _invitation_id: inv.id,
