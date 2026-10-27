@@ -3114,7 +3114,7 @@ export const getAgencyContract = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: doc, error } = await supabase
       .from("talent_shared_documents")
@@ -3163,7 +3163,7 @@ export const getAgencyContract = createServerFn({ method: "GET" })
       notes: (doc.contract_notes as string) ?? null,
       createdAt: doc.created_at as string,
       updatedAt: doc.updated_at as string,
-      invoices: (invoices ?? []).map((r: any) => ({
+      invoices: (invoices ?? []).map((r) => ({
         id: r.id,
         kind: r.kind,
         number: r.number,
@@ -3193,7 +3193,7 @@ export const updateAgencyContractMeta = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { id, ...rest } = data;
     const { data: row, error } = await supabase
@@ -3232,7 +3232,7 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: contract, error: cErr } = await supabase
@@ -3307,7 +3307,7 @@ const reviewReasonCodes = z.enum([
 export const listAgencyDocumentRequests = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_document_requests")
@@ -3319,7 +3319,7 @@ export const listAgencyDocumentRequests = createServerFn({ method: "GET" })
     if (error) throw databaseError(error);
 
     const linkIds = Array.from(
-      new Set((rows ?? []).map((r: any) => r.talent_link_id).filter(Boolean)),
+      new Set((rows ?? []).map((r) => r.talent_link_id).filter((id): id is string => Boolean(id))),
     );
     const talentMap = new Map<string, string>();
     if (linkIds.length) {
@@ -3330,7 +3330,7 @@ export const listAgencyDocumentRequests = createServerFn({ method: "GET" })
       for (const l of links ?? []) talentMap.set(l.id as string, l.display_name as string);
     }
 
-    return (rows ?? []).map((r: any) => ({
+    return (rows ?? []).map((r) => ({
       id: r.id,
       talentLinkId: r.talent_link_id,
       talentName: talentMap.get(r.talent_link_id) ?? "Unknown",
@@ -3352,7 +3352,7 @@ export const getAgencyDocumentRequest = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: req, error } = await supabase
       .from("agency_document_requests")
@@ -3386,7 +3386,7 @@ export const createAgencyDocumentRequest = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertLinkNotEnded(supabase, data.talent_link_id);
     const { data: row, error } = await supabase
@@ -3429,7 +3429,7 @@ export const reviewAgencyDocumentRequest = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     if (data.outcome === "resubmission_required" && !data.reason_code) {
@@ -3502,7 +3502,7 @@ export const updateOwnAgencyProfile = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const display_name =
@@ -3539,7 +3539,7 @@ export const logOwnAgencyEmailChangeRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ new_email: z.string().max(10000).email() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
       supabase,
@@ -3558,7 +3558,7 @@ export const logOwnAgencyEmailChangeRequest = createServerFn({ method: "POST" })
 export const logOwnAgencyPasswordChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
       supabase,
@@ -3580,7 +3580,7 @@ export const logOwnAgencyMfaEnrolled = createServerFn({ method: "POST" })
     z.object({ factor_type: z.string().max(10000).default("email_code") }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
       supabase,
@@ -3599,7 +3599,7 @@ export const logOwnAgencyMfaEnrolled = createServerFn({ method: "POST" })
 export const logOwnAgencyMfaDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
       supabase,
@@ -3621,7 +3621,7 @@ export const logOwnAgencyMfaDisabled = createServerFn({ method: "POST" })
 export const getMyAgencyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agencies")
@@ -3647,7 +3647,7 @@ export const updateMyAgencyProfile = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
@@ -3689,7 +3689,7 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
@@ -3724,7 +3724,7 @@ export const updateMyAgencyMainContact = createServerFn({ method: "POST" })
 export const getAgencyNotificationSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agencies")
@@ -3741,7 +3741,7 @@ export const updateAgencyNotificationSettings = createServerFn({ method: "POST" 
     z.object({ expiry_notice_days: z.number().int().min(1).max(365) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
@@ -3771,7 +3771,7 @@ export const updateAgencyNotificationSettings = createServerFn({ method: "POST" 
 export const getAgencyBillingSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agencies")
@@ -3817,7 +3817,7 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
@@ -3846,7 +3846,7 @@ export const updateAgencyLogoPath = createServerFn({ method: "POST" })
     z.object({ storage_path: z.string().max(10000).nullable() }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     // TVA-SEC-004: a logo is rendered in quotes/invoices, so only accept files
