@@ -52,8 +52,8 @@ export const Route = createFileRoute("/agency/invitations")({
   component: InvitationsPage,
 });
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+function fmtDate(iso: string | null) {
+  return new Date(iso as string).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -298,7 +298,7 @@ function InvitationsPage() {
                           actions={(() => {
                             const allowed = invitationActions({
                               status: i.status,
-                              storedStatus: i.stored_status,
+                              storedStatus: (i as InvitationRow & { stored_status?: string }).stored_status,
                               viewer: isOwner ? "agency_owner" : "agency_staff",
                               canWrite: !readOnly,
                             });
