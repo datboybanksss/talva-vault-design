@@ -36,7 +36,6 @@ import {
   requestSignInCode,
   verifySignInCode,
 } from "@/lib/mfa.functions";
-import { browserSessionId } from "@/lib/device";
 
 /** Best-effort activity logging — never blocks or fails a sign-in. */
 function recordSignIn() {

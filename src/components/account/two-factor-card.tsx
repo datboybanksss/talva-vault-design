@@ -5,7 +5,6 @@ import { MailCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMfaStatus } from "@/lib/mfa.functions";
-import { browserSessionId } from "@/lib/device";
 import { SectionHeader } from "./section-header";
 
 /**

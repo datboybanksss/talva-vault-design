@@ -15,7 +15,6 @@ import {
   requestSignInCode,
   verifySignInCode,
 } from "@/lib/mfa.functions";
-import { browserSessionId } from "@/lib/device";
 
 const searchSchema = z.object({ next: z.string().optional() });
 
