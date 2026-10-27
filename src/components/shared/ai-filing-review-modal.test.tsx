@@ -15,6 +15,15 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import type { FilingSuggestion } from "@/lib/document-ai-core";
+import type { getFilingCatalog, getDocumentAnalysis } from "@/lib/ai-filing.functions";
+
+type CatalogResult = Awaited<ReturnType<typeof getFilingCatalog>>;
+type AnalysisResult = Pick<
+  Awaited<ReturnType<typeof getDocumentAnalysis>>,
+  "status" | "suggestion" | "error_code"
+>;
+
 const catalog = [
   { id: "f-identity", label: "Identity & Personal" },
   { id: "f-passport", label: "Identity & Personal → Passport" },
@@ -23,10 +32,10 @@ const catalog = [
   { id: "f-visa", label: "Travel & Visas → Visas" },
 ];
 
-const confirmSpy = vi.fn(async (_data: any) => ({ ok: true }));
-const skipSpy = vi.fn(async (_data: any) => ({ ok: true }));
+const confirmSpy = vi.fn(async (_data: unknown) => ({ ok: true }));
+const skipSpy = vi.fn(async (_data: unknown) => ({ ok: true }));
 const catalogSpy = vi.fn(
-  async (_data?: any): Promise<any> => ({
+  async (_data?: unknown): Promise<CatalogResult> => ({
     catalog,
     defaultReminderDays: 30,
     secondaryHint: "This stays in your Private Vault.",
@@ -37,20 +46,20 @@ const catalogSpy = vi.fn(
 );
 
 const analysisSpy = vi.fn(
-  async (_data?: any): Promise<any> => ({
+  async (_data?: unknown): Promise<AnalysisResult> => ({
     status: "unavailable",
     suggestion: null,
     error_code: "not_configured",
   }),
 );
 const startSpy = vi.fn(
-  async (_data?: any): Promise<any> => ({
+  async (_data?: unknown): Promise<AnalysisResult> => ({
     status: "queued",
     suggestion: null,
     error_code: null,
   }),
 );
-const prefSpy = vi.fn(async (_data?: any) => ({ ok: true }));
+const prefSpy = vi.fn(async (_data?: unknown) => ({ ok: true }));
 
 vi.mock("@/lib/ai-filing.functions", () => ({
   getFilingCatalog: "getFilingCatalog",
@@ -61,7 +70,7 @@ vi.mock("@/lib/ai-filing.functions", () => ({
   setAiFilingPreference: "setAiFilingPreference",
 }));
 
-const SPIES: Record<string, (d: any) => Promise<any>> = {
+const SPIES: Record<string, (d: unknown) => Promise<unknown>> = {
   getFilingCatalog: (d) => catalogSpy(d),
   confirmDocumentFiling: (d) => confirmSpy(d),
   skipDocumentFiling: (d) => skipSpy(d),
@@ -71,7 +80,7 @@ const SPIES: Record<string, (d: any) => Promise<any>> = {
 };
 
 vi.mock("@tanstack/react-start", () => ({
-  useServerFn: (fn: string) => (arg?: any) => SPIES[fn](arg?.data),
+  useServerFn: (fn: string) => (arg?: { data?: unknown }) => SPIES[fn](arg?.data),
 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -86,7 +95,10 @@ const AI_SUGGESTION = {
   rationale: null,
 };
 
-function renderModal(onDone = vi.fn(), opts: { suggestion?: any; fileName?: string } = {}) {
+function renderModal(
+  onDone = vi.fn(),
+  opts: { suggestion?: FilingSuggestion | null; fileName?: string } = {},
+) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
@@ -158,7 +170,7 @@ describe("AiFilingReviewModal — AI suggestion mode", () => {
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
 
-    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
       destination: "f-passport",
       expires_at: "2030-01-31T00:00:00.000Z",
       reminder_at: "2030-01-01T09:00:00.000Z",
@@ -189,7 +201,7 @@ describe("AiFilingReviewModal — AI suggestion mode", () => {
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
 
-    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
       destination: "f-visa",
       expires_at: "2027-06-15T00:00:00.000Z",
       reminder_at: "2027-06-01T09:00:00.000Z",
@@ -210,7 +222,7 @@ describe("AiFilingReviewModal — AI suggestion mode", () => {
 
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
-    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
       expires_at: null,
       reminder_at: null,
     });
@@ -241,7 +253,7 @@ describe("AiFilingReviewModal — filename guess mode", () => {
 
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
-    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
       destination: "f-passport",
       folder_source: "filename",
       expiry_source: "user", // no date in the file name, so expiry stayed empty/user
@@ -289,7 +301,7 @@ describe("AiFilingReviewModal — manual mode (AI switch off)", () => {
 
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
-    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
       folder_source: "user",
       expiry_source: "user",
     });
@@ -365,7 +377,7 @@ describe("AiFilingReviewModal — Parserly journey", () => {
     expect(folderSelect().disabled).toBe(false);
     await user.click(screen.getByRole("button", { name: /Save filing/i }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
-    expect((confirmSpy.mock.calls[0] as any[])[0]).toMatchObject({
+    expect(confirmSpy.mock.calls[0][0]).toMatchObject({
       folder_source: "user",
       expiry_source: "user",
     });

@@ -64,6 +64,9 @@ import { FilterBar } from "@/components/shared/filter-bar";
 import { ACCOUNT_SCOPE_LABEL, normaliseAccountScope } from "@/lib/account-filters";
 import { friendlyError } from "@/lib/friendly-error";
 
+type AccountRow = Awaited<ReturnType<typeof listAccounts>>["rows"][number];
+type AgencyAccount = Extract<AccountRow, { type: "agency" }>;
+
 type AccountsSearch = {
   type?: string;
   status?: string;
@@ -147,16 +150,16 @@ function AccountsPage() {
           offset: pageParam as number,
         },
       }),
-    getNextPageParam: (last: any, all: any[]) => {
-      const loaded = all.reduce((n, p: any) => n + (p.rows?.length ?? 0), 0);
+    getNextPageParam: (last, all) => {
+      const loaded = all.reduce((n, p) => n + (p.rows?.length ?? 0), 0);
       return loaded < (last?.total ?? 0) ? loaded : undefined;
     },
   });
   const visible = useMemo(
-    () => (accounts.data?.pages ?? []).flatMap((p: any) => p.rows ?? []),
+    () => (accounts.data?.pages ?? []).flatMap((p) => p.rows ?? []),
     [accounts.data?.pages],
   );
-  const firstPage: any = accounts.data?.pages?.[0];
+  const firstPage = accounts.data?.pages?.[0];
   const total = firstPage?.total ?? 0;
   const counts = firstPage?.counts ?? { type: {}, status: {}, link: {}, scope: {} };
   const setTestFn = useServerFn(setAccountTest);
@@ -182,7 +185,7 @@ function AccountsPage() {
       : `Mark ${name} as a real account? It will be counted in reports again.`;
     if (await askConfirm({ title: msg })) testM.mutate({ type, id, isTest });
   };
-  const testAction = (type: "agency" | "talent", a: any) => ({
+  const testAction = (type: "agency" | "talent", a: AccountRow) => ({
     key: "test",
     label: a.is_test ? "Mark as real account" : "Mark as test account",
     icon: FlaskConical,
@@ -192,10 +195,10 @@ function AccountsPage() {
 
   const resendM = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
-    onSuccess: async (inv: any) => {
+    onSuccess: async (inv) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       // Expiry is refreshed regardless; only claim the email went out if it did.
-      const res: any = await sendAgencyEmailFn({
+      const res = await sendAgencyEmailFn({
         data: {
           id: inv.id,
           subject: DEFAULT_INVITATION_SUBJECT,
@@ -206,7 +209,7 @@ function AccountsPage() {
       if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to resend")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to resend")),
   });
   const revokeM = useMutation({
     mutationFn: (id: string) => revokeFn({ data: { id } }),
@@ -214,7 +217,7 @@ function AccountsPage() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Invitation revoked and logged.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to revoke")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to revoke")),
   });
   const updateEmailM = useMutation({
     mutationFn: (v: { id: string; email: string }) => updateEmailFn({ data: v }),
@@ -223,7 +226,7 @@ function AccountsPage() {
       setEditingInvite(null);
       toast.success("Email updated and logged.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update email")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to update email")),
   });
   const [pendingDelete, setPendingDelete] = useState<{
     inviteId: string;
@@ -232,14 +235,14 @@ function AccountsPage() {
   } | null>(null);
   const deleteM = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       setPendingDelete(null);
       toast.success(
         res?.agency_deleted ? "Invitation and agency shell deleted." : "Invitation deleted.",
       );
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to delete")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to delete")),
   });
 
   const [editingInvite, setEditingInvite] = useState<{
@@ -251,7 +254,7 @@ function AccountsPage() {
 
   const exportCsv = () => {
     const headers = ["Name", "Type", "Status", "Email", "Linked agency", "Joined"];
-    const rows = visible.map((a: any) => [
+    const rows = visible.map((a) => [
       a.name,
       ACCOUNT_TYPE_LABEL[a.type as AccountType],
       accountStatusLabel(a.type, a.status),
@@ -270,7 +273,7 @@ function AccountsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const copyInviteLink = async (invitation: any) => {
+  const copyInviteLink = async (invitation: AgencyAccount["invitation"]) => {
     if (!invitation?.token) {
       toast.error("No invitation link found for this agency.");
       return;
@@ -426,7 +429,7 @@ function AccountsPage() {
                   </td>
                 </tr>
               )}
-              {visible.map((a: any) => {
+              {visible.map((a) => {
                 if (a.type === "talent") {
                   return (
                     <tr key={a.key}>
@@ -570,7 +573,7 @@ function AccountsPage() {
                               onSelect: () =>
                                 nav({
                                   to: "/admin/invitations/new",
-                                  search: { draft: invitation!.id } as any,
+                                  search: { draft: invitation!.id },
                                 }),
                             },
                             isSentInvite && {

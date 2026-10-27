@@ -11,8 +11,18 @@ import { assertTalentWritable } from "./terms-guard";
 
 const run = () => {
   const next = vi.fn(async () => "ran");
-  const server = (blockPausedAccounts as any).options.server;
-  return { next, result: server({ next, context: {}, data: undefined }) };
+  // This isolated fixture supplies a string-returning next() instead of the framework envelope.
+  const middleware: unknown = blockPausedAccounts;
+  const fixture = middleware as {
+    options: {
+      server: (input: {
+        next: () => Promise<string>;
+        context: object;
+        data: undefined;
+      }) => Promise<string>;
+    };
+  };
+  return { next, result: fixture.options.server({ next, context: {}, data: undefined }) };
 };
 
 describe("server enforcement: paused accounts can't call any server function", () => {

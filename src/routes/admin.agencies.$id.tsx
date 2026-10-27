@@ -59,8 +59,8 @@ function AgencyDetail() {
     queryFn: () => listTalentInvFn({ data: { agency_id: id } }),
   });
   // Rule of 10: both invitation tables cap at a batch with "Load more".
-  const agencyInvPage = usePagedList<any>((agencyInv.data ?? []) as any[]);
-  const talentInvPage = usePagedList<any>((talentInv.data ?? []) as any[]);
+  const agencyInvPage = usePagedList(agencyInv.data ?? []);
+  const talentInvPage = usePagedList(talentInv.data ?? []);
   // Suspending or reinstating an agency needs full edit rights; anything less
   // is shown the control disabled rather than a server-side "Forbidden".
   const me = useQuery({
@@ -73,7 +73,7 @@ function AgencyDetail() {
   const noEditTitle =
     "You need full edit access to pause or suspend an account. Ask a Main Administrator to change your access level.";
 
-  const a = q.data as any;
+  const a = q.data;
   const setTestFn = useServerFn(setAccountTest);
   const testM = useMutation({
     mutationFn: (isTest: boolean) => setTestFn({ data: { type: "agency", id, isTest } }),
@@ -83,13 +83,15 @@ function AgencyDetail() {
         isTest ? "Marked as a test account and logged." : "Marked as a real account and logged.",
       );
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't change the account type.")),
+    onError: (e) => toast.error(friendlyError(e, "We couldn't change the account type.")),
   });
   const toggleTest = async () => {
+    // This handler is exposed only when the agency has loaded.
+    const agency = a as NonNullable<typeof a>;
     const next = !a?.is_test;
     const msg = next
-      ? `Mark ${a.name} as a test account? It will be left out of reports and launch offer places by default.`
-      : `Mark ${a.name} as a real account? It will be counted in reports again.`;
+      ? `Mark ${agency.name} as a test account? It will be left out of reports and launch offer places by default.`
+      : `Mark ${agency.name} as a real account? It will be counted in reports again.`;
     if (await askConfirm({ title: msg })) testM.mutate(next);
   };
 
@@ -248,7 +250,7 @@ function AgencyDetail() {
                     </td>
                   </tr>
                 )}
-                {agencyInvPage.visible.map((i: any) => (
+                {agencyInvPage.visible.map((i) => (
                   <tr key={i.id}>
                     <td>{i.email}</td>
                     <td>{i.contact_person ?? "—"}</td>
@@ -323,7 +325,7 @@ function AgencyDetail() {
                     </td>
                   </tr>
                 )}
-                {talentInvPage.visible.map((i: any) => (
+                {talentInvPage.visible.map((i) => (
                   <tr key={i.id}>
                     <td>{i.talent_name ?? "—"}</td>
                     <td>{i.email}</td>

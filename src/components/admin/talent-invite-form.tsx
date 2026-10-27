@@ -138,7 +138,7 @@ export function TalentInviteForm({
     queryFn: () => getFn({ data: { id: draftId } }),
     enabled: !!draftId,
   });
-  const inv: any = invQ.data?.invitation;
+  const inv = invQ.data?.invitation;
   const stagedQ = useQuery({
     queryKey: ["admin", "staged", "talent", onboardingSessionId],
     queryFn: () => listStagedFn({ data: { kind: "talent", session_id: onboardingSessionId } }),
@@ -175,14 +175,14 @@ export function TalentInviteForm({
   const createM = useMutation({
     mutationFn: () =>
       createFn({ data: { ...payload(), onboarding_session_id: onboardingSessionId } }),
-    onSuccess: (row: any) => {
+    onSuccess: (row) => {
       refresh();
       rememberOnboardingSession(row.id, onboardingSessionId);
       setDraftId(row.id);
       toast.success("Draft saved. You can keep editing it until you send.");
       nav({ to: "/admin/invitations/talent/$id", params: { id: row.id }, replace: true });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't save the draft.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't save the draft.")),
   });
   const updateM = useMutation({
     mutationFn: () => updateFn({ data: { id: draftId, ...payload() } }),
@@ -190,10 +190,15 @@ export function TalentInviteForm({
       refresh();
       toast.success("Draft updated.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't update the draft.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't update the draft.")),
   });
 
-  const sendResult = (res: any, okMsg: string) => {
+  const sendResult = (
+    res:
+      | Awaited<ReturnType<typeof finalizeIndependentTalentInvitation>>
+      | Awaited<ReturnType<typeof resendIndependentTalentInvitation>>,
+    okMsg: string,
+  ) => {
     refresh();
     if (res?.email_sent) toast.success(okMsg);
     else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
@@ -206,16 +211,16 @@ export function TalentInviteForm({
       await saveWordingFn({ data: { kind: "talent", id: draftId, wording } });
       return finalizeFn({ data: { id: draftId, expiry_days: expiryDays } });
     },
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       sendResult(res, "Invitation sent. The talent will receive the branded email.");
       nav({ to: "/admin/invitations" });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't send the invitation.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't send the invitation.")),
   });
   const resendM = useMutation({
     mutationFn: () => resendFn({ data: { id: draftId, extend_days: 14 } }),
-    onSuccess: (res: any) => sendResult(res, "Invitation resent · expiry refreshed · logged."),
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't resend the invitation.")),
+    onSuccess: (res) => sendResult(res, "Invitation resent · expiry refreshed · logged."),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't resend the invitation.")),
   });
   const revokeM = useMutation({
     mutationFn: () => revokeFn({ data: { id: draftId } }),
@@ -223,7 +228,7 @@ export function TalentInviteForm({
       refresh();
       toast.success("Invitation revoked. The ID document and proof of talent were deleted.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't revoke the invitation.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't revoke the invitation.")),
   });
   const deleteDraftM = useMutation({
     mutationFn: () => deleteDraftFn({ data: { id: draftId } }),
@@ -232,7 +237,7 @@ export function TalentInviteForm({
       toast.success("Draft and its documents deleted.");
       nav({ to: "/admin/invitations" });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't delete the draft.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't delete the draft.")),
   });
   const deleteDocM = useMutation({
     mutationFn: (id: string) =>
@@ -245,13 +250,13 @@ export function TalentInviteForm({
       refresh();
       toast.success("Document removed.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't remove the document.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't remove the document.")),
   });
 
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
   const [slotErrors, setSlotErrors] = useState<Record<string, string>>({});
 
-  async function uploadForSlot(slotKey: string, file: File) {
+  async function uploadForSlot(slotKey: (typeof SLOTS)[number]["key"], file: File) {
     if (duplicateOnboardingName(docs, file.name)) {
       setSlotErrors((p) => ({
         ...p,
@@ -289,7 +294,7 @@ export function TalentInviteForm({
         await recordFn({
           data: {
             invitation_id: draftId,
-            doc_slot: slotKey as any,
+            doc_slot: slotKey,
             file_name: file.name,
             storage_path: path,
             mime_type: file.type,
@@ -312,8 +317,12 @@ export function TalentInviteForm({
       }
       refresh();
       toast.success(`${file.name} uploaded.`);
-    } catch (e: any) {
-      setSlotErrors((p) => ({ ...p, [slotKey]: e?.message ?? "Upload failed" }));
+    } catch (e: unknown) {
+      // Upload failures expose an optional message; preserve the existing fallback.
+      setSlotErrors((p) => ({
+        ...p,
+        [slotKey]: (e as { message?: string } | null)?.message ?? "Upload failed",
+      }));
     } finally {
       void stagedQ.refetch();
       setUploadingSlot(null);
@@ -324,7 +333,7 @@ export function TalentInviteForm({
     try {
       const { url } = await docUrlFn({ data: { id } });
       window.open(url, "_blank", "noopener");
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(friendlyError(e, "We couldn't open that document."));
     }
   };
@@ -377,7 +386,7 @@ export function TalentInviteForm({
       refresh();
       toast.success("Draft saved, including your email wording.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't save the draft.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't save the draft.")),
   });
 
   const outstanding = [

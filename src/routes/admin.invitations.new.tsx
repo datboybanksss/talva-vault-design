@@ -90,7 +90,7 @@ function NewInvitationRoute() {
   const { draft, type } = Route.useSearch();
   const nav = useNavigate();
   const choose = (t: InvitationType) =>
-    nav({ to: "/admin/invitations/new", search: { type: t } as any, replace: true });
+    nav({ to: "/admin/invitations/new", search: { type: t }, replace: true });
 
   // A saved agency draft keeps its type; to change it, delete the draft.
   if (draft) return <AgencyInviteForm typeSlot={<InvitationTypeField value="agency" locked />} />;
@@ -167,7 +167,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
     queryFn: () => listInvsFn(),
     enabled: !!draftIdFromUrl,
   });
-  const draftRow = (invQ.data ?? []).find((i: any) => i.id === draftIdFromUrl);
+  const draftRow = (invQ.data ?? []).find((i) => i.id === draftIdFromUrl);
 
   useEffect(() => {
     if (!draftRow) return;
@@ -193,14 +193,14 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
           onboarding_session_id: onboardingSessionId,
         },
       }),
-    onSuccess: (row: any) => {
+    onSuccess: (row) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       rememberOnboardingSession(row.id, onboardingSessionId);
       setDraftId(row.id);
       toast.success("Draft saved. You can keep editing it until you send.");
-      nav({ to: "/admin/invitations/new", search: { draft: row.id } as any, replace: true });
+      nav({ to: "/admin/invitations/new", search: { draft: row.id }, replace: true });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to save draft")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Failed to save draft")),
   });
 
   const updateDraftM = useMutation({
@@ -221,7 +221,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Draft updated.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update draft")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Failed to update draft")),
   });
 
   const [phoneTouched, setPhoneTouched] = useState(false);
@@ -264,12 +264,12 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
         },
       });
     },
-    onSuccess: async (inv: any) => {
+    onSuccess: async (inv) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
 
       // The invitation exists either way — a delivery failure must never be
       // reported as a successful send.
-      const res: any = await sendAgencyEmailFn({ data: { id: inv.id } }).catch(() => ({
+      const res = await sendAgencyEmailFn({ data: { id: inv.id } }).catch(() => ({
         sent: false,
       }));
       if (res?.sent)
@@ -278,7 +278,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
 
       nav({ to: "/admin/invitations" });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to send invitation")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Failed to send invitation")),
   });
 
   const deleteDocM = useMutation({
@@ -291,7 +291,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
       qc.invalidateQueries({ queryKey: ["admin", "staged", "agency", onboardingSessionId] });
       toast.success("Document removed.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to remove document")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "Failed to remove document")),
   });
 
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
@@ -356,8 +356,9 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
       }
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       toast.success(`${file.name} uploaded.`);
-    } catch (e: any) {
-      const msg = e?.message ?? "Upload failed";
+    } catch (e: unknown) {
+      // Upload failures expose an optional message; preserve the existing message fallback.
+      const msg = (e as { message?: string } | null)?.message ?? "Upload failed";
       setSlotErrors((prev) => ({ ...prev, [slotKey]: msg }));
     } finally {
       void stagedQ.refetch();
@@ -418,7 +419,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Draft saved, including your email wording.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't save the draft.")),
+    onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't save the draft.")),
   });
 
   const outstanding = [

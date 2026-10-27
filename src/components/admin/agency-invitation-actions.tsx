@@ -51,16 +51,16 @@ export function useAgencyInvitationActions(): {
 
   const resendM = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
-    onSuccess: async (inv: any) => {
+    onSuccess: async (inv) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       // Expiry is refreshed regardless; only claim the email went out if it did.
-      const res: any = await sendAgencyEmailFn({
+      const res = await sendAgencyEmailFn({
         data: { id: inv.id },
       }).catch(() => ({ sent: false }));
       if (res?.sent) toast.success("Invitation resent · expiry refreshed · logged.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to resend")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to resend")),
   });
   const revokeM = useMutation({
     mutationFn: (id: string) => revokeFn({ data: { id } }),
@@ -68,7 +68,7 @@ export function useAgencyInvitationActions(): {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Invitation revoked and logged.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to revoke")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to revoke")),
   });
   const updateEmailM = useMutation({
     mutationFn: (v: { id: string; email: string }) => updateEmailFn({ data: v }),
@@ -77,18 +77,18 @@ export function useAgencyInvitationActions(): {
       setEditing(null);
       toast.success("Email updated and logged.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to update email")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to update email")),
   });
   const deleteM = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       setPendingDelete(null);
       toast.success(
         res?.agency_deleted ? "Invitation and agency shell deleted." : "Invitation deleted.",
       );
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Failed to delete")),
+    onError: (e) => toast.error(friendlyError(e, "Failed to delete")),
   });
 
   const copyLink = async (inv: AgencyInviteRow) => {
@@ -117,7 +117,7 @@ export function useAgencyInvitationActions(): {
         label: "Continue draft",
         icon: FileEdit,
         title: "Add compliance documents and send",
-        onSelect: () => nav({ to: "/admin/invitations/new", search: { draft: i.id } as any }),
+        onSelect: () => nav({ to: "/admin/invitations/new", search: { draft: i.id } }),
       },
       i.status !== "draft" && {
         key: "preview",
@@ -158,7 +158,7 @@ export function useAgencyInvitationActions(): {
         onSelect: () =>
           isOpen
             ? resendM.mutate(i.id)
-            : nav({ to: "/admin/invitations/new", search: { type: "agency" } as any }),
+            : nav({ to: "/admin/invitations/new", search: { type: "agency" } }),
       },
       allowed.includes("revoke") && {
         key: "revoke",
