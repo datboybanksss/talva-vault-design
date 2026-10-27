@@ -59,8 +59,8 @@ function effectiveStatus(row: { status: string; expires_at: string }) {
 }
 
 async function inviteUrlFor(token: string) {
-  const { PUBLIC_SITE_URL } = await import("@/lib/brand-email");
-  return `${PUBLIC_SITE_URL}/invite/talent/${token}`;
+  const { requireInviteLink } = await import("@/lib/brand-email");
+  return requireInviteLink("talent", token);
 }
 
 /** Refuses an email that already has an account or a pending, unexpired invitation anywhere. */
@@ -123,10 +123,8 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
           : effectiveStatus(inv),
       },
       documents: docs ?? [],
-      invite_url:
-        inv.status === "pending" && !inv.acceptance_unavailable_at
-          ? await inviteUrlFor(token)
-          : null,
+      invite_url: live ? siteLinkOrNull(invitePath("talent", token)) : null,
+      invite_link_unavailable: live && !siteLinkOrNull(invitePath("talent", token)),
     };
   });
 

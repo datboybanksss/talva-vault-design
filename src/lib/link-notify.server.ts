@@ -5,7 +5,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { buildNoticeEmail, fmtLongDate } from "@/lib/notice-email";
 import { sendInvitationEmail } from "@/lib/invitation-email.server";
-import { PUBLIC_SITE_URL } from "@/lib/brand-email";
+import { requireSiteLink } from "@/lib/brand-email";
 import { SHARE_TERM_PLURAL } from "@/lib/terms";
 
 async function loadLink(linkId: string) {
@@ -77,7 +77,7 @@ export async function emailLinkRequest(linkId: string) {
       `You can accept or decline in TalVault.${ctx.link.request_expires_at ? ` The request expires on ${fmtLongDate(ctx.link.request_expires_at)}.` : ""}`,
     ],
     ctaLabel: "Review request",
-    ctaUrl: `${PUBLIC_SITE_URL}/talent/requests`,
+    ctaUrl: requireSiteLink("/talent/requests"),
     recipientEmail: ctx.talentEmail,
   });
   const r = await sendInvitationEmail(
@@ -105,7 +105,7 @@ export async function emailLinkResponse(linkId: string, accepted: boolean) {
         heading: "Connection accepted",
         paragraphs: ["Their shared folders are ready in your roster."],
         ctaLabel: "Open roster",
-        ctaUrl: `${PUBLIC_SITE_URL}/agency/talent`,
+        ctaUrl: requireSiteLink("/agency/talent"),
         recipientEmail: ctx.agencyEmail,
       })
     : buildNoticeEmail({
@@ -162,7 +162,7 @@ export async function notifyRelationshipEnded(linkId: string) {
       "Anything you added yourself stays yours, with no time limit, and you can remove it whenever you like. Your Private Vault is unaffected.",
     ],
     ctaLabel: "View shared items",
-    ctaUrl: `${PUBLIC_SITE_URL}/talent/vault`,
+    ctaUrl: requireSiteLink("/talent/vault"),
     recipientEmail: ctx.talentEmail,
   });
   return sendInvitationEmail(

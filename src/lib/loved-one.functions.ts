@@ -24,6 +24,8 @@ import { documentIsValidated } from "./file-security";
 import { shareHasCode, privateStoragePathOwned } from "./share-security";
 import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
 
+const SHARE_LINK_MESSAGE = "We couldn't send this share email. Please try again later.";
+
 async function ensureTalentProfile(supabase: SupabaseClient<Database>, userId: string) {
   const { data } = await supabase
     .from("talent_profiles")
@@ -108,7 +110,7 @@ export const createLovedOneShare = createServerFn({ method: "POST" })
     const { supabase, userId, claims } = context;
     const talentId = await ensureTalentProfile(supabase, userId);
     const { requirePublicSiteUrl } = await import("@/lib/brand-email");
-    const emailOrigin = data.send_email ? requirePublicSiteUrl() : null;
+    const emailOrigin = data.send_email ? requirePublicSiteUrl(SHARE_LINK_MESSAGE) : null;
 
     const isBilling = data.share_kind === "billing";
     const folderIds = data.share_kind === "document" || isBilling ? [] : data.private_folder_ids;
@@ -290,7 +292,7 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
       const mail = buildRegeneratedCodeEmail({
         lovedOneName: share.loved_one_name ?? share.loved_one_email,
         sharerName: prof?.full_name ?? "A TalVault user",
-        link: `${requirePublicSiteUrl()}/loved-one/${share.token}`,
+        link: `${requirePublicSiteUrl(SHARE_LINK_MESSAGE)}/loved-one/${share.token}`,
         expiresAt: share.expires_at,
       });
       const res = await sendInvitationEmail(
