@@ -4783,7 +4783,7 @@ export const upsertAgencySubfolderSetting = createServerFn({ method: "POST" })
       .eq("name", data.name)
       .maybeSingle();
 
-    const patch: Record<string, unknown> = {};
+    const patch: TablesUpdate<"agency_folder_subfolder_settings"> = {};
     if (data.kind !== undefined) patch.kind = data.kind;
     if (data.enabled !== undefined) patch.enabled = data.enabled;
     if (data.sort_order !== undefined) patch.sort_order = data.sort_order;
