@@ -6394,10 +6394,6 @@ a.tvp-entity-card:focus-visible {
 .tvd .tvd-tile-count { font-size: 34px; font-weight: 800; line-height: 1.1; }
 .tvd .tvd-tile-label { font-weight: 800; font-size: 14px; overflow-wrap: anywhere; }
 .tvd .tvd-tile-sub { color: var(--tvp-text); font-size: 12px; }
-.tvd .tvd-share { background: var(--amber-bg); }
-.tvd .tvd-share-heart { display: inline; color: var(--amber); vertical-align: -2px; }
-.tvd .tvd-share .tvd-meta { color: var(--tvp-text); }
-.tvd .tvd-share .tvd-list > li { border-color: color-mix(in oklab, var(--amber) 25%, transparent); }
 @media (prefers-reduced-motion: reduce) { .tvd .tvd-tile { transition: none; } .tvd .tvd-tile:hover { transform: none; } }
 @media (max-width: 640px) {
   .tvd .tvd-band { padding: var(--sp-4); }
