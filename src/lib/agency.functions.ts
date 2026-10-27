@@ -5,6 +5,10 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
+import { profileName } from "./profile-name";
+import { billingAccent } from "./billing-brand";
+import { connectionResponseReminder, reminderVisible } from "./connection-response";
+import { inviteActorArgs } from "./invite-actor";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { canEditLink, canEndRelationship, canReactivateRelationship } from "@/lib/status-actions";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -395,29 +399,32 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       .select("id, display_name, status, responded_at, declined_at, request_expires_at, updated_at")
       .eq("agency_id", agencyId)
       .eq("request_kind", "link_request")
-      .is("declined_at", null)
       .gte("responded_at", sinceIso);
-    for (const r of responses ?? []) {
-      const accepted = r.status !== "revoked" && r.status !== "expired";
-      const declined = !!r.declined_at;
-      computed.push({
-        id: `link_response:${r.id}`,
-        key: `link_response:${r.id}`,
-        snapshot: 1,
-        tone: accepted ? "green" : "amber",
-        title: accepted
-          ? `${r.display_name} accepted your connection request`
-          : declined
-            ? `${r.display_name} declined your connection request`
-            : `Your connection request to ${r.display_name} expired`,
-        detail: accepted
-          ? "Their shared folders are ready in your roster."
-          : declined
-            ? "No access has been granted. You can send a new request after 30 days."
-            : "No access has been granted. You can send a new request.",
-        to: "/agency/talent",
-      });
+    const responseMap = new Map((responses ?? []).map((r) => [r.id, r]));
+    // Declines stay private until a talent responds; only expose this agency's completed responses.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: declines, error: declineError } = await supabaseAdmin
+      .from("talent_invite_private")
+      .select("link_id, declined_at")
+      .eq("agency_id", agencyId)
+      .eq("kind", "link_request")
+      .eq("state", "declined")
+      .gte("responded_at", sinceIso);
+    if (declineError) throw databaseError(declineError);
+    const declinedIds = (declines ?? []).flatMap((r) => r.link_id ? [r.link_id] : []);
+    if (declinedIds.length) {
+      const { data: declinedLinks, error: linksError } = await supabase
+        .from("agency_talent_links")
+        .select("id, display_name, status, responded_at, declined_at, request_expires_at, updated_at")
+        .eq("agency_id", agencyId)
+        .in("id", declinedIds);
+      if (linksError) throw databaseError(linksError);
+      for (const link of declinedLinks ?? []) {
+        const decline = declines?.find((r) => r.link_id === link.id);
+        responseMap.set(link.id, { ...link, declined_at: decline?.declined_at ?? link.declined_at });
+      }
     }
+    for (const r of responseMap.values()) computed.push(connectionResponseReminder(r));
 
     // Documents the talent copied from their Private Vault into the shared
     // folder in the last 14 days. Audit-only marker; no private detail shown.
@@ -463,10 +470,7 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
     const dismissed = new Map((dis ?? []).map((d) => [d.kind, d.snapshot]));
 
     return {
-      computed: computed.filter((i) => {
-        const d = dismissed.get(i.key as string);
-        return d === undefined || d === null || d < (i.snapshot as number);
-      }),
+      computed: computed.filter((i) => reminderVisible(i.key, i.snapshot, dismissed)),
       persisted: [] as AgencyReminder[],
     };
   });
@@ -1080,14 +1084,9 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     if (linkErr) throw new Error("We couldn't add this talent to your roster. Please try again.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Existing cast retained: generated RPC args exclude null, which this unchanged call passes.
-    const { data: outcome, error: attachErr } = await (supabaseAdmin as any).rpc(
+    const { data: outcome, error: attachErr } = await supabaseAdmin.rpc(
       "attach_talent_invite_private",
-      {
-        _invitation_id: inv.id,
-        _actor: userId,
-        _actor_email: claims?.email ?? null,
-      },
+      inviteActorArgs(inv.id, userId, claims?.email),
     );
     if (attachErr) throw new Error("We couldn't create the invitation. Please try again.");
     const result = String(outcome ?? "");
@@ -2295,17 +2294,9 @@ export const listAgencyDocumentVersions = createServerFn({ method: "POST" })
     if (ids.length) {
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, display_name, first_name, last_name, email")
         .in("id", ids);
-      // Preserve the existing query for the absent full_name column; inspect only its legacy result fields.
-      for (const value of profs ?? []) {
-        const p: unknown = value;
-        if (p && typeof p === "object" && "id" in p && typeof p.id === "string") {
-          const fullName = "full_name" in p && typeof p.full_name === "string" ? p.full_name : null;
-          const email = "email" in p && typeof p.email === "string" ? p.email : null;
-          names.set(p.id, fullName || email || "");
-        }
-      }
+      for (const p of profs ?? []) names.set(p.id, profileName(p) ?? "");
     }
     return {
       currentVersionId: (doc.current_version_id as string) ?? null,
@@ -2712,7 +2703,18 @@ export const listAgencyBillingDocs = createServerFn({ method: "GET" })
       .eq("agency_id", agencyId)
       .order("issued_at", { ascending: false });
     if (error) throw databaseError(error);
-    return data ?? [];
+    const rows = data ?? [];
+    const ids = rows.filter((r) => r.kind === "invoice").map((r) => r.id);
+    const received = new Map<string, number>();
+    if (ids.length) {
+      const { data: payments, error: paymentError } = await supabase
+        .from("agency_invoice_payments")
+        .select("doc_id, amount_cents")
+        .in("doc_id", ids);
+      if (paymentError) throw databaseError(paymentError);
+      for (const p of payments ?? []) received.set(p.doc_id, (received.get(p.doc_id) ?? 0) + p.amount_cents);
+    }
+    return rows.map((r) => ({ ...r, received_cents: received.get(r.id) ?? 0 }));
   });
 
 export const upsertAgencyBillingDoc = createServerFn({ method: "POST" })
@@ -3832,11 +3834,11 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
-      .update(data)
+      .update({ ...data, accent_color: billingAccent(data.accent_color) })
       .eq("id", agencyId)
       .select()
       .single();
@@ -4014,8 +4016,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
     const number =
       data.number?.trim() || `DRAFT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-    // Existing any retained: validator includes declined/partial, absent from generated doc_status.
-    const payload: any = {
+    const payload: TablesInsert<"agency_billing_docs"> = {
       agency_id: agencyId,
       kind: data.kind,
       number,

@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
+import { profileName } from "./profile-name";
 
 /**
  * Returns the talent's profile + primary agency link (or null if the caller
@@ -894,16 +895,10 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         if (l?.manager_user_id) {
           const { data: p } = await supabaseAdmin
             .from("profiles")
-            .select("full_name")
+            .select("display_name, first_name, last_name, email")
             .eq("id", l.manager_user_id)
             .maybeSingle();
-          // profiles has no full_name column (pre-existing; reported, not changed), so
-          // the row is read as unknown and narrowed — this stays null as before.
-          const row: unknown = p;
-          managerName =
-            row && typeof row === "object" && "full_name" in row && typeof row.full_name === "string"
-              ? row.full_name
-              : null;
+          managerName = profileName(p);
         }
         const { data: sd } = await supabaseAdmin
           .from("talent_shared_documents")
