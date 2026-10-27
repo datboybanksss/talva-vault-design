@@ -16,7 +16,12 @@ export const getInviteLink = createServerFn({ method: "POST" })
     parseInput(
       z.object({
         kind: z.enum(["agency", "talent", "admin"]),
-        token: z.string().trim().min(8).max(200).regex(/^[A-Za-z0-9_-]+$/),
+        token: z
+          .string()
+          .trim()
+          .min(8)
+          .max(200)
+          .regex(/^[A-Za-z0-9_-]+$/),
       }),
       d,
     ),
