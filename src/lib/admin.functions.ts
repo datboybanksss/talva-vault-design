@@ -1025,13 +1025,14 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
       count: supabase.from("agency_invitations").select("id", { count: "exact", head: true }),
     });
     const applyFilters = <Q extends ReturnType<typeof invitationQueries>["list"] | ReturnType<typeof invitationQueries>["count"]>(q: Q, status: string) => {
-      let out = q;
+      let out: ReturnType<typeof invitationQueries>["list"] | ReturnType<typeof invitationQueries>["count"] = q;
       if (status === "expired") {
         out = out.eq("status", "pending").lt("expires_at", nowIso);
       } else if (status === "pending") {
         out = out.eq("status", "pending").gte("expires_at", nowIso);
       } else if (status !== "all") {
-        out = out.eq("status", status);
+        // The existing validator allows arbitrary strings; preserve database handling rather than adding validation.
+        out = out.eq("status", status as Tables<"agency_invitations">["status"]);
       }
       const term = data.search.trim();
       if (term) {
