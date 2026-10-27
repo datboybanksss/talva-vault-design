@@ -143,7 +143,8 @@ export const pendingInvitationForMe = createServerFn({ method: "POST" })
         .limit(1);
 
       // The dynamic select contains the common fields and only the selected kind's name.
-      const row = (rows ?? [])[0] as PendingInvitationRow | undefined;
+      const projectedRow: unknown = (rows ?? [])[0];
+      const row = projectedRow as PendingInvitationRow | undefined;
       if (row?.token && sameEmail(row.email, email)) {
         return {
           kind,
