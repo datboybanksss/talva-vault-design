@@ -95,13 +95,13 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
     queryFn: () =>
       fn({
         data: { ...base, offerOffset, termsOffset, outstandingOffset, limit: PAGE_SIZE },
-      }) as Promise<any>,
+      }),
   });
   const d = q.data;
 
   async function exportCsv(kind: "funnel" | "offer" | "terms" | "outstanding") {
     try {
-      const all: any = await fn({ data: { ...base, limit: 5000 } });
+      const all = await fn({ data: { ...base, limit: 5000 } });
       const stamp = `${from}_${to}`;
       if (kind === "funnel") {
         const f = all.funnel;
@@ -110,7 +110,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
           ...FUNNEL_BUCKETS.map((b) => [
             statusLabel("invitation", b),
             f.counts[b],
-            ...Object.values(f.bySource).map((s: any) => s[b]),
+            ...Object.values(f.bySource).map((s) => s[b]),
           ]),
           [],
           ["Sent (left draft)", f.sent],
@@ -120,7 +120,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
       } else if (kind === "offer") {
         download(`launch-offer_${stamp}.csv`, [
           ["Place", "Type", "Name", "Email", "First sent", "Accepted", "Free until"],
-          ...all.offer.rows.map((r: any) => [
+          ...all.offer.rows.map((r) => [
             r.place,
             r.type,
             r.name,
@@ -145,7 +145,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             "Proof reference",
             "Hash added later",
           ],
-          ...all.terms.acceptances.map((a: any) => [
+          ...all.terms.acceptances.map((a) => [
             a.user_full_name,
             a.user_email,
             a.user_role,
@@ -162,7 +162,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
       } else {
         download(`terms-not-accepted_${stamp}.csv`, [
           ["Name", "Email", "Terms", "Current version", "Last accepted version"],
-          ...all.terms.outstanding.map((p: any) => [
+          ...all.terms.outstanding.map((p) => [
             p.name,
             p.email,
             p.docType,
@@ -353,7 +353,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                       </td>
                     </tr>
                   )}
-                  {d.offer.rows.map((r: any) => (
+                  {d.offer.rows.map((r) => (
                     <tr key={r.id}>
                       <td>{r.place}</td>
                       <td>
@@ -422,7 +422,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                           </span>
                         </td>
                         <td>{d.funnel.counts[b]}</td>
-                        {Object.values(d.funnel.bySource).map((s: any, i) => (
+                        {Object.values(d.funnel.bySource).map((s, i) => (
                           <td key={i}>{s[b]}</td>
                         ))}
                       </tr>
@@ -451,7 +451,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             <p className="tvp-muted">
               Current:{" "}
               {d.terms.current
-                .map((c: any) => `${c.doc_type === "agency" ? "Agency" : "Talent"} ${c.version}`)
+                .map((c) => `${c.doc_type === "agency" ? "Agency" : "Talent"} ${c.version}`)
                 .join(" · ") || "None"}
               . Accepted in the date range: {d.terms.acceptancesTotal}.
             </p>
@@ -474,7 +474,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                       </td>
                     </tr>
                   )}
-                  {d.terms.acceptances.map((a: any) => (
+                  {d.terms.acceptances.map((a) => (
                     <tr key={a.id}>
                       <td>
                         <strong>{a.user_full_name ?? "—"}</strong>
@@ -528,7 +528,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                       </td>
                     </tr>
                   )}
-                  {d.terms.outstanding.map((p: any) => (
+                  {d.terms.outstanding.map((p) => (
                     <tr key={`${p.user_id}-${p.docType}`}>
                       <td>
                         <strong>{p.name || "—"}</strong>
@@ -704,7 +704,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
   const saveFn = useServerFn(updateLaunchSettings);
   const s = useQuery({
     queryKey: ["admin", "launch-settings"],
-    queryFn: () => getFn() as Promise<any>,
+    queryFn: () => getFn(),
   });
   const [form, setForm] = useState<LaunchSettings | null>(null);
   useEffect(() => {
@@ -740,7 +740,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
                 id={`ls-${k}`}
                 type={k === "launch_date" ? "date" : "number"}
                 min={0}
-                value={form[k] as any}
+                value={form[k]}
                 onChange={(e) =>
                   setForm({
                     ...form,
