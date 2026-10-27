@@ -858,7 +858,9 @@ export const changeAccountState = createServerFn({ method: "POST" })
       };
     }
 
-    const { error: uErr } = await admin.from(table).update(patch).eq("id", data.id);
+    const { error: uErr } = await admin.from(table)
+      // Variant-only patch keys are selected by data.type above; the dynamic table union loses that correlation.
+      .update(patch as Pick<TablesUpdate<"agencies">, "paused_at" | "paused_by" | "pause_reason" | "pause_note" | "suspended_at" | "suspended_by" | "suspension_reason" | "suspension_note">).eq("id", data.id);
     if (uErr) throw databaseError(uErr);
     const label = data.type === "agency" ? row.name : row.full_name || row.email;
     await logAudit(
