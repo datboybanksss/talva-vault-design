@@ -1,3 +1,4 @@
+import type { Tables } from "@/integrations/supabase/types";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -89,7 +90,11 @@ const anon = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_K
 describe("hosted quarantine records", () => {
   it.skipIf(!url || !service)("the seven documents carry the checker's reason", async () => {
     const h = { apikey: service!, Authorization: `Bearer ${service}` };
-    const get = (t: string, ids: string[]) =>
+    type QuarantineRecord = Pick<
+      Tables<"talent_shared_documents">,
+      "id" | "validated_at" | "quarantine_reason"
+    >;
+    const get = (t: string, ids: string[]): Promise<QuarantineRecord[]> =>
       fetch(
         `${url}/rest/v1/${t}?select=id,validated_at,quarantine_reason&id=in.(${ids.join(",")})`,
         { headers: h },
@@ -99,7 +104,7 @@ describe("hosted quarantine records", () => {
       "6366d59b-4dbb-4dda-843d-08465089115a",
       "23d84a5e-b96a-49cc-9dbb-7ac82a564119",
     ]);
-    const byId = Object.fromEntries(tsd.map((r: any) => [r.id, r.quarantine_reason]));
+    const byId = Object.fromEntries(tsd.map((r) => [r.id, r.quarantine_reason]));
     expect(byId["2dcb50dd-9c3f-45d4-be91-dfbcff7f6891"]).toBe("failed_check");
     expect(byId["6366d59b-4dbb-4dda-843d-08465089115a"]).toBe("failed_check");
     expect(byId["23d84a5e-b96a-49cc-9dbb-7ac82a564119"]).toBe("blocked_type");
@@ -108,7 +113,7 @@ describe("hosted quarantine records", () => {
       "ad230793-3eaf-412a-9737-9237d68d8c0d",
       "1250c0fe-7bc1-46ce-81ee-ff0da487280f",
     ]);
-    expect(acd.map((r: any) => r.quarantine_reason)).toEqual([
+    expect(acd.map((r) => r.quarantine_reason)).toEqual([
       "blocked_type",
       "blocked_type",
       "blocked_type",
