@@ -120,6 +120,7 @@ describe("final approved clean-up fixes", () => {
   });
   it("finds matches beyond 5,000 for both types without changing merge order or page size", async () => {
     const result = await listCombinedInvitations({ data: { q: "cafe match", limit: 1, offset: 0 } });
+    console.log(result, requests.filter((u) => u.searchParams.has("id")).slice(0, 2).map(String));
     expect(result.total).toBe(2);
     expect(result.counts.agency.all).toBe(1);
     expect(result.counts.talent.all).toBe(1);
