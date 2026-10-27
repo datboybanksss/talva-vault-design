@@ -101,7 +101,7 @@ function EmailPreviewPage() {
       const msg =
         res?.reason === "domain_unverified" || res?.reason === "email_not_configured"
           ? EMAIL_FALLBACK_NOTICE
-          : `Send failed: ${res?.detail ?? "unknown error"}. Copy the link and send it yourself for now.`;
+          : `Send failed: ${("detail" in res ? res.detail : undefined) ?? "unknown error"}. Copy the link and send it yourself for now.`;
       setStatus({ kind: "error", message: msg });
       toast.error("Email not sent — see the status message.");
     },
