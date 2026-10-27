@@ -217,7 +217,7 @@ async function identityMaps(sb: SupabaseClient<Database>, userIds: (string | nul
   const ids = [...new Set(userIds)];
   if (ids.length === 0)
     return {
-      prof: new Map<string, Pick<Tables<"profiles">, "id" | "email" | "display_name">>(),
+      prof: new Map<string | null, Pick<Tables<"profiles">, "id" | "email" | "display_name">>(),
       talent: new Map<string | null, Pick<Tables<"talent_profiles">, "user_id" | "full_name">>(),
       member: new Map<string, Pick<Tables<"agency_members">, "user_id" | "agency_id" | "role">>(),
       agencies: new Map<string, string>(),
