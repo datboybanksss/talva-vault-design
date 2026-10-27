@@ -148,6 +148,13 @@
       "when": 1793124726437,
       "tag": "0020_mfa_switch_and_session_check",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793124754649,
+      "tag": "0021_mfa_restrictive_policies",
+      "breakpoints": true
     }
   ]
 }
