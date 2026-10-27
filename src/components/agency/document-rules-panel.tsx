@@ -44,9 +44,9 @@ export const documentRulesQO = queryOptions({
 export const documentRulesDocsQO = queryOptions({
   queryKey: ["agency", "retention", "doc-picker"],
   queryFn: async () => {
-    const res = (await listAgencyVaultDocuments({
+    const res = await listAgencyVaultDocuments({
       data: { limit: 100, offset: 0 },
-    })) as { rows: any[]; total: number };
+    });
     return res.rows;
   },
 });
@@ -75,16 +75,16 @@ export function DocumentRulesPanel() {
       qc.invalidateQueries({ queryKey: ["agency", "retention"] });
       qc.invalidateQueries({ queryKey: ["agency", "vault"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Delete failed")),
+    onError: (e) => toast.error(friendlyError(e, "Delete failed")),
   });
 
   const folderRules = rules.filter((r) => r.scope === "folder");
   const docRules = rules.filter((r) => r.scope === "document");
 
   const now = Date.now();
-  const locked = docs.filter((d: any) => d.lockedUntil && new Date(d.lockedUntil).getTime() > now);
+  const locked = docs.filter((d) => d.lockedUntil && new Date(d.lockedUntil).getTime() > now);
   const unlockingSoon = locked.filter(
-    (d: any) => new Date(d.lockedUntil).getTime() - now < 90 * 86400000,
+    (d) => new Date(d.lockedUntil as string).getTime() - now < 90 * 86400000,
   );
 
   return (
@@ -280,7 +280,7 @@ export function DocumentRulesPanel() {
               qc.invalidateQueries({ queryKey: ["agency", "retention"] });
               qc.invalidateQueries({ queryKey: ["agency", "vault"] });
               setEditing(null);
-            } catch (e: any) {
+            } catch (e) {
               toast.error(friendlyError(e, "Save failed"));
             }
           }}
@@ -297,9 +297,16 @@ function RuleDialog({
   onSave,
 }: {
   initial: Partial<Rule>;
-  docs: any[];
+  docs: Awaited<ReturnType<typeof listAgencyVaultDocuments>>["rows"];
   onClose: () => void;
-  onSave: (p: any) => Promise<void>;
+  onSave: (p: {
+    id?: string;
+    scope: "folder" | "document";
+    scope_value: string | null;
+    document_id: string | null;
+    retention_years: number;
+    description: string | null;
+  }) => Promise<void>;
 }) {
   const folderOptions = useFolderNames();
   const scope = "folder" as "folder" | "document";
@@ -392,7 +399,7 @@ function RuleDialog({
               value={documentId}
               onChange={(e) => setDocumentId(e.target.value)}
             >
-              {docs.map((d: any) => (
+              {docs.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name} — {d.talentName}
                 </option>
@@ -476,7 +483,7 @@ function ExpiryNoticePanel() {
       qc.invalidateQueries({ queryKey: ["agency", "metrics"] });
       qc.invalidateQueries({ queryKey: ["agency", "talent"] });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Save failed")),
+    onError: (e) => toast.error(friendlyError(e, "Save failed")),
   });
 
   return (
