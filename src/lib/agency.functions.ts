@@ -7,6 +7,8 @@ import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { canEditLink, canEndRelationship, canReactivateRelationship } from "@/lib/status-actions";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 function extractRequestMeta(): { ip_address: string | null; user_agent: string | null } {
   try {
@@ -107,7 +109,7 @@ async function logTalentVaultView(
   }
 }
 
-async function assertAgencyOwner(supabase: any, userId: string, agencyId: string) {
+async function assertAgencyOwner(supabase: SupabaseClient<Database>, userId: string, agencyId: string) {
   const { data, error } = await supabase.rpc("has_agency_role", {
     _user_id: userId,
     _agency_id: agencyId,
@@ -120,7 +122,7 @@ async function assertAgencyOwner(supabase: any, userId: string, agencyId: string
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
-async function getCallerAgency(supabase: any, userId: string) {
+async function getCallerAgency(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase
     .from("agency_members")
     .select("agency_id, role, suspended")
@@ -138,23 +140,23 @@ async function getCallerAgency(supabase: any, userId: string) {
   });
   if (!canRead) throw new Error("Forbidden: your agency's TalVault access has ended.");
   await assertTermsAccepted(supabase, userId, "agency");
-  return { agencyId: data.agency_id as string, role: data.role as string };
+  return { agencyId: data.agency_id, role: data.role };
 }
 
 export const AGENCY_READ_ONLY_MESSAGE =
   "AGENCY_READ_ONLY: your agency's TalVault access has ended. Existing documents are view and download only.";
 
 /** Throws when the agency is suspended (read-only). Server twin of agency_is_writable(). */
-async function assertAgencyWritable(supabase: any, agencyId: string) {
+async function assertAgencyWritable(supabase: SupabaseClient<Database>, agencyId: string) {
   const { data, error } = await supabase.rpc("agency_is_writable", { _agency_id: agencyId });
   if (error) throw databaseError(error);
   if (!data) throw new Error(AGENCY_READ_ONLY_MESSAGE);
 }
 
 /** End of the read-only window when the agency is suspended; null while writable. */
-async function getAgencyReadOnlyUntil(supabase: any, agencyId: string): Promise<string | null> {
+async function getAgencyReadOnlyUntil(supabase: SupabaseClient<Database>, agencyId: string): Promise<string | null> {
   const { data } = await supabase.rpc("agency_read_only_until", { _agency_id: agencyId });
-  return (data as string | null) ?? null;
+  return data ?? null;
 }
 
 function agencyReadOnlyNotice(untilIso: string) {
@@ -167,7 +169,7 @@ function agencyReadOnlyNotice(untilIso: string) {
 }
 
 /** Caller's agency for any write path: membership + read window + not suspended. */
-async function getWritableCallerAgency(supabase: any, userId: string) {
+async function getWritableCallerAgency(supabase: SupabaseClient<Database>, userId: string) {
   const res = await getCallerAgency(supabase, userId);
   await assertAgencyWritable(supabase, res.agencyId);
   return res;
@@ -179,7 +181,7 @@ async function getWritableCallerAgency(supabase: any, userId: string) {
  * management action is refused. The database enforces this too via RLS; this
  * helper exists so the UI gets a readable message instead of a policy error.
  */
-async function assertLinkNotEnded(supabase: any, talentLinkId: string | null | undefined) {
+async function assertLinkNotEnded(supabase: SupabaseClient<Database>, talentLinkId: string | null | undefined) {
   if (!talentLinkId) return;
   const { data, error } = await supabase
     .from("agency_talent_links")
