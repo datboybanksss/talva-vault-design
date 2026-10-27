@@ -8,6 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
 
 type AdminClient = SupabaseClient<Database>;
+type AdminAuditDetail = Record<string, Json | undefined>;
 import { isValidPhone, normalisePhone, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
 import { mapEffectiveStatus, effectiveInvitationStatus } from "@/lib/invitation-status";
 import {
@@ -198,7 +199,7 @@ async function logAudit(
   targetType?: string,
   targetId?: string,
   targetLabel?: string | null,
-  detail: Record<string, Json | undefined> = {},
+  detail: AdminAuditDetail = {},
 ) {
   await supabase.from("admin_audit_log").insert({
     actor_id: userId,
@@ -794,7 +795,8 @@ export const changeAccountState = createServerFn({ method: "POST" })
       .maybeSingle();
     if (rErr) throw databaseError(rErr);
     // The selected table determines these variant fields; keep the existing type-based accesses unchanged.
-    const row = selectedRow as (Tables<"agencies"> | Tables<"talent_profiles">) & Partial<Tables<"agencies"> & Tables<"talent_profiles">>;
+    const row = selectedRow as (Tables<"agencies"> | Tables<"talent_profiles">) &
+      Partial<Tables<"agencies"> & Tables<"talent_profiles">>;
     if (!row || (data.type === "talent" && row.deleted_at))
       throw new Error("We couldn't find that account.");
     const state = {
@@ -805,7 +807,20 @@ export const changeAccountState = createServerFn({ method: "POST" })
       throw new Error("That action isn't available for this account's current status.");
     }
     const now = new Date().toISOString();
-    let patch: Pick<TablesUpdate<"agencies">, "paused_at" | "paused_by" | "pause_reason" | "pause_note" | "paused_banned_user_ids" | "status" | "suspended_at" | "suspended_by" | "suspension_reason" | "suspension_note"> & Pick<TablesUpdate<"talent_profiles">, "paused_banned"> = {};
+    let patch: Pick<
+      TablesUpdate<"agencies">,
+      | "paused_at"
+      | "paused_by"
+      | "pause_reason"
+      | "pause_note"
+      | "paused_banned_user_ids"
+      | "status"
+      | "suspended_at"
+      | "suspended_by"
+      | "suspension_reason"
+      | "suspension_note"
+    > &
+      Pick<TablesUpdate<"talent_profiles">, "paused_banned"> = {};
 
     if (data.action === "pause") {
       let userIds: string[] = [];
@@ -859,9 +874,23 @@ export const changeAccountState = createServerFn({ method: "POST" })
       };
     }
 
-    const { error: uErr } = await admin.from(table)
+    const { error: uErr } = await admin
+      .from(table)
       // Variant-only patch keys are selected by data.type above; the dynamic table union loses that correlation.
-      .update(patch as Pick<TablesUpdate<"agencies">, "paused_at" | "paused_by" | "pause_reason" | "pause_note" | "suspended_at" | "suspended_by" | "suspension_reason" | "suspension_note">).eq("id", data.id);
+      .update(
+        patch as Pick<
+          TablesUpdate<"agencies">,
+          | "paused_at"
+          | "paused_by"
+          | "pause_reason"
+          | "pause_note"
+          | "suspended_at"
+          | "suspended_by"
+          | "suspension_reason"
+          | "suspension_note"
+        >,
+      )
+      .eq("id", data.id);
     if (uErr) throw databaseError(uErr);
     const label = data.type === "agency" ? row.name : row.full_name || row.email;
     await logAudit(
@@ -1025,8 +1054,17 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
       list: supabase.from("agency_invitations").select("*", { count: "exact" }),
       count: supabase.from("agency_invitations").select("id", { count: "exact", head: true }),
     });
-    const applyFilters = <Q extends ReturnType<typeof invitationQueries>["list"] | ReturnType<typeof invitationQueries>["count"]>(q: Q, status: string) => {
-      let out: ReturnType<typeof invitationQueries>["list"] | ReturnType<typeof invitationQueries>["count"] = q;
+    const applyFilters = <
+      Q extends
+        | ReturnType<typeof invitationQueries>["list"]
+        | ReturnType<typeof invitationQueries>["count"],
+    >(
+      q: Q,
+      status: string,
+    ) => {
+      let out:
+        | ReturnType<typeof invitationQueries>["list"]
+        | ReturnType<typeof invitationQueries>["count"] = q;
       if (status === "expired") {
         out = out.eq("status", "pending").lt("expires_at", nowIso);
       } else if (status === "pending") {
@@ -1149,8 +1187,18 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     const quoteList = (xs: string[]) => xs.map((x) => `"${x.replace(/"/g, "")}"`).join(",");
     type AgencyInvite = Tables<"agency_invitations">;
     type TalentInvite = Tables<"independent_talent_invitations">;
-    type InvitationFilterRow = { [K in keyof AgencyInvite | keyof TalentInvite]?: (K extends keyof AgencyInvite ? AgencyInvite[K] : never) | (K extends keyof TalentInvite ? TalentInvite[K] : never) };
-    type InvitationQuery<R> = PostgrestFilterBuilder<Database["__InternalSupabase"], Database["public"], AgencyInvite | TalentInvite, R, "agency_invitations" | "independent_talent_invitations">;
+    type InvitationFilterRow = {
+      [K in keyof AgencyInvite | keyof TalentInvite]?:
+        | (K extends keyof AgencyInvite ? AgencyInvite[K] : never)
+        | (K extends keyof TalentInvite ? TalentInvite[K] : never);
+    };
+    type InvitationQuery<R> = PostgrestFilterBuilder<
+      Database["__InternalSupabase"],
+      Database["public"],
+      AgencyInvite | TalentInvite,
+      R,
+      "agency_invitations" | "independent_talent_invitations"
+    >;
     const byScope = <R>(q: InvitationQuery<R>, t: InvitationType) => {
       if (scope === "all") return q;
       const ids = t === "agency" ? testAgencyIds : testEmails;
@@ -1183,10 +1231,16 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     // Only agency onboarding invitations: agency staff invitations share the
     // agency_invitations table (kind = 'staff') and are not Admin invitations.
     const byStatus = <R>(q0: InvitationQuery<R>, s: string, t: InvitationType) => {
-      const q1 = byScope(t === "agency"
-        // Only agency queries take this branch; the union exposes common column keys only.
-        ? q0.eq("kind" as "id", ADMIN_AGENCY_INVITATION_KIND)
-        : q0, t);
+      const q1 = byScope(
+        t === "agency"
+          ? // Only agency queries take this branch; the union exposes common column keys only.
+            (q0.eq as (column: "kind", value: AgencyInvite["kind"]) => InvitationQuery<R>)(
+              "kind",
+              ADMIN_AGENCY_INVITATION_KIND,
+            )
+          : q0,
+        t,
+      );
       const q2 = email ? q1.ilike("email", `%${email}%`) : q1;
       const ids = searchIds[t];
       const q =
@@ -1195,8 +1249,9 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
           : q2.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
-      if (s !== "all") // Normalisation precedes this helper; keep its existing string contract and database filter.
-      return q.eq("status", s as Tables<"agency_invitations">["status"]);
+      if (s !== "all")
+        // Normalisation precedes this helper; keep its existing string contract and database filter.
+        return q.eq("status", s as Tables<"agency_invitations">["status"]);
       return q;
     };
 
@@ -1226,12 +1281,50 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
           .order("created_at", { ascending: false })
           .range(0, window - 1)
           // Table and columns are paired by t; dynamic select inference otherwise cross-combines them.
-          .overrideTypes<Array<Pick<AgencyInvite, "id" | "agency_id" | "agency_name" | "contact_person" | "email" | "status" | "expires_at" | "created_at" | "updated_at" | "last_sent_at" | "send_count" | "token"> | Pick<TalentInvite, "id" | "talent_name" | "email" | "status" | "expires_at" | "created_at" | "updated_at" | "last_sent_at" | "send_count">>, { merge: false }>();
+          .overrideTypes<
+            Array<
+              | Pick<
+                  AgencyInvite,
+                  | "id"
+                  | "agency_id"
+                  | "agency_name"
+                  | "contact_person"
+                  | "email"
+                  | "status"
+                  | "expires_at"
+                  | "created_at"
+                  | "updated_at"
+                  | "last_sent_at"
+                  | "send_count"
+                  | "token"
+                >
+              | Pick<
+                  TalentInvite,
+                  | "id"
+                  | "talent_name"
+                  | "email"
+                  | "status"
+                  | "expires_at"
+                  | "created_at"
+                  | "updated_at"
+                  | "last_sent_at"
+                  | "send_count"
+                >
+            >,
+            { merge: false }
+          >();
         if (error) throw databaseError(error);
         return (rows ?? []).map((r) => ({
           ...r,
           type: t,
-          name: t === "agency" ? ("agency_name" in r ? r.agency_name : undefined) : ("talent_name" in r ? r.talent_name : undefined),
+          name:
+            t === "agency"
+              ? "agency_name" in r
+                ? r.agency_name
+                : undefined
+              : "talent_name" in r
+                ? r.talent_name
+                : undefined,
           stored_status: r.status as string,
           status: effectiveInvitationStatus(r.status, r.expires_at),
           is_test: isTestRow(r, t),
@@ -1976,7 +2069,7 @@ export const getAuditLogSummary = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(5000);
     if (error) throw databaseError(error);
-    const rows = (data ?? []);
+    const rows = data ?? [];
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const byAction: Record<string, number> = {};
