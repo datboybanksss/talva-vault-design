@@ -1147,7 +1147,9 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         .map((r) => r.id);
     }
     const quoteList = (xs: string[]) => xs.map((x) => `"${x.replace(/"/g, "")}"`).join(",");
-    type InvitationFilterRow = Partial<Tables<"agency_invitations"> & Tables<"independent_talent_invitations">>;
+    type AgencyInvite = Tables<"agency_invitations">;
+    type TalentInvite = Tables<"independent_talent_invitations">;
+    type InvitationFilterRow = { [K in keyof AgencyInvite | keyof TalentInvite]?: (K extends keyof AgencyInvite ? AgencyInvite[K] : never) | (K extends keyof TalentInvite ? TalentInvite[K] : never) };
     type InvitationQuery<R> = PostgrestFilterBuilder<Database["__InternalSupabase"], Database["public"], InvitationFilterRow, R, "agency_invitations" | "independent_talent_invitations">;
     const byScope = <R>(q: InvitationQuery<R>, t: InvitationType) => {
       if (scope === "all") return q;
@@ -1160,7 +1162,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         ? q.or(`agency_id.is.null,agency_id.not.in.(${quoteList(ids)})`)
         : q.not("email", "in", `(${quoteList(ids)})`);
     };
-    const isTestRow = (r: any, t: InvitationType) =>
+    const isTestRow = (r: Pick<InvitationFilterRow, "agency_id" | "email">, t: InvitationType) =>
       t === "agency"
         ? !!r.agency_id && testAgencyIds.includes(r.agency_id)
         : testEmails.includes(
@@ -1214,14 +1216,14 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     const fetched = await Promise.all(
       types.map(async (t) => {
         const { data: rows, error } = await byStatus(
-          supabase.from(TABLE[t].table).select(TABLE[t].cols)
-            // Table and columns are paired by t; dynamic select inference otherwise cross-combines them.
-            .overrideTypes<Array<Pick<Tables<"agency_invitations">, "id" | "agency_id" | "agency_name" | "contact_person" | "email" | "status" | "expires_at" | "created_at" | "updated_at" | "last_sent_at" | "send_count" | "token"> | Pick<Tables<"independent_talent_invitations">, "id" | "talent_name" | "email" | "status" | "expires_at" | "created_at" | "updated_at" | "last_sent_at" | "send_count">>, { merge: false }>(),
+          supabase.from(TABLE[t].table).select(TABLE[t].cols),
           status,
           t,
         )
           .order("created_at", { ascending: false })
-          .range(0, window - 1);
+          .range(0, window - 1)
+          // Table and columns are paired by t; dynamic select inference otherwise cross-combines them.
+          .overrideTypes<Array<Pick<AgencyInvite, "id" | "agency_id" | "agency_name" | "contact_person" | "email" | "status" | "expires_at" | "created_at" | "updated_at" | "last_sent_at" | "send_count" | "token"> | Pick<TalentInvite, "id" | "talent_name" | "email" | "status" | "expires_at" | "created_at" | "updated_at" | "last_sent_at" | "send_count">>, { merge: false }>();
         if (error) throw databaseError(error);
         return (rows ?? []).map((r) => ({
           ...r,
