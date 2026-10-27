@@ -59,7 +59,7 @@ function TalentAccountPage() {
     retry: false,
   });
   const canEdit = !!me.data?.canEdit;
-  const t = q.data as any;
+  const t = q.data;
   const testM = useMutation({
     mutationFn: (isTest: boolean) => setTestFn({ data: { type: "talent", id, isTest } }),
     onSuccess: (_r, isTest) => {
@@ -152,7 +152,7 @@ function TalentAccountPage() {
                 {t.agencies.length === 0
                   ? "Independent"
                   : t.agencies
-                      .map((l: any) => `${l.name} (${statusLabel("talentLink", l.status)})`)
+                      .map((l) => `${l.name} (${statusLabel("talentLink", l.status)})`)
                       .join(", ")}
               </p>
             </div>
