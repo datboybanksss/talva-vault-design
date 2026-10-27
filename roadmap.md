@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] POPIA registration: admin verification/send gate; private adult profile checks; ID moves and bell notices; configurable disposal; legacy ID erasure; tests and rollback. Pending review of irreversible erasure and existing 2FA mismatch before applying data changes.
 - [x] Final approved bug-fix run: resolve all remaining type-clean-up findings, add focused regressions, and reach zero lint errors without changing two-factor or minting sessions.
 - [x] TVA-SEC-112: all invitation wizards use server admin creation; hosted signup already disabled; enabled Google while preserving disable_signup; public signup refusal tested; two unlinked non-test addresses reported.
 - [x] TVA-SEC-113: four invitation claim failure branches sanitised with server logs; focused tests pass.
