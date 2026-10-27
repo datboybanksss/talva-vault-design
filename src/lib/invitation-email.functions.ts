@@ -28,7 +28,7 @@ export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
 
     const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
       _user_id: userId,
@@ -72,7 +72,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => sendInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
 
     const { data: inv, error } = await supabase
       .from("talent_invitations")
@@ -84,13 +84,15 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
 
     const { data: isOwner, error: roleErr } = await supabase.rpc("has_agency_role", {
       _user_id: userId,
-      _agency_id: inv.agency_id,
+      // Preserve the nullable staff agency argument; the generated RPC signature excludes null.
+      _agency_id: inv.agency_id as string,
       _role: "owner",
     });
     if (roleErr) throw databaseError(roleErr);
     if (!isOwner) throw new Error("Forbidden: only agency owners may send talent invitations.");
     const { data: writable } = await supabase.rpc("agency_is_writable", {
-      _agency_id: inv.agency_id,
+      // Preserve the nullable staff agency argument; the generated RPC signature excludes null.
+      _agency_id: inv.agency_id as string,
     });
     if (!writable) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended.");
     await assertTermsAccepted(supabase, userId, "agency");
@@ -99,13 +101,13 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
     // email (E5); an inert invitation is never sent. Either way the agency sees
     // the same result shape and audit entry as a normal invitation.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: priv } = await (supabaseAdmin as any)
+    const { data: priv } = await supabaseAdmin
       .from("talent_invite_private")
       .select("kind, link_id")
       .eq("invitation_id", inv.id)
       .maybeSingle();
     if (priv) {
-      let r: any;
+      let r: { sent: boolean; reason?: string };
       if (priv.kind === "link_request" && priv.link_id) {
         const { emailLinkRequest } = await import("@/lib/link-notify.server");
         r = await emailLinkRequest(priv.link_id).catch(() => ({
@@ -117,7 +119,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
         r = await simulatedInvitationSend();
       }
       await supabase.from("agency_audit_log").insert({
-        agency_id: inv.agency_id,
+        agency_id: inv.agency_id as string,
         actor_id: userId,
         actor_email: claims?.email ?? null,
         action: r.sent ? "talent_invitation_email_sent" : "talent_invitation_email_send_failed",
@@ -165,7 +167,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
     );
 
     await supabase.from("agency_audit_log").insert({
-      agency_id: inv.agency_id,
+      agency_id: inv.agency_id as string,
       actor_id: userId,
       actor_email: claims?.email ?? null,
       action: result.sent ? "talent_invitation_email_sent" : "talent_invitation_email_send_failed",
@@ -196,7 +198,7 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => sendInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
 
     const { data: role, error: roleErr } = await supabase
       .from("user_roles")
@@ -272,7 +274,7 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => sendInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
 
     const { data: inv, error } = await supabase
       .from("agency_invitations")
@@ -285,13 +287,15 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
 
     const { data: isOwner, error: roleErr } = await supabase.rpc("has_agency_role", {
       _user_id: userId,
-      _agency_id: inv.agency_id,
+      // Preserve the nullable staff agency argument; the generated RPC signature excludes null.
+      _agency_id: inv.agency_id as string,
       _role: "owner",
     });
     if (roleErr) throw databaseError(roleErr);
     if (!isOwner) throw new Error("Forbidden: only agency owners may send staff invitations.");
     const { data: writable } = await supabase.rpc("agency_is_writable", {
-      _agency_id: inv.agency_id,
+      // Preserve the nullable staff agency argument; the generated RPC signature excludes null.
+      _agency_id: inv.agency_id as string,
     });
     if (!writable) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended.");
     await assertTermsAccepted(supabase, userId, "agency");
@@ -318,7 +322,7 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
     );
 
     await supabase.from("agency_audit_log").insert({
-      agency_id: inv.agency_id,
+      agency_id: inv.agency_id as string,
       actor_id: userId,
       actor_email: claims?.email ?? null,
       action: result.sent ? "staff_invitation_email_sent" : "staff_invitation_email_send_failed",
