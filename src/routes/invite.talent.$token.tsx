@@ -480,10 +480,6 @@ function Step2({
   setDob: (v: string) => void;
   phone: string;
   setPhone: (v: string) => void;
-  taxNumber: string;
-  setTaxNumber: (v: string) => void;
-  provisional: boolean;
-  setProvisional: (v: boolean) => void;
   onBack: () => void;
   onContinue: () => void;
   error: string | null;
@@ -517,33 +513,6 @@ function Step2({
           autoComplete="tel"
         />
       </div>
-      <div className="tv-auth-field">
-        <label htmlFor="tax-number">Tax reference number (optional)</label>
-        <input
-          id="tax-number"
-          value={taxNumber}
-          onChange={(e) => setTaxNumber(e.target.value)}
-          placeholder="SARS tax number"
-        />
-      </div>
-      <label
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "flex-start",
-          marginTop: 4,
-          cursor: "pointer",
-          fontSize: 14,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={provisional}
-          onChange={(e) => setProvisional(e.target.checked)}
-          style={{ marginTop: 3, width: 16, height: 16 }}
-        />
-        <span>I am a registered provisional taxpayer.</span>
-      </label>
       {error && (
         <div className="tv-auth-alert" style={{ marginTop: 12 }}>
           {error}
