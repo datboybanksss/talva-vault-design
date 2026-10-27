@@ -1,34 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getStatus } = vi.hoisted(() => ({ getStatus: vi.fn() }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+const { getStatus, rpc } = vi.hoisted(() => ({ getStatus: vi.fn(), rpc: vi.fn() }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc } }));
 vi.mock("@/lib/mfa.functions", () => ({ getMfaStatus: getStatus }));
-vi.mock("@/lib/device", () => ({ browserSessionId: () => "test-session" }));
 
-import { checkMfaGate, MFA_ENFORCED } from "./portal-access";
+import { checkMfaGate, isMfaEnforced } from "./portal-access";
 
-describe("TVA-SEC-101 deferred — live app owns two-factor sign-in", () => {
+describe("two-step gate follows the database switch mfa_enforced", () => {
   beforeEach(() => {
     getStatus.mockReset();
+    rpc.mockReset();
   });
 
-  it("keeps build-level two-factor enforcement off", () => {
-    expect(MFA_ENFORCED).toBe(false);
-  });
-
-  it("allows password-only access without requesting a code", async () => {
+  it("OFF: password-only access without requesting a code", async () => {
+    rpc.mockResolvedValue({ data: false, error: null });
     getStatus.mockResolvedValue({ gate: "challenge" });
+    expect(await isMfaEnforced()).toBe(false);
     expect(await checkMfaGate()).toBe("ok");
     expect(getStatus).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith("mfa_enforced");
   });
 
-  it("does not require enrolment while build-level enforcement is off", async () => {
-    getStatus.mockResolvedValue({ gate: "enrol" });
+  it("ON: an unverified session is sent to the code screen", async () => {
+    rpc.mockResolvedValue({ data: true, error: null });
+    getStatus.mockResolvedValue({ gate: "challenge" });
+    expect(await checkMfaGate()).toBe("challenge");
+  });
+
+  it("ON: a verified session passes", async () => {
+    rpc.mockResolvedValue({ data: true, error: null });
+    getStatus.mockResolvedValue({ gate: "ok" });
     expect(await checkMfaGate()).toBe("ok");
   });
-  it("does not block access on an unavailable code service", async () => {
-    getStatus.mockRejectedValue(new Error("offline"));
-    expect(await checkMfaGate()).toBe("ok");
-    expect(getStatus).not.toHaveBeenCalled();
+
+  it("an unreadable switch counts as off in the browser only", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "offline" } });
+    expect(await isMfaEnforced()).toBe(false);
   });
 });
