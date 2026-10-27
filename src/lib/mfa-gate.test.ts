@@ -51,14 +51,20 @@ describe("server two-step gate", () => {
   });
 
   it("allow-list matches exact file and name only", () => {
-    expect(isMfaAllowListed({ filename: "/app/src/lib/mfa.functions.ts", name: "verifySignInCode" })).toBe(true);
+    expect(
+      isMfaAllowListed({ filename: "/app/src/lib/mfa.functions.ts", name: "verifySignInCode" }),
+    ).toBe(true);
     expect(isMfaAllowListed({ filename: "src/lib/mfa.functions.ts", name: "other" })).toBe(false);
-    expect(isMfaAllowListed({ filename: "src/lib/x.functions.ts", name: "verifySignInCode" })).toBe(false);
+    expect(isMfaAllowListed({ filename: "src/lib/x.functions.ts", name: "verifySignInCode" })).toBe(
+      false,
+    );
     expect(MFA_ALLOW_LIST).toHaveLength(5);
   });
 
   it("the refusal keeps the stable code and sends the user to the code screen", () => {
-    const err = publicFunctionError(new Error("MFA_REQUIRED: Please enter the sign-in code we emailed you to continue."));
+    const err = publicFunctionError(
+      new Error("MFA_REQUIRED: Please enter the sign-in code we emailed you to continue."),
+    );
     expect(err.message).toMatch(/^MFA_REQUIRED:/);
     expect(isMfaRequiredError(err)).toBe(true);
     expect(isMfaRequiredError(new Error("ACCOUNT_PAUSED: x"))).toBe(false);
