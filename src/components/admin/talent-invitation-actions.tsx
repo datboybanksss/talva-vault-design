@@ -57,14 +57,12 @@ export function useTalentInvitationActions() {
   const copyLink = async (id: string) => {
     try {
       const res = await getFn({ data: { id } });
-      if (!res?.invite_url) {
-        throw new Error(
-          res?.invite_link_unavailable
-            ? SITE_LINK_MISSING_MESSAGE
-            : "This invitation has no live link.",
-        );
+      if (!res?.invite_token) {
+        throw new Error("This invitation has no live link.");
       }
-      await navigator.clipboard.writeText(res.invite_url);
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/invite/talent/${res.invite_token}`,
+      );
       await logCopyFn({ data: { id } }).catch(() => undefined);
       toast.success("Link copied. Copy does not extend expiry.");
     } catch (e) {
