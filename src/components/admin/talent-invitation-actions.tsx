@@ -2,7 +2,6 @@ import { useConfirm } from "@/components/shared/use-confirm";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { SITE_LINK_MISSING_MESSAGE } from "@/lib/brand-email";
 import { toast } from "sonner";
 import { Ban, FileEdit, Link2, Mail, RefreshCw, Eye, Send, Trash2 } from "lucide-react";
 import { invitationActions } from "@/lib/status-actions";

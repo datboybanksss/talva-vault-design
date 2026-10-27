@@ -338,13 +338,13 @@ export function TalentInviteForm({
   };
 
   const copyLink = async () => {
-    const url = invQ.data?.invite_url;
-    if (!url) {
-      if (invQ.data?.invite_link_unavailable) toast.error(SITE_LINK_MISSING_MESSAGE);
+    const token = invQ.data?.invite_token;
+    if (!token) {
+      toast.error("This invitation has no live link.");
       return;
     }
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(`${window.location.origin}/invite/talent/${token}`);
       await logCopyFn({ data: { id: draftId } }).catch(() => undefined);
       toast.success("Link copied. Copy does not extend expiry.");
     } catch {
