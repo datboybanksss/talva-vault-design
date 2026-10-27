@@ -523,7 +523,7 @@ export const listAccounts = createServerFn({ method: "GET" })
     parseInput(
       z.object({
         type: z.string().max(10000).default("all"),
-        status: agencyInvitationStatusInput.default("all"),
+        status: z.string().max(10000).default("all"),
         link: z.string().max(10000).default("all"),
         accounts: z.string().max(10000).default("all"),
         q: z.string().max(200).default(""),
@@ -1039,7 +1039,7 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
     parseInput(
       z.object({
-        status: z.string().max(10000).default("all"),
+        status: agencyInvitationStatusInput.default("all"),
         search: z.string().max(10000).default(""),
         limit: z.number().int().min(1).max(100).default(10),
         offset: z.number().int().min(0).default(0),
