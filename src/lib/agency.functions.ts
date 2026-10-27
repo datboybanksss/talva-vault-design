@@ -3817,12 +3817,11 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context;
+    const { supabase, userId, claims } = context as any;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
-      // Existing validator permits null accent_colour; generated schema excludes null. Keep the payload unchanged.
-      .update(data as TablesUpdate<"agencies">)
+      .update(data)
       .eq("id", agencyId)
       .select()
       .single();
@@ -4000,7 +3999,8 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
     const number =
       data.number?.trim() || `DRAFT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-    const payload: TablesInsert<"agency_billing_docs"> = {
+    // Existing any retained: validator includes declined/partial, absent from generated doc_status.
+    const payload: any = {
       agency_id: agencyId,
       kind: data.kind,
       number,
