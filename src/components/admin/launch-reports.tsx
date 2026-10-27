@@ -487,7 +487,8 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                       </td>
                       <td>{fmtDate(a.accepted_at)}</td>
                       <td title={a.body_sha256 ?? ""}>
-                        {a.document_id.slice(0, 8)} ·{" "}
+                        {/* Preserve the existing direct slice; legacy nullable document IDs are a deferred runtime bug. */}
+                        {(a.document_id as string).slice(0, 8)} ·{" "}
                         {a.body_sha256 ? a.body_sha256.slice(0, 12) : "—"}
                         {a.hash_retrospective ? " · hash added later" : ""}
                       </td>
@@ -571,7 +572,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
 }
 
 type RecordRow = {
-  id: string;
+  id: string | null;
   name: string;
   email: string;
   type: "agency" | "talent";
