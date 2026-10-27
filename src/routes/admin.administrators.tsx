@@ -692,10 +692,9 @@ function AdminsPage() {
                                         title: "Copying does not extend expiry",
                                         onSelect: async () => {
                                           try {
-                                            const { url } = await getInviteLink({
-                                              data: { kind: "admin", token: i.token },
-                                            });
-                                            await navigator.clipboard.writeText(url);
+                                            await navigator.clipboard.writeText(
+                                              `${window.location.origin}/invite/admin/${i.token}`,
+                                            );
                                             toast.success("Invite link copied.");
                                           } catch (e) {
                                             toast.error(

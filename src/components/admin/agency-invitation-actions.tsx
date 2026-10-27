@@ -94,8 +94,7 @@ export function useAgencyInvitationActions(): {
 
   const copyLink = async (inv: AgencyInviteRow) => {
     try {
-      const { url } = await getInviteLink({ data: { kind: "agency", token: inv.token } });
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(`${window.location.origin}/invite/${inv.token}`);
       await logCopyFn({ data: { id: inv.id } });
       qc.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success("Link copied. Copy does not extend expiry.");

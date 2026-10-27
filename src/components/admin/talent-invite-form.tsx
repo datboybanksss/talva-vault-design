@@ -19,7 +19,6 @@ import { InvitationTypeField } from "@/components/admin/invitation-type-field";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { SITE_LINK_MISSING_MESSAGE } from "@/lib/brand-email";
 import { toast } from "sonner";
 import {
   ArrowLeft,

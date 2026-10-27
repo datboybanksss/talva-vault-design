@@ -281,8 +281,7 @@ function AccountsPage() {
       return;
     }
     try {
-      const { url } = await getInviteLink({ data: { kind: "agency", token: invitation.token } });
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(`${window.location.origin}/invite/${invitation.token}`);
       await logCopyFn({ data: { id: invitation.id } });
       qc.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success("Link copied. Copy does not extend expiry.");
