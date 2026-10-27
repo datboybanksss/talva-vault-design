@@ -1,4 +1,7 @@
 # Roadmap
+- [ ] Next run 0: confirm full tests, separate lint, automatic validation and safe history-scan counts before two-step work.
+- [ ] Next run 1: permanently remove approved database backup object and its export bucket; verify absence.
+- [ ] Next run 2: single database mfa_enforced switch (OFF here), verified JWT session binding, restrictive table/private-storage policies, global authenticated function gate/allow-list, code-screen redirect, deployment/rollback notes and regressions; final OFF/password-only check. No session minting.
 - [ ] POPIA registration (revised, approved): proof-of-talent-only Admin invites; no talent ID collection/Admin DOB; early/final adult checks and neutral rejection; irreversible legacy erasure without backup; structural rollback; agency onboarding audit only; preserve two-factor.
 - [ ] Pre-launch environment files: example added and history scanned; blocked: .gitignore is platform read-only and published environment provenance cannot be verified. Managed .env stays tracked; no untracking attempted.
 - [x] Pre-launch raw errors: rescan, direct-display/email-result sanitisation and global function boundary; mappings, stable-code and representative server regressions; original 116-site report unavailable. Protected two-factor sites remain unchanged.
