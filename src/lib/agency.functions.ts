@@ -925,7 +925,7 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
     const labelFor = (id: string | null) =>
       !id ? "—" : id === userId ? "You" : (inviterMap.get(id) ?? "Team member");
     const { registrationCopy } = await import("./registration-copy.server");
-    const unavailableLabel = (await registrationCopy()).acceptance_unavailable;
+    const unavailableLabel = (talentRes.data ?? []).some((r) => r.acceptance_unavailable_at) ? (await registrationCopy()).acceptance_unavailable : "";
 
     const talent: InviteRow[] = (talentRes.data ?? []).map((r) => ({
       id: r.id,
