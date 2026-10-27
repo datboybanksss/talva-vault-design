@@ -133,7 +133,7 @@ export const getLaunchSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
-    const row = checkRow(
+    const row = checkRow<Pick<Tables<"platform_settings">, "value" | "updated_at">>(
       await supabase
         .from("platform_settings")
         .select("value, updated_at")
@@ -181,7 +181,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     const nowIso = new Date().toISOString();
 
-    const settingsRow = checkRow(
+    const settingsRow = checkRow<Pick<Tables<"platform_settings">, "value">>(
       await admin.from("platform_settings").select("value").eq("key", "launch").maybeSingle(),
     );
     const settings = parseLaunchSettings(settingsRow?.value);
