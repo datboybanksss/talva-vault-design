@@ -6321,7 +6321,10 @@ a.tvp-entity-card:focus-visible {
 .tvd .tvd-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .tvd .tvd-cards .tvp-kpi-label { overflow-wrap: anywhere; }
 .tvd .tvd-sub { font-size: 13px; font-weight: 800; color: var(--tvp-text); margin: var(--sp-5, 20px) 0 0; }
-.tvd .tvd-share-empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3, 12px); }
+.tvd .tvd-share-empty { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--sp-3, 12px); flex: 1; }
+.tvd .tvd-share { display: flex; flex-direction: column; }
+.tvd .tvd-share-empty-icon { background: color-mix(in oklab, var(--amber) 18%, transparent); color: var(--amber); }
+.tvd .tvd-share-viewall { display: inline-block; margin-top: var(--sp-3, 12px); }
 @media (max-width: 1080px) { .tvd .tvd-layout { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 640px) {
   .tvd .tvd-actions { width: 100%; flex-direction: column; margin-left: 0; }
