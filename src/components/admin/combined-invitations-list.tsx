@@ -68,16 +68,16 @@ export function CombinedInvitationsList({
           offset: pageParam as number,
         },
       }),
-    getNextPageParam: (last: any, all: any[]) => {
-      const loaded = all.reduce((n, p: any) => n + (p.rows?.length ?? 0), 0);
+    getNextPageParam: (last, all) => {
+      const loaded = all.reduce((n, p) => n + (p.rows?.length ?? 0), 0);
       return loaded < (last?.total ?? 0) && loaded < 500 ? loaded : undefined;
     },
   });
   const rows = useMemo(
-    () => (invites.data?.pages ?? []).flatMap((p: any) => p.rows ?? []),
+    () => (invites.data?.pages ?? []).flatMap((p) => p.rows ?? []),
     [invites.data?.pages],
   );
-  const firstPage: any = invites.data?.pages?.[0];
+  const firstPage = invites.data?.pages?.[0];
   const total = firstPage?.total ?? 0;
   const rawCounts = firstPage?.counts ?? { agency: {}, talent: {} };
   const typeCounts = typeOptionCounts(rawCounts, status);
@@ -100,7 +100,7 @@ export function CombinedInvitationsList({
       <div className="tvp-panel-head">
         <h2 className="tvp-h2">Invitations</h2>
         {viewAllSearch && (
-          <Link to="/admin/invitations" search={viewAllSearch as any} className="tvp-link">
+          <Link to="/admin/invitations" search={viewAllSearch} className="tvp-link">
             View all invitations →
           </Link>
         )}
@@ -197,7 +197,7 @@ export function CombinedInvitationsList({
                 </td>
               </tr>
             )}
-            {rows.map((r: any) => (
+            {rows.map((r) => (
               <tr key={`${r.type}-${r.id}`}>
                 <td>
                   {r.type === "talent" ? (
