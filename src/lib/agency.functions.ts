@@ -34,12 +34,10 @@ type AgencyReminder = {
   tone: "red" | "amber" | "green";
   title: string;
   detail: string;
-  key?: string;
-  snapshot?: number;
   note?: string;
   to?: string;
   search?: { doc: string };
-};
+} & ({ key: string; snapshot: number } | { key?: undefined; snapshot?: undefined });
 
 function extractRequestMeta(): { ip_address: string | null; user_agent: string | null } {
   try {
@@ -863,6 +861,7 @@ type InviteRow = {
   recipient_name: string | null;
   email: string;
   status: string;
+  stored_status: Tables<"talent_invitations">["status"];
   token: string;
   invited_by: string | null;
   invited_by_label: string;
