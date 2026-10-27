@@ -59,7 +59,9 @@ export function useTalentInvitationActions() {
       const res = await getFn({ data: { id } });
       if (!res?.invite_url) {
         throw new Error(
-          res?.invite_link_unavailable ? SITE_LINK_MISSING_MESSAGE : "This invitation has no live link.",
+          res?.invite_link_unavailable
+            ? SITE_LINK_MISSING_MESSAGE
+            : "This invitation has no live link.",
         );
       }
       await navigator.clipboard.writeText(res.invite_url);

@@ -699,7 +699,10 @@ function AdminsPage() {
                                             toast.success("Invite link copied.");
                                           } catch (e) {
                                             toast.error(
-                                              friendlyError(e, "We couldn't copy the invitation link."),
+                                              friendlyError(
+                                                e,
+                                                "We couldn't copy the invitation link.",
+                                              ),
                                             );
                                           }
                                         },

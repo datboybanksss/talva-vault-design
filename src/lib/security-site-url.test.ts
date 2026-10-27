@@ -27,13 +27,16 @@ it("TVA-SEC-110 refuses missing configuration instead of using a relative or pre
   expect(log).toHaveBeenCalled();
 });
 
-it.each(["http://example.test", "https://example.test/app", "https://example.test?x=1", "example.test", "/"])(
-  "rejects an invalid site setting %s",
-  (value) => {
-    vi.stubEnv("PUBLIC_SITE_URL", value);
-    expect(publicSiteUrl()).toBeNull();
-  },
-);
+it.each([
+  "http://example.test",
+  "https://example.test/app",
+  "https://example.test?x=1",
+  "example.test",
+  "/",
+])("rejects an invalid site setting %s", (value) => {
+  vi.stubEnv("PUBLIC_SITE_URL", value);
+  expect(publicSiteUrl()).toBeNull();
+});
 
 it("TVA-SEC-110 builds absolute invite links from the configured HTTPS site", () => {
   vi.stubEnv("PUBLIC_SITE_URL", "https://example.test/");

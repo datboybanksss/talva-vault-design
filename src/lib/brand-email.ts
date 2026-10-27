@@ -60,7 +60,11 @@ export type InviteLinkKind = "agency" | "talent" | "admin";
 /** The one place invitation links are built. */
 export function invitePath(kind: InviteLinkKind, token: string): string {
   const t = encodeURIComponent(token);
-  return kind === "agency" ? `/invite/${t}` : kind === "talent" ? `/invite/talent/${t}` : `/invite/admin/${t}`;
+  return kind === "agency"
+    ? `/invite/${t}`
+    : kind === "talent"
+      ? `/invite/talent/${t}`
+      : `/invite/admin/${t}`;
 }
 
 export function requireInviteLink(kind: InviteLinkKind, token: string): string {
