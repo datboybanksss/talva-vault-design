@@ -11,14 +11,18 @@ import { assertTalentWritable } from "./terms-guard";
 
 const run = () => {
   const next = vi.fn(async () => "ran");
-  const server = blockPausedAccounts.options.server;
-  if (!server) throw new Error("Guard middleware has no server handler");
-  // The isolated test supplies only fields read by the guard, with a string-returning next().
-  const input: unknown = { next, context: {}, data: undefined };
-  return {
-    next,
-    result: blockPausedAccounts.options.server?.(input as Parameters<typeof server>[0]),
+  // This isolated fixture supplies a string-returning next() instead of the framework envelope.
+  const middleware: unknown = blockPausedAccounts;
+  const fixture = middleware as {
+    options: {
+      server: (input: {
+        next: () => Promise<string>;
+        context: object;
+        data: undefined;
+      }) => Promise<string>;
+    };
   };
+  return { next, result: fixture.options.server({ next, context: {}, data: undefined }) };
 };
 
 describe("server enforcement: paused accounts can't call any server function", () => {
