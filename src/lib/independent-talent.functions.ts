@@ -120,8 +120,10 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
           : effectiveStatus(inv),
       },
       documents: docs ?? [],
-      invite_url: live ? siteLinkOrNull(invitePath("talent", token)) : null,
-      invite_link_unavailable: live && !siteLinkOrNull(invitePath("talent", token)),
+      // The copy-link button builds the URL in the browser from this token;
+      // only exposed for live pending invitations, and this function is
+      // admin-only (assertAdmin above).
+      invite_token: live ? token : null,
     };
   });
 
