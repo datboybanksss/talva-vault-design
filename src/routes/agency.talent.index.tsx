@@ -517,7 +517,7 @@ function TalentPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {(staff.data ?? []).map((m: any) => (
+                  {(staff.data ?? []).map((m) => (
                     <SelectItem key={m.userId} value={m.userId}>
                       {m.name}
                     </SelectItem>
