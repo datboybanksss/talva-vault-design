@@ -1,7 +1,7 @@
 # Roadmap
 - [ ] POPIA registration (revised, approved): proof-of-talent-only Admin invites; no talent ID collection/Admin DOB; early/final adult checks and neutral rejection; irreversible legacy erasure without backup; structural rollback; agency onboarding audit only; preserve two-factor.
-- [ ] Pre-launch environment files: ignore env files except example; verify Cloud build configuration before untracking managed .env; scan visible repository/history for secrets and report safely.
-- [ ] Pre-launch raw errors: locate 116-site audit and rescan, sanitise all authorised sites through shared helpers, preserve stable codes/friendly rules; regressions, zero lint/explicit-any and clean automatic validation.
+- [ ] Pre-launch environment files: example added and history scanned; blocked: .gitignore is platform read-only and published environment provenance cannot be verified. Managed .env stays tracked; no untracking attempted.
+- [x] Pre-launch raw errors: rescan, direct-display/email-result sanitisation and global function boundary; mappings, stable-code and representative server regressions; original 116-site report unavailable. Protected two-factor sites remain unchanged.
 - [x] Final approved bug-fix run: resolve all remaining type-clean-up findings, add focused regressions, and reach zero lint errors without changing two-factor or minting sessions.
 - [x] TVA-SEC-112: all invitation wizards use server admin creation; hosted signup already disabled; enabled Google while preserving disable_signup; public signup refusal tested; two unlinked non-test addresses reported.
 - [x] TVA-SEC-113: four invitation claim failure branches sanitised with server logs; focused tests pass.
