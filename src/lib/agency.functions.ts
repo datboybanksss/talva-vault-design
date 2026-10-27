@@ -3821,7 +3821,8 @@ export const updateAgencyBillingSettings = createServerFn({ method: "POST" })
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: updated, error } = await supabase
       .from("agencies")
-      .update(data)
+      // Existing validator permits null accent_colour; generated schema excludes null. Keep the payload unchanged.
+      .update(data as TablesUpdate<"agencies">)
       .eq("id", agencyId)
       .select()
       .single();
