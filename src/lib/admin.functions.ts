@@ -3,6 +3,7 @@ import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
 
@@ -1099,7 +1100,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const type = normaliseInvitationType(data.type);
     const status = normaliseInvitationStatus(data.status);
@@ -1111,9 +1112,9 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       supabase.from("agencies").select("id").eq("is_test", true),
       supabase.from("talent_profiles").select("email").eq("is_test", true),
     ]);
-    const testAgencyIds: string[] = (testAg ?? []).map((r: any) => r.id);
+    const testAgencyIds: string[] = (testAg ?? []).map((r) => r.id);
     const testEmails: string[] = (testTal ?? [])
-      .map((r: any) =>
+      .map((r) =>
         String(r.email ?? "")
           .trim()
           .toLowerCase(),
@@ -1139,14 +1140,16 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       if (ag.error) throw databaseError(ag.error);
       if (ta.error) throw databaseError(ta.error);
       searchIds.agency = (ag.data ?? [])
-        .filter((r: any) => matchesSearch([r.agency_name, r.contact_person, r.email], term))
-        .map((r: any) => r.id);
+        .filter((r) => matchesSearch([r.agency_name, r.contact_person, r.email], term))
+        .map((r) => r.id);
       searchIds.talent = (ta.data ?? [])
-        .filter((r: any) => matchesSearch([r.talent_name, r.email], term))
-        .map((r: any) => r.id);
+        .filter((r) => matchesSearch([r.talent_name, r.email], term))
+        .map((r) => r.id);
     }
     const quoteList = (xs: string[]) => xs.map((x) => `"${x.replace(/"/g, "")}"`).join(",");
-    const byScope = (q: any, t: InvitationType) => {
+    type InvitationFilterRow = Partial<Tables<"agency_invitations"> & Tables<"independent_talent_invitations">>;
+    type InvitationQuery<R> = PostgrestFilterBuilder<Database["__InternalSupabase"], Database["public"], InvitationFilterRow, R, "agency_invitations" | "independent_talent_invitations">;
+    const byScope = <R>(q: InvitationQuery<R>, t: InvitationType) => {
       if (scope === "all") return q;
       const ids = t === "agency" ? testAgencyIds : testEmails;
       const col = t === "agency" ? "agency_id" : "email";
@@ -1177,7 +1180,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     } as const;
     // Only agency onboarding invitations: agency staff invitations share the
     // agency_invitations table (kind = 'staff') and are not Admin invitations.
-    const byStatus = (q0: any, s: string, t: InvitationType) => {
+    const byStatus = <R>(q0: InvitationQuery<R>, s: string, t: InvitationType) => {
       const q1 = byScope(t === "agency" ? q0.eq("kind", ADMIN_AGENCY_INVITATION_KIND) : q0, t);
       const q2 = email ? q1.ilike("email", `%${email}%`) : q1;
       const ids = searchIds[t];
@@ -1187,7 +1190,8 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
           : q2.in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
       if (s === "expired") return q.eq("status", "pending").lt("expires_at", nowIso);
       if (s === "pending") return q.eq("status", "pending").gte("expires_at", nowIso);
-      if (s !== "all") return q.eq("status", s);
+      if (s !== "all") // Normalisation precedes this helper; keep its existing string contract and database filter.
+      return q.eq("status", s as Tables<"agency_invitations">["status"]);
       return q;
     };
 
@@ -1210,17 +1214,19 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     const fetched = await Promise.all(
       types.map(async (t) => {
         const { data: rows, error } = await byStatus(
-          supabase.from(TABLE[t].table).select(TABLE[t].cols),
+          supabase.from(TABLE[t].table).select(TABLE[t].cols)
+            // Table and columns are paired by t; dynamic select inference otherwise cross-combines them.
+            .overrideTypes<Array<Pick<Tables<"agency_invitations">, "id" | "agency_id" | "agency_name" | "contact_person" | "email" | "status" | "expires_at" | "created_at" | "updated_at" | "last_sent_at" | "send_count" | "token"> | Pick<Tables<"independent_talent_invitations">, "id" | "talent_name" | "email" | "status" | "expires_at" | "created_at" | "updated_at" | "last_sent_at" | "send_count">>, { merge: false }>(),
           status,
           t,
         )
           .order("created_at", { ascending: false })
           .range(0, window - 1);
         if (error) throw databaseError(error);
-        return (rows ?? []).map((r: any) => ({
+        return (rows ?? []).map((r) => ({
           ...r,
           type: t,
-          name: t === "agency" ? r.agency_name : r.talent_name,
+          name: t === "agency" ? ("agency_name" in r ? r.agency_name : undefined) : ("talent_name" in r ? r.talent_name : undefined),
           stored_status: r.status as string,
           status: effectiveInvitationStatus(r.status, r.expires_at),
           is_test: isTestRow(r, t),
@@ -1229,7 +1235,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     );
     const rows = fetched
       .flat()
-      .sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1))
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
       .slice(data.offset, window);
     const total = types.reduce((n, t) => n + (counts[t][status] ?? 0), 0);
     return { rows, total, counts };
