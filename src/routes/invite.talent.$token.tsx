@@ -42,7 +42,10 @@ export const Route = createFileRoute("/invite/talent/$token")({
       },
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Activate your Talent vault · TalVault" },
-      { property: "og:description", content: "Accept your TalVault talent invitation and set up your secure vault." },
+      {
+        property: "og:description",
+        content: "Accept your TalVault talent invitation and set up your secure vault.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -219,7 +222,10 @@ function Wizard({
   const strength = useMemo(() => scorePassword(password), [password]);
   const req = useMemo(() => checkRequirements(password), [password]);
 
-  const copyQ = useQuery({ queryKey: ["talent-registration-copy"], queryFn: () => getRegistrationCopy() });
+  const copyQ = useQuery({
+    queryKey: ["talent-registration-copy"],
+    queryFn: () => getRegistrationCopy(),
+  });
   const copy = copyQ.data;
   const [terminal, setTerminal] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -235,7 +241,8 @@ function Wizard({
 
   const activate = useMutation({
     mutationFn: () => {
-      if (!legal) throw new Error("The Terms & Conditions are still loading. Please try again in a moment.");
+      if (!legal)
+        throw new Error("The Terms & Conditions are still loading. Please try again in a moment.");
       return activateTalentInvitation({
         data: {
           token,
@@ -278,17 +285,29 @@ function Wizard({
       if (!copy) return;
       setChecking(true);
       try {
-        const result = await checkTalentRegistrationEligibility({ data: { token, date_of_birth: dob } });
+        const result = await checkTalentRegistrationEligibility({
+          data: { token, date_of_birth: dob },
+        });
         if (!result.allowed) {
           if (result.terminal) {
-            setFullName(""); setDob(""); setPhone(""); setTaxNumber(""); setProvisional(false); setPassword(""); setConfirmPw(""); setTerms(false);
+            setFullName("");
+            setDob("");
+            setPhone("");
+            setTaxNumber("");
+            setProvisional(false);
+            setPassword("");
+            setConfirmPw("");
+            setTerms(false);
             setTerminal(result.message);
           } else setError(result.message);
           return;
         }
       } catch (e) {
-        setError(friendlyError(e)); return;
-      } finally { setChecking(false); }
+        setError(friendlyError(e));
+        return;
+      } finally {
+        setChecking(false);
+      }
     }
     if (step === 3) {
       const v = validateNewPassword(password);
@@ -484,9 +503,7 @@ function Step2({
   return (
     <>
       <h2 className="tv-auth-title">Confirm your details</h2>
-      <p className="tv-auth-tag">
-        {copy?.privacy_help}
-      </p>
+      <p className="tv-auth-tag">{copy?.privacy_help}</p>
       <div className="tv-auth-field">
         <label htmlFor="full-name">{copy?.legal_name_label}</label>
         <input

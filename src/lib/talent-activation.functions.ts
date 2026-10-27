@@ -58,7 +58,14 @@ export type ResolvedTalentInvitation =
     }
   | {
       ok: false;
-      reason: "not_found" | "invalid" | "expired" | "accepted" | "revoked" | "throttled" | "unavailable";
+      reason:
+        | "not_found"
+        | "invalid"
+        | "expired"
+        | "accepted"
+        | "revoked"
+        | "throttled"
+        | "unavailable";
     };
 
 export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
@@ -210,10 +217,16 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
 
     const { registrationCopy } = await import("./registration-copy.server");
     const copy = await registrationCopy();
-    if (inv.acceptance_unavailable_at) return { ok: false, code: "unknown", message: copy.account_unavailable };
-    if (!validBirthDate(data.date_of_birth)) return { ok: false, code: "unknown", message: copy.birth_date_invalid };
+    if (inv.acceptance_unavailable_at)
+      return { ok: false, code: "unknown", message: copy.account_unavailable };
+    if (!validBirthDate(data.date_of_birth))
+      return { ok: false, code: "unknown", message: copy.birth_date_invalid };
     if (!adultBirthDate(data.date_of_birth)) {
-      const { error } = await supabaseAdmin.from(inv.kind === "agency" ? "talent_invitations" : "independent_talent_invitations").update({ acceptance_unavailable_at: new Date().toISOString() }).eq("id", inv.id).eq("status", "pending");
+      const { error } = await supabaseAdmin
+        .from(inv.kind === "agency" ? "talent_invitations" : "independent_talent_invitations")
+        .update({ acceptance_unavailable_at: new Date().toISOString() })
+        .eq("id", inv.id)
+        .eq("status", "pending");
       if (error) throw databaseError(error);
       return { ok: false, code: "under_age", message: copy.account_unavailable };
     }
@@ -239,7 +252,11 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
         };
       }
       console.error("[talent activation] account creation failed", createErr);
-      return { ok: false, code: "unknown", message: friendlyError(createErr, "Could not create your account.") };
+      return {
+        ok: false,
+        code: "unknown",
+        message: friendlyError(createErr, "Could not create your account."),
+      };
     }
 
     const userId = created.user.id;
@@ -270,8 +287,10 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "unknown",
-        message:
-          friendlyError(errMessage, "We couldn't record your acceptance of the Terms & Conditions. Please try again."),
+        message: friendlyError(
+          errMessage,
+          "We couldn't record your acceptance of the Terms & Conditions. Please try again.",
+        ),
       };
     }
 
@@ -308,22 +327,37 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
     return { ok: true, email: inv.email };
   });
 
-
 /** Checks the private birth date before the wizard advances; no entered details are stored. */
 export const checkTalentRegistrationEligibility = createServerFn({ method: "POST" })
-  .inputValidator((value: unknown) => z.object({ token: z.string().min(10).max(200), date_of_birth: z.string().max(10) }).parse(value))
+  .inputValidator((value: unknown) =>
+    z
+      .object({ token: z.string().min(10).max(200), date_of_birth: z.string().max(10) })
+      .parse(value),
+  )
   .handler(async ({ data }): Promise<{ allowed: boolean; terminal: boolean; message: string }> => {
     const { guardPublicToken } = await import("./rate-limit.server");
     const guard = await guardPublicToken({ bucket: "invite_activate_talent", token: data.token });
     const { registrationCopy } = await import("./registration-copy.server");
     const copy = await registrationCopy();
-    if (!guard.allowed) return { allowed: false, terminal: false, message: copy.account_unavailable };
+    if (!guard.allowed)
+      return { allowed: false, terminal: false, message: copy.account_unavailable };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const inv = await loadTalentInvite(supabaseAdmin, data.token);
-    if (!inv || inv.status !== "pending" || new Date(inv.expires_at).getTime() < Date.now() || inv.acceptance_unavailable_at) return { allowed: false, terminal: true, message: copy.account_unavailable };
-    if (!validBirthDate(data.date_of_birth)) return { allowed: false, terminal: false, message: copy.birth_date_invalid };
+    if (
+      !inv ||
+      inv.status !== "pending" ||
+      new Date(inv.expires_at).getTime() < Date.now() ||
+      inv.acceptance_unavailable_at
+    )
+      return { allowed: false, terminal: true, message: copy.account_unavailable };
+    if (!validBirthDate(data.date_of_birth))
+      return { allowed: false, terminal: false, message: copy.birth_date_invalid };
     if (adultBirthDate(data.date_of_birth)) return { allowed: true, terminal: false, message: "" };
-    const { error } = await supabaseAdmin.from(inv.kind === "agency" ? "talent_invitations" : "independent_talent_invitations").update({ acceptance_unavailable_at: new Date().toISOString() }).eq("id", inv.id).eq("status", "pending");
+    const { error } = await supabaseAdmin
+      .from(inv.kind === "agency" ? "talent_invitations" : "independent_talent_invitations")
+      .update({ acceptance_unavailable_at: new Date().toISOString() })
+      .eq("id", inv.id)
+      .eq("status", "pending");
     if (error) throw databaseError(error);
     return { allowed: false, terminal: true, message: copy.account_unavailable };
   });

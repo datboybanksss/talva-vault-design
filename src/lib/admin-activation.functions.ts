@@ -143,7 +143,11 @@ export const activateAdminInvitation = createServerFn({ method: "POST" })
         };
       }
       console.error("[admin activation] account creation failed", createErr);
-      return { ok: false, code: "unknown", message: friendlyError(createErr, "Could not create your account.") };
+      return {
+        ok: false,
+        code: "unknown",
+        message: friendlyError(createErr, "Could not create your account."),
+      };
     }
 
     const userId = created.user.id;

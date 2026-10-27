@@ -38,10 +38,17 @@ export function friendlyError(error: unknown, fallback: string = GENERIC): strin
     return "Please accept the current Terms & Conditions to continue.";
   }
   const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
-  if (code === "42501" || /row-level security|permission denied/i.test(message)) return "You don't have permission to do that.";
-  if (code === "23505" || /duplicate key|unique (?:constraint|violation)/i.test(message)) return "That already exists.";
-  if (["23502", "23503", "23514"].includes(code) || /foreign key|not.null|check (?:constraint|violation)/i.test(message)) return "We couldn't save that. Please check the details and try again.";
-  if (/network|timeout|timed out|failed to fetch|fetch failed|ECONN|ENOTFOUND/i.test(message)) return "We couldn't connect. Please try again.";
+  if (code === "42501" || /row-level security|permission denied/i.test(message))
+    return "You don't have permission to do that.";
+  if (code === "23505" || /duplicate key|unique (?:constraint|violation)/i.test(message))
+    return "That already exists.";
+  if (
+    ["23502", "23503", "23514"].includes(code) ||
+    /foreign key|not.null|check (?:constraint|violation)/i.test(message)
+  )
+    return "We couldn't save that. Please check the details and try again.";
+  if (/network|timeout|timed out|failed to fetch|fetch failed|ECONN|ENOTFOUND/i.test(message))
+    return "We couldn't connect. Please try again.";
   // Our own refusals sometimes carry a machine code ("RETENTION_LOCKED: …");
   // the sentence after it is written for people, so show just that.
   const coded = /^[A-Z][A-Z0-9_]{2,}:\s*(.+)$/s.exec(message);

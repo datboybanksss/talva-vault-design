@@ -160,7 +160,11 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
         };
       }
       console.error("[agency activation] account creation failed", createErr);
-      return { ok: false, code: "unknown", message: friendlyError(createErr, "Could not create your account.") };
+      return {
+        ok: false,
+        code: "unknown",
+        message: friendlyError(createErr, "Could not create your account."),
+      };
     }
 
     // Terms acceptance is recorded before anything else: if it cannot be
@@ -180,8 +184,10 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "unknown",
-        message:
-          friendlyError(e, "We couldn't record your acceptance of the Terms & Conditions. Please try again."),
+        message: friendlyError(
+          e,
+          "We couldn't record your acceptance of the Terms & Conditions. Please try again.",
+        ),
       };
     }
 

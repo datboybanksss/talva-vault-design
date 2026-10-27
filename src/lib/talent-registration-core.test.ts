@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { adultBirthDate, validBirthDate, talentOnboardingSlotAllowed } from "./talent-registration-core";
+import {
+  adultBirthDate,
+  validBirthDate,
+  talentOnboardingSlotAllowed,
+} from "./talent-registration-core";
 
 describe("talent registration privacy", () => {
   const today = new Date("2026-10-27T12:00:00Z");

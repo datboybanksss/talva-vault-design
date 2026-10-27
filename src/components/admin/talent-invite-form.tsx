@@ -64,9 +64,7 @@ import { DOCUMENT_ACCEPT, preflightUpload } from "@/lib/file-validation";
 import { friendlyError } from "@/lib/friendly-error";
 
 const BUCKET = "talent-invite-docs";
-const SLOTS = [
-  { key: "proof_of_talent", label: "Proof of talent" },
-] as const;
+const SLOTS = [{ key: "proof_of_talent", label: "Proof of talent" }] as const;
 
 const statusLabel: Record<string, string> = {
   draft: "Draft",
@@ -163,7 +161,10 @@ export function TalentInviteForm({
     return talentType && !list.includes(talentType) ? [talentType, ...list] : list;
   }, [catalogue, talentType]);
 
-  const copyQ = useQuery({ queryKey: ["talent-registration-copy"], queryFn: () => getRegistrationCopy() });
+  const copyQ = useQuery({
+    queryKey: ["talent-registration-copy"],
+    queryFn: () => getRegistrationCopy(),
+  });
   const copy = copyQ.data;
   const detailsComplete = !!(name.trim().length >= 2 && email.trim());
   const payload = () => ({ talent_name: name, email, talent_type: talentType });

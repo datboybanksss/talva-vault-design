@@ -49,7 +49,11 @@ export async function attachStagedUploads(
     console.error("[onboarding-staging] read failed", error);
     throw new Error("We couldn't attach the uploaded documents. Please try again.");
   }
-  const owned = (rows ?? []).filter((r) => stagedPathOwned(r.storage_path, adminId, sessionId) && talentOnboardingSlotAllowed(target.kind, r.doc_slot));
+  const owned = (rows ?? []).filter(
+    (r) =>
+      stagedPathOwned(r.storage_path, adminId, sessionId) &&
+      talentOnboardingSlotAllowed(target.kind, r.doc_slot),
+  );
   if (!owned.length) return 0;
   const base = (r: (typeof owned)[number]) => ({
     invitation_id: target.invitationId,
