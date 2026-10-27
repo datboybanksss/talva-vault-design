@@ -223,34 +223,49 @@ function TalentDashboard() {
             </div>
             {contacts.length === 0 ? (
               <div className="tvd-share-empty">
+                <span className="tvd-tile-icon tvd-share-empty-icon" aria-hidden>
+                  <Users className="h-5 w-5" />
+                </span>
                 <p className="tvd-meta">
                   Share selected documents with someone you trust — like a parent, partner or
-                  accountant. You choose what they see and for how long.
+                  accountant. You choose what they see and for how long, and you can end access at
+                  any time.
                 </p>
-                <Link to="/talent/sharing" className="tvp-primary">
+                <Link to="/talent/sharing" className="tvd-btn tvd-btn-ghost">
                   <Share2 className="h-4 w-4" /> Share with a {SHARE_RECIPIENT_TERM}
                 </Link>
               </div>
             ) : (
-              <ul className="tvp-review-list tvd-list">
-                {contacts.map((c) => (
-                  <li key={c.id}>
-                    <Link to="/talent/sharing" className="tvp-review-row tvd-row">
-                      <span className="tvp-review-icon tvp-bg-amber">
-                        <Users className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="tvd-row-text">
-                        <span className="tvp-review-name">{c.name}</span>
-                        <span className="tvp-review-meta">
-                          {c.expiresAt ? `Access ends ${fmtDate(c.expiresAt)}` : "No end date"}
+              <>
+                <ul className="tvp-review-list tvd-list">
+                  {contacts.slice(0, 3).map((c) => (
+                    <li key={c.id}>
+                      <Link to="/talent/sharing" className="tvp-review-row tvd-row">
+                        <span className="tvp-review-icon tvp-bg-amber">
+                          <Users className="h-3.5 w-3.5" />
                         </span>
-                      </span>
-                      <span />
-                      <ChevronRight className="h-4 w-4 tvd-chev" aria-hidden />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                        <span className="tvd-row-text">
+                          <span className="tvp-review-name">
+                            {c.name}
+                            {c.relationship ? ` · ${c.relationship}` : ""}
+                          </span>
+                          <span className="tvp-review-meta">
+                            {plural(c.sharedDocs, "document")} shared ·{" "}
+                            {c.expiresAt ? `Access ends ${fmtDate(c.expiresAt)}` : "No end date"}
+                          </span>
+                        </span>
+                        <span />
+                        <ChevronRight className="h-4 w-4 tvd-chev" aria-hidden />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {contacts.length > 3 && (
+                  <Link to="/talent/sharing" className="tvp-link tvd-share-viewall">
+                    View all {contacts.length} {SHARE_RECIPIENT_TERM_PLURAL} →
+                  </Link>
+                )}
+              </>
             )}
           </section>
         </aside>
