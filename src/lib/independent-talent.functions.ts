@@ -19,6 +19,7 @@ import { parseInput } from "@/lib/admin.functions";
  */
 
 const BUCKET = "talent-invite-docs";
+import { friendlyError } from "./friendly-error";
 export const INDEPENDENT_DOC_SLOTS = ["proof_of_talent"] as const;
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
