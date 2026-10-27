@@ -1275,6 +1275,8 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     for (const [t, s, n] of await Promise.all(countJobs)) counts[t][s] = n;
 
     const types = type === "all" ? [...INVITATION_TYPES] : [type];
+    const { registrationCopy } = await import("./registration-copy.server");
+    const unavailableLabel = (await registrationCopy()).acceptance_unavailable;
     const window = data.offset + data.limit;
     const fetched = await Promise.all(
       types.map(async (t) => {
@@ -1329,7 +1331,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
               ? (r as { agency_name?: AgencyInvite["agency_name"] }).agency_name
               : (r as { talent_name?: TalentInvite["talent_name"] }).talent_name,
           stored_status: r.status as string,
-          status: "acceptance_unavailable_at" in r && r.acceptance_unavailable_at ? "unavailable" : effectiveInvitationStatus(r.status, r.expires_at),
+          status: "acceptance_unavailable_at" in r && r.acceptance_unavailable_at ? unavailableLabel : effectiveInvitationStatus(r.status, r.expires_at),
           is_test: isTestRow(r, t),
         }));
       }),
