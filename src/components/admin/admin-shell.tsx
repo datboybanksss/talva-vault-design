@@ -133,10 +133,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
   });
 
   const items = [
-    ...(notifs?.computed ?? []).map((c) => ({ ...c, persisted: false })),
+    ...(notifs?.computed ?? []).map((c) => ({ ...c, persisted: false as const })),
     ...(notifs?.persisted ?? []).map((p: Tables<"admin_notifications">) => ({
       id: p.id,
-      persisted: true,
+      persisted: true as const,
       kind: p.kind,
       tone:
         p.kind === "suspended_review"

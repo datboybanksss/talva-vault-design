@@ -2489,8 +2489,7 @@ export const listNotifications = createServerFn({ method: "GET" })
     );
     const visibleComputed = computed.filter((c) => dismissedMap.get(c.kind) !== c.snapshot);
 
-    // Persisted reminders have no computed snapshot; the shared consumer accesses this optional field.
-    return { persisted: (persisted ?? []) as Array<Tables<"admin_notifications"> & { snapshot?: number }>, computed: visibleComputed };
+    return { persisted: persisted ?? [], computed: visibleComputed };
   });
 
 // -----------------------------------------------------------------------------
