@@ -294,9 +294,7 @@ function InvitationsPage() {
                               viewer: isOwner ? "agency_owner" : "agency_staff",
                               canWrite: !readOnly,
                             });
-                            const open = invitationIsOpen(
-                              i.stored_status ?? i.status,
-                            );
+                            const open = invitationIsOpen(i.stored_status ?? i.status);
                             return [
                               allowed.includes("edit_email") && {
                                 key: "email",

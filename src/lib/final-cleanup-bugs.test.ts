@@ -22,7 +22,8 @@ vi.mock("@tanstack/react-start", () => ({
         validate = fn;
         return builder;
       },
-      handler: (fn: (input: { context: object; data: unknown }) => unknown) =>
+      handler:
+        (fn: (input: { context: object; data: unknown }) => unknown) =>
         (input: { data?: unknown } = {}) =>
           fn({ context: fixtures.context, data: validate ? validate(input.data) : input.data }),
     };
@@ -41,13 +42,24 @@ const requests: URL[] = [];
 let failTable: string | null = null;
 let dismissBody: unknown;
 const invitation = {
-  id: "invite", talent_name: "Test talent", email: "talent@example.test", status: "pending",
-  token: "token", invited_by: null, last_sent_at: null, expires_at: "2099-01-01",
-  send_count: 0, created_at: "2026-10-27",
+  id: "invite",
+  talent_name: "Test talent",
+  email: "talent@example.test",
+  status: "pending",
+  token: "token",
+  invited_by: null,
+  last_sent_at: null,
+  expires_at: "2099-01-01",
+  send_count: 0,
+  created_at: "2026-10-27",
 };
 const link = {
-  id: "link", agency_id: "agency", talent_user_id: "talent", talent_invitation_id: "invite",
-  display_name: "Test talent", created_at: "2026-10-01",
+  id: "link",
+  agency_id: "agency",
+  talent_user_id: "talent",
+  talent_invitation_id: "invite",
+  display_name: "Test talent",
+  created_at: "2026-10-01",
 };
 const client = createClient<Database>("https://database.example.test", "test-key", {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -56,14 +68,20 @@ const client = createClient<Database>("https://database.example.test", "test-key
       const url = new URL(String(input));
       requests.push(url);
       const table = url.pathname.split("/").pop();
-      if (table === failTable) return new Response(JSON.stringify({ message: "read failed", code: "XX000" }), { status: 500 });
+      if (table === failTable)
+        return new Response(JSON.stringify({ message: "read failed", code: "XX000" }), {
+          status: 500,
+        });
       let body: unknown = [];
       if (url.pathname.includes("/rpc/")) body = true;
-      else if (table === "agency_members") body = { agency_id: "agency", role: "owner", suspended: false };
+      else if (table === "agency_members")
+        body = { agency_id: "agency", role: "owner", suspended: false };
       else if (table === "talent_invitations") body = [invitation];
       else if (table === "agency_talent_links") body = [link];
-      else if (table === "talent_audit_log") body = [{ actor_id: "talent", action: "login", created_at: "2026-10-27" }];
-      else if (table === "agency_document_requests") body = [{ talent_link_id: "link", created_at: "2026-10-27", reviewed_at: null }];
+      else if (table === "talent_audit_log")
+        body = [{ actor_id: "talent", action: "login", created_at: "2026-10-27" }];
+      else if (table === "agency_document_requests")
+        body = [{ talent_link_id: "link", created_at: "2026-10-27", reviewed_at: null }];
       else if (table === "agency_notification_dismissals") {
         dismissBody = JSON.parse(String(init?.body));
         body = null;
@@ -77,18 +95,38 @@ const client = createClient<Database>("https://database.example.test", "test-key
         const rows = Array.from({ length: 5002 }, (_, i) => ({
           id: `${isAgency ? "agency" : "talent"}-${i}`,
           agency_name: i === 5001 ? "Café match" : "Other",
-          contact_person: "Contact", talent_name: i === 5001 ? "Café match" : "Other",
-          email: `${i}@example.test`, status: "draft", expires_at: "2099-01-01",
-          created_at: isAgency ? "2026-10-27" : "2026-10-26", updated_at: "2026-10-27",
-          agency_id: null, last_sent_at: null, send_count: 0, token: "token",
+          contact_person: "Contact",
+          talent_name: i === 5001 ? "Café match" : "Other",
+          email: `${i}@example.test`,
+          status: "draft",
+          expires_at: "2099-01-01",
+          created_at: isAgency ? "2026-10-27" : "2026-10-26",
+          updated_at: "2026-10-27",
+          agency_id: null,
+          last_sent_at: null,
+          send_count: 0,
+          token: "token",
         }));
-        const matching = idFilter ? rows.filter((r) => idFilter.slice(4, -1).split(",").map((id) => id.replaceAll('"', "")).includes(r.id)) : rows;
+        const matching = idFilter
+          ? rows.filter((r) =>
+              idFilter
+                .slice(4, -1)
+                .split(",")
+                .map((id) => id.replaceAll('"', ""))
+                .includes(r.id),
+            )
+          : rows;
         body = matching.slice(offset, offset + limit);
         return new Response(init?.method === "HEAD" ? null : JSON.stringify(body), {
-          headers: { "content-type": "application/json", "content-range": `0-0/${matching.length}` },
+          headers: {
+            "content-type": "application/json",
+            "content-range": `0-0/${matching.length}`,
+          },
         });
       }
-      return new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json" },
+      });
     },
   },
 });
@@ -119,33 +157,53 @@ describe("final approved clean-up fixes", () => {
     expect(reminderVisible(undefined, undefined, dismissed)).toBe(true);
   });
   it("finds matches beyond 5,000 for both types without changing merge order or page size", async () => {
-    const result = await listCombinedInvitations({ data: { q: "cafe match", limit: 1, offset: 0 } });
+    const result = await listCombinedInvitations({
+      data: { q: "cafe match", limit: 1, offset: 0 },
+    });
     expect(result.total).toBe(2);
     expect(result.counts.agency.all).toBe(1);
     expect(result.counts.talent.all).toBe(1);
     expect(result.rows.map((r) => r.id)).toEqual(["agency-5001"]);
-    const second = await listCombinedInvitations({ data: { q: "cafe match", limit: 1, offset: 1 } });
+    const second = await listCombinedInvitations({
+      data: { q: "cafe match", limit: 1, offset: 1 },
+    });
     expect(second.rows.map((r) => r.id)).toEqual(["talent-5001"]);
   });
   it("reads to exhaustion even when the server caps pages below the requested size", async () => {
-    const candidates = Array.from({ length: 5002 }, (_, id) => ({ id, name: id === 5001 ? "Café" : "Other" }));
-    const rows = await allQueryRows(async (from) => ({ data: candidates.slice(from, from + 750), error: null }));
+    const candidates = Array.from({ length: 5002 }, (_, id) => ({
+      id,
+      name: id === 5001 ? "Café" : "Other",
+    }));
+    const rows = await allQueryRows(async (from) => ({
+      data: candidates.slice(from, from + 750),
+      error: null,
+    }));
     expect(rows.filter((r) => matchesSearch([r.name], "cafe")).map((r) => r.id)).toEqual([5001]);
     expect(rows).toHaveLength(5002);
   });
   it("accepts every generated invitation status and rejects unknown values before querying", async () => {
-    for (const status of Constants.public.Enums.invitation_status) expect(agencyInvitationStatusInput.parse(status)).toBe(status);
+    for (const status of Constants.public.Enums.invitation_status)
+      expect(agencyInvitationStatusInput.parse(status)).toBe(status);
     expect(agencyInvitationStatusInput.parse("all")).toBe("all");
     expect(() => listAgencyInvitationsPaged({ data: { status: "unknown" } })).toThrow(/Status/);
     expect(requests).toHaveLength(0);
   });
-  it.each(["talent_invite_private", "agency_document_requests"])("refuses silently incorrect north-star figures when %s fails", async (table) => {
-    failTable = table;
-    await expect(northStarPairs(client, { fromIso: "2026-10-01", toIso: "2026-10-31" })).rejects.toThrow("We couldn't complete that request. Please try again.");
-  });
+  it.each(["talent_invite_private", "agency_document_requests"])(
+    "refuses silently incorrect north-star figures when %s fails",
+    async (table) => {
+      failTable = table;
+      await expect(
+        northStarPairs(client, { fromIso: "2026-10-01", toIso: "2026-10-31" }),
+      ).rejects.toThrow("We couldn't complete that request. Please try again.");
+    },
+  );
   it("keeps successful north-star request attribution", async () => {
     const pairs = await northStarPairs(client, { fromIso: "2026-10-01", toIso: "2026-10-31" });
-    expect(pairs[0]).toMatchObject({ both: true, agencyActions: ["document_request_created"], talentActions: ["login"] });
+    expect(pairs[0]).toMatchObject({
+      both: true,
+      agencyActions: ["document_request_created"],
+      talentActions: ["login"],
+    });
   });
   it("returns null for missing singleton settings and preserves existing settings/defaults", () => {
     const missing = checkRow<{ value: unknown; updated_at: string }>({ data: null, error: null });
@@ -157,8 +215,15 @@ describe("final approved clean-up fixes", () => {
     expect(checkRows({ data: null, error: null })).toEqual([]);
   });
   it("refuses failed search pages and singleton reads", async () => {
-    const error = new PostgrestError({ message: "read failed", code: "XX000", details: "", hint: "" });
-    await expect(allQueryRows(async () => ({ data: null, error }))).rejects.toThrow(/Please try again/);
+    const error = new PostgrestError({
+      message: "read failed",
+      code: "XX000",
+      details: "",
+      hint: "",
+    });
+    await expect(allQueryRows(async () => ({ data: null, error }))).rejects.toThrow(
+      /Please try again/,
+    );
     expect(() => checkRow({ data: null, error })).toThrow(/Please try again/);
   });
   it("renders a missing legacy document reference without throwing", () => {

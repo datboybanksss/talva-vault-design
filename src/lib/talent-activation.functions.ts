@@ -18,7 +18,8 @@ type LoadedInvite = {
 /** Talent invitation tokens live in two tables: agency invites and admin (independent) invites. */
 async function loadTalentInvite(
   supabaseAdmin: SupabaseClient<Database>,
-  token: string): Promise<LoadedInvite | null> {
+  token: string,
+): Promise<LoadedInvite | null> {
   const { data: inv } = await supabaseAdmin
     .from("talent_invitations")
     .select("id, agency_id, talent_name, email, status, expires_at")

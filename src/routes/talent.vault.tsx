@@ -1134,9 +1134,7 @@ function SharedDocumentsView({ linkId }: { linkId: string }) {
           <div className="tvp-panel-head">
             <div>
               <h2 className="tvp-h2">
-                {data.link.state === "previous"
-                  ? "Previously shared with "
-                  : "Shared with "}
+                {data.link.state === "previous" ? "Previously shared with " : "Shared with "}
                 {data.link.agency_name}
               </h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
@@ -1477,8 +1475,7 @@ function ManagerRequests({ linkId }: { linkId: string }) {
     (r) =>
       r.status === "pending" || r.status === "resubmission_required" || r.status === "submitted",
   );
-  const focusId =
-    requestParam && open.some((r) => r.id === requestParam) ? requestParam : null;
+  const focusId = requestParam && open.some((r) => r.id === requestParam) ? requestParam : null;
   const closed = (data.requests ?? []).filter(
     (r) => r.status === "completed" || r.status === "cancelled",
   );
