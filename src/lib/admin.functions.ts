@@ -1183,7 +1183,10 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
     // Only agency onboarding invitations: agency staff invitations share the
     // agency_invitations table (kind = 'staff') and are not Admin invitations.
     const byStatus = <R>(q0: InvitationQuery<R>, s: string, t: InvitationType) => {
-      const q1 = byScope(t === "agency" ? q0.eq("kind", ADMIN_AGENCY_INVITATION_KIND) : q0, t);
+      const q1 = byScope(t === "agency"
+        // Only agency queries take this branch; the union exposes common column keys only.
+        ? (q0 as PostgrestFilterBuilder<Database["__InternalSupabase"], Database["public"], AgencyInvite, R, "agency_invitations">).eq("kind", ADMIN_AGENCY_INVITATION_KIND)
+        : q0, t);
       const q2 = email ? q1.ilike("email", `%${email}%`) : q1;
       const ids = searchIds[t];
       const q =
