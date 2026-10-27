@@ -155,6 +155,13 @@
       "when": 1793124754649,
       "tag": "0021_mfa_restrictive_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793126409929,
+      "tag": "0022_block_talent_tax_number_writes",
+      "breakpoints": true
     }
   ]
 }
