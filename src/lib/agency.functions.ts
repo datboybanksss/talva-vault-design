@@ -5271,7 +5271,7 @@ function emptyRollup(): ClientRollup {
  * Paid comes from recorded payments; an invoice marked paid without payment
  * rows still counts as settled in full so legacy records read honestly.
  */
-async function loadClientRollups(supabase: any, agencyId: string) {
+async function loadClientRollups(supabase: SupabaseClient<Database>, agencyId: string) {
   const { data: docs, error } = await supabase
     .from("agency_billing_docs")
     .select("id, client_id, kind, status, total_cents, due_date, paid_at, issued_at, updated_at")
@@ -5280,7 +5280,7 @@ async function loadClientRollups(supabase: any, agencyId: string) {
   if (error) throw databaseError(error);
   const rows = docs ?? [];
 
-  const invoiceIds = rows.filter((d: any) => d.kind === "invoice").map((d: any) => d.id as string);
+  const invoiceIds = rows.filter((d) => d.kind === "invoice").map((d) => d.id as string);
   const paidByDoc = new Map<string, number>();
   for (let i = 0; i < invoiceIds.length; i += 200) {
     const slice = invoiceIds.slice(i, i + 200);
@@ -5330,7 +5330,7 @@ export const listAgencyClients = createServerFn({ method: "GET" })
     z.object({ includeArchived: z.boolean().optional() }).optional().parse(d),
   )
   .handler(async ({ data: input, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     let q = supabase.from("agency_clients").select(CLIENT_COLUMNS).eq("agency_id", agencyId);
     if (!input?.includeArchived) q = q.is("archived_at", null);
@@ -5341,7 +5341,11 @@ export const listAgencyClients = createServerFn({ method: "GET" })
     const rollups = await loadClientRollups(supabase, agencyId);
 
     const managerIds = Array.from(
-      new Set(clients.map((c: any) => c.relationship_manager_user_id).filter(Boolean)),
+      new Set(
+        clients
+          .map((c) => c.relationship_manager_user_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
     );
     const managerNames = new Map<string, string>();
     if (managerIds.length) {
@@ -5361,7 +5365,7 @@ export const listAgencyClients = createServerFn({ method: "GET" })
     }
 
     return {
-      clients: clients.map((c: any) => ({
+      clients: clients.map((c) => ({
         ...c,
         relationship_manager_name: c.relationship_manager_user_id
           ? (managerNames.get(c.relationship_manager_user_id) ?? null)
@@ -5376,7 +5380,7 @@ export const getAgencyClientDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: client, error } = await supabase
@@ -5419,7 +5423,7 @@ export const getAgencyClientDetail = createServerFn({ method: "POST" })
         relationship_manager_name: managerName,
         stats: rollups.get(client.id as string) ?? emptyRollup(),
       },
-      documents: (docs ?? []).map((d: any) => ({
+      documents: (docs ?? []).map((d) => ({
         id: d.id as string,
         kind: d.kind as string,
         number: d.number as string,
@@ -5464,7 +5468,7 @@ export const saveAgencyClient = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const payload = {
@@ -5541,7 +5545,7 @@ export const checkAgencyClientDuplicates = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_clients")
@@ -5556,7 +5560,7 @@ export const restoreAgencyClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: r, error } = await supabase
       .from("agency_clients")
@@ -5585,7 +5589,7 @@ export const removeAgencyClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: existing } = await supabase
@@ -5640,7 +5644,7 @@ export const setTalentManager = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     const { data: link, error: readErr } = await supabase
@@ -5699,7 +5703,7 @@ export const linkBillingDocToTalent = createServerFn({ method: "POST" })
     z.object({ doc_id: z.string().uuid(), talent_link_id: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: link } = await supabase
       .from("agency_talent_links")
@@ -5715,7 +5719,7 @@ export const linkBillingDocToTalent = createServerFn({ method: "POST" })
       .eq("agency_id", agencyId)
       .maybeSingle();
     if (!doc) throw new Error("Quote or invoice not found.");
-    const patch: Record<string, unknown> = { talent_link_id: link.id };
+    const patch: TablesUpdate<"agency_billing_docs"> = { talent_link_id: link.id };
     if (!doc.talent_name) patch.talent_name = link.display_name;
     const { error } = await supabase
       .from("agency_billing_docs")
@@ -5750,7 +5754,7 @@ export const getAgencyTalentDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ talent_link_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: link, error } = await supabase
       .from("agency_talent_links")
@@ -5788,7 +5792,7 @@ export const getAgencyTalentDetail = createServerFn({ method: "POST" })
       email,
       acceptedAt: (link.responded_at as string) ?? null,
       endedAt: (link.ended_at as string) ?? null,
-      activity: (logRows ?? []).map((r: any) => ({
+      activity: (logRows ?? []).map((r) => ({
         id: r.id as string,
         actor: (r.actor_email as string) ?? null,
         action: r.action as string,
