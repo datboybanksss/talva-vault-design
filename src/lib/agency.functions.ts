@@ -3894,7 +3894,7 @@ export const getBillingDocFull = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: doc, error } = await supabase
       .from("agency_billing_docs")
@@ -3979,7 +3979,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
 
     let subtotal = 0;
@@ -4000,7 +4000,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
     const number =
       data.number?.trim() || `DRAFT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-    const payload: any = {
+    const payload: TablesInsert<"agency_billing_docs"> = {
       agency_id: agencyId,
       kind: data.kind,
       number,
@@ -4039,7 +4039,17 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
 
     // Editing a document the talent has already seen (or that has already gone
     // out) must never happen silently — capture the before state first.
-    let prev: any = null;
+    let prev: Pick<
+      Tables<"agency_billing_docs">,
+      | "id"
+      | "kind"
+      | "number"
+      | "status"
+      | "total_cents"
+      | "due_date"
+      | "shared_with_talent"
+      | "talent_name"
+    > | null = null;
     if (data.id) {
       const { data: before } = await supabase
         .from("agency_billing_docs")
@@ -4137,7 +4147,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
     // the agency's hands. Changing those is an auditable, notifiable event.
     const LIVE_STATUSES = ["sent", "accepted", "partial", "paid", "overdue"];
     if (prev && (prev.shared_with_talent === true || LIVE_STATUSES.includes(prev.status))) {
-      const changes: Record<string, { from: any; to: any }> = {};
+      const changes: Record<string, { from: Json; to: Json }> = {};
       if (Number(prev.total_cents) !== total)
         changes.total_cents = { from: Number(prev.total_cents), to: total };
       if ((prev.due_date ?? null) !== (data.due_date ?? null))
@@ -4210,7 +4220,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: doc, error: dErr } = await supabase
       .from("agency_billing_docs")
@@ -4288,7 +4298,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
         recipientAddress: doc.recipient_address,
         recipientVatNumber: doc.recipient_vat_number,
         currency: doc.currency ?? "ZAR",
-        lines: (lineRows ?? []).map((line: any) => ({
+        lines: (lineRows ?? []).map((line) => ({
           id: line.id,
           description: line.description,
           quantity: Number(line.quantity),
@@ -4388,7 +4398,7 @@ export const markAgencyBillingDocSentManually = createServerFn({ method: "POST" 
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     const { data: billingDoc, error: docError } = await supabase
       .from("agency_billing_docs")
