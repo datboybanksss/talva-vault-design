@@ -44,7 +44,7 @@ type BillingSettingsForm = {
   default_quote_reminder_days: number | string;
   default_invoice_payment_days: number | string;
   invoice_overdue_grace_days: number | string;
-  default_vat_rate_bp: number | string;
+  default_vat_rate_bp: number;
   is_vat_registered: boolean;
   vat_number: string;
   billing_address: string;
