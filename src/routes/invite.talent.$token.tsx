@@ -354,10 +354,6 @@ function Wizard({
           setDob={setDob}
           phone={phone}
           setPhone={setPhone}
-          taxNumber={taxNumber}
-          setTaxNumber={setTaxNumber}
-          provisional={provisional}
-          setProvisional={setProvisional}
           onBack={goBack}
           onContinue={goNext}
           error={error}
@@ -473,10 +469,6 @@ function Step2({
   setDob,
   phone,
   setPhone,
-  taxNumber,
-  setTaxNumber,
-  provisional,
-  setProvisional,
   onBack,
   onContinue,
   error,
