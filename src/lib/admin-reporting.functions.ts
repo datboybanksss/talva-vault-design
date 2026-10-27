@@ -540,7 +540,10 @@ const RawInput = PeriodInput.extend({
 async function agencyNames(admin: SupabaseClient<Database>, ids: (string | undefined)[]) {
   const unique = [...new Set(ids.filter(Boolean))];
   if (unique.length === 0) return new Map<string, string>();
-  const { data } = await admin.from("agencies").select("id, name").in("id", unique);
+  const { data } = await admin
+    .from("agencies")
+    .select("id, name") // Existing Boolean filter removes undefined without declaring a type guard.
+    .in("id", unique as string[]);
   return new Map<string | undefined, string>((data ?? []).map((a) => [a.id, a.name]));
 }
 
