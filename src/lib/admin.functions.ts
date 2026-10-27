@@ -1230,7 +1230,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
       },
       talent: {
         table: "independent_talent_invitations",
-        cols: "id, talent_name, email, status, expires_at, created_at, updated_at, last_sent_at, send_count",
+        cols: "id, talent_name, email, status, expires_at, created_at, updated_at, last_sent_at, send_count, acceptance_unavailable_at",
       },
     } as const;
     // Only agency onboarding invitations: agency staff invitations share the
@@ -1307,6 +1307,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
                   TalentInvite,
                   | "id"
                   | "talent_name"
+                  | "acceptance_unavailable_at"
                   | "email"
                   | "status"
                   | "expires_at"
@@ -1328,7 +1329,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
               ? (r as { agency_name?: AgencyInvite["agency_name"] }).agency_name
               : (r as { talent_name?: TalentInvite["talent_name"] }).talent_name,
           stored_status: r.status as string,
-          status: effectiveInvitationStatus(r.status, r.expires_at),
+          status: "acceptance_unavailable_at" in r && r.acceptance_unavailable_at ? "unavailable" : effectiveInvitationStatus(r.status, r.expires_at),
           is_test: isTestRow(r, t),
         }));
       }),

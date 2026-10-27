@@ -882,7 +882,7 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
       supabase
         .from("talent_invitations")
         .select(
-          "id, talent_name, email, status, token, invited_by, last_sent_at, expires_at, send_count, created_at",
+          "id, talent_name, email, status, token, invited_by, last_sent_at, expires_at, send_count, created_at, acceptance_unavailable_at",
         )
         .eq("agency_id", agencyId)
         .order("created_at", { ascending: false }),
@@ -930,7 +930,7 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
       type: "talent",
       recipient_name: r.talent_name ?? null,
       email: r.email,
-      status: effectiveInvitationStatus(r.status, r.expires_at),
+      status: r.acceptance_unavailable_at ? "unavailable" : effectiveInvitationStatus(r.status, r.expires_at),
       stored_status: r.status,
       token: r.token,
       invited_by: r.invited_by,

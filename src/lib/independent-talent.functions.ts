@@ -114,10 +114,11 @@ export const getIndependentTalentInvitation = createServerFn({ method: "GET" })
       .eq("invitation_id", data.id)
       .order("created_at");
     const { token, ...rest } = inv;
+    const { registrationCopy } = await import("./registration-copy.server");
     return {
-      invitation: { ...rest, status: effectiveStatus(inv) },
+      invitation: { ...rest, status: inv.acceptance_unavailable_at ? (await registrationCopy()).acceptance_unavailable : effectiveStatus(inv) },
       documents: docs ?? [],
-      invite_url: inv.status === "pending" ? await inviteUrlFor(token) : null,
+      invite_url: inv.status === "pending" && !inv.acceptance_unavailable_at ? await inviteUrlFor(token) : null,
     };
   });
 

@@ -98,6 +98,7 @@ export const LIFECYCLE_STATUS: Record<StatusFamily, Record<string, Entry>> = {
   },
   /** public.invitation_status (+ admin_invitations text) with expiry derived at read time */
   invitation: {
+    unavailable: { label: "This invitation couldn't be accepted", st: "neutral" },
     draft: { label: "Draft", st: "neutral" },
     pending: { label: "Invited", st: "invited" },
     expired: { label: "Expired", st: "expired" },
