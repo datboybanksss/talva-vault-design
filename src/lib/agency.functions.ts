@@ -121,7 +121,11 @@ async function logTalentVaultView(
   }
 }
 
-async function assertAgencyOwner(supabase: SupabaseClient<Database>, userId: string, agencyId: string) {
+async function assertAgencyOwner(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  agencyId: string,
+) {
   const { data, error } = await supabase.rpc("has_agency_role", {
     _user_id: userId,
     _agency_id: agencyId,
@@ -166,7 +170,10 @@ async function assertAgencyWritable(supabase: SupabaseClient<Database>, agencyId
 }
 
 /** End of the read-only window when the agency is suspended; null while writable. */
-async function getAgencyReadOnlyUntil(supabase: SupabaseClient<Database>, agencyId: string): Promise<string | null> {
+async function getAgencyReadOnlyUntil(
+  supabase: SupabaseClient<Database>,
+  agencyId: string,
+): Promise<string | null> {
   const { data } = await supabase.rpc("agency_read_only_until", { _agency_id: agencyId });
   return data ?? null;
 }
@@ -193,7 +200,10 @@ async function getWritableCallerAgency(supabase: SupabaseClient<Database>, userI
  * management action is refused. The database enforces this too via RLS; this
  * helper exists so the UI gets a readable message instead of a policy error.
  */
-async function assertLinkNotEnded(supabase: SupabaseClient<Database>, talentLinkId: string | null | undefined) {
+async function assertLinkNotEnded(
+  supabase: SupabaseClient<Database>,
+  talentLinkId: string | null | undefined,
+) {
   if (!talentLinkId) return;
   const { data, error } = await supabase
     .from("agency_talent_links")
@@ -405,7 +415,9 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       .is("deleted_at", null)
       .gte("copied_from_vault_at", sinceIso);
     const copyLinkIds = [
-      ...new Set((vaultCopies ?? []).map((c) => c.talent_link_id).filter((id): id is string => Boolean(id))),
+      ...new Set(
+        (vaultCopies ?? []).map((c) => c.talent_link_id).filter((id): id is string => Boolean(id)),
+      ),
     ];
     const copyLinkNames = new Map<string, string>();
     if (copyLinkIds.length > 0) {
@@ -618,7 +630,11 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
 // Roster rows created at invite time stay "invited" until the invitation is
 // accepted. Lapsed or revoked invitations are reflected on the roster here so
 // an entry is never orphaned as "Invited" forever. Mutates rows in place.
-async function syncInvitedTalentLinks(supabase: SupabaseClient<Database>, agencyId: string, rows: Pick<Tables<"agency_talent_links">, "id" | "status" | "talent_invitation_id">[]) {
+async function syncInvitedTalentLinks(
+  supabase: SupabaseClient<Database>,
+  agencyId: string,
+  rows: Pick<Tables<"agency_talent_links">, "id" | "status" | "talent_invitation_id">[],
+) {
   const invited = rows.filter((r) => r.status === "invited" && r.talent_invitation_id);
   if (!invited.length) return;
   const { data: invs } = await supabase
@@ -680,7 +696,11 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     const rows = links ?? [];
     await syncInvitedTalentLinks(supabase, agencyId, rows);
     const profileIds = Array.from(
-      new Set(rows.flatMap((r) => [r.manager_user_id, r.talent_user_id]).filter((id): id is string => Boolean(id))),
+      new Set(
+        rows
+          .flatMap((r) => [r.manager_user_id, r.talent_user_id])
+          .filter((id): id is string => Boolean(id)),
+      ),
     );
     const linkIds = rows.map((r) => r.id);
 
@@ -698,7 +718,10 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     // each silently capped at PostgREST's 1000-row default.
     const fetchAgencyDocRows = async () => {
       const page = 1000;
-      const out: Pick<Tables<"talent_shared_documents">, "talent_link_id" | "created_at" | "validity_expires_at" | "status">[] = [];
+      const out: Pick<
+        Tables<"talent_shared_documents">,
+        "talent_link_id" | "created_at" | "validity_expires_at" | "status"
+      >[] = [];
       for (let from = 0; ; from += page) {
         const { data, error: docErr } = await supabase
           .from("talent_shared_documents")
@@ -854,7 +877,9 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
 
     const inviterIds = Array.from(
       new Set([
-        ...(talentRes.data ?? []).map((r) => r.invited_by).filter((id): id is string => Boolean(id)),
+        ...(talentRes.data ?? [])
+          .map((r) => r.invited_by)
+          .filter((id): id is string => Boolean(id)),
         ...(staffRes.data ?? []).map((r) => r.invited_by).filter((id): id is string => Boolean(id)),
       ]),
     );
@@ -945,7 +970,10 @@ export const listAgencyStaff = createServerFn({ method: "GET" })
           .in("id", ids)
       : { data: [] };
 
-    const byId = new Map<string, Pick<Tables<"profiles">, "id" | "display_name" | "first_name" | "last_name" | "email">>();
+    const byId = new Map<
+      string,
+      Pick<Tables<"profiles">, "id" | "display_name" | "first_name" | "last_name" | "email">
+    >();
     for (const p of profs ?? []) byId.set(p.id as string, p);
 
     return (members ?? []).map((m) => {
@@ -980,7 +1008,7 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
@@ -1037,7 +1065,7 @@ export const createTalentInvitationMine = createServerFn({ method: "POST" })
     if (linkErr) throw new Error("We couldn't add this talent to your roster. Please try again.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: outcome, error: attachErr } = await (supabaseAdmin as any).rpc(
+    const { data: outcome, error: attachErr } = await supabaseAdmin.rpc(
       "attach_talent_invite_private",
       {
         _invitation_id: inv.id,
@@ -1134,7 +1162,7 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
 
@@ -1182,7 +1210,7 @@ export const createStaffInvitationMine = createServerFn({ method: "POST" })
  * exactly one roster entry, so an ambiguous name stays unlinked.
  */
 async function resolveBillingTalentLink(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   agencyId: string,
   talentName: string | null | undefined,
   explicitId?: string | null,
@@ -1202,9 +1230,7 @@ async function resolveBillingTalentLink(
     .from("agency_talent_links")
     .select("id, display_name")
     .eq("agency_id", agencyId);
-  const rows = (data ?? []).filter(
-    (r: any) => (r.display_name ?? "").trim().toLowerCase() === name,
-  );
+  const rows = (data ?? []).filter((r) => (r.display_name ?? "").trim().toLowerCase() === name);
   return rows.length === 1 ? (rows[0].id as string) : null;
 }
 
@@ -1220,7 +1246,7 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
@@ -1262,7 +1288,7 @@ export const resendAgencyInvitationMine = createServerFn({ method: "POST" })
       // A connection request to an existing account reopens the talent's bell
       // entry too; the agency-visible result is identical either way.
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await (supabaseAdmin as any).rpc("reopen_talent_invite_private", { _invitation_id: data.id });
+      await supabaseAdmin.rpc("reopen_talent_invite_private", { _invitation_id: data.id });
     }
 
     await logAgencyAudit(
@@ -1285,7 +1311,7 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
     z.object({ id: z.string().max(10000), type: z.enum(["talent", "staff"]) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getWritableCallerAgency(supabase, userId);
     await assertAgencyOwner(supabase, userId, agencyId);
     const table = data.type === "talent" ? "talent_invitations" : "agency_invitations";
@@ -1308,7 +1334,7 @@ export const revokeAgencyInvitationMine = createServerFn({ method: "POST" })
         .eq("talent_invitation_id", data.id)
         .in("status", ["invited", "expired"]);
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: closedLink } = await (supabaseAdmin as any).rpc("close_talent_invite_private", {
+      const { data: closedLink } = await supabaseAdmin.rpc("close_talent_invite_private", {
         _invitation_id: data.id,
       });
       if (closedLink) {
@@ -1336,7 +1362,7 @@ export const logAgencyCopyLinkMine = createServerFn({ method: "POST" })
     z.object({ id: z.string().max(10000), type: z.enum(["talent", "staff"]) }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     await logAgencyAudit(
       supabase,
