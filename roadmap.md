@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Final approved bug-fix run: resolve all remaining type-clean-up findings, add focused regressions, and reach zero lint errors without changing two-factor or minting sessions.
 - [x] TVA-SEC-112: all invitation wizards use server admin creation; hosted signup already disabled; enabled Google while preserving disable_signup; public signup refusal tested; two unlinked non-test addresses reported.
 - [x] TVA-SEC-113: four invitation claim failure branches sanitised with server logs; focused tests pass.
 - [x] TVA-SEC-114/115: revoked anonymous/PUBLIC execution on 14 functions; sweep service-only; hourly job active with successful runs; invoker view and admin SELECT policy tested as admin/non-admin in read-only database assertions.
