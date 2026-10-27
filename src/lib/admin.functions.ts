@@ -1317,14 +1317,11 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         return (rows ?? []).map((r) => ({
           ...r,
           type: t,
+          // The table discriminator selects the matching name field; retain the original direct field access.
           name:
             t === "agency"
-              ? "agency_name" in r
-                ? r.agency_name
-                : undefined
-              : "talent_name" in r
-                ? r.talent_name
-                : undefined,
+              ? (r as { agency_name?: AgencyInvite["agency_name"] }).agency_name
+              : (r as { talent_name?: TalentInvite["talent_name"] }).talent_name,
           stored_status: r.status as string,
           status: effectiveInvitationStatus(r.status, r.expires_at),
           is_test: isTestRow(r, t),
