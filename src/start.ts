@@ -3,6 +3,21 @@ import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { blockPausedAccounts } from "@/lib/account-guard";
 
 import { renderErrorPage } from "./lib/error-page";
+import { publicFunctionError } from "./lib/public-function-error";
+
+const functionErrorMiddleware = createMiddleware({ type: "function" }).server(async ({ next }) => {
+  try {
+    const result = await next();
+    if ("error" in result && result.error) {
+      console.error("[server function]", result.error);
+      return { ...result, error: publicFunctionError(result.error) };
+    }
+    return result;
+  } catch (error) {
+    console.error("[server function]", error);
+    throw publicFunctionError(error);
+  }
+});
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -21,5 +36,5 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware],
-  functionMiddleware: [attachSupabaseAuth, blockPausedAccounts],
+  functionMiddleware: [functionErrorMiddleware, attachSupabaseAuth, blockPausedAccounts],
 }));

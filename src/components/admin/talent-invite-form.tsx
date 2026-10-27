@@ -59,15 +59,12 @@ import { InviteEmailReview } from "@/components/admin/invite-email-review";
 import { InviteSteps, previewExpiry } from "@/components/admin/invite-steps";
 import { logTalentInviteCopyLink } from "@/lib/admin.functions";
 import { useFolderCatalogue, talentTypesFrom } from "@/lib/folder-catalogue";
-import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
+import { getRegistrationCopy } from "@/lib/registration-copy.functions";
 import { DOCUMENT_ACCEPT, preflightUpload } from "@/lib/file-validation";
 import { friendlyError } from "@/lib/friendly-error";
 
 const BUCKET = "talent-invite-docs";
-const SLOTS = [
-  { key: "id_document", label: "ID document" },
-  { key: "proof_of_talent", label: "Proof of talent" },
-] as const;
+const SLOTS = [{ key: "proof_of_talent" }] as const;
 
 const statusLabel: Record<string, string> = {
   draft: "Draft",
@@ -85,7 +82,7 @@ function daysUntil(iso?: string | null) {
 
 /**
  * Admin "Invite talent" (independent, no agency). Mirrors the agency invite
- * draft flow: details → draft → two documents → send.
+ * draft flow: details → draft → proof of talent → send.
  */
 export function TalentInviteForm({
   draftId: initialId,
@@ -118,7 +115,6 @@ export function TalentInviteForm({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [talentType, setTalentType] = useState("");
-  const [dob, setDob] = useState("");
   const [expiryDays, setExpiryDays] = useState(14);
   const [step, setStep] = useState<"details" | "review">("details");
   const [wording, setWording] = useState<AdminInviteWording | null>(null);
@@ -156,7 +152,6 @@ export function TalentInviteForm({
     setName(inv.talent_name ?? "");
     setEmail(inv.email ?? "");
     setTalentType(inv.talent_type ?? "");
-    setDob(inv.date_of_birth ?? "");
     setExpiryDays(daysUntil(inv.expires_at));
   }, [inv?.id]);
 
@@ -166,9 +161,13 @@ export function TalentInviteForm({
     return talentType && !list.includes(talentType) ? [talentType, ...list] : list;
   }, [catalogue, talentType]);
 
-  const dobError = dob && ageOn(dob) < MINIMUM_TALENT_AGE ? UNDER_AGE_MESSAGE : null;
-  const detailsComplete = !!(name.trim().length >= 2 && email.trim() && dob && !dobError);
-  const payload = () => ({ talent_name: name, email, talent_type: talentType, date_of_birth: dob });
+  const copyQ = useQuery({
+    queryKey: ["talent-registration-copy"],
+    queryFn: () => getRegistrationCopy(),
+  });
+  const copy = copyQ.data;
+  const detailsComplete = !!(name.trim().length >= 2 && email.trim());
+  const payload = () => ({ talent_name: name, email, talent_type: talentType });
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin"] });
 
@@ -226,7 +225,7 @@ export function TalentInviteForm({
     mutationFn: () => revokeFn({ data: { id: draftId } }),
     onSuccess: () => {
       refresh();
-      toast.success("Invitation revoked. The ID document and proof of talent were deleted.");
+      if (copy) toast.success(copy.revoked_notice);
     },
     onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't revoke the invitation.")),
   });
@@ -318,10 +317,9 @@ export function TalentInviteForm({
       refresh();
       toast.success(`${file.name} uploaded.`);
     } catch (e: unknown) {
-      // Upload failures expose an optional message; preserve the existing fallback.
       setSlotErrors((p) => ({
         ...p,
-        [slotKey]: (e as { message?: string } | null)?.message ?? "Upload failed",
+        [slotKey]: friendlyError(e, "Upload failed"),
       }));
     } finally {
       void stagedQ.refetch();
@@ -356,6 +354,7 @@ export function TalentInviteForm({
   const saving = createM.isPending || updateM.isPending;
   const canSend =
     !!draftId &&
+    !!copy &&
     isDraft &&
     detailsComplete &&
     missing.length === 0 &&
@@ -391,7 +390,7 @@ export function TalentInviteForm({
 
   const outstanding = [
     ...(detailsComplete ? [] : ["talent details"]),
-    ...missing.map((s) => s.label.toLowerCase()),
+    ...missing.map(() => copy?.proof_label.toLowerCase() ?? ""),
   ];
 
   return (
@@ -447,7 +446,7 @@ export function TalentInviteForm({
                     if (
                       await askConfirm({
                         title: `Revoke the invitation to ${name}?`,
-                        body: "Their ID document and proof of talent will be deleted.",
+                        body: copy?.revoke_help ?? "",
                         destructive: true,
                       })
                     )
@@ -536,20 +535,6 @@ export function TalentInviteForm({
                 </select>
               </div>
               <div className="tvp-form-group">
-                <label>Date of birth *</label>
-                <input
-                  type="date"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                  aria-invalid={!!dobError || undefined}
-                />
-                {dobError && (
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tvp-red)" }}>
-                    {dobError}
-                  </div>
-                )}
-              </div>
-              <div className="tvp-form-group">
                 <label>Invitation expiry (days)</label>
                 <input
                   type="number"
@@ -605,7 +590,7 @@ export function TalentInviteForm({
                     className="tvp-muted"
                     style={{ fontSize: 12, textAlign: "right", marginTop: 6 }}
                   >
-                    Add a full name, email and date of birth (18 or older) to save a draft.
+                    {copy?.draft_help}
                   </p>
                 )}
               </>
@@ -620,9 +605,7 @@ export function TalentInviteForm({
             >
               <h2 className="tvp-h2">Documents</h2>
               <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 14 }}>
-                One file per slot. Both are required before the invitation can be sent. Documents
-                are stored privately, are visible only to administrators, and are deleted if the
-                invitation is revoked or expires.
+                {copy?.documents_help}
               </p>
               <div style={{ display: "grid", gap: 10 }}>
                 {SLOTS.map((slot) => {
@@ -660,7 +643,7 @@ export function TalentInviteForm({
                               style={{ color: "var(--tvp-amber)" }}
                             />
                           )}
-                          <strong style={{ fontSize: 14 }}>{slot.label}</strong>
+                          <strong style={{ fontSize: 14 }}>{copy?.proof_label}</strong>
                           <span className="tvp-muted" style={{ fontSize: 12 }}>
                             {has ? "Uploaded" : "Required"}
                           </span>

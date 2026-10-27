@@ -3,7 +3,9 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { validateNewPassword } from "@/lib/password";
-import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
+import { adultBirthDate, validBirthDate } from "./talent-registration-core";
+import { friendlyError } from "./friendly-error";
+import { databaseError } from "./security-errors";
 
 type LoadedInvite = {
   kind: "agency" | "independent";
@@ -12,6 +14,7 @@ type LoadedInvite = {
   email: string;
   talent_name: string | null;
   status: string;
+  acceptance_unavailable_at: string | null;
   expires_at: string;
 };
 
@@ -22,13 +25,13 @@ async function loadTalentInvite(
 ): Promise<LoadedInvite | null> {
   const { data: inv } = await supabaseAdmin
     .from("talent_invitations")
-    .select("id, agency_id, talent_name, email, status, expires_at")
+    .select("id, agency_id, talent_name, email, status, expires_at, acceptance_unavailable_at")
     .eq("token", token)
     .maybeSingle();
   if (inv) return { kind: "agency", ...inv };
   const { data: ind } = await supabaseAdmin
     .from("independent_talent_invitations")
-    .select("id, talent_name, email, status, expires_at")
+    .select("id, talent_name, email, status, expires_at, acceptance_unavailable_at")
     .eq("token", token)
     .maybeSingle();
   if (ind) return { kind: "independent", agency_id: null, ...ind };
@@ -55,7 +58,14 @@ export type ResolvedTalentInvitation =
     }
   | {
       ok: false;
-      reason: "not_found" | "invalid" | "expired" | "accepted" | "revoked" | "throttled";
+      reason:
+        | "not_found"
+        | "invalid"
+        | "expired"
+        | "accepted"
+        | "revoked"
+        | "throttled"
+        | "unavailable";
     };
 
 export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
@@ -69,6 +79,7 @@ export const resolveTalentInvitationToken = createServerFn({ method: "POST" })
     const inv = await loadTalentInvite(supabaseAdmin, data.token);
 
     if (!inv) return { ok: false, reason: "not_found" };
+    if (inv.acceptance_unavailable_at) return { ok: false, reason: "unavailable" };
     if (inv.status === "accepted") return { ok: false, reason: "accepted" };
     if (inv.status === "revoked") return { ok: false, reason: "revoked" };
     if (inv.status !== "pending") return { ok: false, reason: "not_found" };
@@ -111,7 +122,6 @@ const activateInput = z.object({
   token: z.string().min(10).max(200),
   email: z.string().email().max(255),
   full_name: z.string().trim().min(2).max(120),
-  id_number: z.string().trim().max(40).optional().or(z.literal("")),
   date_of_birth: z
     .string()
     .trim()
@@ -157,10 +167,6 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       perToken: { max: 6, windowSeconds: 900, blockSeconds: 1800 },
     });
     if (!guard.allowed) return { ok: false, code: "throttled", message: throttleMessage(guard) };
-
-    // Checked before any account exists, so an under-18 never gets one.
-    if (ageOn(data.date_of_birth) < MINIMUM_TALENT_AGE)
-      return { ok: false, code: "under_age", message: UNDER_AGE_MESSAGE };
 
     const pwErr = validateNewPassword(data.password);
     if (pwErr) return { ok: false, code: "weak_password", message: pwErr };
@@ -209,6 +215,22 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
         message: `This email doesn't match the one you were invited on — please use ${inv.email}, or contact the person who invited you.`,
       };
 
+    const { registrationCopy } = await import("./registration-copy.server");
+    const copy = await registrationCopy();
+    if (inv.acceptance_unavailable_at)
+      return { ok: false, code: "unknown", message: copy.account_unavailable };
+    if (!validBirthDate(data.date_of_birth))
+      return { ok: false, code: "unknown", message: copy.birth_date_invalid };
+    if (!adultBirthDate(data.date_of_birth)) {
+      const { error } = await supabaseAdmin
+        .from(inv.kind === "agency" ? "talent_invitations" : "independent_talent_invitations")
+        .update({ acceptance_unavailable_at: new Date().toISOString() })
+        .eq("id", inv.id)
+        .eq("status", "pending");
+      if (error) throw databaseError(error);
+      return { ok: false, code: "under_age", message: copy.account_unavailable };
+    }
+
     // handle_new_user() -> accept_talent_invitation() provisions the talent
     // profile, the agency_talent_links row, the shared folders and marks the
     // invitation accepted.
@@ -229,7 +251,12 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
             "This email is already used for a TalVault account. Please sign in instead, or ask the person who invited you to use another address.",
         };
       }
-      return { ok: false, code: "unknown", message: msg };
+      console.error("[talent activation] account creation failed", createErr);
+      return {
+        ok: false,
+        code: "unknown",
+        message: friendlyError(createErr, "Could not create your account."),
+      };
     }
 
     const userId = created.user.id;
@@ -260,9 +287,10 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "unknown",
-        message:
-          errMessage ??
+        message: friendlyError(
+          errMessage,
           "We couldn't record your acceptance of the Terms & Conditions. Please try again.",
+        ),
       };
     }
 
@@ -270,7 +298,6 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
       .from("talent_profiles")
       .update({
         full_name: data.full_name,
-        id_number: nz(data.id_number),
         date_of_birth: data.date_of_birth,
         tax_number: nz(data.tax_number),
         is_provisional_taxpayer: data.is_provisional_taxpayer ?? false,
@@ -298,4 +325,39 @@ export const activateTalentInvitation = createServerFn({ method: "POST" })
     const { clearTokenGuard } = await import("@/lib/rate-limit.server");
     await clearTokenGuard("invite_activate_talent", data.token);
     return { ok: true, email: inv.email };
+  });
+
+/** Checks the private birth date before the wizard advances; no entered details are stored. */
+export const checkTalentRegistrationEligibility = createServerFn({ method: "POST" })
+  .inputValidator((value: unknown) =>
+    z
+      .object({ token: z.string().min(10).max(200), date_of_birth: z.string().max(10) })
+      .parse(value),
+  )
+  .handler(async ({ data }): Promise<{ allowed: boolean; terminal: boolean; message: string }> => {
+    const { guardPublicToken } = await import("./rate-limit.server");
+    const guard = await guardPublicToken({ bucket: "invite_activate_talent", token: data.token });
+    const { registrationCopy } = await import("./registration-copy.server");
+    const copy = await registrationCopy();
+    if (!guard.allowed)
+      return { allowed: false, terminal: false, message: copy.account_unavailable };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const inv = await loadTalentInvite(supabaseAdmin, data.token);
+    if (
+      !inv ||
+      inv.status !== "pending" ||
+      new Date(inv.expires_at).getTime() < Date.now() ||
+      inv.acceptance_unavailable_at
+    )
+      return { allowed: false, terminal: true, message: copy.account_unavailable };
+    if (!validBirthDate(data.date_of_birth))
+      return { allowed: false, terminal: false, message: copy.birth_date_invalid };
+    if (adultBirthDate(data.date_of_birth)) return { allowed: true, terminal: false, message: "" };
+    const { error } = await supabaseAdmin
+      .from(inv.kind === "agency" ? "talent_invitations" : "independent_talent_invitations")
+      .update({ acceptance_unavailable_at: new Date().toISOString() })
+      .eq("id", inv.id)
+      .eq("status", "pending");
+    if (error) throw databaseError(error);
+    return { allowed: false, terminal: true, message: copy.account_unavailable };
   });

@@ -8,5 +8,6 @@ export function databaseError(
   console.error("[database-request]", { code: error?.code, message: error?.message });
   const deliberate =
     error?.message && (/^[A-Z][A-Z0-9_]{2,}:/.test(error.message) || error.code === "P0001");
-  return new Error(deliberate ? friendlyError(error, fallback) : fallback);
+  const safe = friendlyError(error, fallback);
+  return new Error(deliberate || safe !== error?.message?.trim() ? safe : fallback);
 }

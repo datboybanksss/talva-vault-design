@@ -2001,6 +2001,7 @@ export type Database = {
       }
       independent_talent_invitations: {
         Row: {
+          acceptance_unavailable_at: string | null
           accepted_at: string | null
           accepted_user_id: string | null
           created_at: string
@@ -2029,6 +2030,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acceptance_unavailable_at?: string | null
           accepted_at?: string | null
           accepted_user_id?: string | null
           created_at?: string
@@ -2057,6 +2059,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acceptance_unavailable_at?: string | null
           accepted_at?: string | null
           accepted_user_id?: string | null
           created_at?: string
@@ -2781,6 +2784,7 @@ export type Database = {
       }
       talent_invitations: {
         Row: {
+          acceptance_unavailable_at: string | null
           accepted_at: string | null
           agency_id: string
           created_at: string
@@ -2802,6 +2806,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acceptance_unavailable_at?: string | null
           accepted_at?: string | null
           agency_id: string
           created_at?: string
@@ -2823,6 +2828,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acceptance_unavailable_at?: string | null
           accepted_at?: string | null
           agency_id?: string
           created_at?: string

@@ -357,8 +357,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
       qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       toast.success(`${file.name} uploaded.`);
     } catch (e: unknown) {
-      // Upload failures expose an optional message; preserve the existing message fallback.
-      const msg = (e as { message?: string } | null)?.message ?? "Upload failed";
+      const msg = friendlyError(e, "Upload failed");
       setSlotErrors((prev) => ({ ...prev, [slotKey]: msg }));
     } finally {
       void stagedQ.refetch();

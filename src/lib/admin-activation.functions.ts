@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { validateNewPassword } from "@/lib/password";
+import { friendlyError } from "./friendly-error";
+import { databaseError } from "./security-errors";
 
 // Public server functions used by the /invite/admin/$token Administrator
 // Activation wizard. No auth middleware — the caller is unauthenticated.
@@ -140,7 +142,12 @@ export const activateAdminInvitation = createServerFn({ method: "POST" })
           message: "An account already exists for this email. Please sign in instead.",
         };
       }
-      return { ok: false, code: "unknown", message: msg };
+      console.error("[admin activation] account creation failed", createErr);
+      return {
+        ok: false,
+        code: "unknown",
+        message: friendlyError(createErr, "Could not create your account."),
+      };
     }
 
     const userId = created.user.id;
@@ -163,7 +170,7 @@ export const activateAdminInvitation = createServerFn({ method: "POST" })
       is_main_admin: false,
     });
     if (roleErr && !/duplicate|unique/i.test(roleErr.message)) {
-      return { ok: false, code: "unknown", message: roleErr.message };
+      return { ok: false, code: "unknown", message: databaseError(roleErr).message };
     }
 
     await supabaseAdmin

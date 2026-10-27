@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { friendlyError } from "@/lib/friendly-error";
 import { Button } from "@/components/ui/button";
 import { DocumentModal } from "@/components/shared/document-modal";
 import { FileText, Download, X, Loader2 } from "lucide-react";
@@ -45,10 +46,7 @@ export function PreviewDialog({
         objectUrl = URL.createObjectURL(blob);
         setBlobUrl(objectUrl);
       } catch (err: unknown) {
-        if (!cancelled)
-          setLoadError(
-            err instanceof Error ? err.message : "Could not load this file for preview.",
-          );
+        if (!cancelled) setLoadError(friendlyError(err, "Could not load this file for preview."));
       }
     })();
 

@@ -1,4 +1,5 @@
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
+import { friendlyError } from "@/lib/friendly-error";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -208,7 +209,7 @@ function Wizard({
       // /admin/enroll-2fa on first sign-in, so no 2FA step belongs here.
       onDone();
     },
-    onError: (e: Error) => setError(e?.message ?? "Activation failed."),
+    onError: (e: Error) => setError(friendlyError(e, "Activation failed.")),
   });
 
   const goNext = () => {

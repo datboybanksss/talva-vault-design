@@ -84,7 +84,7 @@ it("TVA-SEC-108 does not expose database detail", () => {
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
   expect(
     databaseError({ code: "42501", message: "permission denied for table private_data" }).message,
-  ).toBe("We couldn't complete that request. Please try again.");
+  ).toBe("You don't have permission to do that.");
   expect(log).toHaveBeenCalled();
   log.mockRestore();
 });

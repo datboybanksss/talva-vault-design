@@ -1,4 +1,5 @@
 import { sendLovableEmail } from "@lovable.dev/email-js";
+import { friendlyError } from "./friendly-error";
 import { PUBLIC_SITE_URL, emailHeaderHtml } from "@/lib/brand-email";
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, fmtMoney } from "@/lib/billing";
@@ -63,14 +64,20 @@ async function send(
       },
       { apiKey, idempotencyKey },
     );
-    if (!res.success) return { sent: false, reason: "send_failed", detail: res.status };
+    if (!res.success)
+      return { sent: false, reason: "send_failed", detail: friendlyError(undefined) };
     return { sent: true, message_id: res.message_id };
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string };
     const status = typeof err.status === "number" ? err.status : undefined;
     const detail = String(err.message ?? e);
     const domainIssue = status === 403 || /domain|verif|not allowed|sender/i.test(detail);
-    return { sent: false, reason: domainIssue ? "domain_unverified" : "send_failed", detail };
+    console.error("[billing email] send failed", e);
+    return {
+      sent: false,
+      reason: domainIssue ? "domain_unverified" : "send_failed",
+      detail: friendlyError(e),
+    };
   }
 }
 

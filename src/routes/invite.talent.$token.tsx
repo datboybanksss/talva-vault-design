@@ -1,5 +1,6 @@
 import { SHARE_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
-import { ageOn, MINIMUM_TALENT_AGE, UNDER_AGE_MESSAGE } from "@/lib/terms";
+import { getRegistrationCopy, type RegistrationCopy } from "@/lib/registration-copy.functions";
+import { friendlyError } from "@/lib/friendly-error";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -22,6 +23,7 @@ import {
 import {
   resolveTalentInvitationToken,
   activateTalentInvitation,
+  checkTalentRegistrationEligibility,
   type ResolvedTalentInvitation,
 } from "@/lib/talent-activation.functions";
 import {
@@ -39,6 +41,13 @@ export const Route = createFileRoute("/invite/talent/$token")({
         content: "Accept your TalVault talent invitation and set up your secure vault.",
       },
       { name: "robots", content: "noindex" },
+      { property: "og:title", content: "Activate your Talent vault · TalVault" },
+      {
+        property: "og:description",
+        content: "Accept your TalVault talent invitation and set up your secure vault.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: TalentInvitePage,
@@ -201,7 +210,6 @@ function Wizard({
 }) {
   const [step, setStep] = useState<StepKey>(1);
   const [fullName, setFullName] = useState(invite.talent_name ?? "");
-  const [idNumber, setIdNumber] = useState("");
   const [dob, setDob] = useState("");
   const [phone, setPhone] = useState("");
   const [taxNumber, setTaxNumber] = useState("");
@@ -214,32 +222,43 @@ function Wizard({
   const strength = useMemo(() => scorePassword(password), [password]);
   const req = useMemo(() => checkRequirements(password), [password]);
 
+  const copyQ = useQuery({
+    queryKey: ["talent-registration-copy"],
+    queryFn: () => getRegistrationCopy(),
+  });
+  const copy = copyQ.data;
+  const [terminal, setTerminal] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
   const legalQ = useQuery({
     queryKey: ["legal-doc", "talent"],
     queryFn: () => getCurrentLegalDocument({ data: { doc_type: "talent" } }),
+    enabled: step >= 4,
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
   const legal = legalQ.data ?? null;
 
   const activate = useMutation({
-    mutationFn: () =>
-      activateTalentInvitation({
+    mutationFn: () => {
+      if (!legal)
+        throw new Error("The Terms & Conditions are still loading. Please try again in a moment.");
+      return activateTalentInvitation({
         data: {
           token,
           email: invite.email,
           full_name: fullName.trim(),
-          id_number: idNumber.trim() || undefined,
           date_of_birth: dob,
           tax_number: taxNumber.trim() || undefined,
           is_provisional_taxpayer: provisional,
           phone_number: phone.trim() || undefined,
           password,
           terms_accepted: true as const,
-          terms_document_id: legal!.id,
-          terms_body_sha256: legal!.body_sha256,
+          terms_document_id: legal.id,
+          terms_body_sha256: legal.body_sha256,
         },
-      }),
+      });
+    },
     onSuccess: async (res) => {
       if (!res.ok) {
         setError(res.message);
@@ -252,23 +271,42 @@ function Wizard({
       }
       setStep(5);
     },
-    onError: (e: Error) => setError(e?.message ?? "Activation failed."),
+    onError: (e: Error) => setError(friendlyError(e, "Activation failed.")),
   });
 
-  const goNext = () => {
+  const goNext = async () => {
+    if (checking) return;
     setError(null);
     if (step === 2) {
       if (fullName.trim().length < 2) {
         setError("Please enter your full name (min 2 characters).");
         return;
       }
-      if (!dob) {
-        setError("Please enter your date of birth.");
+      if (!copy) return;
+      setChecking(true);
+      try {
+        const result = await checkTalentRegistrationEligibility({
+          data: { token, date_of_birth: dob },
+        });
+        if (!result.allowed) {
+          if (result.terminal) {
+            setFullName("");
+            setDob("");
+            setPhone("");
+            setTaxNumber("");
+            setProvisional(false);
+            setPassword("");
+            setConfirmPw("");
+            setTerms(false);
+            setTerminal(result.message);
+          } else setError(result.message);
+          return;
+        }
+      } catch (e) {
+        setError(friendlyError(e));
         return;
-      }
-      if (ageOn(dob) < MINIMUM_TALENT_AGE) {
-        setError(UNDER_AGE_MESSAGE);
-        return;
+      } finally {
+        setChecking(false);
       }
     }
     if (step === 3) {
@@ -301,6 +339,8 @@ function Wizard({
     setStep((s) => (s > 1 ? ((s - 1) as StepKey) : s));
   };
 
+  if (terminal) return <TerminalError title={copy?.acceptance_unavailable ?? ""} body={terminal} />;
+
   return (
     <>
       <ProgressBar step={step} />
@@ -311,10 +351,9 @@ function Wizard({
       {step === 1 && <Step1 invite={invite} onContinue={goNext} />}
       {step === 2 && (
         <Step2
+          copy={copy}
           fullName={fullName}
           setFullName={setFullName}
-          idNumber={idNumber}
-          setIdNumber={setIdNumber}
           dob={dob}
           setDob={setDob}
           phone={phone}
@@ -433,8 +472,7 @@ function Step1({
 function Step2({
   fullName,
   setFullName,
-  idNumber,
-  setIdNumber,
+  copy,
   dob,
   setDob,
   phone,
@@ -449,8 +487,7 @@ function Step2({
 }: {
   fullName: string;
   setFullName: (v: string) => void;
-  idNumber: string;
-  setIdNumber: (v: string) => void;
+  copy: RegistrationCopy | undefined;
   dob: string;
   setDob: (v: string) => void;
   phone: string;
@@ -466,12 +503,9 @@ function Step2({
   return (
     <>
       <h2 className="tv-auth-title">Confirm your details</h2>
-      <p className="tv-auth-tag">
-        These details stay in your Private Vault. No agency can see them unless you share a
-        document.
-      </p>
+      <p className="tv-auth-tag">{copy?.privacy_help}</p>
       <div className="tv-auth-field">
-        <label htmlFor="full-name">Full name</label>
+        <label htmlFor="full-name">{copy?.legal_name_label}</label>
         <input
           id="full-name"
           value={fullName}
@@ -481,16 +515,7 @@ function Step2({
         />
       </div>
       <div className="tv-auth-field">
-        <label htmlFor="id-number">ID / Passport number</label>
-        <input
-          id="id-number"
-          value={idNumber}
-          onChange={(e) => setIdNumber(e.target.value)}
-          placeholder="e.g. 9001015800086"
-        />
-      </div>
-      <div className="tv-auth-field">
-        <label htmlFor="dob">Date of birth (you must be 18 or over)</label>
+        <label htmlFor="dob">{copy?.birth_date_label}</label>
         <input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
       </div>
       <div className="tv-auth-field">

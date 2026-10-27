@@ -58,7 +58,9 @@ describe("friendlyError keeps refusal reasons", () => {
     );
   });
   it("still hides database errors", () => {
-    expect(friendlyError(new Error("new row violates row-level security policy"), "x")).toBe("x");
+    expect(friendlyError(new Error("new row violates row-level security policy"), "x")).toBe(
+      "You don't have permission to do that.",
+    );
   });
 });
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { friendlyError } from "@/lib/friendly-error";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ModalShell } from "@/components/shared/modal-shell";
@@ -86,7 +87,7 @@ export function MyTermsAcceptances({ portal }: { portal: TermsPortal }) {
               {text.data ? `${text.data.title} · version ${text.data.version}` : "Loading…"}
             </h2>
             {text.data && <LegalDocumentView body={text.data.body} maxHeight={480} />}
-            {text.error && <p className="tvp-muted">{(text.error as Error).message}</p>}
+            {text.error && <p className="tvp-muted">{friendlyError(text.error)}</p>}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
               <button className="tvp-secondary" onClick={() => setOpenId(null)}>
                 Close

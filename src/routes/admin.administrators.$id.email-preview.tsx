@@ -79,14 +79,14 @@ function AdminEmailPreviewPage() {
       const msg =
         res?.reason === "domain_unverified" || res?.reason === "email_not_configured"
           ? EMAIL_FALLBACK_NOTICE
-          : `Send failed: ${res?.detail ?? "unknown error"}. Copy the link and send it yourself for now.`;
+          : `Send failed: ${friendlyError(res?.detail, "unknown error")}. Copy the link and send it yourself for now.`;
       setStatus({ kind: "error", message: msg });
       toast.error("Email not sent — see the status message.");
     },
     onError: (e) => {
       setStatus({
         kind: "error",
-        message: `Send failed: ${e?.message ?? "unknown error"}. Copy the link and send it yourself for now.`,
+        message: `Send failed: ${friendlyError(e, "unknown error")}. Copy the link and send it yourself for now.`,
       });
       toast.error("Email not sent — see the status message.");
     },
