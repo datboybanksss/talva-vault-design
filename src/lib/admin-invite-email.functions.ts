@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Tables } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -6,7 +8,7 @@ import { WORDING_LIMITS } from "@/lib/invitation-email";
 const kindSchema = z.enum(["agency", "talent"]);
 const TABLE = { agency: "agency_invitations", talent: "independent_talent_invitations" } as const;
 
-async function assertAdmin(supabase: any, userId: string) {
+async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error || !data) throw new Error("Only TalVault administrators can do this.");
 }
@@ -16,7 +18,7 @@ export const getAdminInviteEmailContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ kind: kindSchema, id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: row } = await supabase
       .from(TABLE[data.kind])
@@ -54,7 +56,7 @@ export const saveAdminInviteWording = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
     if (!canEdit) throw new Error("Your administrator access is view-only.");
     if (data.wording) {
@@ -87,7 +89,7 @@ export const getSentAdminInviteEmail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ kind: kindSchema, id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const nameCol = data.kind === "agency" ? "agency_name" : "talent_name";
     const { data: row } = await supabase
@@ -96,11 +98,19 @@ export const getSentAdminInviteEmail = createServerFn({ method: "GET" })
         `email, ${nameCol}, sent_email_subject, sent_email_html, sent_email_text, sent_email_at`,
       )
       .eq("id", data.id)
-      .maybeSingle();
+      // The table and name column are paired by kind; dynamic select inference cross-combines them.
+      .maybeSingle()
+      .overrideTypes<
+        Pick<
+          Tables<"agency_invitations">,
+          "email" | "sent_email_subject" | "sent_email_html" | "sent_email_text" | "sent_email_at"
+        > & { agency_name?: string; talent_name?: string },
+        { merge: false }
+      >();
     if (!row) throw new Error("Invitation not found.");
     return {
       email: row.email as string,
-      name: (row as any)[nameCol] as string,
+      name: row[nameCol],
       subject: row.sent_email_subject as string | null,
       html: row.sent_email_html as string | null,
       text: row.sent_email_text as string | null,
