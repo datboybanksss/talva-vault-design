@@ -897,7 +897,7 @@ export const listAgencyInvitationsForAgency = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ agency_id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_invitations")
@@ -912,7 +912,7 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ agency_id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: rows, error } = await supabase
       .from("talent_invitations")
@@ -922,14 +922,14 @@ export const listTalentInvitationsForAgency = createServerFn({ method: "GET" })
     if (error) throw databaseError(error);
     // Inert invitations (to staff/admin accounts etc.) are not real invitations.
     const inert = await inertInvitationIds(supabase);
-    return mapEffectiveStatus((rows ?? []).filter((r: any) => !inert.has(r.id)));
+    return mapEffectiveStatus((rows ?? []).filter((r) => !inert.has(r.id)));
   });
 
 export const getInvitationById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: inv, error } = await supabase
       .from("agency_invitations")
@@ -944,7 +944,7 @@ export const dismissNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { error } = await supabase
       .from("admin_notifications")
@@ -963,7 +963,7 @@ export const dismissComputedNotification = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { error } = await supabase.from("admin_notification_dismissals").upsert(
       {
@@ -1246,7 +1246,7 @@ export const createAgencyInvitationDraft = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
 
     const { assertInviteEmailFree } = await import("@/lib/invite-email-check.server");
@@ -1351,7 +1351,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
 
     const { data: inv, error: iErr } = await supabase
@@ -1383,7 +1383,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
       }
     }
 
-    const patch: Record<string, unknown> = {};
+    const patch: TablesUpdate<"agency_invitations"> = {};
     if (data.agency_name !== undefined) patch.agency_name = data.agency_name;
     if (data.contact_person !== undefined) patch.contact_person = data.contact_person || null;
     if (data.email !== undefined) patch.email = data.email;
@@ -1406,7 +1406,7 @@ export const updateAgencyInvitationDraft = createServerFn({ method: "POST" })
     if (uErr) throw databaseError(uErr);
 
     if (inv.agency_id) {
-      const agencyPatch: Record<string, unknown> = {};
+      const agencyPatch: TablesUpdate<"agencies"> = {};
       if (data.agency_name !== undefined) agencyPatch.name = data.agency_name;
       if (data.email !== undefined) agencyPatch.contact_email = nextEmail;
       if (data.contact_person !== undefined)
@@ -1450,7 +1450,7 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
 
     const { data: inv, error: iErr } = await supabase
@@ -1474,7 +1474,7 @@ export const finalizeAgencyInvitation = createServerFn({ method: "POST" })
       .eq("invitation_id", data.id)
       .not("validated_at", "is", null)
       .is("quarantine_reason", null);
-    const uploadedSlots = new Set((docs ?? []).map((d: any) => d.doc_slot));
+    const uploadedSlots = new Set((docs ?? []).map((d) => d.doc_slot));
     const missing = REQUIRED_FILE_SLOTS[bt].filter((s) => !uploadedSlots.has(s));
     if (missing.length > 0) {
       throw new Error(
@@ -1522,7 +1522,7 @@ export const listComplianceDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ invitation_id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_compliance_documents")
@@ -1550,7 +1550,7 @@ export const recordComplianceDocument = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: inv, error: iErr } = await supabase
       .from("agency_invitations")
@@ -1638,7 +1638,7 @@ export const deleteComplianceDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
     const { data: doc, error: fErr } = await supabase
       .from("agency_compliance_documents")
@@ -1667,7 +1667,7 @@ export const deleteAgencyInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdminCanEdit(supabase, userId);
 
     const { data: inv, error: iErr } = await supabase
@@ -1687,7 +1687,7 @@ export const deleteAgencyInvitation = createServerFn({ method: "POST" })
       .from("agency_compliance_documents")
       .select("storage_path")
       .eq("invitation_id", data.id);
-    const paths = (docs ?? []).map((d: any) => d.storage_path);
+    const paths = (docs ?? []).map((d) => d.storage_path);
     if (paths.length > 0) {
       await supabase.storage.from("agency-compliance-docs").remove(paths);
     }
