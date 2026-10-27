@@ -197,6 +197,10 @@ describe("final approved clean-up fixes", () => {
       ).rejects.toThrow("We couldn't complete that request. Please try again.");
     },
   );
+  it("a representative server function returns only friendly database text", async () => {
+    failTable = "talent_invitations";
+    await expect(listAgencyInvitationsMine()).rejects.toThrow("We couldn't complete that request. Please try again.");
+  });
   it("keeps successful north-star request attribution", async () => {
     const pairs = await northStarPairs(client, { fromIso: "2026-10-01", toIso: "2026-10-31" });
     expect(pairs[0]).toMatchObject({
