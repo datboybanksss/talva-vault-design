@@ -39,7 +39,7 @@
 - Talent-portal agency visibility (active / previously shared / hidden) is decided only by classifyTalentLink in src/lib/talent-links-core.ts via loadTalentLinks; every agency-only talent endpoint and screen uses that list. Why: independent talent must never see agency items, on screen or from the server.
 - Terms acceptance reports (Admin acceptances and not-accepted lists) leave out Test accounts via testUserIds in src/lib/terms-gate-core.ts; the acceptances are still stored with the normal proof. Why: test data must never inflate Terms or launch figures.
 - Shared brand visuals use src/components/shared/brand.tsx and styles.css tokens; tones: Talent/contact warm, Agency business, Admin calm. Why: one themed look.
-- Read src/lib/AGENTS.md before changing auth; TVA-SEC-101 deferred — 2FA owned by the live app.
+- Read src/lib/AGENTS.md before changing auth; two-step enforcement is one database switch (mfa_enforced).
 - File access requires server validation; file-security owns MIME/headers and cleanup atomically queues abandoned reservations. Why: client claims and races cannot expose or destroy files.
 - Shares insert token/hash together, billing uses owned link IDs, and public limits fail closed. Why: server-enforced access.
 - Errors use friendly-error/security-errors and a coded global function boundary; query-results separates singletons and pages. Why: no leaked internals or incomplete figures.

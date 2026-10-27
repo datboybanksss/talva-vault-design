@@ -1,6 +1,6 @@
 # Server authentication
-- TVA-SEC-101 is deferred — 2FA owned by the live app; this build preserves legacy password-only access without MFA middleware, restrictive MFA policies or a Data API pre-request guard. Why: build-level emailed codes currently block sign-in.
-- MFA flow tables retain service-only INSERT/UPDATE/DELETE; the unused mfa_session_ok helper and nullable mfa_codes.session_id column remain inert. Why: preserve safe write hardening without enforcing build-level 2FA.
+- Two-step sign-in is switched only by platform_settings.mfa_enforced (OFF in this build): mfa_session_ok() binds verification to the JWT session_id and drives restrictive RLS on private tables/buckets, the global requireMfaSession gate (allow-list in mfa-gate.ts) and the portal gates. Why: UI, server and database can never disagree; see docs/two-step-enforcement.md.
+- MFA flow tables retain service-only INSERT/UPDATE/DELETE and are exempt from the two-step policy. Why: the code flow must work before verification.
 
 # Document AI and onboarding
 - Billing payment status is database-derived; partial invoices keep unpaid balances via billing helpers; only cron sweeps overdue invoices. Why: receipts never imply full settlement or trigger global reader writes.
