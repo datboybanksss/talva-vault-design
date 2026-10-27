@@ -3,7 +3,7 @@ import { createFileRoute, Link, useLoaderData } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getTalentDashboard } from "@/lib/talent.functions";
-import { Lock, FileStack, Share2, ChevronRight, Upload, Users, Heart } from "lucide-react";
+import { Lock, FileStack, Share2, ChevronRight, Upload, Heart } from "lucide-react";
 import { useTalentAgencyLinks } from "@/lib/talent-agency-links";
 import { fileKind } from "@/components/shared/brand";
 
