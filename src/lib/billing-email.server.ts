@@ -2,6 +2,7 @@ import { sendLovableEmail } from "@lovable.dev/email-js";
 import { PUBLIC_SITE_URL, emailHeaderHtml } from "@/lib/brand-email";
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, fmtMoney } from "@/lib/billing";
+import { BILLING_DOC_STATUS_LABEL } from "@/lib/status-labels";
 
 export type BillingSendResult =
   | { sent: true; message_id?: string }
@@ -120,6 +121,7 @@ export async function sendBillingDocEmail(opts: {
   amount: string;
   dueDate: string | null;
   notes: string | null;
+  status?: string;
   issuedAt?: string;
   recipientAddress?: string | null;
   recipientVatNumber?: string | null;
@@ -213,6 +215,7 @@ export async function sendBillingDocEmail(opts: {
     `<p>Hello${opts.clientName ? ` ${esc(opts.clientName)}` : ""},</p>
      <p>Please find ${opts.kind === "quote" ? "the quotation" : "the invoice"} <strong>${esc(opts.number)}</strong> from <strong>${esc(opts.agencyName)}</strong> below.</p>
      ${detailHtml}
+     ${opts.status ? `<p><strong>Status:</strong> ${esc(BILLING_DOC_STATUS_LABEL[opts.status] ?? opts.status)}</p>` : ""}
      ${dueLine}
      ${opts.notes ? `<p style="color:#4a5b5d;">${esc(opts.notes)}</p>` : ""}
      <p style="color:#6b7a7c;font-size:13px;">Reply to this email to reach ${esc(opts.agencyName)} directly.</p>`,
@@ -224,6 +227,6 @@ export async function sendBillingDocEmail(opts: {
       return `${line.description} — ${line.quantity} × ${fmtMoney(line.unit_price_cents, opts.currency)} — ${fmtMoney(base + vat, opts.currency)}`;
     })
     .join("\n");
-  const text = `${label} ${opts.number} from ${opts.agencyName}\n${opts.issuedAt ? `Issued: ${opts.issuedAt}\n` : ""}${opts.dueDate ? `${opts.kind === "quote" ? "Valid until" : "Due"}: ${opts.dueDate}\n` : ""}${lineText ? `\n${lineText}\n\nSubtotal: ${fmtMoney(totals.subtotal_cents, opts.currency)}\nVAT: ${fmtMoney(totals.vat_cents, opts.currency)}\nTotal: ${fmtMoney(totals.total_cents, opts.currency)}` : `Amount: ${opts.amount}`}${opts.notes ? `\n\n${opts.notes}` : ""}\n\nReply to this email to reach ${opts.agencyName} directly.`;
+  const text = `${label} ${opts.number} from ${opts.agencyName}\n${opts.status ? `Status: ${BILLING_DOC_STATUS_LABEL[opts.status] ?? opts.status}\n` : ""}${opts.issuedAt ? `Issued: ${opts.issuedAt}\n` : ""}${opts.dueDate ? `${opts.kind === "quote" ? "Valid until" : "Due"}: ${opts.dueDate}\n` : ""}${lineText ? `\n${lineText}\n\nSubtotal: ${fmtMoney(totals.subtotal_cents, opts.currency)}\nVAT: ${fmtMoney(totals.vat_cents, opts.currency)}\nTotal: ${fmtMoney(totals.total_cents, opts.currency)}` : `Amount: ${opts.amount}`}${opts.notes ? `\n\n${opts.notes}` : ""}\n\nReply to this email to reach ${opts.agencyName} directly.`;
   return send(opts.to, opts.from, opts.replyTo, { subject, html, text }, opts.idempotencyKey);
 }

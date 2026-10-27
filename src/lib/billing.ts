@@ -1,5 +1,13 @@
 // Shared billing helpers — safe to import from client and server.
 
+export function isOutstandingInvoice(status: string) {
+  return ["sent", "accepted", "partial", "overdue"].includes(status);
+}
+
+export function billingOutstanding(total: number, received = 0) {
+  return Math.max(0, total - received);
+}
+
 export type BillingLine = {
   id?: string;
   description: string;

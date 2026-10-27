@@ -39,13 +39,13 @@ export const TALENT_LINK_TABS: StatusMeta[] = [
   ...TALENT_LINK_STATUSES,
 ];
 
-/** public.doc_status (quotes & invoices) plus the derived UI-only states. */
+/** public.doc_status (quotes & invoices). */
 export const BILLING_DOC_STATUSES: StatusMeta[] = [
   { key: "draft", label: "Draft", tone: "neutral" },
   { key: "sent", label: "Sent", tone: "blue" },
   { key: "accepted", label: "Accepted", tone: "green" },
   { key: "declined", label: "Declined", tone: "red" },
-  { key: "partial", label: "Partial", tone: "amber" },
+  { key: "partial", label: "Partially paid", tone: "amber" },
   { key: "paid", label: "Paid", tone: "green" },
   { key: "overdue", label: "Late", tone: "red" },
   { key: "cancelled", label: "Cancelled", tone: "neutral" },

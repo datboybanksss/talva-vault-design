@@ -13,6 +13,7 @@ import {
   Save,
   Trash2,
   Upload,
+  RotateCcw,
 } from "lucide-react";
 import {
   getAgencyBillingSettings,
@@ -26,9 +27,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { friendlyError } from "@/lib/friendly-error";
+import { DEFAULT_BILLING_ACCENT } from "@/lib/billing-brand";
+import { Button } from "@/components/ui/button";
 
 const ACCENT_PRESETS = [
-  { name: "TalVault Teal", value: "#064E58" },
+  { name: "TalVault Teal", value: DEFAULT_BILLING_ACCENT },
   { name: "Slate", value: "#334155" },
   { name: "Indigo", value: "#4338CA" },
   { name: "Amber", value: "#B45309" },
@@ -63,7 +66,7 @@ export function QuotesInvoicesSettingsPanel() {
         vat_number: data.vat_number ?? "",
         default_vat_rate_bp: data.default_vat_rate_bp ?? 1500,
         billing_address: data.billing_address ?? "",
-        accent_color: data.accent_color ?? "#064E58",
+        accent_color: data.accent_color ?? DEFAULT_BILLING_ACCENT,
         bank_name: (data as any).bank_name ?? "",
         bank_account_holder: (data as any).bank_account_holder ?? "",
         bank_account_number: (data as any).bank_account_number ?? "",
@@ -93,7 +96,8 @@ export function QuotesInvoicesSettingsPanel() {
           payment_instructions: form.payment_instructions?.trim() || null,
         },
       }),
-    onSuccess: () => {
+    onSuccess: (updated) => {
+      setForm((current: typeof form) => ({ ...current, accent_color: updated.accent_color }));
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
     },
@@ -383,12 +387,22 @@ export function QuotesInvoicesSettingsPanel() {
               ))}
               <input
                 type="color"
-                value={form.accent_color || "#064E58"}
+                value={form.accent_color || DEFAULT_BILLING_ACCENT}
                 onChange={(e) => update("accent_color", e.target.value)}
                 aria-label="Custom accent colour"
                 className="tvp-qi-colour"
               />
               <span className="tvp-small">{form.accent_color}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Reset to default"
+                aria-label="Reset to default"
+                onClick={() => update("accent_color", DEFAULT_BILLING_ACCENT)}
+              >
+                <RotateCcw />
+              </Button>
             </div>
           </div>
         </div>

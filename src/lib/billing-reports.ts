@@ -1,5 +1,6 @@
 // Financial reporting helpers for Quotes & Invoices.
 // All period maths is real calendar maths against the supplied "now" — no fixed date strings.
+import { billingOutstanding, isOutstandingInvoice } from "./billing";
 
 export type BillingReportRow = {
   id: string;
@@ -13,6 +14,7 @@ export type BillingReportRow = {
   currency: string;
   total_cents: number;
   status: string;
+  received_cents?: number;
 };
 
 export type PeriodKey =
@@ -164,8 +166,6 @@ export type BillingReport = {
   lineItems: BillingReportRow[];
 };
 
-const OUTSTANDING_STATUSES = new Set(["sent", "partial", "overdue"]);
-
 function bucket(map: Map<string, ReportBucket>, name: string) {
   const key = name.toLowerCase();
   let b = map.get(key);
@@ -231,7 +231,8 @@ export function buildBillingReport(
 
     const paidOn = (r.paid_at ?? r.issued_at)?.slice(0, 10) ?? null;
     const isPaid = r.status === "paid";
-    const isOutstanding = r.kind === "invoice" && OUTSTANDING_STATUSES.has(r.status);
+    const isOutstanding = r.kind === "invoice" && isOutstandingInvoice(r.status);
+    const outstanding = billingOutstanding(r.total_cents, r.received_cents);
 
     // trend is always the trailing window, independent of the selected period
     if (r.kind === "invoice") {
@@ -270,11 +271,11 @@ export function buildBillingReport(
       tb.invoicedCents += r.total_cents;
       cb.invoicedCents += r.total_cents;
       if (isOutstanding) {
-        report.outstandingCents += r.total_cents;
+        report.outstandingCents += outstanding;
         report.outstandingCount += 1;
         if (r.status === "overdue") report.overdueCount += 1;
-        tb.outstandingCents += r.total_cents;
-        cb.outstandingCents += r.total_cents;
+        tb.outstandingCents += outstanding;
+        cb.outstandingCents += outstanding;
       }
     }
     if (paidIn) {

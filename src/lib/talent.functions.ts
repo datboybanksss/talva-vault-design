@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
+import { profileName } from "./profile-name";
 
 /**
  * Returns the talent's profile + primary agency link (or null if the caller
@@ -71,7 +72,8 @@ export type TalentLinkView = {
  */
 export async function loadTalentLinks(
   supabase: SupabaseClient<Database>,
-  userId: string): Promise<TalentLinkView[]> {
+  userId: string,
+): Promise<TalentLinkView[]> {
   const { data: rows, error: rowsError } = await supabase
     .from("agency_talent_links")
     .select("id, agency_id, status, ended_at, created_at")
@@ -209,7 +211,10 @@ export const updateTalentNotificationPrefs = createServerFn({ method: "POST" })
   });
 
 /** True when the caller has in-app reminders switched on. */
-async function inAppRemindersEnabled(supabase: SupabaseClient<Database>, userId: string): Promise<boolean> {
+async function inAppRemindersEnabled(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<boolean> {
   const { data } = await supabase
     .from("talent_profiles")
     .select("notification_prefs")
@@ -257,7 +262,15 @@ export const getTalentBellFeed = createServerFn({ method: "GET" })
     const enabled = await inAppRemindersEnabled(supabase, userId);
     const none: Pick<
       Tables<"talent_notifications">,
-      "id" | "kind" | "title" | "detail" | "tone" | "target_type" | "target_id" | "due_at" | "created_at"
+      | "id"
+      | "kind"
+      | "title"
+      | "detail"
+      | "tone"
+      | "target_type"
+      | "target_id"
+      | "due_at"
+      | "created_at"
     >[] = [];
     if (!enabled) return { enabled: false, unreadCount: 0, items: none };
     const { data: rows } = await supabase
@@ -424,9 +437,7 @@ export const getRosterSharedContents = createServerFn({ method: "GET" })
               const used = new Set((docs ?? []).map((d) => d.folder));
               const keep = (folders ?? []).filter((f) => used.has(f.folder_name));
               const parents = new Set(keep.map((f) => f.parent_folder_id).filter(Boolean));
-              return (folders ?? []).filter(
-                (f) => used.has(f.folder_name) || parents.has(f.id),
-              );
+              return (folders ?? []).filter((f) => used.has(f.folder_name) || parents.has(f.id));
             })()
           : (folders ?? []),
       documents: docs ?? [],
@@ -894,16 +905,10 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         if (l?.manager_user_id) {
           const { data: p } = await supabaseAdmin
             .from("profiles")
-            .select("full_name")
+            .select("display_name, first_name, last_name, email")
             .eq("id", l.manager_user_id)
             .maybeSingle();
-          // profiles has no full_name column (pre-existing; reported, not changed), so
-          // the row is read as unknown and narrowed — this stays null as before.
-          const row: unknown = p;
-          managerName =
-            row && typeof row === "object" && "full_name" in row && typeof row.full_name === "string"
-              ? row.full_name
-              : null;
+          managerName = profileName(p);
         }
         const { data: sd } = await supabaseAdmin
           .from("talent_shared_documents")
@@ -1149,9 +1154,7 @@ export const getTalentAgencyLinks = createServerFn({ method: "GET" })
     if (e1 || e2)
       throw new Error("We couldn't load your agency details. Please refresh and try again.");
     const managerIds = [
-      ...new Set(
-        (linkRows ?? []).map((r) => r.manager_user_id).filter((v): v is string => !!v),
-      ),
+      ...new Set((linkRows ?? []).map((r) => r.manager_user_id).filter((v): v is string => !!v)),
     ];
     const { data: managers } = managerIds.length
       ? await supabaseAdmin

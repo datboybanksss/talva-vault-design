@@ -1968,7 +1968,7 @@ export const getAuditLogSummary = createServerFn({ method: "GET" })
 export const listBillingDocs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("agency_billing_docs")
@@ -1984,9 +1984,21 @@ export const listBillingDocs = createServerFn({ method: "GET" })
       "quotes-invoices",
       "Quotes & Invoices",
     );
-    return (data ?? []).map((r: any) => ({
+    const ids = (data ?? []).filter((r) => r.kind === "invoice").map((r) => r.id);
+    const received = new Map<string, number>();
+    if (ids.length) {
+      const { data: payments, error: paymentError } = await supabase
+        .from("agency_invoice_payments")
+        .select("doc_id, amount_cents")
+        .in("doc_id", ids);
+      if (paymentError) throw databaseError(paymentError);
+      for (const p of payments ?? [])
+        received.set(p.doc_id, (received.get(p.doc_id) ?? 0) + p.amount_cents);
+    }
+    return (data ?? []).map((r) => ({
       ...r,
       agency_name: r.agencies?.name ?? "—",
+      received_cents: received.get(r.id) ?? 0,
     }));
   });
 

@@ -1,6 +1,7 @@
 import { FilterBar } from "@/components/shared/filter-bar";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { fmtMoney } from "@/lib/billing";
+import { fmtMoney, billingOutstanding, isOutstandingInvoice } from "@/lib/billing";
+import { BILLING_DOC_STATUS_LABEL, BILLING_DOC_STATUS_TONE } from "@/lib/status-labels";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Download,
@@ -23,33 +24,44 @@ import { usePagedList } from "@/lib/pagination";
 import { LoadMoreRow } from "@/components/shared/load-more";
 
 export const Route = createFileRoute("/admin/quotes-invoices")({
-  head: () => ({ meta: [{ title: "Quotes & Invoices · TalVault Admin" }] }),
+  head: () => ({
+    meta: [
+      { title: "Quotes & Invoices · TalVault Admin" },
+      {
+        name: "description",
+        content: "Review agency quotes, invoices and outstanding balances in TalVault.",
+      },
+      { property: "og:title", content: "Quotes & Invoices · TalVault Admin" },
+      {
+        property: "og:description",
+        content: "Review agency quotes, invoices and outstanding balances in TalVault.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: QuotesInvoicesPage,
 });
 
-const statusTone: Record<string, string> = {
-  draft: "neutral",
-  sent: "blue",
-  accepted: "green",
-  paid: "green",
-  overdue: "red",
-  cancelled: "neutral",
-};
-const statusLabel: Record<string, string> = {
-  draft: "Draft",
-  sent: "Sent",
-  accepted: "Accepted",
-  paid: "Paid",
-  overdue: "Overdue",
-  cancelled: "Cancelled",
-};
+const statusTone = BILLING_DOC_STATUS_TONE;
+const statusLabel = BILLING_DOC_STATUS_LABEL;
 
-type ChipKey = "all" | "draft" | "sent" | "accepted" | "paid" | "overdue";
+type ChipKey = "all" | "draft" | "sent" | "accepted" | "declined" | "partial" | "paid" | "overdue";
 const CHIPS: Array<{ key: ChipKey; label: string; tone: string }> = [
   { key: "all", label: "All", tone: "teal" },
   { key: "draft", label: "Drafts", tone: "neutral" },
   { key: "sent", label: "Sent", tone: "blue" },
   { key: "accepted", label: "Accepted", tone: "green" },
+  {
+    key: "declined",
+    label: BILLING_DOC_STATUS_LABEL.declined,
+    tone: BILLING_DOC_STATUS_TONE.declined,
+  },
+  {
+    key: "partial",
+    label: BILLING_DOC_STATUS_LABEL.partial,
+    tone: BILLING_DOC_STATUS_TONE.partial,
+  },
   { key: "paid", label: "Paid", tone: "green" },
   { key: "overdue", label: "Overdue", tone: "red" },
 ];
@@ -83,6 +95,8 @@ function QuotesInvoicesPage() {
       draft: 0,
       sent: 0,
       accepted: 0,
+      declined: 0,
+      partial: 0,
       paid: 0,
       overdue: 0,
     };
@@ -98,14 +112,14 @@ function QuotesInvoicesPage() {
     let overdueAmt = 0;
     let overdueCount = 0;
     for (const r of rows) {
-      if (r.kind === "invoice" && (r.status === "sent" || r.status === "overdue")) {
-        outstanding += r.total_cents;
+      if (r.kind === "invoice" && isOutstandingInvoice(r.status)) {
+        outstanding += billingOutstanding(r.total_cents, r.received_cents);
       }
       if (r.status === "paid" && daysAgo(r.issued_at) <= 30) {
         paid30 += r.total_cents;
       }
       if (r.status === "overdue") {
-        overdueAmt += r.total_cents;
+        overdueAmt += billingOutstanding(r.total_cents, r.received_cents);
         overdueCount += 1;
       }
     }

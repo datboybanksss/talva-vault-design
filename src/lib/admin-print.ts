@@ -193,7 +193,7 @@ export function buildAdminBillingHtml(
 <div class="meta">${esc(filterLabel)} · Generated ${esc(new Date().toLocaleString("en-ZA"))}</div>
 <div class="cards">
   ${card(String(kpis.total), "Total records across all agencies")}
-  ${card(zar(kpis.outstanding), "Outstanding · sent / overdue invoices")}
+  ${card(zar(kpis.outstanding), "Outstanding · unpaid invoice balances")}
   ${card(zar(kpis.paid30), "Paid (last 30 days)")}
   ${card(zar(kpis.overdueAmt), `Overdue · ${kpis.overdueCount} record(s)`)}
 </div>

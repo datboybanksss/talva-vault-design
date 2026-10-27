@@ -113,6 +113,20 @@
       "when": 1793004826212,
       "tag": "0015_replace_blocked_onboarding_files",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793108257531,
+      "tag": "0016_billing_declined_partial_statuses",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793108317013,
+      "tag": "0017_partial_invoice_payment_and_overdue",
+      "breakpoints": true
     }
   ]
 }

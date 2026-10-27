@@ -44,6 +44,6 @@
 - Shares insert token/hash together, billing uses owned link IDs, and public limits fail closed. Why: server-enforced access.
 - Database failures use security-errors/invite-claim-error. Why: safe messages.
 - Billing confirmation bundles theme tokens under strict CSP. Why: no external assets.
-- Only cron sweeps overdue invoices. Why: no global writes by readers.
+- Billing/response contracts use lib's helpers and rules. Why: typed stored data.
 
 - Onboarding screens use the library's duplicate/display rules and retain their staging session. Why: no hidden missing slots.
