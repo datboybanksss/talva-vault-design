@@ -351,7 +351,7 @@ export const logOwnEmailChangeRequest = createServerFn({ method: "POST" })
 export const getDashboardMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
 
     // Counts use head-only exact counts so the dashboard never streams whole
@@ -387,7 +387,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
         .gt("expires_at", nowIso),
       // Open connection requests live in the private record (agencies can't
       // see them); inert invitations are not requests.
-      (supabase as any)
+      supabase
         .from("talent_invite_private")
         .select("invitation_id, talent_invitations!inner(status, expires_at)", {
           count: "exact",
@@ -428,7 +428,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
     const totalTalent = talentSplit.total;
     const totalDocs =
       (docs.data ?? []).reduce(
-        (sum: number, d: any) => sum + (d.shared_folder_count ?? 0) + (d.private_vault_count ?? 0),
+        (sum: number, d) => sum + (d.shared_folder_count ?? 0) + (d.private_vault_count ?? 0),
         0,
       ) ?? 0;
     const activeShares = shares.count ?? 0;
@@ -453,7 +453,7 @@ export const getDashboardMetrics = createServerFn({ method: "GET" })
 // -----------------------------------------------------------------------------
 // Agencies
 // -----------------------------------------------------------------------------
-async function loadAgenciesWithInvitations(supabase: any) {
+async function loadAgenciesWithInvitations(supabase: AdminClient) {
   const { data, error } = await supabase
     .from("agencies")
     .select("*")
@@ -476,9 +476,10 @@ async function loadAgenciesWithInvitations(supabase: any) {
     .neq("status", "revoked")
     .order("created_at", { ascending: false });
 
-  const invitationByAgencyId = new Map<string, any>();
-  const invitationByEmail = new Map<string, any>();
-  const invitationByName = new Map<string, any>();
+  type AgencyInvitation = NonNullable<typeof invitations>[number];
+  const invitationByAgencyId = new Map<string, AgencyInvitation>();
+  const invitationByEmail = new Map<string, AgencyInvitation>();
+  const invitationByName = new Map<string, AgencyInvitation>();
   for (const inv of invitations ?? []) {
     if (inv.agency_id && !invitationByAgencyId.has(inv.agency_id)) {
       invitationByAgencyId.set(inv.agency_id, inv);
@@ -489,7 +490,7 @@ async function loadAgenciesWithInvitations(supabase: any) {
     if (nameKey && !invitationByName.has(nameKey)) invitationByName.set(nameKey, inv);
   }
 
-  return (data ?? []).map((a: any) => ({
+  return (data ?? []).map((a) => ({
     ...a,
     talent_count: talentByAgency.get(a.id) ?? 0,
     invitation:
@@ -503,7 +504,7 @@ async function loadAgenciesWithInvitations(supabase: any) {
 export const listAgencies = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     return loadAgenciesWithInvitations(supabase);
   });
@@ -529,7 +530,7 @@ export const listAccounts = createServerFn({ method: "GET" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const filters = {
       type: normaliseAccountType(data.type),
@@ -539,7 +540,7 @@ export const listAccounts = createServerFn({ method: "GET" })
       q: normaliseSearch(data.q),
     };
     const agencies = await loadAgenciesWithInvitations(supabase);
-    const agencyName = new Map<string, string>(agencies.map((a: any) => [a.id, a.name]));
+    const agencyName = new Map<string, string>(agencies.map((a) => [a.id, a.name]));
 
     const { data: profiles, error: pErr } = await supabase
       .from("talent_profiles")
@@ -548,7 +549,7 @@ export const listAccounts = createServerFn({ method: "GET" })
       )
       .is("deleted_at", null);
     if (pErr) throw databaseError(pErr);
-    const userIds = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
+    const userIds = (profiles ?? []).map((p) => p.user_id).filter(Boolean);
     const linksByUser = new Map<string, string[]>();
     if (userIds.length) {
       const { data: links, error: lErr } = await supabase
@@ -567,7 +568,7 @@ export const listAccounts = createServerFn({ method: "GET" })
     }
 
     const all = [
-      ...agencies.map((a: any) => ({
+      ...agencies.map((a) => ({
         ...a,
         key: `agency-${a.id}`,
         type: "agency" as const,
@@ -587,7 +588,7 @@ export const listAccounts = createServerFn({ method: "GET" })
           a.invitation?.email,
         ],
       })),
-      ...(profiles ?? []).map((p: any) => ({
+      ...(profiles ?? []).map((p) => ({
         key: `talent-${p.id}`,
         id: p.id,
         user_id: p.user_id,
@@ -603,13 +604,13 @@ export const listAccounts = createServerFn({ method: "GET" })
         // Linked agency names: searching an agency also finds its talent.
         search_text: [p.full_name, p.email, ...(linksByUser.get(p.user_id) ?? [])],
       })),
-    ].sort((a: any, b: any) => (a.joined_at < b.joined_at ? 1 : -1));
+    ].sort((a, b) => (a.joined_at < b.joined_at ? 1 : -1));
 
     const matching = filterAccounts(all, filters);
     return {
       rows: matching
         .slice(data.offset, data.offset + data.limit)
-        .map(({ search_text: _s, ...r }: any) => r),
+        .map(({ search_text: _s, ...r }) => r),
       total: matching.length,
       counts: accountOptionCounts(all, filters),
     };
