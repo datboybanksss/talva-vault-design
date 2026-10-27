@@ -4322,6 +4322,7 @@ export const sendAgencyBillingDoc = createServerFn({ method: "POST" })
         kind: doc.kind,
         number,
         clientName: doc.client_name,
+        status: "sent",
         amount: fmtMoney(doc.total_cents ?? 0, doc.currency ?? "ZAR"),
         dueDate: doc.due_date,
         notes: doc.notes,
