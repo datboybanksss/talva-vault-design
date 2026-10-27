@@ -82,7 +82,7 @@ const client = createClient<Database>("https://database.example.test", "test-key
           created_at: isAgency ? "2026-10-27" : "2026-10-26", updated_at: "2026-10-27",
           agency_id: null, last_sent_at: null, send_count: 0, token: "token",
         }));
-        const matching = idFilter ? rows.filter((r) => idFilter.slice(3, -1).split(",").map((id) => id.replaceAll('"', "")).includes(r.id)) : rows;
+        const matching = idFilter ? rows.filter((r) => idFilter.slice(4, -1).split(",").map((id) => id.replaceAll('"', "")).includes(r.id)) : rows;
         body = matching.slice(offset, offset + limit);
         return new Response(init?.method === "HEAD" ? null : JSON.stringify(body), {
           headers: { "content-type": "application/json", "content-range": `0-0/${matching.length}` },
@@ -120,7 +120,6 @@ describe("final approved clean-up fixes", () => {
   });
   it("finds matches beyond 5,000 for both types without changing merge order or page size", async () => {
     const result = await listCombinedInvitations({ data: { q: "cafe match", limit: 1, offset: 0 } });
-    console.log(result, requests.filter((u) => u.searchParams.has("id")).slice(0, 2).map(String));
     expect(result.total).toBe(2);
     expect(result.counts.agency.all).toBe(1);
     expect(result.counts.talent.all).toBe(1);
