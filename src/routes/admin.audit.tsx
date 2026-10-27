@@ -94,13 +94,13 @@ function AuditPage() {
     queryFn: ({ pageParam }) =>
       listFn({
         data: { limit: PAGE_SIZE, offset: pageParam as number, search, ...areaPayload },
-      }) as Promise<any[]>,
+      }),
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length < PAGE_SIZE ? undefined : allPages.reduce((n, p) => n + p.length, 0),
     refetchInterval: 30_000,
   });
 
-  const visible: any[] = useMemo(() => (q.data?.pages ?? []).flat(), [q.data]);
+  const visible = useMemo(() => (q.data?.pages ?? []).flat(), [q.data]);
 
   const summary = useQuery({
     queryKey: ["admin", "audit-summary"],
@@ -144,11 +144,11 @@ function AuditPage() {
     setSearch("");
   };
 
-  const selected = visible.find((e: any) => e.id === selectedId) ?? visible[0] ?? null;
+  const selected = visible.find((e) => e.id === selectedId) ?? visible[0] ?? null;
 
   const exportCsv = () => {
     const headers = ["Time", "Actor", "Action", "Target", "Detail"];
-    const rows = visible.map((e: any) => [
+    const rows = visible.map((e) => [
       new Date(e.created_at).toISOString(),
       e.actor_email ?? "",
       e.action,
@@ -315,7 +315,7 @@ function AuditPage() {
                     </td>
                   </tr>
                 )}
-                {visible.map((e: any) => {
+                {visible.map((e) => {
                   const meta = actionArea[e.action] ?? {
                     area: "System",
                     tone: "neutral",
