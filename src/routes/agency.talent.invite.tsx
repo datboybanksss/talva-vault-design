@@ -350,7 +350,7 @@ function InviteTalent() {
                 )}
               </div>
             )}
-            <div className="tvp-footer-actions">
+            <div className="tvp-footer-actions" style={{ flexWrap: "wrap", alignItems: "center" }}>
               {step > 1 && (
                 <button className="tvp-secondary" onClick={() => setStep(step - 1)}>
                   Back
@@ -369,14 +369,21 @@ function InviteTalent() {
                   Continue
                 </button>
               ) : (
-                <button
-                  className="tvp-primary"
-                  disabled={!detailsValid || !isOwner || sendMut.isPending}
-                  onClick={() => sendMut.mutate()}
-                >
-                  <Send className="h-4 w-4" />
-                  {sendMut.isPending ? "Sending…" : "Send invitation"}
-                </button>
+                <>
+                  {!isOwner && (
+                    <span className="tvp-small tvp-muted">
+                      Only the agency owner can send invitations.
+                    </span>
+                  )}
+                  <button
+                    className="tvp-primary"
+                    disabled={!detailsValid || !isOwner || sendMut.isPending}
+                    onClick={() => sendMut.mutate()}
+                  >
+                    <Send className="h-4 w-4" />
+                    {sendMut.isPending ? "Sending…" : "Send invitation"}
+                  </button>
+                </>
               )}
             </div>
           </div>
