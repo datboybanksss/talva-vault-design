@@ -8,7 +8,7 @@ import { publicFunctionError } from "./lib/public-function-error";
 const functionErrorMiddleware = createMiddleware({ type: "function" }).server(async ({ next }) => {
   try {
     const result = await next();
-    if (result.error) {
+    if ("error" in result && result.error) {
       console.error("[server function]", result.error);
       return { ...result, error: publicFunctionError(result.error) };
     }
