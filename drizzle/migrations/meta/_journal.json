@@ -127,6 +127,13 @@
       "when": 1793108317013,
       "tag": "0017_partial_invoice_payment_and_overdue",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793115621434,
+      "tag": "0018_talent_registration_privacy_guards",
+      "breakpoints": true
     }
   ]
 }
