@@ -92,6 +92,14 @@ export const inviteAccountStatus = createServerFn({ method: "POST" })
     return { account_exists: exists, email: inv.email };
   });
 
+type PendingInvitationRow = {
+  token: string;
+  email: string;
+  expires_at: string;
+  agency_name?: string | null;
+  talent_name?: string | null;
+};
+
 export type PendingInviteForMe = {
   kind: InviteKind;
   token: string;
@@ -134,7 +142,8 @@ export const pendingInvitationForMe = createServerFn({ method: "POST" })
         .order("created_at", { ascending: false })
         .limit(1);
 
-      const row = (rows ?? [])[0] as any;
+      // The dynamic select contains the common fields and only the selected kind's name.
+      const row = (rows ?? [])[0] as PendingInvitationRow | undefined;
       if (row?.token && sameEmail(row.email, email)) {
         return {
           kind,
@@ -278,7 +287,7 @@ export const claimInvitation = createServerFn({ method: "POST" })
 
       // A connection request to an existing account is never accepted here —
       // the talent reviews it (accept or decline) in their portal.
-      const { data: priv } = await (supabaseAdmin as any)
+      const { data: priv } = await supabaseAdmin
         .from("talent_invite_private")
         .select("kind")
         .eq("invitation_id", inv.id)
