@@ -155,7 +155,7 @@ function ReportingPage() {
   const summaryFn = useServerFn(getReportingSummary);
   const q = useQuery({
     queryKey: ["admin", "reporting", range.from, range.to],
-    queryFn: () => summaryFn({ data: { from: range.from, to: range.to } }) as Promise<any>,
+    queryFn: () => summaryFn({ data: { from: range.from, to: range.to } }),
   });
 
   const d = q.data;
@@ -230,7 +230,7 @@ function ReportingPage() {
         "Active at 60 days",
         "Active at 90 days",
       ],
-      ...d.cohorts.map((c: any) => [
+      ...d.cohorts.map((c) => [
         c.month,
         c.size,
         c.d30.mature ? `${Math.round((c.d30.active / c.d30.mature) * 100)}%` : "Not yet due",
@@ -540,7 +540,7 @@ function ReportingPage() {
                     </td>
                   </tr>
                 )}
-                {d.cohorts.map((c: any) => (
+                {d.cohorts.map((c) => (
                   <tr key={c.month}>
                     <td>
                       {new Date(`${c.month}-01T00:00:00Z`).toLocaleDateString("en-ZA", {
@@ -549,7 +549,7 @@ function ReportingPage() {
                       })}
                     </td>
                     <td>{c.size}</td>
-                    {[c.d30, c.d60, c.d90].map((w: any, i: number) => (
+                    {[c.d30, c.d60, c.d90].map((w, i) => (
                       <td key={i}>
                         {w.mature === 0 ? (
                           <span className="tvp-muted">Not yet due</span>
