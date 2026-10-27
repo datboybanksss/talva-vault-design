@@ -8,7 +8,19 @@ import { z } from "zod";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
 import { canEditLink, canEndRelationship, canReactivateRelationship } from "@/lib/status-actions";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { Tables, Database } from "@/integrations/supabase/types";
+
+type AgencyReminder = {
+  id: string;
+  tone: "red" | "amber" | "green";
+  title: string;
+  detail: string;
+  key?: string;
+  snapshot?: number;
+  note?: string;
+  to?: string;
+  search?: { doc: string };
+};
 
 function extractRequestMeta(): { ip_address: string | null; user_agent: string | null } {
   try {
@@ -202,7 +214,7 @@ async function assertLinkNotEnded(supabase: SupabaseClient<Database>, talentLink
 export const agencyWhoami = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -254,7 +266,7 @@ export const agencyWhoami = createServerFn({ method: "GET" })
 export const listAgencyNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: agencyPrefs } = await supabase
@@ -327,7 +339,7 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
             ? "/agency/quotes-invoices"
             : "/agency/invitations";
 
-    const computed: any[] = [];
+    const computed: AgencyReminder[] = [];
     // Read-only notice for a suspended (offboarded) agency. Not dismissable.
     const readOnlyUntil = await getAgencyReadOnlyUntil(supabase, agencyId);
     if (readOnlyUntil) {
@@ -360,7 +372,7 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       .eq("request_kind", "link_request")
       .is("declined_at", null)
       .gte("responded_at", sinceIso);
-    for (const r of (responses ?? []) as any[]) {
+    for (const r of responses ?? []) {
       const accepted = r.status !== "revoked" && r.status !== "expired";
       const declined = !!r.declined_at;
       computed.push({
@@ -393,18 +405,18 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       .is("deleted_at", null)
       .gte("copied_from_vault_at", sinceIso);
     const copyLinkIds = [
-      ...new Set((vaultCopies ?? []).map((c: any) => c.talent_link_id).filter(Boolean)),
+      ...new Set((vaultCopies ?? []).map((c) => c.talent_link_id).filter((id): id is string => Boolean(id))),
     ];
     const copyLinkNames = new Map<string, string>();
     if (copyLinkIds.length > 0) {
       const { data: copyLinks } = await supabase
         .from("agency_talent_links")
         .select("id, display_name")
-        .in("id", copyLinkIds as string[]);
-      for (const l of (copyLinks ?? []) as any[]) copyLinkNames.set(l.id, l.display_name);
+        .in("id", copyLinkIds);
+      for (const l of copyLinks ?? []) copyLinkNames.set(l.id, l.display_name);
     }
-    for (const c of (vaultCopies ?? []) as any[]) {
-      const who = copyLinkNames.get(c.talent_link_id) ?? "Your talent";
+    for (const c of vaultCopies ?? []) {
+      const who = copyLinkNames.get(c.talent_link_id as string) ?? "Your talent";
       computed.push({
         id: `vault_copy:${c.id}`,
         key: `vault_copy:${c.id}`,
@@ -421,14 +433,14 @@ export const listAgencyNotifications = createServerFn({ method: "GET" })
       .from("agency_notification_dismissals")
       .select("kind, snapshot")
       .eq("user_id", userId);
-    const dismissed = new Map((dis ?? []).map((d: any) => [d.kind, d.snapshot as number]));
+    const dismissed = new Map((dis ?? []).map((d) => [d.kind, d.snapshot]));
 
     return {
       computed: computed.filter((i) => {
-        const d = dismissed.get(i.key) as number | undefined | null;
-        return d === undefined || d === null || d < i.snapshot;
+        const d = dismissed.get(i.key as string);
+        return d === undefined || d === null || d < (i.snapshot as number);
       }),
-      persisted: [] as any[],
+      persisted: [] as AgencyReminder[],
     };
   });
 
@@ -440,7 +452,7 @@ export const dismissAgencyReminder = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { error } = await supabase.from("agency_notification_dismissals").upsert(
       {
         user_id: userId,
@@ -458,13 +470,13 @@ export const dismissAgencyReminder = createServerFn({ method: "POST" })
 export const listAgencyDismissedNotices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("agency_notification_dismissals")
       .select("kind")
       .eq("user_id", userId);
     if (error) throw databaseError(error);
-    return { kinds: (data ?? []).map((d: any) => d.kind as string) };
+    return { kinds: (data ?? []).map((d) => d.kind as string) };
   });
 
 // -----------------------------------------------------------------------------
@@ -473,7 +485,7 @@ export const listAgencyDismissedNotices = createServerFn({ method: "GET" })
 export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     // Manager-configurable "expiring soon" window (Agency Profile → Document Rules).
@@ -577,7 +589,7 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
     ]);
 
     const linksWithExpiring = new Set<string>();
-    for (const d of (expiringLinkIdsRes as any).data ?? []) {
+    for (const d of expiringLinkIdsRes.data ?? []) {
       if (d.talent_link_id) linksWithExpiring.add(d.talent_link_id as string);
     }
     const activeCount = activeRes.count ?? 0;
@@ -606,7 +618,7 @@ export const getAgencyDashboardMetrics = createServerFn({ method: "GET" })
 // Roster rows created at invite time stay "invited" until the invitation is
 // accepted. Lapsed or revoked invitations are reflected on the roster here so
 // an entry is never orphaned as "Invited" forever. Mutates rows in place.
-async function syncInvitedTalentLinks(supabase: any, agencyId: string, rows: any[]) {
+async function syncInvitedTalentLinks(supabase: SupabaseClient<Database>, agencyId: string, rows: Pick<Tables<"agency_talent_links">, "id" | "status" | "talent_invitation_id">[]) {
   const invited = rows.filter((r) => r.status === "invited" && r.talent_invitation_id);
   if (!invited.length) return;
   const { data: invs } = await supabase
@@ -614,15 +626,15 @@ async function syncInvitedTalentLinks(supabase: any, agencyId: string, rows: any
     .select("id, status, expires_at")
     .in(
       "id",
-      invited.map((r) => r.talent_invitation_id),
+      invited.map((r) => r.talent_invitation_id as string),
     );
-  const byId = new Map<string, any>((invs ?? []).map((i: any) => [i.id, i]));
+  const byId = new Map((invs ?? []).map((i) => [i.id, i]));
   const now = Date.now();
-  const updates: Array<{ id: string; status: string }> = [];
+  const updates: Array<{ id: string; status: Tables<"agency_talent_links">["status"] }> = [];
   for (const row of invited) {
-    const inv = byId.get(row.talent_invitation_id);
+    const inv = byId.get(row.talent_invitation_id as string);
     if (!inv) continue;
-    let next: string | null = null;
+    let next: Tables<"agency_talent_links">["status"] | null = null;
     if (inv.status === "revoked" || inv.status === "declined") next = "revoked";
     else if (
       inv.status === "expired" ||
@@ -653,7 +665,7 @@ async function syncInvitedTalentLinks(supabase: any, agencyId: string, rows: any
 export const listAgencyTalent = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: links, error } = await supabase
@@ -668,9 +680,9 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     const rows = links ?? [];
     await syncInvitedTalentLinks(supabase, agencyId, rows);
     const profileIds = Array.from(
-      new Set(rows.flatMap((r: any) => [r.manager_user_id, r.talent_user_id]).filter(Boolean)),
+      new Set(rows.flatMap((r) => [r.manager_user_id, r.talent_user_id]).filter((id): id is string => Boolean(id))),
     );
-    const linkIds = rows.map((r: any) => r.id);
+    const linkIds = rows.map((r) => r.id);
 
     const { data: agencyPrefs } = await supabase
       .from("agencies")
@@ -686,7 +698,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     // each silently capped at PostgREST's 1000-row default.
     const fetchAgencyDocRows = async () => {
       const page = 1000;
-      const out: any[] = [];
+      const out: Pick<Tables<"talent_shared_documents">, "talent_link_id" | "created_at" | "validity_expires_at" | "status">[] = [];
       for (let from = 0; ; from += page) {
         const { data, error: docErr } = await supabase
           .from("talent_shared_documents")
@@ -705,8 +717,8 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     // Invitation details for still-invited rows, so the roster can offer the
     // same Resend / Revoke / Copy link actions as the Invitations page.
     const inviteIds = rows
-      .filter((r: any) => r.status === "invited" && r.talent_invitation_id)
-      .map((r: any) => r.talent_invitation_id as string);
+      .filter((r) => r.status === "invited" && r.talent_invitation_id)
+      .map((r) => r.talent_invitation_id as string);
     const inviteMap = new Map<
       string,
       { token: string; expires_at: string | null; status: string }
@@ -716,7 +728,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
         .from("talent_invitations")
         .select("id, token, expires_at, status")
         .in("id", inviteIds);
-      for (const i of invs ?? []) inviteMap.set(i.id as string, i as any);
+      for (const i of invs ?? []) inviteMap.set(i.id as string, i);
     }
 
     const [profilesRes, docRows] = await Promise.all([
@@ -725,13 +737,13 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
             .from("profiles")
             .select("id, display_name, first_name, last_name, email, avatar_url")
             .in("id", profileIds)
-        : Promise.resolve({ data: [] as any[] }),
-      linkIds.length ? fetchAgencyDocRows() : Promise.resolve([] as any[]),
+        : Promise.resolve({ data: [] }),
+      linkIds.length ? fetchAgencyDocRows() : Promise.resolve([]),
     ]);
 
     const managerMap = new Map<string, string>();
     const avatarMap = new Map<string, string | null>();
-    for (const p of (profilesRes as any).data ?? []) {
+    for (const p of profilesRes.data ?? []) {
       const label =
         (p.display_name as string) ||
         [p.first_name, p.last_name].filter(Boolean).join(" ") ||
@@ -745,7 +757,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
     const expiringCount = new Map<string, number>();
     const awaitingCount = new Map<string, number>();
     const lastDocAt = new Map<string, string>();
-    for (const d of docRows as any[]) {
+    for (const d of docRows) {
       const k = d.talent_link_id as string;
       if (!k) continue;
       docCount.set(k, (docCount.get(k) ?? 0) + 1);
@@ -760,7 +772,7 @@ export const listAgencyTalent = createServerFn({ method: "GET" })
       }
     }
 
-    return rows.map((r: any) => ({
+    return rows.map((r) => ({
       id: r.id as string,
       displayName: r.display_name as string,
       status: r.status as string,
@@ -807,7 +819,7 @@ type InviteRow = {
   token: string;
   invited_by: string | null;
   invited_by_label: string;
-  last_sent_at: string;
+  last_sent_at: string | null;
   expires_at: string;
   send_count: number;
   created_at: string;
@@ -817,7 +829,7 @@ type InviteRow = {
 export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const [talentRes, staffRes] = await Promise.all([
@@ -842,8 +854,8 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
 
     const inviterIds = Array.from(
       new Set([
-        ...(talentRes.data ?? []).map((r: any) => r.invited_by).filter(Boolean),
-        ...(staffRes.data ?? []).map((r: any) => r.invited_by).filter(Boolean),
+        ...(talentRes.data ?? []).map((r) => r.invited_by).filter((id): id is string => Boolean(id)),
+        ...(staffRes.data ?? []).map((r) => r.invited_by).filter((id): id is string => Boolean(id)),
       ]),
     );
     const inviterMap = new Map<string, string>();
@@ -865,7 +877,7 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
     const labelFor = (id: string | null) =>
       !id ? "—" : id === userId ? "You" : (inviterMap.get(id) ?? "Team member");
 
-    const talent: InviteRow[] = (talentRes.data ?? []).map((r: any) => ({
+    const talent: InviteRow[] = (talentRes.data ?? []).map((r) => ({
       id: r.id,
       type: "talent",
       recipient_name: r.talent_name ?? null,
@@ -881,7 +893,7 @@ export const listAgencyInvitationsMine = createServerFn({ method: "GET" })
       created_at: r.created_at,
       role: null,
     }));
-    const staff: InviteRow[] = (staffRes.data ?? []).map((r: any) => ({
+    const staff: InviteRow[] = (staffRes.data ?? []).map((r) => ({
       id: r.id,
       type: "staff",
       recipient_name: r.contact_person ?? null,
@@ -914,7 +926,7 @@ const folderSelectionItem = z.object({
 export const listAgencyStaff = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
 
     const { data: members, error } = await supabase
@@ -925,18 +937,18 @@ export const listAgencyStaff = createServerFn({ method: "GET" })
       .order("created_at", { ascending: true });
     if (error) throw databaseError(error);
 
-    const ids = (members ?? []).map((m: any) => m.user_id);
+    const ids = (members ?? []).map((m) => m.user_id);
     const { data: profs } = ids.length
       ? await supabase
           .from("profiles")
           .select("id, display_name, first_name, last_name, email")
           .in("id", ids)
-      : { data: [] as any[] };
+      : { data: [] };
 
-    const byId = new Map<string, any>();
+    const byId = new Map<string, Pick<Tables<"profiles">, "id" | "display_name" | "first_name" | "last_name" | "email">>();
     for (const p of profs ?? []) byId.set(p.id as string, p);
 
-    return (members ?? []).map((m: any) => {
+    return (members ?? []).map((m) => {
       const p = byId.get(m.user_id);
       const name =
         p?.display_name ||
