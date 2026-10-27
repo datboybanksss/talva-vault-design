@@ -316,10 +316,9 @@ export function TalentInviteForm({
       refresh();
       toast.success(`${file.name} uploaded.`);
     } catch (e: unknown) {
-      // Upload failures expose an optional message; preserve the existing fallback.
       setSlotErrors((p) => ({
         ...p,
-        [slotKey]: (e as { message?: string } | null)?.message ?? "Upload failed",
+        [slotKey]: friendlyError(e, "Upload failed"),
       }));
     } finally {
       void stagedQ.refetch();

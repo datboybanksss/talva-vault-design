@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { friendlyError } from "@/lib/friendly-error";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
@@ -101,14 +102,14 @@ function EmailPreviewPage() {
       const msg =
         res?.reason === "domain_unverified" || res?.reason === "email_not_configured"
           ? EMAIL_FALLBACK_NOTICE
-          : `Send failed: ${("detail" in res ? res.detail : undefined) ?? "unknown error"}. Copy the link and send it yourself for now.`;
+          : `Send failed: ${friendlyError("detail" in res ? res.detail : undefined, "unknown error")}. Copy the link and send it yourself for now.`;
       setStatus({ kind: "error", message: msg });
       toast.error("Email not sent — see the status message.");
     },
     onError: (e) => {
       setStatus({
         kind: "error",
-        message: `Send failed: ${e?.message ?? "unknown error"}. Copy the link and send it yourself for now.`,
+        message: `Send failed: ${friendlyError(e, "unknown error")}. Copy the link and send it yourself for now.`,
       });
       toast.error("Email not sent — see the status message.");
     },
