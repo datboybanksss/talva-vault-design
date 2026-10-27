@@ -1322,7 +1322,10 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
             { merge: false }
           >();
         if (error) throw databaseError(error);
-        if ((rows ?? []).some((r) => "acceptance_unavailable_at" in r && r.acceptance_unavailable_at)) unavailableLabel ??= (await registrationCopy()).acceptance_unavailable;
+        if (
+          (rows ?? []).some((r) => "acceptance_unavailable_at" in r && r.acceptance_unavailable_at)
+        )
+          unavailableLabel ??= (await registrationCopy()).acceptance_unavailable;
         return (rows ?? []).map((r) => ({
           ...r,
           type: t,
@@ -1332,7 +1335,10 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
               ? (r as { agency_name?: AgencyInvite["agency_name"] }).agency_name
               : (r as { talent_name?: TalentInvite["talent_name"] }).talent_name,
           stored_status: r.status as string,
-          status: "acceptance_unavailable_at" in r && r.acceptance_unavailable_at ? unavailableLabel : effectiveInvitationStatus(r.status, r.expires_at),
+          status:
+            "acceptance_unavailable_at" in r && r.acceptance_unavailable_at
+              ? unavailableLabel
+              : effectiveInvitationStatus(r.status, r.expires_at),
           is_test: isTestRow(r, t),
         }));
       }),
