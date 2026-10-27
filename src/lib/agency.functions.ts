@@ -1549,13 +1549,13 @@ export const listAgencyVaultExpiring = createServerFn({ method: "POST" })
 export const getAgencyVaultTalentSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase.rpc("agency_vault_talent_summary", {
       _agency_id: agencyId,
     });
     if (error) throw databaseError(error);
-    return (data ?? []).map((r: any) => ({
+    return (data ?? []).map((r) => ({
       talentLinkId: r.talent_link_id as string,
       docCount: Number(r.doc_count ?? 0),
       reviewCount: Number(r.review_count ?? 0),
@@ -1568,14 +1568,14 @@ export const getAgencyVaultFolderCounts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ talent_link_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: rows, error } = await supabase.rpc("agency_vault_folder_counts", {
       _agency_id: agencyId,
       _talent_link_id: data.talent_link_id,
     });
     if (error) throw databaseError(error);
-    return (rows ?? []).map((r: any) => ({
+    return (rows ?? []).map((r) => ({
       folder: r.folder as string,
       docCount: Number(r.doc_count ?? 0),
       reviewCount: Number(r.review_count ?? 0),
@@ -1587,7 +1587,7 @@ export const getAgencyVaultFolderCounts = createServerFn({ method: "POST" })
 export const getAgencyVaultLockCounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const nowIso = new Date().toISOString();
     const soonIso = new Date(Date.now() + 90 * 86400000).toISOString();
@@ -1612,7 +1612,7 @@ export const getAgencyVaultLockCounts = createServerFn({ method: "GET" })
 export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data, error } = await supabase
       .from("agency_talent_links")
@@ -1624,7 +1624,7 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
     await syncInvitedTalentLinks(supabase, agencyId, rows);
 
     const talentUserIds = Array.from(
-      new Set(rows.map((r: any) => r.talent_user_id).filter(Boolean)),
+      new Set(rows.map((r) => r.talent_user_id).filter((id): id is string => Boolean(id))),
     );
     const avatarMap = new Map<string, string | null>();
     if (talentUserIds.length) {
@@ -1635,7 +1635,7 @@ export const listAgencyTalentLinksLite = createServerFn({ method: "GET" })
       for (const p of profs ?? []) avatarMap.set(p.id as string, (p.avatar_url as string) ?? null);
     }
 
-    return rows.map((r: any) => ({
+    return rows.map((r) => ({
       id: r.id as string,
       displayName: r.display_name as string,
       status: r.status as string,
@@ -1656,7 +1656,7 @@ export const listAgencyTalentFolders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ talent_link_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_talent_folders")
@@ -1665,7 +1665,7 @@ export const listAgencyTalentFolders = createServerFn({ method: "POST" })
       .eq("talent_link_id", data.talent_link_id)
       .order("sort_order", { ascending: true });
     if (error) throw databaseError(error);
-    return (rows ?? []).map((r: any) => ({
+    return (rows ?? []).map((r) => ({
       id: r.id as string,
       folderName: r.folder_name as string,
       sortOrder: r.sort_order as number,
@@ -1683,7 +1683,7 @@ export const listAgencyTalentFolders = createServerFn({ method: "POST" })
 export const listAllAgencyProvisionedFolders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     const { agencyId } = await getCallerAgency(supabase, userId);
     const { data: rows, error } = await supabase
       .from("agency_talent_folders")
@@ -1693,7 +1693,7 @@ export const listAllAgencyProvisionedFolders = createServerFn({ method: "POST" }
       .eq("agency_id", agencyId)
       .order("sort_order", { ascending: true });
     if (error) throw databaseError(error);
-    return (rows ?? []).map((r: any) => ({
+    return (rows ?? []).map((r) => ({
       id: r.id as string,
       folderName: r.folder_name as string,
       sortOrder: r.sort_order as number,
