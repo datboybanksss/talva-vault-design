@@ -239,7 +239,7 @@ export function ClientsPanel() {
       toast.success("Client archived");
       setConfirmArchive(null);
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not archive this client")),
+    onError: (e) => toast.error(friendlyError(e, "Could not archive this client")),
   });
   const restore = useMutation({
     mutationFn: async (id: string) => restoreFn({ data: { id } }),
@@ -247,7 +247,7 @@ export function ClientsPanel() {
       invalidate();
       toast.success("Client restored");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not restore this client")),
+    onError: (e) => toast.error(friendlyError(e, "Could not restore this client")),
   });
 
   const openDetail = (id: string) =>
@@ -496,7 +496,7 @@ export function ClientFormModal({
   const staffFn = useServerFn(listAgencyStaff);
   const staff = useQuery({
     queryKey: ["agency", "staff"],
-    queryFn: () => staffFn() as Promise<any[]>,
+    queryFn: () => staffFn(),
     enabled: !compact,
   });
   const [form, setForm] = useState<FormState>(initial);
@@ -557,9 +557,9 @@ export function ClientFormModal({
       qc.invalidateQueries({ queryKey: ["agency", "clients"] });
       qc.invalidateQueries({ queryKey: ["agency", "client-detail"] });
       toast.success(form.id ? "Client updated" : "Client saved");
-      onSaved(id, { ...(payload as any), id, archived_at: null });
+      onSaved(id, { ...payload, id, archived_at: null });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "Could not save this client")),
+    onError: (e) => toast.error(friendlyError(e, "Could not save this client")),
   });
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
@@ -699,7 +699,7 @@ export function ClientFormModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Not assigned</SelectItem>
-                  {(staff.data ?? []).map((m: any) => (
+                  {(staff.data ?? []).map((m) => (
                     <SelectItem key={m.userId} value={m.userId}>
                       {m.name}
                     </SelectItem>
