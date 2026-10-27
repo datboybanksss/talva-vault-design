@@ -84,15 +84,13 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
 
     const { data: isOwner, error: roleErr } = await supabase.rpc("has_agency_role", {
       _user_id: userId,
-      // Preserve the nullable staff agency argument; the generated RPC signature excludes null.
-      _agency_id: inv.agency_id as string,
+      _agency_id: inv.agency_id,
       _role: "owner",
     });
     if (roleErr) throw databaseError(roleErr);
     if (!isOwner) throw new Error("Forbidden: only agency owners may send talent invitations.");
     const { data: writable } = await supabase.rpc("agency_is_writable", {
-      // Preserve the nullable staff agency argument; the generated RPC signature excludes null.
-      _agency_id: inv.agency_id as string,
+      _agency_id: inv.agency_id,
     });
     if (!writable) throw new Error("AGENCY_READ_ONLY: your agency's TalVault access has ended.");
     await assertTermsAccepted(supabase, userId, "agency");
@@ -119,7 +117,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
         r = await simulatedInvitationSend();
       }
       await supabase.from("agency_audit_log").insert({
-        agency_id: inv.agency_id as string,
+        agency_id: inv.agency_id,
         actor_id: userId,
         actor_email: claims?.email ?? null,
         action: r.sent ? "talent_invitation_email_sent" : "talent_invitation_email_send_failed",
@@ -167,7 +165,7 @@ export const sendTalentInvitationEmail = createServerFn({ method: "POST" })
     );
 
     await supabase.from("agency_audit_log").insert({
-      agency_id: inv.agency_id as string,
+      agency_id: inv.agency_id,
       actor_id: userId,
       actor_email: claims?.email ?? null,
       action: result.sent ? "talent_invitation_email_sent" : "talent_invitation_email_send_failed",
@@ -322,6 +320,7 @@ export const sendStaffInvitationEmail = createServerFn({ method: "POST" })
     );
 
     await supabase.from("agency_audit_log").insert({
+      // Preserve the existing nullable staff agency value; the audit insert contract is non-null.
       agency_id: inv.agency_id as string,
       actor_id: userId,
       actor_email: claims?.email ?? null,
