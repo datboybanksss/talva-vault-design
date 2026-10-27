@@ -57,6 +57,8 @@
 - [x] Batch 2 — Talent portal: all 13 files at 0 explicit-any (148 → 0); project 891 → 771; automatic validation: 0 TypeScript errors, build OK; 266 tests pass.
   - Found, not changed: profiles has no full_name column, so the dashboard's server-side managerName is always null (UI uses the agency-links manager instead).
 - [ ] Batch 3 — lib/agency.functions.ts (203) on its own
+  - Continued run: 136 → 3 explicit-any; project 704 → 571; lint 580 errors / 43 warnings; 266 tests passed / 5 skipped. All remaining sections reviewed; three retained blockers listed below. Batch remains unticked because the approved protected RPC cast alone prevents 0.
+  - Queries/filters unchanged. Vault filter-builder generic derives the two existing select types without executing additional queries; one `as Q` preserves the same result projection. Invitation email-preview queryFn made async solely to infer Promise of the talent/staff union after both return types became real; selected function, input and result unchanged.
   - Partial validated run: 203 → 136 explicit-any; project 771 → 704; lint 713 errors / 43 warnings; 266 tests passed / 5 skipped. Typed agency access helpers, notifications, metrics, roster, invitation/staff reads and writes, billing-link resolver, folder/count reads; remaining document operations, billing, settings and audit typing deferred. Batch remains unticked.
   - Automatic validation after the final functional edit: `=== build 2026-10-27T13:17:23Z === build OK`; no TypeScript errors in that entry. No queries restructured and no runtime changes intended.
 
@@ -64,6 +66,9 @@
 - Batch 2 (unchanged): `profiles.full_name` does not exist; dashboard server managerName remains null while UI uses agency-link details.
 - Batch 3 (unchanged): connection-response notifications filter `declined_at IS NULL`, so their subsequent declined-response branch cannot run.
 - Batch 3 (typing blocked, unchanged): `attach_talent_invite_private` is called with `_actor_email: claims?.email ?? null`, but the generated RPC argument is `string`. Its existing `as any` was retained rather than changing the argument or generated types. Review the RPC nullability contract separately.
+- Batch 3 (typing blocked, unchanged): updateAgencyBillingSettings validator allows null accent_color while generated agencies Update requires a string; its existing context cast remains, rather than masking the mismatch with a payload assertion or changing validation.
+- Batch 3 (typing blocked, unchanged): saveAgencyBillingDocFull validator includes declined/partial, absent from generated doc_status. Its existing payload any remains; no validator, enum or database change made.
+- Batch 3 (found, unchanged): listAgencyDocumentVersions also queries absent profiles.full_name, so uploader labels are missing. Query retained; legacy result fields read as unknown with narrowing instead of any. Valid database strings have identical handling; malformed/non-string legacy results are no longer treated as valid names.
 
 ## Remaining type-safety batches
 - [ ] Batch 4 — Agency UI (~170): routes/agency.invitations.tsx (28), agency.quotes-invoices.tsx (24), agency.document-vault.tsx (11), agency.talent.$linkId.tsx (9), agency.contracts.$id.tsx (6), agency.talent.index.tsx (6), agency.invitations.$id.email-preview.tsx (3), agency.my-account.tsx (3), agency.index.tsx (2), agency.talent.invite.tsx (2), agency.document-requests.tsx (1); components/agency/* (72)

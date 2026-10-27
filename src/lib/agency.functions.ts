@@ -17,6 +17,13 @@ import type {
 } from "@/integrations/supabase/types";
 
 type AgencyAuditDetail = { [key: string]: Json | undefined };
+type AgencyAuditValue = Json;
+type BillingChanges = Record<string, { from: Json; to: Json }>;
+
+// Audit JSON also permits arrays and primitives; retain them and only default null, as before.
+function readAgencyAuditDetail(value: Json): AgencyAuditValue {
+  return value ?? {};
+}
 
 type AgencyReminder = {
   id: string;
@@ -3069,7 +3076,7 @@ export const listAgencyAuditLog = createServerFn({ method: "GET" })
       targetType: (r.target_type as string) ?? null,
       targetId: (r.target_id as string) ?? null,
       targetLabel: (r.target_label as string) ?? null,
-      detail: r.detail ?? {},
+      detail: readAgencyAuditDetail(r.detail),
       ipAddress: (r.ip_address as string) ?? null,
       userAgent: (r.user_agent as string) ?? null,
       createdAt: r.created_at as string,
@@ -4155,7 +4162,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
     // the agency's hands. Changing those is an auditable, notifiable event.
     const LIVE_STATUSES = ["sent", "accepted", "partial", "paid", "overdue"];
     if (prev && (prev.shared_with_talent === true || LIVE_STATUSES.includes(prev.status))) {
-      const changes: Record<string, { from: Json; to: Json }> = {};
+      const changes: BillingChanges = {};
       if (Number(prev.total_cents) !== total)
         changes.total_cents = { from: Number(prev.total_cents), to: total };
       if ((prev.due_date ?? null) !== (data.due_date ?? null))
