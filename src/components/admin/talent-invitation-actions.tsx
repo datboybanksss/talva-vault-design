@@ -32,17 +32,17 @@ export function useTalentInvitationActions() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Draft deleted.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't delete the draft.")),
+    onError: (e) => toast.error(friendlyError(e, "We couldn't delete the draft.")),
   });
 
   const resendM = useMutation({
     mutationFn: (id: string) => resendFn({ data: { id, extend_days: 14 } }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["admin"] });
       if (res?.email_sent) toast.success("Invitation resent · expiry refreshed · logged.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't resend the invitation.")),
+    onError: (e) => toast.error(friendlyError(e, "We couldn't resend the invitation.")),
   });
   const revokeM = useMutation({
     mutationFn: (id: string) => revokeFn({ data: { id } }),
@@ -50,17 +50,17 @@ export function useTalentInvitationActions() {
       qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Invitation revoked. The ID document and proof of talent were deleted.");
     },
-    onError: (e: any) => toast.error(friendlyError(e, "We couldn't revoke the invitation.")),
+    onError: (e) => toast.error(friendlyError(e, "We couldn't revoke the invitation.")),
   });
 
   const copyLink = async (id: string) => {
     try {
-      const res: any = await getFn({ data: { id } });
+      const res = await getFn({ data: { id } });
       if (!res?.invite_url) throw new Error("This invitation has no live link.");
       await navigator.clipboard.writeText(res.invite_url);
       await logCopyFn({ data: { id } }).catch(() => undefined);
       toast.success("Link copied. Copy does not extend expiry.");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(friendlyError(e, "Copy failed"));
     }
   };
