@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { validateNewPassword } from "@/lib/password";
+import { friendlyError } from "./friendly-error";
 
 // Public server functions used by the /invite/$token Agency Activation wizard.
 // No auth middleware — the caller is unauthenticated. Access is gated by the
@@ -158,7 +159,8 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
           message: "An account already exists for this email. Please sign in instead.",
         };
       }
-      return { ok: false, code: "unknown", message: msg };
+      console.error("[agency activation] account creation failed", createErr);
+      return { ok: false, code: "unknown", message: friendlyError(createErr, "Could not create your account.") };
     }
 
     // Terms acceptance is recorded before anything else: if it cannot be
@@ -179,9 +181,7 @@ export const activateAgencyInvitation = createServerFn({ method: "POST" })
         ok: false,
         code: "unknown",
         message:
-          // Acceptance failures carry a message; preserve the existing rollback and fallback.
-          (e as { message?: string } | null)?.message ??
-          "We couldn't record your acceptance of the Terms & Conditions. Please try again.",
+          friendlyError(e, "We couldn't record your acceptance of the Terms & Conditions. Please try again."),
       };
     }
 

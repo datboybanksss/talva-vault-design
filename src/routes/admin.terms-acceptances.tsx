@@ -1,4 +1,5 @@
 import { FilterBar } from "@/components/shared/filter-bar";
+import { friendlyError } from "@/lib/friendly-error";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -355,7 +356,7 @@ function TermsAcceptancesPage() {
                 {list.error && (
                   <tr>
                     <td colSpan={10} className="tvp-muted">
-                      {(list.error as Error).message}
+                      {friendlyError(list.error)}
                     </td>
                   </tr>
                 )}

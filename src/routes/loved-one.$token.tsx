@@ -185,7 +185,7 @@ function LovedOnePage() {
     (t?: string) => {
       load({ data: { token, ticket: t } })
         .then(setState)
-        .catch((e) => setState({ status: "error", error: e?.message }));
+        .catch((e: unknown) => setState({ status: "error", error: friendlyError(e) }));
     },
     [load, token],
   );

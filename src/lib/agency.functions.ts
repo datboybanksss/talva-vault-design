@@ -2071,7 +2071,7 @@ export const deleteAgencyVaultDocument = createServerFn({ method: "POST" })
         throw new Error(
           "This document is no longer in your vault. Refresh the page to see the latest list.",
         );
-      throw new Error(m);
+      throw databaseError(dErr);
     }
     return { ok: true, purgeAfter: (purgeAfter as string | null) ?? null };
   });
