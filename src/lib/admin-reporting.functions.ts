@@ -121,7 +121,7 @@ export type NorthStarPair = {
   both: boolean;
 };
 
-async function northStarPairs(
+export async function northStarPairs(
   admin: SupabaseClient<Database>,
   period: { fromIso: string; toIso: string },
 ): Promise<NorthStarPair[]> {
@@ -134,10 +134,11 @@ async function northStarPairs(
     .lte("created_at", period.toIso);
   if (linkErr) throw databaseError(linkErr);
   // Inert invitations (can never be accepted) are not real relationships.
-  const { data: inert } = await admin
+  const { data: inert, error: inertError } = await admin
     .from("talent_invite_private")
     .select("invitation_id")
     .eq("kind", "inert");
+  if (inertError) throw databaseError(inertError);
   const inertIds = new Set((inert ?? []).map((r) => r.invitation_id));
   const live = (links ?? []).filter(
     (l) => !l.talent_invitation_id || !inertIds.has(l.talent_invitation_id),
@@ -194,10 +195,11 @@ async function northStarPairs(
   ];
   const docToLink = new Map<string, string>();
   if (docIds.length > 0) {
-    const { data: docs } = await admin
+    const { data: docs, error: docsError } = await admin
       .from("talent_shared_documents")
       .select("id, talent_link_id")
       .in("id", docIds);
+    if (docsError) throw databaseError(docsError);
     for (const d of docs ?? []) if (d.talent_link_id) docToLink.set(d.id, d.talent_link_id);
   }
 
@@ -215,10 +217,11 @@ async function northStarPairs(
 
   // Document requests are stored against a talent link directly rather than
   // written to the audit log, so they are counted from their own table.
-  const { data: requests } = await admin
+  const { data: requests, error: requestsError } = await admin
     .from("agency_document_requests")
     .select("talent_link_id, created_at, reviewed_at")
     .lte("created_at", period.toIso);
+  if (requestsError) throw databaseError(requestsError);
   for (const r of requests ?? []) {
     if (!r.talent_link_id) continue;
     const inWindow = (ts: string | null) => !!ts && ts >= period.fromIso && ts <= period.toIso;
