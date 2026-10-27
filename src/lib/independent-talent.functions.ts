@@ -13,7 +13,7 @@ import { parseInput } from "@/lib/admin.functions";
 
 /**
  * Admin → independent talent invitations (no agency). Mirrors the agency
- * onboarding draft flow: draft, two documents (ID + proof of talent), a
+ * onboarding draft flow: draft, proof of talent, a
  * completeness gate, then send. Admins can never attach talent to an agency —
  * these invitations carry no agency at all.
  */

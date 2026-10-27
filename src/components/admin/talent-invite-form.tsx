@@ -64,7 +64,7 @@ import { DOCUMENT_ACCEPT, preflightUpload } from "@/lib/file-validation";
 import { friendlyError } from "@/lib/friendly-error";
 
 const BUCKET = "talent-invite-docs";
-const SLOTS = [{ key: "proof_of_talent", label: "Proof of talent" }] as const;
+const SLOTS = [{ key: "proof_of_talent" }] as const;
 
 const statusLabel: Record<string, string> = {
   draft: "Draft",
@@ -82,7 +82,7 @@ function daysUntil(iso?: string | null) {
 
 /**
  * Admin "Invite talent" (independent, no agency). Mirrors the agency invite
- * draft flow: details → draft → two documents → send.
+ * draft flow: details → draft → proof of talent → send.
  */
 export function TalentInviteForm({
   draftId: initialId,

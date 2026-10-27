@@ -1276,7 +1276,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
 
     const types = type === "all" ? [...INVITATION_TYPES] : [type];
     const { registrationCopy } = await import("./registration-copy.server");
-    let unavailableLabel: string | undefined;
+    let unavailableLabel = "";
     const window = data.offset + data.limit;
     const fetched = await Promise.all(
       types.map(async (t) => {
@@ -1325,7 +1325,7 @@ export const listCombinedInvitations = createServerFn({ method: "GET" })
         if (
           (rows ?? []).some((r) => "acceptance_unavailable_at" in r && r.acceptance_unavailable_at)
         )
-          unavailableLabel ??= (await registrationCopy()).acceptance_unavailable;
+          unavailableLabel ||= (await registrationCopy()).acceptance_unavailable;
         return (rows ?? []).map((r) => ({
           ...r,
           type: t,
