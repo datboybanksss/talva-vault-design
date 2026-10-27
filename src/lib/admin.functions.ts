@@ -550,7 +550,7 @@ export const listAccounts = createServerFn({ method: "GET" })
       .is("deleted_at", null);
     if (pErr) throw databaseError(pErr);
     const userIds = (profiles ?? []).map((p) => p.user_id).filter(Boolean);
-    const linksByUser = new Map<string, string[]>();
+    const linksByUser = new Map<string | null, string[]>();
     if (userIds.length) {
       const { data: links, error: lErr } = await supabase
         .from("agency_talent_links")
