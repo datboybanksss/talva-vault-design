@@ -1016,11 +1016,15 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const nowIso = new Date().toISOString();
 
-    const applyFilters = (q: any, status: string) => {
+    const invitationQueries = () => ({
+      list: supabase.from("agency_invitations").select("*", { count: "exact" }),
+      count: supabase.from("agency_invitations").select("id", { count: "exact", head: true }),
+    });
+    const applyFilters = <Q extends ReturnType<typeof invitationQueries>["list"] | ReturnType<typeof invitationQueries>["count"]>(q: Q, status: string) => {
       let out = q;
       if (status === "expired") {
         out = out.eq("status", "pending").lt("expires_at", nowIso);
@@ -1034,7 +1038,8 @@ export const listAgencyInvitationsPaged = createServerFn({ method: "GET" })
         const like = `%${term.replace(/[%,()]/g, "")}%`;
         out = out.or(`agency_name.ilike.${like},email.ilike.${like},contact_person.ilike.${like}`);
       }
-      return out;
+      // Filters preserve the caller's selected row projection.
+      return out as Q;
     };
 
     const tabs = ["all", "draft", "pending", "accepted", "expired", "declined", "revoked"];
@@ -2209,7 +2214,7 @@ export const revokeAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertCanInviteAdministrator(supabase, userId);
 
     const { data: inv, error } = await supabase
@@ -2249,7 +2254,7 @@ export const resendAdminInvitation = createServerFn({ method: "POST" })
     parseInput(z.object({ id: z.string().max(10000), extend_days: z.number().default(14) }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertCanInviteAdministrator(supabase, userId);
 
     const { data: existing, error: exErr } = await supabase
@@ -2297,7 +2302,7 @@ export const deleteAdminInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertCanInviteAdministrator(supabase, userId);
 
     const { data: inv, error } = await supabase
@@ -2339,7 +2344,7 @@ export const deleteAdminInvitation = createServerFn({ method: "POST" })
 export const logOwnPasswordChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -2359,7 +2364,7 @@ export const logOwnPasswordChange = createServerFn({ method: "POST" })
 export const listNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
 
     const now = new Date();
@@ -2448,7 +2453,7 @@ export const listNotifications = createServerFn({ method: "GET" })
         "/admin/agencies",
       );
     // Inert invitations are not real invitations.
-    const { count: inertPending } = await (supabase as any)
+    const { count: inertPending } = await supabase
       .from("talent_invite_private")
       .select("invitation_id, talent_invitations!inner(status)", { count: "exact", head: true })
       .eq("kind", "inert")
@@ -2479,7 +2484,7 @@ export const listNotifications = createServerFn({ method: "GET" })
       .select("kind, snapshot")
       .eq("user_id", userId);
     const dismissedMap = new Map<string, number>(
-      (dismissals ?? []).map((d: any) => [d.kind, d.snapshot]),
+      (dismissals ?? []).map((d) => [d.kind, d.snapshot]),
     );
     const visibleComputed = computed.filter((c) => dismissedMap.get(c.kind) !== c.snapshot);
 
@@ -2495,7 +2500,7 @@ export const logMfaEnrolled = createServerFn({ method: "POST" })
     parseInput(z.object({ factor_type: z.string().max(10000).default("email_code") }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -2513,7 +2518,7 @@ export const logMfaEnrolled = createServerFn({ method: "POST" })
 export const logMfaDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
@@ -2544,7 +2549,7 @@ export const updateAdministrator = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertMainAdmin(supabase, userId);
 
     // Load target role + profile to build a proper audit diff and to protect
@@ -2635,7 +2640,7 @@ export const setAdministratorSuspended = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertMainAdmin(supabase, userId);
 
     if (data.user_id === userId) {
@@ -2689,7 +2694,7 @@ export const removeAdministrator = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ user_id: z.string().uuid() }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertMainAdmin(supabase, userId);
 
     if (data.user_id === userId) {
@@ -2739,7 +2744,7 @@ export const getAdminInvitationById = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => parseInput(z.object({ id: z.string().max(10000) }), d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+    const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { data: inv, error } = await supabase
       .from("admin_invitations")
