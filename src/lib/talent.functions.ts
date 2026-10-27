@@ -957,7 +957,7 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
 
     const { data: contactRows } = await supabase
       .from("loved_one_shares")
-      .select("id, loved_one_name, expires_at")
+      .select("id, loved_one_name, relationship, expires_at, scope")
       .eq("talent_id", userId)
       .eq("is_active", true)
       .is("revoked_at", null)
@@ -970,11 +970,19 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       links,
       managerName,
       recentDocs: recent.slice(0, 4),
-      trustedContacts: (contactRows ?? []).map((c) => ({
-        id: c.id as string,
-        name: c.loved_one_name as string,
-        expiresAt: c.expires_at as string | null,
-      })),
+      trustedContacts: (contactRows ?? []).map((c) => {
+        const scope = (c.scope ?? {}) as {
+          private_folder_ids?: string[];
+          private_document_ids?: string[];
+        };
+        return {
+          id: c.id as string,
+          name: c.loved_one_name as string,
+          relationship: (c.relationship as string | null) ?? null,
+          expiresAt: c.expires_at as string | null,
+          sharedDocs: scope.private_document_ids?.length ?? 0,
+        };
+      }),
       todo,
       privateDocs: privDocs.count ?? 0,
       activeShares,
