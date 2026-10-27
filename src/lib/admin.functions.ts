@@ -3,6 +3,10 @@ import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
+
+type AdminClient = SupabaseClient<Database>;
 import { isValidPhone, normalisePhone, PHONE_FORMAT_MESSAGE } from "@/lib/phone";
 import { mapEffectiveStatus, effectiveInvitationStatus } from "@/lib/invitation-status";
 import {
@@ -58,10 +62,10 @@ export function parseInput<T extends z.ZodTypeAny>(schema: T, d: unknown): z.inf
 
   const messages = result.error.issues.map((issue) => {
     const label = fieldLabel(issue.path as (string | number)[]);
-    if (issue.code === "invalid_string" && (issue as any).validation === "email") {
+    if (issue.code === "invalid_string" && issue.validation === "email") {
       return "Invalid email address";
     }
-    if (issue.code === "invalid_type" && (issue as any).received === "undefined") {
+    if (issue.code === "invalid_type" && issue.received === "undefined") {
       return label ? `${label} is required` : "A required value is missing";
     }
     const detail = issue.message.replace(/^String must contain/, "Must contain");
@@ -83,7 +87,7 @@ const phoneSchema = z
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
-async function assertAdmin(supabase: any, userId: string) {
+async function assertAdmin(supabase: AdminClient, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
@@ -92,7 +96,7 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden: admin only");
 }
 
-async function assertAdminCanEdit(supabase: any, userId: string) {
+async function assertAdminCanEdit(supabase: AdminClient, userId: string) {
   await assertAdmin(supabase, userId);
   const { data, error } = await supabase.rpc("can_admin_edit", { _user_id: userId });
   if (error) throw databaseError(error);
@@ -103,7 +107,7 @@ async function assertAdminCanEdit(supabase: any, userId: string) {
  * Reads the caller's stored admin permission level. The Main Administrator is
  * always treated as holding the highest level.
  */
-async function adminPermissionLevel(supabase: any, userId: string) {
+async function adminPermissionLevel(supabase: AdminClient, userId: string) {
   const { data: row, error } = await supabase
     .from("user_roles")
     .select("is_main_admin, permission_level")
@@ -124,7 +128,7 @@ async function adminPermissionLevel(supabase: any, userId: string) {
  * Agency-support actions (resend/revoke/correct/copy an AGENCY invitation) are
  * open to Agency Support administrators as well as full-edit ones.
  */
-async function assertAdminCanSupportAgencies(supabase: any, userId: string) {
+async function assertAdminCanSupportAgencies(supabase: AdminClient, userId: string) {
   await assertAdmin(supabase, userId);
   const { permissionLevel } = await adminPermissionLevel(supabase, userId);
   if (!canSupportAgencies(permissionLevel)) {
@@ -133,7 +137,7 @@ async function assertAdminCanSupportAgencies(supabase: any, userId: string) {
   return permissionLevel;
 }
 
-async function assertMainAdmin(supabase: any, userId: string) {
+async function assertMainAdmin(supabase: AdminClient, userId: string) {
   await assertAdmin(supabase, userId);
   const { data, error } = await supabase.rpc("is_main_admin", { _user_id: userId });
   if (error) throw databaseError(error);
@@ -145,7 +149,7 @@ async function assertMainAdmin(supabase: any, userId: string) {
  * administrator holding the highest permission level. Returns the inviter's
  * own level so the caller can cap what they are allowed to grant.
  */
-async function assertCanInviteAdministrator(supabase: any, userId: string) {
+async function assertCanInviteAdministrator(supabase: AdminClient, userId: string) {
   await assertAdmin(supabase, userId);
   const { data: row, error } = await supabase
     .from("user_roles")
@@ -177,23 +181,23 @@ function assertGrantablePermission(inviterLevel: string, requested: string) {
 }
 
 /** Agency talent invitations that can never be accepted; excluded from admin counts. */
-async function inertInvitationIds(supabase: any): Promise<Set<string>> {
+async function inertInvitationIds(supabase: AdminClient): Promise<Set<string>> {
   const { data } = await supabase
     .from("talent_invite_private")
     .select("invitation_id")
     .eq("kind", "inert");
-  return new Set(((data ?? []) as any[]).map((r) => r.invitation_id as string));
+  return new Set((data ?? []).map((r) => r.invitation_id));
 }
 
 async function logAudit(
-  supabase: any,
+  supabase: AdminClient,
   userId: string,
   email: string | undefined,
   action: string,
   targetType?: string,
   targetId?: string,
   targetLabel?: string,
-  detail: Record<string, unknown> = {},
+  detail: Record<string, Json | undefined> = {},
 ) {
   await supabase.from("admin_audit_log").insert({
     actor_id: userId,
@@ -212,7 +216,7 @@ async function logAudit(
 export const whoami = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role, is_main_admin, permission_level")
@@ -222,12 +226,12 @@ export const whoami = createServerFn({ method: "GET" })
       .select("id, email, display_name, avatar_url, first_name, last_name, designation")
       .eq("id", userId)
       .maybeSingle();
-    const adminRow = (roles ?? []).find((r: any) => r.role === "admin");
+    const adminRow = (roles ?? []).find((r) => r.role === "admin");
     const isAdmin = !!adminRow;
     const isMain = !!adminRow?.is_main_admin;
     const permissionLevel: "view_only" | "agency_support" | "edit" = isMain
       ? "edit"
-      : ((adminRow?.permission_level as any) ?? "edit");
+      : (adminRow?.permission_level ?? "edit");
     const canEdit = isAdmin && permissionLevel === "edit";
     // Agency Support sits between view-only and full edit: it may act on
     // agency invitations but not suspend agencies or manage administrators.
@@ -262,7 +266,7 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
 
     // Load current profile + is-main-admin so we can enforce that only Main
@@ -326,7 +330,7 @@ export const logOwnEmailChangeRequest = createServerFn({ method: "POST" })
     parseInput(z.object({ new_email: z.string().max(10000).email() }), d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId, claims } = context as any;
+    const { supabase, userId, claims } = context;
     await assertAdmin(supabase, userId);
     await logAudit(
       supabase,
