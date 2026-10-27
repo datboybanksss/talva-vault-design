@@ -551,7 +551,10 @@ function ReviewDialog({
         {outcome === "resubmission_required" && (
           <div className="tvp-form-group" style={{ marginTop: 12 }}>
             <label>Reason (required)</label>
-            <select value={reason} onChange={(e) => setReason(e.target.value as (typeof REASONS)[number]["code"])}>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value as (typeof REASONS)[number]["code"])}
+            >
               {REASONS.map((r) => (
                 <option key={r.code} value={r.code}>
                   {r.label}
