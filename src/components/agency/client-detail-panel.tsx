@@ -23,7 +23,7 @@ export function useClientDetail(clientId: string) {
   const detailFn = useServerFn(getAgencyClientDetail);
   return useQuery({
     queryKey: ["agency", "client-detail", clientId],
-    queryFn: () => detailFn({ data: { id: clientId } }) as Promise<any>,
+    queryFn: () => detailFn({ data: { id: clientId } }),
   });
 }
 
@@ -31,7 +31,7 @@ export function useClientDetail(clientId: string) {
 export function ClientDetailView({ clientId }: { clientId: string }) {
   const { data, isLoading, isError, error, refetch } = useClientDetail(clientId);
   const client = data?.client;
-  const documents: any[] = data?.documents ?? [];
+  const documents = data?.documents ?? [];
   const stats = client?.stats;
 
   if (isLoading) return <div className="tvp-muted">Loading this client…</div>;
@@ -165,9 +165,9 @@ export function ClientDetailView({ clientId }: { clientId: string }) {
                     <td className="tvp-nowrap">{fmtShortDate(d.dueDate) ?? "—"}</td>
                     <td>
                       <span
-                        className={`tvp-status tvp-${(BILLING_DOC_STATUS_TONE as any)[d.status] ?? "neutral"}`}
+                        className={`tvp-status tvp-${BILLING_DOC_STATUS_TONE[d.status] ?? "neutral"}`}
                       >
-                        {(BILLING_DOC_STATUS_LABEL as any)[d.status] ?? d.status}
+                        {BILLING_DOC_STATUS_LABEL[d.status] ?? d.status}
                       </span>
                     </td>
                     <td className="tvp-num">{fmtMoney(d.totalCents, d.currency)}</td>
