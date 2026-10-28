@@ -496,8 +496,7 @@ function NewInvitationModal({
   return (
     <AccessibleModal onClose={onClose} label="Invitation">
       <div
-        role="dialog"
-        aria-modal="true"
+        role="presentation"
         onClick={onClose}
         style={{
           position: "fixed",

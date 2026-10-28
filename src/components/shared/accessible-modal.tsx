@@ -3,6 +3,8 @@ import { Children, cloneElement, isValidElement, type ReactElement, type ReactNo
 
 type ElementProps = {
   children?: ReactNode;
+  role?: string;
+  "aria-modal"?: boolean;
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
 };
 
@@ -35,7 +37,11 @@ export function AccessibleModal({
     hasPanel = true;
     const panel = cloneElement(child, {}, withTitle(child.props.children));
     return (
-      <Dialog.Content asChild aria-label={hasTitle ? undefined : label} aria-describedby={undefined}>
+      <Dialog.Content
+        asChild
+        aria-label={hasTitle ? undefined : label}
+        aria-describedby={undefined}
+      >
         {panel}
       </Dialog.Content>
     );
@@ -43,6 +49,8 @@ export function AccessibleModal({
   const overlay = cloneElement(
     children,
     {
+      role: "presentation",
+      "aria-modal": undefined,
       onClick: (event) => {
         if (event.target === event.currentTarget) onClose();
       },

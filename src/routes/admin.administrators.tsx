@@ -554,7 +554,6 @@ function AdminsPage() {
                     onBlur={() => void inviteEmailCheck.check(inviteEmail)}
                     aria-invalid={!!inviteEmailCheck.conflict}
                     placeholder="name@email.com"
-                    autoFocus
                   />
                   <InviteEmailFieldError conflict={inviteEmailCheck.conflict} />
                 </div>
@@ -773,8 +772,7 @@ function AdminsPage() {
           label="Administrator"
         >
           <div
-            role="dialog"
-            aria-modal="true"
+            role="presentation"
             onClick={() => !updateAdminMut.isPending && setEditAdmin(null)}
             style={{
               position: "fixed",
