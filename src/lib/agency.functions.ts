@@ -3141,7 +3141,7 @@ export const listAgencyAuditActions = createServerFn({ method: "GET" })
       .limit(1000);
     if (error) throw databaseError(error);
     const actions = Array.from(new Set((data ?? []).map((r) => r.action as string))) as string[];
-    return actions.sort();
+    return actions.sort((a, b) => a.localeCompare(b));
   });
 
 // -----------------------------------------------------------------------------

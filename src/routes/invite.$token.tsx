@@ -73,7 +73,13 @@ function InvitePage() {
               body={terminalBody(inviteQ.data.reason)}
             />
           ) : (
-            <InviteBody invite={inviteQ.data} token={token} onDone={() => nav({ to: "/agency" })} />
+            <InviteBody
+              invite={inviteQ.data}
+              token={token}
+              onDone={() => {
+                void nav({ to: "/agency" });
+              }}
+            />
           )}
         </div>
       </section>

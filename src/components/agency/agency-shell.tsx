@@ -37,6 +37,8 @@ import {
 import { TermsGate } from "@/components/shared/terms-gate";
 import { PortalFooter } from "@/components/shared/portal-footer";
 import { AgencyReadOnlyContext, useHideWriteControls } from "@/components/agency/agency-read-only";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 
 type NavItem = {
   to: string;
@@ -142,8 +144,12 @@ export function AgencyShell({ children }: { children: ReactNode }) {
 
   const dismissReminderFn = useServerFn(dismissAgencyReminder);
   const dismissItem = async (n: { key: string; snapshot: number }) => {
-    await dismissReminderFn({ data: { kind: n.key, snapshot: n.snapshot } });
-    await queryClient.invalidateQueries({ queryKey: ["agency", "notifications"] });
+    try {
+      await dismissReminderFn({ data: { kind: n.key, snapshot: n.snapshot } });
+      void queryClient.invalidateQueries({ queryKey: ["agency", "notifications"] });
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't dismiss this notification. Please try again."));
+    }
   };
 
   useEffect(() => {
@@ -190,10 +196,15 @@ export function AgencyShell({ children }: { children: ReactNode }) {
     });
 
   const handleSignOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    try {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      void navigate({ to: "/auth", replace: true });
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't sign you out. Please try again."));
+    }
   };
 
   const initials = (me?.displayName || me?.email || "?")
@@ -366,7 +377,7 @@ export function AgencyShell({ children }: { children: ReactNode }) {
                           aria-label="Dismiss notification"
                           onClick={(e) => {
                             e.stopPropagation();
-                            dismissItem(n);
+                            void dismissItem(n);
                           }}
                         >
                           <X className="h-4 w-4" />

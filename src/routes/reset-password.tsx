@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 import { PasswordInput } from "@/components/password-input";
 import {
   MIN_PW_LENGTH,
@@ -74,12 +76,18 @@ function ResetPasswordPage() {
       setLinkValid(true);
       setReady(true);
     });
-    (async () => {
-      const { data } = await supabase.auth.getSession();
+    void (async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
       if (!mounted) return;
       if (data.session) setLinkValid(true);
       setReady(true);
-    })();
+    })().catch((e: unknown) => {
+      if (mounted) {
+        setReady(true);
+        toast.error(friendlyError(e, "We couldn't check your reset link. Please try again."));
+      }
+    });
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
@@ -98,7 +106,7 @@ function ResetPasswordPage() {
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) throw err;
       await supabase.auth.signOut();
-      nav({ to: "/auth", search: { next, reset: "1" } as never, replace: true });
+      void nav({ to: "/auth", search: { next, reset: "1" } as never, replace: true });
     } catch (err) {
       setError(friendlyAuthError(err));
       setBusy(false);

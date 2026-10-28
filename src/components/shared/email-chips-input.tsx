@@ -1,11 +1,7 @@
 import { useState, type KeyboardEvent, type ClipboardEvent } from "react";
 import { X } from "lucide-react";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-export function isValidEmail(value: string): boolean {
-  return EMAIL_RE.test(value.trim());
-}
+import { isValidEmail, stripEmailSeparators } from "@/lib/email-validation";
+export { isValidEmail } from "@/lib/email-validation";
 
 /**
  * Tag/chip style multi-email field. Each address is validated before it can
@@ -28,10 +24,7 @@ export function EmailChipsInput({
   const [error, setError] = useState<string | null>(null);
 
   function add(raw: string): boolean {
-    const email = raw
-      .trim()
-      .replace(/[,;]+$/, "")
-      .toLowerCase();
+    const email = stripEmailSeparators(raw.trim()).toLowerCase();
     if (!email) return true;
     if (!isValidEmail(email)) {
       setError(`"${email}" is not a valid email address`);

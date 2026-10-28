@@ -332,7 +332,9 @@ function QIPage() {
 
   const talents = useMemo(
     () =>
-      Array.from(new Set(rows.map((r) => r.talent_name).filter((n): n is string => !!n))).sort(),
+      Array.from(new Set(rows.map((r) => r.talent_name).filter((n): n is string => !!n))).sort(
+        (a, b) => a.localeCompare(b),
+      ),
     [rows],
   );
 

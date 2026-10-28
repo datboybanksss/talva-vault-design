@@ -15,6 +15,8 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { skipToken, useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 import { TalVaultIcon } from "@/components/brand/talvault-logo";
 import {
   getGuide,
@@ -246,7 +248,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   // Load the user's seen state once.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth?.user?.id;
       if (!uid) return;
@@ -260,7 +262,9 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
       overviewDoneRef.current = data.has_seen_onboarding !== false;
       // Never launch straight into the walkthrough on a first login — ask first.
       if (!overviewDoneRef.current) setWelcome(true);
-    })();
+    })().catch((e: unknown) =>
+      toast.error(friendlyError(e, "We couldn't load the walkthrough. Please try again.")),
+    );
     return () => {
       cancelled = true;
     };
@@ -295,7 +299,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
     settlingRef.current = true;
     if (crossPage) setFading(true);
 
-    (async () => {
+    void (async () => {
       try {
         const reduced = prefersReducedMotion();
         if (step.route) {
@@ -346,7 +350,9 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
           setFading(false);
         }
       }
-    })();
+    })().catch((e: unknown) =>
+      toast.error(friendlyError(e, "We couldn't load the walkthrough. Please try again.")),
+    );
 
     return () => {
       cancelled = true;
@@ -450,7 +456,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") finish();
+      if (e.key === "Escape") void finish();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -496,7 +502,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
               whenever you like from the help icon in the top bar.
             </p>
             <div className="tvp-tour-actions">
-              <button className="tvp-tour-skip" onClick={declineTour}>
+              <button className="tvp-tour-skip" onClick={() => void declineTour()}>
                 No thanks
               </button>
               <div className="tvp-tour-next">
@@ -568,7 +574,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
           <button
             type="button"
             className="tvp-tour-close"
-            onClick={finish}
+            onClick={() => void finish()}
             aria-label="Skip walkthrough"
             title="Skip walkthrough"
           >
@@ -578,7 +584,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
         <div className="tvp-tour-title">{step.title}</div>
         <p className="tvp-tour-body">{step.body}</p>
         <div className="tvp-tour-actions">
-          <button className="tvp-tour-skip" onClick={finish}>
+          <button className="tvp-tour-skip" onClick={() => void finish()}>
             Skip walkthrough
           </button>
           <div className="tvp-tour-next">
@@ -589,7 +595,7 @@ export function OnboardingTour({ portal }: { portal: Portal }) {
             )}
             <button
               className="tvp-primary"
-              onClick={() => (last ? finish() : setIdx((i) => i + 1))}
+              onClick={() => (last ? void finish() : setIdx((i) => i + 1))}
             >
               {last ? "Got it" : "Next"}
             </button>

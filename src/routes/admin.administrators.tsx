@@ -56,6 +56,7 @@ import {
   EMAIL_FALLBACK_NOTICE,
 } from "@/lib/invitation-email";
 import { friendlyError } from "@/lib/friendly-error";
+import { isValidEmail } from "@/lib/email-validation";
 
 /** Administrator invitation statuses, styled like the Agency invitations page. */
 export const Route = createFileRoute("/admin/administrators")({
@@ -577,7 +578,7 @@ function AdminsPage() {
                   Cancel
                 </button>
                 {(() => {
-                  const valid = /.+@.+\..+/.test(inviteEmail.trim()) && !!invitePerm;
+                  const valid = isValidEmail(inviteEmail, "administrator") && !!invitePerm;
                   return (
                     <button
                       className="tvp-primary"

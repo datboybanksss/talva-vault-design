@@ -314,7 +314,9 @@ function PrivateVault({ uploadRef }: { uploadRef: MutableRefObject<(() => void) 
   const folderName = (id: string | null) =>
     id ? (folders.find((f) => f.id === id)?.name ?? "—") : "Unfiled";
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ["talent", "private-vault"] });
+  };
   const aiRow = useAnalyseWithAi("talent");
 
   async function onDeleteFolder(id: string, name: string, isTop: boolean) {
@@ -1436,9 +1438,9 @@ function ManagerRequests({ linkId }: { linkId: string }) {
         },
       });
       toast.success("Submitted to your agency for review.");
-      qc.invalidateQueries({ queryKey: ["talent", "doc-requests"] });
-      qc.invalidateQueries({ queryKey: ["talent", "roster-shared"] });
-      qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
+      void qc.invalidateQueries({ queryKey: ["talent", "doc-requests"] });
+      void qc.invalidateQueries({ queryKey: ["talent", "roster-shared"] });
+      void qc.invalidateQueries({ queryKey: ["talent", "dashboard"] });
     } catch (e) {
       toast.error(friendlyError(e, "Upload failed"));
     } finally {

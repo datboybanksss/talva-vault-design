@@ -171,11 +171,17 @@ function TalentPage() {
   const [type, setType] = useState("all");
 
   const managerOptions = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.managerName).filter(Boolean))).sort(),
+    () =>
+      Array.from(new Set(rows.map((r) => r.managerName).filter((n): n is string => !!n))).sort(
+        (a, b) => a.localeCompare(b),
+      ),
     [rows],
   );
   const typeOptions = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.talentType).filter(Boolean) as string[])).sort(),
+    () =>
+      Array.from(new Set(rows.map((r) => r.talentType).filter(Boolean) as string[])).sort((a, b) =>
+        a.localeCompare(b),
+      ),
     [rows],
   );
 

@@ -319,7 +319,7 @@ function RuleDialog({
   const allFolders = useMemo(() => {
     const set = new Set<string>(folderOptions);
     for (const d of docs) if (d.folder) set.add(d.folder);
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [docs, folderOptions]);
 
   useEffect(() => {
