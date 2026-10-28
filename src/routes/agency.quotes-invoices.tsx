@@ -38,6 +38,7 @@ import {
   deleteAgencyBillingDoc,
   setBillingDocShared,
   convertQuoteToInvoice,
+  reserveAgencyInvoiceNumber,
   getBillingDocFull,
   saveAgencyBillingDocFull,
   sendAgencyBillingDoc,
@@ -273,6 +274,7 @@ function QIPage() {
   const deleteFn = useServerFn(deleteAgencyBillingDoc);
   const shareFn = useServerFn(setBillingDocShared);
   const convertFn = useServerFn(convertQuoteToInvoice);
+  const reserveInvoiceNumberFn = useServerFn(reserveAgencyInvoiceNumber);
   const getFullFn = useServerFn(getBillingDocFull);
   const getSettingsFn = useServerFn(getAgencyBillingSettings);
 
@@ -646,8 +648,8 @@ function QIPage() {
   });
 
   const convert = useMutation({
-    mutationFn: (quote: Row) => {
-      const suggested = `INV-${new Date().getFullYear()}-${quote.number.replace(/[^0-9]/g, "").slice(-4) || "001"}`;
+    mutationFn: async (quote: Row) => {
+      const suggested = await reserveInvoiceNumberFn();
       const num = window.prompt(`Invoice number for conversion of ${quote.number}:`, suggested);
       if (!num) return Promise.reject(new Error("Cancelled"));
       return convertFn({ data: { quote_id: quote.id, invoice_number: num.trim() } });
