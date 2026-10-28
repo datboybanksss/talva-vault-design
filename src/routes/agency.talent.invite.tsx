@@ -13,6 +13,7 @@ import {
   createTalentInvitationMine,
 } from "@/lib/agency.functions";
 import { friendlyError } from "@/lib/friendly-error";
+import { isValidEmail } from "@/lib/email-validation";
 
 export const Route = createFileRoute("/agency/talent/invite")({
   head: () => ({ meta: [{ title: "Invite talent · TalVault" }] }),
@@ -108,7 +109,7 @@ function InviteTalent() {
       .join(", ")}${subs.length > 4 ? "…" : ""}`;
   };
 
-  const detailsValid = fullName.trim().length > 1 && /\S+@\S+\.\S+/.test(email.trim());
+  const detailsValid = fullName.trim().length > 1 && isValidEmail(email, "agency");
 
   const emailCheck = useInviteEmailCheck("agency_talent");
 

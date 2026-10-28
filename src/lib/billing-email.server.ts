@@ -4,6 +4,7 @@ import { emailHeaderHtml, requireSiteLink } from "@/lib/brand-email";
 import type { BillingLine } from "@/lib/billing";
 import { computeTotals, fmtMoney } from "@/lib/billing";
 import { BILLING_DOC_STATUS_LABEL } from "@/lib/status-labels";
+import { emailFromHeader } from "@/lib/email-validation";
 
 export type BillingSendResult =
   | { sent: true; message_id?: string }
@@ -23,8 +24,7 @@ export function systemFromAddress(): string {
 }
 
 export function systemFromEmail(): string {
-  const m = systemFromAddress().match(/<([^>]+)>/);
-  return (m?.[1] ?? systemFromAddress()).trim();
+  return emailFromHeader(systemFromAddress());
 }
 
 /** Display form of the From header actually used for an agency's billing mail. */
