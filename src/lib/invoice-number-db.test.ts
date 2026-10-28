@@ -69,4 +69,35 @@ describe.skipIf(!process.env.PGHOST)("database: invoice-number uniqueness", () =
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(INVOICE_NUMBER_UNIQUE_INDEX);
   });
+  it("installed mint logic skips manually used numbers and never truncates invoice counters", () => {
+    const result = spawnSync("psql", ["-X", "-q", "-At", "-v", "ON_ERROR_STOP=1"], {
+      input: `BEGIN;
+CREATE TEMP TABLE agency_billing_docs (agency_id uuid, kind text, number text);
+CREATE TEMP TABLE agency_billing_counters (agency_id uuid, kind text, year int, next_value int, updated_at timestamptz, PRIMARY KEY (agency_id,kind,year));
+DO $$ DECLARE definition text; BEGIN
+  SELECT pg_get_functiondef('public.mint_billing_doc_number(uuid,text)'::regprocedure) INTO definition;
+  definition := replace(definition, 'public.mint_billing_doc_number', 'pg_temp.mint_billing_doc_number');
+  definition := replace(definition, 'public.agency_billing_docs', 'pg_temp.agency_billing_docs');
+  definition := replace(definition, 'public.agency_billing_counters', 'pg_temp.agency_billing_counters');
+  -- Only bypass authorisation in the isolated copy; preserve the installed numbering algorithm.
+  definition := replace(definition, 'public.agency_staff_can_write(auth.uid(), _agency_id)', 'true');
+  EXECUTE definition;
+END $$;
+INSERT INTO agency_billing_docs VALUES ('11111111-1111-4111-8111-111111111111', 'invoice', ' inv-' || extract(year from now())::int || '-0001 ');
+SELECT pg_temp.mint_billing_doc_number('11111111-1111-4111-8111-111111111111', 'invoice');
+UPDATE agency_billing_counters SET next_value=10000;
+SELECT pg_temp.mint_billing_doc_number('11111111-1111-4111-8111-111111111111', 'invoice');
+SELECT pg_temp.mint_billing_doc_number('11111111-1111-4111-8111-111111111111', 'quote');
+ROLLBACK;`,
+      encoding: "utf8",
+      timeout: 15000,
+    });
+    expect(result.status).toBe(0);
+    const year = new Date().getUTCFullYear();
+    expect(result.stdout.trim().split("\n")).toEqual([
+      `INV-${year}-0002`,
+      `INV-${year}-10000`,
+      `QT-${year}-0001`,
+    ]);
+  });
 });
