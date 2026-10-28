@@ -38,7 +38,7 @@
 - Document retention is stamped once per document and per version at upload (current_retention_rule) and never recalculated; rule changes, overrides and edits to earlier versions are refused in the database. Why: rules are not retroactive and cannot be overridden.
 - Talent-portal agency visibility (active / previously shared / hidden) is decided only by classifyTalentLink in src/lib/talent-links-core.ts via loadTalentLinks; every agency-only talent endpoint and screen uses that list. Why: independent talent must never see agency items, on screen or from the server.
 - Terms acceptance reports (Admin acceptances and not-accepted lists) leave out Test accounts via testUserIds in src/lib/terms-gate-core.ts; the acceptances are still stored with the normal proof. Why: test data must never inflate Terms or launch figures.
-- Shared brand visuals use src/components/shared/brand.tsx and styles.css tokens; tones: Talent/contact warm, Agency business, Admin calm. Why: one themed look.
+- brand.tsx/tokens: Talent warm, Agency business, Admin calm. Custom dialogs use AccessibleModal's Radix focus/Escape. Why: consistent visuals/access.
 - Read src/lib/AGENTS.md before changing auth; two-step enforcement is one database switch (mfa_enforced).
 - File access requires server validation; file-security owns MIME/headers and cleanup atomically queues abandoned reservations. Why: client claims and races cannot expose or destroy files.
 - Shares insert token/hash together, billing uses owned link IDs, and public limits fail closed. Why: server-enforced access.
