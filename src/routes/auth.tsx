@@ -410,7 +410,9 @@ function AuthPage() {
     // Every password sign-in earns a fresh code, even on a browser that was
     // verified earlier today. The code screen appears straight away.
     setCodeStage(true);
-    await beginSignInChallenge({ data: {} }).catch(() => {});
+    await beginSignInChallenge({ data: {} }).catch((e: unknown) =>
+      toast.error(friendlyError(e, "We couldn't prepare your sign-in code. Please try again.")),
+    );
     const status = await getMfaStatus({ data: {} });
     if (status.gate === "enrol") {
       setCodeStage(false);
@@ -450,9 +452,13 @@ function AuthPage() {
       // being mounted — React's double-invoked effects would otherwise skip it
       // and leave the session in place.
       clearPortalAccessCache();
-      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      await supabase.auth.signOut({ scope: "local" }).catch((e: unknown) =>
+        toast.error(friendlyError(e, "We couldn't clear your previous sign-in. Please try again.")),
+      );
       clearStoredSession();
-    })();
+    })().catch((e: unknown) =>
+      toast.error(friendlyError(e, "We couldn't check your previous sign-in. Please try again.")),
+    );
     return () => {
       showing = false;
     };
@@ -469,7 +475,7 @@ function AuthPage() {
         // Accounts are only ever created from an invitation link; this screen
         // signs existing accounts in. Wait for the leftover-session clean-up
         // first, otherwise it can wipe the fresh session.
-        await clearingRef.current?.catch(() => {});
+        await clearingRef.current;
         const { data: signedIn, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -480,7 +486,9 @@ function AuthPage() {
         const access = signedIn.user ? await accessAfterSignIn(signedIn.user.id) : null;
         await requireSignInAccess(access, async () => {
           clearPortalAccessCache();
-          await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          await supabase.auth.signOut({ scope: "local" }).catch((e: unknown) =>
+            toast.error(friendlyError(e, "We couldn't clear your sign-in. Please try again.")),
+          );
           clearStoredSession();
         });
         if (access?.paused) {
