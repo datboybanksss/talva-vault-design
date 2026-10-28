@@ -3,6 +3,7 @@
 - MFA flow tables retain service-only INSERT/UPDATE/DELETE and are exempt from the two-step policy. Why: the code flow must work before verification.
 
 # Document AI and onboarding
+- Contract invoice defaults reserve numbers with mint_billing_doc_number; draft labels use billing-number's Web Crypto generator. Why: reuse atomic agency numbering without non-cryptographic identifiers.
 - Billing payment status is database-derived; partial invoices keep unpaid balances via billing helpers; only cron sweeps overdue invoices. Why: receipts never imply full settlement or trigger global reader writes.
 - Uploader/manager names use profile-name, billing resets use billing-brand, and absent invite actor emails omit the RPC argument to invoke SQL DEFAULT NULL. Why: typed contracts match stored data.
 - Agency response reminders merge agency-scoped completed private declines with public responses via connection-response. Why: notify actual responses without leaking unanswered account matches.
