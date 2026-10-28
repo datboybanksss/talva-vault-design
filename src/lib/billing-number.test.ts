@@ -81,7 +81,10 @@ const client = createClient<Database>("https://database.example.test", "test-key
           contract_currency: "ZAR",
         };
       else if (table === "agencies")
-        response = { billing_from_verified_at: "2026-10-28", billing_from_email: "sender@example.test" };
+        response = {
+          billing_from_verified_at: "2026-10-28",
+          billing_from_email: "sender@example.test",
+        };
       else if (table === "agency_billing_doc_lines") response = [];
       else if (table === "agency_billing_docs") {
         if (method === "GET") {
@@ -92,10 +95,16 @@ const client = createClient<Database>("https://database.example.test", "test-key
           response = url.searchParams.has("converted_from_quote_id")
             ? null
             : readDoc
-              ? { id: contractId, kind: "quote", number: "DRAFT-TEST01", status: "draft", recipient_emails: ["client@example.test"] }
-            : duplicate
-              ? [{ id: "existing" }]
-              : [];
+              ? {
+                  id: contractId,
+                  kind: "quote",
+                  number: "DRAFT-TEST01",
+                  status: "draft",
+                  recipient_emails: ["client@example.test"],
+                }
+              : duplicate
+                ? [{ id: "existing" }]
+                : [];
         } else if (writeConflict) {
           return new Response(JSON.stringify(conflict), { status: 409 });
         } else response = { id: "created", number: "INV-2026-0042" };
