@@ -13,7 +13,12 @@ function Example({ onClose }: { onClose: () => void }) {
       <button onClick={() => setOpen(true)}>Open</button>
       <button>Outside</button>
       {open && (
-        <AccessibleModal onClose={() => { setOpen(false); onClose(); }}>
+        <AccessibleModal
+          onClose={() => {
+            setOpen(false);
+            onClose();
+          }}
+        >
           <div data-testid="backdrop">
             <div onClick={(e) => e.stopPropagation()}>
               <h2>Example dialog</h2>
@@ -35,7 +40,9 @@ describe("accessible custom dialogs", () => {
     const opener = screen.getByRole("button", { name: "Open" });
     await user.click(opener);
     await screen.findByRole("dialog", { name: "Example dialog" });
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "First" })));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("button", { name: "First" })),
+    );
     await user.tab({ shift: true });
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Last" }));
     await user.tab();

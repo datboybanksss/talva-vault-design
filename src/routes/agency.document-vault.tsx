@@ -1525,7 +1525,7 @@ function UploadDialog({
           </div>
 
           {/* Folder */}
-          <div>
+          <div role="group" aria-labelledby="upload-folder-label">
             <span className="tvp-form-label" id="upload-folder-label">
               Folder
             </span>

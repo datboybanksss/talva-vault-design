@@ -526,7 +526,9 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                 <InviteEmailFieldError conflict={emailCheck.conflict} />
               </div>
               <div className="tvp-form-group">
-                <span id={`${a11yId}-business-type`}>Business type *</span>
+                <span className="tvp-field-caption" id={`${a11yId}-business-type`}>
+                  Business type *
+                </span>
                 <div
                   role="group"
                   aria-labelledby={`${a11yId}-business-type`}

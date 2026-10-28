@@ -408,7 +408,7 @@ export function QuotesInvoicesSettingsPanel() {
             </div>
           </div>
           <div className="tvp-form-group">
-            <span id={`${a11yId}-accent`} className="tvp-qi-head">
+            <span id={`${a11yId}-accent`} className="tvp-qi-head tvp-field-caption">
               <Palette aria-hidden />
               Accent colour
             </span>
