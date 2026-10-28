@@ -39,7 +39,6 @@ export function BillingPreviewDialog({
   if (!open) return null;
   return (
     <AccessibleModal onClose={onClose} label="Billing preview">
-      <AccessibleModal onClose={onClose} label="Billing preview">
         <div
           className="billing-preview-overlay"
           style={{
@@ -160,7 +159,6 @@ export function BillingPreviewDialog({
         }
       `}</style>
         </div>
-      </AccessibleModal>
     </AccessibleModal>
   );
 }
