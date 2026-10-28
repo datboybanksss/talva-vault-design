@@ -80,9 +80,7 @@ export function AccessibleModal({
         if (!open) onClose();
       }}
     >
-      <Dialog.Portal>
-        <Dialog.Overlay asChild>{overlay}</Dialog.Overlay>
-      </Dialog.Portal>
+      <Dialog.Overlay asChild>{overlay}</Dialog.Overlay>
     </Dialog.Root>
   );
 }
