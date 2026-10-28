@@ -460,9 +460,9 @@ function AuthPage() {
           ),
         );
       clearStoredSession();
-    })().catch((e: unknown) =>
-      toast.error(friendlyError(e, "We couldn't check your previous sign-in. Please try again.")),
-    );
+    })().catch((e: unknown) => {
+      toast.error(friendlyError(e, "We couldn't check your previous sign-in. Please try again."));
+    });
     return () => {
       showing = false;
     };
