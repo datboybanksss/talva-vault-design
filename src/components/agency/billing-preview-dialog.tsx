@@ -1,4 +1,5 @@
 import { AccessibleModal } from "@/components/shared/accessible-modal";
+import { AccessibleModal } from "@/components/shared/accessible-modal";
 import { X, Printer, Send } from "lucide-react";
 import { BillingDocument, type BillingDocAgency, type BillingDocRecord } from "./billing-document";
 import type { BillingLine } from "@/lib/billing";
@@ -39,7 +40,7 @@ export function BillingPreviewDialog({
   if (!open) return null;
   return (
     <AccessibleModal onClose={onClose} label="Billing preview">
-      <div
+      <AccessibleModal onClose={onClose} label="Billing preview"><div
         className="billing-preview-overlay"
         style={{
           position: "fixed",
@@ -158,7 +159,7 @@ export function BillingPreviewDialog({
           .billing-preview-toolbar { display: none !important; }
         }
       `}</style>
-      </div>
+      </div></AccessibleModal>
     </AccessibleModal>
   );
 }

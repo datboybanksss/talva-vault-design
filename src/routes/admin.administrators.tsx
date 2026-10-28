@@ -1,3 +1,4 @@
+import { AccessibleModal } from "@/components/shared/accessible-modal";
 import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
@@ -767,102 +768,107 @@ function AdminsPage() {
       </>
 
       {editAdmin && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => !updateAdminMut.isPending && setEditAdmin(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
+        <AccessibleModal
+          onClose={() => !updateAdminMut.isPending && setEditAdmin(null)}
+          label="Administrator"
         >
           <div
-            className="tvp-card tvp-panel"
-            onClick={(e) => e.stopPropagation()}
-            style={{ width: "min(520px, 92vw)" }}
+            role="dialog"
+            aria-modal="true"
+            onClick={() => !updateAdminMut.isPending && setEditAdmin(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 50,
+            }}
           >
-            <div className="tvp-panel-head">
-              <h2 className="tvp-h2">
-                Edit administrator — {editAdmin.display_name || editAdmin.email}
-              </h2>
-              <button
-                title="Close"
-                className="tvp-mini-btn"
-                onClick={() => setEditAdmin(null)}
-                aria-label="Close"
-                disabled={updateAdminMut.isPending}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="tvp-muted" style={{ fontSize: 12 }}>
-              Only the Main Administrator can change these fields. Every change is written to the
-              audit log.
-            </p>
-            <div className="tvp-form-group">
-              <label htmlFor={`${a11yId}-field-2`}>Designation / title</label>
-              <input
-                id={`${a11yId}-field-2`}
-                type="text"
-                value={editDesignation}
-                onChange={(e) => setEditDesignation(e.target.value)}
-                placeholder="e.g. Platform Operations Lead"
-                maxLength={120}
-              />
-            </div>
-            <div className="tvp-form-group">
-              <label htmlFor={`${a11yId}-field-3`}>Permission level</label>
-              {/* Options carry only administrator permission values. */}
-              <select
-                id={`${a11yId}-field-3`}
-                value={editPermission}
-                onChange={(e) => setEditPermission(e.target.value as AdminPermissionLevel)}
-                disabled={editAdmin.is_main_admin}
-              >
-                {ADMIN_PERMISSION_LEVELS.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.optionLabel}
-                  </option>
-                ))}
-              </select>
-              {editAdmin.is_main_admin && (
-                <span
-                  className="tvp-muted"
-                  style={{ fontSize: 12, marginTop: 6, display: "block" }}
+            <div
+              className="tvp-card tvp-panel"
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: "min(520px, 92vw)" }}
+            >
+              <div className="tvp-panel-head">
+                <h2 className="tvp-h2">
+                  Edit administrator — {editAdmin.display_name || editAdmin.email}
+                </h2>
+                <button
+                  title="Close"
+                  className="tvp-mini-btn"
+                  onClick={() => setEditAdmin(null)}
+                  aria-label="Close"
+                  disabled={updateAdminMut.isPending}
                 >
-                  The Main Administrator always keeps edit rights.
-                </span>
-              )}
-            </div>
-            <div className="tvp-footer-actions">
-              <button
-                className="tvp-secondary"
-                onClick={() => setEditAdmin(null)}
-                disabled={updateAdminMut.isPending}
-              >
-                Cancel
-              </button>
-              <button
-                className="tvp-primary"
-                onClick={() =>
-                  updateAdminMut.mutate({
-                    user_id: editAdmin.user_id,
-                    designation: editDesignation.trim() || null,
-                    permission_level: editPermission,
-                  })
-                }
-                disabled={updateAdminMut.isPending}
-              >
-                {updateAdminMut.isPending ? "Saving…" : "Save changes"}
-              </button>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="tvp-muted" style={{ fontSize: 12 }}>
+                Only the Main Administrator can change these fields. Every change is written to the
+                audit log.
+              </p>
+              <div className="tvp-form-group">
+                <label htmlFor={`${a11yId}-field-2`}>Designation / title</label>
+                <input
+                  id={`${a11yId}-field-2`}
+                  type="text"
+                  value={editDesignation}
+                  onChange={(e) => setEditDesignation(e.target.value)}
+                  placeholder="e.g. Platform Operations Lead"
+                  maxLength={120}
+                />
+              </div>
+              <div className="tvp-form-group">
+                <label htmlFor={`${a11yId}-field-3`}>Permission level</label>
+                {/* Options carry only administrator permission values. */}
+                <select
+                  id={`${a11yId}-field-3`}
+                  value={editPermission}
+                  onChange={(e) => setEditPermission(e.target.value as AdminPermissionLevel)}
+                  disabled={editAdmin.is_main_admin}
+                >
+                  {ADMIN_PERMISSION_LEVELS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.optionLabel}
+                    </option>
+                  ))}
+                </select>
+                {editAdmin.is_main_admin && (
+                  <span
+                    className="tvp-muted"
+                    style={{ fontSize: 12, marginTop: 6, display: "block" }}
+                  >
+                    The Main Administrator always keeps edit rights.
+                  </span>
+                )}
+              </div>
+              <div className="tvp-footer-actions">
+                <button
+                  className="tvp-secondary"
+                  onClick={() => setEditAdmin(null)}
+                  disabled={updateAdminMut.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="tvp-primary"
+                  onClick={() =>
+                    updateAdminMut.mutate({
+                      user_id: editAdmin.user_id,
+                      designation: editDesignation.trim() || null,
+                      permission_level: editPermission,
+                    })
+                  }
+                  disabled={updateAdminMut.isPending}
+                >
+                  {updateAdminMut.isPending ? "Saving…" : "Save changes"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </AccessibleModal>
       )}
 
       {editInvite && (

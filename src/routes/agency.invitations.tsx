@@ -1,3 +1,4 @@
+import { AccessibleModal } from "@/components/shared/accessible-modal";
 import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
@@ -493,322 +494,329 @@ function NewInvitationModal({
         : "Next: choose folders";
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-      }}
-    >
+    <AccessibleModal onClose={onClose} label="Invitation">
       <div
-        className="tvp-card tvp-panel"
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: "min(640px, 94vw)", maxHeight: "92vh", overflow: "auto" }}
+        role="dialog"
+        aria-modal="true"
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 50,
+        }}
       >
-        <div className="tvp-panel-head">
-          <h2 className="tvp-h2">
-            {type === "talent" ? "New Talent Invitation" : "New Staff Invitation"}
-          </h2>
-          <button title="Close" className="tvp-mini-btn" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {type === "talent" && (
-          <div className="tvp-stepper" style={{ marginTop: 4 }}>
-            <div className={`tvp-step ${panel === "details" ? "tvp-active" : "tvp-done"}`}>
-              <div className="tvp-step-num">1</div>
-              <div>
-                <div className="tvp-step-title">Details</div>
-                <div className="tvp-step-sub">Name, email, expiry</div>
-              </div>
-            </div>
-            <div className={`tvp-step ${panel === "folders" ? "tvp-active" : ""}`}>
-              <div className="tvp-step-num">2</div>
-              <div>
-                <div className="tvp-step-title">Folders</div>
-                <div className="tvp-step-sub">Standard or custom</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
-          {type === "talent"
-            ? "Invites a talent to your Roster. Choose which shared folders they’ll get on acceptance."
-            : "Invites a staff member to your agency. Only agency owners can send staff invitations."}
-        </p>
-
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (await emailCheck.check(email)) return;
-            if (type === "talent" && panel === "details") {
-              if (!name.trim() || !email.trim()) return;
-              setPanel("folders");
-              return;
-            }
-            if (!canSubmit) return;
-            setBusy(true);
-            const payload =
-              type === "talent"
-                ? {
-                    talent_name: name.trim(),
-                    email: email.trim(),
-                    expiry_days: expiryDays,
-                    folder_mode: folderMode,
-                    folder_selection: activeSelection.map((f, i) => ({
-                      name: f.name,
-                      sort_order: f.sort_order ?? i,
-                      retention_years: f.retention_years ?? null,
-                    })),
-                  }
-                : {
-                    contact_person: name.trim() || undefined,
-                    email: email.trim(),
-                    role,
-                    expiry_days: expiryDays,
-                  };
-            await onSubmit(payload);
-            setBusy(false);
-          }}
+        <div
+          className="tvp-card tvp-panel"
+          onClick={(e) => e.stopPropagation()}
+          style={{ width: "min(640px, 94vw)", maxHeight: "92vh", overflow: "auto" }}
         >
-          {!showFoldersPanel && (
-            <>
-              {type === "talent" ? (
-                <div className="tvp-form-group">
-                  <label htmlFor={`${a11yId}-field-0`}>Talent name *</label>
-                  <input
-                    id={`${a11yId}-field-0`}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    placeholder="e.g. full name as it appears on ID"
-                  />
+          <div className="tvp-panel-head">
+            <h2 className="tvp-h2">
+              {type === "talent" ? "New Talent Invitation" : "New Staff Invitation"}
+            </h2>
+            <button title="Close" className="tvp-mini-btn" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {type === "talent" && (
+            <div className="tvp-stepper" style={{ marginTop: 4 }}>
+              <div className={`tvp-step ${panel === "details" ? "tvp-active" : "tvp-done"}`}>
+                <div className="tvp-step-num">1</div>
+                <div>
+                  <div className="tvp-step-title">Details</div>
+                  <div className="tvp-step-sub">Name, email, expiry</div>
                 </div>
-              ) : (
-                <div className="tvp-form-group">
-                  <label htmlFor={`${a11yId}-field-1`}>Contact person</label>
-                  <input
-                    id={`${a11yId}-field-1`}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. full name as it appears on ID"
-                  />
-                </div>
-              )}
-              <div className="tvp-form-group">
-                <label htmlFor={`${a11yId}-field-2`}>Email *</label>
-                <input
-                  id={`${a11yId}-field-2`}
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    emailCheck.clear();
-                  }}
-                  onBlur={() => void emailCheck.check(email)}
-                  aria-invalid={!!emailCheck.conflict}
-                  required
-                  placeholder="name@email.com"
-                />
-                <InviteEmailFieldError conflict={emailCheck.conflict} />
               </div>
-              {type === "staff" && (
-                <div className="tvp-form-group">
-                  <label htmlFor={`${a11yId}-field-3`}>Role</label>
-                  <select
-                    id={`${a11yId}-field-3`}
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                  >
-                    <option value="staff">Staff manager (view + limited actions)</option>
-                    <option value="lead">Lead manager (full talent operations)</option>
-                  </select>
+              <div className={`tvp-step ${panel === "folders" ? "tvp-active" : ""}`}>
+                <div className="tvp-step-num">2</div>
+                <div>
+                  <div className="tvp-step-title">Folders</div>
+                  <div className="tvp-step-sub">Standard or custom</div>
                 </div>
-              )}
-              <div className="tvp-form-group">
-                <label htmlFor={`${a11yId}-field-4`}>Invitation expiry (days)</label>
-                <input
-                  id={`${a11yId}-field-4`}
-                  type="number"
-                  min={1}
-                  max={60}
-                  value={expiryDays}
-                  onChange={(e) => setExpiryDays(Number(e.target.value) || 14)}
-                />
               </div>
-            </>
+            </div>
           )}
 
-          {showFoldersPanel && (
-            <div
-              className="tvp-sub-card"
-              style={{
-                marginTop: 8,
-                borderColor: "rgba(20, 184, 166, 0.35)",
-                background: "rgba(20, 184, 166, 0.06)",
-              }}
-            >
-              <h3
-                className="tvp-h3"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <FolderCog className="h-4 w-4" /> Folders for {name.trim() || "this talent"}
-              </h3>
+          <p className="tvp-muted" style={{ fontSize: 12, marginTop: 8 }}>
+            {type === "talent"
+              ? "Invites a talent to your Roster. Choose which shared folders they’ll get on acceptance."
+              : "Invites a staff member to your agency. Only agency owners can send staff invitations."}
+          </p>
 
-              <div
-                className="tvp-ai-box"
-                style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "flex-start" }}
-              >
-                <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
-                <div className="tvp-small">
-                  Folders inside the Roster Shared Folder are visible to both you and the talent.
-                  The talent also gets a separate Private Vault for personal documents — you can’t
-                  see those.
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (await emailCheck.check(email)) return;
+              if (type === "talent" && panel === "details") {
+                if (!name.trim() || !email.trim()) return;
+                setPanel("folders");
+                return;
+              }
+              if (!canSubmit) return;
+              setBusy(true);
+              const payload =
+                type === "talent"
+                  ? {
+                      talent_name: name.trim(),
+                      email: email.trim(),
+                      expiry_days: expiryDays,
+                      folder_mode: folderMode,
+                      folder_selection: activeSelection.map((f, i) => ({
+                        name: f.name,
+                        sort_order: f.sort_order ?? i,
+                        retention_years: f.retention_years ?? null,
+                      })),
+                    }
+                  : {
+                      contact_person: name.trim() || undefined,
+                      email: email.trim(),
+                      role,
+                      expiry_days: expiryDays,
+                    };
+              await onSubmit(payload);
+              setBusy(false);
+            }}
+          >
+            {!showFoldersPanel && (
+              <>
+                {type === "talent" ? (
+                  <div className="tvp-form-group">
+                    <label htmlFor={`${a11yId}-field-0`}>Talent name *</label>
+                    <input
+                      id={`${a11yId}-field-0`}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      placeholder="e.g. full name as it appears on ID"
+                    />
+                  </div>
+                ) : (
+                  <div className="tvp-form-group">
+                    <label htmlFor={`${a11yId}-field-1`}>Contact person</label>
+                    <input
+                      id={`${a11yId}-field-1`}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. full name as it appears on ID"
+                    />
+                  </div>
+                )}
+                <div className="tvp-form-group">
+                  <label htmlFor={`${a11yId}-field-2`}>Email *</label>
+                  <input
+                    id={`${a11yId}-field-2`}
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      emailCheck.clear();
+                    }}
+                    onBlur={() => void emailCheck.check(email)}
+                    aria-invalid={!!emailCheck.conflict}
+                    required
+                    placeholder="name@email.com"
+                  />
+                  <InviteEmailFieldError conflict={emailCheck.conflict} />
                 </div>
-              </div>
+                {type === "staff" && (
+                  <div className="tvp-form-group">
+                    <label htmlFor={`${a11yId}-field-3`}>Role</label>
+                    <select
+                      id={`${a11yId}-field-3`}
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                    >
+                      <option value="staff">Staff manager (view + limited actions)</option>
+                      <option value="lead">Lead manager (full talent operations)</option>
+                    </select>
+                  </div>
+                )}
+                <div className="tvp-form-group">
+                  <label htmlFor={`${a11yId}-field-4`}>Invitation expiry (days)</label>
+                  <input
+                    id={`${a11yId}-field-4`}
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={expiryDays}
+                    onChange={(e) => setExpiryDays(Number(e.target.value) || 14)}
+                  />
+                </div>
+              </>
+            )}
 
+            {showFoldersPanel && (
               <div
-                style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 14 }}
+                className="tvp-sub-card"
+                style={{
+                  marginTop: 8,
+                  borderColor: "rgba(20, 184, 166, 0.35)",
+                  background: "rgba(20, 184, 166, 0.06)",
+                }}
               >
-                <button
-                  type="button"
-                  onClick={() => setFolderMode("standard")}
-                  className={`tvp-rule-card ${folderMode === "standard" ? "tvp-active" : ""}`}
+                <h3
+                  className="tvp-h3"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  <FolderCog className="h-4 w-4" /> Folders for {name.trim() || "this talent"}
+                </h3>
+
+                <div
+                  className="tvp-ai-box"
+                  style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "flex-start" }}
+                >
+                  <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="tvp-small">
+                    Folders inside the Roster Shared Folder are visible to both you and the talent.
+                    The talent also gets a separate Private Vault for personal documents — you can’t
+                    see those.
+                  </div>
+                </div>
+
+                <div
                   style={{
-                    textAlign: "left",
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    cursor: "pointer",
+                    display: "grid",
+                    gap: 12,
+                    gridTemplateColumns: "1fr 1fr",
+                    marginTop: 14,
                   }}
                 >
-                  <div
+                  <button
+                    type="button"
+                    onClick={() => setFolderMode("standard")}
+                    className={`tvp-rule-card ${folderMode === "standard" ? "tvp-active" : ""}`}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
+                      textAlign: "left",
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <Check className="h-4 w-4" /> Use my standard set
+                      </strong>
+                      <span className="tvp-small tvp-muted">Recommended</span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                      {standardFolders.length === 0 ? (
+                        <span className="tvp-small tvp-muted">
+                          No default template configured yet.
+                        </span>
+                      ) : (
+                        standardFolders.map((f) => (
+                          <span key={f.name} className="tvp-badge">
+                            {f.name}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                    <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
+                      Pulled from your default Folder Template.
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFolderMode("custom")}
+                    className={`tvp-rule-card ${folderMode === "custom" ? "tvp-active" : ""}`}
+                    style={{
+                      textAlign: "left",
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                      cursor: "pointer",
                     }}
                   >
                     <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <Check className="h-4 w-4" /> Use my standard set
+                      <Settings2 className="h-4 w-4" /> Customise for this talent
                     </strong>
-                    <span className="tvp-small tvp-muted">Recommended</span>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                    {standardFolders.length === 0 ? (
-                      <span className="tvp-small tvp-muted">
-                        No default template configured yet.
-                      </span>
-                    ) : (
-                      standardFolders.map((f) => (
-                        <span key={f.name} className="tvp-badge">
-                          {f.name}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                  <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
-                    Pulled from your default Folder Template.
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFolderMode("custom")}
-                  className={`tvp-rule-card ${folderMode === "custom" ? "tvp-active" : ""}`}
-                  style={{
-                    textAlign: "left",
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    cursor: "pointer",
-                  }}
-                >
-                  <strong style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Settings2 className="h-4 w-4" /> Customise for this talent
-                  </strong>
-                  <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
-                    Pick and choose folders. Useful for atypical engagements.
-                  </div>
-                  {folderMode === "custom" && (
-                    <div className="tvp-small" style={{ marginTop: 8 }}>
-                      {customFolders.size} folder{customFolders.size === 1 ? "" : "s"} selected
+                    <div className="tvp-small tvp-muted" style={{ marginTop: 8 }}>
+                      Pick and choose folders. Useful for atypical engagements.
                     </div>
-                  )}
-                </button>
-              </div>
-
-              {folderMode === "custom" && (
-                <div className="tvp-rule-grid" style={{ marginTop: 14 }}>
-                  {allFolders.map((f) => {
-                    const on = customFolders.has(f.name);
-                    const inStd = standardFolders.some((s) => s.name === f.name);
-                    return (
-                      <label key={f.name} className="tvp-rule-card">
-                        <span>
-                          <input
-                            type="checkbox"
-                            checked={on}
-                            onChange={() => {
-                              setCustomFolders((prev) => {
-                                const next = new Set(prev);
-                                if (next.has(f.name)) next.delete(f.name);
-                                else next.add(f.name);
-                                return next;
-                              });
-                            }}
-                          />{" "}
-                          {f.name}
-                        </span>
-                        <span className="tvp-small">{inStd ? "Recommended" : "Optional"}</span>
-                      </label>
-                    );
-                  })}
+                    {folderMode === "custom" && (
+                      <div className="tvp-small" style={{ marginTop: 8 }}>
+                        {customFolders.size} folder{customFolders.size === 1 ? "" : "s"} selected
+                      </div>
+                    )}
+                  </button>
                 </div>
-              )}
 
-              <div className="tvp-small tvp-muted" style={{ marginTop: 10 }}>
-                Defaults are configured in{" "}
-                <Link to="/agency/folder-templates" className="tvp-link">
-                  Folder Templates
-                </Link>
-                .
+                {folderMode === "custom" && (
+                  <div className="tvp-rule-grid" style={{ marginTop: 14 }}>
+                    {allFolders.map((f) => {
+                      const on = customFolders.has(f.name);
+                      const inStd = standardFolders.some((s) => s.name === f.name);
+                      return (
+                        <label key={f.name} className="tvp-rule-card">
+                          <span>
+                            <input
+                              type="checkbox"
+                              checked={on}
+                              onChange={() => {
+                                setCustomFolders((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(f.name)) next.delete(f.name);
+                                  else next.add(f.name);
+                                  return next;
+                                });
+                              }}
+                            />{" "}
+                            {f.name}
+                          </span>
+                          <span className="tvp-small">{inStd ? "Recommended" : "Optional"}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="tvp-small tvp-muted" style={{ marginTop: 10 }}>
+                  Defaults are configured in{" "}
+                  <Link to="/agency/folder-templates" className="tvp-link">
+                    Folder Templates
+                  </Link>
+                  .
+                </div>
               </div>
-            </div>
-          )}
-
-          <div className="tvp-footer-actions">
-            {type === "talent" && showFoldersPanel && (
-              <button type="button" className="tvp-secondary" onClick={() => setPanel("details")}>
-                Back
-              </button>
             )}
-            <button type="button" className="tvp-secondary" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="tvp-primary"
-              disabled={
-                busy ||
-                !email.trim() ||
-                (type === "talent" && !name.trim()) ||
-                (showFoldersPanel && activeSelection.length === 0)
-              }
-            >
-              {primaryLabel}
-            </button>
-          </div>
-        </form>
+
+            <div className="tvp-footer-actions">
+              {type === "talent" && showFoldersPanel && (
+                <button type="button" className="tvp-secondary" onClick={() => setPanel("details")}>
+                  Back
+                </button>
+              )}
+              <button type="button" className="tvp-secondary" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="tvp-primary"
+                disabled={
+                  busy ||
+                  !email.trim() ||
+                  (type === "talent" && !name.trim()) ||
+                  (showFoldersPanel && activeSelection.length === 0)
+                }
+              >
+                {primaryLabel}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </AccessibleModal>
   );
 }
 
