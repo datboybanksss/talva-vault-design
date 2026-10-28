@@ -81,6 +81,7 @@ DO $$ DECLARE definition text; BEGIN
   definition := replace(definition, 'public.agency_billing_counters', 'pg_temp.agency_billing_counters');
   -- Only bypass authorisation in the isolated copy; preserve the installed numbering algorithm.
   definition := replace(definition, 'public.agency_staff_can_write(auth.uid(), _agency_id)', 'true');
+  definition := replace(definition, 'public.has_role(auth.uid(), ''admin'')', 'false');
   EXECUTE definition;
 END $$;
 INSERT INTO agency_billing_docs VALUES ('11111111-1111-4111-8111-111111111111', 'invoice', ' inv-' || extract(year from now())::int || '-0001 ');
