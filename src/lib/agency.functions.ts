@@ -7,6 +7,7 @@ import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 import { profileName } from "./profile-name";
 import { billingAccent } from "./billing-brand";
+import { createDraftBillingNumber } from "./billing-number";
 import { connectionResponseReminder, reminderVisible } from "./connection-response";
 import { inviteActorArgs } from "./invite-actor";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
@@ -3254,13 +3255,28 @@ export const updateAgencyContractMeta = createServerFn({ method: "POST" })
     return row;
   });
 
+/** Reserve a default using the same atomic agency/year counter as Quotes & Invoices. */
+export const reserveAgencyInvoiceNumber = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { agencyId } = await getWritableCallerAgency(supabase, userId);
+    const { data: number, error } = await supabase.rpc("mint_billing_doc_number", {
+      _agency_id: agencyId,
+      _kind: "invoice",
+    });
+    if (error) throw databaseError(error);
+    if (!number) throw new Error("We couldn't assign an invoice number. Please try again.");
+    return number;
+  });
+
 export const createInvoiceForContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z
       .object({
         contract_id: z.string().uuid(),
-        number: z.string().min(1).max(64),
+        number: z.string().trim().min(1).max(64),
         total_cents: z.number().int().min(0),
         issued_at: z.string().max(10000).min(10).optional(),
         due_date: z.string().max(10000).min(10).nullable().optional(),
@@ -3280,6 +3296,20 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
       .maybeSingle();
     if (cErr) throw databaseError(cErr);
     if (!contract) throw new Error("Contract not found");
+
+    const { data: existing, error: numberError } = await supabase
+      .from("agency_billing_docs")
+      .select("id")
+      .eq("agency_id", agencyId)
+      .eq("kind", "invoice")
+      .eq("number", data.number)
+      .limit(1);
+    if (numberError) throw databaseError(numberError);
+    if (existing?.length) {
+      throw new Error(
+        "INVOICE_NUMBER_EXISTS: This agency already has an invoice with that number. Please choose a different number.",
+      );
+    }
 
     let talentName: string | null = null;
     if (contract.talent_link_id) {
@@ -4033,8 +4063,7 @@ export const saveAgencyBillingDocFull = createServerFn({ method: "POST" })
     }
     const primaryRate = [...rateCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
 
-    const number =
-      data.number?.trim() || `DRAFT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const number = data.number?.trim() || createDraftBillingNumber();
 
     const payload: TablesInsert<"agency_billing_docs"> = {
       agency_id: agencyId,

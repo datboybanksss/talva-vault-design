@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] S2245 remediation: shared contract invoice numbering, agency-scoped duplicate rejection, crypto draft labels, deterministic skeleton; regression tests and whole-codebase security sweep.
 - [x] Next run 0: full suite 301 passed / 5 existing skips; src lint 0 errors / 43 warnings, other targets 0 / 0; authored explicit-any 0; automatic validation `=== build 2026-10-27T17:36:41Z === build OK`.
 - [x] Next run 1: removed safe-space-frames_260825.backup via Storage API, then database_export_25_08_26 bucket; database confirms object_count=0 and bucket_count=0. No backup/copy made.
 - [x] Next run 2: single database mfa_enforced switch (OFF here), verified JWT session binding, restrictive table/private-storage policies, global authenticated function gate/allow-list, code-screen redirect, deployment/rollback notes and regressions; final OFF/password-only check. No session minting.
