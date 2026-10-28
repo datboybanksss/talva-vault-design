@@ -179,8 +179,8 @@ function TalentPage() {
   );
   const typeOptions = useMemo(
     () =>
-      Array.from(new Set(rows.map((r) => r.talentType).filter(Boolean) as string[])).sort(
-        (a, b) => a.localeCompare(b),
+      Array.from(new Set(rows.map((r) => r.talentType).filter(Boolean) as string[])).sort((a, b) =>
+        a.localeCompare(b),
       ),
     [rows],
   );

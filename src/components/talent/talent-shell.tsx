@@ -172,7 +172,9 @@ export function TalentShell({ children }: { children: ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: ["talent", "notifications"] });
       void queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
     } catch (e) {
-      toast.error(friendlyError(e, "We couldn't mark this notification as read. Please try again."));
+      toast.error(
+        friendlyError(e, "We couldn't mark this notification as read. Please try again."),
+      );
     }
   }
 
