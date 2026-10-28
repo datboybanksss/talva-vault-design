@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useState, type ReactElement, type ReactNode } from "react";
 
 type ElementProps = {
   children?: ReactNode;
@@ -18,6 +18,11 @@ export function AccessibleModal({
   onClose: () => void;
   label?: string;
 }) {
+  const [opener] = useState(() =>
+    typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null,
+  );
   let hasTitle = false;
   function withTitle(node: ReactNode): ReactNode {
     return Children.map(node, (child) => {
@@ -41,6 +46,10 @@ export function AccessibleModal({
         asChild
         aria-label={hasTitle ? undefined : label}
         aria-describedby={undefined}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (opener?.isConnected) opener.focus();
+        }}
       >
         {panel}
       </Dialog.Content>
