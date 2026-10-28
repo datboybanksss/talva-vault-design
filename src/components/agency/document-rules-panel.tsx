@@ -1,3 +1,5 @@
+import { AccessibleModal } from "@/components/shared/accessible-modal";
+import { useId } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
   useMutation,
@@ -308,6 +310,7 @@ function RuleDialog({
     description: string | null;
   }) => Promise<void>;
 }) {
+  const a11yId = useId();
   const folderOptions = useFolderNames();
   const scope = "folder" as "folder" | "document";
   const [scopeValue, setScopeValue] = useState<string>(initial.scopeValue ?? "");
@@ -345,110 +348,116 @@ function RuleDialog({
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-      }}
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        className="tvp-card"
-        style={{ width: 520, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
+    <AccessibleModal onClose={onClose} label="Document rule">
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15,23,42,0.55)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 50,
+        }}
       >
-        <h2 className="tvp-h2">{initial.id ? "Edit retention rule" : "Add retention rule"}</h2>
+        <form
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={submit}
+          className="tvp-card"
+          style={{ width: 520, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
+        >
+          <h2 className="tvp-h2">{initial.id ? "Edit retention rule" : "Add retention rule"}</h2>
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
-          Scope
-        </label>
-        <div className="tvp-muted" style={{ fontSize: 13 }}>
-          Entire folder
-        </div>
+          <span className="tvp-muted" style={{ fontSize: 13 }}>
+            Scope
+          </span>
+          <div className="tvp-muted" style={{ fontSize: 13 }}>
+            Entire folder
+          </div>
 
-        {scope === "folder" ? (
-          <>
-            <label className="tvp-muted" style={{ fontSize: 13 }}>
-              Folder
-            </label>
-            <select
-              className="tvp-select"
-              value={scopeValue}
-              onChange={(e) => setScopeValue(e.target.value)}
+          {scope === "folder" ? (
+            <>
+              <label htmlFor={`${a11yId}-field-1`} className="tvp-muted" style={{ fontSize: 13 }}>
+                Folder
+              </label>
+              <select
+                id={`${a11yId}-field-1`}
+                className="tvp-select"
+                value={scopeValue}
+                onChange={(e) => setScopeValue(e.target.value)}
+              >
+                {allFolders.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <>
+              <label htmlFor={`${a11yId}-field-2`} className="tvp-muted" style={{ fontSize: 13 }}>
+                Document
+              </label>
+              <select
+                id={`${a11yId}-field-2`}
+                className="tvp-select"
+                value={documentId}
+                onChange={(e) => setDocumentId(e.target.value)}
+              >
+                {docs.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} — {d.talentName}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          <label htmlFor={`${a11yId}-field-3`} className="tvp-muted" style={{ fontSize: 13 }}>
+            Retention (years)
+          </label>
+          <input
+            id={`${a11yId}-field-3`}
+            className="tvp-select"
+            type="number"
+            min={0}
+            max={100}
+            value={years}
+            onChange={(e) => setYears(Number(e.target.value))}
+            required
+          />
+
+          <label htmlFor={`${a11yId}-field-4`} className="tvp-muted" style={{ fontSize: 13 }}>
+            Description (optional)
+          </label>
+          <input
+            id={`${a11yId}-field-4`}
+            className="tvp-select"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Statutory 10-year contract retention"
+          />
+
+          <p className="tvp-field-hint" role="note">
+            {RULE_CHANGE_NOTE}
+          </p>
+
+          <div className="flex gap-2 mt-2 justify-end">
+            <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="tvp-primary"
+              disabled={busy || (scope === "document" && !documentId)}
             >
-              {allFolders.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : (
-          <>
-            <label className="tvp-muted" style={{ fontSize: 13 }}>
-              Document
-            </label>
-            <select
-              className="tvp-select"
-              value={documentId}
-              onChange={(e) => setDocumentId(e.target.value)}
-            >
-              {docs.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name} — {d.talentName}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
-
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
-          Retention (years)
-        </label>
-        <input
-          className="tvp-select"
-          type="number"
-          min={0}
-          max={100}
-          value={years}
-          onChange={(e) => setYears(Number(e.target.value))}
-          required
-        />
-
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
-          Description (optional)
-        </label>
-        <input
-          className="tvp-select"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="e.g. Statutory 10-year contract retention"
-        />
-
-        <p className="tvp-field-hint" role="note">
-          {RULE_CHANGE_NOTE}
-        </p>
-
-        <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="tvp-primary"
-            disabled={busy || (scope === "document" && !documentId)}
-          >
-            Save rule
-          </button>
-        </div>
-      </form>
-    </div>
+              Save rule
+            </button>
+          </div>
+        </form>
+      </div>
+    </AccessibleModal>
   );
 }
 

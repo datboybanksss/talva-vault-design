@@ -697,7 +697,6 @@ function AuthPage() {
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="123456"
-                  autoFocus
                 />
                 <div className="tv-auth-hint">{SIGN_IN_CODE_MISSING}</div>
               </div>

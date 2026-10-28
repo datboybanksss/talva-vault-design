@@ -115,7 +115,6 @@ function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@email.com"
-                autoFocus
               />
             </div>
             {error && <div className="tv-auth-alert">{error}</div>}

@@ -1,3 +1,5 @@
+import { AccessibleModal } from "@/components/shared/accessible-modal";
+import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
@@ -48,6 +50,7 @@ type EditorItem = {
 };
 
 export function FolderTemplatesPanel() {
+  const a11yId = useId();
   const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
   const { data } = useSuspenseQuery(folderTemplatesListQO);
@@ -319,151 +322,155 @@ export function FolderTemplatesPanel() {
       </div>
 
       {editorOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
-          onClick={() => setEditorOpen(false)}
-        >
+        <AccessibleModal onClose={() => setEditorOpen(false)} label="Folder template">
           <div
-            className="tvp-card"
             style={{
-              maxWidth: 720,
-              width: "100%",
-              maxHeight: "90vh",
-              overflow: "auto",
-              padding: 24,
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.4)",
+              zIndex: 50,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setEditorOpen(false)}
           >
-            <div className="flex justify-between items-center" style={{ marginBottom: 16 }}>
-              <h2 className="tvp-h2">{editingId ? "Edit template" : "New template"}</h2>
-              <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}>
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="tvp-form-group">
-              <label>Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Standard onboarding folders"
-              />
-            </div>
-            <div className="tvp-form-group">
-              <label>Description</label>
-              <input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
-            <div className="tvp-form-group">
-              <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={isDefault}
-                  onChange={(e) => setIsDefault(e.target.checked)}
-                />
-                Mark as default template
-              </label>
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
-                <strong>Folders</strong>
-                <button
-                  className="tvp-secondary"
-                  onClick={() =>
-                    setItems([
-                      ...items,
-                      {
-                        key: crypto.randomUUID(),
-                        folder_name: "",
-                        sort_order: items.length,
-                        default_retention_years: null,
-                      },
-                    ])
-                  }
-                >
-                  <Plus className="h-4 w-4" />
-                  Add folder
+            <div
+              className="tvp-card"
+              style={{
+                maxWidth: 720,
+                width: "100%",
+                maxHeight: "90vh",
+                overflow: "auto",
+                padding: 24,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center" style={{ marginBottom: 16 }}>
+                <h2 className="tvp-h2">{editingId ? "Edit template" : "New template"}</h2>
+                <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}>
+                  <X className="h-4 w-4" />
                 </button>
               </div>
-              <table className="tvp-table">
-                <thead>
-                  <tr>
-                    <th>Folder name</th>
-                    <th style={{ width: 160 }}>Retention (years)</th>
-                    <th style={{ width: 40 }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((it, idx) => (
-                    <tr key={it.key}>
-                      <td>
-                        <input
-                          value={it.folder_name}
-                          placeholder="e.g. Contracts &amp; Agreements"
-                          onChange={(e) => {
-                            const copy = [...items];
-                            copy[idx] = { ...it, folder_name: e.target.value };
-                            setItems(copy);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={it.default_retention_years ?? ""}
-                          placeholder="—"
-                          onChange={(e) => {
-                            const v = e.target.value === "" ? null : Number(e.target.value);
-                            const copy = [...items];
-                            copy[idx] = { ...it, default_retention_years: v };
-                            setItems(copy);
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <button
-                          title="Remove row"
-                          className="tvp-mini-btn"
-                          onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              <div className="tvp-form-group">
+                <label htmlFor={`${a11yId}-field-0`}>Name</label>
+                <input
+                  id={`${a11yId}-field-0`}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Standard onboarding folders"
+                />
+              </div>
+              <div className="tvp-form-group">
+                <label htmlFor={`${a11yId}-field-1`}>Description</label>
+                <input
+                  id={`${a11yId}-field-1`}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="tvp-form-group">
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={isDefault}
+                    onChange={(e) => setIsDefault(e.target.checked)}
+                  />
+                  Mark as default template
+                </label>
+              </div>
 
-            <div className="flex justify-end gap-2" style={{ marginTop: 16 }}>
-              <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>
-                Cancel
-              </button>
-              <button
-                className="tvp-primary"
-                onClick={() => save.mutate()}
-                disabled={save.isPending}
-              >
-                <Save className="h-4 w-4" />
-                {save.isPending ? "Saving…" : "Save template"}
-              </button>
+              <div style={{ marginTop: 16 }}>
+                <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
+                  <strong>Folders</strong>
+                  <button
+                    className="tvp-secondary"
+                    onClick={() =>
+                      setItems([
+                        ...items,
+                        {
+                          key: crypto.randomUUID(),
+                          folder_name: "",
+                          sort_order: items.length,
+                          default_retention_years: null,
+                        },
+                      ])
+                    }
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add folder
+                  </button>
+                </div>
+                <table className="tvp-table">
+                  <thead>
+                    <tr>
+                      <th>Folder name</th>
+                      <th style={{ width: 160 }}>Retention (years)</th>
+                      <th style={{ width: 40 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((it, idx) => (
+                      <tr key={it.key}>
+                        <td>
+                          <input
+                            value={it.folder_name}
+                            placeholder="e.g. Contracts &amp; Agreements"
+                            onChange={(e) => {
+                              const copy = [...items];
+                              copy[idx] = { ...it, folder_name: e.target.value };
+                              setItems(copy);
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={it.default_retention_years ?? ""}
+                            placeholder="—"
+                            onChange={(e) => {
+                              const v = e.target.value === "" ? null : Number(e.target.value);
+                              const copy = [...items];
+                              copy[idx] = { ...it, default_retention_years: v };
+                              setItems(copy);
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <button
+                            title="Remove row"
+                            className="tvp-mini-btn"
+                            onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end gap-2" style={{ marginTop: 16 }}>
+                <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="tvp-primary"
+                  onClick={() => save.mutate()}
+                  disabled={save.isPending}
+                >
+                  <Save className="h-4 w-4" />
+                  {save.isPending ? "Saving…" : "Save template"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </AccessibleModal>
       )}
     </>
   );

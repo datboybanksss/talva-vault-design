@@ -1,3 +1,5 @@
+import { AccessibleModal } from "@/components/shared/accessible-modal";
+import { useId } from "react";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { useConfirm } from "@/components/shared/use-confirm";
 import {
@@ -1328,310 +1330,287 @@ function UploadDialog({
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 24,
-      }}
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        className="tvp-card"
+    <AccessibleModal onClose={onClose} label="Document">
+      <div
+        onClick={onClose}
         style={{
-          width: "min(680px, 100%)",
-          maxHeight: "90vh",
-          overflow: "auto",
-          padding: 22,
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15,23,42,0.55)",
           display: "flex",
-          flexDirection: "column",
-          gap: 14,
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 50,
+          padding: 24,
         }}
       >
-        <div>
-          <h2 className="tvp-h2" style={{ margin: 0 }}>
-            Upload document
-          </h2>
-          <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
-            {selectedTalent
-              ? `This document will be shared with ${selectedTalent.displayName}.`
-              : "Choose a talent, add the file, then pick the folder it belongs in."}
-          </p>
-        </div>
+        <form
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={submit}
+          className="tvp-card"
+          style={{
+            width: "min(680px, 100%)",
+            maxHeight: "90vh",
+            overflow: "auto",
+            padding: 22,
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+          }}
+        >
+          <div>
+            <h2 className="tvp-h2" style={{ margin: 0 }}>
+              Upload document
+            </h2>
+            <p className="tvp-muted" style={{ fontSize: 13, marginTop: 4 }}>
+              {selectedTalent
+                ? `This document will be shared with ${selectedTalent.displayName}.`
+                : "Choose a talent, add the file, then pick the folder it belongs in."}
+            </p>
+          </div>
 
-        {/* Talent */}
-        <div>
-          <label className="tvp-form-label" htmlFor="upload-talent">
-            Talent
-          </label>
-          <select
-            id="upload-talent"
-            className="tvp-select"
-            value={talentLinkId}
-            onChange={(e) => {
-              setTalentLinkId(e.target.value);
-              setFolderId("");
-              setSuggestedFolderId(null);
-              setFolderSearch("");
-            }}
-          >
-            <option value="">Select talent…</option>
-            {talentLinks.map((l) => (
-              <option key={l.id} value={l.id} disabled={l.status === "ended"}>
-                {l.displayName}
-                {l.status === "ended" ? " (ended — new uploads blocked)" : ""}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Talent */}
+          <div>
+            <label className="tvp-form-label" htmlFor="upload-talent">
+              Talent
+            </label>
+            <select
+              id="upload-talent"
+              className="tvp-select"
+              value={talentLinkId}
+              onChange={(e) => {
+                setTalentLinkId(e.target.value);
+                setFolderId("");
+                setSuggestedFolderId(null);
+                setFolderSearch("");
+              }}
+            >
+              <option value="">Select talent…</option>
+              {talentLinks.map((l) => (
+                <option key={l.id} value={l.id} disabled={l.status === "ended"}>
+                  {l.displayName}
+                  {l.status === "ended" ? " (ended — new uploads blocked)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* File */}
-        <div>
-          <label className="tvp-form-label" id="upload-file-label">
-            File
-          </label>
-          <div
-            aria-labelledby="upload-file-label"
-            onClick={() => fileRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              const f = e.dataTransfer.files?.[0];
-              if (f) pickFile(f);
-            }}
-            role="button"
-            tabIndex={0}
-            style={{
-              border: `1.5px dashed ${dragOver ? "var(--tvp-teal-2)" : "var(--tvp-line)"}`,
-              background: dragOver ? "var(--surface-soft)" : "transparent",
-              borderRadius: 10,
-              padding: file ? "12px 14px" : "22px 14px",
-              cursor: "pointer",
-              transition: "all 120ms ease",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            {file ? (
-              <>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    background: "var(--surface-soft)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--tvp-teal-2)",
-                    flexShrink: 0,
-                  }}
-                >
-                  <FileText className="h-4 w-4" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+          {/* File */}
+          <div>
+            <label className="tvp-form-label" id="upload-file-label" htmlFor="upload-file">
+              File
+            </label>
+            <div
+              aria-labelledby="upload-file-label"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileRef.current?.click();
+                }
+              }}
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                const f = e.dataTransfer.files?.[0];
+                if (f) pickFile(f);
+              }}
+              role="button"
+              tabIndex={0}
+              style={{
+                border: `1.5px dashed ${dragOver ? "var(--tvp-teal-2)" : "var(--tvp-line)"}`,
+                background: dragOver ? "var(--surface-soft)" : "transparent",
+                borderRadius: 10,
+                padding: file ? "12px 14px" : "22px 14px",
+                cursor: "pointer",
+                transition: "all 120ms ease",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              {file ? (
+                <>
                   <div
                     style={{
-                      fontWeight: 600,
-                      fontSize: 14,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      background: "var(--surface-soft)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--tvp-teal-2)",
+                      flexShrink: 0,
                     }}
                   >
-                    {file.name}
+                    <FileText className="h-4 w-4" />
                   </div>
-                  <div className="tvp-muted" style={{ fontSize: 12 }}>
-                    {humanSize(file.size)} · click to replace
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 14,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {file.name}
+                    </div>
+                    <div className="tvp-muted" style={{ fontSize: 12 }}>
+                      {humanSize(file.size)} · click to replace
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    pickFile(null);
-                    setSuggestedFolderId(null);
-                    if (fileRef.current) fileRef.current.value = "";
-                  }}
-                  className="tvp-secondary"
-                  style={{ padding: "4px 10px", fontSize: 12 }}
-                >
-                  Remove
-                </button>
-              </>
-            ) : (
-              <>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: "var(--surface-soft)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--tvp-teal-2)",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Upload className="h-5 w-5" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>
-                    Drop a file here, or <span style={{ color: "var(--tvp-teal-2)" }}>browse</span>
-                  </div>
-                  <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
-                    PDF, image or document, up to 20 MB
-                  </div>
-                </div>
-              </>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              style={{ display: "none" }}
-              onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-            />
-          </div>
-          {fileError && (
-            <p className="tvp-field-error" role="alert" style={{ marginTop: 6 }}>
-              {fileError}
-            </p>
-          )}
-        </div>
-
-        {/* Folder */}
-        <div>
-          <label className="tvp-form-label" id="upload-folder-label">
-            Folder
-          </label>
-          {!talentLinkId ? (
-            <p className="tvp-muted" style={{ fontSize: 13 }}>
-              Select a talent first — their shared folders will appear here.
-            </p>
-          ) : foldersLoading ? (
-            <p className="tvp-muted" style={{ fontSize: 13 }}>
-              <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" /> Loading folders…
-            </p>
-          ) : folders.length === 0 ? (
-            <p className="tvp-muted" style={{ fontSize: 13 }}>
-              This talent has no shared folders yet. Set them up under{" "}
-              <Link to="/agency/settings" search={{ tab: "folders" }} className="tvp-link">
-                Manage folders
-              </Link>
-              .
-            </p>
-          ) : (
-            <>
-              {suggestedFolderId && selectedFolder?.id === suggestedFolderId && (
-                <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 8 }}>
-                  Suggested folder: <strong>{folderPath(selectedFolder)}</strong> · Based on the
-                  file name{" "}
                   <button
                     type="button"
-                    className="tvp-link"
-                    style={{ fontSize: 13 }}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      pickFile(null);
                       setSuggestedFolderId(null);
-                      setFolderId("");
+                      if (fileRef.current) fileRef.current.value = "";
+                    }}
+                    className="tvp-secondary"
+                    style={{ padding: "4px 10px", fontSize: 12 }}
+                  >
+                    Remove
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      background: "var(--surface-soft)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--tvp-teal-2)",
+                      flexShrink: 0,
                     }}
                   >
-                    Change
-                  </button>
-                </p>
+                    <Upload className="h-5 w-5" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>
+                      Drop a file here, or{" "}
+                      <span style={{ color: "var(--tvp-teal-2)" }}>browse</span>
+                    </div>
+                    <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                      PDF, image or document, up to 20 MB
+                    </div>
+                  </div>
+                </>
               )}
-              <div
-                style={{
-                  border: "1px solid var(--tvp-line)",
-                  borderRadius: 10,
-                  overflow: "hidden",
-                }}
-              >
+              <input
+                id="upload-file"
+                ref={fileRef}
+                type="file"
+                style={{ display: "none" }}
+                onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            {fileError && (
+              <p className="tvp-field-error" role="alert" style={{ marginTop: 6 }}>
+                {fileError}
+              </p>
+            )}
+          </div>
+
+          {/* Folder */}
+          <div role="group" aria-labelledby="upload-folder-label">
+            <span className="tvp-form-label" id="upload-folder-label">
+              Folder
+            </span>
+            {!talentLinkId ? (
+              <p className="tvp-muted" style={{ fontSize: 13 }}>
+                Select a talent first — their shared folders will appear here.
+              </p>
+            ) : foldersLoading ? (
+              <p className="tvp-muted" style={{ fontSize: 13 }}>
+                <Loader2 className="h-3.5 w-3.5 animate-spin inline mr-1" /> Loading folders…
+              </p>
+            ) : folders.length === 0 ? (
+              <p className="tvp-muted" style={{ fontSize: 13 }}>
+                This talent has no shared folders yet. Set them up under{" "}
+                <Link to="/agency/settings" search={{ tab: "folders" }} className="tvp-link">
+                  Manage folders
+                </Link>
+                .
+              </p>
+            ) : (
+              <>
+                {suggestedFolderId && selectedFolder?.id === suggestedFolderId && (
+                  <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 8 }}>
+                    Suggested folder: <strong>{folderPath(selectedFolder)}</strong> · Based on the
+                    file name{" "}
+                    <button
+                      type="button"
+                      className="tvp-link"
+                      style={{ fontSize: 13 }}
+                      onClick={() => {
+                        setSuggestedFolderId(null);
+                        setFolderId("");
+                      }}
+                    >
+                      Change
+                    </button>
+                  </p>
+                )}
                 <div
+                  role="group"
+                  aria-labelledby="upload-folder-label"
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 12px",
-                    borderBottom: "1px solid var(--tvp-line)",
+                    border: "1px solid var(--tvp-line)",
+                    borderRadius: 10,
+                    overflow: "hidden",
                   }}
                 >
-                  <Search className="h-4 w-4" style={{ color: "var(--tvp-muted)" }} />
-                  <input
-                    type="search"
-                    aria-label="Search folders"
-                    placeholder="Search folders"
-                    value={folderSearch}
-                    onChange={(e) => setFolderSearch(e.target.value)}
+                  <div
                     style={{
-                      border: "none",
-                      outline: "none",
-                      background: "transparent",
-                      color: "var(--tvp-ink)",
-                      fontSize: 13,
-                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 12px",
+                      borderBottom: "1px solid var(--tvp-line)",
                     }}
-                  />
-                </div>
-                <div style={{ maxHeight: 240, overflow: "auto", padding: 6 }}>
-                  {tree.length === 0 ? (
-                    <p className="tvp-muted" style={{ fontSize: 13, padding: "8px 6px" }}>
-                      No folders match “{folderSearch}”.
-                    </p>
-                  ) : (
-                    tree.map(({ parent, children }) => (
-                      <div key={parent.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFolderId(parent.id);
-                            setSuggestedFolderId(null);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            width: "100%",
-                            padding: "8px 10px",
-                            borderRadius: 8,
-                            border: "none",
-                            textAlign: "left",
-                            fontWeight: 600,
-                            fontSize: 13,
-                            background:
-                              folderId === parent.id ? "var(--surface-soft)" : "transparent",
-                            color: "var(--tvp-ink)",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <FolderOpen
-                            className="h-4 w-4"
-                            style={{
-                              color:
-                                folderId === parent.id ? "var(--tvp-teal-2)" : "var(--tvp-muted)",
-                            }}
-                          />
-                          {parent.folderName}
-                        </button>
-                        {children.map((c) => (
+                  >
+                    <Search className="h-4 w-4" style={{ color: "var(--tvp-muted)" }} />
+                    <input
+                      type="search"
+                      aria-label="Search folders"
+                      placeholder="Search folders"
+                      value={folderSearch}
+                      onChange={(e) => setFolderSearch(e.target.value)}
+                      style={{
+                        border: "none",
+                        outline: "none",
+                        background: "transparent",
+                        color: "var(--tvp-ink)",
+                        fontSize: 13,
+                        width: "100%",
+                      }}
+                    />
+                  </div>
+                  <div style={{ maxHeight: 240, overflow: "auto", padding: 6 }}>
+                    {tree.length === 0 ? (
+                      <p className="tvp-muted" style={{ fontSize: 13, padding: "8px 6px" }}>
+                        No folders match “{folderSearch}”.
+                      </p>
+                    ) : (
+                      tree.map(({ parent, children }) => (
+                        <div key={parent.id}>
                           <button
-                            key={c.id}
                             type="button"
                             onClick={() => {
-                              setFolderId(c.id);
+                              setFolderId(parent.id);
                               setSuggestedFolderId(null);
                             }}
                             style={{
@@ -1639,95 +1618,132 @@ function UploadDialog({
                               alignItems: "center",
                               gap: 8,
                               width: "100%",
-                              padding: "7px 10px 7px 32px",
+                              padding: "8px 10px",
                               borderRadius: 8,
                               border: "none",
                               textAlign: "left",
+                              fontWeight: 600,
                               fontSize: 13,
-                              background: folderId === c.id ? "var(--surface-soft)" : "transparent",
+                              background:
+                                folderId === parent.id ? "var(--surface-soft)" : "transparent",
                               color: "var(--tvp-ink)",
                               cursor: "pointer",
                             }}
                           >
-                            {c.folderName}
+                            <FolderOpen
+                              className="h-4 w-4"
+                              style={{
+                                color:
+                                  folderId === parent.id ? "var(--tvp-teal-2)" : "var(--tvp-muted)",
+                              }}
+                            />
+                            {parent.folderName}
                           </button>
-                        ))}
-                      </div>
-                    ))
-                  )}
+                          {children.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setFolderId(c.id);
+                                setSuggestedFolderId(null);
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                width: "100%",
+                                padding: "7px 10px 7px 32px",
+                                borderRadius: 8,
+                                border: "none",
+                                textAlign: "left",
+                                fontSize: 13,
+                                background:
+                                  folderId === c.id ? "var(--surface-soft)" : "transparent",
+                                color: "var(--tvp-ink)",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {c.folderName}
+                            </button>
+                          ))}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Optional name override */}
-        <div>
-          <label className="tvp-form-label" htmlFor="upload-name">
-            Document name{" "}
-            <span style={{ fontWeight: 400, color: "var(--tvp-muted)" }}>(optional)</span>
-          </label>
-          <input
-            id="upload-name"
-            className="tvp-select"
-            type="text"
-            placeholder={file?.name ?? "Defaults to file name"}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-          />
-        </div>
-
-        {/* Status + Expiry side by side */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 12,
-          }}
-        >
-          <div>
-            <label className="tvp-form-label" htmlFor="upload-status">
-              Status
-            </label>
-            <select
-              id="upload-status"
-              className="tvp-select"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as "filed" | "needs_review")}
-            >
-              <option value="needs_review">Needs review</option>
-              <option value="filed">Filed</option>
-            </select>
+              </>
+            )}
           </div>
+
+          {/* Optional name override */}
           <div>
-            <label className="tvp-form-label" htmlFor="upload-expiry">
-              Expiry <span style={{ fontWeight: 400, color: "var(--tvp-muted)" }}>(optional)</span>
+            <label className="tvp-form-label" htmlFor="upload-name">
+              Document name{" "}
+              <span style={{ fontWeight: 400, color: "var(--tvp-muted)" }}>(optional)</span>
             </label>
             <input
-              id="upload-expiry"
+              id="upload-name"
               className="tvp-select"
-              type="date"
-              value={expiry}
-              onChange={(e) => setExpiry(e.target.value)}
+              type="text"
+              placeholder={file?.name ?? "Defaults to file name"}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
             />
           </div>
-        </div>
 
-        <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="tvp-primary"
-            disabled={busy || !file || !talentLinkId || !folderId}
+          {/* Status + Expiry side by side */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 12,
+            }}
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Upload and share
-          </button>
-        </div>
-      </form>
-    </div>
+            <div>
+              <label className="tvp-form-label" htmlFor="upload-status">
+                Status
+              </label>
+              <select
+                id="upload-status"
+                className="tvp-select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "filed" | "needs_review")}
+              >
+                <option value="needs_review">Needs review</option>
+                <option value="filed">Filed</option>
+              </select>
+            </div>
+            <div>
+              <label className="tvp-form-label" htmlFor="upload-expiry">
+                Expiry{" "}
+                <span style={{ fontWeight: 400, color: "var(--tvp-muted)" }}>(optional)</span>
+              </label>
+              <input
+                id="upload-expiry"
+                className="tvp-select"
+                type="date"
+                value={expiry}
+                onChange={(e) => setExpiry(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-2 justify-end">
+            <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="tvp-primary"
+              disabled={busy || !file || !talentLinkId || !folderId}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Upload and share
+            </button>
+          </div>
+        </form>
+      </div>
+    </AccessibleModal>
   );
 }
 // ---------------------------------------------------------------------------
@@ -1763,118 +1779,120 @@ function VersionsDialog({
   const versions = data?.versions ?? [];
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 24,
-      }}
-    >
+    <AccessibleModal onClose={onClose} label="Document">
       <div
-        onClick={(e) => e.stopPropagation()}
-        className="tvp-card"
-        style={{ width: "min(800px, 100%)", padding: 24 }}
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15,23,42,0.55)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 50,
+          padding: 24,
+        }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h2 className="tvp-h2">Version history</h2>
-            <div className="tvp-muted" style={{ fontSize: 13 }}>
-              {doc.name}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="tvp-card"
+          style={{ width: "min(800px, 100%)", padding: 24 }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h2 className="tvp-h2">Version history</h2>
+              <div className="tvp-muted" style={{ fontSize: 13 }}>
+                {doc.name}
+              </div>
+            </div>
+            <div className="flex gap-2 items-center">
+              {onNewVersion && (
+                <button className="tvp-secondary" onClick={onNewVersion}>
+                  <Upload className="h-4 w-4" /> Upload new version
+                </button>
+              )}
+              <button className="tvp-mini-btn" onClick={onClose} title="Close">
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
-          <div className="flex gap-2 items-center">
-            {onNewVersion && (
-              <button className="tvp-secondary" onClick={onNewVersion}>
-                <Upload className="h-4 w-4" /> Upload new version
-              </button>
-            )}
-            <button className="tvp-mini-btn" onClick={onClose} title="Close">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
 
-        {isLoading ? (
-          <div className="tvp-muted" style={{ padding: 24, textAlign: "center" }}>
-            <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-            Loading…
-          </div>
-        ) : versions.length === 0 ? (
-          <p className="tvp-muted" style={{ padding: 12 }}>
-            Only the current file exists. New uploads under "Upload new version" will appear here.
-          </p>
-        ) : (
-          <table className="tvp-table" style={{ marginTop: 12 }}>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>File name</th>
-                <th>Uploaded by</th>
-                <th>Uploaded</th>
-                <th>Protected until</th>
-                <th style={{ width: 140 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {versions.map((v) => (
-                <tr key={v.id}>
-                  <td>
-                    <strong>v{v.version_number}</strong>
-                    {data?.currentVersionId === v.id ? " · current" : ""}
-                  </td>
-                  <td>
-                    {v.name}
-                    <BlockedDocumentPill reason={quarantineReason(v)} />
-                  </td>
-                  <td>{v.uploaded_by_name ?? "—"}</td>
-                  <td className="tvp-muted">{new Date(v.created_at).toLocaleString("en-GB")}</td>
-                  <td className="tvp-muted">
-                    {v.locked_until ? fmtLongDate(v.locked_until) : "No rule"}
-                  </td>
-                  <td>
-                    <div className="flex gap-1 justify-end">
-                      <button
-                        className="tvp-mini-btn"
-                        title={blockedReason(quarantineReason(v)) ?? "View"}
-                        aria-disabled={Boolean(quarantineReason(v))}
-                        onClick={() => {
-                          const r = quarantineReason(v);
-                          if (r) return explainBlocked(r);
-                          open(v.id, "inline");
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        className="tvp-mini-btn"
-                        title={blockedReason(quarantineReason(v)) ?? "Download"}
-                        aria-disabled={Boolean(quarantineReason(v))}
-                        onClick={() => {
-                          const r = quarantineReason(v);
-                          if (r) return explainBlocked(r);
-                          open(v.id, "attachment");
-                        }}
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+          {isLoading ? (
+            <div className="tvp-muted" style={{ padding: 24, textAlign: "center" }}>
+              <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+              Loading…
+            </div>
+          ) : versions.length === 0 ? (
+            <p className="tvp-muted" style={{ padding: 12 }}>
+              Only the current file exists. New uploads under "Upload new version" will appear here.
+            </p>
+          ) : (
+            <table className="tvp-table" style={{ marginTop: 12 }}>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>File name</th>
+                  <th>Uploaded by</th>
+                  <th>Uploaded</th>
+                  <th>Protected until</th>
+                  <th style={{ width: 140 }}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {versions.map((v) => (
+                  <tr key={v.id}>
+                    <td>
+                      <strong>v{v.version_number}</strong>
+                      {data?.currentVersionId === v.id ? " · current" : ""}
+                    </td>
+                    <td>
+                      {v.name}
+                      <BlockedDocumentPill reason={quarantineReason(v)} />
+                    </td>
+                    <td>{v.uploaded_by_name ?? "—"}</td>
+                    <td className="tvp-muted">{new Date(v.created_at).toLocaleString("en-GB")}</td>
+                    <td className="tvp-muted">
+                      {v.locked_until ? fmtLongDate(v.locked_until) : "No rule"}
+                    </td>
+                    <td>
+                      <div className="flex gap-1 justify-end">
+                        <button
+                          className="tvp-mini-btn"
+                          title={blockedReason(quarantineReason(v)) ?? "View"}
+                          aria-disabled={Boolean(quarantineReason(v))}
+                          onClick={() => {
+                            const r = quarantineReason(v);
+                            if (r) return explainBlocked(r);
+                            open(v.id, "inline");
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          className="tvp-mini-btn"
+                          title={blockedReason(quarantineReason(v)) ?? "Download"}
+                          aria-disabled={Boolean(quarantineReason(v))}
+                          onClick={() => {
+                            const r = quarantineReason(v);
+                            if (r) return explainBlocked(r);
+                            open(v.id, "attachment");
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {preview && (
+          <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />
         )}
       </div>
-      {preview && (
-        <PreviewDialog url={preview.url} name={preview.name} onClose={() => setPreview(null)} />
-      )}
-    </div>
+    </AccessibleModal>
   );
 }
 
@@ -1892,6 +1910,7 @@ function NewVersionDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const a11yId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const registerVersion = useServerFn(registerAgencyDocumentVersion);
@@ -1930,43 +1949,45 @@ function NewVersionDialog({
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-      }}
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        className="tvp-card"
-        style={{ width: 480, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
+    <AccessibleModal onClose={onClose} label="Document">
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15,23,42,0.55)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 50,
+        }}
       >
-        <h2 className="tvp-h2">Upload new version</h2>
-        <p className="tvp-muted" style={{ fontSize: 13 }}>
-          Replacing "{doc.name}" — the previous file is preserved in version history.
-        </p>
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
-          File
-        </label>
-        <input ref={fileRef} type="file" required />
-        <div className="flex gap-2 mt-2 justify-end">
-          <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-          <button type="submit" className="tvp-primary" disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Upload version
-          </button>
-        </div>
-      </form>
-    </div>
+        <form
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={submit}
+          className="tvp-card"
+          style={{ width: 480, padding: 24, display: "flex", flexDirection: "column", gap: 12 }}
+        >
+          <h2 className="tvp-h2">Upload new version</h2>
+          <p className="tvp-muted" style={{ fontSize: 13 }}>
+            Replacing "{doc.name}" — the previous file is preserved in version history.
+          </p>
+          <label htmlFor={`${a11yId}-field-0`} className="tvp-muted" style={{ fontSize: 13 }}>
+            File
+          </label>
+          <input id={`${a11yId}-field-0`} ref={fileRef} type="file" required />
+          <div className="flex gap-2 mt-2 justify-end">
+            <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
+              Cancel
+            </button>
+            <button type="submit" className="tvp-primary" disabled={busy}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Upload version
+            </button>
+          </div>
+        </form>
+      </div>
+    </AccessibleModal>
   );
 }
 

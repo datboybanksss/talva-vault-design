@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -57,6 +58,7 @@ type BillingSettingsForm = {
 };
 
 export function QuotesInvoicesSettingsPanel() {
+  const a11yId = useId();
   const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
   const getFn = useServerFn(getAgencyBillingSettings);
@@ -197,8 +199,9 @@ export function QuotesInvoicesSettingsPanel() {
             Quote acceptance
           </h3>
           <div className="tvp-form-group">
-            <label>Default acceptance window (days)</label>
+            <label htmlFor={`${a11yId}-field-0`}>Default acceptance window (days)</label>
             <Input
+              id={`${a11yId}-field-0`}
               type="number"
               min={1}
               max={365}
@@ -207,8 +210,9 @@ export function QuotesInvoicesSettingsPanel() {
             />
           </div>
           <div className="tvp-form-group">
-            <label>Reminder cadence (days before expiry)</label>
+            <label htmlFor={`${a11yId}-field-1`}>Reminder cadence (days before expiry)</label>
             <Input
+              id={`${a11yId}-field-1`}
               type="number"
               min={1}
               max={365}
@@ -224,8 +228,9 @@ export function QuotesInvoicesSettingsPanel() {
             Invoice payment
           </h3>
           <div className="tvp-form-group">
-            <label>Default payment terms (days)</label>
+            <label htmlFor={`${a11yId}-field-2`}>Default payment terms (days)</label>
             <Input
+              id={`${a11yId}-field-2`}
               type="number"
               min={1}
               max={365}
@@ -234,8 +239,9 @@ export function QuotesInvoicesSettingsPanel() {
             />
           </div>
           <div className="tvp-form-group">
-            <label>Overdue grace period (days)</label>
+            <label htmlFor={`${a11yId}-field-3`}>Overdue grace period (days)</label>
             <Input
+              id={`${a11yId}-field-3`}
               type="number"
               min={0}
               max={365}
@@ -266,8 +272,9 @@ export function QuotesInvoicesSettingsPanel() {
             </div>
           </div>
           <div className="tvp-form-group">
-            <label>VAT registration number</label>
+            <label htmlFor={`${a11yId}-field-4`}>VAT registration number</label>
             <Input
+              id={`${a11yId}-field-4`}
               value={form.vat_number}
               onChange={(e) => update("vat_number", e.target.value)}
               placeholder="e.g. 4123456789"
@@ -275,8 +282,9 @@ export function QuotesInvoicesSettingsPanel() {
             />
           </div>
           <div className="tvp-form-group">
-            <label>Default VAT rate (%)</label>
+            <label htmlFor={`${a11yId}-field-5`}>Default VAT rate (%)</label>
             <Input
+              id={`${a11yId}-field-5`}
               type="number"
               min={0}
               max={100}
@@ -299,40 +307,45 @@ export function QuotesInvoicesSettingsPanel() {
             quotations.
           </p>
           <div className="tvp-form-group">
-            <label>Bank name</label>
+            <label htmlFor={`${a11yId}-field-6`}>Bank name</label>
             <Input
+              id={`${a11yId}-field-6`}
               value={form.bank_name}
               onChange={(e) => update("bank_name", e.target.value)}
               placeholder="e.g. Standard Bank"
             />
           </div>
           <div className="tvp-form-group">
-            <label>Account holder</label>
+            <label htmlFor={`${a11yId}-field-7`}>Account holder</label>
             <Input
+              id={`${a11yId}-field-7`}
               value={form.bank_account_holder}
               onChange={(e) => update("bank_account_holder", e.target.value)}
               placeholder="Name the account is registered under"
             />
           </div>
           <div className="tvp-form-group">
-            <label>Account number</label>
+            <label htmlFor={`${a11yId}-field-8`}>Account number</label>
             <Input
+              id={`${a11yId}-field-8`}
               value={form.bank_account_number}
               onChange={(e) => update("bank_account_number", e.target.value)}
               placeholder="e.g. 123456789"
             />
           </div>
           <div className="tvp-form-group">
-            <label>Branch code</label>
+            <label htmlFor={`${a11yId}-field-9`}>Branch code</label>
             <Input
+              id={`${a11yId}-field-9`}
               value={form.bank_branch_code}
               onChange={(e) => update("bank_branch_code", e.target.value)}
               placeholder="e.g. 051001"
             />
           </div>
           <div className="tvp-form-group">
-            <label>Other payment instructions</label>
+            <label htmlFor={`${a11yId}-field-10`}>Other payment instructions</label>
             <Textarea
+              id={`${a11yId}-field-10`}
               rows={3}
               value={form.payment_instructions}
               onChange={(e) => update("payment_instructions", e.target.value)}
@@ -347,8 +360,9 @@ export function QuotesInvoicesSettingsPanel() {
             Branding
           </h3>
           <div className="tvp-form-group">
-            <label>Billing address (appears on documents)</label>
+            <label htmlFor={`${a11yId}-field-11`}>Billing address (appears on documents)</label>
             <Textarea
+              id={`${a11yId}-field-11`}
               rows={3}
               value={form.billing_address}
               onChange={(e) => update("billing_address", e.target.value)}
@@ -356,7 +370,7 @@ export function QuotesInvoicesSettingsPanel() {
             />
           </div>
           <div className="tvp-form-group">
-            <label>Agency logo</label>
+            <label htmlFor={`${a11yId}-logo`}>Agency logo</label>
             <div className="tvp-qi-inline">
               {data?.logo_url ? (
                 <img src={data.logo_url} alt="Agency logo" className="tvp-qi-logo" />
@@ -364,6 +378,7 @@ export function QuotesInvoicesSettingsPanel() {
                 <span className="tvp-muted tvp-small">No logo uploaded</span>
               )}
               <input
+                id={`${a11yId}-logo`}
                 ref={fileRef}
                 type="file"
                 accept="image/png,image/jpeg,image/svg+xml,image/webp"
@@ -393,11 +408,11 @@ export function QuotesInvoicesSettingsPanel() {
             </div>
           </div>
           <div className="tvp-form-group">
-            <label className="tvp-qi-head">
+            <span id={`${a11yId}-accent`} className="tvp-qi-head tvp-field-caption">
               <Palette aria-hidden />
               Accent colour
-            </label>
-            <div className="tvp-qi-inline">
+            </span>
+            <div className="tvp-qi-inline" role="group" aria-labelledby={`${a11yId}-accent`}>
               {ACCENT_PRESETS.map((p) => (
                 <button
                   key={p.value}

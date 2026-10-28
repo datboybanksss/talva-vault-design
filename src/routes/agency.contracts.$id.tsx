@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { fmtMoney as fmtZar } from "@/lib/billing";
 import { ModalShell } from "@/components/shared/modal-shell";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
@@ -64,6 +65,7 @@ function fmtMoney(cents: number | null, ccy: string | null) {
 type Tab = "overview" | "invoices";
 
 function ContractDetail() {
+  const a11yId = useId();
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -256,15 +258,17 @@ function ContractDetail() {
           ) : (
             <div className="tvp-form-grid">
               <div className="tvp-form-group">
-                <label>Client</label>
+                <label htmlFor={`${a11yId}-field-0`}>Client</label>
                 <input
+                  id={`${a11yId}-field-0`}
                   value={form.clientName}
                   onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Currency</label>
+                <label htmlFor={`${a11yId}-field-1`}>Currency</label>
                 <input
+                  id={`${a11yId}-field-1`}
                   maxLength={3}
                   value={form.currency}
                   onChange={(e) =>
@@ -273,24 +277,27 @@ function ContractDetail() {
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Start date</label>
+                <label htmlFor={`${a11yId}-field-2`}>Start date</label>
                 <input
+                  id={`${a11yId}-field-2`}
                   type="date"
                   value={form.startDate}
                   onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
-                <label>End date</label>
+                <label htmlFor={`${a11yId}-field-3`}>End date</label>
                 <input
+                  id={`${a11yId}-field-3`}
                   type="date"
                   value={form.endDate}
                   onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Total ({form.currency})</label>
+                <label htmlFor={`${a11yId}-field-4`}>Total ({form.currency})</label>
                 <input
+                  id={`${a11yId}-field-4`}
                   type="number"
                   step="0.01"
                   value={form.total}
@@ -298,8 +305,9 @@ function ContractDetail() {
                 />
               </div>
               <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
-                <label>Notes</label>
+                <label htmlFor={`${a11yId}-field-5`}>Notes</label>
                 <textarea
+                  id={`${a11yId}-field-5`}
                   rows={4}
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -404,6 +412,7 @@ function InvoiceDialog({
   onSave: (v: { number: string; total: string; dueDate: string; notes: string }) => void;
   saving: boolean;
 }) {
+  const a11yId = useId();
   const [v, setV] = useState({
     number: defaults.number,
     total: defaults.total,
@@ -423,15 +432,17 @@ function InvoiceDialog({
       </div>
       <div className="tvp-form-grid" style={{ padding: 16 }}>
         <div className="tvp-form-group">
-          <label>Invoice number</label>
+          <label htmlFor={`${a11yId}-field-6`}>Invoice number</label>
           <input
+            id={`${a11yId}-field-6`}
             value={v.number}
             onChange={(e) => setV((s) => ({ ...s, number: e.target.value }))}
           />
         </div>
         <div className="tvp-form-group">
-          <label>Total</label>
+          <label htmlFor={`${a11yId}-field-7`}>Total</label>
           <input
+            id={`${a11yId}-field-7`}
             type="number"
             step="0.01"
             value={v.total}
@@ -439,16 +450,18 @@ function InvoiceDialog({
           />
         </div>
         <div className="tvp-form-group">
-          <label>Due date</label>
+          <label htmlFor={`${a11yId}-field-8`}>Due date</label>
           <input
+            id={`${a11yId}-field-8`}
             type="date"
             value={v.dueDate}
             onChange={(e) => setV((s) => ({ ...s, dueDate: e.target.value }))}
           />
         </div>
         <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
-          <label>Notes</label>
+          <label htmlFor={`${a11yId}-field-9`}>Notes</label>
           <textarea
+            id={`${a11yId}-field-9`}
             rows={3}
             value={v.notes}
             onChange={(e) => setV((s) => ({ ...s, notes: e.target.value }))}

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { useFolderCatalogue, resolveSubfolders, talentTypesFrom } from "@/lib/folder-catalogue";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -30,6 +31,7 @@ const steps = [
 ];
 
 function InviteTalent() {
+  const a11yId = useId();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const whoamiFn = useServerFn(agencyWhoami);
@@ -178,16 +180,18 @@ function InviteTalent() {
                 <h3 className="tvp-h3">Talent details</h3>
                 <div className="tvp-form-grid">
                   <div className="tvp-form-group">
-                    <label>Full legal name *</label>
+                    <label htmlFor={`${a11yId}-field-0`}>Full legal name *</label>
                     <input
+                      id={`${a11yId}-field-0`}
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="e.g. full name as it appears on ID"
                     />
                   </div>
                   <div className="tvp-form-group">
-                    <label>Email address *</label>
+                    <label htmlFor={`${a11yId}-field-1`}>Email address *</label>
                     <input
+                      id={`${a11yId}-field-1`}
                       type="email"
                       value={email}
                       onChange={(e) => {
@@ -201,8 +205,12 @@ function InviteTalent() {
                     <InviteEmailFieldError conflict={emailCheck.conflict} />
                   </div>
                   <div className="tvp-form-group">
-                    <label>Talent type</label>
-                    <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
+                    <label htmlFor={`${a11yId}-field-2`}>Talent type</label>
+                    <select
+                      id={`${a11yId}-field-2`}
+                      value={talentType}
+                      onChange={(e) => setTalentType(e.target.value)}
+                    >
                       <option value="">Not specified</option>
                       {talentTypeOptions.map((t) => (
                         <option key={t} value={t}>
@@ -212,8 +220,9 @@ function InviteTalent() {
                     </select>
                   </div>
                   <div className="tvp-form-group">
-                    <label>Invitation expiry (days)</label>
+                    <label htmlFor={`${a11yId}-field-3`}>Invitation expiry (days)</label>
                     <input
+                      id={`${a11yId}-field-3`}
                       type="number"
                       min={1}
                       max={60}

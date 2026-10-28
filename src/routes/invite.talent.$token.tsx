@@ -499,7 +499,6 @@ function Step2({
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           placeholder="e.g. Aisha Mokoena"
-          autoFocus
         />
       </div>
       <div className="tv-auth-field">

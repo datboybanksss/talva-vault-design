@@ -1,3 +1,4 @@
+import { AccessibleModal } from "@/components/shared/accessible-modal";
 import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { createFileRoute } from "@tanstack/react-router";
@@ -530,125 +531,127 @@ function WatermarkedViewer({
 }) {
   const tiles = Array.from({ length: 24 });
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,.72)",
-        zIndex: 60,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-      }}
-    >
+    <AccessibleModal onClose={onClose} label="Document preview">
       <div
-        onClick={(e) => e.stopPropagation()}
+        onClick={onClose}
         style={{
-          background: "white",
-          borderRadius: 12,
-          width: "min(980px, 100%)",
-          height: "min(88vh, 100%)",
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15,23,42,.72)",
+          zIndex: 60,
           display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
         }}
       >
         <div
+          onClick={(e) => e.stopPropagation()}
           style={{
+            background: "white",
+            borderRadius: 12,
+            width: "min(980px, 100%)",
+            height: "min(88vh, 100%)",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 16px",
-            borderBottom: "1px solid #E5E7EB",
+            flexDirection: "column",
+            overflow: "hidden",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <Eye className="h-4 w-4" style={{ color: "#064E58" }} />
-            <strong
-              style={{
-                fontSize: 14,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {name}
-            </strong>
-            <span
-              style={{
-                fontSize: 11,
-                color: "#B45309",
-                background: "#FFFBEB",
-                border: "1px solid #FDE68A",
-                padding: "2px 8px",
-                borderRadius: 999,
-              }}
-            >
-              View only · watermarked
-            </span>
-          </div>
-          <button
-            title="Close viewer"
-            onClick={onClose}
-            aria-label="Close viewer"
-            style={{ border: 0, background: "transparent", cursor: "pointer", color: "#65707A" }}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div style={{ position: "relative", flex: 1, background: "#F5F5F1" }}>
-          <iframe title={name} src={url} style={{ width: "100%", height: "100%", border: 0 }} />
-          {/* Traceability watermark — overlaid, non-interactive, cannot be toggled off from the UI. */}
           <div
-            data-testid="lo-watermark"
-            aria-hidden
             style={{
-              position: "absolute",
-              inset: 0,
-              pointerEvents: "none",
-              overflow: "hidden",
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              alignContent: "space-around",
-              gap: 12,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px",
+              borderBottom: "1px solid #E5E7EB",
             }}
           >
-            {tiles.map((_, i) => (
-              <span
-                key={i}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <Eye className="h-4 w-4" style={{ color: "#064E58" }} />
+              <strong
                 style={{
-                  transform: "rotate(-28deg)",
-                  textAlign: "center",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: "rgba(6,78,88,.20)",
-                  whiteSpace: "nowrap",
+                  fontSize: 14,
                   overflow: "hidden",
-                  userSelect: "none",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
-                {watermark}
+                {name}
+              </strong>
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#B45309",
+                  background: "#FFFBEB",
+                  border: "1px solid #FDE68A",
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                }}
+              >
+                View only · watermarked
               </span>
-            ))}
+            </div>
+            <button
+              title="Close viewer"
+              onClick={onClose}
+              aria-label="Close viewer"
+              style={{ border: 0, background: "transparent", cursor: "pointer", color: "#65707A" }}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div style={{ position: "relative", flex: 1, background: "#F5F5F1" }}>
+            <iframe title={name} src={url} style={{ width: "100%", height: "100%", border: 0 }} />
+            {/* Traceability watermark — overlaid, non-interactive, cannot be toggled off from the UI. */}
+            <div
+              data-testid="lo-watermark"
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                overflow: "hidden",
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                alignContent: "space-around",
+                gap: 12,
+              }}
+            >
+              {tiles.map((_, i) => (
+                <span
+                  key={i}
+                  style={{
+                    transform: "rotate(-28deg)",
+                    textAlign: "center",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "rgba(6,78,88,.20)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    userSelect: "none",
+                  }}
+                >
+                  {watermark}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "10px 16px",
+              borderTop: "1px solid #E5E7EB",
+              fontSize: 11,
+              color: "#65707A",
+            }}
+          >
+            This document is watermarked with your email and the time you opened it. Downloading is
+            disabled for this share.
           </div>
         </div>
-
-        <div
-          style={{
-            padding: "10px 16px",
-            borderTop: "1px solid #E5E7EB",
-            fontSize: 11,
-            color: "#65707A",
-          }}
-        >
-          This document is watermarked with your email and the time you opened it. Downloading is
-          disabled for this share.
-        </div>
       </div>
-    </div>
+    </AccessibleModal>
   );
 }
 

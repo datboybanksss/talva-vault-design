@@ -1,3 +1,5 @@
+import { AccessibleModal } from "@/components/shared/accessible-modal";
+import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -260,6 +262,7 @@ function emptyEditor(
 type SortKey = "newest" | "oldest" | "amount_desc" | "amount_asc" | "due";
 
 function QIPage() {
+  const a11yId = useId();
   const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(listQO);
@@ -1149,457 +1152,479 @@ function QIPage() {
       )}
 
       {editorOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            zIndex: 50,
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "center",
-            padding: 16,
-            overflowY: "auto",
-          }}
-          onClick={() => setEditorOpen(false)}
-        >
+        <AccessibleModal onClose={() => setEditorOpen(false)} label="Quote or invoice">
           <div
-            className="tvp-card"
             style={{
-              maxWidth: 820,
-              width: "100%",
-              maxHeight: "92vh",
-              overflow: "auto",
-              padding: 24,
-              marginTop: 16,
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.4)",
+              zIndex: 50,
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              padding: 16,
+              overflowY: "auto",
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setEditorOpen(false)}
           >
-            <div className="flex justify-between items-center" style={{ marginBottom: 16 }}>
-              <h2 className="tvp-h2">{editor.id ? `Edit ${editor.kind}` : `New ${editor.kind}`}</h2>
-              <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}>
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {loadingEditor ? (
-              <div className="tvp-muted" style={{ padding: 32, textAlign: "center" }}>
-                Loading…
+            <div
+              className="tvp-card"
+              style={{
+                maxWidth: 820,
+                width: "100%",
+                maxHeight: "92vh",
+                overflow: "auto",
+                padding: 24,
+                marginTop: 16,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center" style={{ marginBottom: 16 }}>
+                <h2 className="tvp-h2">
+                  {editor.id ? `Edit ${editor.kind}` : `New ${editor.kind}`}
+                </h2>
+                <button title="Close" className="tvp-mini-btn" onClick={() => setEditorOpen(false)}>
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-            ) : (
-              <>
-                {financialsLocked && (
-                  <div
-                    className="tvp-ai-box"
-                    style={{ marginBottom: 14, display: "flex", gap: 10, alignItems: "flex-start" }}
-                  >
-                    <Lock className="h-4 w-4 mt-0.5 shrink-0" />
-                    <div className="tvp-small">
-                      {editor.number} has already been issued, so its number, amounts, dates and
-                      line items are fixed. You can still update the notes, sharing and status — to
-                      change the money, cancel this one and raise a new {editor.kind}.
-                    </div>
-                  </div>
-                )}
-                <div className="tvp-form-2col">
-                  <div className="tvp-form-group">
-                    <label>Type</label>
-                    <select
-                      value={editor.kind}
-                      onChange={(e) =>
-                        setEditor({ ...editor, kind: e.target.value as "quote" | "invoice" })
-                      }
-                      disabled={!!editor.id}
+
+              {loadingEditor ? (
+                <div className="tvp-muted" style={{ padding: 32, textAlign: "center" }}>
+                  Loading…
+                </div>
+              ) : (
+                <>
+                  {financialsLocked && (
+                    <div
+                      className="tvp-ai-box"
+                      style={{
+                        marginBottom: 14,
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "flex-start",
+                      }}
                     >
-                      <option value="quote">Quote</option>
-                      <option value="invoice">Invoice</option>
-                    </select>
-                  </div>
-                  <div className="tvp-form-group">
-                    <label>
-                      Number{" "}
-                      {!editor.number && (
-                        <span className="tvp-muted" style={{ fontSize: 11 }}>
-                          (auto on send)
-                        </span>
-                      )}
-                    </label>
-                    <input
-                      value={editor.number}
-                      disabled={financialsLocked}
-                      onChange={(e) => setEditor({ ...editor, number: e.target.value })}
-                      placeholder={editor.kind === "quote" ? "QT-2026-0001" : "INV-2026-0001"}
-                    />
-                  </div>
-                  <div
-                    className="tvp-form-group"
-                    data-tour="editor-ref"
-                    style={{ gridColumn: "1 / -1" }}
-                  >
-                    <label>Reference / description</label>
-                    <input
-                      value={editor.description}
-                      onChange={(e) => setEditor({ ...editor, description: e.target.value })}
-                      placeholder="e.g. Brand campaign — Autumn 2026"
-                      maxLength={200}
-                    />
-                  </div>
-                  <div
-                    className="tvp-form-group"
-                    data-tour="editor-client"
-                    style={{ gridColumn: "1 / -1" }}
-                  >
-                    <label htmlFor="editor-client-picker">Client</label>
-                    <ClientPicker
-                      id="editor-client-picker"
-                      clients={savedClients}
-                      value={editor.client_id}
-                      fallbackLabel={editor.client_name || null}
-                      disabled={financialsLocked}
-                      onSelect={(c) => setEditor(applyClient(editor, c))}
-                      onAddNew={() => setAddingClient(true)}
-                    />
-                    {editor.client_id || editor.client_name ? (
-                      <div className="tvp-client-summary" data-tour="editor-recipients">
-                        {editor.recipient_contact_person && (
-                          <div>Attention: {editor.recipient_contact_person}</div>
-                        )}
-                        <div>{editor.recipient_address || "No billing address saved"}</div>
-                        {editor.recipient_vat_number && (
-                          <div>VAT number: {editor.recipient_vat_number}</div>
-                        )}
-                        <div className="tvp-muted">
-                          Sends to: {editor.recipient_emails.join(", ") || "no email address saved"}
-                        </div>
-                        {!financialsLocked && editor.client_id && (
-                          <div className="tvp-field-hint">
-                            Change these details on the{" "}
-                            <Link
-                              to="/agency/clients/$clientId"
-                              params={{ clientId: editor.client_id }}
-                              className="tvp-link"
-                            >
-                              client's page
-                            </Link>
-                            . Drafts always use the latest details; once sent, this document keeps a
-                            copy that never changes.
-                          </div>
-                        )}
-                        {!editor.client_id && !financialsLocked && (
-                          <div className="tvp-field-hint tvp-field-warn">
-                            Choose a saved client before sending.
-                          </div>
-                        )}
+                      <Lock className="h-4 w-4 mt-0.5 shrink-0" />
+                      <div className="tvp-small">
+                        {editor.number} has already been issued, so its number, amounts, dates and
+                        line items are fixed. You can still update the notes, sharing and status —
+                        to change the money, cancel this one and raise a new {editor.kind}.
                       </div>
-                    ) : (
-                      <div className="tvp-field-hint">
-                        A client is required before you can send. Their details fill in
-                        automatically.
-                      </div>
-                    )}
-                  </div>
-                  <div className="tvp-form-group">
-                    <label htmlFor="editor-talent">Talent</label>
-                    <Select
-                      value={editor.talent_name.trim() ? editor.talent_name : NO_TALENT}
-                      onValueChange={(v: string) =>
-                        setEditor({ ...editor, talent_name: v === NO_TALENT ? "" : v })
-                      }
-                    >
-                      <SelectTrigger id="editor-talent">
-                        <SelectValue placeholder="No talent (client-only)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NO_TALENT}>No talent (client-only)</SelectItem>
-                        {roster.map((t) => (
-                          <SelectItem key={t.id} value={t.displayName}>
-                            {t.displayName}
-                          </SelectItem>
-                        ))}
-                        {editor.talent_name.trim() &&
-                          !rosterNames.has(editor.talent_name.trim().toLowerCase()) && (
-                            <SelectItem value={editor.talent_name}>
-                              {editor.talent_name} (no longer on your roster)
-                            </SelectItem>
-                          )}
-                      </SelectContent>
-                    </Select>
-                    <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
-                      {!editor.talent_name.trim()
-                        ? "Choose a roster member, or leave as client-only with no talent attached."
-                        : rosterNames.has(editor.talent_name.trim().toLowerCase())
-                          ? "Matched to your roster — sharing will reach this talent."
-                          : "No longer on your roster — sharing won't reach this talent."}
-                    </div>
-                  </div>
-                  <div className="tvp-form-group">
-                    <label>Issued</label>
-                    <input
-                      type="date"
-                      disabled={financialsLocked}
-                      value={editor.issued_at}
-                      onChange={(e) => setEditor({ ...editor, issued_at: e.target.value })}
-                    />
-                  </div>
-                  <div className="tvp-form-group">
-                    <label>{editor.kind === "quote" ? "Valid until" : "Due"}</label>
-                    <input
-                      type="date"
-                      disabled={financialsLocked}
-                      value={editor.due_date}
-                      onChange={(e) => setEditor({ ...editor, due_date: e.target.value })}
-                    />
-                  </div>
-                  <div className="tvp-form-group">
-                    <label>Currency</label>
-                    <input
-                      value={editor.currency}
-                      maxLength={3}
-                      disabled={financialsLocked}
-                      onChange={(e) =>
-                        setEditor({ ...editor, currency: e.target.value.toUpperCase() })
-                      }
-                    />
-                  </div>
-                  {editor.kind === "quote" ? (
-                    <div className="tvp-form-group">
-                      <label>Acceptance window (days)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={editor.acceptance_window_days}
-                        onChange={(e) =>
-                          setEditor({ ...editor, acceptance_window_days: e.target.value })
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <div className="tvp-form-group">
-                      <label>Payment terms (days)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={editor.payment_terms_days}
-                        onChange={(e) =>
-                          setEditor({ ...editor, payment_terms_days: e.target.value })
-                        }
-                      />
                     </div>
                   )}
-                  <div className="tvp-form-group">
-                    <label>Status</label>
-                    <select
-                      value={editor.status}
-                      onChange={(e) =>
-                        setEditor({ ...editor, status: e.target.value as Row["status"] })
-                      }
-                    >
-                      {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
-                        <option key={s} value={s}>
-                          {STATUS_LABEL[s]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Line items */}
-                <div style={{ marginTop: 20 }}>
-                  <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
-                    <h3 className="tvp-h3" style={{ margin: 0 }}>
-                      Line items
-                    </h3>
-                    <button
-                      className="tvp-secondary"
-                      type="button"
-                      data-tour="editor-add-line"
-                      disabled={financialsLocked}
-                      onClick={addLine}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add line
-                    </button>
-                  </div>
-                  <div className="tvp-lines">
-                    <div className="tvp-line-row tvp-line-head" aria-hidden="true">
-                      <div>Description</div>
-                      <div className="tvp-num">Quantity</div>
-                      <div className="tvp-num">Unit price (excl. VAT)</div>
-                      <div className="tvp-num">VAT %</div>
-                      <div className="tvp-num">Line total</div>
-                      <div />
+                  <div className="tvp-form-2col">
+                    <div className="tvp-form-group">
+                      <label htmlFor={`${a11yId}-field-0`}>Type</label>
+                      <select
+                        id={`${a11yId}-field-0`}
+                        value={editor.kind}
+                        onChange={(e) =>
+                          setEditor({ ...editor, kind: e.target.value as "quote" | "invoice" })
+                        }
+                        disabled={!!editor.id}
+                      >
+                        <option value="quote">Quote</option>
+                        <option value="invoice">Invoice</option>
+                      </select>
                     </div>
-                    {editor.lines.map((l, i) => {
-                      const line = Math.round(
-                        (Number(l.quantity) || 0) * (Number(l.unit_price_cents) || 0),
-                      );
-                      return (
-                        <div key={i} className="tvp-line-row">
-                          <input
-                            aria-label="Description"
-                            value={l.description}
-                            disabled={financialsLocked}
-                            onChange={(e) => updateLine(i, { description: e.target.value })}
-                            placeholder="e.g. Full-day shoot"
-                          />
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            disabled={financialsLocked}
-                            value={l.quantity}
-                            onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })}
-                            aria-label="Quantity"
-                            placeholder="Quantity"
-                            className="tvp-num"
-                          />
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            disabled={financialsLocked}
-                            value={(l.unit_price_cents / 100).toString()}
-                            onChange={(e) =>
-                              updateLine(i, {
-                                unit_price_cents: Math.round(Number(e.target.value) * 100),
-                              })
-                            }
-                            aria-label="Unit price (excl. VAT)"
-                            placeholder="Unit price"
-                            className="tvp-num"
-                          />
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step="0.01"
-                            disabled={financialsLocked}
-                            value={(l.vat_rate_bp / 100).toString()}
-                            onChange={(e) =>
-                              updateLine(i, {
-                                vat_rate_bp: Math.round(Number(e.target.value) * 100),
-                              })
-                            }
-                            aria-label="VAT %"
-                            placeholder="VAT %"
-                            className="tvp-num"
-                          />
-                          <div className="tvp-num tvp-line-total">
-                            {fmtMoney(line, editor.currency)}
+                    <div className="tvp-form-group">
+                      <label htmlFor={`${a11yId}-field-1`}>
+                        Number{" "}
+                        {!editor.number && (
+                          <span className="tvp-muted" style={{ fontSize: 11 }}>
+                            (auto on send)
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        id={`${a11yId}-field-1`}
+                        value={editor.number}
+                        disabled={financialsLocked}
+                        onChange={(e) => setEditor({ ...editor, number: e.target.value })}
+                        placeholder={editor.kind === "quote" ? "QT-2026-0001" : "INV-2026-0001"}
+                      />
+                    </div>
+                    <div
+                      className="tvp-form-group"
+                      data-tour="editor-ref"
+                      style={{ gridColumn: "1 / -1" }}
+                    >
+                      <label htmlFor={`${a11yId}-field-2`}>Reference / description</label>
+                      <input
+                        id={`${a11yId}-field-2`}
+                        value={editor.description}
+                        onChange={(e) => setEditor({ ...editor, description: e.target.value })}
+                        placeholder="e.g. Brand campaign — Autumn 2026"
+                        maxLength={200}
+                      />
+                    </div>
+                    <div
+                      className="tvp-form-group"
+                      data-tour="editor-client"
+                      style={{ gridColumn: "1 / -1" }}
+                    >
+                      <label htmlFor="editor-client-picker">Client</label>
+                      <ClientPicker
+                        id="editor-client-picker"
+                        clients={savedClients}
+                        value={editor.client_id}
+                        fallbackLabel={editor.client_name || null}
+                        disabled={financialsLocked}
+                        onSelect={(c) => setEditor(applyClient(editor, c))}
+                        onAddNew={() => setAddingClient(true)}
+                      />
+                      {editor.client_id || editor.client_name ? (
+                        <div className="tvp-client-summary" data-tour="editor-recipients">
+                          {editor.recipient_contact_person && (
+                            <div>Attention: {editor.recipient_contact_person}</div>
+                          )}
+                          <div>{editor.recipient_address || "No billing address saved"}</div>
+                          {editor.recipient_vat_number && (
+                            <div>VAT number: {editor.recipient_vat_number}</div>
+                          )}
+                          <div className="tvp-muted">
+                            Sends to:{" "}
+                            {editor.recipient_emails.join(", ") || "no email address saved"}
                           </div>
-                          <button
-                            className="tvp-mini-btn"
-                            type="button"
-                            onClick={() => removeLine(i)}
-                            disabled={financialsLocked || editor.lines.length === 1}
-                            title="Remove line"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {!financialsLocked && editor.client_id && (
+                            <div className="tvp-field-hint">
+                              Change these details on the{" "}
+                              <Link
+                                to="/agency/clients/$clientId"
+                                params={{ clientId: editor.client_id }}
+                                className="tvp-link"
+                              >
+                                client's page
+                              </Link>
+                              . Drafts always use the latest details; once sent, this document keeps
+                              a copy that never changes.
+                            </div>
+                          )}
+                          {!editor.client_id && !financialsLocked && (
+                            <div className="tvp-field-hint tvp-field-warn">
+                              Choose a saved client before sending.
+                            </div>
+                          )}
                         </div>
-                      );
-                    })}
-                    <div data-tour="editor-totals" className="tvp-totals">
-                      <p className="tvp-muted tvp-totals-note">
-                        Worked out from the lines above. The subtotal excludes VAT; VAT is added per
-                        line.
-                      </p>
-                      <dl className="tvp-totals-list">
-                        <div>
-                          <dt>Subtotal (excl. VAT)</dt>
-                          <dd className="tvp-num">
-                            {fmtMoney(editorTotals.subtotal_cents, editor.currency)}
-                          </dd>
+                      ) : (
+                        <div className="tvp-field-hint">
+                          A client is required before you can send. Their details fill in
+                          automatically.
                         </div>
-                        <div>
-                          <dt>VAT</dt>
-                          <dd className="tvp-num">
-                            {fmtMoney(editorTotals.vat_cents, editor.currency)}
-                          </dd>
-                        </div>
-                        <div className="tvp-totals-grand">
-                          <dt>Total</dt>
-                          <dd className="tvp-num">
-                            {fmtMoney(editorTotals.total_cents, editor.currency)}
-                          </dd>
-                        </div>
-                      </dl>
+                      )}
+                    </div>
+                    <div className="tvp-form-group">
+                      <label htmlFor="editor-talent">Talent</label>
+                      <Select
+                        value={editor.talent_name.trim() ? editor.talent_name : NO_TALENT}
+                        onValueChange={(v: string) =>
+                          setEditor({ ...editor, talent_name: v === NO_TALENT ? "" : v })
+                        }
+                      >
+                        <SelectTrigger id="editor-talent">
+                          <SelectValue placeholder="No talent (client-only)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NO_TALENT}>No talent (client-only)</SelectItem>
+                          {roster.map((t) => (
+                            <SelectItem key={t.id} value={t.displayName}>
+                              {t.displayName}
+                            </SelectItem>
+                          ))}
+                          {editor.talent_name.trim() &&
+                            !rosterNames.has(editor.talent_name.trim().toLowerCase()) && (
+                              <SelectItem value={editor.talent_name}>
+                                {editor.talent_name} (no longer on your roster)
+                              </SelectItem>
+                            )}
+                        </SelectContent>
+                      </Select>
+                      <div className="tvp-muted" style={{ fontSize: 11, marginTop: 4 }}>
+                        {!editor.talent_name.trim()
+                          ? "Choose a roster member, or leave as client-only with no talent attached."
+                          : rosterNames.has(editor.talent_name.trim().toLowerCase())
+                            ? "Matched to your roster — sharing will reach this talent."
+                            : "No longer on your roster — sharing won't reach this talent."}
+                      </div>
+                    </div>
+                    <div className="tvp-form-group">
+                      <label htmlFor={`${a11yId}-field-3`}>Issued</label>
+                      <input
+                        id={`${a11yId}-field-3`}
+                        type="date"
+                        disabled={financialsLocked}
+                        value={editor.issued_at}
+                        onChange={(e) => setEditor({ ...editor, issued_at: e.target.value })}
+                      />
+                    </div>
+                    <div className="tvp-form-group">
+                      <label htmlFor={`${a11yId}-field-4`}>
+                        {editor.kind === "quote" ? "Valid until" : "Due"}
+                      </label>
+                      <input
+                        id={`${a11yId}-field-4`}
+                        type="date"
+                        disabled={financialsLocked}
+                        value={editor.due_date}
+                        onChange={(e) => setEditor({ ...editor, due_date: e.target.value })}
+                      />
+                    </div>
+                    <div className="tvp-form-group">
+                      <label htmlFor={`${a11yId}-field-5`}>Currency</label>
+                      <input
+                        id={`${a11yId}-field-5`}
+                        value={editor.currency}
+                        maxLength={3}
+                        disabled={financialsLocked}
+                        onChange={(e) =>
+                          setEditor({ ...editor, currency: e.target.value.toUpperCase() })
+                        }
+                      />
+                    </div>
+                    {editor.kind === "quote" ? (
+                      <div className="tvp-form-group">
+                        <label htmlFor={`${a11yId}-field-6`}>Acceptance window (days)</label>
+                        <input
+                          id={`${a11yId}-field-6`}
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={editor.acceptance_window_days}
+                          onChange={(e) =>
+                            setEditor({ ...editor, acceptance_window_days: e.target.value })
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <div className="tvp-form-group">
+                        <label htmlFor={`${a11yId}-field-7`}>Payment terms (days)</label>
+                        <input
+                          id={`${a11yId}-field-7`}
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={editor.payment_terms_days}
+                          onChange={(e) =>
+                            setEditor({ ...editor, payment_terms_days: e.target.value })
+                          }
+                        />
+                      </div>
+                    )}
+                    <div className="tvp-form-group">
+                      <label htmlFor={`${a11yId}-field-8`}>Status</label>
+                      <select
+                        id={`${a11yId}-field-8`}
+                        value={editor.status}
+                        onChange={(e) =>
+                          setEditor({ ...editor, status: e.target.value as Row["status"] })
+                        }
+                      >
+                        {(Object.keys(STATUS_LABEL) as Row["status"][]).map((s) => (
+                          <option key={s} value={s}>
+                            {STATUS_LABEL[s]}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
-                </div>
 
-                <div className="tvp-form-group" style={{ marginTop: 12 }}>
-                  <label>Notes and terms</label>
-                  <textarea
-                    value={editor.notes}
-                    onChange={(e) => setEditor({ ...editor, notes: e.target.value })}
-                    rows={3}
-                    placeholder="Additional terms or notes shown on the document"
-                  />
-                </div>
+                  {/* Line items */}
+                  <div style={{ marginTop: 20 }}>
+                    <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
+                      <h3 className="tvp-h3" style={{ margin: 0 }}>
+                        Line items
+                      </h3>
+                      <button
+                        className="tvp-secondary"
+                        type="button"
+                        data-tour="editor-add-line"
+                        disabled={financialsLocked}
+                        onClick={addLine}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add line
+                      </button>
+                    </div>
+                    <div className="tvp-lines">
+                      <div className="tvp-line-row tvp-line-head" aria-hidden="true">
+                        <div>Description</div>
+                        <div className="tvp-num">Quantity</div>
+                        <div className="tvp-num">Unit price (excl. VAT)</div>
+                        <div className="tvp-num">VAT %</div>
+                        <div className="tvp-num">Line total</div>
+                        <div />
+                      </div>
+                      {editor.lines.map((l, i) => {
+                        const line = Math.round(
+                          (Number(l.quantity) || 0) * (Number(l.unit_price_cents) || 0),
+                        );
+                        return (
+                          <div key={i} className="tvp-line-row">
+                            <input
+                              aria-label="Description"
+                              value={l.description}
+                              disabled={financialsLocked}
+                              onChange={(e) => updateLine(i, { description: e.target.value })}
+                              placeholder="e.g. Full-day shoot"
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              disabled={financialsLocked}
+                              value={l.quantity}
+                              onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })}
+                              aria-label="Quantity"
+                              placeholder="Quantity"
+                              className="tvp-num"
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              disabled={financialsLocked}
+                              value={(l.unit_price_cents / 100).toString()}
+                              onChange={(e) =>
+                                updateLine(i, {
+                                  unit_price_cents: Math.round(Number(e.target.value) * 100),
+                                })
+                              }
+                              aria-label="Unit price (excl. VAT)"
+                              placeholder="Unit price"
+                              className="tvp-num"
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step="0.01"
+                              disabled={financialsLocked}
+                              value={(l.vat_rate_bp / 100).toString()}
+                              onChange={(e) =>
+                                updateLine(i, {
+                                  vat_rate_bp: Math.round(Number(e.target.value) * 100),
+                                })
+                              }
+                              aria-label="VAT %"
+                              placeholder="VAT %"
+                              className="tvp-num"
+                            />
+                            <div className="tvp-num tvp-line-total">
+                              {fmtMoney(line, editor.currency)}
+                            </div>
+                            <button
+                              className="tvp-mini-btn"
+                              type="button"
+                              onClick={() => removeLine(i)}
+                              disabled={financialsLocked || editor.lines.length === 1}
+                              title="Remove line"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                      <div data-tour="editor-totals" className="tvp-totals">
+                        <p className="tvp-muted tvp-totals-note">
+                          Worked out from the lines above. The subtotal excludes VAT; VAT is added
+                          per line.
+                        </p>
+                        <dl className="tvp-totals-list">
+                          <div>
+                            <dt>Subtotal (excl. VAT)</dt>
+                            <dd className="tvp-num">
+                              {fmtMoney(editorTotals.subtotal_cents, editor.currency)}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>VAT</dt>
+                            <dd className="tvp-num">
+                              {fmtMoney(editorTotals.vat_cents, editor.currency)}
+                            </dd>
+                          </div>
+                          <div className="tvp-totals-grand">
+                            <dt>Total</dt>
+                            <dd className="tvp-num">
+                              {fmtMoney(editorTotals.total_cents, editor.currency)}
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </div>
+                  </div>
 
-                {editor.kind === "invoice" && (
+                  <div className="tvp-form-group" style={{ marginTop: 12 }}>
+                    <label htmlFor={`${a11yId}-field-9`}>Notes and terms</label>
+                    <textarea
+                      id={`${a11yId}-field-9`}
+                      value={editor.notes}
+                      onChange={(e) => setEditor({ ...editor, notes: e.target.value })}
+                      rows={3}
+                      placeholder="Additional terms or notes shown on the document"
+                    />
+                  </div>
+
+                  {editor.kind === "invoice" && (
+                    <div className="tvp-form-group" style={{ marginTop: 12 }}>
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={editor.allow_partial_payment}
+                          onChange={(e) =>
+                            setEditor({ ...editor, allow_partial_payment: e.target.checked })
+                          }
+                        />
+                        Allow partial payment
+                      </label>
+                    </div>
+                  )}
                   <div className="tvp-form-group" style={{ marginTop: 12 }}>
                     <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                       <input
                         type="checkbox"
-                        checked={editor.allow_partial_payment}
+                        checked={editor.shared_with_talent}
                         onChange={(e) =>
-                          setEditor({ ...editor, allow_partial_payment: e.target.checked })
+                          setEditor({ ...editor, shared_with_talent: e.target.checked })
                         }
                       />
-                      Allow partial payment
+                      Share with linked talent
                     </label>
                   </div>
-                )}
-                <div className="tvp-form-group" style={{ marginTop: 12 }}>
-                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <input
-                      type="checkbox"
-                      checked={editor.shared_with_talent}
-                      onChange={(e) =>
-                        setEditor({ ...editor, shared_with_talent: e.target.checked })
-                      }
-                    />
-                    Share with linked talent
-                  </label>
-                </div>
 
-                <div className="tvp-form-footer" data-tour="editor-actions">
-                  <div>
-                    <button
-                      className="tvp-secondary"
-                      type="button"
-                      disabled={!previewAgency || save.isPending}
-                      onClick={() => setPreviewOpen(true)}
-                      title={
-                        !previewAgency ? "Loading agency settings…" : "Preview as it will be sent"
-                      }
-                    >
-                      <Eye className="h-4 w-4" />
-                      Preview
-                    </button>
+                  <div className="tvp-form-footer" data-tour="editor-actions">
+                    <div>
+                      <button
+                        className="tvp-secondary"
+                        type="button"
+                        disabled={!previewAgency || save.isPending}
+                        onClick={() => setPreviewOpen(true)}
+                        title={
+                          !previewAgency ? "Loading agency settings…" : "Preview as it will be sent"
+                        }
+                      >
+                        <Eye className="h-4 w-4" />
+                        Preview
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>
+                        Cancel
+                      </button>
+                      <button
+                        className="tvp-primary"
+                        onClick={() => save.mutate()}
+                        disabled={save.isPending}
+                      >
+                        <Save className="h-4 w-4" />
+                        {save.isPending ? "Saving…" : "Save draft"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button className="tvp-secondary" onClick={() => setEditorOpen(false)}>
-                      Cancel
-                    </button>
-                    <button
-                      className="tvp-primary"
-                      onClick={() => save.mutate()}
-                      disabled={save.isPending}
-                    >
-                      <Save className="h-4 w-4" />
-                      {save.isPending ? "Saving…" : "Save draft"}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </AccessibleModal>
       )}
 
       {previewOpen && previewAgency && (

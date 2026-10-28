@@ -2127,7 +2127,8 @@
     gap: 6px;
     margin-top: 14px;
   }
-  & .tvp-form-group label {
+  & .tvp-form-group label,
+  & .tvp-form-group .tvp-field-caption {
     font-size: 12px;
     font-weight: 900;
     color: var(--tvp-ink);
@@ -3743,7 +3744,8 @@
   flex-direction: column;
   gap: 6px;
 }
-.tvp-modal .tvp-form-group label {
+.tvp-modal .tvp-form-group label,
+.tvp-modal .tvp-form-group .tvp-field-caption {
   font-size: 12px;
   font-weight: 900;
   color: var(--tvp-ink);
