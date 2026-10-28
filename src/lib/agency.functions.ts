@@ -7,7 +7,7 @@ import { assertTermsAccepted } from "@/lib/terms-guard";
 import { z } from "zod";
 import { profileName } from "./profile-name";
 import { billingAccent } from "./billing-brand";
-import { createDraftBillingNumber } from "./billing-number";
+import { createDraftBillingNumber, invoiceNumberExistsError } from "./billing-number";
 import { connectionResponseReminder, reminderVisible } from "./connection-response";
 import { inviteActorArgs } from "./invite-actor";
 import { effectiveInvitationStatus } from "@/lib/invitation-status";
@@ -3306,9 +3306,7 @@ export const createInvoiceForContract = createServerFn({ method: "POST" })
       .limit(1);
     if (numberError) throw databaseError(numberError);
     if (existing?.length) {
-      throw new Error(
-        "INVOICE_NUMBER_EXISTS: This agency already has an invoice with that number. Please choose a different number.",
-      );
+      throw invoiceNumberExistsError();
     }
 
     let talentName: string | null = null;

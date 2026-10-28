@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { createDraftBillingNumber } from "./billing-number";
+import {
+  createDraftBillingNumber,
+  INVOICE_NUMBER_UNIQUE_INDEX,
+  INVOICE_NUMBER_EXISTS_MESSAGE,
+} from "./billing-number";
+import { databaseError } from "./security-errors";
 import { friendlyError } from "./friendly-error";
 
 const fixtures = vi.hoisted(() => ({ context: {} as object }));
@@ -25,13 +30,32 @@ vi.mock("@tanstack/react-start", () => ({
 vi.mock("@tanstack/react-start/server", () => ({ getRequest: () => undefined }));
 vi.mock("@/integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
 vi.mock("./terms-guard", () => ({ assertTermsAccepted: async () => undefined }));
-import { createInvoiceForContract, reserveAgencyInvoiceNumber } from "./agency.functions";
+vi.mock("./billing-email.server", () => ({
+  sendBillingDocEmail: async () => ({ sent: true }),
+  billingFromHeader: () => "Test sender",
+}));
+import {
+  createInvoiceForContract,
+  reserveAgencyInvoiceNumber,
+  upsertAgencyBillingDoc,
+  saveAgencyBillingDocFull,
+  convertQuoteToInvoice,
+  markAgencyBillingDocSentManually,
+  sendAgencyBillingDoc,
+} from "./agency.functions";
 
 const agencyId = "11111111-1111-4111-8111-111111111111";
 const contractId = "22222222-2222-4222-8222-222222222222";
 const requests: { url: URL; method: string; body: unknown }[] = [];
 let duplicate = false;
 let lookupFails = false;
+let writeConflict = false;
+let mintConflict = false;
+let readDoc = false;
+const conflict = {
+  code: "23505",
+  message: `duplicate key value violates unique constraint "${INVOICE_NUMBER_UNIQUE_INDEX}"`,
+};
 const client = createClient<Database>("https://database.example.test", "test-key", {
   auth: { persistSession: false, autoRefreshToken: false },
   global: {
@@ -44,8 +68,10 @@ const client = createClient<Database>("https://database.example.test", "test-key
       let response: unknown = null;
       if (table === "agency_members")
         response = { agency_id: agencyId, role: "owner", suspended: false };
-      else if (table === "mint_billing_doc_number") response = "INV-2026-0042";
-      else if (url.pathname.includes("/rpc/")) response = true;
+      else if (table === "mint_billing_doc_number") {
+        if (mintConflict) return new Response(JSON.stringify(conflict), { status: 409 });
+        response = "INV-2026-0042";
+      } else if (url.pathname.includes("/rpc/")) response = true;
       else if (table === "talent_shared_documents")
         response = {
           id: contractId,
@@ -54,13 +80,33 @@ const client = createClient<Database>("https://database.example.test", "test-key
           contract_client_name: null,
           contract_currency: "ZAR",
         };
+      else if (table === "agencies")
+        response = {
+          billing_from_verified_at: "2026-10-28",
+          billing_from_email: "sender@example.test",
+        };
+      else if (table === "agency_billing_doc_lines") response = [];
       else if (table === "agency_billing_docs") {
         if (method === "GET") {
           if (lookupFails)
             return new Response(JSON.stringify({ code: "XX000", message: "query failed" }), {
               status: 500,
             });
-          response = duplicate ? [{ id: "existing" }] : [];
+          response = url.searchParams.has("converted_from_quote_id")
+            ? null
+            : readDoc
+              ? {
+                  id: contractId,
+                  kind: "quote",
+                  number: "DRAFT-TEST01",
+                  status: "draft",
+                  recipient_emails: ["client@example.test"],
+                }
+              : duplicate
+                ? [{ id: "existing" }]
+                : [];
+        } else if (writeConflict) {
+          return new Response(JSON.stringify(conflict), { status: 409 });
         } else response = { id: "created", number: "INV-2026-0042" };
       }
       return new Response(JSON.stringify(response), {
@@ -75,8 +121,94 @@ beforeEach(() => {
   requests.length = 0;
   duplicate = false;
   lookupFails = false;
+  writeConflict = false;
+  mintConflict = false;
+  readDoc = false;
   fixtures.context = { supabase: client, userId: "test-owner", claims: {} };
   vi.restoreAllMocks();
+});
+
+describe("Invoice unique-violation translation", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    writeConflict = true;
+  });
+  const basic = {
+    kind: "invoice",
+    number: payload.number,
+    issued_at: "2026-10-28",
+    total_cents: 10000,
+  };
+  const full = {
+    ...basic,
+    client_name: null,
+    talent_name: null,
+    description: null,
+    due_date: null,
+    notes: null,
+    shared_with_talent: false,
+    allow_partial_payment: false,
+    recipient_address: null,
+    recipient_vat_number: null,
+    recipient_email: null,
+    acceptance_window_days: null,
+    payment_terms_days: null,
+    lines: [
+      { description: "Work", quantity: 1, unit_price_cents: 10000, vat_rate_bp: 0, sort_order: 0 },
+    ],
+  };
+  it("maps a duplicate insert race after the contract precheck", async () => {
+    await expect(createInvoiceForContract({ data: payload })).rejects.toThrow(
+      INVOICE_NUMBER_EXISTS_MESSAGE,
+    );
+  });
+  it.each([undefined, contractId])("maps generic create/edit conflict (id %s)", async (id) => {
+    await expect(upsertAgencyBillingDoc({ data: { ...basic, id } })).rejects.toThrow(
+      INVOICE_NUMBER_EXISTS_MESSAGE,
+    );
+  });
+  it.each([undefined, contractId])("maps full editor create/edit conflict (id %s)", async (id) => {
+    await expect(saveAgencyBillingDocFull({ data: { ...full, id } })).rejects.toThrow(
+      INVOICE_NUMBER_EXISTS_MESSAGE,
+    );
+  });
+  it("maps a generated DRAFT number conflict", async () => {
+    await expect(
+      saveAgencyBillingDocFull({ data: { ...full, number: undefined } }),
+    ).rejects.toThrow(INVOICE_NUMBER_EXISTS_MESSAGE);
+  });
+  it("maps quote conversion conflicts", async () => {
+    readDoc = true;
+    await expect(
+      convertQuoteToInvoice({ data: { quote_id: contractId, invoice_number: payload.number } }),
+    ).rejects.toThrow(INVOICE_NUMBER_EXISTS_MESSAGE);
+  });
+  it("maps manual issue number-update conflicts", async () => {
+    readDoc = true;
+    await expect(markAgencyBillingDocSentManually({ data: { id: contractId } })).rejects.toThrow(
+      INVOICE_NUMBER_EXISTS_MESSAGE,
+    );
+  });
+  it("maps a mint error on this index", async () => {
+    mintConflict = true;
+    await expect(reserveAgencyInvoiceNumber()).rejects.toThrow(INVOICE_NUMBER_EXISTS_MESSAGE);
+  });
+  it("maps emailed issue number-update conflicts", async () => {
+    readDoc = true;
+    await expect(sendAgencyBillingDoc({ data: { id: contractId } })).rejects.toThrow(
+      INVOICE_NUMBER_EXISTS_MESSAGE,
+    );
+  });
+  it("does not mislabel an unrelated unique constraint", () => {
+    expect(
+      databaseError({ code: "23505", message: "duplicate key violates other_index" }).message,
+    ).toBe("That already exists.");
+  });
+  it("requires 23505 even when the index name is mentioned", () => {
+    expect(databaseError({ code: "XX000", message: INVOICE_NUMBER_UNIQUE_INDEX }).message).not.toBe(
+      INVOICE_NUMBER_EXISTS_MESSAGE,
+    );
+  });
 });
 
 describe("Billing number remediation", () => {

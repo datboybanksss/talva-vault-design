@@ -4,7 +4,7 @@
 
 # Document AI and onboarding
 - Email checks use email-validation's bounded caller-specific modes and linear header/chip parsing. Why: prevent excessive regex work while preserving normal-address rules.
-- Contract invoice defaults reserve numbers with mint_billing_doc_number; draft labels use billing-number's Web Crypto generator. Why: reuse atomic agency numbering without non-cryptographic identifiers.
+- Contract/conversion invoice defaults reserve numbers with collision-aware mint_billing_doc_number; draft labels use billing-number's Web Crypto generator; databaseError maps only the invoice-number unique index to billing-number's shared refusal. Why: every invoice write shares database-enforced uniqueness and friendly errors without affecting quotes.
 - Billing payment status is database-derived; partial invoices keep unpaid balances via billing helpers; only cron sweeps overdue invoices. Why: receipts never imply full settlement or trigger global reader writes.
 - Uploader/manager names use profile-name, billing resets use billing-brand, and absent invite actor emails omit the RPC argument to invoke SQL DEFAULT NULL. Why: typed contracts match stored data.
 - Agency response reminders merge agency-scoped completed private declines with public responses via connection-response. Why: notify actual responses without leaking unanswered account matches.
