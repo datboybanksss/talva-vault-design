@@ -259,14 +259,16 @@ function ContractDetail() {
             <div className="tvp-form-grid">
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-0`}>Client</label>
-                <input id={`${a11yId}-field-0`}
+                <input
+                  id={`${a11yId}-field-0`}
                   value={form.clientName}
                   onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-1`}>Currency</label>
-                <input id={`${a11yId}-field-1`}
+                <input
+                  id={`${a11yId}-field-1`}
                   maxLength={3}
                   value={form.currency}
                   onChange={(e) =>
@@ -276,7 +278,8 @@ function ContractDetail() {
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-2`}>Start date</label>
-                <input id={`${a11yId}-field-2`}
+                <input
+                  id={`${a11yId}-field-2`}
                   type="date"
                   value={form.startDate}
                   onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
@@ -284,7 +287,8 @@ function ContractDetail() {
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-3`}>End date</label>
-                <input id={`${a11yId}-field-3`}
+                <input
+                  id={`${a11yId}-field-3`}
                   type="date"
                   value={form.endDate}
                   onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
@@ -292,7 +296,8 @@ function ContractDetail() {
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-4`}>Total ({form.currency})</label>
-                <input id={`${a11yId}-field-4`}
+                <input
+                  id={`${a11yId}-field-4`}
                   type="number"
                   step="0.01"
                   value={form.total}
@@ -301,7 +306,8 @@ function ContractDetail() {
               </div>
               <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
                 <label htmlFor={`${a11yId}-field-5`}>Notes</label>
-                <textarea id={`${a11yId}-field-5`}
+                <textarea
+                  id={`${a11yId}-field-5`}
                   rows={4}
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -427,14 +433,16 @@ function InvoiceDialog({
       <div className="tvp-form-grid" style={{ padding: 16 }}>
         <div className="tvp-form-group">
           <label htmlFor={`${a11yId}-field-6`}>Invoice number</label>
-          <input id={`${a11yId}-field-6`}
+          <input
+            id={`${a11yId}-field-6`}
             value={v.number}
             onChange={(e) => setV((s) => ({ ...s, number: e.target.value }))}
           />
         </div>
         <div className="tvp-form-group">
           <label htmlFor={`${a11yId}-field-7`}>Total</label>
-          <input id={`${a11yId}-field-7`}
+          <input
+            id={`${a11yId}-field-7`}
             type="number"
             step="0.01"
             value={v.total}
@@ -443,7 +451,8 @@ function InvoiceDialog({
         </div>
         <div className="tvp-form-group">
           <label htmlFor={`${a11yId}-field-8`}>Due date</label>
-          <input id={`${a11yId}-field-8`}
+          <input
+            id={`${a11yId}-field-8`}
             type="date"
             value={v.dueDate}
             onChange={(e) => setV((s) => ({ ...s, dueDate: e.target.value }))}
@@ -451,7 +460,8 @@ function InvoiceDialog({
         </div>
         <div className="tvp-form-group" style={{ gridColumn: "1 / -1" }}>
           <label htmlFor={`${a11yId}-field-9`}>Notes</label>
-          <textarea id={`${a11yId}-field-9`}
+          <textarea
+            id={`${a11yId}-field-9`}
             rows={3}
             value={v.notes}
             onChange={(e) => setV((s) => ({ ...s, notes: e.target.value }))}

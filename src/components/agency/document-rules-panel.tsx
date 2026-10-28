@@ -379,7 +379,8 @@ function RuleDialog({
             <label htmlFor={`${a11yId}-field-1`} className="tvp-muted" style={{ fontSize: 13 }}>
               Folder
             </label>
-            <select id={`${a11yId}-field-1`}
+            <select
+              id={`${a11yId}-field-1`}
               className="tvp-select"
               value={scopeValue}
               onChange={(e) => setScopeValue(e.target.value)}
@@ -396,7 +397,8 @@ function RuleDialog({
             <label htmlFor={`${a11yId}-field-2`} className="tvp-muted" style={{ fontSize: 13 }}>
               Document
             </label>
-            <select id={`${a11yId}-field-2`}
+            <select
+              id={`${a11yId}-field-2`}
               className="tvp-select"
               value={documentId}
               onChange={(e) => setDocumentId(e.target.value)}
@@ -413,7 +415,8 @@ function RuleDialog({
         <label htmlFor={`${a11yId}-field-3`} className="tvp-muted" style={{ fontSize: 13 }}>
           Retention (years)
         </label>
-        <input id={`${a11yId}-field-3`}
+        <input
+          id={`${a11yId}-field-3`}
           className="tvp-select"
           type="number"
           min={0}
@@ -426,7 +429,8 @@ function RuleDialog({
         <label htmlFor={`${a11yId}-field-4`} className="tvp-muted" style={{ fontSize: 13 }}>
           Description (optional)
         </label>
-        <input id={`${a11yId}-field-4`}
+        <input
+          id={`${a11yId}-field-4`}
           className="tvp-select"
           value={description}
           onChange={(e) => setDescription(e.target.value)}

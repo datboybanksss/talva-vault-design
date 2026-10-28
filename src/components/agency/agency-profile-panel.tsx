@@ -89,14 +89,16 @@ export function AgencyProfilePanel() {
             <div className="tvp-form-grid" style={{ marginTop: 14 }}>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-0`}>Agency display name</label>
-                <input id={`${a11yId}-field-0`}
+                <input
+                  id={`${a11yId}-field-0`}
                   value={profile.name}
                   onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-1`}>Agency type</label>
-                <select id={`${a11yId}-field-1`}
+                <select
+                  id={`${a11yId}-field-1`}
                   value={profile.business_type}
                   onChange={(e) => setProfile((p) => ({ ...p, business_type: e.target.value }))}
                 >
@@ -109,7 +111,8 @@ export function AgencyProfilePanel() {
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-2`}>Country</label>
-                <CountrySelect id={`${a11yId}-field-2`}
+                <CountrySelect
+                  id={`${a11yId}-field-2`}
                   value={profile.country}
                   onChange={(country) => setProfile((p) => ({ ...p, country }))}
                 />
@@ -117,7 +120,8 @@ export function AgencyProfilePanel() {
 
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-3`}>Primary contact email</label>
-                <input id={`${a11yId}-field-3`}
+                <input
+                  id={`${a11yId}-field-3`}
                   type="email"
                   value={profile.contact_email}
                   onChange={(e) => setProfile((p) => ({ ...p, contact_email: e.target.value }))}
@@ -144,21 +148,24 @@ export function AgencyProfilePanel() {
             <div className="tvp-form-grid" style={{ marginTop: 14 }}>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-4`}>First name</label>
-                <input id={`${a11yId}-field-4`}
+                <input
+                  id={`${a11yId}-field-4`}
                   value={contact.first_name}
                   onChange={(e) => setContact((c) => ({ ...c, first_name: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-5`}>Last name</label>
-                <input id={`${a11yId}-field-5`}
+                <input
+                  id={`${a11yId}-field-5`}
                   value={contact.last_name}
                   onChange={(e) => setContact((c) => ({ ...c, last_name: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-6`}>Email</label>
-                <input id={`${a11yId}-field-6`}
+                <input
+                  id={`${a11yId}-field-6`}
                   type="email"
                   value={contact.email}
                   onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))}
@@ -166,7 +173,8 @@ export function AgencyProfilePanel() {
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-7`}>Contact number</label>
-                <input id={`${a11yId}-field-7`}
+                <input
+                  id={`${a11yId}-field-7`}
                   type="tel"
                   value={contact.phone}
                   onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))}

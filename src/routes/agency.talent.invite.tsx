@@ -181,7 +181,8 @@ function InviteTalent() {
                 <div className="tvp-form-grid">
                   <div className="tvp-form-group">
                     <label htmlFor={`${a11yId}-field-0`}>Full legal name *</label>
-                    <input id={`${a11yId}-field-0`}
+                    <input
+                      id={`${a11yId}-field-0`}
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="e.g. full name as it appears on ID"
@@ -189,7 +190,8 @@ function InviteTalent() {
                   </div>
                   <div className="tvp-form-group">
                     <label htmlFor={`${a11yId}-field-1`}>Email address *</label>
-                    <input id={`${a11yId}-field-1`}
+                    <input
+                      id={`${a11yId}-field-1`}
                       type="email"
                       value={email}
                       onChange={(e) => {
@@ -204,7 +206,11 @@ function InviteTalent() {
                   </div>
                   <div className="tvp-form-group">
                     <label htmlFor={`${a11yId}-field-2`}>Talent type</label>
-                    <select id={`${a11yId}-field-2`} value={talentType} onChange={(e) => setTalentType(e.target.value)}>
+                    <select
+                      id={`${a11yId}-field-2`}
+                      value={talentType}
+                      onChange={(e) => setTalentType(e.target.value)}
+                    >
                       <option value="">Not specified</option>
                       {talentTypeOptions.map((t) => (
                         <option key={t} value={t}>
@@ -215,7 +221,8 @@ function InviteTalent() {
                   </div>
                   <div className="tvp-form-group">
                     <label htmlFor={`${a11yId}-field-3`}>Invitation expiry (days)</label>
-                    <input id={`${a11yId}-field-3`}
+                    <input
+                      id={`${a11yId}-field-3`}
                       type="number"
                       min={1}
                       max={60}

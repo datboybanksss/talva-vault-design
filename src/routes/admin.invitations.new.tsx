@@ -491,7 +491,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
             <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-0`}>Agency name *</label>
-                <input id={`${a11yId}-field-0`}
+                <input
+                  id={`${a11yId}-field-0`}
                   value={agencyName}
                   onChange={(e) => setAgencyName(e.target.value)}
                   required
@@ -500,7 +501,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-1`}>Primary contact person</label>
-                <input id={`${a11yId}-field-1`}
+                <input
+                  id={`${a11yId}-field-1`}
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
                   placeholder="e.g. Maya Johnson"
@@ -508,7 +510,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-2`}>Contact email *</label>
-                <input id={`${a11yId}-field-2`}
+                <input
+                  id={`${a11yId}-field-2`}
                   type="email"
                   value={email}
                   onChange={(e) => {
@@ -524,7 +527,11 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
               </div>
               <div className="tvp-form-group">
                 <span id={`${a11yId}-business-type`}>Business type *</span>
-                <div role="group" aria-labelledby={`${a11yId}-business-type`} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div
+                  role="group"
+                  aria-labelledby={`${a11yId}-business-type`}
+                  style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+                >
                   {(["formal", "informal"] as BusinessType[]).map((t) => {
                     const active = businessType === t;
                     return (
@@ -560,7 +567,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
               </div>
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-4`}>Invitation expiry (days)</label>
-                <input id={`${a11yId}-field-4`}
+                <input
+                  id={`${a11yId}-field-4`}
                   type="number"
                   min={1}
                   max={60}
@@ -750,7 +758,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                     ? "Registered business contact number *"
                     : "Registered mobile number *"}
                 </label>
-                <input id={`${a11yId}-field-5`}
+                <input
+                  id={`${a11yId}-field-5`}
                   type="tel"
                   placeholder="e.g. +27 82 123 4567"
                   value={phoneValue}

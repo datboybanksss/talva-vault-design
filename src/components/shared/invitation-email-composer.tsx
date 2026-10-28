@@ -52,25 +52,39 @@ export function InvitationEmailComposer({
       {/* Editor */}
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-title">Compose</div>
-        <label htmlFor={`${a11yId}-field-0`} className="tvp-label" style={{ display: "block", marginTop: 12 }}>
+        <label
+          htmlFor={`${a11yId}-field-0`}
+          className="tvp-label"
+          style={{ display: "block", marginTop: 12 }}
+        >
           Recipient
         </label>
         <input id={`${a11yId}-field-0`} className="tvp-input" value={recipientEmail} readOnly />
 
-        <label htmlFor={`${a11yId}-field-1`} className="tvp-label" style={{ display: "block", marginTop: 12 }}>
+        <label
+          htmlFor={`${a11yId}-field-1`}
+          className="tvp-label"
+          style={{ display: "block", marginTop: 12 }}
+        >
           Subject
         </label>
-        <input id={`${a11yId}-field-1`}
+        <input
+          id={`${a11yId}-field-1`}
           className="tvp-input"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="Subject line"
         />
 
-        <label htmlFor={`${a11yId}-field-2`} className="tvp-label" style={{ display: "block", marginTop: 12 }}>
+        <label
+          htmlFor={`${a11yId}-field-2`}
+          className="tvp-label"
+          style={{ display: "block", marginTop: 12 }}
+        >
           Message
         </label>
-        <textarea id={`${a11yId}-field-2`}
+        <textarea
+          id={`${a11yId}-field-2`}
           className="tvp-input"
           style={{ minHeight: 240, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
           value={body}

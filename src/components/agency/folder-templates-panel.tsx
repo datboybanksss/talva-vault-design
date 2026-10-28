@@ -353,7 +353,8 @@ export function FolderTemplatesPanel() {
             </div>
             <div className="tvp-form-group">
               <label htmlFor={`${a11yId}-field-0`}>Name</label>
-              <input id={`${a11yId}-field-0`}
+              <input
+                id={`${a11yId}-field-0`}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Standard onboarding folders"
@@ -361,7 +362,8 @@ export function FolderTemplatesPanel() {
             </div>
             <div className="tvp-form-group">
               <label htmlFor={`${a11yId}-field-1`}>Description</label>
-              <input id={`${a11yId}-field-1`}
+              <input
+                id={`${a11yId}-field-1`}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional"

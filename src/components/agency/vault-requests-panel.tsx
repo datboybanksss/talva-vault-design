@@ -553,7 +553,8 @@ function ReviewDialog({
         {outcome === "resubmission_required" && (
           <div className="tvp-form-group" style={{ marginTop: 12 }}>
             <label htmlFor={`${a11yId}-field-0`}>Reason (required)</label>
-            <select id={`${a11yId}-field-0`}
+            <select
+              id={`${a11yId}-field-0`}
               value={reason}
               onChange={(e) => setReason(e.target.value as (typeof REASONS)[number]["code"])}
             >
@@ -572,7 +573,12 @@ function ReviewDialog({
               <span className="tvp-muted">(shown to talent)</span>
             )}
           </label>
-          <textarea id={`${a11yId}-field-1`} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea
+            id={`${a11yId}-field-1`}
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
         </div>
 
         <h4 className="tvp-h3" style={{ marginTop: 16 }}>

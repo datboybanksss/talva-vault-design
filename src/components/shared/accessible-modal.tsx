@@ -40,13 +40,22 @@ export function AccessibleModal({
       </Dialog.Content>
     );
   });
-  const overlay = cloneElement(children, {
-    onClick: (event) => {
-      if (event.target === event.currentTarget) onClose();
+  const overlay = cloneElement(
+    children,
+    {
+      onClick: (event) => {
+        if (event.target === event.currentTarget) onClose();
+      },
     },
-  }, content);
+    content,
+  );
   return (
-    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <Dialog.Portal>
         <Dialog.Overlay asChild>{overlay}</Dialog.Overlay>
       </Dialog.Portal>

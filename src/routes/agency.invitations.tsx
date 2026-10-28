@@ -585,7 +585,8 @@ function NewInvitationModal({
               {type === "talent" ? (
                 <div className="tvp-form-group">
                   <label htmlFor={`${a11yId}-field-0`}>Talent name *</label>
-                  <input id={`${a11yId}-field-0`}
+                  <input
+                    id={`${a11yId}-field-0`}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -595,7 +596,8 @@ function NewInvitationModal({
               ) : (
                 <div className="tvp-form-group">
                   <label htmlFor={`${a11yId}-field-1`}>Contact person</label>
-                  <input id={`${a11yId}-field-1`}
+                  <input
+                    id={`${a11yId}-field-1`}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. full name as it appears on ID"
@@ -604,7 +606,8 @@ function NewInvitationModal({
               )}
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-2`}>Email *</label>
-                <input id={`${a11yId}-field-2`}
+                <input
+                  id={`${a11yId}-field-2`}
                   type="email"
                   value={email}
                   onChange={(e) => {
@@ -621,7 +624,11 @@ function NewInvitationModal({
               {type === "staff" && (
                 <div className="tvp-form-group">
                   <label htmlFor={`${a11yId}-field-3`}>Role</label>
-                  <select id={`${a11yId}-field-3`} value={role} onChange={(e) => setRole(e.target.value)}>
+                  <select
+                    id={`${a11yId}-field-3`}
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                  >
                     <option value="staff">Staff manager (view + limited actions)</option>
                     <option value="lead">Lead manager (full talent operations)</option>
                   </select>
@@ -629,7 +636,8 @@ function NewInvitationModal({
               )}
               <div className="tvp-form-group">
                 <label htmlFor={`${a11yId}-field-4`}>Invitation expiry (days)</label>
-                <input id={`${a11yId}-field-4`}
+                <input
+                  id={`${a11yId}-field-4`}
                   type="number"
                   min={1}
                   max={60}

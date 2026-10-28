@@ -1395,11 +1395,17 @@ function UploadDialog({
 
         {/* File */}
         <div>
-          <label className="tvp-form-label" id="upload-file-label">
+          <label className="tvp-form-label" id="upload-file-label" htmlFor="upload-file">
             File
           </label>
           <div
             aria-labelledby="upload-file-label"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileRef.current?.click();
+              }
+            }}
             onClick={() => fileRef.current?.click()}
             onDragOver={(e) => {
               e.preventDefault();
@@ -1501,6 +1507,7 @@ function UploadDialog({
               </>
             )}
             <input
+              id="upload-file"
               ref={fileRef}
               type="file"
               style={{ display: "none" }}
@@ -1516,9 +1523,9 @@ function UploadDialog({
 
         {/* Folder */}
         <div>
-          <label className="tvp-form-label" id="upload-folder-label">
+          <span className="tvp-form-label" id="upload-folder-label">
             Folder
-          </label>
+          </span>
           {!talentLinkId ? (
             <p className="tvp-muted" style={{ fontSize: 13 }}>
               Select a talent first — their shared folders will appear here.
@@ -1555,6 +1562,8 @@ function UploadDialog({
                 </p>
               )}
               <div
+                role="group"
+                aria-labelledby="upload-folder-label"
                 style={{
                   border: "1px solid var(--tvp-line)",
                   borderRadius: 10,
