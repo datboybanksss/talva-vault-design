@@ -452,9 +452,13 @@ function AuthPage() {
       // being mounted — React's double-invoked effects would otherwise skip it
       // and leave the session in place.
       clearPortalAccessCache();
-      await supabase.auth.signOut({ scope: "local" }).catch((e: unknown) =>
-        toast.error(friendlyError(e, "We couldn't clear your previous sign-in. Please try again.")),
-      );
+      await supabase.auth
+        .signOut({ scope: "local" })
+        .catch((e: unknown) =>
+          toast.error(
+            friendlyError(e, "We couldn't clear your previous sign-in. Please try again."),
+          ),
+        );
       clearStoredSession();
     })().catch((e: unknown) =>
       toast.error(friendlyError(e, "We couldn't check your previous sign-in. Please try again.")),
@@ -486,9 +490,11 @@ function AuthPage() {
         const access = signedIn.user ? await accessAfterSignIn(signedIn.user.id) : null;
         await requireSignInAccess(access, async () => {
           clearPortalAccessCache();
-          await supabase.auth.signOut({ scope: "local" }).catch((e: unknown) =>
-            toast.error(friendlyError(e, "We couldn't clear your sign-in. Please try again.")),
-          );
+          await supabase.auth
+            .signOut({ scope: "local" })
+            .catch((e: unknown) =>
+              toast.error(friendlyError(e, "We couldn't clear your sign-in. Please try again.")),
+            );
           clearStoredSession();
         });
         if (access?.paused) {
