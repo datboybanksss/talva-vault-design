@@ -66,8 +66,7 @@ const client = createClient<Database>("https://database.example.test", "test-key
       else if (table === "mint_billing_doc_number") {
         if (mintConflict) return new Response(JSON.stringify(conflict), { status: 409 });
         response = "INV-2026-0042";
-      }
-      else if (url.pathname.includes("/rpc/")) response = true;
+      } else if (url.pathname.includes("/rpc/")) response = true;
       else if (table === "talent_shared_documents")
         response = {
           id: contractId,
@@ -135,7 +134,9 @@ describe("Invoice unique-violation translation", () => {
     recipient_email: null,
     acceptance_window_days: null,
     payment_terms_days: null,
-    lines: [{ description: "Work", quantity: 1, unit_price_cents: 10000, vat_rate_bp: 0, sort_order: 0 }],
+    lines: [
+      { description: "Work", quantity: 1, unit_price_cents: 10000, vat_rate_bp: 0, sort_order: 0 },
+    ],
   };
   it("maps a duplicate insert race after the contract precheck", async () => {
     await expect(createInvoiceForContract({ data: payload })).rejects.toThrow(
@@ -153,9 +154,9 @@ describe("Invoice unique-violation translation", () => {
     );
   });
   it("maps a generated DRAFT number conflict", async () => {
-    await expect(saveAgencyBillingDocFull({ data: { ...full, number: undefined } })).rejects.toThrow(
-      INVOICE_NUMBER_EXISTS_MESSAGE,
-    );
+    await expect(
+      saveAgencyBillingDocFull({ data: { ...full, number: undefined } }),
+    ).rejects.toThrow(INVOICE_NUMBER_EXISTS_MESSAGE);
   });
   it("maps quote conversion conflicts", async () => {
     readDoc = true;
@@ -174,9 +175,9 @@ describe("Invoice unique-violation translation", () => {
     await expect(reserveAgencyInvoiceNumber()).rejects.toThrow(INVOICE_NUMBER_EXISTS_MESSAGE);
   });
   it("does not mislabel an unrelated unique constraint", () => {
-    expect(databaseError({ code: "23505", message: "duplicate key violates other_index" }).message).toBe(
-      "We couldn't complete that request. Please try again.",
-    );
+    expect(
+      databaseError({ code: "23505", message: "duplicate key violates other_index" }).message,
+    ).toBe("We couldn't complete that request. Please try again.");
   });
   it("requires 23505 even when the index name is mentioned", () => {
     expect(databaseError({ code: "XX000", message: INVOICE_NUMBER_UNIQUE_INDEX }).message).not.toBe(

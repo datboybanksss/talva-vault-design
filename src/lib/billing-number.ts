@@ -7,7 +7,10 @@ export function invoiceNumberExistsError(): Error {
 }
 
 export function isInvoiceNumberUniqueViolation(
-  error: { code?: string; message?: string; details?: string; constraint?: string } | null | undefined,
+  error:
+    | { code?: string; message?: string; details?: string; constraint?: string }
+    | null
+    | undefined,
 ): boolean {
   return (
     error?.code === "23505" &&
