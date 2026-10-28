@@ -35,7 +35,7 @@ export function AccessibleModal({
     hasPanel = true;
     const panel = cloneElement(child, {}, withTitle(child.props.children));
     return (
-      <Dialog.Content asChild aria-label={label} aria-describedby={undefined}>
+      <Dialog.Content asChild aria-label={hasTitle ? undefined : label} aria-describedby={undefined}>
         {panel}
       </Dialog.Content>
     );
