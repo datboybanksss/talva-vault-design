@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { logMfaEnrolled } from "@/lib/admin.functions";
 import { friendlyAuthError } from "@/lib/password";
+import { friendlyError } from "@/lib/friendly-error";
 import { resolvePortalHome } from "@/lib/portal-access";
 import {
   getMfaStatus,
@@ -64,18 +65,18 @@ function EnrollTwoFactorPage() {
 
   const goHome = async () => {
     const dest = safeNext(search.next) ?? (await resolvePortalHome());
-    navigate({ to: (dest ?? "/auth") as never, replace: true });
+    await navigate({ to: (dest ?? "/auth") as never, replace: true });
   };
 
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    (async () => {
+    void (async () => {
       try {
         const { data: sess } = await supabase.auth.getSession();
         const user = sess.session?.user;
         if (!user) {
-          navigate({ to: "/auth", search: { next: search.next } as never, replace: true });
+          void navigate({ to: "/auth", search: { next: search.next } as never, replace: true });
           return;
         }
         setEmail(user.email ?? "");
@@ -143,8 +144,13 @@ function EnrollTwoFactorPage() {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      void navigate({ to: "/auth", replace: true });
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't sign you out. Please try again."));
+    }
   };
 
   return (

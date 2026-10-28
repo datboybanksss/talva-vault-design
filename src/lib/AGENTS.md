@@ -3,6 +3,7 @@
 - MFA flow tables retain service-only INSERT/UPDATE/DELETE and are exempt from the two-step policy. Why: the code flow must work before verification.
 
 # Document AI and onboarding
+- Email checks use email-validation's bounded caller-specific modes and linear header/chip parsing. Why: prevent excessive regex work while preserving normal-address rules.
 - Contract invoice defaults reserve numbers with mint_billing_doc_number; draft labels use billing-number's Web Crypto generator. Why: reuse atomic agency numbering without non-cryptographic identifiers.
 - Billing payment status is database-derived; partial invoices keep unpaid balances via billing helpers; only cron sweeps overdue invoices. Why: receipts never imply full settlement or trigger global reader writes.
 - Uploader/manager names use profile-name, billing resets use billing-brand, and absent invite actor emails omit the RPC argument to invoke SQL DEFAULT NULL. Why: typed contracts match stored data.

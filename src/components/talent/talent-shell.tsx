@@ -18,6 +18,8 @@ import {
 } from "@/lib/talent.functions";
 import { TermsGate } from "@/components/shared/terms-gate";
 import { PortalFooter } from "@/components/shared/portal-footer";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 import {
   ChevronLeft,
   LayoutGrid,
@@ -166,11 +168,11 @@ export function TalentShell({ children }: { children: ReactNode }) {
   async function markNotificationRead(id: string) {
     try {
       await markReadFn({ data: { id, read: true } });
-      queryClient.invalidateQueries({ queryKey: ["talent", "bell-feed"] });
-      queryClient.invalidateQueries({ queryKey: ["talent", "notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
-    } catch {
-      /* non-blocking */
+      void queryClient.invalidateQueries({ queryKey: ["talent", "bell-feed"] });
+      void queryClient.invalidateQueries({ queryKey: ["talent", "notifications"] });
+      void queryClient.invalidateQueries({ queryKey: ["talent", "dashboard"] });
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't mark this notification as read. Please try again."));
     }
   }
 
@@ -203,11 +205,16 @@ export function TalentShell({ children }: { children: ReactNode }) {
         : "Independent talent";
 
   async function handleSignOut() {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    router.invalidate();
-    navigate({ to: "/auth", replace: true });
+    try {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      void router.invalidate();
+      void navigate({ to: "/auth", replace: true });
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't sign you out. Please try again."));
+    }
   }
 
   useEffect(() => {

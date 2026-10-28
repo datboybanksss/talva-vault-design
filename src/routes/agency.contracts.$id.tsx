@@ -108,7 +108,7 @@ function ContractDetail() {
           contract_client_name: form.clientName || null,
           contract_start_date: form.startDate || null,
           contract_end_date: form.endDate || null,
-          contract_total_cents: form.total ? Math.round(parseFloat(form.total) * 100) : null,
+          contract_total_cents: form.total ? Math.round(Number.parseFloat(form.total) * 100) : null,
           contract_currency: form.currency || null,
           contract_notes: form.notes || null,
         },
@@ -381,7 +381,7 @@ function ContractDetail() {
           onSave={(v) =>
             createInvMut.mutate({
               number: v.number,
-              total_cents: Math.round(parseFloat(v.total || "0") * 100),
+              total_cents: Math.round(Number.parseFloat(v.total || "0") * 100),
               due_date: v.dueDate || null,
               notes: v.notes || null,
             })

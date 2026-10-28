@@ -150,10 +150,14 @@ export function QuotesInvoicesSettingsPanel() {
   }
 
   async function removeLogo() {
-    if (!(await askConfirm({ title: "Remove agency logo?" }))) return;
-    await logoFn({ data: { storage_path: null } });
-    toast.success("Logo removed");
-    qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
+    try {
+      if (!(await askConfirm({ title: "Remove agency logo?" }))) return;
+      await logoFn({ data: { storage_path: null } });
+      toast.success("Logo removed");
+      void qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't remove the logo. Please try again."));
+    }
   }
 
   if (isLoading || !form) {
