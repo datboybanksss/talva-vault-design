@@ -25,9 +25,15 @@ export const Route = createFileRoute("/agency/contracts/$id")({
   head: () => ({
     meta: [
       { title: "Contract · TalVault" },
-      { name: "description", content: "View your agency's contract and related invoices in TalVault." },
+      {
+        name: "description",
+        content: "View your agency's contract and related invoices in TalVault.",
+      },
       { property: "og:title", content: "Contract · TalVault" },
-      { property: "og:description", content: "View your agency's contract and related invoices in TalVault." },
+      {
+        property: "og:description",
+        content: "View your agency's contract and related invoices in TalVault.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -76,7 +82,8 @@ function ContractDetail() {
       setInvoiceNumber(number);
       setShowInvoice(true);
     },
-    onError: (e) => toast.error(friendlyError(e, "We couldn't assign an invoice number. Please try again.")),
+    onError: (e) =>
+      toast.error(friendlyError(e, "We couldn't assign an invoice number. Please try again.")),
   });
 
   const invoiced = c.invoices.reduce((s, i) => s + (i.totalCents ?? 0), 0);
@@ -153,7 +160,11 @@ function ContractDetail() {
           </div>
         </div>
         <div className="tvp-actions">
-          <button className="tvp-primary" disabled={reserveNumberMut.isPending} onClick={() => reserveNumberMut.mutate()}>
+          <button
+            className="tvp-primary"
+            disabled={reserveNumberMut.isPending}
+            onClick={() => reserveNumberMut.mutate()}
+          >
             <Plus className="h-4 w-4" />
             Create invoice
           </button>
@@ -305,7 +316,11 @@ function ContractDetail() {
             <div style={{ padding: 24, textAlign: "center" }} className="tvp-muted">
               No invoices linked to this contract yet — create one to bill against it.
               <div style={{ marginTop: 10 }}>
-                <button className="tvp-primary" disabled={reserveNumberMut.isPending} onClick={() => reserveNumberMut.mutate()}>
+                <button
+                  className="tvp-primary"
+                  disabled={reserveNumberMut.isPending}
+                  onClick={() => reserveNumberMut.mutate()}
+                >
                   <Plus className="h-4 w-4" />
                   Create first invoice
                 </button>
