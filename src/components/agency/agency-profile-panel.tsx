@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ export const agencyProfileQO = queryOptions({
 });
 
 export function AgencyProfilePanel() {
+  const a11yId = useId();
   const qc = useQueryClient();
   const { data: agency } = useQuery(agencyProfileQO);
 
@@ -86,15 +88,15 @@ export function AgencyProfilePanel() {
             <h2 className="tvp-h2">Agency profile</h2>
             <div className="tvp-form-grid" style={{ marginTop: 14 }}>
               <div className="tvp-form-group">
-                <label>Agency display name</label>
-                <input
+                <label htmlFor={`${a11yId}-field-0`}>Agency display name</label>
+                <input id={`${a11yId}-field-0`}
                   value={profile.name}
                   onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Agency type</label>
-                <select
+                <label htmlFor={`${a11yId}-field-1`}>Agency type</label>
+                <select id={`${a11yId}-field-1`}
                   value={profile.business_type}
                   onChange={(e) => setProfile((p) => ({ ...p, business_type: e.target.value }))}
                 >
@@ -106,16 +108,16 @@ export function AgencyProfilePanel() {
                 </select>
               </div>
               <div className="tvp-form-group">
-                <label>Country</label>
-                <CountrySelect
+                <label htmlFor={`${a11yId}-field-2`}>Country</label>
+                <CountrySelect id={`${a11yId}-field-2`}
                   value={profile.country}
                   onChange={(country) => setProfile((p) => ({ ...p, country }))}
                 />
               </div>
 
               <div className="tvp-form-group">
-                <label>Primary contact email</label>
-                <input
+                <label htmlFor={`${a11yId}-field-3`}>Primary contact email</label>
+                <input id={`${a11yId}-field-3`}
                   type="email"
                   value={profile.contact_email}
                   onChange={(e) => setProfile((p) => ({ ...p, contact_email: e.target.value }))}
@@ -141,30 +143,30 @@ export function AgencyProfilePanel() {
             </div>
             <div className="tvp-form-grid" style={{ marginTop: 14 }}>
               <div className="tvp-form-group">
-                <label>First name</label>
-                <input
+                <label htmlFor={`${a11yId}-field-4`}>First name</label>
+                <input id={`${a11yId}-field-4`}
                   value={contact.first_name}
                   onChange={(e) => setContact((c) => ({ ...c, first_name: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Last name</label>
-                <input
+                <label htmlFor={`${a11yId}-field-5`}>Last name</label>
+                <input id={`${a11yId}-field-5`}
                   value={contact.last_name}
                   onChange={(e) => setContact((c) => ({ ...c, last_name: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Email</label>
-                <input
+                <label htmlFor={`${a11yId}-field-6`}>Email</label>
+                <input id={`${a11yId}-field-6`}
                   type="email"
                   value={contact.email}
                   onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))}
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Contact number</label>
-                <input
+                <label htmlFor={`${a11yId}-field-7`}>Contact number</label>
+                <input id={`${a11yId}-field-7`}
                   type="tel"
                   value={contact.phone}
                   onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))}

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
   duplicateOnboardingName,
   onboardingPanelDocuments,
@@ -120,6 +121,7 @@ function NewInvitationRoute() {
 }
 
 function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
+  const a11yId = useId();
   const { draft: draftIdFromUrl } = Route.useSearch();
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -488,8 +490,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
             <InviteSteps current="details" />
             <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
               <div className="tvp-form-group">
-                <label>Agency name *</label>
-                <input
+                <label htmlFor={`${a11yId}-field-0`}>Agency name *</label>
+                <input id={`${a11yId}-field-0`}
                   value={agencyName}
                   onChange={(e) => setAgencyName(e.target.value)}
                   required
@@ -497,16 +499,16 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Primary contact person</label>
-                <input
+                <label htmlFor={`${a11yId}-field-1`}>Primary contact person</label>
+                <input id={`${a11yId}-field-1`}
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
                   placeholder="e.g. Maya Johnson"
                 />
               </div>
               <div className="tvp-form-group">
-                <label>Contact email *</label>
-                <input
+                <label htmlFor={`${a11yId}-field-2`}>Contact email *</label>
+                <input id={`${a11yId}-field-2`}
                   type="email"
                   value={email}
                   onChange={(e) => {
@@ -521,8 +523,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                 <InviteEmailFieldError conflict={emailCheck.conflict} />
               </div>
               <div className="tvp-form-group">
-                <label>Business type *</label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <span id={`${a11yId}-business-type`}>Business type *</span>
+                <div role="group" aria-labelledby={`${a11yId}-business-type`} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {(["formal", "informal"] as BusinessType[]).map((t) => {
                     const active = businessType === t;
                     return (
@@ -557,8 +559,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
                 </div>
               </div>
               <div className="tvp-form-group">
-                <label>Invitation expiry (days)</label>
-                <input
+                <label htmlFor={`${a11yId}-field-4`}>Invitation expiry (days)</label>
+                <input id={`${a11yId}-field-4`}
                   type="number"
                   min={1}
                   max={60}
@@ -743,12 +745,12 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
               )}
 
               <div className="tvp-form-group" style={{ marginTop: 16 }}>
-                <label>
+                <label htmlFor={`${a11yId}-field-5`}>
                   {businessType === "formal"
                     ? "Registered business contact number *"
                     : "Registered mobile number *"}
                 </label>
-                <input
+                <input id={`${a11yId}-field-5`}
                   type="tel"
                   placeholder="e.g. +27 82 123 4567"
                   value={phoneValue}

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useMemo } from "react";
 import { RotateCcw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
@@ -41,6 +42,7 @@ export function InvitationEmailComposer({
   expiryDate: string;
   tokens: InvitationTokens;
 }) {
+  const a11yId = useId();
   const v = INVITATION_VARIANTS[variant];
   const renderedSubject = useMemo(() => applyTokens(subject, tokens), [subject, tokens]);
   const renderedParas = useMemo(() => bodyParagraphs(applyTokens(body, tokens)), [body, tokens]);
@@ -50,25 +52,25 @@ export function InvitationEmailComposer({
       {/* Editor */}
       <div className="tvp-card tvp-panel">
         <div className="tvp-panel-title">Compose</div>
-        <label className="tvp-label" style={{ display: "block", marginTop: 12 }}>
+        <label htmlFor={`${a11yId}-field-0`} className="tvp-label" style={{ display: "block", marginTop: 12 }}>
           Recipient
         </label>
-        <input className="tvp-input" value={recipientEmail} readOnly />
+        <input id={`${a11yId}-field-0`} className="tvp-input" value={recipientEmail} readOnly />
 
-        <label className="tvp-label" style={{ display: "block", marginTop: 12 }}>
+        <label htmlFor={`${a11yId}-field-1`} className="tvp-label" style={{ display: "block", marginTop: 12 }}>
           Subject
         </label>
-        <input
+        <input id={`${a11yId}-field-1`}
           className="tvp-input"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="Subject line"
         />
 
-        <label className="tvp-label" style={{ display: "block", marginTop: 12 }}>
+        <label htmlFor={`${a11yId}-field-2`} className="tvp-label" style={{ display: "block", marginTop: 12 }}>
           Message
         </label>
-        <textarea
+        <textarea id={`${a11yId}-field-2`}
           className="tvp-input"
           style={{ minHeight: 240, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
           value={body}

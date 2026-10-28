@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -65,6 +66,7 @@ export const Route = createFileRoute("/admin/administrators")({
 });
 
 function AdminsPage() {
+  const a11yId = useId();
   const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const navigate = useNavigate();
   const listFn = useServerFn(listAdministrators);
@@ -539,8 +541,8 @@ function AdminsPage() {
               </p>
               <div className="tvp-invite-form-row">
                 <div className="tvp-form-group">
-                  <label>Email address</label>
-                  <input
+                  <label htmlFor={`${a11yId}-field-0`}>Email address</label>
+                  <input id={`${a11yId}-field-0`}
                     type="email"
                     value={inviteEmail}
                     onChange={(e) => {
@@ -555,9 +557,9 @@ function AdminsPage() {
                   <InviteEmailFieldError conflict={inviteEmailCheck.conflict} />
                 </div>
                 <div className="tvp-form-group">
-                  <label>Access level</label>
+                  <label htmlFor={`${a11yId}-field-1`}>Access level</label>
                   {/* Options carry only grantable administrator permission values. */}
-                  <select
+                  <select id={`${a11yId}-field-1`}
                     value={invitePerm}
                     onChange={(e) => setInvitePerm(e.target.value as AdminPermissionLevel)}
                   >
@@ -801,8 +803,8 @@ function AdminsPage() {
               audit log.
             </p>
             <div className="tvp-form-group">
-              <label>Designation / title</label>
-              <input
+              <label htmlFor={`${a11yId}-field-2`}>Designation / title</label>
+              <input id={`${a11yId}-field-2`}
                 type="text"
                 value={editDesignation}
                 onChange={(e) => setEditDesignation(e.target.value)}
@@ -811,9 +813,9 @@ function AdminsPage() {
               />
             </div>
             <div className="tvp-form-group">
-              <label>Permission level</label>
+              <label htmlFor={`${a11yId}-field-3`}>Permission level</label>
               {/* Options carry only administrator permission values. */}
-              <select
+              <select id={`${a11yId}-field-3`}
                 value={editPermission}
                 onChange={(e) => setEditPermission(e.target.value as AdminPermissionLevel)}
                 disabled={editAdmin.is_main_admin}
@@ -885,9 +887,9 @@ function AdminsPage() {
               level at or below your own, and the change is recorded in the audit log.
             </p>
             <div className="tvp-form-group">
-              <label>Access level</label>
+              <label htmlFor={`${a11yId}-field-4`}>Access level</label>
               {/* Options carry only grantable administrator permission values. */}
-              <select
+              <select id={`${a11yId}-field-4`}
                 value={editInvitePerm}
                 onChange={(e) => setEditInvitePerm(e.target.value as AdminPermissionLevel)}
                 disabled={updateInviteMut.isPending}

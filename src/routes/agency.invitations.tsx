@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { InviteEmailFieldError, useInviteEmailCheck } from "@/components/shared/invite-email-check";
 import { useFolderNames } from "@/lib/folder-catalogue";
@@ -417,6 +418,7 @@ function NewInvitationModal({
   onClose: () => void;
   onSubmit: (payload: InvitationPayload) => Promise<void>;
 }) {
+  const a11yId = useId();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("staff");
@@ -582,8 +584,8 @@ function NewInvitationModal({
             <>
               {type === "talent" ? (
                 <div className="tvp-form-group">
-                  <label>Talent name *</label>
-                  <input
+                  <label htmlFor={`${a11yId}-field-0`}>Talent name *</label>
+                  <input id={`${a11yId}-field-0`}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -592,8 +594,8 @@ function NewInvitationModal({
                 </div>
               ) : (
                 <div className="tvp-form-group">
-                  <label>Contact person</label>
-                  <input
+                  <label htmlFor={`${a11yId}-field-1`}>Contact person</label>
+                  <input id={`${a11yId}-field-1`}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. full name as it appears on ID"
@@ -601,8 +603,8 @@ function NewInvitationModal({
                 </div>
               )}
               <div className="tvp-form-group">
-                <label>Email *</label>
-                <input
+                <label htmlFor={`${a11yId}-field-2`}>Email *</label>
+                <input id={`${a11yId}-field-2`}
                   type="email"
                   value={email}
                   onChange={(e) => {
@@ -618,16 +620,16 @@ function NewInvitationModal({
               </div>
               {type === "staff" && (
                 <div className="tvp-form-group">
-                  <label>Role</label>
-                  <select value={role} onChange={(e) => setRole(e.target.value)}>
+                  <label htmlFor={`${a11yId}-field-3`}>Role</label>
+                  <select id={`${a11yId}-field-3`} value={role} onChange={(e) => setRole(e.target.value)}>
                     <option value="staff">Staff manager (view + limited actions)</option>
                     <option value="lead">Lead manager (full talent operations)</option>
                   </select>
                 </div>
               )}
               <div className="tvp-form-group">
-                <label>Invitation expiry (days)</label>
-                <input
+                <label htmlFor={`${a11yId}-field-4`}>Invitation expiry (days)</label>
+                <input id={`${a11yId}-field-4`}
                   type="number"
                   min={1}
                   max={60}

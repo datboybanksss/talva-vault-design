@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { PageBand } from "@/components/shared/brand";
 import { Switch } from "@/components/ui/switch";
@@ -47,6 +48,7 @@ const IN_APP_CHANNELS: { key: string; label: string; hint: string }[] = [
 ];
 
 function TalentSettings() {
+  const a11yId = useId();
   const { tab } = Route.useSearch();
   const [mode, setMode] = useState<Mode>(
     (
@@ -222,16 +224,16 @@ function TalentSettings() {
           </div>
           <div className="tvp-form-grid" style={{ marginTop: 12 }}>
             <div className="tvp-form-group">
-              <label>Full Name</label>
-              <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              <label htmlFor={`${a11yId}-field-0`}>Full Name</label>
+              <input id={`${a11yId}-field-0`} value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </div>
             <div className="tvp-form-group">
-              <label>Email</label>
-              <input value={ctx?.profile?.email ?? ""} disabled />
+              <label htmlFor={`${a11yId}-field-1`}>Email</label>
+              <input id={`${a11yId}-field-1`} value={ctx?.profile?.email ?? ""} disabled />
             </div>
             <div className="tvp-form-group">
-              <label>Talent Type</label>
-              <select value={talentType} onChange={(e) => setTalentType(e.target.value)}>
+              <label htmlFor={`${a11yId}-field-2`}>Talent Type</label>
+              <select id={`${a11yId}-field-2`} value={talentType} onChange={(e) => setTalentType(e.target.value)}>
                 <option value="">Not set</option>
                 {talentTypeOptions.map((t) => (
                   <option key={t} value={t}>

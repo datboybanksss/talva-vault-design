@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { ModalShell } from "@/components/shared/modal-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -449,6 +450,7 @@ function ReviewDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const a11yId = useId();
   const getFn = useServerFn(getAgencyDocumentRequest);
   const reviewFn = useServerFn(reviewAgencyDocumentRequest);
   const detail = useSuspenseQuery({
@@ -550,8 +552,8 @@ function ReviewDialog({
 
         {outcome === "resubmission_required" && (
           <div className="tvp-form-group" style={{ marginTop: 12 }}>
-            <label>Reason (required)</label>
-            <select
+            <label htmlFor={`${a11yId}-field-0`}>Reason (required)</label>
+            <select id={`${a11yId}-field-0`}
               value={reason}
               onChange={(e) => setReason(e.target.value as (typeof REASONS)[number]["code"])}
             >
@@ -564,13 +566,13 @@ function ReviewDialog({
           </div>
         )}
         <div className="tvp-form-group" style={{ marginTop: 12 }}>
-          <label>
+          <label htmlFor={`${a11yId}-field-1`}>
             Notes{" "}
             {outcome === "resubmission_required" && (
               <span className="tvp-muted">(shown to talent)</span>
             )}
           </label>
-          <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea id={`${a11yId}-field-1`} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
 
         <h4 className="tvp-h3" style={{ marginTop: 16 }}>

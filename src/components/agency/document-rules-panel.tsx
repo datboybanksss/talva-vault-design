@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
   useMutation,
@@ -308,6 +309,7 @@ function RuleDialog({
     description: string | null;
   }) => Promise<void>;
 }) {
+  const a11yId = useId();
   const folderOptions = useFolderNames();
   const scope = "folder" as "folder" | "document";
   const [scopeValue, setScopeValue] = useState<string>(initial.scopeValue ?? "");
@@ -365,19 +367,19 @@ function RuleDialog({
       >
         <h2 className="tvp-h2">{initial.id ? "Edit retention rule" : "Add retention rule"}</h2>
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
+        <span className="tvp-muted" style={{ fontSize: 13 }}>
           Scope
-        </label>
+        </span>
         <div className="tvp-muted" style={{ fontSize: 13 }}>
           Entire folder
         </div>
 
         {scope === "folder" ? (
           <>
-            <label className="tvp-muted" style={{ fontSize: 13 }}>
+            <label htmlFor={`${a11yId}-field-1`} className="tvp-muted" style={{ fontSize: 13 }}>
               Folder
             </label>
-            <select
+            <select id={`${a11yId}-field-1`}
               className="tvp-select"
               value={scopeValue}
               onChange={(e) => setScopeValue(e.target.value)}
@@ -391,10 +393,10 @@ function RuleDialog({
           </>
         ) : (
           <>
-            <label className="tvp-muted" style={{ fontSize: 13 }}>
+            <label htmlFor={`${a11yId}-field-2`} className="tvp-muted" style={{ fontSize: 13 }}>
               Document
             </label>
-            <select
+            <select id={`${a11yId}-field-2`}
               className="tvp-select"
               value={documentId}
               onChange={(e) => setDocumentId(e.target.value)}
@@ -408,10 +410,10 @@ function RuleDialog({
           </>
         )}
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
+        <label htmlFor={`${a11yId}-field-3`} className="tvp-muted" style={{ fontSize: 13 }}>
           Retention (years)
         </label>
-        <input
+        <input id={`${a11yId}-field-3`}
           className="tvp-select"
           type="number"
           min={0}
@@ -421,10 +423,10 @@ function RuleDialog({
           required
         />
 
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
+        <label htmlFor={`${a11yId}-field-4`} className="tvp-muted" style={{ fontSize: 13 }}>
           Description (optional)
         </label>
-        <input
+        <input id={`${a11yId}-field-4`}
           className="tvp-select"
           value={description}
           onChange={(e) => setDescription(e.target.value)}

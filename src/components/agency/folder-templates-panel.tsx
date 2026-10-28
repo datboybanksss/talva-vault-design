@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
@@ -48,6 +49,7 @@ type EditorItem = {
 };
 
 export function FolderTemplatesPanel() {
+  const a11yId = useId();
   const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
   const { data } = useSuspenseQuery(folderTemplatesListQO);
@@ -350,16 +352,16 @@ export function FolderTemplatesPanel() {
               </button>
             </div>
             <div className="tvp-form-group">
-              <label>Name</label>
-              <input
+              <label htmlFor={`${a11yId}-field-0`}>Name</label>
+              <input id={`${a11yId}-field-0`}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Standard onboarding folders"
               />
             </div>
             <div className="tvp-form-group">
-              <label>Description</label>
-              <input
+              <label htmlFor={`${a11yId}-field-1`}>Description</label>
+              <input id={`${a11yId}-field-1`}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional"

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { useConfirm } from "@/components/shared/use-confirm";
 import {
@@ -1892,6 +1893,7 @@ function NewVersionDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const a11yId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const registerVersion = useServerFn(registerAgencyDocumentVersion);
@@ -1952,10 +1954,10 @@ function NewVersionDialog({
         <p className="tvp-muted" style={{ fontSize: 13 }}>
           Replacing "{doc.name}" — the previous file is preserved in version history.
         </p>
-        <label className="tvp-muted" style={{ fontSize: 13 }}>
+        <label htmlFor={`${a11yId}-field-0`} className="tvp-muted" style={{ fontSize: 13 }}>
           File
         </label>
-        <input ref={fileRef} type="file" required />
+        <input id={`${a11yId}-field-0`} ref={fileRef} type="file" required />
         <div className="flex gap-2 mt-2 justify-end">
           <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
             Cancel

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useConfirm } from "@/components/shared/use-confirm";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -260,6 +261,7 @@ function emptyEditor(
 type SortKey = "newest" | "oldest" | "amount_desc" | "amount_asc" | "due";
 
 function QIPage() {
+  const a11yId = useId();
   const { confirm: askConfirm, dialog: askConfirmDialog } = useConfirm();
   const qc = useQueryClient();
   const { data: rows } = useSuspenseQuery(listQO);
@@ -1203,8 +1205,8 @@ function QIPage() {
                 )}
                 <div className="tvp-form-2col">
                   <div className="tvp-form-group">
-                    <label>Type</label>
-                    <select
+                    <label htmlFor={`${a11yId}-field-0`}>Type</label>
+                    <select id={`${a11yId}-field-0`}
                       value={editor.kind}
                       onChange={(e) =>
                         setEditor({ ...editor, kind: e.target.value as "quote" | "invoice" })
@@ -1216,7 +1218,7 @@ function QIPage() {
                     </select>
                   </div>
                   <div className="tvp-form-group">
-                    <label>
+                    <label htmlFor={`${a11yId}-field-1`}>
                       Number{" "}
                       {!editor.number && (
                         <span className="tvp-muted" style={{ fontSize: 11 }}>
@@ -1224,7 +1226,7 @@ function QIPage() {
                         </span>
                       )}
                     </label>
-                    <input
+                    <input id={`${a11yId}-field-1`}
                       value={editor.number}
                       disabled={financialsLocked}
                       onChange={(e) => setEditor({ ...editor, number: e.target.value })}
@@ -1236,8 +1238,8 @@ function QIPage() {
                     data-tour="editor-ref"
                     style={{ gridColumn: "1 / -1" }}
                   >
-                    <label>Reference / description</label>
-                    <input
+                    <label htmlFor={`${a11yId}-field-2`}>Reference / description</label>
+                    <input id={`${a11yId}-field-2`}
                       value={editor.description}
                       onChange={(e) => setEditor({ ...editor, description: e.target.value })}
                       placeholder="e.g. Brand campaign — Autumn 2026"
@@ -1333,8 +1335,8 @@ function QIPage() {
                     </div>
                   </div>
                   <div className="tvp-form-group">
-                    <label>Issued</label>
-                    <input
+                    <label htmlFor={`${a11yId}-field-3`}>Issued</label>
+                    <input id={`${a11yId}-field-3`}
                       type="date"
                       disabled={financialsLocked}
                       value={editor.issued_at}
@@ -1342,8 +1344,8 @@ function QIPage() {
                     />
                   </div>
                   <div className="tvp-form-group">
-                    <label>{editor.kind === "quote" ? "Valid until" : "Due"}</label>
-                    <input
+                    <label htmlFor={`${a11yId}-field-4`}>{editor.kind === "quote" ? "Valid until" : "Due"}</label>
+                    <input id={`${a11yId}-field-4`}
                       type="date"
                       disabled={financialsLocked}
                       value={editor.due_date}
@@ -1351,8 +1353,8 @@ function QIPage() {
                     />
                   </div>
                   <div className="tvp-form-group">
-                    <label>Currency</label>
-                    <input
+                    <label htmlFor={`${a11yId}-field-5`}>Currency</label>
+                    <input id={`${a11yId}-field-5`}
                       value={editor.currency}
                       maxLength={3}
                       disabled={financialsLocked}
@@ -1363,8 +1365,8 @@ function QIPage() {
                   </div>
                   {editor.kind === "quote" ? (
                     <div className="tvp-form-group">
-                      <label>Acceptance window (days)</label>
-                      <input
+                      <label htmlFor={`${a11yId}-field-6`}>Acceptance window (days)</label>
+                      <input id={`${a11yId}-field-6`}
                         type="number"
                         min={1}
                         max={365}
@@ -1376,8 +1378,8 @@ function QIPage() {
                     </div>
                   ) : (
                     <div className="tvp-form-group">
-                      <label>Payment terms (days)</label>
-                      <input
+                      <label htmlFor={`${a11yId}-field-7`}>Payment terms (days)</label>
+                      <input id={`${a11yId}-field-7`}
                         type="number"
                         min={1}
                         max={365}
@@ -1389,8 +1391,8 @@ function QIPage() {
                     </div>
                   )}
                   <div className="tvp-form-group">
-                    <label>Status</label>
-                    <select
+                    <label htmlFor={`${a11yId}-field-8`}>Status</label>
+                    <select id={`${a11yId}-field-8`}
                       value={editor.status}
                       onChange={(e) =>
                         setEditor({ ...editor, status: e.target.value as Row["status"] })
@@ -1531,8 +1533,8 @@ function QIPage() {
                 </div>
 
                 <div className="tvp-form-group" style={{ marginTop: 12 }}>
-                  <label>Notes and terms</label>
-                  <textarea
+                  <label htmlFor={`${a11yId}-field-9`}>Notes and terms</label>
+                  <textarea id={`${a11yId}-field-9`}
                     value={editor.notes}
                     onChange={(e) => setEditor({ ...editor, notes: e.target.value })}
                     rows={3}
