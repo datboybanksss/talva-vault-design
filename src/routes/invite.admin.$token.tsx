@@ -70,7 +70,13 @@ function AdminInvitePage() {
               body={terminalBody(inviteQ.data.reason)}
             />
           ) : (
-            <InviteBody invite={inviteQ.data} token={token} onDone={() => nav({ to: "/admin" })} />
+            <InviteBody
+              invite={inviteQ.data}
+              token={token}
+              onDone={() => {
+                void nav({ to: "/admin" });
+              }}
+            />
           )}
         </div>
       </section>

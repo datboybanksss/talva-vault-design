@@ -21,6 +21,8 @@ import {
 import { Lock, FileCheck2, Users } from "lucide-react";
 import { z } from "zod";
 import { PasswordInput } from "@/components/password-input";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 import { friendlyAuthError } from "@/lib/password";
 import {
   INVITE_KINDS,
@@ -254,22 +256,28 @@ function AuthPage() {
       if (deniedConfirmedRef.current) return;
       // Access is granted, or nobody was signed in to begin with: the denial no
       // longer applies, so drop it and show a plain sign-in form.
-      nav({
+      void nav({
         to: "/auth",
         search: { next: search.next, reset: search.reset } as never,
         replace: true,
       });
     };
-    void revalidate();
+    void revalidate().catch((e: unknown) =>
+      toast.error(friendlyError(e, "We couldn't check your access. Please try again.")),
+    );
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      void revalidate();
+      void revalidate().catch((e: unknown) =>
+        toast.error(friendlyError(e, "We couldn't check your access. Please try again.")),
+      );
     });
     // A page restored from the back/forward cache keeps its old React state,
     // so an already-"confirmed" denial would linger without a fresh check.
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
         setDeniedState("checking");
-        void revalidate();
+        void revalidate().catch((e: unknown) =>
+          toast.error(friendlyError(e, "We couldn't check your access. Please try again.")),
+        );
       }
     };
     window.addEventListener("pageshow", onPageShow);
@@ -309,7 +317,10 @@ function AuthPage() {
       .then((res) => {
         if (mounted) setPendingInvite(res);
       })
-      .catch(() => {})
+      .catch((e: unknown) => {
+        if (mounted)
+          toast.error(friendlyError(e, "We couldn't check your invitation. Please try again."));
+      })
       .finally(() => {
         if (mounted) setInviteChecked(true);
       });
@@ -327,7 +338,7 @@ function AuthPage() {
         data: { token: pendingInvite.token, kind: pendingInvite.kind },
       });
       if (res.ok) {
-        nav({ to: res.dest, replace: true });
+        void nav({ to: res.dest, replace: true });
         return;
       }
       setError(res.message);
@@ -351,7 +362,7 @@ function AuthPage() {
           data: { token: search.invite, kind: search.invite_kind },
         });
         if (res.ok) {
-          nav({ to: res.dest, replace: true });
+          void nav({ to: res.dest, replace: true });
           return;
         }
         setError(res.message);
@@ -368,7 +379,7 @@ function AuthPage() {
         );
         return;
       }
-      nav({ to: dest, replace });
+      void nav({ to: dest, replace });
     },
     [search.next, search.invite, search.invite_kind, nav],
   );
@@ -403,12 +414,14 @@ function AuthPage() {
     const status = await getMfaStatus({ data: {} });
     if (status.gate === "enrol") {
       setCodeStage(false);
-      nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
+      void nav({ to: "/enroll-2fa", search: { next: search.next } as never, replace: true });
       return;
     }
     if (status.gate === "challenge") {
       // The email is sent in the background; its result shows when it arrives.
-      void startCodeChallenge();
+      void startCodeChallenge().catch((e: unknown) =>
+        toast.error(friendlyError(e, "We couldn't send your sign-in code. Please try again.")),
+      );
       return;
     }
     setCodeStage(false);
@@ -516,6 +529,8 @@ function AuthPage() {
     setResending(true);
     try {
       await startCodeChallenge();
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't send your sign-in code. Please try again."));
     } finally {
       setResending(false);
     }
@@ -526,7 +541,10 @@ function AuthPage() {
     // session so nothing else in the app runs as a partly signed-in user.
     setBusy(true);
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (e) {
+      toast.error(friendlyError(e, "We couldn't sign you out. Please try again."));
     } finally {
       setCodeStage(false);
       setMfaCode("");
@@ -634,7 +652,11 @@ function AuthPage() {
                       await supabase.auth.signOut();
                     } finally {
                       setBusy(false);
-                      nav({ to: "/auth", search: { next: search.next } as never, replace: true });
+                      void nav({
+                        to: "/auth",
+                        search: { next: search.next } as never,
+                        replace: true,
+                      });
                     }
                   }}
                 >

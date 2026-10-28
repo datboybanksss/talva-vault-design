@@ -376,7 +376,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
                           className="tvp-notification-item"
                           onClick={() => {
                             setBellOpen(false);
-                            if (n.notificationId) markNotificationRead(n.notificationId);
+                            if (n.notificationId) void markNotificationRead(n.notificationId);
                           }}
                         >
                           <div
@@ -417,7 +417,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
                       className="tvp-notification-item"
                       onClick={() => {
                         setBellOpen(false);
-                        markNotificationRead(n.id);
+                        void markNotificationRead(n.id);
                       }}
                     >
                       <div
@@ -447,7 +447,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        markNotificationRead(n.id);
+                        void markNotificationRead(n.id);
                       }}
                     >
                       <X className="h-3.5 w-3.5" />

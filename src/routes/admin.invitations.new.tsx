@@ -90,7 +90,7 @@ function NewInvitationRoute() {
   const { draft, type } = Route.useSearch();
   const nav = useNavigate();
   const choose = (t: InvitationType) =>
-    nav({ to: "/admin/invitations/new", search: { type: t }, replace: true });
+    void nav({ to: "/admin/invitations/new", search: { type: t }, replace: true });
 
   // A saved agency draft keeps its type; to change it, delete the draft.
   if (draft) return <AgencyInviteForm typeSlot={<InvitationTypeField value="agency" locked />} />;
@@ -194,11 +194,11 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
         },
       }),
     onSuccess: (row) => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["admin"] });
       rememberOnboardingSession(row.id, onboardingSessionId);
       setDraftId(row.id);
       toast.success("Draft saved. You can keep editing it until you send.");
-      nav({ to: "/admin/invitations/new", search: { draft: row.id }, replace: true });
+      void nav({ to: "/admin/invitations/new", search: { draft: row.id }, replace: true });
     },
     onError: (e: unknown) => toast.error(friendlyError(e, "Failed to save draft")),
   });
@@ -218,7 +218,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
         },
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Draft updated.");
     },
     onError: (e: unknown) => toast.error(friendlyError(e, "Failed to update draft")),
@@ -265,7 +265,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
       });
     },
     onSuccess: async (inv) => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["admin"] });
 
       // The invitation exists either way — a delivery failure must never be
       // reported as a successful send.
@@ -276,7 +276,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
         toast.success("Invitation sent. The recipient will receive the branded email.");
       else toast.warning(EMAIL_FALLBACK_NOTICE, { duration: 9000 });
 
-      nav({ to: "/admin/invitations" });
+      void nav({ to: "/admin/invitations" });
     },
     onError: (e: unknown) => toast.error(friendlyError(e, "Failed to send invitation")),
   });
@@ -287,8 +287,8 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
         ? deleteStagedFn({ data: { id } })
         : deleteDocFn({ data: { id } }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
-      qc.invalidateQueries({ queryKey: ["admin", "staged", "agency", onboardingSessionId] });
+      void qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
+      void qc.invalidateQueries({ queryKey: ["admin", "staged", "agency", onboardingSessionId] });
       toast.success("Document removed.");
     },
     onError: (e: unknown) => toast.error(friendlyError(e, "Failed to remove document")),
@@ -354,7 +354,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
           },
         }).finally(() => stagedQ.refetch());
       }
-      qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
+      void qc.invalidateQueries({ queryKey: ["admin", "compliance", draftId] });
       toast.success(`${file.name} uploaded.`);
     } catch (e: unknown) {
       const msg = friendlyError(e, "Upload failed");
@@ -415,7 +415,7 @@ function AgencyInviteForm({ typeSlot }: { typeSlot: ReactNode }) {
   const saveWordingM = useMutation({
     mutationFn: () => saveWordingFn({ data: { kind: "agency", id: draftId, wording } }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["admin"] });
       toast.success("Draft saved, including your email wording.");
     },
     onError: (e: unknown) => toast.error(friendlyError(e, "We couldn't save the draft.")),

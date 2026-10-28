@@ -85,7 +85,13 @@ function TalentInvitePage() {
       <section className="tv-auth-panel">
         <div className="tv-auth-card" style={{ maxWidth: 520 }}>
           {invite ? (
-            <InviteBody invite={invite} token={token} onDone={() => nav({ to: "/talent" })} />
+            <InviteBody
+              invite={invite}
+              token={token}
+              onDone={() => {
+                void nav({ to: "/talent" });
+              }}
+            />
           ) : inviteQ.isLoading ? (
             <div className="tv-auth-tag">Loading your invitation…</div>
           ) : !resolved ? (
@@ -707,7 +713,9 @@ function TwoFactorStep() {
       <button
         type="button"
         className="tv-auth-submit"
-        onClick={() => nav({ to: "/enroll-2fa", search: { next: "/talent" } })}
+        onClick={() => {
+          void nav({ to: "/enroll-2fa", search: { next: "/talent" } });
+        }}
         style={{
           marginTop: 20,
           height: 46,

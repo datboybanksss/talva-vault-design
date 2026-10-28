@@ -119,7 +119,7 @@ export function QuotesInvoicesSettingsPanel() {
         current ? { ...current, accent_color: updated.accent_color } : current,
       );
       toast.success("Settings saved");
-      qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
+      void qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
     },
     onError: (e) => toast.error(friendlyError(e, "Save failed")),
   });
@@ -140,7 +140,7 @@ export function QuotesInvoicesSettingsPanel() {
       if (error) throw error;
       await logoFn({ data: { storage_path: path } });
       toast.success("Logo uploaded");
-      qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
+      void qc.invalidateQueries({ queryKey: ["agency", "billing-settings"] });
     } catch (e) {
       toast.error(friendlyError(e, "Upload failed"));
     } finally {

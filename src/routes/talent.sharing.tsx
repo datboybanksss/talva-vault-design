@@ -118,7 +118,7 @@ function SharingPage() {
     try {
       await revoke({ data: { id } });
       toast.success("Share revoked");
-      qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
+      void qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
     } catch (e) {
       toast.error(friendlyError(e, "Failed to revoke"));
     }
@@ -149,7 +149,7 @@ function SharingPage() {
           "New code issued, but no email was sent — copy the link and send it yourself.",
         );
       }
-      qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
+      void qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
     } catch (e) {
       toast.error(friendlyError(e, "Failed to regenerate code"));
     }
@@ -158,8 +158,12 @@ function SharingPage() {
   const sharePage = usePagedList(data ?? []);
 
   function copyLink(token: string) {
-    navigator.clipboard.writeText(`${window.location.origin}/loved-one/${token}`);
-    toast.success("Link copied");
+    void navigator.clipboard
+      .writeText(`${window.location.origin}/loved-one/${token}`)
+      .then(() => toast.success("Link copied"))
+      .catch((e: unknown) =>
+        toast.error(friendlyError(e, "We couldn't copy the link. Please try again.")),
+      );
   }
 
   return (
@@ -375,7 +379,7 @@ function SharingPage() {
           onCreated={(f) => {
             setShowModal(false);
             setFresh(f);
-            qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
+            void qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
           }}
         />
       )}
@@ -403,8 +407,12 @@ function FreshSharePanel({ fresh, onDismiss }: { fresh: FreshShare; onDismiss: (
             <button
               className="tvp-secondary"
               onClick={() => {
-                navigator.clipboard.writeText(fresh.link);
-                toast.success("Link copied");
+                void navigator.clipboard
+                  .writeText(fresh.link)
+                  .then(() => toast.success("Link copied"))
+                  .catch((e: unknown) =>
+                    toast.error(friendlyError(e, "We couldn't copy the link. Please try again.")),
+                  );
               }}
             >
               <Copy className="h-4 w-4" /> Copy link
@@ -442,8 +450,14 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
             <button
               className="tvp-primary"
               onClick={() => {
-                navigator.clipboard.writeText(fresh.code);
-                toast.success("Access code copied");
+                void navigator.clipboard
+                  .writeText(fresh.code)
+                  .then(() => toast.success("Access code copied"))
+                  .catch((e: unknown) =>
+                    toast.error(
+                      friendlyError(e, "We couldn't copy the access code. Please try again."),
+                    ),
+                  );
               }}
             >
               <Copy className="h-4 w-4" /> Copy
@@ -462,8 +476,12 @@ function AccessCodeModal({ fresh, onClose }: { fresh: FreshShare; onClose: () =>
             <button
               className="tvp-secondary"
               onClick={() => {
-                navigator.clipboard.writeText(fresh.link);
-                toast.success("Link copied");
+                void navigator.clipboard
+                  .writeText(fresh.link)
+                  .then(() => toast.success("Link copied"))
+                  .catch((e: unknown) =>
+                    toast.error(friendlyError(e, "We couldn't copy the link. Please try again.")),
+                  );
               }}
             >
               <Copy className="h-4 w-4" /> Copy link
