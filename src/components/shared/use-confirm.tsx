@@ -55,6 +55,7 @@ export function useConfirm() {
           {opts.confirmLabel ?? "Confirm"}
         </button>
       </div>
+    </ModalShell>
   ) : null;
 
   return { confirm, dialog };
