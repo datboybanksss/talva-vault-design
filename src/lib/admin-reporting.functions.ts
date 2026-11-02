@@ -703,7 +703,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         } = await admin
           .from("loved_one_shares")
           .select(
-            "loved_one_name, loved_one_email, share_kind, permission, is_active, created_at",
+            "loved_one_name, loved_one_email, share_kind, permission, is_active, revoked_at, expires_at, created_at",
             {
               count: "exact",
             },
@@ -728,7 +728,8 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
             r.loved_one_email,
             r.share_kind,
             r.permission,
-            r.is_active ? "Yes" : "No",
+            // Live = active, not stopped and not yet expired.
+            r.is_active && !r.revoked_at && Date.parse(r.expires_at) > Date.now() ? "Yes" : "No",
             r.created_at,
           ]),
         };
