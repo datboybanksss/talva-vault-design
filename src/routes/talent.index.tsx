@@ -28,7 +28,6 @@ export const Route = createFileRoute("/talent/")({
   component: TalentDashboard,
 });
 
-
 function TalentDashboard() {
   const load = useServerFn(getTalentDashboard);
   const { data } = useQuery({
