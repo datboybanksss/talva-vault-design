@@ -1,6 +1,7 @@
 import type { Database } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { matchesScope, type AccountScope } from "./account-filters";
 /**
  * Single definition of "onboarded talent", shared by the Admin Overview
  * dashboard and the Admin Reporting page so the two can never diverge.
@@ -33,6 +34,7 @@ export type OnboardedTalent = {
 export async function fetchOnboardedTalentLinks(
   client: SupabaseClient<Database>,
   toIso?: string,
+  scope: AccountScope = "real",
 ): Promise<OnboardedTalent[]> {
   let q = client
     .from("agency_talent_links")
@@ -57,7 +59,9 @@ export async function fetchOnboardedTalentLinks(
   // Exclude test and soft-deleted talent. A link whose talent has no profile
   // row yet has not completed onboarding, so it is excluded too.
   const eligible = new Set(
-    (profiles ?? []).filter((p) => !p.is_test && !p.deleted_at).map((p) => p.user_id),
+    (profiles ?? [])
+      .filter((p) => matchesScope(p.is_test, scope) && !p.deleted_at)
+     .map((p) => p.user_id),
   );
   return links.filter((l) => eligible.has(l.talent_user_id));
 }
@@ -66,8 +70,9 @@ export async function fetchOnboardedTalentLinks(
 export async function fetchOnboardedTalent(
   client: SupabaseClient<Database>,
   toIso?: string,
+  scope: AccountScope = "real",
 ): Promise<OnboardedTalent[]> {
-  const links = await fetchOnboardedTalentLinks(client, toIso);
+  const links = await fetchOnboardedTalentLinks(client, toIso, scope);
   const seen = new Set<string>();
   return links.filter((l) => {
     if (seen.has(l.talent_user_id)) return false;
@@ -101,14 +106,15 @@ export type TalentSplit = { agencyLinked: number; independent: number; total: nu
 export async function fetchTalentSplit(
   client: SupabaseClient<Database>,
   toIso?: string,
+  scope: AccountScope = "real",
 ): Promise<TalentSplit> {
   let pq = client
     .from("talent_profiles")
     .select("user_id")
-    .eq("is_test", false)
     .is("deleted_at", null)
     .not("user_id", "is", null);
   if (toIso) pq = pq.lte("created_at", toIso);
+  if (scope !== "all") pq = pq.eq("is_test", scope === "test");
   const [{ data: profiles, error: pErr }, { data: links, error: lErr }] = await Promise.all([
     pq,
     client
