@@ -5972,6 +5972,7 @@ a.tvp-entity-card:focus-visible {
 .tvp-modal .tvp-form-footer {
   justify-content: flex-end;
   gap: 10px;
+  border-top-color: var(--line);
 }
 @media (max-width: 640px) {
   .tv-app .tvp-form-2col {
