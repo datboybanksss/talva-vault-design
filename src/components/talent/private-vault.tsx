@@ -152,6 +152,12 @@ export function PrivateVault({
   };
   const aiRow = useAnalyseWithAi("talent");
 
+  // A folder removed while open falls back to the folder grid.
+  useEffect(() => {
+    if (place.kind === "folder" && data && !tree.byId.has(place.categoryId))
+      setPlace({ kind: "grid" });
+  }, [place, data, tree]);
+
   uploadRef.current = () => triggerUpload(null);
   function triggerUpload(folderId: string | null) {
     setUploadFolderId(folderId);
@@ -405,8 +411,7 @@ export function PrivateVault({
   if (!docsVisible && place.kind !== "grid") {
     const category = place.kind === "folder" ? tree.byId.get(place.categoryId) : undefined;
     if (place.kind === "folder" && !category) {
-      // The folder was removed meanwhile — fall back to the grid.
-      queueMicrotask(() => setPlace({ kind: "grid" }));
+      // The folder was removed meanwhile; the effect above returns to the grid.
     } else {
       const subs = category ? tree.childrenOf(category.id) : [];
       const subFolder =
