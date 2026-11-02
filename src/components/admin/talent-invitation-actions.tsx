@@ -48,7 +48,7 @@ export function useTalentInvitationActions() {
     mutationFn: (id: string) => revokeFn({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Invitation revoked. The ID document and proof of talent were deleted.");
+      toast.success("Invitation revoked. The proof of talent was deleted.");
     },
     onError: (e) => toast.error(friendlyError(e, "We couldn't revoke the invitation.")),
   });
@@ -121,7 +121,7 @@ export function useTalentInvitationActions() {
         hidden: !allowed.includes("reinvite"),
         title: storedOpen
           ? "Sends the invitation again with a fresh expiry"
-          : "Starts a new invitation — the ID document and proof of talent are needed again",
+          : "Starts a new invitation — the proof of talent is needed again",
         onSelect: () =>
           storedOpen
             ? resendM.mutate(row.id)
@@ -134,12 +134,12 @@ export function useTalentInvitationActions() {
         hidden: !allowed.includes("revoke"),
         destructive: true,
         separatorBefore: true,
-        title: "Also deletes the ID document and proof of talent",
+        title: "Also deletes the proof of talent",
         onSelect: async () => {
           if (
             await askConfirm({
               title: `Revoke the invitation to ${row.talent_name}?`,
-              body: "Their ID document and proof of talent will be deleted.",
+              body: "Their proof of talent will be deleted.",
               destructive: true,
             })
           ) {
@@ -154,7 +154,7 @@ export function useTalentInvitationActions() {
         hidden: !(row.status === "draft" && allowed.includes("delete")),
         destructive: true,
         separatorBefore: true,
-        title: "Also deletes any uploaded ID document and proof of talent",
+        title: "Also deletes any uploaded proof of talent",
         onSelect: async () => {
           if (
             await askConfirm({

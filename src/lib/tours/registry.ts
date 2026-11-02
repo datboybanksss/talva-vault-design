@@ -878,7 +878,7 @@ export const GUIDES: TourGuide[] = [
     portal: "admin",
     kind: "module",
     title: "Talent invitation workflow",
-    description: "Invite independent talent without an agency: details, two documents, then send.",
+    description: "Invite independent talent without an agency: details, proof of talent, then send.",
     match: ["/admin/invitations/talent"],
     steps: [
       {
@@ -899,8 +899,8 @@ export const GUIDES: TourGuide[] = [
         key: "documents",
         route: { to: "/admin/invitations/new", search: { type: "talent" } },
         selector: '[data-tour="admin-talent-invite-docs"]',
-        title: "Step 3 — ID document and proof of talent",
-        body: 'Upload one file to each slot. Files are checked for their real type and size, and duplicate file names are refused. "Send invitation" stays disabled until both are attached.',
+        title: "Step 3 — Proof of talent",
+        body: 'Upload the proof of talent. The file is checked for its real type and size, and duplicate file names are refused. "Send invitation" stays disabled until it is attached.',
         optional: true,
       },
       {
@@ -916,7 +916,7 @@ export const GUIDES: TourGuide[] = [
         route: { to: "/admin/invitations", search: { type: "talent" } },
         selector: '[data-tour="admin-invite-type"]',
         title: "Step 5 — resend or revoke",
-        body: "Filter the list by Type → Talent. Resend refreshes the expiry; Revoke closes the link and deletes the ID document and proof of talent, keeping the invitation in the audit trail.",
+        body: "Filter the list by Type → Talent. Resend refreshes the expiry; Revoke closes the link and deletes the proof of talent, keeping the invitation in the audit trail.",
       },
     ],
   },
