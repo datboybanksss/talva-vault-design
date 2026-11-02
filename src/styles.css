@@ -3893,6 +3893,30 @@
 .tvp-modal .tvp-muted {
   color: var(--ink-500);
 }
+.tvp-modal .tvp-mini-btn,
+.tvl .tvp-mini-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--tvp-line-strong);
+  background: var(--surface);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--tvp-text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tvp-modal .tvp-mini-btn:hover,
+.tvl .tvp-mini-btn:hover {
+  background: var(--tvp-teal-50);
+  border-color: var(--tvp-teal-200);
+  color: var(--tvp-teal);
+}
+.tvp-modal .tvp-mini-btn:focus-visible,
+.tvl .tvp-mini-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
 .tvp-modal .tvp-modal-check {
   display: flex;
   gap: 10px;
