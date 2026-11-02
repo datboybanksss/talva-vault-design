@@ -215,6 +215,8 @@ function VaultPage() {
   );
 }
 
+const SHARED_TONES = ["teal", "blue", "purple", "green", "amber", "red"];
+
 function statusTone(status: string) {
   switch (status) {
     case "approved":
