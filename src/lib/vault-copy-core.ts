@@ -30,5 +30,5 @@ export function duplicateCopyMessage(documentName: string, folderLabel: string):
 
 /** Confirmation wording shown before the copy is made. */
 export function copyConfirmText(documentName: string, agencyName: string): string {
-  return `A copy of ${documentName} will be added to your shared folder with ${agencyName}. Your original stays private in your vault. Once shared, the copy follows the shared folder rules and can't be removed by you.`;
+  return `A copy of ${documentName} goes to your shared folder with ${agencyName}. The original stays private in your vault.`;
 }

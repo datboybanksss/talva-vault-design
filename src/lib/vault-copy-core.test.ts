@@ -24,12 +24,9 @@ describe("duplicateCopyMessage", () => {
 });
 
 describe("copyConfirmText", () => {
-  it("states the original stays private and the copy can't be removed", () => {
-    const text = copyConfirmText("Passport.pdf", "Star Agency");
-    expect(text).toContain(
-      "A copy of Passport.pdf will be added to your shared folder with Star Agency.",
+  it("states where the copy goes and that the original stays private", () => {
+    expect(copyConfirmText("Passport.pdf", "Star Agency")).toBe(
+      "A copy of Passport.pdf goes to your shared folder with Star Agency. The original stays private in your vault.",
     );
-    expect(text).toContain("Your original stays private in your vault.");
-    expect(text).toContain("can't be removed by you");
   });
 });

@@ -866,75 +866,76 @@ function CopyToAgencyDialog({
 
   return (
     <ModalShell onClose={onClose} maxWidth={520} labelledBy="tvp-copy-title">
-      <h2 className="tvp-h2" id="tvp-copy-title">
-        Copy to agency shared folder
-      </h2>
-      <p className="tvp-muted" style={{ marginTop: 8 }}>
-        {copyConfirmText(documentName, target?.agency_name ?? "your agency")}
-      </p>
+      <div className="tvp-modal-head">
+        <h2 className="tvp-h2" id="tvp-copy-title">
+          Copy to agency shared folder
+        </h2>
+        <button type="button" className="tvp-icon-btn" onClick={onClose} aria-label="Close">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="tvp-modal-body">
+        <p className="tvp-muted">
+          {copyConfirmText(documentName, target?.agency_name ?? "your agency")}
+        </p>
 
-      {usable.length > 1 && (
-        <div style={{ marginTop: 16 }}>
-          <label className="tvp-field-label" htmlFor="tvp-copy-agency">
-            Agency
-          </label>
+        {usable.length > 1 && (
+          <div className="tvp-form-group">
+            <label htmlFor="tvp-copy-agency">Agency</label>
+            <select
+              id="tvp-copy-agency"
+              value={linkId}
+              onChange={(e) => {
+                setLinkId(e.target.value);
+                setFolder("");
+              }}
+            >
+              {usable.map((t) => (
+                <option key={t.talent_link_id} value={t.talent_link_id}>
+                  {t.agency_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="tvp-form-group">
+          <label htmlFor="tvp-copy-folder">Folder</label>
           <select
-            id="tvp-copy-agency"
-            className="tvp-select"
-            value={linkId}
-            onChange={(e) => {
-              setLinkId(e.target.value);
-              setFolder("");
-            }}
+            id="tvp-copy-folder"
+            value={folder}
+            aria-describedby="tvp-copy-folder-hint"
+            onChange={(e) => setFolder(e.target.value)}
           >
-            {usable.map((t) => (
-              <option key={t.talent_link_id} value={t.talent_link_id}>
-                {t.agency_name}
+            <option value="">Choose a folder…</option>
+            {(target?.folders ?? []).map((f) => (
+              <option key={f.id} value={f.name}>
+                {f.name}
               </option>
             ))}
           </select>
+          <span id="tvp-copy-folder-hint" className="tvp-field-caption">
+            Your agency sets up these folders.
+          </span>
         </div>
-      )}
 
-      <div style={{ marginTop: 16 }}>
-        <label className="tvp-field-label" htmlFor="tvp-copy-folder">
-          Folder
+        <label className="tvp-modal-check">
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={(e) => setConfirmed(e.target.checked)}
+          />
+          <span>I understand I can’t remove the copy once it’s shared with my agency.</span>
         </label>
-        <select
-          id="tvp-copy-folder"
-          className="tvp-select"
-          value={folder}
-          onChange={(e) => setFolder(e.target.value)}
-        >
-          <option value="">Choose a folder…</option>
-          {(target?.folders ?? []).map((f) => (
-            <option key={f.id} value={f.name}>
-              {f.name}
-            </option>
-          ))}
-        </select>
+
+        {error && (
+          <p className="tvp-field-error" role="alert">
+            {error}
+          </p>
+        )}
       </div>
 
-      <label
-        className="tvp-muted"
-        style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 16 }}
-      >
-        <input
-          type="checkbox"
-          checked={confirmed}
-          onChange={(e) => setConfirmed(e.target.checked)}
-          style={{ marginTop: 3 }}
-        />
-        <span>I understand the copy can't be removed by me once it's shared.</span>
-      </label>
-
-      {error && (
-        <p className="tvp-field-error" role="alert" style={{ marginTop: 12 }}>
-          {error}
-        </p>
-      )}
-
-      <div className="tvp-form-footer">
+      <div className="tvp-modal-foot">
         <button type="button" className="tvp-secondary" onClick={onClose} disabled={busy}>
           Cancel
         </button>
