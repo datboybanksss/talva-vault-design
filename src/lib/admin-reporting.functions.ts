@@ -228,7 +228,7 @@ async function loadInviteFunnelRows(
       .map((r) => ({
         id: r.id,
         kind: requests.has(r.id) ? ("connection_request" as const) : ("talent_agency" as const),
-        name: r.talent_name,
+        name: r.talent_name ?? "",
         email: r.email,
         agency_id: r.agency_id,
         status: String(r.status),
