@@ -5969,6 +5969,10 @@ a.tvp-entity-card:focus-visible {
   padding-top: var(--sp-4);
   border-top: 1px solid var(--tvp-line);
 }
+.tvp-modal .tvp-form-footer {
+  justify-content: flex-end;
+  gap: 10px;
+}
 @media (max-width: 640px) {
   .tv-app .tvp-form-2col {
     grid-template-columns: 1fr;
