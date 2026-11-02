@@ -8,6 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json, Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
 import { profileName } from "./profile-name";
+import { fmtDate } from "./display-dates";
 
 /**
  * Returns the talent's profile + primary agency link (or null if the caller
@@ -822,6 +823,10 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
           .order("updated_at", { ascending: false })
           .limit(50),
       ]);
+      noteFailure("shared documents", sc.error);
+      noteFailure("shared folders", sf.error);
+      noteFailure("expiring documents", ec.error);
+      noteFailure("document requests", or.error ?? rr.error ?? pr.error ?? reqRows.error);
       sharedCount = sc.count ?? 0;
       sharedFolderCount = sf.count ?? 0;
       expiringCount = ec.count ?? 0;
@@ -927,13 +932,14 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
             .maybeSingle();
           managerName = profileName(p);
         }
-        const { data: sd } = await supabaseAdmin
+        const { data: sd, error: sdError } = await supabaseAdmin
           .from("talent_shared_documents")
           .select("id, name, folder, created_at, talent_link_id")
           .in("talent_link_id", visibleIds)
           .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .limit(4);
+        noteFailure("recent shared documents", sdError);
         for (const d of sd ?? [])
           recent.push({
             id: d.id,
@@ -944,12 +950,14 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
             linkId: d.talent_link_id,
           });
       }
-      const { data: pd } = await supabase
+      const { data: pd, error: pdError } = await supabase
         .from("talent_private_documents")
         .select("id, name, created_at, folder_id")
         .eq("user_id", userId)
+        .or("validated_at.not.is.null,quarantine_reason.not.is.null")
         .order("created_at", { ascending: false })
         .limit(4);
+      noteFailure("recent private documents", pdError);
       const folderIds = [
         ...new Set((pd ?? []).map((d) => d.folder_id).filter(Boolean)),
       ] as string[];
