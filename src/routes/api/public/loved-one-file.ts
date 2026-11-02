@@ -69,7 +69,11 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
 
         // View-only shares never stream a type the browser can't show inline —
         // it would arrive as a download.
-        if (mode === "view" && share.permission !== "download" && !isInlineViewable(doc.mime_type)) {
+        if (
+          mode === "view" &&
+          share.permission !== "download" &&
+          !isInlineViewable(doc.mime_type)
+        ) {
           return new Response("This file can't be previewed on a view-only share", {
             status: 403,
           });

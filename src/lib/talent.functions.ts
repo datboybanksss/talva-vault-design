@@ -834,7 +834,6 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       resubRequests = rr.count ?? 0;
       pendingRequests = pr.count ?? 0;
 
-
       // Expiring documents are intentionally not listed here — the bell
       // already carries them (count + per-document reminders). The dashboard
       // keeps the "Expiring soon" KPI count only.

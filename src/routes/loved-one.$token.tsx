@@ -212,9 +212,7 @@ function LovedOnePage() {
     if (typeof window === "undefined") return undefined;
     return sessionStorage.getItem(ticketKey(token)) ?? undefined;
   });
-  const [viewer, setViewer] = useState<{ url: string; name: string; openedAt: Date } | null>(
-    null,
-  );
+  const [viewer, setViewer] = useState<{ url: string; name: string; openedAt: Date } | null>(null);
   const [unviewable, setUnviewable] = useState<string | null>(null);
 
   const refresh = useCallback(
@@ -347,7 +345,8 @@ function LovedOnePage() {
         </p>
         <div className="tvl-pills">
           <span className="tvl-pill tvl-pill-neutral">
-            <Clock className="h-3.5 w-3.5" aria-hidden /> Access ends {fmtDateTime(share.expires_at)}
+            <Clock className="h-3.5 w-3.5" aria-hidden /> Access ends{" "}
+            {fmtDateTime(share.expires_at)}
           </span>
           {canDownload ? (
             <span className="tvl-pill tvl-pill-teal">
@@ -522,7 +521,11 @@ function CodeGate({
           </span>
         )}
       </div>
-      <button type="submit" className="tvl-btn tvl-btn-primary tvl-btn-lg" disabled={busy || code.trim().length < 4}>
+      <button
+        type="submit"
+        className="tvl-btn tvl-btn-primary tvl-btn-lg"
+        disabled={busy || code.trim().length < 4}
+      >
         <Lock className="h-4 w-4" aria-hidden /> {busy ? "Checking…" : "Unlock documents"}
       </button>
     </form>
@@ -713,8 +716,16 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="tvl">
       <header className="tvl-bar">
         <div className="tvl-bar-inner">
-          <TalVaultLockup variant="teal" className="tvl-logo tvl-logo-light" style={{ height: 28 }} />
-          <TalVaultLockup variant="white" className="tvl-logo tvl-logo-dark" style={{ height: 28 }} />
+          <TalVaultLockup
+            variant="teal"
+            className="tvl-logo tvl-logo-light"
+            style={{ height: 28 }}
+          />
+          <TalVaultLockup
+            variant="white"
+            className="tvl-logo tvl-logo-dark"
+            style={{ height: 28 }}
+          />
           <span className="tvl-pill tvl-pill-teal">
             <Lock className="h-3.5 w-3.5" aria-hidden /> Secure shared documents
           </span>
