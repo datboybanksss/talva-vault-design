@@ -635,6 +635,7 @@
 /* Portal-level surfaces (modals, the public shared-link page) sit outside
    `.tv-app`, so they get the same token mapping here. */
 .tvp-modal-backdrop,
+.tvp-document-modal,
 .tvl {
   --tvp-sidebar: var(--sidebar-bg);
   --tvp-sidebar-active: var(--sidebar-active);
@@ -3892,6 +3893,26 @@
 .tvp-modal .tvp-muted {
   color: var(--ink-500);
 }
+.tvp-modal .tvp-modal-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--ink-700);
+  line-height: 1.5;
+}
+.tvp-modal .tvp-modal-check input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--teal-700);
+  flex-shrink: 0;
+}
+.tvp-modal .tvp-field-caption.tvp-field-hint,
+.tvp-modal .tvp-form-group .tvp-field-hint {
+  font-weight: 600;
+  color: var(--ink-500);
+}
 .tvp-modal-body > * + * {
   margin-top: var(--sp-4);
 }
@@ -5294,7 +5315,8 @@ a.tvp-entity-card:focus-visible {
   white-space: normal;
   text-align: left;
 }
-.tvp-document-modal .tvp-mini-btn {
+.tvp-document-modal .tvp-mini-btn,
+.tvp-modal .tvp-mini-btn {
   flex-shrink: 0;
   color: var(--ink);
 }

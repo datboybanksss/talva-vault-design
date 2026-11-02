@@ -870,7 +870,7 @@ function CopyToAgencyDialog({
         <h2 className="tvp-h2" id="tvp-copy-title">
           Copy to agency shared folder
         </h2>
-        <button type="button" className="tvp-icon-btn" onClick={onClose} aria-label="Close">
+        <button type="button" className="tvp-mini-btn" onClick={onClose} aria-label="Close" title="Close">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -914,7 +914,7 @@ function CopyToAgencyDialog({
               </option>
             ))}
           </select>
-          <span id="tvp-copy-folder-hint" className="tvp-field-caption">
+          <span id="tvp-copy-folder-hint" className="tvp-field-hint">
             Your agency sets up these folders.
           </span>
         </div>
