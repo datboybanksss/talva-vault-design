@@ -280,7 +280,7 @@ export function PrivateVault({
   const isFiltering = search.trim() !== "" || filterFolder !== "__all";
   const docsVisible = showAllDocs || isFiltering;
 
-  function rowActions(d: PrivateDoc): (RowAction | false)[] {
+  function rowActions(d: PrivateDoc): Array<RowAction | false | null | undefined> {
     const blocked = quarantineReason(d);
     const noFile = d.storage_path ? undefined : "No file attached to this document";
     return [
@@ -868,7 +868,7 @@ function FolderDocuments({
   pathOf: (id: string | null) => string | null;
   statusPills: (d: PrivateDoc) => React.ReactNode;
   viewButton: (d: PrivateDoc) => React.ReactNode;
-  rowActions: (d: PrivateDoc) => (RowAction | false)[];
+  rowActions: (d: PrivateDoc) => Array<RowAction | false | null | undefined>;
   emptyText?: string;
   empty?: React.ReactNode;
   resetKey?: string;
