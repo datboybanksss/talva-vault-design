@@ -11,6 +11,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { fetchOnboardedTalent, fetchTalentSplit } from "@/lib/onboarded-talent";
+import {
+  buildTestScope,
+  daysToAccept,
+  inviteFunnel,
+  median,
+  sentAt,
+  sentInPeriod,
+  type AccountScope,
+  type TestScope,
+} from "@/lib/report-scope";
 
 // Mirrors the canonical actions in talent-activity.server.ts; kept local so this
 // client-reachable module never pulls a server-only file into the browser graph.
@@ -34,6 +44,7 @@ async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
 }
 
 const PeriodInput = z.object({
+  accounts: z.enum(["real", "test", "all"]).default("real"),
   from: z
     .string()
     .max(10000)
@@ -72,12 +83,6 @@ function priorPeriod(p: Period): Period {
 
 const ACTIVITY_ACTIONS = [TALENT_LOGIN_ACTION, ...TALENT_VAULT_ACTIONS];
 
-function median(values: number[]): number | null {
-  if (values.length === 0) return null;
-  const s = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid]! : Math.round(((s[mid - 1]! + s[mid]!) / 2) * 10) / 10;
-}
 
 /** Every activity row in a window, keyed by the talent who generated it. */
 async function activityRows(admin: SupabaseClient<Database>, fromIso: string, toIso: string) {
@@ -95,8 +100,157 @@ async function activityRows(admin: SupabaseClient<Database>, fromIso: string, to
  * Onboarded talent — shared definition with the Admin Overview dashboard.
  * See src/lib/onboarded-talent.ts.
  */
-async function onboardedTalent(admin: SupabaseClient<Database>, toIso: string) {
-  return await fetchOnboardedTalent(admin, toIso);
+async function onboardedTalent(
+  admin: SupabaseClient<Database>,
+  toIso: string,
+  scope: AccountScope = "real",
+) {
+  return await fetchOnboardedTalent(admin, toIso, scope);
+}
+
+/** Everything needed to decide whether a row belongs to a test account. */
+async function loadTestScope(
+  admin: SupabaseClient<Database>,
+  scope: AccountScope,
+): Promise<TestScope> {
+  const [ag, ta, mem] = await Promise.all([
+    admin.from("agencies").select("id, is_test, contact_email, main_contact_email"),
+    admin.from("talent_profiles").select("id, user_id, email, is_test"),
+    admin.from("agency_members").select("user_id, agency_id"),
+  ]);
+  if (ag.error) throw databaseError(ag.error);
+  if (ta.error) throw databaseError(ta.error);
+  if (mem.error) throw databaseError(mem.error);
+  const testAgencyIds = new Set((ag.data ?? []).filter((a) => a.is_test).map((a) => a.id));
+  const memberIds = [
+    ...new Set((mem.data ?? []).filter((m) => testAgencyIds.has(m.agency_id)).map((m) => m.user_id)),
+  ];
+  let memberEmails: (string | null)[] = [];
+  if (memberIds.length > 0) {
+    const { data, error } = await admin.from("profiles").select("email").in("id", memberIds);
+    if (error) throw databaseError(error);
+    memberEmails = (data ?? []).map((p) => p.email);
+  }
+  return buildTestScope(
+    { agencies: ag.data ?? [], talent: ta.data ?? [], testAgencyMemberEmails: memberEmails },
+    scope,
+  );
+}
+
+type InviteFunnelRow = {
+  id: string;
+  kind: "agency" | "talent_admin" | "talent_agency" | "connection_request";
+  name: string;
+  email: string;
+  agency_id: string | null;
+  status: string;
+  created_at: string;
+  first_sent_at: string | null;
+  accepted_at: string | null;
+  /** Connection requests only: accepted / declined / pending / cancelled. */
+  state?: string;
+};
+
+/**
+ * Every agency and talent invitation in scope, plus connection requests to
+ * existing independent talent (kept separate from invitations). Inert agency
+ * talent invitations (never acceptable) are left out.
+ */
+async function loadInviteFunnelRows(
+  admin: SupabaseClient<Database>,
+  ts: TestScope,
+): Promise<InviteFunnelRow[]> {
+  const [ag, ind, tal, priv, legacy] = await Promise.all([
+    admin
+      .from("agency_invitations")
+      .select("id, agency_id, agency_name, email, status, created_at, first_sent_at, accepted_at")
+      .eq("kind", "agency_onboarding"),
+    admin
+      .from("independent_talent_invitations")
+      .select("id, talent_name, email, status, created_at, first_sent_at, accepted_at"),
+    admin
+      .from("talent_invitations")
+      .select("id, agency_id, talent_name, email, status, created_at, first_sent_at, accepted_at"),
+    admin.from("talent_invite_private").select("invitation_id, kind, state, requested_at"),
+    admin
+      .from("agency_talent_links")
+      .select("talent_invitation_id, status, declined_at")
+      .eq("request_kind", "link_request")
+      .not("talent_invitation_id", "is", null),
+  ]);
+  for (const r of [ag, ind, tal, priv, legacy]) if (r.error) throw databaseError(r.error);
+  const inert = new Set(
+    (priv.data ?? []).filter((p) => p.kind === "inert").map((p) => p.invitation_id),
+  );
+  const requests = new Map<string, string>();
+  for (const p of priv.data ?? []) if (p.kind === "link_request") requests.set(p.invitation_id, p.state);
+  for (const l of legacy.data ?? []) {
+    const id = l.talent_invitation_id as string;
+    if (!requests.has(id)) {
+      requests.set(
+        id,
+        l.status === "active" ? "accepted" : l.declined_at ? "declined" : l.status === "invited" ? "pending" : "cancelled",
+      );
+    }
+  }
+  const rows: InviteFunnelRow[] = [
+    ...(ag.data ?? []).map((r) => ({
+      id: r.id,
+      kind: "agency" as const,
+      name: r.agency_name,
+      email: r.email,
+      agency_id: r.agency_id,
+      status: String(r.status),
+      created_at: r.created_at,
+      first_sent_at: r.first_sent_at,
+      accepted_at: r.accepted_at,
+    })),
+    ...(ind.data ?? []).map((r) => ({
+      id: r.id,
+      kind: "talent_admin" as const,
+      name: r.talent_name,
+      email: r.email,
+      agency_id: null,
+      status: String(r.status),
+      created_at: r.created_at,
+      first_sent_at: r.first_sent_at,
+      accepted_at: r.accepted_at,
+    })),
+    ...(tal.data ?? [])
+      .filter((r) => !inert.has(r.id))
+      .map((r) => ({
+        id: r.id,
+        kind: requests.has(r.id) ? ("connection_request" as const) : ("talent_agency" as const),
+        name: r.talent_name,
+        email: r.email,
+        agency_id: r.agency_id,
+        status: String(r.status),
+        created_at: r.created_at,
+        first_sent_at: r.first_sent_at,
+        accepted_at: r.accepted_at,
+        state: requests.get(r.id),
+      })),
+  ];
+  return rows.filter((r) => ts.keep(ts.inviteIsTest(r)));
+}
+
+function funnelSummaries(rows: InviteFunnelRow[], fromIso: string, toIso: string) {
+  const of = (k: InviteFunnelRow["kind"]) => rows.filter((r) => r.kind === k);
+  const talentRows = [...of("talent_admin"), ...of("talent_agency")];
+  const requests = of("connection_request").filter((r) => sentInPeriod(r, fromIso, toIso));
+  return {
+    agency: inviteFunnel(of("agency"), fromIso, toIso),
+    talent: {
+      ...inviteFunnel(talentRows, fromIso, toIso),
+      byAdmin: inviteFunnel(of("talent_admin"), fromIso, toIso),
+      byAgencies: inviteFunnel(of("talent_agency"), fromIso, toIso),
+      connectionRequests: {
+        sent: requests.length,
+        accepted: requests.filter((r) => r.state === "accepted" || r.accepted_at).length,
+        declined: requests.filter((r) => r.state === "declined" || r.status === "declined").length,
+      },
+    },
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -124,6 +278,7 @@ export type NorthStarPair = {
 export async function northStarPairs(
   admin: SupabaseClient<Database>,
   period: { fromIso: string; toIso: string },
+  ts?: TestScope,
 ): Promise<NorthStarPair[]> {
   // Denominator: every live (non-revoked) relationship that existed by the end
   // of the period.
@@ -141,7 +296,10 @@ export async function northStarPairs(
   if (inertError) throw databaseError(inertError);
   const inertIds = new Set((inert ?? []).map((r) => r.invitation_id));
   const live = (links ?? []).filter(
-    (l) => !l.talent_invitation_id || !inertIds.has(l.talent_invitation_id),
+    (l) =>
+      (!l.talent_invitation_id || !inertIds.has(l.talent_invitation_id)) &&
+      // A relationship is test data when either side is a test account.
+      (!ts || ts.keep(ts.agencyIsTest(l.agency_id) || ts.talentUserIsTest(l.talent_user_id))),
   );
   if (live.length === 0) return [];
 
