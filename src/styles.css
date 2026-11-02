@@ -5958,7 +5958,8 @@ a.tvp-entity-card:focus-visible {
   font-size: 15px;
   font-weight: 900;
 }
-.tv-app .tvp-form-footer {
+.tv-app .tvp-form-footer,
+.tvp-modal .tvp-form-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;

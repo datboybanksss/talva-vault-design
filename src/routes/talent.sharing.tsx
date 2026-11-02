@@ -127,7 +127,7 @@ function SharingPage() {
   async function onRegen(s: MyShare) {
     const ok = await confirm({
       title: "Issue a new access code?",
-      body: "The previous code stops working immediately.",
+      body: `The previous code stops working immediately. Give ${s.loved_one_name ?? s.loved_one_email} the new code yourself. Codes are never sent by email.`,
       confirmLabel: "Issue new code",
     });
     if (!ok) return;
