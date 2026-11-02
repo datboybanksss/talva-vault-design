@@ -716,11 +716,24 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
     const visibleIds = links.map((l) => l.id);
     const link = activeIds.length ? { id: activeIds[0] } : null;
 
+    // Sub-queries that fail are named here (and logged) so the portal can say
+    // part of the dashboard didn't load instead of showing a wrong zero.
+    const failedParts: string[] = [];
+    const noteFailure = (part: string, error: { message?: string } | null | undefined) => {
+      if (!error) return;
+      failedParts.push(part);
+      console.error(`[talent dashboard] ${part} failed`, error.message ?? "");
+    };
+    const nowIso = new Date().toISOString();
+
     const [privDocs, privFolders, sharesRes] = await Promise.all([
+      // Same rule as the vault list: validated or quarantined documents only,
+      // so abandoned uploads never inflate the count.
       supabase
         .from("talent_private_documents")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", userId),
+        .eq("user_id", userId)
+        .or("validated_at.not.is.null,quarantine_reason.not.is.null"),
       // Top-level categories only — sub-folders would inflate the dashboard count.
       supabase
         .from("talent_private_folders")
@@ -728,14 +741,24 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
         .eq("user_id", userId)
         .is("parent_id", null)
         .is("removed_at", null),
+      // Live shares only: active, not stopped, not expired.
       supabase
         .from("loved_one_shares")
-        .select("id", { count: "exact", head: true })
+        .select("id, loved_one_email")
+        .eq("created_by", userId)
         .eq("is_active", true)
         .is("revoked_at", null)
-        .gt("expires_at", new Date().toISOString()),
+        .gt("expires_at", nowIso),
     ]);
-    const activeShares = sharesRes.count ?? 0;
+    noteFailure("private documents", privDocs.error);
+    noteFailure("private folders", privFolders.error);
+    noteFailure("trusted contacts", sharesRes.error);
+    const liveShares = sharesRes.data ?? [];
+    const activeShares = liveShares.length;
+    // Trusted contacts = distinct people (by email) with at least one live share.
+    const trustedContactCount = new Set(
+      liveShares.map((r) => (r.loved_one_email ?? "").trim().toLowerCase()).filter(Boolean),
+    ).size;
 
     let sharedCount = 0;
     let sharedFolderCount = 0;
@@ -806,12 +829,6 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       resubRequests = rr.count ?? 0;
       pendingRequests = pr.count ?? 0;
 
-      const fmtDate = (v: string) =>
-        new Date(v).toLocaleDateString(undefined, {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        });
 
       // Expiring documents are intentionally not listed here — the bell
       // already carries them (count + per-document reminders). The dashboard
@@ -955,21 +972,13 @@ export const getTalentDashboard = createServerFn({ method: "GET" })
       recent.sort((a, b) => b.date.localeCompare(a.date));
     }
 
-    // True count of active trusted contacts (not a limited list).
-    const { count: trustedContactCount } = await supabase
-      .from("loved_one_shares")
-      .select("id", { count: "exact", head: true })
-      .eq("talent_id", userId)
-      .eq("is_active", true)
-      .is("revoked_at", null)
-      .gt("expires_at", new Date().toISOString());
-
     return {
       hasLink: !!link,
       links,
       managerName,
       recentDocs: recent.slice(0, 4),
-      trustedContactCount: trustedContactCount ?? 0,
+      trustedContactCount,
+      failedParts,
       todo,
       privateDocs: privDocs.count ?? 0,
       activeShares,
