@@ -16,7 +16,7 @@ const OPTIONS: Array<{
   {
     value: "talent",
     label: "Talent",
-    hint: "Independent talent joining without an agency, with ID and proof of talent.",
+    hint: "Independent talent joining without an agency, with proof of talent.",
     icon: UserRound,
   },
 ];
