@@ -20,7 +20,7 @@ export function readShareScope(scope: Json | null | undefined): ShareScope {
     private_document_ids: ids(scope.private_document_ids),
   };
 }
-import { documentIsValidated } from "./file-security";
+import { documentIsValidated, isInlineViewable } from "./file-security";
 import { shareHasCode, privateStoragePathOwned } from "./share-security";
 import { billingLinkReadable, billingDocumentBelongsToLinks } from "./billing-share-core";
 
@@ -63,14 +63,16 @@ async function logShareAccess(
 ) {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("loved_one_share_access_events").insert({
+    const { error } = await supabaseAdmin.from("loved_one_share_access_events").insert({
       share_id: shareId,
       event,
       document_id: extra.documentId ?? null,
       document_name: extra.documentName ?? null,
     });
-  } catch {
+    if (error) console.error("[share access log] insert failed", error.code ?? "");
+  } catch (e) {
     // Access logging must never block the recipient's access.
+    console.error("[share access log] failed", e instanceof Error ? e.message : "");
   }
 }
 
@@ -534,9 +536,6 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const share = await loadShareByToken(data.token);
     if (!share) return { status: "not_found" as const };
-    if ("_invalid" in share) {
-      return { status: share._invalid, sharer: null, documents: [], folders: [] };
-    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sharerRes = share.talent_id
@@ -547,6 +546,10 @@ export const getLovedOneShareByToken = createServerFn({ method: "GET" })
           .maybeSingle()
       : { data: null };
     const sharer = { full_name: sharerRes.data?.full_name ?? "A TalVault user" };
+    if ("_invalid" in share) {
+      // Only the sharer's name is returned, so the page can say who to ask.
+      return { status: share._invalid, sharer, documents: [], folders: [] };
+    }
 
     // Gate: an access code is required and the caller must present a valid ticket.
     const { verifyTicket } = await import("@/lib/loved-one-access.server");
@@ -661,7 +664,7 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: doc } = await supabaseAdmin
       .from("talent_private_documents")
-      .select("id, name, folder_id, storage_path, user_id, validated_at")
+      .select("id, name, folder_id, storage_path, user_id, validated_at, mime_type")
       .eq("id", data.document_id)
       .maybeSingle();
     if (!doc || !doc.storage_path) throw new Error("Document not found.");
@@ -679,6 +682,13 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
       docIds.includes(doc.id) || (doc.folder_id != null && folderIds.includes(doc.folder_id));
     if (!inScope) throw new Error("This document isn't in the share scope.");
 
+    // View-only + a type the browser can't show: nothing is streamed; the
+    // page explains instead (the file route refuses it too).
+    const previewable = isInlineViewable(doc.mime_type);
+    if (data.mode === "view" && share.permission !== "download" && !previewable) {
+      return { url: null, name: doc.name, previewable: false as const };
+    }
+
     await logShareAccess(share.id as string, data.mode, {
       documentId: doc.id as string,
       documentName: doc.name as string,
@@ -690,5 +700,9 @@ export const getLovedOneFileUrl = createServerFn({ method: "POST" })
       mode: data.mode,
       ...(data.ticket ? { ticket: data.ticket } : {}),
     });
-    return { url: `/api/public/loved-one-file?${params.toString()}`, name: doc.name };
+    return {
+      url: `/api/public/loved-one-file?${params.toString()}`,
+      name: doc.name,
+      previewable,
+    };
   });

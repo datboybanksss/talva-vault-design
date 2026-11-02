@@ -51,22 +51,35 @@ export function mimeClaimMatches(
 export function documentIsValidated(doc: { validated_at?: string | null }): boolean {
   return typeof doc.validated_at === "string" && Number.isFinite(Date.parse(doc.validated_at));
 }
+const INLINE_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"];
+
+/** Server-trusted MIME for a stored claim; unknown claims become octet-stream. */
+export function servedMimeType(mime: string | null | undefined): string {
+  return Object.values(KIND_MIME).includes(mime as (typeof KIND_MIME)[keyof typeof KIND_MIME])
+    ? String(mime)
+    : "application/octet-stream";
+}
+
+/** True when the browser can show this file inline (PDF and common images). */
+export function isInlineViewable(mime: string | null | undefined): boolean {
+  return INLINE_TYPES.includes(servedMimeType(mime));
+}
+
 export function fileResponseHeaders(
   mime: string | null | undefined,
   name: string,
   download = false,
 ): Headers {
-  const type = Object.values(KIND_MIME).includes(mime as (typeof KIND_MIME)[keyof typeof KIND_MIME])
-    ? String(mime)
-    : "application/octet-stream";
-  const inline =
-    !download &&
-    ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"].includes(type);
+  const type = servedMimeType(mime);
+  const inline = !download && INLINE_TYPES.includes(type);
   return new Headers({
     "Content-Type": type,
     "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${name.replace(/["\\\r\n]/g, "_").replace(/[^\x20-\x7e]/g, "_")}"; filename*=UTF-8''${encodeURIComponent(name)}`,
-    "Content-Security-Policy":
-      "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'",
+    // `sandbox` stops Chrome rendering PDFs, so inline PDF/image views omit
+    // it; every other response (attachments, other types) keeps it.
+    "Content-Security-Policy": inline
+      ? "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'"
+      : "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'",
     "X-Content-Type-Options": "nosniff",
     "Cache-Control": "private, no-store, max-age=0",
     "X-Robots-Tag": "noindex, nofollow",
