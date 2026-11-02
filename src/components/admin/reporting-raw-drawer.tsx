@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { X, Download } from "lucide-react";
+import { ACCOUNT_SCOPE_REPORT_LABEL } from "@/lib/report-scope";
 import { getReportingRawRows, type ReportingMetric } from "@/lib/admin-reporting.functions";
 
 const PAGE = 25;
@@ -30,21 +31,23 @@ export function ReportingRawDrawer({
   title,
   from,
   to,
+  accounts,
   onClose,
 }: {
   metric: ReportingMetric;
   title: string;
   from: string;
   to: string;
+  accounts: "real" | "test" | "all";
   onClose: () => void;
 }) {
   const [offset, setOffset] = useState(0);
   const rawFn = useServerFn(getReportingRawRows);
 
   const q = useQuery({
-    queryKey: ["admin", "reporting", "raw", metric, from, to, offset],
+    queryKey: ["admin", "reporting", "raw", metric, from, to, accounts, offset],
     queryFn: () =>
-      rawFn({ data: { metric, from, to, limit: PAGE, offset } }) as Promise<{
+      rawFn({ data: { metric, from, to, accounts, limit: PAGE, offset } }) as Promise<{
         total: number;
         columns: string[];
         rows: unknown[][];
@@ -62,7 +65,7 @@ export function ReportingRawDrawer({
       data.columns.map(csvCell).join(","),
       ...data.rows.map((r) => r.map(csvCell).join(",")),
     ];
-    download(`talvault-${metric}-${from}-to-${to}.csv`, lines.join("\n"));
+    download(`talvault-${metric}-${accounts}-${from}-to-${to}.csv`, lines.join("\n"));
   }
 
   return (
@@ -100,7 +103,8 @@ export function ReportingRawDrawer({
           </div>
         </div>
         <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 16 }}>
-          {from} to {to} · {total} row{total === 1 ? "" : "s"}
+          {from} to {to} · {ACCOUNT_SCOPE_REPORT_LABEL[accounts]} · {total} row
+          {total === 1 ? "" : "s"}
         </p>
 
         {data?.note && (

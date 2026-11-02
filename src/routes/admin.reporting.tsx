@@ -1,7 +1,14 @@
 import { ACCOUNT_STATUSES, accountStatusOptionLabel } from "@/lib/account-filters";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { SHARE_RECIPIENT_TERM } from "@/lib/terms";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  ACCOUNT_SCOPE_REPORT_LABEL,
+  funnelHeadline,
+  medianText,
+  talentFunnelSplit,
+  type AccountScope,
+} from "@/lib/report-scope";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -151,11 +158,22 @@ function ReportingPage() {
   const [custom, setCustom] = useState(presetRange("30d"));
   const range = preset === "custom" ? custom : presetRange(preset);
   const [drill, setDrill] = useState<{ metric: ReportingMetric; title: string } | null>(null);
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/admin/reporting" });
+  const accounts: AccountScope = search.accounts ?? "real";
+  const setAccounts = (v: string) =>
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        accounts: v === "test" || v === "all" ? v : undefined,
+      }),
+      replace: true,
+    });
 
   const summaryFn = useServerFn(getReportingSummary);
   const q = useQuery({
-    queryKey: ["admin", "reporting", range.from, range.to],
-    queryFn: () => summaryFn({ data: { from: range.from, to: range.to } }),
+    queryKey: ["admin", "reporting", range.from, range.to, accounts],
+    queryFn: () => summaryFn({ data: { from: range.from, to: range.to, accounts } }),
   });
 
   const d = q.data;
@@ -173,6 +191,7 @@ function ReportingPage() {
     if (!d) return;
     const rows: (string | number)[][] = [
       ["TalVault platform reporting snapshot"],
+      ["Accounts", ACCOUNT_SCOPE_REPORT_LABEL[d.accounts]],
       ["Period", `${d.period.from} to ${d.period.to}`],
       ["Prior period", `${d.prior.from} to ${d.prior.to}`],
       ["Generated", new Date(d.generatedAt).toLocaleString("en-ZA")],
@@ -185,14 +204,14 @@ function ReportingPage() {
       ],
       ["Agencies added", d.growth.agenciesAdded, `${d.growth.agenciesAddedPrior} in prior period`],
       [
-        "Invite-to-acceptance rate",
-        `${d.growth.acceptanceRate}%`,
-        `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations`,
+        "Agency invitations",
+        funnelHeadline(d.growth.agencyInvitations),
+        medianText(d.growth.agencyInvitations.medianDaysToAccept),
       ],
       [
-        "Median time to accept (days)",
-        d.growth.medianDaysToAccept ?? "No acceptances",
-        `${d.growth.acceptedInPeriod} accepted in period`,
+        "Talent invitations",
+        funnelHeadline(d.growth.talentInvitations),
+        `${medianText(d.growth.talentInvitations.medianDaysToAccept)} · ${talentFunnelSplit(d.growth.talentInvitations)}`,
       ],
       [
         "Talent active in period",
@@ -251,7 +270,7 @@ function ReportingPage() {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `talvault-reporting-${d.period.from}-to-${d.period.to}.csv`;
+    a.download = `talvault-reporting-${d.accounts}-${d.period.from}-to-${d.period.to}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -285,7 +304,7 @@ function ReportingPage() {
       <div className="tvp-card" style={{ padding: 16, marginBottom: 18 }}>
         <div className="flex items-end gap-3" style={{ flexWrap: "wrap" }}>
           <FilterBar
-            onChange={(_, v) => setPreset(v as Preset)}
+            onChange={(key, v) => (key === "accounts" ? setAccounts(v) : setPreset(v as Preset))}
             filters={[
               {
                 key: "range",
@@ -294,6 +313,15 @@ function ReportingPage() {
                 options: (Object.keys(PRESET_LABEL) as Preset[]).map((p) => ({
                   value: p,
                   label: PRESET_LABEL[p],
+                })),
+              },
+              {
+                key: "accounts",
+                label: "Accounts",
+                value: accounts,
+                options: (["real", "test", "all"] as const).map((v) => ({
+                  value: v,
+                  label: ACCOUNT_SCOPE_REPORT_LABEL[v],
                 })),
               },
             ]}
@@ -387,23 +415,25 @@ function ReportingPage() {
               <Delta value={d.growth.agenciesAdded - d.growth.agenciesAddedPrior} unit="" />
             </Card>
             <Card
-              label="Invite-to-acceptance rate"
-              value={`${d.growth.acceptanceRate}%`}
-              sub={`${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations sent in period`}
-              metric="invitations"
+              label="Agency invitations"
+              value={`${d.growth.agencyInvitations.rate}%`}
+              sub={`${d.growth.agencyInvitations.accepted} of ${d.growth.agencyInvitations.sent} sent in period accepted · ${medianText(d.growth.agencyInvitations.medianDaysToAccept)}`}
+              note="Drafts are never counted as sent."
+              metric="agency_invitations"
               onDrill={onDrill}
             />
             <Card
-              label="Median time to accept"
-              value={
-                d.growth.medianDaysToAccept == null
-                  ? "No acceptances"
-                  : `${d.growth.medianDaysToAccept} days`
-              }
-              sub={`${d.growth.acceptedInPeriod} invitation${d.growth.acceptedInPeriod === 1 ? "" : "s"} accepted in period`}
-              metric="invitations_accepted"
+              label="Talent invitations"
+              value={`${d.growth.talentInvitations.rate}%`}
+              sub={`${d.growth.talentInvitations.accepted} of ${d.growth.talentInvitations.sent} sent in period accepted · ${medianText(d.growth.talentInvitations.medianDaysToAccept)}`}
+              note="Drafts are never counted as sent."
+              metric="talent_invitations"
               onDrill={onDrill}
-            />
+            >
+              <div className="tvp-muted" style={{ fontSize: 12 }}>
+                {talentFunnelSplit(d.growth.talentInvitations)}
+              </div>
+            </Card>
           </div>
 
           {/* Engagement */}
@@ -512,8 +542,8 @@ function ReportingPage() {
               className="tvp-muted"
               style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}
             >
-              Current status of real accounts; test accounts are left out. Not affected by the date
-              range.
+              Current status of {ACCOUNT_SCOPE_REPORT_LABEL[d.accounts].toLowerCase()}. Not affected
+              by the date range.
             </p>
           </div>
 
@@ -578,6 +608,7 @@ function ReportingPage() {
           title={drill.title}
           from={range.from}
           to={range.to}
+          accounts={accounts}
           onClose={() => setDrill(null)}
         />
       )}

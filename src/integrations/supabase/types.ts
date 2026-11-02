@@ -3777,6 +3777,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      invitation_counts_as_test: {
+        Args: { _agency_id: string; _email: string }
+        Returns: boolean
+      }
       is_agency_member: {
         Args: { _agency_id: string; _user_id: string }
         Returns: boolean
@@ -3786,6 +3790,7 @@ export type Database = {
         Args: { _agency_id: string; _folder_name: string }
         Returns: boolean
       }
+      is_test_email: { Args: { _email: string }; Returns: boolean }
       list_recently_deleted_documents: {
         Args: { _agency_id: string }
         Returns: {
@@ -3949,6 +3954,7 @@ export type Database = {
       talent_post_end_access_years: { Args: never; Returns: number }
       talent_read_only_until: { Args: { _user_id: string }; Returns: string }
       terms_write_allowed: { Args: { _user_id: string }; Returns: boolean }
+      test_email_key: { Args: { _email: string }; Returns: string }
       tv_map_legacy_folder: { Args: { _name: string }; Returns: string }
       validated_storage_object: {
         Args: { _bucket: string; _path: string }

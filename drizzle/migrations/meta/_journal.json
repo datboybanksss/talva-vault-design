@@ -169,6 +169,13 @@
       "when": 1793169077340,
       "tag": "0023_unique_agency_invoice_numbers",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793645230517,
+      "tag": "0024_flag_test_accounts_on_invite_accept",
+      "breakpoints": true
     }
   ]
 }

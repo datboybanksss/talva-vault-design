@@ -11,6 +11,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { fetchOnboardedTalent, fetchTalentSplit } from "@/lib/onboarded-talent";
+import {
+  buildTestScope,
+  daysToAccept,
+  inviteFunnel,
+  sentAt,
+  sentInPeriod,
+  type AccountScope,
+  type TestScope,
+} from "@/lib/report-scope";
 
 // Mirrors the canonical actions in talent-activity.server.ts; kept local so this
 // client-reachable module never pulls a server-only file into the browser graph.
@@ -34,6 +43,7 @@ async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
 }
 
 const PeriodInput = z.object({
+  accounts: z.enum(["real", "test", "all"]).default("real"),
   from: z
     .string()
     .max(10000)
@@ -72,13 +82,6 @@ function priorPeriod(p: Period): Period {
 
 const ACTIVITY_ACTIONS = [TALENT_LOGIN_ACTION, ...TALENT_VAULT_ACTIONS];
 
-function median(values: number[]): number | null {
-  if (values.length === 0) return null;
-  const s = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid]! : Math.round(((s[mid - 1]! + s[mid]!) / 2) * 10) / 10;
-}
-
 /** Every activity row in a window, keyed by the talent who generated it. */
 async function activityRows(admin: SupabaseClient<Database>, fromIso: string, toIso: string) {
   const { data, error } = await admin
@@ -95,8 +98,166 @@ async function activityRows(admin: SupabaseClient<Database>, fromIso: string, to
  * Onboarded talent — shared definition with the Admin Overview dashboard.
  * See src/lib/onboarded-talent.ts.
  */
-async function onboardedTalent(admin: SupabaseClient<Database>, toIso: string) {
-  return await fetchOnboardedTalent(admin, toIso);
+async function onboardedTalent(
+  admin: SupabaseClient<Database>,
+  toIso: string,
+  scope: AccountScope = "real",
+) {
+  return await fetchOnboardedTalent(admin, toIso, scope);
+}
+
+/** Everything needed to decide whether a row belongs to a test account. */
+async function loadTestScope(
+  admin: SupabaseClient<Database>,
+  scope: AccountScope,
+): Promise<TestScope> {
+  const [ag, ta, mem] = await Promise.all([
+    admin.from("agencies").select("id, is_test, contact_email, main_contact_email"),
+    admin.from("talent_profiles").select("id, user_id, email, is_test"),
+    admin.from("agency_members").select("user_id, agency_id"),
+  ]);
+  if (ag.error) throw databaseError(ag.error);
+  if (ta.error) throw databaseError(ta.error);
+  if (mem.error) throw databaseError(mem.error);
+  const testAgencyIds = new Set((ag.data ?? []).filter((a) => a.is_test).map((a) => a.id));
+  const memberIds = [
+    ...new Set(
+      (mem.data ?? []).filter((m) => testAgencyIds.has(m.agency_id)).map((m) => m.user_id),
+    ),
+  ];
+  let memberEmails: (string | null)[] = [];
+  if (memberIds.length > 0) {
+    const { data, error } = await admin.from("profiles").select("email").in("id", memberIds);
+    if (error) throw databaseError(error);
+    memberEmails = (data ?? []).map((p) => p.email);
+  }
+  return buildTestScope(
+    { agencies: ag.data ?? [], talent: ta.data ?? [], testAgencyMemberEmails: memberEmails },
+    scope,
+  );
+}
+
+type InviteFunnelRow = {
+  id: string;
+  kind: "agency" | "talent_admin" | "talent_agency" | "connection_request";
+  name: string;
+  email: string;
+  agency_id: string | null;
+  status: string;
+  created_at: string;
+  first_sent_at: string | null;
+  accepted_at: string | null;
+  /** Connection requests only: accepted / declined / pending / cancelled. */
+  state?: string;
+};
+
+/**
+ * Every agency and talent invitation in scope, plus connection requests to
+ * existing independent talent (kept separate from invitations). Inert agency
+ * talent invitations (never acceptable) are left out.
+ */
+async function loadInviteFunnelRows(
+  admin: SupabaseClient<Database>,
+  ts: TestScope,
+): Promise<InviteFunnelRow[]> {
+  const [ag, ind, tal, priv, legacy] = await Promise.all([
+    admin
+      .from("agency_invitations")
+      .select("id, agency_id, agency_name, email, status, created_at, first_sent_at, accepted_at")
+      .eq("kind", "agency_onboarding"),
+    admin
+      .from("independent_talent_invitations")
+      .select("id, talent_name, email, status, created_at, first_sent_at, accepted_at"),
+    admin
+      .from("talent_invitations")
+      .select("id, agency_id, talent_name, email, status, created_at, first_sent_at, accepted_at"),
+    admin.from("talent_invite_private").select("invitation_id, kind, state, requested_at"),
+    admin
+      .from("agency_talent_links")
+      .select("talent_invitation_id, status, declined_at")
+      .eq("request_kind", "link_request")
+      .not("talent_invitation_id", "is", null),
+  ]);
+  for (const r of [ag, ind, tal, priv, legacy]) if (r.error) throw databaseError(r.error);
+  const inert = new Set(
+    (priv.data ?? []).filter((p) => p.kind === "inert").map((p) => p.invitation_id),
+  );
+  const requests = new Map<string, string>();
+  for (const p of priv.data ?? [])
+    if (p.kind === "link_request") requests.set(p.invitation_id, p.state);
+  for (const l of legacy.data ?? []) {
+    const id = l.talent_invitation_id as string;
+    if (!requests.has(id)) {
+      requests.set(
+        id,
+        l.status === "active"
+          ? "accepted"
+          : l.declined_at
+            ? "declined"
+            : l.status === "invited"
+              ? "pending"
+              : "cancelled",
+      );
+    }
+  }
+  const rows: InviteFunnelRow[] = [
+    ...(ag.data ?? []).map((r) => ({
+      id: r.id,
+      kind: "agency" as const,
+      name: r.agency_name,
+      email: r.email,
+      agency_id: r.agency_id,
+      status: String(r.status),
+      created_at: r.created_at,
+      first_sent_at: r.first_sent_at,
+      accepted_at: r.accepted_at,
+    })),
+    ...(ind.data ?? []).map((r) => ({
+      id: r.id,
+      kind: "talent_admin" as const,
+      name: r.talent_name,
+      email: r.email,
+      agency_id: null,
+      status: String(r.status),
+      created_at: r.created_at,
+      first_sent_at: r.first_sent_at,
+      accepted_at: r.accepted_at,
+    })),
+    ...(tal.data ?? [])
+      .filter((r) => !inert.has(r.id))
+      .map((r) => ({
+        id: r.id,
+        kind: requests.has(r.id) ? ("connection_request" as const) : ("talent_agency" as const),
+        name: r.talent_name ?? "",
+        email: r.email,
+        agency_id: r.agency_id,
+        status: String(r.status),
+        created_at: r.created_at,
+        first_sent_at: r.first_sent_at,
+        accepted_at: r.accepted_at,
+        state: requests.get(r.id),
+      })),
+  ];
+  return rows.filter((r) => ts.keep(ts.inviteIsTest(r)));
+}
+
+function funnelSummaries(rows: InviteFunnelRow[], fromIso: string, toIso: string) {
+  const of = (k: InviteFunnelRow["kind"]) => rows.filter((r) => r.kind === k);
+  const talentRows = [...of("talent_admin"), ...of("talent_agency")];
+  const requests = of("connection_request").filter((r) => sentInPeriod(r, fromIso, toIso));
+  return {
+    agency: inviteFunnel(of("agency"), fromIso, toIso),
+    talent: {
+      ...inviteFunnel(talentRows, fromIso, toIso),
+      byAdmin: inviteFunnel(of("talent_admin"), fromIso, toIso),
+      byAgencies: inviteFunnel(of("talent_agency"), fromIso, toIso),
+      connectionRequests: {
+        sent: requests.length,
+        accepted: requests.filter((r) => r.state === "accepted" || r.accepted_at).length,
+        declined: requests.filter((r) => r.state === "declined" || r.status === "declined").length,
+      },
+    },
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -124,6 +285,7 @@ export type NorthStarPair = {
 export async function northStarPairs(
   admin: SupabaseClient<Database>,
   period: { fromIso: string; toIso: string },
+  ts?: TestScope,
 ): Promise<NorthStarPair[]> {
   // Denominator: every live (non-revoked) relationship that existed by the end
   // of the period.
@@ -141,7 +303,10 @@ export async function northStarPairs(
   if (inertError) throw databaseError(inertError);
   const inertIds = new Set((inert ?? []).map((r) => r.invitation_id));
   const live = (links ?? []).filter(
-    (l) => !l.talent_invitation_id || !inertIds.has(l.talent_invitation_id),
+    (l) =>
+      (!l.talent_invitation_id || !inertIds.has(l.talent_invitation_id)) &&
+      // A relationship is test data when either side is a test account.
+      (!ts || ts.keep(ts.agencyIsTest(l.agency_id) || ts.talentUserIsTest(l.talent_user_id))),
   );
   if (live.length === 0) return [];
 
@@ -250,6 +415,11 @@ function activeSets(rows: { actor_id: string; action: string }[]) {
 // Summary
 // -----------------------------------------------------------------------------
 
+const sumCents = (
+  rows: { amount_cents?: number | null; total_cents?: number | null }[],
+  key: "amount_cents" | "total_cents",
+) => rows.reduce((n: number, r) => n + Number(r[key] ?? 0), 0);
+
 export const getReportingSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => PeriodInput.parse(d))
@@ -260,6 +430,10 @@ export const getReportingSummary = createServerFn({ method: "GET" })
 
     const period = toPeriod(data.from, data.to);
     const prior = priorPeriod(period);
+    const scope = data.accounts;
+    const ts = await loadTestScope(admin, scope);
+    const keepTalent = (id: string | null | undefined) => ts.keep(ts.talentUserIsTest(id));
+    const keepAgency = (id: string | null | undefined) => ts.keep(ts.agencyIsTest(id));
 
     // ---- Activity tracking (north star + engagement) -------------------------
     const { data: firstActivity } = await admin
@@ -274,73 +448,53 @@ export const getReportingSummary = createServerFn({ method: "GET" })
     const [rowsNow, rowsPrior, talentNow, talentPrior, talentSplit] = await Promise.all([
       activityRows(admin, period.fromIso, period.toIso),
       activityRows(admin, prior.fromIso, prior.toIso),
-      onboardedTalent(admin, period.toIso),
-      onboardedTalent(admin, prior.toIso),
-      // Same split as the Admin Overview dashboard.
-      fetchTalentSplit(admin, period.toIso),
+      onboardedTalent(admin, period.toIso, scope),
+      onboardedTalent(admin, prior.toIso, scope),
+      fetchTalentSplit(admin, period.toIso, scope),
     ]);
 
     const talentIds = new Set(talentNow.map((t) => t.talent_user_id));
     const talentIdsPrior = new Set(talentPrior.map((t) => t.talent_user_id));
-
     const now = activeSets(rowsNow.filter((r) => talentIds.has(r.actor_id)));
-    const before = activeSets(rowsPrior.filter((r) => talentIdsPrior.has(r.actor_id)));
 
     const [pairsNow, pairsPrior] = await Promise.all([
-      northStarPairs(admin, period),
-      northStarPairs(admin, prior),
+      northStarPairs(admin, period, ts),
+      northStarPairs(admin, prior, ts),
     ]);
+    void talentIdsPrior;
     const northStarCount = pairsNow.filter((p) => p.both).length;
     const northStarPriorCount = pairsPrior.filter((p) => p.both).length;
     const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
 
     // ---- Growth & funnel -----------------------------------------------------
-    const [{ count: agenciesAdded }, { count: agenciesAddedPrior }] = await Promise.all([
-      admin
-        .from("agencies")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", period.fromIso)
-        .lte("created_at", period.toIso),
-      admin
-        .from("agencies")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", prior.fromIso)
-        .lte("created_at", prior.toIso),
-    ]);
-
-    const { data: invitesInPeriod, error: invErr } = await admin
-      .from("agency_invitations")
-      .select("id, status, created_at, accepted_at")
-      .gte("created_at", period.fromIso)
+    const { data: agencyRows, error: agErr } = await admin
+      .from("agencies")
+      .select("id, created_at")
+      .gte("created_at", prior.fromIso)
       .lte("created_at", period.toIso);
-    if (invErr) throw databaseError(invErr);
-    const invitesSent = (invitesInPeriod ?? []).length;
-    const invitesAccepted = (invitesInPeriod ?? []).filter((i) => i.accepted_at).length;
+    if (agErr) throw databaseError(agErr);
+    const scopedAgencies = (agencyRows ?? []).filter((a) => keepAgency(a.id));
+    const inWin = (ts2: string, p: Period) => ts2 >= p.fromIso && ts2 <= p.toIso;
+    const agenciesAdded = scopedAgencies.filter((a) => inWin(a.created_at, period)).length;
+    const agenciesAddedPrior = scopedAgencies.filter((a) => inWin(a.created_at, prior)).length;
 
-    const { data: acceptedInPeriod, error: accErr } = await admin
-      .from("agency_invitations")
-      .select("created_at, accepted_at")
-      .not("accepted_at", "is", null)
-      .gte("accepted_at", period.fromIso)
-      .lte("accepted_at", period.toIso);
-    if (accErr) throw databaseError(accErr);
-    const daysToAccept = (acceptedInPeriod ?? []).map(
-      (i) =>
-        Math.round(
-          ((new Date(i.accepted_at).getTime() - new Date(i.created_at).getTime()) / 86400000) * 10,
-        ) / 10,
+    const funnel = funnelSummaries(
+      await loadInviteFunnelRows(admin, ts),
+      period.fromIso,
+      period.toIso,
     );
 
     // ---- Engagement ----------------------------------------------------------
-    const { data: sharesInPeriod, error: shareErr } = await admin
+    const { data: sharesAll, error: shareErr } = await admin
       .from("loved_one_shares")
       .select("id, talent_id, created_at")
       .gte("created_at", period.fromIso)
       .lte("created_at", period.toIso);
     if (shareErr) throw databaseError(shareErr);
-    const shareTalentIds = [...new Set((sharesInPeriod ?? []).map((s) => s.talent_id))].filter(
-      Boolean,
+    const sharesInPeriod = (sharesAll ?? []).filter((s) =>
+      ts.keep(ts.talentProfileIsTest(s.talent_id)),
     );
+    const shareTalentIds = [...new Set(sharesInPeriod.map((s) => s.talent_id))].filter(Boolean);
     let agenciesWithShare = 0;
     if (shareTalentIds.length > 0) {
       const { data: profs } = await admin
@@ -350,44 +504,51 @@ export const getReportingSummary = createServerFn({ method: "GET" })
       agenciesWithShare = new Set((profs ?? []).map((p) => p.agency_id).filter(Boolean)).size;
     }
 
-    const [{ count: sharedDocs }, { count: privateDocs }] = await Promise.all([
+    const [shared, priv, linkRows] = await Promise.all([
       admin
         .from("talent_shared_documents")
-        .select("id", { count: "exact", head: true })
+        .select("id, agency_id, talent_link_id")
         .gte("created_at", period.fromIso)
         .lte("created_at", period.toIso),
       admin
         .from("talent_private_documents")
-        .select("id", { count: "exact", head: true })
+        .select("id, user_id")
         .gte("created_at", period.fromIso)
         .lte("created_at", period.toIso),
+      admin.from("agency_talent_links").select("id, talent_user_id"),
     ]);
+    if (shared.error) throw databaseError(shared.error);
+    if (priv.error) throw databaseError(priv.error);
+    if (linkRows.error) throw databaseError(linkRows.error);
+    const linkTalent = new Map((linkRows.data ?? []).map((l) => [l.id, l.talent_user_id]));
+    const sharedDocs = (shared.data ?? []).filter((d) =>
+      ts.keep(
+        ts.agencyIsTest(d.agency_id) ||
+          ts.talentUserIsTest(d.talent_link_id ? linkTalent.get(d.talent_link_id) : null),
+      ),
+    ).length;
+    const privateDocs = (priv.data ?? []).filter((d) => keepTalent(d.user_id)).length;
 
     // ---- Financials ----------------------------------------------------------
-    const { data: docsInPeriod, error: docErr } = await admin
+    const { data: docsAll, error: docErr } = await admin
       .from("agency_billing_docs")
-      .select("id, kind, status, total_cents, currency, issued_at, created_at")
+      .select("id, agency_id, kind, status, total_cents, currency, issued_at, created_at")
       .gte("created_at", period.fromIso)
       .lte("created_at", period.toIso);
     if (docErr) throw databaseError(docErr);
-    const quotes = (docsInPeriod ?? []).filter((d) => d.kind === "quote");
-    const invoices = (docsInPeriod ?? []).filter(
-      (d) => d.kind === "invoice" && d.status !== "cancelled",
-    );
+    const docsInPeriod = (docsAll ?? []).filter((d) => keepAgency(d.agency_id));
+    const quotes = docsInPeriod.filter((d) => d.kind === "quote");
+    const invoices = docsInPeriod.filter((d) => d.kind === "invoice" && d.status !== "cancelled");
 
-    const { data: paymentsInPeriod, error: payErr } = await admin
+    const { data: paymentsAll, error: payErr } = await admin
       .from("agency_invoice_payments")
-      .select("id, amount_cents, paid_on")
+      .select("id, agency_id, amount_cents, paid_on")
       .gte("paid_on", period.from)
       .lte("paid_on", period.to);
     if (payErr) throw databaseError(payErr);
-    const receivedCents = (paymentsInPeriod ?? []).reduce(
-      (n: number, p) => n + Number(p.amount_cents ?? 0),
-      0,
-    );
+    const paymentsInPeriod = (paymentsAll ?? []).filter((p) => keepAgency(p.agency_id));
+    const receivedCents = sumCents(paymentsInPeriod, "amount_cents");
 
-    // Outstanding: invoices raised in the period, less everything received
-    // against them whenever that payment was made.
     const invoiceIds = invoices.map((i) => i.id);
     let paidOnPeriodInvoices = 0;
     if (invoiceIds.length > 0) {
@@ -395,12 +556,9 @@ export const getReportingSummary = createServerFn({ method: "GET" })
         .from("agency_invoice_payments")
         .select("amount_cents")
         .in("doc_id", invoiceIds);
-      paidOnPeriodInvoices = (pays ?? []).reduce(
-        (n: number, p) => n + Number(p.amount_cents ?? 0),
-        0,
-      );
+      paidOnPeriodInvoices = sumCents(pays ?? [], "amount_cents");
     }
-    const invoicedCents = invoices.reduce((n: number, i) => n + Number(i.total_cents ?? 0), 0);
+    const invoicedCents = sumCents(invoices, "total_cents");
 
     // ---- Cohort retention ----------------------------------------------------
     const { data: allActivity, error: actErr } = await admin
@@ -427,7 +585,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
             const start = new Date(m.created_at).getTime();
             const limit = start + days * 86400000;
             if (limit > Date.now()) return false;
-            return (byTalent.get(m.talent_user_id) ?? []).some((ts) => ts >= start && ts <= limit);
+            return (byTalent.get(m.talent_user_id) ?? []).some((t) => t >= start && t <= limit);
           }).length;
         const mature = (days: number) =>
           members.filter((m) => new Date(m.created_at).getTime() + days * 86400000 <= Date.now())
@@ -443,6 +601,7 @@ export const getReportingSummary = createServerFn({ method: "GET" })
 
     return {
       generatedAt: new Date().toISOString(),
+      accounts: scope,
       period: { from: period.from, to: period.to },
       prior: { from: prior.from, to: prior.to },
       trackingSince,
@@ -455,41 +614,38 @@ export const getReportingSummary = createServerFn({ method: "GET" })
         agencyOnlyCount: pairsNow.filter((p) => p.agencyActions.length > 0 && !p.both).length,
       },
       growth: {
-        agenciesAdded: agenciesAdded ?? 0,
-        agenciesAddedPrior: agenciesAddedPrior ?? 0,
-        invitesSent,
-        invitesAccepted,
-        acceptanceRate: pct(invitesAccepted, invitesSent),
-        medianDaysToAccept: median(daysToAccept),
-        acceptedInPeriod: daysToAccept.length,
+        agenciesAdded,
+        agenciesAddedPrior,
+        agencyInvitations: funnel.agency,
+        talentInvitations: funnel.talent,
       },
       engagement: {
         activeTalent: now.any.size,
         totalTalent: talentIds.size,
         talentSplit,
         agenciesWithShare,
-        sharesCreated: (sharesInPeriod ?? []).length,
-        documentsUploaded: (sharedDocs ?? 0) + (privateDocs ?? 0),
-        sharedDocuments: sharedDocs ?? 0,
-        privateDocuments: privateDocs ?? 0,
+        sharesCreated: sharesInPeriod.length,
+        documentsUploaded: sharedDocs + privateDocs,
+        sharedDocuments: sharedDocs,
+        privateDocuments: privateDocs,
       },
       financials: {
         currency: "ZAR",
         quotesCount: quotes.length,
-        quotesValueCents: quotes.reduce((n: number, q) => n + Number(q.total_cents ?? 0), 0),
+        quotesValueCents: sumCents(quotes, "total_cents"),
         invoicesCount: invoices.length,
         invoicesValueCents: invoicedCents,
         receivedCents,
-        paymentsCount: (paymentsInPeriod ?? []).length,
+        paymentsCount: paymentsInPeriod.length,
         outstandingCents: Math.max(0, invoicedCents - paidOnPeriodInvoices),
       },
       cohorts,
-      accountsByStatus: await accountsByStatus(admin),
+      accountsByStatus: await accountsByStatus(admin, scope),
     };
   });
 
-/** Current status of every real agency and talent account (pause overlays status). */
-async function accountsByStatus(admin: SupabaseClient<Database>) {
+/** Current status of every agency and talent account in scope (pause overlays status). */
+async function accountsByStatus(admin: SupabaseClient<Database>, scope: AccountScope) {
   const [ag, ta] = await Promise.all([
     admin.from("agencies").select("status, paused_at, is_test"),
     admin
@@ -499,18 +655,21 @@ async function accountsByStatus(admin: SupabaseClient<Database>) {
   ]);
   if (ag.error) throw databaseError(ag.error);
   if (ta.error) throw databaseError(ta.error);
-  return accountStatusCounts([
-    ...(ag.data ?? []).map((a) => ({
-      type: "agency" as const,
-      status: agencyAccountStatus(a),
-      is_test: a.is_test,
-    })),
-    ...(ta.data ?? []).map((t) => ({
-      type: "talent" as const,
-      status: talentAccountStatus(t.activation_completed_at, t),
-      is_test: t.is_test,
-    })),
-  ]);
+  return accountStatusCounts(
+    [
+      ...(ag.data ?? []).map((a) => ({
+        type: "agency" as const,
+        status: agencyAccountStatus(a),
+        is_test: a.is_test,
+      })),
+      ...(ta.data ?? []).map((t) => ({
+        type: "talent" as const,
+        status: talentAccountStatus(t.activation_completed_at, t),
+        is_test: t.is_test,
+      })),
+    ],
+    scope,
+  );
 }
 
 // -----------------------------------------------------------------------------
@@ -519,8 +678,8 @@ async function accountsByStatus(admin: SupabaseClient<Database>) {
 
 export const REPORTING_METRICS = [
   "agencies_added",
-  "invitations",
-  "invitations_accepted",
+  "agency_invitations",
+  "talent_invitations",
   "north_star_pairs",
   "active_talent",
   "shares",
@@ -540,15 +699,19 @@ const RawInput = PeriodInput.extend({
 });
 
 /** Agency names for a set of agency ids, for readable raw rows. */
-async function agencyNames(admin: SupabaseClient<Database>, ids: (string | undefined)[]) {
-  const unique = [...new Set(ids.filter(Boolean))];
-  if (unique.length === 0) return new Map<string, string>();
-  const { data } = await admin
-    .from("agencies")
-    .select("id, name") // Existing Boolean filter removes undefined without declaring a type guard.
-    .in("id", unique as string[]);
-  return new Map<string | undefined, string>((data ?? []).map((a) => [a.id, a.name]));
+async function agencyNames(admin: SupabaseClient<Database>, ids: (string | null | undefined)[]) {
+  const unique = [...new Set(ids.filter((x): x is string => !!x))];
+  if (unique.length === 0) return new Map<string | null | undefined, string>();
+  const { data } = await admin.from("agencies").select("id, name").in("id", unique);
+  return new Map<string | null | undefined, string>((data ?? []).map((a) => [a.id, a.name]));
 }
+
+const INVITE_SOURCE_LABEL: Record<InviteFunnelRow["kind"], string> = {
+  agency: "Admin",
+  talent_admin: "Admin",
+  talent_agency: "Agency",
+  connection_request: "Connection request",
+};
 
 export const getReportingRawRows = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -559,27 +722,25 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
     const period = toPeriod(data.from, data.to);
-    const range = { from: data.offset, to: data.offset + data.limit - 1 };
-    const money = (cents: number) => Number(cents ?? 0) / 100;
+    const ts = await loadTestScope(admin, data.accounts);
+    const keepAgency = (id: string | null | undefined) => ts.keep(ts.agencyIsTest(id));
+    const page = <T>(rows: T[]) => rows.slice(data.offset, data.offset + data.limit);
+    const money = (cents: number | null | undefined) => Number(cents ?? 0) / 100;
 
     switch (data.metric) {
       case "agencies_added": {
-        const {
-          data: rows,
-          count,
-          error,
-        } = await admin
+        const { data: rows, error } = await admin
           .from("agencies")
-          .select("name, status, country, contact_email, created_at", { count: "exact" })
+          .select("id, name, status, country, contact_email, created_at")
           .gte("created_at", period.fromIso)
           .lte("created_at", period.toIso)
-          .order("created_at", { ascending: false })
-          .range(range.from, range.to);
+          .order("created_at", { ascending: false });
         if (error) throw databaseError(error);
+        const all = (rows ?? []).filter((r) => keepAgency(r.id));
         return {
-          total: count ?? 0,
+          total: all.length,
           columns: ["Agency", "Status", "Country", "Contact", "Added"],
-          rows: (rows ?? []).map((r) => [
+          rows: page(all).map((r) => [
             r.name,
             r.status,
             r.country ?? "—",
@@ -588,46 +749,61 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           ]),
         };
       }
-      case "invitations":
-      case "invitations_accepted": {
-        let q = admin
-          .from("agency_invitations")
-          .select("agency_name, email, status, created_at, accepted_at", { count: "exact" });
-        if (data.metric === "invitations") {
-          q = q.gte("created_at", period.fromIso).lte("created_at", period.toIso);
-        } else {
-          q = q
-            .not("accepted_at", "is", null)
-            .gte("accepted_at", period.fromIso)
-            .lte("accepted_at", period.toIso);
-        }
-        const {
-          data: rows,
-          count,
-          error,
-        } = await q.order("created_at", { ascending: false }).range(range.from, range.to);
-        if (error) throw databaseError(error);
+      case "agency_invitations":
+      case "talent_invitations": {
+        const kinds: InviteFunnelRow["kind"][] =
+          data.metric === "agency_invitations"
+            ? ["agency"]
+            : ["talent_admin", "talent_agency", "connection_request"];
+        const funnelRows = await loadInviteFunnelRows(admin, ts);
+        const names = await agencyNames(
+          admin,
+          funnelRows.map((r) => r.agency_id),
+        );
+        const all = funnelRows
+          .filter((r) => kinds.includes(r.kind) && sentInPeriod(r, period.fromIso, period.toIso))
+          .sort((a, b) => (sentAt(a) < sentAt(b) ? 1 : -1));
+        const columns =
+          data.metric === "agency_invitations"
+            ? ["Agency", "Email", "Status", "Sent", "Accepted", "Days to accept"]
+            : [
+                "Talent",
+                "Email",
+                "Sent by",
+                "Agency",
+                "Status",
+                "Sent",
+                "Accepted",
+                "Days to accept",
+              ];
         return {
-          total: count ?? 0,
-          columns: ["Agency", "Email", "Status", "Invited", "Accepted", "Days to accept"],
-          rows: (rows ?? []).map((r) => [
-            r.agency_name,
-            r.email,
-            r.status,
-            r.created_at,
-            r.accepted_at ?? "—",
-            r.accepted_at
-              ? Math.round(
-                  ((new Date(r.accepted_at).getTime() - new Date(r.created_at).getTime()) /
-                    86400000) *
-                    10,
-                ) / 10
-              : "—",
-          ]),
+          total: all.length,
+          note:
+            data.metric === "talent_invitations"
+              ? "Invitations that left draft in this period. Connection requests to existing independent talent are listed with “Connection request” and are not counted as invitations."
+              : "Agency onboarding invitations that left draft in this period. Drafts are never counted.",
+          columns,
+          rows: page(all).map((r) => {
+            const tail = [
+              r.kind === "connection_request" ? (r.state ?? r.status) : r.status,
+              sentAt(r),
+              r.accepted_at ?? "—",
+              daysToAccept(r) ?? "—",
+            ];
+            return data.metric === "agency_invitations"
+              ? [r.name, r.email, ...tail]
+              : [
+                  r.name || "—",
+                  r.email,
+                  INVITE_SOURCE_LABEL[r.kind],
+                  names.get(r.agency_id) ?? "—",
+                  ...tail,
+                ];
+          }),
         };
       }
       case "north_star_pairs": {
-        const pairs = await northStarPairs(admin, period);
+        const pairs = await northStarPairs(admin, period, ts);
         const names = await agencyNames(
           admin,
           pairs.map((p) => p.agencyId),
@@ -656,12 +832,12 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           total: all.length,
           note: "Every live agency–talent relationship in the period. Only rows marked “Both sides” count towards the north star. Quotes and invoices are not counted yet — they cannot be tied to a specific talent.",
           columns: ["Agency", "Talent", "Talent activity", "Agency activity", "Counts as engaged"],
-          rows: all.slice(range.from, range.to + 1),
+          rows: page(all),
         };
       }
       case "active_talent": {
         const rows = await activityRows(admin, period.fromIso, period.toIso);
-        const talent = await onboardedTalent(admin, period.toIso);
+        const talent = await onboardedTalent(admin, period.toIso, data.accounts);
         const byUser = new Map<string | null, (typeof talent)[number]>();
         for (const t of talent) byUser.set(t.talent_user_id, t);
         const sets = activeSets(rows.filter((r) => byUser.has(r.actor_id)));
@@ -692,29 +868,22 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         return {
           total: all.length,
           columns: ["Talent", "Agency", "Actions in period", "Last activity"],
-          rows: all.slice(range.from, range.to + 1),
+          rows: page(all),
         };
       }
       case "shares": {
-        const {
-          data: rows,
-          count,
-          error,
-        } = await admin
+        const { data: rows, error } = await admin
           .from("loved_one_shares")
           .select(
-            "loved_one_name, loved_one_email, share_kind, permission, is_active, revoked_at, expires_at, created_at",
-            {
-              count: "exact",
-            },
+            "talent_id, loved_one_name, loved_one_email, share_kind, permission, is_active, revoked_at, expires_at, created_at",
           )
           .gte("created_at", period.fromIso)
           .lte("created_at", period.toIso)
-          .order("created_at", { ascending: false })
-          .range(range.from, range.to);
+          .order("created_at", { ascending: false });
         if (error) throw databaseError(error);
+        const all = (rows ?? []).filter((r) => ts.keep(ts.talentProfileIsTest(r.talent_id)));
         return {
-          total: count ?? 0,
+          total: all.length,
           columns: [
             SHARE_RECIPIENT_TERM_CAPITALISED,
             "Email",
@@ -723,7 +892,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
             "Active",
             "Created",
           ],
-          rows: (rows ?? []).map((r) => [
+          rows: page(all).map((r) => [
             r.loved_one_name ?? "—",
             r.loved_one_email,
             r.share_kind,
@@ -735,35 +904,45 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         };
       }
       case "documents_uploaded": {
-        const {
-          data: rows,
-          count,
-          error,
-        } = await admin
-          .from("talent_shared_documents")
-          .select("name, folder, status, agency_id, created_at", { count: "exact" })
-          .gte("created_at", period.fromIso)
-          .lte("created_at", period.toIso)
-          .order("created_at", { ascending: false })
-          .range(range.from, range.to);
-        if (error) throw databaseError(error);
+        const [shared, priv, links] = await Promise.all([
+          admin
+            .from("talent_shared_documents")
+            .select("name, folder, status, agency_id, talent_link_id, created_at")
+            .gte("created_at", period.fromIso)
+            .lte("created_at", period.toIso)
+            .order("created_at", { ascending: false }),
+          admin
+            .from("talent_private_documents")
+            .select("user_id")
+            .gte("created_at", period.fromIso)
+            .lte("created_at", period.toIso),
+          admin.from("agency_talent_links").select("id, talent_user_id"),
+        ]);
+        if (shared.error) throw databaseError(shared.error);
+        if (priv.error) throw databaseError(priv.error);
+        if (links.error) throw databaseError(links.error);
+        const linkTalent = new Map((links.data ?? []).map((l) => [l.id, l.talent_user_id]));
+        const all = (shared.data ?? []).filter((d) =>
+          ts.keep(
+            ts.agencyIsTest(d.agency_id) ||
+              ts.talentUserIsTest(d.talent_link_id ? linkTalent.get(d.talent_link_id) : null),
+          ),
+        );
+        const privateCount = (priv.data ?? []).filter((d) =>
+          ts.keep(ts.talentUserIsTest(d.user_id)),
+        ).length;
         const names = await agencyNames(
           admin,
-          (rows ?? []).map((r) => r.agency_id),
+          all.map((r) => r.agency_id),
         );
-        const { count: privateCount } = await admin
-          .from("talent_private_documents")
-          .select("id", { count: "exact", head: true })
-          .gte("created_at", period.fromIso)
-          .lte("created_at", period.toIso);
         return {
-          total: count ?? 0,
+          total: all.length,
           note:
-            (privateCount ?? 0) > 0
-              ? `${privateCount} private vault document${(privateCount ?? 0) === 1 ? "" : "s"} are counted in the summary but never listed — vault contents stay private.`
+            privateCount > 0
+              ? `${privateCount} private vault document${privateCount === 1 ? "" : "s"} are counted in the summary but not listed here — private vault contents stay private.`
               : undefined,
           columns: ["Document", "Folder", "Status", "Agency", "Uploaded"],
-          rows: (rows ?? []).map((r) => [
+          rows: page(all).map((r) => [
             r.name,
             r.folder,
             r.status,
@@ -776,27 +955,23 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
       case "invoices":
       case "outstanding": {
         const kind = data.metric === "quotes" ? "quote" : "invoice";
-        const {
-          data: rows,
-          count,
-          error,
-        } = await admin
+        const { data: rows, error } = await admin
           .from("agency_billing_docs")
           .select(
             "id, agency_id, number, client_name, talent_name, issued_at, due_date, total_cents, currency, status, created_at",
-            { count: "exact" },
           )
           .eq("kind", kind)
           .gte("created_at", period.fromIso)
           .lte("created_at", period.toIso)
-          .order("created_at", { ascending: false })
-          .range(range.from, range.to);
+          .order("created_at", { ascending: false });
         if (error) throw databaseError(error);
+        const all = (rows ?? []).filter((r) => keepAgency(r.agency_id));
+        const shown = page(all);
         const names = await agencyNames(
           admin,
-          (rows ?? []).map((r) => r.agency_id),
+          shown.map((r) => r.agency_id),
         );
-        const ids = (rows ?? []).map((r) => r.id);
+        const ids = shown.map((r) => r.id);
         const paid = new Map<string, number>();
         if (ids.length > 0) {
           const { data: pays } = await admin
@@ -808,7 +983,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           }
         }
         return {
-          total: count ?? 0,
+          total: all.length,
           columns:
             kind === "quote"
               ? ["Agency", "Number", "Client", "Issued", "Amount", "Status"]
@@ -822,7 +997,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
                   "Outstanding",
                   "Status",
                 ],
-          rows: (rows ?? []).map((r) => {
+          rows: shown.map((r) => {
             const base = [
               names.get(r.agency_id) ?? "—",
               r.number,
@@ -842,25 +1017,20 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         };
       }
       case "payments_received": {
-        const {
-          data: rows,
-          count,
-          error,
-        } = await admin
+        const { data: rows, error } = await admin
           .from("agency_invoice_payments")
-          .select("id, doc_id, agency_id, amount_cents, paid_on, method, reference", {
-            count: "exact",
-          })
+          .select("id, doc_id, agency_id, amount_cents, paid_on, method, reference")
           .gte("paid_on", period.from)
           .lte("paid_on", period.to)
-          .order("paid_on", { ascending: false })
-          .range(range.from, range.to);
+          .order("paid_on", { ascending: false });
         if (error) throw databaseError(error);
+        const all = (rows ?? []).filter((r) => keepAgency(r.agency_id));
+        const shown = page(all);
         const names = await agencyNames(
           admin,
-          (rows ?? []).map((r) => r.agency_id),
+          shown.map((r) => r.agency_id),
         );
-        const docIds = [...new Set((rows ?? []).map((r) => r.doc_id))];
+        const docIds = [...new Set(shown.map((r) => r.doc_id))];
         const docs = new Map<
           string,
           Pick<
@@ -876,7 +1046,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
           for (const row of d ?? []) docs.set(row.id, row);
         }
         return {
-          total: count ?? 0,
+          total: all.length,
           columns: [
             "Agency",
             "Invoice",
@@ -887,7 +1057,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
             "Method",
             "Status",
           ],
-          rows: (rows ?? []).map((r) => {
+          rows: shown.map((r) => {
             const d = docs.get(r.doc_id);
             return [
               names.get(r.agency_id) ?? "—",
