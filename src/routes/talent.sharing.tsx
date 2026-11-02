@@ -101,7 +101,7 @@ function SharingPage() {
   // form with that document already chosen.
   const { doc: docParam } = Route.useSearch();
   const navigate = useNavigate();
-  const [initialDocId] = useState<string | undefined>(docParam);
+  const [initialDocId, setInitialDocId] = useState<string | undefined>(docParam);
   const [showModal, setShowModal] = useState(!!docParam);
   const [prefill, setPrefill] = useState<{
     name: string;
@@ -387,10 +387,12 @@ function SharingPage() {
           initialDocId={initialDocId}
           onClose={() => {
             setShowModal(false);
+            setInitialDocId(undefined);
             if (docParam) navigate({ to: "/talent/sharing", search: {}, replace: true });
           }}
           onCreated={(f) => {
             setShowModal(false);
+            setInitialDocId(undefined);
             setFresh(f);
             void qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
           }}
