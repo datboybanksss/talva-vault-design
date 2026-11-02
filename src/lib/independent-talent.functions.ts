@@ -497,7 +497,7 @@ export const resendIndependentTalentInvitation = createServerFn({ method: "POST"
     if (inv.status !== "pending") {
       throw new Error(
         inv.status === "draft"
-          ? "This invitation is still a draft. Attach both documents and send it first."
+          ? "This invitation is still a draft. Attach the proof of talent and send it first."
           : `This invitation is ${inv.status} and can no longer be resent. Create a new invitation instead.`,
       );
     }
