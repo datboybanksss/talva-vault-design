@@ -21,7 +21,6 @@ import {
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { friendlyError } from "@/lib/friendly-error";
 import { PAGE_SIZE } from "@/lib/pagination";
-import { ACCOUNT_SCOPES, ACCOUNT_SCOPE_LABEL } from "@/lib/account-filters";
 import { ModalShell } from "@/components/shared/modal-shell";
 
 /** Date invitation send times and sources started being recorded. */
@@ -224,7 +223,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
           </button>
         </div>
         <FilterBar
-          active={type !== "all" || segment !== "all" || accounts !== "real"}
+          active={type !== "all" || segment !== "all"}
           onChange={setFilter}
           onClear={() =>
             navigate({
@@ -232,7 +231,6 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                 ...prev,
                 type: undefined,
                 talent: undefined,
-                accounts: undefined,
               }),
               replace: true,
             })
@@ -262,12 +260,6 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
                   },
                 ]
               : []),
-            {
-              key: "accounts",
-              label: "Accounts",
-              value: accounts,
-              options: ACCOUNT_SCOPES.map((v) => ({ value: v, label: ACCOUNT_SCOPE_LABEL[v] })),
-            },
           ]}
         />
         {q.isLoading && <p className="tvp-muted">Loading launch reports…</p>}

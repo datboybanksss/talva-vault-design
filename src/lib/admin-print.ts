@@ -2,6 +2,15 @@
 // language as the Agency financial report. Print-based only — no PDF library.
 
 import { PRINT_DOC_STYLES, escapeHtml as esc } from "./billing-reports";
+import {
+  ACCOUNT_SCOPE_REPORT_LABEL,
+  funnelHeadline,
+  medianText,
+  talentFunnelSplit,
+  type AccountScope,
+  type FunnelSummary,
+  type TalentFunnelSummary,
+} from "./report-scope";
 
 const zar = (cents: number) =>
   `R ${(Number(cents ?? 0) / 100).toLocaleString("en-ZA", {
@@ -18,6 +27,7 @@ function card(value: string, label: string) {
 
 /** The reporting snapshot shape the Admin Reporting print view consumes. */
 export type AdminReportingPrintData = {
+  accounts: AccountScope;
   period: { from: string; to: string };
   prior: { from: string; to: string };
   generatedAt: string;
@@ -32,11 +42,8 @@ export type AdminReportingPrintData = {
   growth: {
     agenciesAdded: number;
     agenciesAddedPrior: number;
-    acceptanceRate: number;
-    invitesAccepted: number;
-    invitesSent: number;
-    medianDaysToAccept: number | null;
-    acceptedInPeriod: number;
+    agencyInvitations: FunnelSummary;
+    talentInvitations: TalentFunnelSummary;
   };
   engagement: {
     activeTalent: number;
@@ -84,7 +91,7 @@ export function buildAdminReportingHtml(d: AdminReportingPrintData) {
 <title>TalVault Platform Report — ${esc(d.period.from)} to ${esc(d.period.to)}</title>
 <style>${PRINT_DOC_STYLES}</style></head><body>
 <h1>TalVault Platform Report</h1>
-<div class="meta">Period: ${esc(dayMonthYear(d.period.from))} – ${esc(dayMonthYear(d.period.to))} · Prior period: ${esc(dayMonthYear(d.prior.from))} – ${esc(dayMonthYear(d.prior.to))} · Generated ${esc(new Date(d.generatedAt).toLocaleString("en-ZA"))}</div>
+<div class="meta">Accounts: ${esc(ACCOUNT_SCOPE_REPORT_LABEL[d.accounts])} · Period: ${esc(dayMonthYear(d.period.from))} – ${esc(dayMonthYear(d.period.to))} · Prior period: ${esc(dayMonthYear(d.prior.from))} – ${esc(dayMonthYear(d.prior.to))} · Generated ${esc(new Date(d.generatedAt).toLocaleString("en-ZA"))}</div>
 
 <h2>North star</h2>
 <div class="cards">
@@ -102,14 +109,14 @@ ${metricRows([
     `${d.growth.agenciesAddedPrior} in prior period`,
   ],
   [
-    "Invite-to-acceptance rate",
-    `${d.growth.acceptanceRate}%`,
-    `${d.growth.invitesAccepted} of ${d.growth.invitesSent} invitations sent in period`,
+    "Agency invitations",
+    funnelHeadline(d.growth.agencyInvitations),
+    medianText(d.growth.agencyInvitations.medianDaysToAccept),
   ],
   [
-    "Median time to accept",
-    d.growth.medianDaysToAccept == null ? "No acceptances" : `${d.growth.medianDaysToAccept} days`,
-    `${d.growth.acceptedInPeriod} accepted in period`,
+    "Talent invitations",
+    funnelHeadline(d.growth.talentInvitations),
+    `${medianText(d.growth.talentInvitations.medianDaysToAccept)} · ${talentFunnelSplit(d.growth.talentInvitations)}`,
   ],
 ])}
 
