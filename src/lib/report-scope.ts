@@ -138,3 +138,26 @@ export const ACCOUNT_SCOPE_REPORT_LABEL: Record<AccountScope, string> = {
   test: "Test accounts",
   all: "All accounts",
 };
+
+// -----------------------------------------------------------------------------
+// Shared wording for the invitation cards (screen, CSV and PDF)
+// -----------------------------------------------------------------------------
+
+export type TalentFunnelSummary = FunnelSummary & {
+  byAdmin: FunnelSummary;
+  byAgencies: FunnelSummary;
+  connectionRequests: { sent: number; accepted: number; declined: number };
+};
+
+export function medianText(days: number | null): string {
+  return days == null ? "No acceptances yet" : `Median ${days} day${days === 1 ? "" : "s"} to accept`;
+}
+
+export function funnelHeadline(f: FunnelSummary): string {
+  return `${f.accepted} of ${f.sent} accepted · ${f.rate}%`;
+}
+
+export function talentFunnelSplit(f: TalentFunnelSummary): string {
+  const c = f.connectionRequests;
+  return `Sent by Admin: ${f.byAdmin.accepted} of ${f.byAdmin.sent} accepted · Sent by agencies: ${f.byAgencies.accepted} of ${f.byAgencies.sent} accepted · Connection requests: ${c.sent} (${c.accepted} accepted / ${c.declined} declined)`;
+}
