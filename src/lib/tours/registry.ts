@@ -878,7 +878,8 @@ export const GUIDES: TourGuide[] = [
     portal: "admin",
     kind: "module",
     title: "Talent invitation workflow",
-    description: "Invite independent talent without an agency: details, proof of talent, then send.",
+    description:
+      "Invite independent talent without an agency: details, proof of talent, then send.",
     match: ["/admin/invitations/talent"],
     steps: [
       {
