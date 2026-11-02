@@ -19,7 +19,12 @@ export function testEmailKey(email: string | null | undefined): string {
 }
 
 export type TestScopeSource = {
-  agencies: { id: string; is_test: boolean | null; contact_email?: string | null; main_contact_email?: string | null }[];
+  agencies: {
+    id: string;
+    is_test: boolean | null;
+    contact_email?: string | null;
+    main_contact_email?: string | null;
+  }[];
   talent: { id: string; user_id: string | null; email: string | null; is_test: boolean | null }[];
   /** Emails of people who belong to a test agency (owners and staff). */
   testAgencyMemberEmails?: (string | null | undefined)[];
@@ -101,9 +106,7 @@ export function sentInPeriod(inv: FunnelInvite, fromIso: string, toIso: string):
 
 export function daysToAccept(inv: FunnelInvite): number | null {
   if (!inv.accepted_at) return null;
-  return (
-    Math.round(((Date.parse(inv.accepted_at) - Date.parse(sentAt(inv))) / 86400000) * 10) / 10
-  );
+  return Math.round(((Date.parse(inv.accepted_at) - Date.parse(sentAt(inv))) / 86400000) * 10) / 10;
 }
 
 export function median(values: number[]): number | null {
@@ -150,7 +153,9 @@ export type TalentFunnelSummary = FunnelSummary & {
 };
 
 export function medianText(days: number | null): string {
-  return days == null ? "No acceptances yet" : `Median ${days} day${days === 1 ? "" : "s"} to accept`;
+  return days == null
+    ? "No acceptances yet"
+    : `Median ${days} day${days === 1 ? "" : "s"} to accept`;
 }
 
 export function funnelHeadline(f: FunnelSummary): string {

@@ -542,8 +542,8 @@ function ReportingPage() {
               className="tvp-muted"
               style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}
             >
-              Current status of {ACCOUNT_SCOPE_REPORT_LABEL[d.accounts].toLowerCase()}. Not affected by
-              the date range.
+              Current status of {ACCOUNT_SCOPE_REPORT_LABEL[d.accounts].toLowerCase()}. Not affected
+              by the date range.
             </p>
           </div>
 

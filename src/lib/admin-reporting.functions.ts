@@ -82,7 +82,6 @@ function priorPeriod(p: Period): Period {
 
 const ACTIVITY_ACTIONS = [TALENT_LOGIN_ACTION, ...TALENT_VAULT_ACTIONS];
 
-
 /** Every activity row in a window, keyed by the talent who generated it. */
 async function activityRows(admin: SupabaseClient<Database>, fromIso: string, toIso: string) {
   const { data, error } = await admin
@@ -122,7 +121,9 @@ async function loadTestScope(
   if (mem.error) throw databaseError(mem.error);
   const testAgencyIds = new Set((ag.data ?? []).filter((a) => a.is_test).map((a) => a.id));
   const memberIds = [
-    ...new Set((mem.data ?? []).filter((m) => testAgencyIds.has(m.agency_id)).map((m) => m.user_id)),
+    ...new Set(
+      (mem.data ?? []).filter((m) => testAgencyIds.has(m.agency_id)).map((m) => m.user_id),
+    ),
   ];
   let memberEmails: (string | null)[] = [];
   if (memberIds.length > 0) {
@@ -182,13 +183,20 @@ async function loadInviteFunnelRows(
     (priv.data ?? []).filter((p) => p.kind === "inert").map((p) => p.invitation_id),
   );
   const requests = new Map<string, string>();
-  for (const p of priv.data ?? []) if (p.kind === "link_request") requests.set(p.invitation_id, p.state);
+  for (const p of priv.data ?? [])
+    if (p.kind === "link_request") requests.set(p.invitation_id, p.state);
   for (const l of legacy.data ?? []) {
     const id = l.talent_invitation_id as string;
     if (!requests.has(id)) {
       requests.set(
         id,
-        l.status === "active" ? "accepted" : l.declined_at ? "declined" : l.status === "invited" ? "pending" : "cancelled",
+        l.status === "active"
+          ? "accepted"
+          : l.declined_at
+            ? "declined"
+            : l.status === "invited"
+              ? "pending"
+              : "cancelled",
       );
     }
   }
@@ -407,8 +415,10 @@ function activeSets(rows: { actor_id: string; action: string }[]) {
 // Summary
 // -----------------------------------------------------------------------------
 
-const sumCents = (rows: { amount_cents?: number | null; total_cents?: number | null }[], key: "amount_cents" | "total_cents") =>
-  rows.reduce((n: number, r) => n + Number(r[key] ?? 0), 0);
+const sumCents = (
+  rows: { amount_cents?: number | null; total_cents?: number | null }[],
+  key: "amount_cents" | "total_cents",
+) => rows.reduce((n: number, r) => n + Number(r[key] ?? 0), 0);
 
 export const getReportingSummary = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -714,7 +724,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
     const period = toPeriod(data.from, data.to);
     const ts = await loadTestScope(admin, data.accounts);
     const keepAgency = (id: string | null | undefined) => ts.keep(ts.agencyIsTest(id));
-    const page = <T,>(rows: T[]) => rows.slice(data.offset, data.offset + data.limit);
+    const page = <T>(rows: T[]) => rows.slice(data.offset, data.offset + data.limit);
     const money = (cents: number | null | undefined) => Number(cents ?? 0) / 100;
 
     switch (data.metric) {
@@ -756,7 +766,16 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
         const columns =
           data.metric === "agency_invitations"
             ? ["Agency", "Email", "Status", "Sent", "Accepted", "Days to accept"]
-            : ["Talent", "Email", "Sent by", "Agency", "Status", "Sent", "Accepted", "Days to accept"];
+            : [
+                "Talent",
+                "Email",
+                "Sent by",
+                "Agency",
+                "Status",
+                "Sent",
+                "Accepted",
+                "Days to accept",
+              ];
         return {
           total: all.length,
           note:

@@ -58,7 +58,11 @@ describe("invitation funnel", () => {
     const f = inviteFunnel(
       [
         { status: "draft", created_at: "2026-10-05T00:00:00Z" },
-        { status: "pending", created_at: "2026-10-05T00:00:00Z", first_sent_at: "2026-10-06T00:00:00Z" },
+        {
+          status: "pending",
+          created_at: "2026-10-05T00:00:00Z",
+          first_sent_at: "2026-10-06T00:00:00Z",
+        },
       ],
       from,
       to,
@@ -77,7 +81,11 @@ describe("invitation funnel", () => {
         },
         { status: "pending", created_at: "2026-10-10T00:00:00Z" },
         { status: "expired", created_at: "2026-10-11T00:00:00Z" },
-        { status: "accepted", created_at: "2026-10-12T00:00:00Z", accepted_at: "2026-10-16T00:00:00Z" },
+        {
+          status: "accepted",
+          created_at: "2026-10-12T00:00:00Z",
+          accepted_at: "2026-10-16T00:00:00Z",
+        },
       ],
       from,
       to,

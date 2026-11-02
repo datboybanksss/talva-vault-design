@@ -61,7 +61,7 @@ export async function fetchOnboardedTalentLinks(
   const eligible = new Set(
     (profiles ?? [])
       .filter((p) => matchesScope(p.is_test, scope) && !p.deleted_at)
-     .map((p) => p.user_id),
+      .map((p) => p.user_id),
   );
   return links.filter((l) => eligible.has(l.talent_user_id));
 }

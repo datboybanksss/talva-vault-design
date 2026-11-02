@@ -103,7 +103,8 @@ export function ReportingRawDrawer({
           </div>
         </div>
         <p className="tvp-muted" style={{ fontSize: 13, marginBottom: 16 }}>
-          {from} to {to} · {ACCOUNT_SCOPE_REPORT_LABEL[accounts]} · {total} row{total === 1 ? "" : "s"}
+          {from} to {to} · {ACCOUNT_SCOPE_REPORT_LABEL[accounts]} · {total} row
+          {total === 1 ? "" : "s"}
         </p>
 
         {data?.note && (
