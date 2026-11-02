@@ -632,6 +632,51 @@
 
 /* TalVault Admin prototype — scoped UI primitives ---------------------------- */
 
+/* Portal-level surfaces (modals, the public shared-link page) sit outside
+   `.tv-app`, so they get the same token mapping here. */
+.tvp-modal-backdrop,
+.tvp-document-modal,
+.tvl {
+  --tvp-sidebar: var(--sidebar-bg);
+  --tvp-sidebar-active: var(--sidebar-active);
+  --tvp-sidebar-muted: var(--teal-300);
+  --tvp-bg: var(--surface-app);
+  --tvp-surface: var(--surface);
+  --tvp-surface-soft: var(--surface-soft);
+  --tvp-line: var(--line-200);
+  --tvp-line-strong: var(--line-300);
+  --tvp-ink: var(--ink-900);
+  --tvp-text: var(--ink-700);
+  --tvp-muted: var(--ink-500);
+  --tvp-teal: var(--teal-700);
+  --tvp-teal-2: var(--teal-600);
+  --tvp-teal-50: var(--teal-050);
+  --tvp-teal-100: var(--teal-100);
+  --tvp-teal-200: var(--teal-200);
+  --tvp-amber-accent: var(--amber-600);
+  --tvp-amber-accent-bg: var(--amber-050);
+  --tvp-green: var(--success-500);
+  --tvp-green-bg: var(--success-050);
+  --tvp-amber: var(--amber-600);
+  --tvp-amber-bg: var(--amber-050);
+  --tvp-red: var(--danger-600);
+  --tvp-red-bg: var(--danger-050);
+  --tvp-blue: var(--cat-agency);
+  --tvp-blue-bg: var(--cat-agency-bg);
+  --tvp-purple: var(--cat-private);
+  --tvp-purple-bg: var(--cat-private-bg);
+  --tvp-neutral-bg: var(--st-neutral-bg);
+  --tvp-radius-xl: 14px;
+  --tvp-radius-lg: 14px;
+  --tvp-radius-md: 10px;
+  --tvp-radius-sm: 6px;
+  --tvp-shadow: var(--sh-lg);
+  --tvp-shadow-soft: var(--sh-md);
+
+  --tvp-sidebar-w: 300px;
+  --tvp-sidebar-collapsed: 92px;
+}
+
 .tv-app {
   --tvp-sidebar: var(--sidebar-bg);
   --tvp-sidebar-active: var(--sidebar-active);
@@ -3848,6 +3893,50 @@
 .tvp-modal .tvp-muted {
   color: var(--ink-500);
 }
+.tvp-modal .tvp-mini-btn,
+.tvl .tvp-mini-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--tvp-line-strong);
+  background: var(--surface);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--tvp-text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tvp-modal .tvp-mini-btn:hover,
+.tvl .tvp-mini-btn:hover {
+  background: var(--tvp-teal-50);
+  border-color: var(--tvp-teal-200);
+  color: var(--tvp-teal);
+}
+.tvp-modal .tvp-mini-btn:focus-visible,
+.tvl .tvp-mini-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tvp-modal .tvp-modal-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--ink-700);
+  line-height: 1.5;
+}
+.tvp-modal .tvp-modal-check input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--teal-700);
+  flex-shrink: 0;
+}
+.tvp-modal .tvp-field-caption.tvp-field-hint,
+.tvp-modal .tvp-form-group .tvp-field-hint {
+  font-weight: 600;
+  color: var(--ink-500);
+}
 .tvp-modal-body > * + * {
   margin-top: var(--sp-4);
 }
@@ -5250,7 +5339,8 @@ a.tvp-entity-card:focus-visible {
   white-space: normal;
   text-align: left;
 }
-.tvp-document-modal .tvp-mini-btn {
+.tvp-document-modal .tvp-mini-btn,
+.tvp-modal .tvp-mini-btn {
   flex-shrink: 0;
   color: var(--ink);
 }
@@ -5958,7 +6048,8 @@ a.tvp-entity-card:focus-visible {
   font-size: 15px;
   font-weight: 900;
 }
-.tv-app .tvp-form-footer {
+.tv-app .tvp-form-footer,
+.tvp-modal .tvp-form-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -5967,6 +6058,11 @@ a.tvp-entity-card:focus-visible {
   margin-top: var(--sp-5);
   padding-top: var(--sp-4);
   border-top: 1px solid var(--tvp-line);
+}
+.tvp-modal .tvp-form-footer {
+  justify-content: flex-end;
+  gap: 10px;
+  border-top-color: var(--line);
 }
 @media (max-width: 640px) {
   .tv-app .tvp-form-2col {
@@ -6593,3 +6689,88 @@ a.tvp-entity-card:focus-visible {
 .tv-app .tv-teaser h2 { font-size: 18px; font-weight: 800; color: var(--tvp-ink); }
 .tv-app .tv-teaser p { max-width: 520px; margin: 8px auto 0; color: var(--tvp-muted); font-size: 14px; line-height: 1.55; }
 .tv-app .tv-teaser ul { max-width: 420px; margin: 14px auto 0; text-align: left; color: var(--tvp-ink); font-size: 14px; display: grid; gap: 6px; list-style: disc; padding-left: 20px; }
+
+/* Talent Private Vault — folder browsing ------------------------------------ */
+.tv-app .tv-folder-head-static {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  cursor: default;
+}
+.tv-app .tv-folder-head-static:hover {
+  background: transparent;
+}
+.tv-app .tv-folder-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.tv-app .tvp-crumb {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  color: var(--tvp-teal);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tv-app .tvp-crumb:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 4px;
+}
+.tv-app .tvp-vault-breadcrumb strong {
+  color: var(--tvp-ink);
+}
+.tv-app button.tvp-subfolder-pill {
+  cursor: pointer;
+  padding: 6px 8px 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tv-app button.tvp-subfolder-pill:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tv-app .tvp-subfolder-pill.tvp-active {
+  background: var(--tvp-teal);
+  border-color: var(--tvp-teal);
+  color: var(--on-teal, var(--surface));
+}
+.tv-app .tv-chip-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: var(--tvp-surface);
+  color: var(--tvp-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.tv-app .tvp-subfolder-pill.tvp-active .tv-chip-count {
+  color: var(--tvp-teal);
+}
+.tv-app .tv-doc-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.tv-app .tv-btn-sm {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.tv-app .tv-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tv-app .tv-vault-grid {
+  align-items: start;
+}

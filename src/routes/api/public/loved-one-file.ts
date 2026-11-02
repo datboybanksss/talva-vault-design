@@ -1,6 +1,6 @@
 import { QUARANTINE_CODES, QUARANTINE_MESSAGES, quarantineReason } from "@/lib/document-quarantine";
 import { createFileRoute } from "@tanstack/react-router";
-import { documentIsValidated, fileResponseHeaders } from "@/lib/file-security";
+import { documentIsValidated, fileResponseHeaders, isInlineViewable } from "@/lib/file-security";
 import { shareHasCode, privateStoragePathOwned } from "@/lib/share-security";
 
 const BUCKET = "talent-private-documents";
@@ -66,6 +66,14 @@ export const Route = createFileRoute("/api/public/loved-one-file")({
         if (doc.user_id !== share.created_by) return new Response("Forbidden", { status: 403 });
         if (!privateStoragePathOwned(doc.storage_path, share.created_by))
           return new Response("Forbidden", { status: 403 });
+
+        // View-only shares never stream a type the browser can't show inline —
+        // it would arrive as a download.
+        if (mode === "view" && share.permission !== "download" && !isInlineViewable(doc.mime_type)) {
+          return new Response("This file can't be previewed on a view-only share", {
+            status: 403,
+          });
+        }
 
         const { resolveShareFolders } = await import("@/lib/loved-one.functions");
         // scope is a JSON column; these are the only keys the share writer sets.

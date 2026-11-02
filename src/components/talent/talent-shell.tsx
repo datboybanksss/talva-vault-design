@@ -135,7 +135,15 @@ export function TalentShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const loadDash = useServerFn(getTalentDashboard);
-  const { data: dash } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
+  const {
+    data: dash,
+    isError: dashFailed,
+    refetch: refetchDash,
+    isFetching: dashFetching,
+  } = useQuery({ queryKey: ["talent", "dashboard"], queryFn: () => loadDash() });
+  // A failed dashboard read (whole or partial) is raised here in the bell —
+  // never as a banner on the page.
+  const dashPartial = dashFailed || (dash?.failedParts?.length ?? 0) > 0;
 
   const vaultBadge = (dash?.privateDocs ?? 0) + (dash?.sharedDocs ?? 0);
   const sharesBadge = dash?.activeShares ?? 0;
@@ -154,7 +162,7 @@ export function TalentShell({ children }: { children: ReactNode }) {
   // thresholds as before and stay until done, not just until read.
   const actions = dash?.todo ?? [];
   const infoItems = bellItems.filter((n) => n.kind !== "doc_expiring");
-  const bellCount = actions.length + infoItems.length;
+  const bellCount = actions.length + infoItems.length + (dashPartial ? 1 : 0);
   const agencyLinks = useTalentAgencyLinks();
   const manage = buildManageNav(
     vaultBadge,
@@ -363,6 +371,31 @@ export function TalentShell({ children }: { children: ReactNode }) {
                       : "You're all caught up."}
                   </p>
                 ) : null}
+                {dashPartial && (
+                  <div className="tvp-notification-item" role="status">
+                    <div className="tvp-kpi-icon tvp-bg-amber" style={{ width: 32, height: 32 }}>
+                      <AlertCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <strong>Part of your dashboard didn’t load</strong>
+                      <div className="tvp-muted" style={{ fontSize: 12, marginTop: 2 }}>
+                        Your documents are safe. Try again to refresh the numbers.
+                      </div>
+                      <button
+                        type="button"
+                        className="tvp-secondary"
+                        style={{ marginTop: 8, height: 32, padding: "0 12px", fontSize: 12 }}
+                        disabled={dashFetching}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void refetchDash();
+                        }}
+                      >
+                        {dashFetching ? "Trying again…" : "Try again"}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {actions.length > 0 && (
                   <>
                     <div className="tvp-bell-group">Action needed · {actions.length}</div>

@@ -8,7 +8,7 @@ import {
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
 import { EMAIL_FALLBACK_NOTICE } from "@/lib/invitation-email";
 import { ModalShell } from "@/components/shared/modal-shell";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -70,6 +70,10 @@ export const Route = createFileRoute("/talent/sharing")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { doc?: string } =>
+    typeof search.doc === "string" && /^[0-9a-f-]{36}$/i.test(search.doc)
+      ? { doc: search.doc }
+      : {},
   component: SharingPage,
 });
 
@@ -93,7 +97,12 @@ function SharingPage() {
   const regen = useServerFn(regenerateAccessCode);
   const [historyShare, setHistoryShare] = useState<MyShare | null>(null);
   const qc = useQueryClient();
-  const [showModal, setShowModal] = useState(false);
+  // "Share with a trusted contact" from a vault document opens the new-share
+  // form with that document already chosen.
+  const { doc: docParam } = Route.useSearch();
+  const navigate = useNavigate();
+  const [initialDocId, setInitialDocId] = useState<string | undefined>(docParam);
+  const [showModal, setShowModal] = useState(!!docParam);
   const [prefill, setPrefill] = useState<{
     name: string;
     email: string;
@@ -127,7 +136,7 @@ function SharingPage() {
   async function onRegen(s: MyShare) {
     const ok = await confirm({
       title: "Issue a new access code?",
-      body: "The previous code stops working immediately.",
+      body: `The previous code stops working immediately. Give ${s.loved_one_name ?? s.loved_one_email} the new code yourself. Codes are never sent by email.`,
       confirmLabel: "Issue new code",
     });
     if (!ok) return;
@@ -375,9 +384,15 @@ function SharingPage() {
       {showModal && (
         <NewShareModal
           prefill={prefill}
-          onClose={() => setShowModal(false)}
+          initialDocId={initialDocId}
+          onClose={() => {
+            setShowModal(false);
+            setInitialDocId(undefined);
+            if (docParam) navigate({ to: "/talent/sharing", search: {}, replace: true });
+          }}
           onCreated={(f) => {
             setShowModal(false);
+            setInitialDocId(undefined);
             setFresh(f);
             void qc.invalidateQueries({ queryKey: ["talent", "loved-shares"] });
           }}
@@ -519,10 +534,12 @@ function NewShareModal({
   onClose,
   onCreated,
   prefill,
+  initialDocId,
 }: {
   onClose: () => void;
   onCreated: (f: FreshShare) => void;
   prefill?: { name: string; email: string; relationship: string } | null;
+  initialDocId?: string;
 }) {
   const loadVault = useServerFn(listPrivateVault);
   const loadBilling = useServerFn(listTalentBillingDocuments);
@@ -542,11 +559,13 @@ function NewShareModal({
   const [rel, setRel] = useState(prefill?.relationship ?? "");
   const [days, setDays] = useState(30);
   const [note, setNote] = useState("");
-  const [kind, setKind] = useState<"folders" | "document" | "billing">("folders");
+  const [kind, setKind] = useState<"folders" | "document" | "billing">(
+    initialDocId ? "document" : "folders",
+  );
   const [permission, setPermission] = useState<"view" | "download">("view");
   const [sendEmail, setSendEmail] = useState(true);
   const [folderIds, setFolderIds] = useState<Set<string>>(new Set());
-  const [docId, setDocId] = useState<string>("");
+  const [docId, setDocId] = useState<string>(initialDocId ?? "");
   const [docSearch, setDocSearch] = useState("");
   const [saving, setSaving] = useState(false);
 

@@ -3,6 +3,9 @@ const state = vi.hoisted(() => ({
   hash: "hash" as string | null,
   validated: "2026-10-25T00:00:00Z" as string | null,
   downloads: 0,
+  permission: "download" as string,
+  name: "legacy.svg",
+  mime: "image/svg+xml",
 }));
 vi.mock("@tanstack/react-router", () => ({ createFileRoute: () => (config: unknown) => config }));
 vi.mock("@/lib/loved-one-access.server", () => ({ verifyTicket: () => true }));
@@ -24,16 +27,16 @@ vi.mock("@/integrations/supabase/client.server", () => ({
                   created_by: "owner",
                   expires_at: "2099-01-01T00:00:00Z",
                   access_code_hash: state.hash,
-                  permission: "download",
+                  permission: state.permission,
                   is_active: true,
                 }
               : {
                   id: "doc",
-                  name: "legacy.svg",
+                  name: state.name,
                   folder_id: null,
                   storage_path: "owner/file.svg",
                   user_id: "owner",
-                  mime_type: "image/svg+xml",
+                  mime_type: state.mime,
                   validated_at: state.validated,
                 },
           error: null,
@@ -63,6 +66,9 @@ beforeEach(() => {
   state.hash = "hash";
   state.validated = "2026-10-25T00:00:00Z";
   state.downloads = 0;
+  state.permission = "download";
+  state.name = "legacy.svg";
+  state.mime = "image/svg+xml";
 });
 it("TVA-SEC-103 a share without a code hash cannot serve files", async () => {
   state.hash = null;
@@ -80,5 +86,22 @@ it("TVA-SEC-102 legacy SVG is an attachment with sandbox and nosniff", async () 
   expect(response.headers.get("Content-Disposition")).toMatch(/^attachment;/);
   expect(response.headers.get("Content-Type")).toBe("application/octet-stream");
   expect(response.headers.get("Content-Security-Policy")).toContain("sandbox;");
+  expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+});
+it("view-only share: viewing a Word document is refused and nothing is streamed", async () => {
+  state.permission = "view";
+  state.name = "contract.docx";
+  state.mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  expect((await handler({ request: request() })).status).toBe(403);
+  expect(state.downloads).toBe(0);
+});
+it("view-only share: a PDF is served inline without the CSP sandbox", async () => {
+  state.permission = "view";
+  state.name = "passport.pdf";
+  state.mime = "application/pdf";
+  const response = await handler({ request: request() });
+  expect(response.status).toBe(200);
+  expect(response.headers.get("Content-Disposition")).toMatch(/^inline;/);
+  expect(response.headers.get("Content-Security-Policy")).not.toContain("sandbox");
   expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
 });

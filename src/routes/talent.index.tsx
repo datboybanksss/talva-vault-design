@@ -1,4 +1,4 @@
-import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_PLURAL } from "@/lib/terms";
+import { SHARE_RECIPIENT_TERM, SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED } from "@/lib/terms";
 import { createFileRoute, Link, useLoaderData } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -6,6 +6,7 @@ import { getTalentDashboard } from "@/lib/talent.functions";
 import { Lock, FileStack, Share2, ChevronRight, Upload, Heart } from "lucide-react";
 import { useTalentAgencyLinks } from "@/lib/talent-agency-links";
 import { fileKind } from "@/components/shared/brand";
+import { fmtDate } from "@/lib/display-dates";
 
 export const Route = createFileRoute("/talent/")({
   head: () => ({
@@ -27,12 +28,10 @@ export const Route = createFileRoute("/talent/")({
   component: TalentDashboard,
 });
 
-const fmtDate = (v: string) =>
-  new Date(v).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 function TalentDashboard() {
   const load = useServerFn(getTalentDashboard);
-  const { data, isError: dashError } = useQuery({
+  const { data } = useQuery({
     queryKey: ["talent", "dashboard"],
     queryFn: () => load(),
   });
@@ -97,12 +96,6 @@ function TalentDashboard() {
         </div>
       </header>
 
-      {dashError && (
-        <p className="tvd-meta">
-          Some of your dashboard couldn't be loaded. Please refresh the page.
-        </p>
-      )}
-
       <div className="tvd-cards">
         <Link to="/talent/vault" search={{ tab: "private" }} className="tvd-tile tvd-tint-teal">
           <span className="tvd-tile-icon">
@@ -139,13 +132,11 @@ function TalentDashboard() {
             <Heart className="h-5 w-5" />
           </span>
           <span className="tvd-tile-count">{contactCount}</span>
-          <span className="tvd-tile-label">
-            {SHARE_RECIPIENT_TERM_PLURAL.replace(/^./, (c) => c.toUpperCase())}
-          </span>
+          <span className="tvd-tile-label">{SHARE_RECIPIENT_TERM_PLURAL_CAPITALISED}</span>
           <span className="tvd-tile-sub">
             {contactCount === 0
               ? "Nobody else can see your files."
-              : `${plural(contactCount, "person").replace("persons", "people")} can see selected documents.`}
+              : `${contactCount} ${contactCount === 1 ? "person" : "people"} can see selected documents.`}
           </span>
         </Link>
       </div>
@@ -187,7 +178,7 @@ function TalentDashboard() {
                     <span className="tvd-row-text">
                       <span className="tvp-review-name">{d.name}</span>
                       <span className="tvp-review-meta">
-                        {d.folder} · {fmtDate(d.date)}
+                        {d.folder} · {fmtDate(d.date, "")}
                       </span>
                     </span>
                     <span

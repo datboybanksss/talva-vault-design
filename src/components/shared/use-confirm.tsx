@@ -32,15 +32,17 @@ export function useConfirm() {
 
   const dialog = opts ? (
     <ModalShell onClose={() => close(false)} maxWidth={460} labelledBy="tvp-confirm-title">
-      <h2 className="tvp-h2" id="tvp-confirm-title">
-        {opts.title}
-      </h2>
+      <div className="tvp-modal-head">
+        <h2 className="tvp-h2" id="tvp-confirm-title">
+          {opts.title}
+        </h2>
+      </div>
       {opts.body && (
-        <div className="tvp-muted" style={{ marginTop: 8 }}>
-          {opts.body}
+        <div className="tvp-modal-body">
+          <div className="tvp-muted">{opts.body}</div>
         </div>
       )}
-      <div className="tvp-form-footer">
+      <div className="tvp-modal-foot">
         <button type="button" className="tvp-secondary" onClick={() => close(false)}>
           Cancel
         </button>
