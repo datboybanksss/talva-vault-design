@@ -6689,3 +6689,88 @@ a.tvp-entity-card:focus-visible {
 .tv-app .tv-teaser h2 { font-size: 18px; font-weight: 800; color: var(--tvp-ink); }
 .tv-app .tv-teaser p { max-width: 520px; margin: 8px auto 0; color: var(--tvp-muted); font-size: 14px; line-height: 1.55; }
 .tv-app .tv-teaser ul { max-width: 420px; margin: 14px auto 0; text-align: left; color: var(--tvp-ink); font-size: 14px; display: grid; gap: 6px; list-style: disc; padding-left: 20px; }
+
+/* Talent Private Vault — folder browsing ------------------------------------ */
+.tv-app .tv-folder-head-static {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  cursor: default;
+}
+.tv-app .tv-folder-head-static:hover {
+  background: transparent;
+}
+.tv-app .tv-folder-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.tv-app .tvp-crumb {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  color: var(--tvp-teal);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tv-app .tvp-crumb:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 4px;
+}
+.tv-app .tvp-vault-breadcrumb strong {
+  color: var(--tvp-ink);
+}
+.tv-app button.tvp-subfolder-pill {
+  cursor: pointer;
+  padding: 6px 8px 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tv-app button.tvp-subfolder-pill:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.tv-app .tvp-subfolder-pill.tvp-active {
+  background: var(--tvp-teal);
+  border-color: var(--tvp-teal);
+  color: var(--on-teal, var(--surface));
+}
+.tv-app .tv-chip-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: var(--tvp-surface);
+  color: var(--tvp-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.tv-app .tvp-subfolder-pill.tvp-active .tv-chip-count {
+  color: var(--tvp-teal);
+}
+.tv-app .tv-doc-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.tv-app .tv-btn-sm {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.tv-app .tv-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tv-app .tv-vault-grid {
+  align-items: start;
+}
