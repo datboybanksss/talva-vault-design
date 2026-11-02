@@ -526,7 +526,9 @@ export function PrivateVault({
                     type="button"
                     className={`tvp-subfolder-pill${place.sub === s.id ? " tvp-active" : ""}`}
                     aria-pressed={place.sub === s.id}
-                    onClick={() => setPlace({ kind: "folder", categoryId: category!.id, sub: s.id })}
+                    onClick={() =>
+                      setPlace({ kind: "folder", categoryId: category!.id, sub: s.id })
+                    }
                   >
                     {s.name}
                     <span className="tv-chip-count">{tree.docsIn(s.id).length}</span>
@@ -626,9 +628,7 @@ export function PrivateVault({
                         {plural(tree.unfiled.length, "document")}
                       </span>
                       <span className="tvp-folder-flags">
-                        <span className="tvp-status tvp-purple">
-                          {tree.unfiled.length} to file
-                        </span>
+                        <span className="tvp-status tvp-purple">{tree.unfiled.length} to file</span>
                       </span>
                     </span>
                     <span className="tv-folder-head-actions">
@@ -922,9 +922,7 @@ function FolderDocuments({
                         {statusPills(d)}
                       </td>
                       {showFolderColumn ? (
-                        <td>
-                          {path ?? <span className="tvp-status tvp-purple">Unfiled</span>}
-                        </td>
+                        <td>{path ?? <span className="tvp-status tvp-purple">Unfiled</span>}</td>
                       ) : (
                         <td>{d.size_bytes ? formatBytes(d.size_bytes) : "—"}</td>
                       )}
@@ -1062,11 +1060,7 @@ function MoveDocumentDialog({
       <div className="tvp-modal-body">
         <div className="tvp-form-group">
           <label htmlFor="tvp-move-folder">Folder</label>
-          <select
-            id="tvp-move-folder"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-          >
+          <select id="tvp-move-folder" value={target} onChange={(e) => setTarget(e.target.value)}>
             <option value="">Unfiled</option>
             {options.map((o) => (
               <option key={o.id} value={o.id}>
