@@ -1,91 +1,82 @@
-# Sign-in metering in Admin → Reporting
+# Admin Reports redesign
 
-Plan only; no code, accounts, database or security settings change before approval.
+## What the admin gets
+One Reports area with shared filters, downloadable evidence and controlled access, reusing existing reporting patterns. Plan only: no application code or data changed.
 
-## Verified findings
+## Confirmed findings
+- Reporting and Launch reports are sections of `/admin/reporting`; consolidate them and preserve existing links.
+- North star currently accepts talent sign-in OR vault action, but requires agency actions tied to that talent relationship. Staff sign-ins alone do not qualify: the requested both-sides interpretation needs approval.
+- Current retention accepts sign-in OR vault activity anywhere from joining to day 30/60/90. Replace with approved sign-in-only preceding 30-day windows, registered base and Not yet due.
+- No invitations created, first sent or last sent on 18 Nov 2026 were found. No sheet marker exists; sources are Admin or missing, and 32 older invitations lack first-send timestamps. Membership needs a verified sheet and original send evidence, not date guesses.
+- Thirteen talent profiles exist; four lack activation dates. Three of those four match accepted invitations through inspected links. Stop activation exclusion; missing registration evidence/dates remain disclosed.
+- 138 historical logins: first 14 Sep/latest 15 Nov, none with new session marker. Capture stamped 24 Nov 19:21 UTC; no contact visits recorded. Deployment/completeness is unverified; missing events cannot prove inactivity.
+- Five edit admins, one Main administrator; broad Admin database reads currently bypass the proposed permissions. Dedicated saved-view, discount, spend, consent, message, incident and download-history tables were not found. Email-send history empty; historical two-step proof absent.
 
-- **138 login rows / 15 actors**: Agency staff **29/6**, Talent **62/5**, Admin **46/3**, unresolved **1/1**. The unresolved actor has no remaining account/profile/membership/role: retain history, exclude from typed figures with a helper note.
-- First observed login: **14 Sep 2026** overall/staff, **15 Sep 2026** talent. These are observed events, not proof of complete capture; displayed tracking dates come from queries.
-- **11 agency members; 13 talent profiles**. Nine profiles have activation completion timestamps; four lack them (three Real, one Test). Existing onboarded-talent reporting is agency-link-based and excludes independent talent, so cannot supply this denominator unchanged.
-- Only Admin rows currently exist in user_roles (five); no loved_one roles, agency/talent overlap or multi-agency staff membership.
-- Contacts access public share links with codes, without recipient actor_id. Recipient emails can separately hold accounts (two Admin, one Talent today). **Six shares / three recipient emails / zero access events**. Code acceptance is not logged; list reads log opened and file-link requests can log view/download. These are not account sign-ins.
-- MFA is currently OFF: password-only completion counts. Keep the switch and all security requirements unchanged.
+## Phases
+### 1 — Foundation: useful reporting first
+Build the eight tabs in the exact A order, full B filter bar and all C section conventions. Keep filters in the URL/shared across tabs, default Real, private saved views, sticky summary and query-backed tracking date. Distinguish first observed login from complete capture.
 
-## Identity and calculations
+Apply access controls and revised reporting eligibility before downloads; account statuses/screens stay unchanged. Include all four legacy profiles; never invent dates.
 
-Resolve actor_id through profiles, Admin roles, agency_members and talent_profiles. Recommend **exclude Admin → Agency staff → Talent**, one type per profile, matching portal priority without double counting. Preserve unresolved history.
+People gets all D.5 metrics/columns, filters/search, server paging/sort, column chooser, cross-page selection, CSV/Excel and timeline. Include zero activity; unregistered invitees are prospects, contacts have visit equivalents. Messaging activates in phase 5.
 
-Roster: registered staff (owners included) with recorded invitation/onboarding evidence; completed talent, both independent and linked, once per user. Use recorded completion dates. Keep four older unconfirmed profiles separate pending approval.
+Every figure opens contributing People, plus raw-record evidence where figures count money/documents/invitations/relationships rather than people. Small sample below five; arrow + words comparisons; missing history Not tracked/Not recorded, never zero. Monetary/event percentages need meaningful denominators.
 
-Recommend contacts as separate **visits**: successful access-code entries, deduplicated people by lower-cased/trimmed email. Denominator = recipients sent code-protected access by cutoff, including never visited, labelled **recipients given access**, not onboarded accounts. Never fabricate accounts or login rows. This measures designated recipients, not independently verified humans.
+### 2 — Core analytics
+Deliver every D.1–D.4 card/chart/table with calculation info and raw CSV, including Needs attention and reusable agency detail.
 
-| Metric | Definition |
-| --- | --- |
-| Active users | At least one period login / total onboarded by cutoff, with %. |
-| Returning users | Logins on **2+ distinct South African days** in period. |
-| Total sign-ins | Eligible login rows; same-day completions count here. |
-| Average days active | Sum distinct active days per person / active people; primary frequency metric. |
-| Dormant users | No login for **30+ days** at cutoff; never signed in qualifies after 30 days onboarded. |
-| Average sign-ins per week | Period sign-ins × 7 / selected calendar days; no minimum week. |
+All four trend measure pairs/day-week-month grouping; incomplete current week lighter and labelled. Projection uses four complete weeks, unavailable without history. Funnel uses one invitation cohort/cutoff and all requested count/proportion/median/stopped-person measures. Drafts excluded, resends count once, connection requests separate. Metadata only, never contents. Resolve north-star/health choices before those figures ship.
 
-Use Africa/Johannesburg midnight boundaries (inclusive start/exclusive next-day end), immediately preceding equal-length period and each period's roster cutoff. Recommend cutoff = period end, or today if ongoing. First/last/days-since use recorded history up to cutoff; missing history shows Not recorded. Include paused/suspended onboarded users, exclude soft-deleted profiles. Contact calculations use visit equivalents.
+### 3 — Launch admin and protected discount
+Move existing offer places/Terms/settings to Launch admin; add blank prices, preserve Real-only offer allocation/proofs/links. Keep six-month-free offer separate from lifetime discount.
 
-## Implementation
+Owner imports/marks verified event sheet, matches invitation IDs, reviews unmatched/duplicates/send evidence, confirms/audits. Freeze sheet marker, original 18 Nov time, registration within 48 hours and account/agency identity. Resends/edits cannot change eligibility; no token/expiry changes.
 
-### Database and history
+Six-calendar-month keep-by from last completed login, initially registration; any agency staff login counts. Kept/At risk (≤30 days)/permanently dated Lost/Owner-only Reinstated with reason/audit. Holding/all members retention; no loss before 18 May 2027.
 
-- Preserve talent_audit_log. Add missing **(action, created_at)** index. Two equivalent **(actor_id, created_at)** indexes exist: reuse, without adding/removing duplicates here.
-- SQL/RPC summaries and profile pages: aggregate/filter/sort/count/page in database, never fetch every audit event into server functions. LEFT JOIN roster so zero activity remains visible.
-- Return typed current/prior values, denominators, coverage, total rows. Validate type/agency/sort/page inputs; stable profile-ID tie-breaker.
-- New raw metric family sign_in_profiles with type/population (all/active/returning/dormant). General roster includes zero activity; clicked card rows match its qualifying rule.
-- One row/person with applicable agency names. Filter by relationship existence, without duplicates. No active talent link = Independent. Disclose historical relationship gaps/current-state fallbacks.
-- Admin and existing MFA/account gates inside RPCs and server; grants, safe search paths, no anonymous access/unrestricted privileged helpers or managed-auth changes.
-- Conditional successful-code event in loved_one_share_access_events; reuse (share_id, created_at), add period/event index if justified. Never recast opened/view/download as sign-ins.
-- Guarded migrations follow existing history conventions; deployment/rollback SQL restores previous functions/removes new objects/indexes/guards, never erases collected events.
+Update entitlement atomically with idempotent login recording. Scheduled expiry locks/rechecks concurrent logins and requires proven capture coverage. Outages/failures hold loss for review; later login cannot reverse Lost. Verify every completion path before enabling loss.
 
-### First sign-in — section 7 answer
+### 4 — Investor evidence and exports
+Deliver every D.6 Business panel, always Real-only despite Accounts selection, explicitly stated. Board-ready PDF/monthly series/definitions/dictionary share a snapshot. Distinguish TalVault revenue from agency invoices; prices/commitments unknown means unavailable revenue. Paid plans start in 2027; no payments build. Earlier security history unavailable; uptime untracked, devices approximate.
 
-Invitation first sign-ins are **not recorded by the inspected paths**. Agency/Talent/Admin invitation screens call signInWithPassword without the recorder. enroll-2fa and verifySignInCode do not log it. Regular auth recording is best-effort and can silently miss failed writes.
+All 16 D.7 datasets, one row/record, including discount members/dated transitions. CSV/Excel/current filters or full history/all accounts subject to access; ZIP/dictionary/coverage manifest/download history. Every matching row, not just visible pages.
 
-Reuse a server-only recording helper, preserving new-device notifications. Await authenticated recording after password-only success on auth/invitations before navigation; acceptance/account creation alone never counts. When MFA applies, record server code-verification success, including enrolment, remove duplicate client writes and never bypass verification.
+Monthly email needs automated PDF generation. Built-in app emails cannot attach PDF/data: use protected links or approved external delivery.
 
-New rows use server-validated session identity/database uniqueness for retry safety: refresh/navigation/retries do not count; genuine completions, including reauthentication, do. Reject arbitrary self-written login rows bypassing checks; retain other audit-action permissions. Check errors, safe diagnostics, bounded idempotent retries without breaking sign-in. Store no passwords/codes/tokens. Do not backfill from acceptance/creation/activity; disclose gaps and query complete-path tracking date after deployment.
+### 5 — Controlled messaging
+All E templates/composer/merge fields, Service/Marketing, exclusions/counts, test-to-self, scheduling/send/history. Snapshot content/recipients, recheck consent/suppression/access at send. More than 25 eligible recipients need another authorised admin’s approval; edits invalidate approval; retry-safe sends.
 
-### Test scope
+Re-engagement/marketing cannot use Lovable’s built-in app-email service, even labelled Service. Dormant/come-back/promotional messages require a dedicated marketing service and opt-in evidence. Expected service-event mail retains app-email rules/unsubscribe footer. Provider events supply delivery/open status where supported; opens unreliable. Seven-day return is observed sign-in, not causal proof; contacts have visits.
 
-Reuse loadTestScope/buildTestScope, Real/Test/All, default Real; SQL/helper parity tests. Staff inherit agency is_test; talent uses profile flag; contacts inherit **sharing talent's** flag, not recipient identity.
+## Definitions and data model
+Implement G verbatim in one shared versioned source, v1.0, 24 Nov 2026, used by info buttons/dictionary/investor pack. Registered people base sign-in figures; Admin excluded → Staff → Talent. Contacts remain successful-code visits, privately deduplicated after sharing-talent scope. Staff inherit agency test flags. Paused/suspended included unless filtered.
 
-Recommend scoping share/events before email deduplication. Mixed-source recipients may appear once in Real and Test; All counts once, so sums may differ. None today. Global Test-wins is an alternative needing approval. Identical scope for current/prior cards, rows, filters and exports; never alter/deactivate/delete accounts.
+SAST/Monday–Sunday/period-end-or-now throughout. Missing capture cannot establish inactivity. Add registration/stage evidence without inventing historical events.
 
-### Server and UI
+Additive records: Reports grants/private views; fixed source/import proof; discount members/append-only changes; effective-dated prices/commitments; spend/channels; consent; messages/recipients/approvals/provider events; export jobs/history; security events/incidents.
 
-Extend admin-reporting.functions.ts, REPORTING_METRICS/getReportingRawRows with typed RPC results. Reuse period/prior pattern, SAST boundaries for these metrics only; unrelated figures unchanged.
+## Permissions and technical safeguards
+| Role | View | Raw download | Emails | Send | Approve >25 | Manage access |
+|---|---|---|---|---|---|---|
+| Owner | Yes | Yes | Yes | Yes | Yes | Yes |
+| Operations | Yes | Yes | No | Yes | Yes | No |
+| Analyst | Yes | Yes | No | No | No | No |
+| Viewer | Yes | No | No | No | No | No |
 
-**Sign-in activity** section, existing cards/tokens/components, grouped **Agency staff / Talent / Trusted contacts**:
-- Account cards: **Active users; Returning users; Total sign-ins; Average days active; Dormant users**, each with prior comparison.
-- Conditional contact cards: **Active recipients; Returning recipients; Total visits; Average days active; Dormant recipients**.
+Settings → Reports access, existing Admins only. Proposed Main administrator → Owner; explicitly assign others/protect last Owner/audit changes. Server/RPC/jobs/database enforcement closes broad Admin bypasses; assess other Admin-screen effects. Roles never on profiles.
 
-Extend raw drawer: server pagination, sorting, type/agency filters. Columns: **Name; Account type; Agency; Sign-ins in period; Days active; Average sign-ins per week; First sign-in; Last sign-in; Days since last sign-in**. Contacts use visit equivalents.
+Typed URL/filter contract; database aggregation/paging replaces unbounded reads. Reuse indexes/check query plans. Freeze cutoff/definitions/data snapshot; reconcile cards→People→raw rows→exports. Snapshot future membership/test/status changes; disclose older current-state attribution.
 
-Export all filtered profiles, not only visible page (current drawer exports loaded rows), using bounded pages, consistent cutoff/sort and CSV-safe cells; include snapshot/PDF figures.
+Email permission plus explicit tick; otherwise strip columns/embedded addresses before server responses. Messaging resolves addresses privately. No ID/DOB/tax, passwords/codes, storage paths/tokens or contents. Formula-safe CSV/Excel; bounded export jobs/private expiring downloads/permission rechecks. Log time/admin/dataset/filters/email yes-no/rows.
 
-Query-derived Tracking since/helper notes, never banners. Pre-tracking = unavailable, not zero; suppress misleading comparisons. Dormancy needs 30-day observation coverage. Counts/names/options/metadata from queries; shared wording/terminology, UK/SA spelling, existing date format, no unrelated redesign/header changes.
+Worker-compatible PDF/Excel/ZIP; guarded migrations/grants/RLS/project history copy/rollback preserving evidence. No two-step/security-header changes, never alter/delete Test accounts. Existing components/tokens/Lucide/accessibility; phone Filters (n), scrolling tabs/tables inside their box; one primary action/no banners/print tab order.
 
-### Tests and verification
+## Open questions and release gates
+1. North-star agency-login expansion/eligible links; health precedence/zero-talent agencies.
+2. Legacy registration evidence; qualifying upload ownership/versions/copies/deletion. Proposal: validated talent upload, not Admin proof/agency upload; onboarding stays reached. Retention day boundaries/contact cohorts?
+3. All-time comparison/month-end clamping/overlap, inapplicable filters/Business segmentation; People contributors plus raw evidence for non-person figures.
+4. Verified sheet/send times; agency-versus-person membership, loss deadline/grace/reinstatement keep-by. Paying-accounts zero means before paid launch, not forever.
+5. Prices/currency/VAT/commitment evidence; spend channels/CAC base, vault-depth/adoption definitions, incident policy/export-history retention.
+6. Initial access/custom grants/other Admin-screen effects/Viewer PDF allowance; marketing provider/consent/open tracking/schedule timing/monthly-email format.
 
-SAST midnight; same-day versus two-day returns; exact 30-day dormancy; never signed in/newly onboarded; empty/short-period averages; cutoff/future exclusion; zero activity; independent talent; Admin/multi-role and multi-agency deduplication; flags/mixed-source contacts; Real default; SQL/helper parity; card/row/export reconciliation.
-
-All completion paths, failed/incomplete auth, retry uniqueness, genuine completions, refresh exclusion, forged-login denial. RPC permissions/MFA, representative query plans, full tests/lint/strict typing/preview signals. Switch stays OFF; ON tests mocked/transactional. Existing Admin session for desktop/mobile/light/dark, drawer/export checks; no minted sessions or real-user Terms acceptance. Report blockers.
-
-## Long-term audit home — section 7 answer
-
-Keep physical storage; account-neutral reporting RPCs now, optional private read-only view later preserving permissions. No rename/drop here. Contacts retain share-access log: different identity/security model.
-
-## Approval questions / risks
-
-1. Separate contact visits rather than claimed account sign-ins? Question card supplied.
-2. Keep four unconfirmed profiles separate or include with disclosed onboarding proxy? Question card supplied. Never estimate first-sign-in dates.
-3. Approve type priority, period-end dormancy and paused/suspended inclusion?
-4. Approve mixed-source contact scope and recipients-given-access denominator?
-
-Missing earlier events, orphaned actor, changing memberships/test flags and email identity limit historical certainty. Preserve data and explain gaps rather than invent figures.
+Each phase includes raw evidence/tests/access checks/signed-in desktop/mobile/light/dark verification. Test every approved rule, SAST/month ends, four legacy profiles, coverage/retention, role/test/multi-agency scope, 48-hour eligibility, six-month/permanent loss, outages/races/retries, direct-access denial, suppression/second-admin approval and snapshot reconciliation. Full tests/lint/strict typing/build; authorised Test-account completion/download flows. Report unchecked flows/provider/performance blockers. Missing past history cannot be recovered.
