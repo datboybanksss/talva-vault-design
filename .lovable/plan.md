@@ -1,10 +1,10 @@
 # Admin Reports redesign
 
 ## What the admin gets
-One Reports area for investment reporting and daily follow-up, with shared filters, downloadable evidence and controlled access. Reuse the sign-in cards, drill-down, report-scope, period/prior, raw-drawer and print patterns. Plan only: no application code or data changed.
+One Reports area with shared filters, downloadable evidence and controlled access, reusing existing reporting patterns. Plan only: no application code or data changed.
 
 ## Confirmed findings
-- Reporting and Launch reports are sections of `/admin/reporting`; consolidate them and preserve existing links, including Terms reporting.
+- Reporting and Launch reports are sections of `/admin/reporting`; consolidate them and preserve existing links.
 - North star currently accepts talent sign-in OR vault action, but requires agency actions tied to that talent relationship. Staff sign-ins alone do not qualify: the requested both-sides interpretation needs approval.
 - Current retention accepts sign-in OR vault activity anywhere from joining to day 30/60/90. Replace with approved sign-in-only preceding 30-day windows, registered base and Not yet due.
 - No invitations created, first sent or last sent on 18 Nov 2026 were found. No sheet marker exists; sources are Admin or missing, and 32 older invitations lack first-send timestamps. Membership needs a verified sheet and original send evidence, not date guesses.
@@ -16,14 +16,14 @@ One Reports area for investment reporting and daily follow-up, with shared filte
 ### 1 — Foundation: useful reporting first
 Build the eight tabs in the exact A order, full B filter bar and all C section conventions. Keep filters in the URL/shared across tabs, default Real, private saved views, sticky summary and query-backed tracking date. Distinguish first observed login from complete capture.
 
-Introduce access/privacy enforcement and Definitions v1.0 before new downloads. Reuse sign-in reporting; replace activation/link-based reporting eligibility, not account status or onboarding screens. Include the four profiles normally; never invent dates.
+Apply access controls and revised reporting eligibility before downloads; account statuses/screens stay unchanged. Include all four legacy profiles; never invent dates.
 
 People gets all D.5 metrics/columns, filters/search, server paging/sort, column chooser, cross-page selection, CSV/Excel and timeline. Include zero activity; unregistered invitees are prospects, contacts have visit equivalents. Messaging activates in phase 5.
 
 Every figure opens contributing People, plus raw-record evidence where figures count money/documents/invitations/relationships rather than people. Small sample below five; arrow + words comparisons; missing history Not tracked/Not recorded, never zero. Monetary/event percentages need meaningful denominators.
 
 ### 2 — Core analytics
-Deliver all D.1–D.4 cards/charts/tables: Overview/Needs attention, Growth/source/funnel, Engagement/sign-ins/retention/vault/documents/contacts, Agencies/detail. Each gets calculation info and full raw CSV evidence.
+Deliver every D.1–D.4 card/chart/table with calculation info and raw CSV, including Needs attention and reusable agency detail.
 
 All four trend measure pairs/day-week-month grouping; incomplete current week lighter and labelled. Projection uses four complete weeks, unavailable without history. Funnel uses one invitation cohort/cutoff and all requested count/proportion/median/stopped-person measures. Drafts excluded, resends count once, connection requests separate. Metadata only, never contents. Resolve north-star/health choices before those figures ship.
 
@@ -41,7 +41,7 @@ Deliver every D.6 Business panel, always Real-only despite Accounts selection, e
 
 All 16 D.7 datasets, one row/record, including discount members/dated transitions. CSV/Excel/current filters or full history/all accounts subject to access; ZIP/dictionary/coverage manifest/download history. Every matching row, not just visible pages.
 
-Monthly email needs automated PDF generation, not browser print. Built-in app emails cannot attach PDF/data: protected expiring links or approved external delivery required.
+Monthly email needs automated PDF generation. Built-in app emails cannot attach PDF/data: use protected links or approved external delivery.
 
 ### 5 — Controlled messaging
 All E templates/composer/merge fields, Service/Marketing, exclusions/counts, test-to-self, scheduling/send/history. Snapshot content/recipients, recheck consent/suppression/access at send. More than 25 eligible recipients need another authorised admin’s approval; edits invalidate approval; retry-safe sends.
