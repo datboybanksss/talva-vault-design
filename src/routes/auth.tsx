@@ -31,18 +31,13 @@ import {
   type PendingInviteForMe,
 } from "@/lib/invite-claim.functions";
 
-import { logTalentSignIn } from "@/lib/talent-audit.functions";
+import { recordPasswordSignIn } from "@/lib/completed-sign-in";
 import {
   beginSignInChallenge,
   getMfaStatus,
   requestSignInCode,
   verifySignInCode,
 } from "@/lib/mfa.functions";
-
-/** Best-effort activity logging — never blocks or fails a sign-in. */
-function recordSignIn() {
-  void logTalentSignIn().catch(() => {});
-}
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -403,7 +398,7 @@ function AuthPage() {
     // While the database switch mfa_enforced is off, a correct password is
     // enough on its own.
     if (!(await isMfaEnforced())) {
-      recordSignIn();
+      await recordPasswordSignIn();
       await goNext(true);
       return;
     }
@@ -427,7 +422,7 @@ function AuthPage() {
       return;
     }
     setCodeStage(false);
-    recordSignIn();
+    await recordPasswordSignIn();
     await goNext(true);
   }, [nav, search.next, startCodeChallenge, goNext]);
 
@@ -527,7 +522,6 @@ function AuthPage() {
         setError(res.message);
         return;
       }
-      recordSignIn();
       setInfo("Verified — signing you in…");
       setCodeStage(false);
       setMfaCode("");

@@ -1,3 +1,4 @@
+import { recordPasswordSignIn } from "@/lib/completed-sign-in";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { friendlyError } from "@/lib/friendly-error";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -226,6 +227,7 @@ function Wizard({
         setError(friendlyAuthError(error));
         return;
       }
+      await recordPasswordSignIn();
       onDone();
     },
     onError: (e: Error) => setError(friendlyError(e, "Activation failed.")),

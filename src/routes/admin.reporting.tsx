@@ -1,3 +1,7 @@
+import { SignInActivity } from "@/components/admin/sign-in-activity";
+import { useSignInSummary } from "@/hooks/use-sign-in-summary";
+import { signInSnapshotRows } from "@/lib/sign-in-metering";
+import { csvCell } from "@/lib/report-download";
 import { ACCOUNT_STATUSES, accountStatusOptionLabel } from "@/lib/account-filters";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { SHARE_RECIPIENT_TERM } from "@/lib/terms";
@@ -170,6 +174,7 @@ function ReportingPage() {
       replace: true,
     });
 
+  const metering = useSignInSummary(range.from, range.to, accounts);
   const summaryFn = useServerFn(getReportingSummary);
   const q = useQuery({
     queryKey: ["admin", "reporting", range.from, range.to, accounts],
@@ -197,6 +202,9 @@ function ReportingPage() {
       ["Generated", new Date(d.generatedAt).toLocaleString("en-ZA")],
       [],
       ["Metric", "Value", "Context"],
+      ...(metering.data
+        ? signInSnapshotRows(metering.data, range.from, range.to)
+        : [["Sign-in activity", "Unavailable", "Sign-in activity could not be calculated."]]),
       [
         "Two-sided engagement (north star)",
         `${d.northStar.pct}%`,
@@ -257,16 +265,7 @@ function ReportingPage() {
         c.d90.mature ? `${Math.round((c.d90.active / c.d90.mature) * 100)}%` : "Not yet due",
       ]),
     ];
-    const csv = rows
-      .map((r) =>
-        r
-          .map((c) => {
-            const s = c == null ? "" : String(c);
-            return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-          })
-          .join(","),
-      )
-      .join("\n");
+    const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
@@ -293,7 +292,15 @@ function ReportingPage() {
           </button>
           <button
             className="tvp-secondary"
-            onClick={() => d && printHtmlDocument(buildAdminReportingHtml(d))}
+            onClick={() =>
+              d &&
+              printHtmlDocument(
+                buildAdminReportingHtml({
+                  ...d,
+                  ...(metering.data ? { signIn: metering.data } : {}),
+                }),
+              )
+            }
             disabled={!d}
           >
             <FileDown className="h-4 w-4" /> Print / Save PDF
@@ -355,6 +362,16 @@ function ReportingPage() {
           </span>
         </div>
       </div>
+
+      <SignInActivity
+        from={range.from}
+        to={range.to}
+        accounts={accounts}
+        summary={metering.data}
+        isPending={metering.isPending}
+        isError={metering.isError}
+        retry={() => void metering.refetch()}
+      />
 
       {q.isError && (
         <div className="tvp-card" style={{ padding: 20 }}>

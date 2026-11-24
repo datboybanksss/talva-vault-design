@@ -1,3 +1,6 @@
+import { privateReportCsv, allReportRows } from "@/lib/report-download";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -6,11 +9,6 @@ import { ACCOUNT_SCOPE_REPORT_LABEL } from "@/lib/report-scope";
 import { getReportingRawRows, type ReportingMetric } from "@/lib/admin-reporting.functions";
 
 const PAGE = 25;
-
-function csvCell(v: unknown) {
-  const s = v == null ? "" : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 function download(name: string, content: string, type = "text/csv;charset=utf-8") {
   const url = URL.createObjectURL(new Blob([content], { type }));
@@ -42,6 +40,7 @@ export function ReportingRawDrawer({
   onClose: () => void;
 }) {
   const [offset, setOffset] = useState(0);
+  const [exporting, setExporting] = useState(false);
   const rawFn = useServerFn(getReportingRawRows);
 
   const q = useQuery({
@@ -59,13 +58,22 @@ export function ReportingRawDrawer({
   const total = data?.total ?? 0;
   const shown = data?.rows.length ?? 0;
 
-  function exportCsv() {
+  async function exportCsv() {
     if (!data) return;
-    const lines = [
-      data.columns.map(csvCell).join(","),
-      ...data.rows.map((r) => r.map(csvCell).join(",")),
-    ];
-    download(`talvault-${metric}-${accounts}-${from}-to-${to}.csv`, lines.join("\n"));
+    setExporting(true);
+    try {
+      const rows = await allReportRows<unknown[]>((next) =>
+        rawFn({ data: { metric, from, to, accounts, limit: 200, offset: next } }),
+      );
+      download(
+        `talvault-${metric}-${accounts}-${from}-to-${to}.csv`,
+        privateReportCsv(data.columns, rows),
+      );
+    } catch (e) {
+      toast.error(friendlyError(e, "This report could not be downloaded. Please try again."));
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -94,7 +102,11 @@ export function ReportingRawDrawer({
         <div className="flex justify-between items-center" style={{ marginBottom: 4 }}>
           <h2 className="tvp-h2">{title}</h2>
           <div className="flex gap-2">
-            <button className="tvp-secondary" onClick={exportCsv} disabled={!data || shown === 0}>
+            <button
+              className="tvp-secondary"
+              onClick={exportCsv}
+              disabled={!data || shown === 0 || exporting}
+            >
               <Download className="h-4 w-4" /> Export CSV
             </button>
             <button className="tvp-mini-btn" title="Close" onClick={onClose}>

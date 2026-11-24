@@ -1,3 +1,4 @@
+import { recordPasswordSignIn } from "@/lib/completed-sign-in";
 import { SHARE_TERM_CAPITALISED, SHARE_RECIPIENT_TERM_CAPITALISED } from "@/lib/terms";
 import { getRegistrationCopy, type RegistrationCopy } from "@/lib/registration-copy.functions";
 import { friendlyError } from "@/lib/friendly-error";
@@ -271,6 +272,7 @@ function Wizard({
         setError(friendlyAuthError(error));
         return;
       }
+      await recordPasswordSignIn();
       setStep(5);
     },
     onError: (e: Error) => setError(friendlyError(e, "Activation failed.")),

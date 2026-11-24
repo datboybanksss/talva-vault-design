@@ -2699,6 +2699,7 @@ export type Database = {
           detail: Json
           id: string
           ip_address: string | null
+          sign_in_session_id: string | null
           target_id: string | null
           target_label: string | null
           target_type: string | null
@@ -2712,6 +2713,7 @@ export type Database = {
           detail?: Json
           id?: string
           ip_address?: string | null
+          sign_in_session_id?: string | null
           target_id?: string | null
           target_label?: string | null
           target_type?: string | null
@@ -2725,6 +2727,7 @@ export type Database = {
           detail?: Json
           id?: string
           ip_address?: string | null
+          sign_in_session_id?: string | null
           target_id?: string | null
           target_label?: string | null
           target_type?: string | null
@@ -3674,6 +3677,54 @@ export type Database = {
       }
       account_paused: { Args: { _user_id: string }; Returns: boolean }
       account_read_allowed: { Args: { _user_id: string }; Returns: boolean }
+      admin_sign_in_page: {
+        Args: {
+          _accounts?: string
+          _agency?: string
+          _as_of?: string
+          _direction?: string
+          _from: string
+          _limit?: number
+          _offset?: number
+          _population?: string
+          _sort?: string
+          _to: string
+          _type?: string
+        }
+        Returns: Json
+      }
+      admin_sign_in_people: {
+        Args: {
+          _accounts?: string
+          _as_of?: string
+          _from: string
+          _to: string
+        }
+        Returns: {
+          account_type: string
+          active_days: number
+          agency_ids: string[]
+          agency_names: string[]
+          average_per_week: number
+          days_since_last: number
+          dormant: boolean
+          first_sign_in: string
+          last_sign_in: string
+          name: string
+          onboarded_at: string
+          person_id: string
+          sign_ins: number
+        }[]
+      }
+      admin_sign_in_summary: {
+        Args: {
+          _accounts?: string
+          _as_of?: string
+          _from: string
+          _to: string
+        }
+        Returns: Json
+      }
       agency_is_writable: { Args: { _agency_id: string }; Returns: boolean }
       agency_read_only_until: { Args: { _agency_id: string }; Returns: string }
       agency_staff_can_read: { Args: { _agency_id: string }; Returns: boolean }
@@ -3878,6 +3929,15 @@ export type Database = {
         Args: { _new_talent_type: string; _talent_link_id: string }
         Returns: number
       }
+      record_completed_sign_in: {
+        Args: {
+          _device?: string
+          _ip?: string
+          _new_device?: boolean
+          _user_agent?: string
+        }
+        Returns: boolean
+      }
       reopen_talent_invite_private: {
         Args: { _invitation_id: string }
         Returns: string
@@ -3933,6 +3993,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      sign_in_capture_started_at: { Args: never; Returns: string }
       soft_delete_agency_document: {
         Args: { _doc_id: string }
         Returns: string

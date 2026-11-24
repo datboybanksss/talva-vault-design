@@ -1,3 +1,4 @@
+import { databaseError } from "./security-errors";
 import { maskEmail } from "@/lib/mfa-copy";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -288,13 +289,14 @@ export const verifySignInCode = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     await supabaseAdmin.from("mfa_codes").update({ consumed_at: now }).eq("id", row.id);
 
-    await supabaseAdmin
+    const { error: verificationError } = await supabaseAdmin
       .from("mfa_verified_sessions")
       .upsert(
         { user_id: userId, session_id: sessionId, verified_at: now },
         { onConflict: "user_id,session_id" },
       );
 
+    if (verificationError) throw databaseError(verificationError);
     await supabaseAdmin.from("mfa_settings").upsert(
       {
         user_id: userId,
@@ -305,6 +307,10 @@ export const verifySignInCode = createServerFn({ method: "POST" })
       { onConflict: "user_id" },
     );
 
+    const { recordCompletedSignIn } = await import("@/lib/completed-sign-in.server");
+    await recordCompletedSignIn(context.supabase, userId).catch(() => {
+      console.error("[sign-in metering] recording unavailable after retry");
+    });
     return { ok: true, message: "Verified." };
   });
 

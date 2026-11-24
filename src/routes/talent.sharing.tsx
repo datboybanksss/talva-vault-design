@@ -888,6 +888,7 @@ function NewShareModal({
 }
 
 const ACCESS_EVENT_LABEL: Record<string, string> = {
+  successful_code: "Entered the access code",
   opened: "Opened the share",
   view: "Viewed a document",
   download: "Downloaded a document",
@@ -908,7 +909,8 @@ function ShareAccessHistoryModal({ share, onClose }: { share: MyShare; onClose: 
         Access history — {share.loved_one_name ?? share.loved_one_email}
       </h2>
       <p className="tvp-muted" style={{ marginTop: 6, fontSize: 13 }}>
-        Every time this person opened the share, or viewed or downloaded one of your documents.
+        Every time this person entered the access code, opened the share, or viewed or downloaded
+        one of your documents.
       </p>
 
       <div style={{ marginTop: 16, maxHeight: 340, overflowY: "auto" }}>

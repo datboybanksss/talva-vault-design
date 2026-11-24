@@ -1,3 +1,4 @@
+import { signInSnapshotRows, signInContext, type SignInSummary } from "./sign-in-metering";
 // Printable HTML documents for the Admin portal, sharing the same visual
 // language as the Agency financial report. Print-based only — no PDF library.
 
@@ -27,6 +28,7 @@ function card(value: string, label: string) {
 
 /** The reporting snapshot shape the Admin Reporting print view consumes. */
 export type AdminReportingPrintData = {
+  signIn?: SignInSummary;
   accounts: AccountScope;
   period: { from: string; to: string };
   prior: { from: string; to: string };
@@ -93,6 +95,8 @@ export function buildAdminReportingHtml(d: AdminReportingPrintData) {
 <h1>TalVault Platform Report</h1>
 <div class="meta">Accounts: ${esc(ACCOUNT_SCOPE_REPORT_LABEL[d.accounts])} · Period: ${esc(dayMonthYear(d.period.from))} – ${esc(dayMonthYear(d.period.to))} · Prior period: ${esc(dayMonthYear(d.prior.from))} – ${esc(dayMonthYear(d.prior.to))} · Generated ${esc(new Date(d.generatedAt).toLocaleString("en-ZA"))}</div>
 
+<h2>Sign-in activity</h2>
+${d.signIn ? `<p class="meta">${esc(signInContext(d.signIn, d.accounts, d.period.from, d.period.to))}</p>${metricRows(signInSnapshotRows(d.signIn, d.period.from, d.period.to).map(([label, value, context]) => [String(label), String(value), String(context)]))}` : "<p>Sign-in activity could not be calculated.</p>"}
 <h2>North star</h2>
 <div class="cards">
   ${card(`${d.northStar.pct}%`, `Two-sided engagement · ${d.northStar.active} of ${d.northStar.total} live agency–talent relationships`)}

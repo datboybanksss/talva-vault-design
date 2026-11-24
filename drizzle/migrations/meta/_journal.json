@@ -176,6 +176,13 @@
       "when": 1793645230517,
       "tag": "0024_flag_test_accounts_on_invite_accept",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795548065575,
+      "tag": "0025_sign_in_metering",
+      "breakpoints": true
     }
   ]
 }

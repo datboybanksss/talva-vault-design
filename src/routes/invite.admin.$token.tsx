@@ -1,3 +1,4 @@
+import { recordPasswordSignIn } from "@/lib/completed-sign-in";
 import { TalVaultIcon, TalVaultWordmark } from "@/components/brand/talvault-logo";
 import { friendlyError } from "@/lib/friendly-error";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -211,6 +212,7 @@ function Wizard({
         setError(friendlyAuthError(error));
         return;
       }
+      await recordPasswordSignIn();
       // The /admin route's own beforeLoad enforcement redirects to
       // /admin/enroll-2fa on first sign-in, so no 2FA step belongs here.
       onDone();

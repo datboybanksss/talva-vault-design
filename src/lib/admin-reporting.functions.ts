@@ -1,3 +1,5 @@
+import { loadSignInPage } from "./sign-in-metering.functions";
+import { signInColumns, signInCells } from "./sign-in-metering";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
@@ -677,6 +679,7 @@ async function accountsByStatus(admin: SupabaseClient<Database>, scope: AccountS
 // -----------------------------------------------------------------------------
 
 export const REPORTING_METRICS = [
+  "sign_in_profiles",
   "agencies_added",
   "agency_invitations",
   "talent_invitations",
@@ -719,6 +722,10 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
+    if (data.metric === "sign_in_profiles") {
+      const page = await loadSignInPage(supabase, data);
+      return { total: page.total, columns: signInColumns("all"), rows: page.rows.map(signInCells) };
+    }
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
     const period = toPeriod(data.from, data.to);

@@ -1,3 +1,4 @@
+import { privateReportCsv } from "@/lib/report-download";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { matchesSearch } from "@/lib/search";
 import { proofDocumentId } from "@/lib/proof-display";
@@ -15,7 +16,6 @@ import {
 import {
   FUNNEL_BUCKETS,
   LAUNCH_SETTING_KEYS,
-  toCsv,
   type LaunchSettings,
 } from "@/lib/launch-reporting-core";
 import { statusLabel, statusPillClass } from "@/lib/status-labels";
@@ -53,7 +53,15 @@ const fmtDate = (iso: string | null | undefined) =>
     : "—";
 
 function download(name: string, rows: (string | number | null | undefined)[][]) {
-  const blob = new Blob([toCsv(rows)], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(
+    [
+      privateReportCsv(
+        (rows[0] ?? []).map((c) => String(c ?? "")),
+        rows.slice(1),
+      ),
+    ],
+    { type: "text/csv;charset=utf-8" },
+  );
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = name;

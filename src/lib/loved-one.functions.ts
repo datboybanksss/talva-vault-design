@@ -1,3 +1,4 @@
+import { getRequest } from "@tanstack/react-start/server";
 import { databaseError } from "./security-errors";
 import { createServerFn } from "@tanstack/react-start";
 import "@/integrations/supabase/auth-middleware";
@@ -58,7 +59,7 @@ export const listMyLovedOneShares = createServerFn({ method: "GET" })
  */
 async function logShareAccess(
   shareId: string,
-  event: "opened" | "view" | "download",
+  event: "opened" | "view" | "download" | "successful_code",
   extra: { documentId?: string | null; documentName?: string | null } = {},
 ) {
   try {
@@ -68,6 +69,8 @@ async function logShareAccess(
       event,
       document_id: extra.documentId ?? null,
       document_name: extra.documentName ?? null,
+      ip: getRequest().headers.get("cf-connecting-ip") || getRequest().headers.get("x-real-ip"),
+      user_agent: getRequest().headers.get("user-agent"),
     });
     if (error) console.error("[share access log] insert failed", error.code ?? "");
   } catch (e) {
@@ -516,6 +519,7 @@ export const unlockLovedOneShare = createServerFn({ method: "POST" })
     }
 
     await supabaseAdmin.from("loved_one_shares").update({ failed_attempts: 0 }).eq("id", share.id);
+    await logShareAccess(share.id, "successful_code");
     return { ok: true as const, ticket: issueTicket(share.id) };
   });
 
