@@ -1,60 +1,91 @@
-# Sign-in metering in Admin → Reporting (plan only)
+# Sign-in metering in Admin → Reporting
 
-## Findings that change the requirement (please read first)
+Plan only; no code, accounts, database or security settings change before approval.
 
-1. **Trusted contacts have no accounts and never "sign in".** A trusted contact opens a share link and enters an access code; no login row is written for them, and no trusted-contact user exists in the sign-in system. Their equivalent is "opened a shared link with the right code", recorded per share in `loved_one_share_access_events`. The plan measures trusted contacts from those events, identified by lower-cased email (the same rule the Talent dashboard uses), and labels the cards "Visits" rather than "Sign-ins".
-2. **Account type is not stored on the user.** The roles table holds only the 5 admins; nobody holds two roles today. Account type is resolved by:
-   - Admin: has the admin role → excluded.
-   - Agency staff: has an `agency_members` row (owner or member). Agency = that agency; test = agency `is_test`.
-   - Talent: has a `talent_profiles` row. Agency = the active agency link(s), otherwise "Independent"; test = existing talent test flag.
-   - Precedence if someone ever matches more than one: admin > agency staff > talent. The sign-in counts under that single type, so it's never counted twice. (Open question 1.)
-3. **"Password + emailed code" isn't what's happening right now.** Two-step sign-in is switched off at the moment, so today a "login" row means a correct password. The count stays honest either way. The definition note will say "completed sign-in", not "password and code".
-4. **Data so far:** 138 login rows from 15 people, tracked since 14 Sep 2026.
+## Verified findings
 
-## Section 7 answers
+- **138 login rows / 15 actors**: Agency staff **29/6**, Talent **62/5**, Admin **46/3**, unresolved **1/1**. The unresolved actor has no remaining account/profile/membership/role: retain history, exclude from typed figures with a helper note.
+- First observed login: **14 Sep 2026** overall/staff, **15 Sep 2026** talent. These are observed events, not proof of complete capture; displayed tracking dates come from queries.
+- **11 agency members; 13 talent profiles**. Nine profiles have activation completion timestamps; four lack them (three Real, one Test). Existing onboarded-talent reporting is agency-link-based and excludes independent talent, so cannot supply this denominator unchanged.
+- Only Admin rows currently exist in user_roles (five); no loved_one roles, agency/talent overlap or multi-agency staff membership.
+- Contacts access public share links with codes, without recipient actor_id. Recipient emails can separately hold accounts (two Admin, one Talent today). **Six shares / three recipient emails / zero access events**. Code acceptance is not logged; list reads log opened and file-link requests can log view/download. These are not account sign-ins.
+- MFA is currently OFF: password-only completion counts. Keep the switch and all security requirements unchanged.
 
-**First sign-in after accepting an invitation is NOT recorded.** Accepting an agency, talent or admin invitation signs the person in directly and never calls the sign-in log. The first-time 2FA set-up path (`/enroll-2fa`) also skips it. On top of that, today's log is a client call that runs in the background, so a dropped request is lost without anyone knowing.
-Proposed fix:
-- Record the "login" row on the server, inside the functions that finish a sign-in: password-only success, code verified, 2FA set-up finished, and invitation accepted plus signed in. Add `detail.method` ('password', 'code', 'invite', 'enrol').
-- Keep it idempotent per session: at most one row per JWT `session_id`, so a retry or double fire can't inflate counts.
-- Earlier invitation first sign-ins can't be rebuilt from the log. As a proxy, the drill-down "First sign-in" column uses the earlier of the first login or the invitation's accepted time, labelled in the helper text.
+## Identity and calculations
 
-**Is `talent_audit_log` the right home?** Not long term, because the name misleads. Recommendation: keep the table and all history exactly as they are, and add a read-only view `sign_in_events` over `talent_audit_log WHERE action='login'` (admin-only access). Reporting reads only from the view. A future move to a general `account_audit_log` would then only change the view. No rename now, because renaming is a breaking change for the live app.
+Resolve actor_id through profiles, Admin roles, agency_members and talent_profiles. Recommend **exclude Admin → Agency staff → Talent**, one type per profile, matching portal priority without double counting. Preserve unresolved history.
 
-## What gets built
+Roster: registered staff (owners included) with recorded invitation/onboarding evidence; completed talent, both independent and linked, once per user. Use recorded completion dates. Keep four older unconfirmed profiles separate pending approval.
 
-### Database (one guarded migration with rollback notes)
-- An index on `talent_audit_log (action, created_at)`. `(actor_id, created_at)` already exists twice. Drop the duplicate in a later approved change, not here.
-- An index on `loved_one_share_access_events (created_at)`, plus a share-id index if one is missing.
-- The view `sign_in_events`.
-- Function `report_sign_in_summary(start, end, prior_start, prior_end, scope)`, admin-only and security definer. For each account type it returns: onboarded total, active users, returning users (2+ distinct days), total sign-ins, average days active per active user, and dormant users (no sign-in for 30+ days up to the period end, including never signed in), each for both the period and the prior period. Days are counted in `Africa/Johannesburg` time.
-- Function `report_sign_in_rows(start, end, scope, type, agency, sort, dir, limit, offset)` returns one row per onboarded profile via a LEFT JOIN, so zero-activity users appear. Columns: name, account type, agency or Independent, sign-ins, days active, average per week (sign-ins ÷ period weeks, minimum 1), first, last, days since last. It also returns a total count for paging.
-- "Onboarded" means: agency staff with an `agency_members` row; talent with a `talent_profiles` row (activated); trusted contacts with a distinct email on at least one share created on or before the period end.
+Recommend contacts as separate **visits**: successful access-code entries, deduplicated people by lower-cased/trimmed email. Denominator = recipients sent code-protected access by cutoff, including never visited, labelled **recipients given access**, not onboarded accounts. Never fabricate accounts or login rows. This measures designated recipients, not independently verified humans.
 
-### Test scope (`src/lib/report-scope.ts`)
-- Add trusted contacts: test when the sharing talent is test. Agency staff: test when the agency is test (already the rule; reused).
-- Real is the default. This is reporting only: no account is changed, deactivated or deleted.
-- The SQL functions take the same scope value, so cards and drill-down always agree.
+| Metric | Definition |
+| --- | --- |
+| Active users | At least one period login / total onboarded by cutoff, with %. |
+| Returning users | Logins on **2+ distinct South African days** in period. |
+| Total sign-ins | Eligible login rows; same-day completions count here. |
+| Average days active | Sum distinct active days per person / active people; primary frequency metric. |
+| Dormant users | No login for **30+ days** at cutoff; never signed in qualifies after 30 days onboarded. |
+| Average sign-ins per week | Period sign-ins × 7 / selected calendar days; no minimum week. |
 
-### Server (`src/lib/admin-reporting.functions.ts`)
-- `getSignInMetrics` calls the summary function and reuses the period, prior-period and trackingSince helpers. trackingSince = the first login, or the first share-access event for trusted contacts.
-- Add `sign_ins_agency`, `sign_ins_talent`, `sign_ins_trusted` to `REPORTING_METRICS`. `getReportingRawRows` delegates them to the rows function with server-side sort, filter and paging. CSV export reuses the existing export path.
+Use Africa/Johannesburg midnight boundaries (inclusive start/exclusive next-day end), immediately preceding equal-length period and each period's roster cutoff. Recommend cutoff = period end, or today if ongoing. First/last/days-since use recorded history up to cutoff; missing history shows Not recorded. Include paused/suspended onboarded users, exclude soft-deleted profiles. Contact calculations use visit equivalents.
 
-### UI (Admin → Reporting)
-- A new "Sign-ins and return visits" section using the existing card component. There are three groups: Agency staff, Talent and Trusted contacts. Each group has these cards: Active users (n of total, %), Returning users, Total sign-ins (Visits for trusted contacts), Average days active, and Dormant users. Each card shows the prior-period change the same way existing cards do.
-- Helper notes in the existing note style: "Tracking since 14 Sep 2026", "Days are counted in South African time", and how first sign-ins before the fix are estimated. No banners.
-- The drill-down opens from each card in the existing drawer. It has sortable columns, an account type and agency filter, export, and paging. Mobile, desktop and dark mode will be checked as an Admin test account.
+## Implementation
 
-### Tests
-- Account-type precedence, SAST day boundary (23:30 UTC = next day), returning = 2+ distinct days, dormant at 30 days, zero-activity users present, trusted-contact test inheritance, admins excluded, idempotent per-session login.
+### Database and history
 
-## Risks
-- Counts before the fix under-report first sign-ins, which is why the note and the proxy are needed.
-- The 10-minute idle logout inflates raw sign-ins. Days active is the headline measure.
-- Trusted contacts are identified by email: one person with two emails counts twice.
+- Preserve talent_audit_log. Add missing **(action, created_at)** index. Two equivalent **(actor_id, created_at)** indexes exist: reuse, without adding/removing duplicates here.
+- SQL/RPC summaries and profile pages: aggregate/filter/sort/count/page in database, never fetch every audit event into server functions. LEFT JOIN roster so zero activity remains visible.
+- Return typed current/prior values, denominators, coverage, total rows. Validate type/agency/sort/page inputs; stable profile-ID tie-breaker.
+- New raw metric family sign_in_profiles with type/population (all/active/returning/dormant). General roster includes zero activity; clicked card rows match its qualifying rule.
+- One row/person with applicable agency names. Filter by relationship existence, without duplicates. No active talent link = Independent. Disclose historical relationship gaps/current-state fallbacks.
+- Admin and existing MFA/account gates inside RPCs and server; grants, safe search paths, no anonymous access/unrestricted privileged helpers or managed-auth changes.
+- Conditional successful-code event in loved_one_share_access_events; reuse (share_id, created_at), add period/event index if justified. Never recast opened/view/download as sign-ins.
+- Guarded migrations follow existing history conventions; deployment/rollback SQL restores previous functions/removes new objects/indexes/guards, never erases collected events.
 
-## Open questions
-1. Is the precedence admin > agency staff > talent acceptable if someone ever holds two account types?
-2. Should trusted-contact "Visits" count each code entry, or only visits where a document was actually opened?
-3. Dormant: should it include onboarded users who have never signed in? (The plan says yes.) Is 30 days measured to the period end, or to today?
-4. For talent linked to more than one agency, should the Agency column list all of them, or the most recent?
+### First sign-in — section 7 answer
+
+Invitation first sign-ins are **not recorded by the inspected paths**. Agency/Talent/Admin invitation screens call signInWithPassword without the recorder. enroll-2fa and verifySignInCode do not log it. Regular auth recording is best-effort and can silently miss failed writes.
+
+Reuse a server-only recording helper, preserving new-device notifications. Await authenticated recording after password-only success on auth/invitations before navigation; acceptance/account creation alone never counts. When MFA applies, record server code-verification success, including enrolment, remove duplicate client writes and never bypass verification.
+
+New rows use server-validated session identity/database uniqueness for retry safety: refresh/navigation/retries do not count; genuine completions, including reauthentication, do. Reject arbitrary self-written login rows bypassing checks; retain other audit-action permissions. Check errors, safe diagnostics, bounded idempotent retries without breaking sign-in. Store no passwords/codes/tokens. Do not backfill from acceptance/creation/activity; disclose gaps and query complete-path tracking date after deployment.
+
+### Test scope
+
+Reuse loadTestScope/buildTestScope, Real/Test/All, default Real; SQL/helper parity tests. Staff inherit agency is_test; talent uses profile flag; contacts inherit **sharing talent's** flag, not recipient identity.
+
+Recommend scoping share/events before email deduplication. Mixed-source recipients may appear once in Real and Test; All counts once, so sums may differ. None today. Global Test-wins is an alternative needing approval. Identical scope for current/prior cards, rows, filters and exports; never alter/deactivate/delete accounts.
+
+### Server and UI
+
+Extend admin-reporting.functions.ts, REPORTING_METRICS/getReportingRawRows with typed RPC results. Reuse period/prior pattern, SAST boundaries for these metrics only; unrelated figures unchanged.
+
+**Sign-in activity** section, existing cards/tokens/components, grouped **Agency staff / Talent / Trusted contacts**:
+- Account cards: **Active users; Returning users; Total sign-ins; Average days active; Dormant users**, each with prior comparison.
+- Conditional contact cards: **Active recipients; Returning recipients; Total visits; Average days active; Dormant recipients**.
+
+Extend raw drawer: server pagination, sorting, type/agency filters. Columns: **Name; Account type; Agency; Sign-ins in period; Days active; Average sign-ins per week; First sign-in; Last sign-in; Days since last sign-in**. Contacts use visit equivalents.
+
+Export all filtered profiles, not only visible page (current drawer exports loaded rows), using bounded pages, consistent cutoff/sort and CSV-safe cells; include snapshot/PDF figures.
+
+Query-derived Tracking since/helper notes, never banners. Pre-tracking = unavailable, not zero; suppress misleading comparisons. Dormancy needs 30-day observation coverage. Counts/names/options/metadata from queries; shared wording/terminology, UK/SA spelling, existing date format, no unrelated redesign/header changes.
+
+### Tests and verification
+
+SAST midnight; same-day versus two-day returns; exact 30-day dormancy; never signed in/newly onboarded; empty/short-period averages; cutoff/future exclusion; zero activity; independent talent; Admin/multi-role and multi-agency deduplication; flags/mixed-source contacts; Real default; SQL/helper parity; card/row/export reconciliation.
+
+All completion paths, failed/incomplete auth, retry uniqueness, genuine completions, refresh exclusion, forged-login denial. RPC permissions/MFA, representative query plans, full tests/lint/strict typing/preview signals. Switch stays OFF; ON tests mocked/transactional. Existing Admin session for desktop/mobile/light/dark, drawer/export checks; no minted sessions or real-user Terms acceptance. Report blockers.
+
+## Long-term audit home — section 7 answer
+
+Keep physical storage; account-neutral reporting RPCs now, optional private read-only view later preserving permissions. No rename/drop here. Contacts retain share-access log: different identity/security model.
+
+## Approval questions / risks
+
+1. Separate contact visits rather than claimed account sign-ins? Question card supplied.
+2. Keep four unconfirmed profiles separate or include with disclosed onboarding proxy? Question card supplied. Never estimate first-sign-in dates.
+3. Approve type priority, period-end dormancy and paused/suspended inclusion?
+4. Approve mixed-source contact scope and recipients-given-access denominator?
+
+Missing earlier events, orphaned actor, changing memberships/test flags and email identity limit historical certainty. Preserve data and explain gaps rather than invent figures.
