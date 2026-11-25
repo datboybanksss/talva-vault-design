@@ -3,6 +3,7 @@ import { signInColumns, signInCells } from "./sign-in-metering";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
+import { assertAdminOperationalAccess, assertReportPermission } from "./reports-access";
 import {
   accountStatusCounts,
   agencyAccountStatus,
@@ -39,6 +40,7 @@ const TALENT_VAULT_ACTIONS = [
 // -----------------------------------------------------------------------------
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
+  await assertReportPermission(supabase, "view_reports");
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
@@ -722,6 +724,7 @@ export const getReportingRawRows = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
+    await assertAdminOperationalAccess(supabase);
     if (data.metric === "sign_in_profiles") {
       const page = await loadSignInPage(supabase, data);
       return { total: page.total, columns: signInColumns("all"), rows: page.rows.map(signInCells) };

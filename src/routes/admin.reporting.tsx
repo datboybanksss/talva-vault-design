@@ -1,635 +1,371 @@
-import { SignInActivity } from "@/components/admin/sign-in-activity";
-import { useSignInSummary } from "@/hooks/use-sign-in-summary";
-import { signInSnapshotRows } from "@/lib/sign-in-metering";
-import { csvCell } from "@/lib/report-download";
-import { ACCOUNT_STATUSES, accountStatusOptionLabel } from "@/lib/account-filters";
-import { FilterBar } from "@/components/shared/filter-bar";
-import { SHARE_RECIPIENT_TERM } from "@/lib/terms";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-  ACCOUNT_SCOPE_REPORT_LABEL,
-  funnelHeadline,
-  medianText,
-  talentFunnelSplit,
-  type AccountScope,
-} from "@/lib/report-scope";
-import { useMemo, useState } from "react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, FileDown, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
-import { printHtmlDocument } from "@/lib/billing-reports";
-import { buildAdminReportingHtml } from "@/lib/admin-print";
-import { getReportingSummary } from "@/lib/admin-reporting.functions";
-import type { ReportingMetric } from "@/lib/admin-reporting.functions";
+import { useState } from "react";
+import { Download, Printer, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ReportsFilterBar } from "@/components/admin/reports-filter-bar";
+import { ReportsPeople } from "@/components/admin/reports-people";
+import { SignInActivity } from "@/components/admin/sign-in-activity";
+import { ReportDefinition } from "@/components/admin/report-definition";
 import { LaunchReports } from "@/components/admin/launch-reports";
-import { ReportingRawDrawer } from "@/components/admin/reporting-raw-drawer";
-
-const LR_TYPES = ["agency", "talent"] as const;
-const LR_TALENT = ["agency_linked", "independent"] as const;
-const LR_ACCOUNTS = ["test", "all"] as const;
-
+import {
+  REPORT_TABS,
+  REPORT_TAB_LABELS,
+  ReportFilters,
+  reportDefaults,
+  reportPeriod,
+  roleCan,
+  type ReportsFilters,
+} from "@/lib/reports-contract";
+import {
+  getReportsOptions,
+  getReportsSummary,
+  getReportsNorthStar,
+  exportReportsPeople,
+} from "@/lib/reports.functions";
+import {
+  REPORTS_DEFINITIONS,
+  REPORTS_DEFINITIONS_DATE,
+  REPORTS_DEFINITIONS_VERSION,
+} from "@/lib/reports-definitions";
+import { fmtDate, fmtDateTime } from "@/lib/display-dates";
+import { peopleCsv } from "@/lib/reports-download";
+import { downloadCsv } from "@/lib/billing-reports";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
+const text = (value: string) => fallback(z.string(), value).default(value);
+const searchSchema = z.object({
+  tab: text("overview"),
+  preset: text("30d"),
+  compare: text("previous"),
+  accounts: text("real"),
+  account_type: text("all"),
+  agencies: fallback(z.array(z.string()), []).default([]),
+  people: fallback(z.array(z.string()), []).default([]),
+  talent: text("all"),
+  source: text("all"),
+  joined: text(""),
+  status: text("any"),
+  from: text(""),
+  to: text(""),
+  search: text(""),
+  stage: text("all"),
+  activity: text("all"),
+  type: text(""),
+});
 export const Route = createFileRoute("/admin/reporting")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    type: LR_TYPES.find((t) => t === s.type),
-    talent: LR_TALENT.find((t) => t === s.talent),
-    // Real accounts only unless the address says otherwise.
-    accounts: LR_ACCOUNTS.find((t) => t === s.accounts),
-  }),
+  validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
-      { title: "Reporting · TalVault Admin" },
+      { title: "Reports · TalVault Admin" },
       {
         name: "description",
         content:
-          "Platform growth, engagement, financial and retention metrics for any date range, with raw data drill-down.",
+          "Permission-controlled TalVault Reports with shared filters, sign-in activity and downloadable People evidence.",
       },
-      { property: "og:title", content: "Reporting · TalVault Admin" },
+      { property: "og:title", content: "Reports · TalVault Admin" },
       {
         property: "og:description",
-        content:
-          "Growth, engagement, financial and retention metrics across the TalVault platform.",
+        content: "TalVault registration, sign-in activity and private reporting evidence.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: ReportingPage,
+  component: ReportsPage,
 });
-
-// -----------------------------------------------------------------------------
-// Date range
-// -----------------------------------------------------------------------------
-
-type Preset = "30d" | "90d" | "mtd" | "custom";
-
-const PRESET_LABEL: Record<Preset, string> = {
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-  mtd: "Month to date",
-  custom: "Custom range",
-};
-
-function iso(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
-
-function presetRange(p: Preset): { from: string; to: string } {
-  const today = new Date();
-  const to = iso(today);
-  if (p === "mtd") {
-    return { from: iso(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1))), to };
-  }
-  const days = p === "90d" ? 89 : 29;
-  return { from: iso(new Date(today.getTime() - days * 86400000)), to };
-}
-
-// -----------------------------------------------------------------------------
-// Formatting
-// -----------------------------------------------------------------------------
-
-const zar = (cents: number) =>
-  `R ${(Number(cents ?? 0) / 100).toLocaleString("en-ZA", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-
-function Delta({ value, unit }: { value: number; unit: string }) {
-  const rounded = Math.round(value * 10) / 10;
-  const Icon = rounded > 0 ? ArrowUpRight : rounded < 0 ? ArrowDownRight : Minus;
-  const tone = rounded > 0 ? "var(--tvp-green)" : rounded < 0 ? "var(--tvp-red)" : undefined;
-  return (
-    <span className="tvp-muted" style={{ fontSize: 12, color: tone, fontWeight: 700 }}>
-      <Icon className="h-3 w-3 inline" />
-      {rounded > 0 ? "+" : ""}
-      {rounded}
-      {unit} vs prior period
-    </span>
-  );
-}
-
-function Card({
-  label,
-  value,
-  sub,
-  note,
-  metric,
-  onDrill,
-  children,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  note?: string;
-  metric?: ReportingMetric;
-  onDrill?: (metric: ReportingMetric, title: string) => void;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div
-      className="tvp-card"
-      style={{ padding: 16, display: "flex", flexDirection: "column", gap: 4 }}
-    >
-      <div className="tvp-kpi-label">{label}</div>
-      <div className="tvp-kpi-value" style={{ fontSize: 26 }}>
-        {value}
-      </div>
-      {sub && (
-        <div className="tvp-muted" style={{ fontSize: 12 }}>
-          {sub}
-        </div>
-      )}
-      {children}
-      {note && (
-        <div className="tvp-muted" style={{ fontSize: 11, fontStyle: "italic" }}>
-          {note}
-        </div>
-      )}
-      {metric && onDrill && (
-        <button
-          className="tvp-link"
-          style={{ alignSelf: "flex-start", marginTop: 6, fontSize: 12, fontWeight: 700 }}
-          onClick={() => onDrill(metric, label)}
-        >
-          View raw data
-        </button>
-      )}
-    </div>
-  );
-}
-
-function ReportingPage() {
-  const [preset, setPreset] = useState<Preset>("30d");
-  const [custom, setCustom] = useState(presetRange("30d"));
-  const range = preset === "custom" ? custom : presetRange(preset);
-  const [drill, setDrill] = useState<{ metric: ReportingMetric; title: string } | null>(null);
-  const search = Route.useSearch();
-  const navigate = useNavigate({ from: "/admin/reporting" });
-  const accounts: AccountScope = search.accounts ?? "real";
-  const setAccounts = (v: string) =>
-    navigate({
-      search: (prev) => ({
-        ...prev,
-        accounts: v === "test" || v === "all" ? v : undefined,
-      }),
-      replace: true,
-    });
-
-  const metering = useSignInSummary(range.from, range.to, accounts);
-  const summaryFn = useServerFn(getReportingSummary);
-  const q = useQuery({
-    queryKey: ["admin", "reporting", range.from, range.to, accounts],
-    queryFn: () => summaryFn({ data: { from: range.from, to: range.to, accounts } }),
+function ReportsPage() {
+  const search = Route.useSearch(),
+    navigate = useNavigate({ from: "/admin/reporting" });
+  const parsed = ReportFilters.safeParse(search),
+    filters = parsed.success ? parsed.data : reportDefaults;
+  const tab = REPORT_TABS.find((t) => t === search.tab) ?? "overview";
+  const optionsFn = useServerFn(getReportsOptions),
+    summaryFn = useServerFn(getReportsSummary),
+    northFn = useServerFn(getReportsNorthStar),
+    download = useServerFn(exportReportsPeople);
+  const [downloading, setDownloading] = useState(false);
+  const options = useQuery({
+    queryKey: ["admin", "reports-options"],
+    queryFn: () => optionsFn(),
+    staleTime: 30000,
   });
-
-  const d = q.data;
-  const trackingNote = useMemo(() => {
-    if (!d) return undefined;
-    if (!d.trackingSince) return "Tracking starts with the first recorded talent activity.";
-    return `Tracking since ${new Date(d.trackingSince).toLocaleDateString("en-ZA", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    })}`;
-  }, [d]);
-
-  function exportSnapshot() {
-    if (!d) return;
-    const rows: (string | number)[][] = [
-      ["TalVault platform reporting snapshot"],
-      ["Accounts", ACCOUNT_SCOPE_REPORT_LABEL[d.accounts]],
-      ["Period", `${d.period.from} to ${d.period.to}`],
-      ["Prior period", `${d.prior.from} to ${d.prior.to}`],
-      ["Generated", new Date(d.generatedAt).toLocaleString("en-ZA")],
-      [],
-      ["Metric", "Value", "Context"],
-      ...(metering.data
-        ? signInSnapshotRows(metering.data, range.from, range.to)
-        : [["Sign-in activity", "Unavailable", "Sign-in activity could not be calculated."]]),
-      [
-        "Two-sided engagement (north star)",
-        `${d.northStar.pct}%`,
-        `${d.northStar.active} of ${d.northStar.total} live agency-talent relationships active on both sides`,
-      ],
-      ["Agencies added", d.growth.agenciesAdded, `${d.growth.agenciesAddedPrior} in prior period`],
-      [
-        "Agency invitations",
-        funnelHeadline(d.growth.agencyInvitations),
-        medianText(d.growth.agencyInvitations.medianDaysToAccept),
-      ],
-      [
-        "Talent invitations",
-        funnelHeadline(d.growth.talentInvitations),
-        `${medianText(d.growth.talentInvitations.medianDaysToAccept)} · ${talentFunnelSplit(d.growth.talentInvitations)}`,
-      ],
-      [
-        "Talent active in period",
-        d.engagement.activeTalent,
-        `of ${d.engagement.totalTalent} onboarded talent`,
-      ],
-      [
-        "Talent onboarded",
-        d.engagement.talentSplit.total,
-        `${d.engagement.talentSplit.agencyLinked} agency-linked · ${d.engagement.talentSplit.independent} independent`,
-      ],
-      [
-        `Agencies whose talent use ${SHARE_RECIPIENT_TERM} sharing`,
-        d.engagement.agenciesWithShare,
-        `${d.engagement.sharesCreated} new ${SHARE_RECIPIENT_TERM} shares`,
-      ],
-      [
-        "Documents uploaded",
-        d.engagement.documentsUploaded,
-        `${d.engagement.sharedDocuments} shared, ${d.engagement.privateDocuments} private`,
-      ],
-      ["Quotes generated", d.financials.quotesCount, zar(d.financials.quotesValueCents)],
-      ["Invoices generated", d.financials.invoicesCount, zar(d.financials.invoicesValueCents)],
-      [
-        "Amount received",
-        zar(d.financials.receivedCents),
-        `${d.financials.paymentsCount} payments, including partial payments`,
-      ],
-      ["Outstanding", zar(d.financials.outstandingCents), "Invoiced in period, not yet received"],
-      [],
-      [
-        "Cohort month",
-        "Talent onboarded",
-        "Active at 30 days",
-        "Active at 60 days",
-        "Active at 90 days",
-      ],
-      ...d.cohorts.map((c) => [
-        c.month,
-        c.size,
-        c.d30.mature ? `${Math.round((c.d30.active / c.d30.mature) * 100)}%` : "Not yet due",
-        c.d60.mature ? `${Math.round((c.d60.active / c.d60.mature) * 100)}%` : "Not yet due",
-        c.d90.mature ? `${Math.round((c.d90.active / c.d90.mature) * 100)}%` : "Not yet due",
-      ]),
-    ];
-    const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `talvault-reporting-${d.accounts}-${d.period.from}-to-${d.period.to}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const o = options.data,
+    period = o ? reportPeriod(filters, o.as_of, o.launch_date, o.first_date) : null;
+  const summary = useQuery({
+    queryKey: ["admin", "reports-summary", filters, period, o?.as_of],
+    enabled: !!period && !!o && (tab === "overview" || tab === "engagement"),
+    queryFn: () => {
+      if (!period || !o) throw new Error("Choose a reporting period.");
+      return summaryFn({ data: { filters, ...period, asOf: o.as_of } });
+    },
+  });
+  const north = useQuery({
+    queryKey: ["admin", "reports-north-star", filters, period, o?.as_of],
+    enabled: !!period && !!o && tab === "overview",
+    queryFn: () => {
+      if (!period || !o) throw new Error("Choose a reporting period.");
+      return northFn({ data: { filters, from: period.from, to: period.to, asOf: o.as_of } });
+    },
+  });
+  const change = (next: ReportsFilters) => {
+    void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
+  };
+  const openPeople = (next: Partial<ReportsFilters> = {}) => {
+    void navigate({ search: (prev) => ({ ...prev, ...next, tab: "people" }) });
+  };
+  async function exportPeople() {
+    if (!period || !o) return;
+    setDownloading(true);
+    try {
+      const d = await download({
+        data: { filters, from: period.from, to: period.to, asOf: o.as_of },
+      });
+      downloadCsv(
+        `talvault-people-${filters.accounts}-${period.from}-${period.to}.csv`,
+        peopleCsv(d.rows, false),
+      );
+    } catch (e) {
+      toast.error(friendlyError(e, "The report could not be downloaded."));
+    } finally {
+      setDownloading(false);
+    }
   }
-
-  const onDrill = (metric: ReportingMetric, title: string) => setDrill({ metric, title });
-  const pctOf = (n: number, dn: number) => (dn > 0 ? Math.round((n / dn) * 100) : 0);
-
+  const signIn =
+    period && o ? (
+      <SignInActivity
+        from={period.from}
+        to={period.to}
+        accounts={filters.accounts}
+        summary={
+          summary.data
+            ? {
+                ...summary.data,
+                groups: summary.data.groups.filter(
+                  (g) => filters.account_type === "all" || g.type === filters.account_type,
+                ),
+              }
+            : undefined
+        }
+        isPending={summary.isPending}
+        isError={summary.isError}
+        retry={() => void summary.refetch()}
+        onPeople={(d) => openPeople({ account_type: d.type, activity: d.population, people: [] })}
+      />
+    ) : null;
   return (
-    <>
-      <div className="tvp-topbar" style={{ alignItems: "center" }}>
+    <div className="min-w-0 reports-foundation">
+      <header className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
-          <h1 className="tvp-h1">Reporting</h1>
-          <p className="tvp-muted" style={{ fontSize: 13 }}>
-            Growth, engagement, financial and retention metrics for the selected period.
+          <h1 className="tvp-h1">Reports</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {REPORTS_DEFINITIONS_VERSION} · {REPORTS_DEFINITIONS_DATE}
+            {o ? ` · ${o.role.charAt(0).toUpperCase()}${o.role.slice(1)}` : ""}
           </p>
         </div>
-        <div className="tvp-actions">
-          <button className="tvp-primary" onClick={exportSnapshot} disabled={!d}>
-            <Download className="h-4 w-4" /> Export snapshot
-          </button>
-          <button
-            className="tvp-secondary"
-            onClick={() =>
-              d &&
-              printHtmlDocument(
-                buildAdminReportingHtml({
-                  ...d,
-                  ...(metering.data ? { signIn: metering.data } : {}),
-                }),
-              )
-            }
-            disabled={!d}
-          >
-            <FileDown className="h-4 w-4" /> Print / Save PDF
-          </button>
+        <Button
+          variant="outline"
+          className="h-11 print:hidden"
+          title="Print current Reports view"
+          onClick={() => window.print()}
+        >
+          <Printer />
+          Print / Save PDF
+        </Button>
+      </header>
+      {options.isPending && (
+        <p role="status" className="text-muted-foreground">
+          Checking Reports access…
+        </p>
+      )}
+      {options.isError && (
+        <div className="flex flex-wrap gap-3 items-center py-6">
+          <p className="text-sm text-muted-foreground">
+            Reports access or filters could not be loaded. Ask a Reports Owner to review your
+            access, or retry.
+          </p>
+          <Button variant="outline" onClick={() => void options.refetch()}>
+            <RefreshCw />
+            Retry
+          </Button>
         </div>
-      </div>
-
-      <div className="tvp-card" style={{ padding: 16, marginBottom: 18 }}>
-        <div className="flex items-end gap-3" style={{ flexWrap: "wrap" }}>
-          <FilterBar
-            onChange={(key, v) => (key === "accounts" ? setAccounts(v) : setPreset(v as Preset))}
-            filters={[
-              {
-                key: "range",
-                label: "Date range",
-                value: preset,
-                options: (Object.keys(PRESET_LABEL) as Preset[]).map((p) => ({
-                  value: p,
-                  label: PRESET_LABEL[p],
-                })),
-              },
-              {
-                key: "accounts",
-                label: "Accounts",
-                value: accounts,
-                options: (["real", "test", "all"] as const).map((v) => ({
-                  value: v,
-                  label: ACCOUNT_SCOPE_REPORT_LABEL[v],
-                })),
-              },
-            ]}
+      )}
+      {o && (
+        <>
+          <ReportsFilterBar
+            filters={filters}
+            options={o}
+            onChange={change}
+            summary={
+              <>
+                {period
+                  ? `${fmtDate(period.from)}–${fmtDate(period.to)} · ${period.prior ? `Compared with ${fmtDate(period.prior.from)}–${fmtDate(period.prior.to)}` : "No comparison"}`
+                  : "Choose valid dates"}{" "}
+                ·{" "}
+                {filters.accounts === "all"
+                  ? "All accounts"
+                  : `${filters.accounts === "real" ? "Real" : "Test"} accounts`}{" "}
+                · South African time · Sign-ins tracked since{" "}
+                {fmtDate(o.first_login, "Not recorded")}
+              </>
+            }
           />
-          {preset === "custom" && (
+          {!parsed.success && (
+            <p className="text-xs text-muted-foreground mb-3">
+              Some filters are invalid. Reset filters to choose a valid view.
+            </p>
+          )}
+          <nav
+            aria-label="Reports tabs"
+            className="flex overflow-x-auto border-b border-border gap-1 mb-5 print:hidden"
+          >
+            {REPORT_TABS.map((t) => (
+              <Button
+                key={t}
+                variant={tab === t ? "secondary" : "ghost"}
+                className="h-11 shrink-0 rounded-none border-b-2 border-transparent aria-[current=page]:border-primary"
+                aria-current={tab === t ? "page" : undefined}
+                onClick={() => void navigate({ search: (prev) => ({ ...prev, tab: t }) })}
+              >
+                {REPORT_TAB_LABELS[t]}
+              </Button>
+            ))}
+          </nav>
+          <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
+            Recorder installed {fmtDateTime(o.capture_started_at)}; earlier history and rollout
+            coverage are incomplete. Missing capture never establishes inactivity. Current agency
+            membership, account status and test flags are used where historical changes were not
+            recorded.
+          </p>
+          {!period ? (
+            <p className="text-muted-foreground py-8">
+              Choose valid reporting dates. Missing launch or first-record dates are not
+              substituted.
+            </p>
+          ) : (
             <>
-              <div className="tvp-form-group">
-                <label>From</label>
-                <input
-                  type="date"
-                  value={custom.from}
-                  max={custom.to}
-                  onChange={(e) => setCustom({ ...custom, from: e.target.value })}
+              {tab === "overview" && (
+                <>
+                  <section className="border-b border-border pb-5 mb-6">
+                    <header className="flex flex-wrap justify-between items-center gap-3">
+                      <div className="flex items-center">
+                        <h2 className="tvp-h2">Two-sided engagement</h2>
+                        <ReportDefinition definition="north_star" />
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => openPeople({ people: north.data?.people ?? [] })}
+                        disabled={!north.data?.people.length}
+                      >
+                        View contributing people
+                      </Button>
+                    </header>
+                    {north.isPending && (
+                      <p className="text-muted-foreground mt-3">Calculating relationships…</p>
+                    )}
+                    {north.isError && (
+                      <p className="text-muted-foreground mt-3">
+                        Two-sided engagement could not be calculated.
+                      </p>
+                    )}
+                    {north.data && (
+                      <>
+                        <Button
+                          variant="link"
+                          className="!px-0 h-auto text-2xl font-semibold my-3"
+                          disabled={!north.data.people.length}
+                          onClick={() => openPeople({ people: north.data.people })}
+                        >
+                          {north.data.active} of {north.data.total} ·{" "}
+                          {north.data.total
+                            ? Math.round((north.data.active / north.data.total) * 100)
+                            : 0}
+                          %
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Live relationships with activity on both sides; a staff sign-in alone
+                          never qualifies. Relationship counts are not People-row counts.
+                          {north.data.people.length < 5 ? " Small sample." : ""}
+                        </p>
+                      </>
+                    )}
+                  </section>
+                  {signIn}
+                </>
+              )}
+              {tab === "engagement" && signIn}
+              {tab === "people" && (
+                <ReportsPeople
+                  key={JSON.stringify({ filters, period })}
+                  filters={filters}
+                  from={period.from}
+                  to={period.to}
+                  asOf={o.as_of}
+                  role={o.role}
+                  onChange={change}
                 />
-              </div>
-              <div className="tvp-form-group">
-                <label>To</label>
-                <input
-                  type="date"
-                  value={custom.to}
-                  min={custom.from}
-                  onChange={(e) => setCustom({ ...custom, to: e.target.value })}
-                />
-              </div>
+              )}
+              {tab === "exports" && (
+                <section className="py-3">
+                  <header className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center">
+                      <h2 className="tvp-h2">People · current filters</h2>
+                      <ReportDefinition definition="privacy" />
+                    </div>
+                    <Button
+                      disabled={!roleCan(o.role, "download_raw_data") || downloading}
+                      onClick={() => void exportPeople()}
+                    >
+                      <Download />
+                      {downloading ? "Preparing…" : "Download CSV"}
+                    </Button>
+                  </header>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Email addresses omitted. All matching rows, not just the visible page. Excel is
+                    available in People.
+                  </p>
+                </section>
+              )}
+              {tab === "launch" &&
+                (o.role === "owner" ? (
+                  <LaunchReports from={period.from} to={period.to} />
+                ) : (
+                  <p className="text-sm text-muted-foreground py-6">
+                    Identifiable launch offer and Terms records require Owner access.
+                  </p>
+                ))}
+              {(tab === "growth" || tab === "agencies" || tab === "business") && (
+                <section className="py-5">
+                  <h2 className="tvp-h2">{REPORT_TAB_LABELS[tab]}</h2>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    Additional analysis is not yet available.
+                  </p>
+                  <Button variant="link" className="!px-0 mt-2" onClick={() => openPeople()}>
+                    View People with these filters
+                  </Button>
+                </section>
+              )}
             </>
           )}
-          <span className="tvp-muted" style={{ fontSize: 12, marginBottom: 10 }}>
-            {d
-              ? `As of ${new Date(d.generatedAt).toLocaleString("en-ZA")}`
-              : "Calculating metrics…"}
-          </span>
-        </div>
-      </div>
-
-      <SignInActivity
-        from={range.from}
-        to={range.to}
-        accounts={accounts}
-        summary={metering.data}
-        isPending={metering.isPending}
-        isError={metering.isError}
-        retry={() => void metering.refetch()}
-      />
-
-      {q.isError && (
-        <div className="tvp-card" style={{ padding: 20 }}>
-          <p className="tvp-muted">
-            These metrics could not be calculated. Refresh the page to try again.
-          </p>
-        </div>
-      )}
-
-      {d && (
-        <>
-          {/* North star */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
-            North star
-          </h2>
-          <div
-            className="tvp-grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: 12,
-              marginBottom: 24,
-            }}
-          >
-            <Card
-              label="Two-sided engagement (agency and talent)"
-              value={`${d.northStar.pct}%`}
-              sub={`${d.northStar.active} of ${d.northStar.total} live agency–talent relationships had activity from both sides${
-                d.northStar.talentOnlyCount || d.northStar.agencyOnlyCount
-                  ? ` · ${d.northStar.talentOnlyCount} talent only, ${d.northStar.agencyOnlyCount} agency only`
-                  : ""
-              }`}
-              note={`${trackingNote ?? ""} · Quotes and invoices are not counted yet — they cannot be tied to a specific talent.`}
-              metric="north_star_pairs"
-              onDrill={onDrill}
-            >
-              <Delta value={d.northStar.pct - d.northStar.priorPct} unit="pts" />
-            </Card>
-          </div>
-
-          {/* Growth & funnel */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
-            Growth &amp; funnel
-          </h2>
-          <div
-            className="tvp-grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: 12,
-              marginBottom: 24,
-            }}
-          >
-            <Card
-              label="Agencies added"
-              value={String(d.growth.agenciesAdded)}
-              metric="agencies_added"
-              onDrill={onDrill}
-            >
-              <Delta value={d.growth.agenciesAdded - d.growth.agenciesAddedPrior} unit="" />
-            </Card>
-            <Card
-              label="Agency invitations"
-              value={`${d.growth.agencyInvitations.rate}%`}
-              sub={`${d.growth.agencyInvitations.accepted} of ${d.growth.agencyInvitations.sent} sent in period accepted · ${medianText(d.growth.agencyInvitations.medianDaysToAccept)}`}
-              note="Drafts are never counted as sent."
-              metric="agency_invitations"
-              onDrill={onDrill}
-            />
-            <Card
-              label="Talent invitations"
-              value={`${d.growth.talentInvitations.rate}%`}
-              sub={`${d.growth.talentInvitations.accepted} of ${d.growth.talentInvitations.sent} sent in period accepted · ${medianText(d.growth.talentInvitations.medianDaysToAccept)}`}
-              note="Drafts are never counted as sent."
-              metric="talent_invitations"
-              onDrill={onDrill}
-            >
-              <div className="tvp-muted" style={{ fontSize: 12 }}>
-                {talentFunnelSplit(d.growth.talentInvitations)}
-              </div>
-            </Card>
-          </div>
-
-          {/* Engagement */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
-            Engagement &amp; activity
-          </h2>
-          <div
-            className="tvp-grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: 12,
-              marginBottom: 24,
-            }}
-          >
-            <Card
-              label="Talent active in period"
-              value={`${d.engagement.activeTalent} / ${d.engagement.totalTalent}`}
-              sub={`${pctOf(d.engagement.activeTalent, d.engagement.totalTalent)}% of onboarded talent · ${d.engagement.talentSplit.agencyLinked} agency-linked · ${d.engagement.talentSplit.independent} independent`}
-              note={trackingNote}
-              metric="active_talent"
-              onDrill={onDrill}
-            />
-            <Card
-              label={`Agencies whose talent use ${SHARE_RECIPIENT_TERM} sharing`}
-              value={String(d.engagement.agenciesWithShare)}
-              sub={`${d.engagement.sharesCreated} new ${SHARE_RECIPIENT_TERM} share${d.engagement.sharesCreated === 1 ? "" : "s"} in period`}
-              metric="shares"
-              onDrill={onDrill}
-            />
-            <Card
-              label="Documents uploaded"
-              value={String(d.engagement.documentsUploaded)}
-              sub={`${d.engagement.sharedDocuments} shared with agencies, ${d.engagement.privateDocuments} in private vaults`}
-              metric="documents_uploaded"
-              onDrill={onDrill}
-            />
-          </div>
-
-          {/* Financials */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
-            Financials
-          </h2>
-          <div
-            className="tvp-grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: 12,
-              marginBottom: 24,
-            }}
-          >
-            <Card
-              label="Quotes generated"
-              value={String(d.financials.quotesCount)}
-              sub={zar(d.financials.quotesValueCents)}
-              metric="quotes"
-              onDrill={onDrill}
-            />
-            <Card
-              label="Invoices generated"
-              value={String(d.financials.invoicesCount)}
-              sub={zar(d.financials.invoicesValueCents)}
-              metric="invoices"
-              onDrill={onDrill}
-            />
-            <Card
-              label="Amount received"
-              value={zar(d.financials.receivedCents)}
-              sub={`${d.financials.paymentsCount} payment${d.financials.paymentsCount === 1 ? "" : "s"} dated in this period`}
-              note="Includes partial payments, counted on the date the money was received."
-              metric="payments_received"
-              onDrill={onDrill}
-            />
-            <Card
-              label="Outstanding"
-              value={zar(d.financials.outstandingCents)}
-              sub="Invoiced in this period and not yet received"
-              metric="outstanding"
-              onDrill={onDrill}
-            />
-          </div>
-
-          {/* Accounts by status */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
-            Accounts by status
-          </h2>
-          <div className="tvp-table-wrap" style={{ marginBottom: 24 }}>
-            <table className="tvp-table">
-              <thead>
-                <tr>
-                  <th>Status</th>
-                  <th>Agencies</th>
-                  <th>Talent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ACCOUNT_STATUSES.map((st) => (
-                  <tr key={st}>
-                    <td>{accountStatusOptionLabel(st)}</td>
-                    <td>{d.accountsByStatus.agency[st] ?? "—"}</td>
-                    <td>{d.accountsByStatus.talent[st] ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p
-              className="tvp-muted"
-              style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}
-            >
-              Current status of {ACCOUNT_SCOPE_REPORT_LABEL[d.accounts].toLowerCase()}. Not affected
-              by the date range.
+          <section className="border-t border-border mt-6 pt-5">
+            <h2 className="tvp-h2 mb-3">Definitions and data dictionary</h2>
+            <p className="text-xs text-muted-foreground mb-3">
+              {REPORTS_DEFINITIONS_VERSION} · {REPORTS_DEFINITIONS_DATE}
             </p>
-          </div>
-
-          {/* Cohort retention */}
-          <h2 className="tvp-h2" style={{ marginBottom: 10 }}>
-            Cohort retention
-          </h2>
-          <div className="tvp-table-wrap" style={{ marginBottom: 32 }}>
-            <table className="tvp-table">
-              <thead>
-                <tr>
-                  <th>Onboarding month</th>
-                  <th>Talent onboarded</th>
-                  <th>Active at 30 days</th>
-                  <th>Active at 60 days</th>
-                  <th>Active at 90 days</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.cohorts.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="tvp-muted" style={{ padding: 20 }}>
-                      No talent onboarded up to the end of this period yet.
-                    </td>
-                  </tr>
-                )}
-                {d.cohorts.map((c) => (
-                  <tr key={c.month}>
-                    <td>
-                      {new Date(`${c.month}-01T00:00:00Z`).toLocaleDateString("en-ZA", {
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td>{c.size}</td>
-                    {[c.d30, c.d60, c.d90].map((w, i) => (
-                      <td key={i}>
-                        {w.mature === 0 ? (
-                          <span className="tvp-muted">Not yet due</span>
-                        ) : (
-                          `${Math.round((w.active / w.mature) * 100)}% (${w.active} of ${w.mature})`
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p
-              className="tvp-muted"
-              style={{ fontSize: 11, padding: "8px 4px", fontStyle: "italic" }}
-            >
-              {trackingNote} · Cohorts only count talent whose window has already closed.
-            </p>
-          </div>
+            <dl className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
+              {Object.entries(REPORTS_DEFINITIONS).map(([key, d]) => (
+                <div key={key}>
+                  <dt className="text-sm font-semibold">{d.title}</dt>
+                  <dd className="text-xs text-muted-foreground leading-relaxed mt-1">{d.text}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
         </>
       )}
-
-      {drill && (
-        <ReportingRawDrawer
-          metric={drill.metric}
-          title={drill.title}
-          from={range.from}
-          to={range.to}
-          accounts={accounts}
-          onClose={() => setDrill(null)}
-        />
-      )}
-      <LaunchReports from={range.from} to={range.to} />
-    </>
+    </div>
   );
 }

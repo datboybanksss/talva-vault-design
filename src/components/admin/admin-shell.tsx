@@ -36,6 +36,8 @@ import {
   dismissComputedNotification,
 } from "@/lib/admin.functions";
 import { PortalFooter } from "@/components/shared/portal-footer";
+import { getReportsAccess } from "@/lib/reports.functions";
+import { Button } from "@/components/ui/button";
 
 type NavItem = {
   to: string;
@@ -46,7 +48,7 @@ type NavItem = {
 
 const manage: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: <LayoutGrid />, match: "exact" },
-  { to: "/admin/reporting", label: "Reporting", icon: <BarChart3 /> },
+  { to: "/admin/reporting", label: "Reports", icon: <BarChart3 /> },
   { to: "/admin/accounts", label: "Accounts", icon: <Building2 /> },
   {
     to: "/admin/invitations",
@@ -78,6 +80,7 @@ const manage: NavItem[] = [
 ];
 
 const settings: NavItem[] = [
+  { to: "/admin/reports-access", label: "Reports access", icon: <ShieldCheck /> },
   { to: "/admin/administrators", label: "Administrators", icon: <ShieldCheck /> },
 ];
 
@@ -102,6 +105,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const sessionReady = useSessionReady();
   const whoamiFn = useServerFn(whoami);
+  const reportsRoleFn = useServerFn(getReportsAccess);
+  const reportsRole = useQuery({
+    queryKey: ["admin", "reports-access"],
+    queryFn: () => reportsRoleFn(),
+    enabled: sessionReady,
+    retry: false,
+  });
+  const operational = reportsRole.data === "owner";
+  const personalOrReports =
+    pathname === "/admin/reporting" ||
+    pathname === "/admin/reports-access" ||
+    pathname === "/admin/my-account" ||
+    pathname === "/admin/enroll-2fa";
   const listNotificationsFn = useServerFn(listNotifications);
   const dismissFn = useServerFn(dismissNotification);
   const dismissComputedFn = useServerFn(dismissComputedNotification);
@@ -117,7 +133,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { data: notifs } = useQuery({
     queryKey: ["admin", "notifications"],
     queryFn: () => listNotificationsFn(),
-    enabled: sessionReady,
+    enabled: sessionReady && operational,
     retry: false,
     refetchInterval: 60_000,
   });
@@ -377,7 +393,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
             {initials || "?"}
           </Link>
         </div>
-        {children}
+        {personalOrReports || operational ? (
+          children
+        ) : (
+          <section className="py-8">
+            <h1 className="tvp-h1">Owner access required</h1>
+            <p className="tvp-muted mt-3 mb-5">
+              This screen contains unredacted operational records. Your Reports role does not allow
+              it. Your personal profile and Reports remain available.
+            </p>
+            <Button onClick={() => navigate({ to: "/admin/reporting" })}>Open Reports</Button>
+          </section>
+        )}
         <PortalFooter />
       </main>
       <OnboardingTour portal="admin" />

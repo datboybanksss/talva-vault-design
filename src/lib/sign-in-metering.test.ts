@@ -15,6 +15,8 @@ const summary: SignInSummary = {
   as_of: "2026-11-24T19:17:00Z",
   capture_started_at: "2026-10-01T19:00:00Z",
   unconfirmed_talent: 4,
+  missing_registration_dates: 0,
+  comparison_enabled: true,
   unresolved_logins: 1,
   prior: { from: "2026-09-01", to: "2026-09-30" },
 };

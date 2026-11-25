@@ -5,8 +5,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { parseDocumentSettings, type DocumentSettings } from "@/lib/document-settings";
+import { assertAdminOperationalAccess } from "./reports-access";
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
+  await assertAdminOperationalAccess(supabase);
   const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (!data) throw new Error("Only administrators can do this.");
 }
@@ -45,6 +47,7 @@ export const updateDocumentSettings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
+    await assertAdminOperationalAccess(supabase);
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
     if (!canEdit) throw new Error("You need edit permission to change document rules.");
     const { data: before } = await supabase
@@ -104,6 +107,7 @@ export const markBulkDeleteFlagReviewed = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    await assertAdminOperationalAccess(supabase);
     const { error } = await supabase
       .from("document_bulk_delete_flags")
       .update({ reviewed_at: new Date().toISOString(), reviewed_by: userId })
@@ -131,6 +135,7 @@ export const adminRestoreDeletedDocument = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    await assertAdminOperationalAccess(supabase);
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
     if (!canEdit) throw new Error("You need edit permission to restore documents.");
     const { error } = await supabase.rpc("restore_deleted_document", { _doc_id: data.id });

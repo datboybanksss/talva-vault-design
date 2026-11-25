@@ -3,6 +3,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { databaseError } from "./security-errors";
+import { assertReportPermission } from "./reports-access";
 import {
   SignInPeriodInput,
   SignInPageInput,
@@ -11,6 +12,7 @@ import {
 } from "./sign-in-metering";
 
 export async function loadSignInPage(supabase: SupabaseClient<Database>, input: unknown) {
+  await assertReportPermission(supabase, "download_raw_data");
   const d = SignInPageInput.parse(input);
   const { data, error } = await supabase.rpc("admin_sign_in_page", {
     _from: d.from,

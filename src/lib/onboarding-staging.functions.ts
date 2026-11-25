@@ -14,6 +14,10 @@ const SessionInput = z.object({ kind: Kind, session_id: z.string().uuid() });
 
 /** Only admins who can create invitations may stage files. */
 async function assertCanInvite(supabase: SupabaseClient, userId: string) {
+  const { data: allowed } = await supabase.rpc("reports_can", {
+    _permission: "include_email_addresses",
+  });
+  if (!allowed) throw new Error("Your Reports role does not allow invitation administration.");
   const { data: isAdmin, error } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "admin",

@@ -72,16 +72,25 @@ function download(name: string, rows: (string | number | null | undefined)[][]) 
 export function LaunchReports({ from, to }: { from: string; to: string }) {
   const search = useSearch({ from: "/admin/reporting" });
   const navigate = useNavigate({ from: "/admin/reporting" });
-  const type = search.type ?? "all";
-  const segment = search.talent ?? "all";
-  const accounts = search.accounts ?? "real";
+  const type =
+    search.account_type === "agency_staff"
+      ? "agency"
+      : search.account_type === "talent"
+        ? "talent"
+        : search.type === "agency" || search.type === "talent"
+          ? search.type
+          : "all";
+  const segment =
+    search.talent === "agency_linked" || search.talent === "independent" ? search.talent : "all";
+  const accounts =
+    search.accounts === "test" || search.accounts === "all" ? search.accounts : "real";
   const [viewing, setViewing] = useState<null | "talent" | "agencies" | "invitations">(null);
   const setFilter = (key: string, value: string) =>
     navigate({
       search: (prev) => {
         const dflt = key === "accounts" ? "real" : "all";
-        const next = { ...prev, [key]: value === dflt ? undefined : value };
-        if (key === "type" && value === "agency") next.talent = undefined;
+        const next = { ...prev, [key]: value === dflt ? dflt : value };
+        if (key === "type" && value === "agency") next.talent = "all";
         return next as typeof prev;
       },
       replace: true,

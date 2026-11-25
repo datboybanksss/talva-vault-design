@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { parseInput } from "@/lib/admin.functions";
+import { assertAdminOperationalAccess } from "./reports-access";
 
 /**
  * Admin → independent talent invitations (no agency). Mirrors the agency
@@ -23,6 +24,7 @@ import { friendlyError } from "./friendly-error";
 export const INDEPENDENT_DOC_SLOTS = ["proof_of_talent"] as const;
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
+  await assertAdminOperationalAccess(supabase);
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw new Error("We couldn't confirm your access. Please try again.");
   if (!data) throw new Error("Forbidden: admin only");

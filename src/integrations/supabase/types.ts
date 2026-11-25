@@ -2600,6 +2600,102 @@ export type Database = {
         }
         Relationships: []
       }
+      reports_access: {
+        Row: {
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reports_export_history: {
+        Row: {
+          admin_id: string
+          created_at: string
+          dataset: string
+          email_included: boolean
+          filters: Json
+          id: string
+          row_count: number
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          dataset: string
+          email_included?: boolean
+          filters: Json
+          id?: string
+          row_count: number
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          dataset?: string
+          email_included?: boolean
+          filters?: Json
+          id?: string
+          row_count?: number
+        }
+        Relationships: []
+      }
+      reports_saved_views: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters: Json
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reports_talent_milestones: {
+        Row: {
+          evidence_kind: string
+          first_validated_upload_at: string
+          recorded_at: string
+          user_id: string
+        }
+        Insert: {
+          evidence_kind: string
+          first_validated_upload_at: string
+          recorded_at?: string
+          user_id: string
+        }
+        Update: {
+          evidence_kind?: string
+          first_validated_upload_at?: string
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shared_folder_merge_doc_map: {
         Row: {
           batch: string
@@ -3941,6 +4037,57 @@ export type Database = {
       reopen_talent_invite_private: {
         Args: { _invitation_id: string }
         Returns: string
+      }
+      reports_can: { Args: { _permission: string }; Returns: boolean }
+      reports_north_star: {
+        Args: { _as_of?: string; _filters: Json; _from: string; _to: string }
+        Returns: Json
+      }
+      reports_options: { Args: never; Returns: Json }
+      reports_people_page: {
+        Args: {
+          _as_of?: string
+          _direction?: string
+          _download?: boolean
+          _filters: Json
+          _from: string
+          _include_emails?: boolean
+          _limit?: number
+          _offset?: number
+          _sort?: string
+          _to: string
+        }
+        Returns: Json
+      }
+      reports_people_rows: {
+        Args: { _as_of?: string; _filters: Json; _from: string; _to: string }
+        Returns: Json[]
+      }
+      reports_person_timeline: {
+        Args: {
+          _as_of?: string
+          _filters: Json
+          _from: string
+          _offset?: number
+          _person_id: string
+          _to: string
+        }
+        Returns: Json
+      }
+      reports_set_access: {
+        Args: { _role: string; _user_id: string }
+        Returns: undefined
+      }
+      reports_sign_in_summary: {
+        Args: {
+          _as_of?: string
+          _filters: Json
+          _from: string
+          _prior_from?: string
+          _prior_to?: string
+          _to: string
+        }
+        Returns: Json
       }
       request_talent_link: {
         Args: {

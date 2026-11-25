@@ -70,6 +70,8 @@ export const SignInSummarySchema = z.object({
     }),
   ),
   unconfirmed_talent: z.number(),
+  missing_registration_dates: z.number().default(0),
+  comparison_enabled: z.boolean().default(true),
   unresolved_logins: z.number(),
   capture_started_at: z.string(),
   as_of: z.string(),
@@ -81,14 +83,14 @@ export const SignInPersonSchema = z.object({
   account_type: z.enum(SIGN_IN_TYPES),
   agency_ids: z.array(z.string()),
   agency_names: z.array(z.string()),
-  onboarded_at: z.string(),
+  onboarded_at: z.string().nullable(),
   sign_ins: z.number(),
   active_days: z.number(),
   average_per_week: z.number(),
   first_sign_in: z.string().nullable(),
   last_sign_in: z.string().nullable(),
   days_since_last: z.number().nullable(),
-  dormant: z.boolean(),
+  dormant: z.boolean().nullable(),
 });
 export const SignInPageSchema = z.object({
   total: z.number(),
@@ -165,7 +167,7 @@ export function signInSnapshotRows(
       [
         `${SIGN_IN_TYPE_LABEL[g.type]}: active`,
         value(g.current.active),
-        `of ${g.current.total} ${g.type === "trusted_contact" ? "recipients given access" : "onboarded users"}`,
+        `of ${g.current.total} ${g.type === "trusted_contact" ? "recipients given access" : "registered users"}`,
       ],
       [
         `${SIGN_IN_TYPE_LABEL[g.type]}: returning`,
@@ -198,5 +200,5 @@ export function signInContext(
   from: string,
   to: string,
 ): string {
-  return `${ACCOUNT_SCOPE_REPORT_LABEL[accounts]} · ${fmtDate(from)}–${fmtDate(to)} · As of ${fmtDateTime(d.as_of)} · Complete-path capture since ${fmtDateTime(d.capture_started_at)}. Earlier history is incomplete. ${d.unconfirmed_talent} talent profiles without confirmed onboarding are excluded; ${d.unresolved_logins} unresolved login rows are excluded.`;
+  return `${ACCOUNT_SCOPE_REPORT_LABEL[accounts]} · ${fmtDate(from)}–${fmtDate(to)} · As of ${fmtDateTime(d.as_of)} · Recorder installed ${fmtDateTime(d.capture_started_at)}; earlier history and rollout coverage are incomplete. ${d.missing_registration_dates} registered people have no recorded registration date; they remain included without proxy dates. ${d.unresolved_logins} unresolved login rows are excluded.`;
 }

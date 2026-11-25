@@ -182,6 +182,10 @@ export const getAcceptedTermsText = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------- admin ----
 
 async function assertAdmin(context: { supabase: SupabaseClient<Database>; userId: string }) {
+  const { data: allowed } = await context.supabase.rpc("reports_can", {
+    _permission: "include_email_addresses",
+  });
+  if (!allowed) throw new Error("Your Reports role does not allow identifiable Terms records.");
   const { data, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",

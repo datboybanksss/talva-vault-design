@@ -1,5 +1,6 @@
 import { duplicateOnboardingName, blockedReplacements } from "./onboarding-documents";
 import { databaseError } from "./security-errors";
+import { assertAdminOperationalAccess } from "./reports-access";
 import { allQueryRows } from "./query-results";
 import { agencyInvitationStatusInput } from "./invitation-status-input";
 import { createServerFn } from "@tanstack/react-start";
@@ -91,13 +92,18 @@ const phoneSchema = z
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
-async function assertAdmin(supabase: AdminClient, userId: string) {
+async function assertAdminIdentity(supabase: AdminClient, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
   });
   if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
+}
+
+async function assertAdmin(supabase: AdminClient, userId: string) {
+  await assertAdminIdentity(supabase, userId);
+  await assertAdminOperationalAccess(supabase);
 }
 
 async function assertAdminCanEdit(supabase: AdminClient, userId: string) {
@@ -271,7 +277,7 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
-    await assertAdmin(supabase, userId);
+    await assertAdminIdentity(supabase, userId);
 
     // Load current profile + is-main-admin so we can enforce that only Main
     // Admins may change their own designation.
@@ -335,7 +341,7 @@ export const logOwnEmailChangeRequest = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
-    await assertAdmin(supabase, userId);
+    await assertAdminIdentity(supabase, userId);
     await logAudit(
       supabase,
       userId,
@@ -2462,7 +2468,7 @@ export const logOwnPasswordChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context;
-    await assertAdmin(supabase, userId);
+    await assertAdminIdentity(supabase, userId);
     await logAudit(
       supabase,
       userId,
@@ -2618,7 +2624,7 @@ export const logMfaEnrolled = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
-    await assertAdmin(supabase, userId);
+    await assertAdminIdentity(supabase, userId);
     await logAudit(
       supabase,
       userId,
@@ -2636,7 +2642,7 @@ export const logMfaDisabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context;
-    await assertAdmin(supabase, userId);
+    await assertAdminIdentity(supabase, userId);
     await logAudit(
       supabase,
       userId,

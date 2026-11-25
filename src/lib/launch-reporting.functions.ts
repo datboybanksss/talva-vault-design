@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
+import { assertAdminOperationalAccess } from "./reports-access";
 import { checkRows as check, checkRow } from "./query-results";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -21,6 +22,7 @@ import {
 } from "@/lib/launch-reporting-core";
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
+  await assertAdminOperationalAccess(supabase);
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
@@ -161,6 +163,7 @@ export const updateLaunchSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
+    await assertAdminOperationalAccess(supabase);
     if (!canEdit) throw new Error("You need edit permission to change launch settings.");
     const { error } = await supabase.from("platform_settings").upsert({
       key: "launch",

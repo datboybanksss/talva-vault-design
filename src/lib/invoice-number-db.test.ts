@@ -30,7 +30,7 @@ describe.skipIf(!process.env.PGHOST)("database: invoice-number uniqueness", () =
     EXCEPTION WHEN unique_violation THEN
       RAISE NOTICE '23505:%', SQLERRM;
     END $$;`);
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
     expect(result.stderr).toContain(
       `23505:duplicate key value violates unique constraint "${INVOICE_NUMBER_UNIQUE_INDEX}"`,
     );
@@ -42,7 +42,7 @@ describe.skipIf(!process.env.PGHOST)("database: invoice-number uniqueness", () =
     const result = runRule(
       `INSERT INTO invoice_number_test VALUES ('22222222-2222-4222-8222-222222222222', 'INV-2026-0042', 'invoice'); SELECT count(*) FROM invoice_number_test;`,
     );
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
     expect(result.stdout.trim()).toBe("2");
   });
   it.each(["inv-2026-0042", " INV-2026-0042 ", " inv-2026-0042 "])(
@@ -59,7 +59,7 @@ describe.skipIf(!process.env.PGHOST)("database: invoice-number uniqueness", () =
     const result = runRule(`INSERT INTO invoice_number_test VALUES
       ('11111111-1111-4111-8111-111111111111', 'INV-2026-0042', 'quote'),
       ('11111111-1111-4111-8111-111111111111', ' inv-2026-0042 ', 'quote'); SELECT count(*) FROM invoice_number_test;`);
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
     expect(result.stdout.trim()).toBe("3");
   });
   it("also rejects duplicate number updates", () => {
@@ -82,6 +82,8 @@ DO $$ DECLARE definition text; BEGIN
   -- Only bypass authorisation in the isolated copy; preserve the installed numbering algorithm.
   definition := replace(definition, 'public.agency_staff_can_write(auth.uid(), _agency_id)', 'true');
   definition := replace(definition, 'public.has_role(auth.uid(), ''admin'')', 'false');
+  definition := replace(definition, 'public.reports_can(''include_email_addresses'')', 'true');
+  definition := replace(definition, 'public.has_role(auth.uid(),''admin'')', 'false');
   EXECUTE definition;
 END $$;
 INSERT INTO agency_billing_docs VALUES ('11111111-1111-4111-8111-111111111111', 'invoice', ' inv-' || extract(year from now())::int || '-0001 ');
@@ -93,7 +95,7 @@ ROLLBACK;`,
       encoding: "utf8",
       timeout: 15000,
     });
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
     const year = new Date().getUTCFullYear();
     expect(result.stdout.trim().split("\n")).toEqual([
       `INV-${year}-0002`,

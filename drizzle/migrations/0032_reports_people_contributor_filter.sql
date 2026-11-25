@@ -1,0 +1,2 @@
+DO $$ DECLARE d text; BEGIN d:=pg_get_functiondef('public.reports_people_rows(date,date,jsonb,timestamptz)'::regprocedure); d:=replace(d,'SELECT to_jsonb(f) FROM filtered f','SELECT to_jsonb(f) FROM filtered f WHERE jsonb_array_length(COALESCE(_filters->''people'',''[]''::jsonb))=0 OR f.person_id IN (SELECT jsonb_array_elements_text(_filters->''people''))'); EXECUTE d; END $$;
+-- Rollback: remove the final contributing-people predicate from reports_people_rows. No stored records change.

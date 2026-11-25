@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertTermsAccepted } from "@/lib/terms-guard";
+import { assertAdminOperationalAccess } from "./reports-access";
 
 const sendInput = z.object({
   id: z.string().uuid(),
@@ -36,6 +37,7 @@ export const sendAgencyInvitationEmail = createServerFn({ method: "POST" })
     });
     if (roleErr) throw databaseError(roleErr);
     if (!isAdmin) throw new Error("Forbidden: admin only");
+    await assertAdminOperationalAccess(supabase);
 
     const { data: inv, error } = await supabase
       .from("agency_invitations")
@@ -197,6 +199,7 @@ export const sendAdminInvitationEmail = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => sendInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
+    await assertAdminOperationalAccess(supabase);
 
     const { data: role, error: roleErr } = await supabase
       .from("user_roles")

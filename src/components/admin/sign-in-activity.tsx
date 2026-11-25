@@ -12,6 +12,7 @@ import {
 import { fmtDate } from "@/lib/display-dates";
 import type { AccountScope } from "@/lib/report-scope";
 import { SignInProfileDrawer, type SignInDrill } from "./sign-in-profile-drawer";
+import { ReportDefinition } from "./report-definition";
 
 export function SignInCards({
   group: g,
@@ -46,7 +47,7 @@ export function SignInCards({
       label: contacts ? "Active recipients" : "Active users",
       current: g.current.active,
       prior: g.prior.active,
-      sub: `${count(g.current.active)} of ${count(g.current.total)} ${contacts ? "recipients given access" : "onboarded users"} · ${percentage}%`,
+      sub: `${count(g.current.active)} of ${count(g.current.total)} ${contacts ? "recipients given access" : "registered users"} · ${percentage}%`,
       population: "active",
       known: coverage.available,
     },
@@ -54,7 +55,7 @@ export function SignInCards({
       label: contacts ? "Returning recipients" : "Returning users",
       current: g.current.returning,
       prior: g.prior.returning,
-      sub: "Active on 2+ South African days",
+      sub: `${count(g.current.returning)} of ${count(g.current.total)} · ${g.current.total ? Math.round((g.current.returning / g.current.total) * 100) : 0}% · 2+ South African days`,
       population: "returning",
       known: coverage.available,
     },
@@ -78,7 +79,7 @@ export function SignInCards({
       label: contacts ? "Dormant recipients" : "Dormant users",
       current: g.current.dormant,
       prior: g.prior.dormant,
-      sub: "30+ days without activity at cutoff",
+      sub: `${count(g.current.dormant)} of ${count(g.current.total)} · ${g.current.total ? Math.round((g.current.dormant / g.current.total) * 100) : 0}% · 30+ days at cut-off`,
       population: "dormant",
       known: coverage.available && coverage.dormantKnown,
     },
@@ -106,6 +107,7 @@ export function SignInCards({
           const delta = Math.round((v.current - v.prior) * 100) / 100,
             Icon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
           const compare =
+            d.comparison_enabled &&
             v.known &&
             coverage.complete &&
             prior.complete &&
@@ -114,13 +116,21 @@ export function SignInCards({
           return (
             <article key={v.label} className="tvp-card !p-4 flex flex-col min-w-0">
               <h4 className="tvp-kpi-label !whitespace-normal">{v.label}</h4>
-              <p className="tvp-kpi-value !text-2xl mt-2 break-words">
+              <Button
+                variant="link"
+                className="tvp-kpi-value !text-2xl !px-0 h-auto mt-2 self-start break-words"
+                disabled={!v.known}
+                onClick={() => onDrill({ type: g.type, population: v.population, title: v.label })}
+              >
                 {v.known
                   ? count(v.current)
                   : v.population === "dormant"
-                    ? "Not yet available"
+                    ? "Not tracked"
                     : "Not recorded"}
-              </p>
+              </Button>
+              {g.current.total < 5 && (
+                <span className="text-xs text-muted-foreground">Small sample</span>
+              )}
               <p className="tvp-muted text-xs leading-relaxed mt-1 min-h-10">
                 {v.known
                   ? v.sub
@@ -132,11 +142,13 @@ export function SignInCards({
                 {compare ? (
                   <>
                     <Icon className="size-3 shrink-0 mt-0.5" />
-                    {delta > 0 ? "+" : ""}
-                    {count(delta)} vs prior period
+                    {delta > 0 ? "Increase " : delta < 0 ? "Decrease " : "No change "}
+                    {count(Math.abs(delta))} vs prior period
                   </>
-                ) : (
+                ) : d.comparison_enabled ? (
                   "Prior comparison unavailable"
+                ) : (
+                  "No comparison"
                 )}
               </p>
               <Button
@@ -177,6 +189,7 @@ export function SignInActivity({
   isPending,
   isError,
   retry,
+  onPeople,
 }: {
   from: string;
   to: string;
@@ -185,11 +198,15 @@ export function SignInActivity({
   isPending: boolean;
   isError: boolean;
   retry: () => void;
+  onPeople?: (drill: SignInDrill) => void;
 }) {
   const [drill, setDrill] = useState<SignInDrill | null>(null);
   return (
     <section className="mb-8" aria-label="Sign-in activity">
-      <h2 className="tvp-h2 mb-3">Sign-in activity</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="tvp-h2 mb-3">Sign-in activity</h2>
+        <ReportDefinition definition="sign_ins" />
+      </div>
       {isPending && (
         <p className="tvp-muted" role="status">
           Calculating sign-in activity…
@@ -218,7 +235,7 @@ export function SignInActivity({
               summary={summary}
               from={from}
               to={to}
-              onDrill={setDrill}
+              onDrill={onPeople ?? setDrill}
             />
           ))}
           {drill && (

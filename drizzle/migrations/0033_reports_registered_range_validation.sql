@@ -1,0 +1,2 @@
+DO $$ DECLARE d text; BEGIN d:=pg_get_functiondef('public.admin_sign_in_people(date,date,text,timestamptz)'::regprocedure); d:=replace(d,'RETURN QUERY SELECT','IF _from IS NULL OR _to IS NULL OR _from>_to OR _as_of IS NULL OR _accounts NOT IN (''real'',''test'',''all'') THEN RAISE EXCEPTION ''REPORT_RANGE_INVALID: Please choose a valid reporting period.''; END IF; RETURN QUERY SELECT'); EXECUTE d; END $$;
+-- Rollback: restore the preceding admin_sign_in_people definition; no stored data or two-step changes.
