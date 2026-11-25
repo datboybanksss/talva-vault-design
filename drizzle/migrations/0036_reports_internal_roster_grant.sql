@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.reports_people_rows(date,date,jsonb,timestamptz) TO service_role;

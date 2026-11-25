@@ -239,6 +239,41 @@
       "when": 1795597340466,
       "tag": "0033_reports_registered_range_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795599525113,
+      "tag": "0034_reports_only_permission_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795599694800,
+      "tag": "0035_reports_access_lifecycle_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795599753170,
+      "tag": "0036_reports_internal_roster_grant",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795599893174,
+      "tag": "0037_reports_section_evidence",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795599938803,
+      "tag": "0038_reports_contact_evidence_scope",
+      "breakpoints": true
     }
   ]
 }

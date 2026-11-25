@@ -13,8 +13,3 @@ export async function assertReportPermission(
       "REPORT_ACCESS_DENIED: Your Reports role does not allow this action. Ask a Reports Owner to review your access.",
     );
 }
-/** Legacy operational endpoints return unredacted records: never grant them implicitly to Reports-only roles. */
-export async function assertAdminOperationalAccess(client: SupabaseClient<Database>) {
-  await assertReportPermission(client, "download_raw_data");
-  await assertReportPermission(client, "include_email_addresses");
-}

@@ -134,7 +134,7 @@ export function ReportsFilterBar({
       </div>
       <div
         id="reports-global-filters"
-        className={`${expanded ? "grid" : "hidden"} md:grid grid-cols-1 min-[430px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 tvp-form-group`}
+        className={`${expanded ? "!grid" : "!hidden"} md:!grid grid-cols-1 min-[430px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 !gap-3 tvp-form-group`}
       >
         {select("preset", "Period", [
           { value: "7d", label: "Last 7 days" },

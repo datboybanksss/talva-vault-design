@@ -4039,6 +4039,19 @@ export type Database = {
         Returns: string
       }
       reports_can: { Args: { _permission: string }; Returns: boolean }
+      reports_evidence_page: {
+        Args: {
+          _as_of?: string
+          _dataset: string
+          _download?: boolean
+          _filters: Json
+          _from: string
+          _limit?: number
+          _offset?: number
+          _to: string
+        }
+        Returns: Json
+      }
       reports_north_star: {
         Args: { _as_of?: string; _filters: Json; _from: string; _to: string }
         Returns: Json

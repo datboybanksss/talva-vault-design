@@ -14,6 +14,7 @@ import {
 } from "@/lib/reports-contract";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/friendly-error";
+import { useSessionReady } from "@/hooks/use-session-ready";
 export const Route = createFileRoute("/admin/reports-access")({
   head: () => ({
     meta: [
@@ -34,15 +35,21 @@ export const Route = createFileRoute("/admin/reports-access")({
   component: ReportsAccessPage,
 });
 function ReportsAccessPage() {
+  const sessionReady = useSessionReady();
   const roleFn = useServerFn(getReportsAccess),
     listFn = useServerFn(listReportsAccess),
     setFn = useServerFn(setReportsAccess),
     qc = useQueryClient();
-  const role = useQuery({ queryKey: ["admin", "reports-access"], queryFn: () => roleFn() });
+  const role = useQuery({
+    queryKey: ["admin", "reports-access"],
+    queryFn: () => roleFn(),
+    enabled: sessionReady,
+    retry: false,
+  });
   const rows = useQuery({
     queryKey: ["admin", "reports-access-list"],
     queryFn: () => listFn(),
-    enabled: role.data === "owner",
+    enabled: sessionReady && role.data === "owner",
   });
   const [changes, setChanges] = useState<Record<string, ReportRole>>({});
   const save = useMutation({
@@ -81,7 +88,8 @@ function ReportsAccessPage() {
       </header>
       <p className="text-sm text-muted-foreground mb-5">
         Reports access is separate from existing administrator edit rights. Only an Owner can change
-        it. The last active Owner cannot be removed or suspended; every access change is audited.
+        it. Reports access changes cannot remove the last active Owner; every access change is
+        audited.
       </p>
       {role.isPending && <p role="status">Checking access…</p>}
       {role.isError && (
@@ -155,10 +163,9 @@ function ReportsAccessPage() {
         </table>
       </div>
       <p className="text-xs text-muted-foreground mt-4">
-        Operations, Analyst and Viewer use redacted Reports. Existing unredacted Accounts,
-        Invitations, Documents, Billing, Audit, Administrators and identifiable Terms/Launch screens
-        require Owner permissions. Personal profile and sign-in controls are unchanged. Messaging
-        permissions are reserved; sending is not available in this phase.
+        Operations, Analyst and Viewer use redacted Reports. Reports roles do not change access to
+        Accounts, Invitations, Documents, Billing, Audit, Administrators, Terms or Launch screens.
+        Messaging permissions are reserved; sending is not available in this phase.
       </p>
     </section>
   );

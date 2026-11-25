@@ -153,7 +153,7 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
           </Button>
         </div>
       </header>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 tvp-form-group mb-4">
+      <div className="!grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 !gap-3 tvp-form-group mb-4">
         <label className="text-xs font-medium">
           Search name
           <input

@@ -1,0 +1,5 @@
+DO $$ DECLARE r record; f text; d text; guard text := ' IF public.has_role(auth.uid(),''admin'') AND NOT public.reports_can(''include_email_addresses'') THEN RAISE EXCEPTION ''REPORT_ACCESS_DENIED: Your Reports role does not allow operational records.'' USING ERRCODE=''42501''; END IF;'; BEGIN
+FOR r IN SELECT schemaname,tablename,policyname FROM pg_policies WHERE (schemaname='public' AND policyname IN ('Reports direct Admin read guard','Reports profile read guard','Reports role read guard')) OR (schemaname='storage' AND tablename='objects' AND policyname='Reports private Admin storage guard') LOOP EXECUTE format('DROP POLICY %I ON %I.%I',r.policyname,r.schemaname,r.tablename); END LOOP;
+FOREACH f IN ARRAY ARRAY['public.list_recently_deleted_documents(uuid)','public.restore_deleted_document(uuid)','public.mint_billing_doc_number(uuid,text)'] LOOP d:=pg_get_functiondef(f::regprocedure); d:=replace(d,guard,''); EXECUTE d; END LOOP;
+END $$;
+COMMENT ON TABLE public.reports_access IS 'Reports-only roles: do not affect existing Admin operational access. Covers Reports, downloads, future messaging and Reports access settings.';

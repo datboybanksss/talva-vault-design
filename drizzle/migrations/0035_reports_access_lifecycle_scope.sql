@@ -1,0 +1,2 @@
+DROP TRIGGER IF EXISTS reports_admin_lifecycle_guard ON public.user_roles;
+COMMENT ON FUNCTION public.reports_admin_lifecycle_guard() IS 'DEPRECATED: Reports access must not veto operational administrator lifecycle changes; Reports access changes remain last-Owner protected.';

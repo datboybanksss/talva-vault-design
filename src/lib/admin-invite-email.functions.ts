@@ -4,13 +4,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { WORDING_LIMITS } from "@/lib/invitation-email";
-import { assertAdminOperationalAccess } from "./reports-access";
 
 const kindSchema = z.enum(["agency", "talent"]);
 const TABLE = { agency: "agency_invitations", talent: "independent_talent_invitations" } as const;
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
-  await assertAdminOperationalAccess(supabase);
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error || !data) throw new Error("Only TalVault administrators can do this.");
 }
@@ -60,7 +58,6 @@ export const saveAdminInviteWording = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
-    await assertAdminOperationalAccess(supabase);
     if (!canEdit) throw new Error("Your administrator access is view-only.");
     if (data.wording) {
       const { wordingIssues } = await import("@/lib/invitation-email");

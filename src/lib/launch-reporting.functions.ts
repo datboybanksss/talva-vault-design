@@ -1,11 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/integrations/supabase/types";
 import { databaseError } from "./security-errors";
-import { assertAdminOperationalAccess } from "./reports-access";
 import { checkRows as check, checkRow } from "./query-results";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { ReportFilters, ReportPerson } from "./reports-contract";
+import { assertReportPermission } from "./reports-access";
+import { launchRosterScope, redactReportEmails } from "./reports-launch-scope";
 import {
   inLaunchWindow,
   inviteBucket,
@@ -22,7 +24,6 @@ import {
 } from "@/lib/launch-reporting-core";
 
 async function assertAdmin(supabase: SupabaseClient<Database>, userId: string) {
-  await assertAdminOperationalAccess(supabase);
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw databaseError(error);
   if (!data) throw new Error("Forbidden: admin only");
@@ -41,6 +42,10 @@ const Filters = z.object({
   offerOffset: z.number().int().min(0).max(5000).default(0),
   termsOffset: z.number().int().min(0).max(5000).default(0),
   outstandingOffset: z.number().int().min(0).max(5000).default(0),
+  reports: ReportFilters.optional(),
+  asOf: z.string().datetime({ offset: true }).optional(),
+  download: z.boolean().default(false),
+  includeEmails: z.boolean().default(false),
   // CSV export asks for every row with the same rules as the screen.
   limit: z.number().int().min(1).max(5000).default(10),
 });
@@ -48,6 +53,7 @@ const Filters = z.object({
 /** Loads every invitation the reports count (admin agency onboarding, independent and agency talent; inert excluded). */
 export async function loadInviteRows(
   admin: SupabaseClient<Database>,
+  reports = false,
 ): Promise<(InviteRow & { name: string })[]> {
   const [ag, ind, tal, inert, testAg, testTal] = await Promise.all([
     admin
@@ -63,8 +69,13 @@ export async function loadInviteRows(
       ),
     admin
       .from("talent_invitations")
-      .select("id, email, status, created_at, expires_at, first_sent_at, accepted_at, talent_name"),
-    admin.from("talent_invite_private").select("invitation_id").eq("kind", "inert"),
+      .select(
+        "id, agency_id, email, status, created_at, expires_at, first_sent_at, accepted_at, talent_name",
+      ),
+    admin
+      .from("talent_invite_private")
+      .select("invitation_id")
+      .in("kind", reports ? ["inert", "link_request"] : ["inert"]),
     admin.from("agencies").select("id").eq("is_test", true),
     admin.from("talent_profiles").select("email").eq("is_test", true),
   ]);
@@ -163,7 +174,6 @@ export const updateLaunchSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: canEdit } = await supabase.rpc("can_admin_edit", { _user_id: userId });
-    await assertAdminOperationalAccess(supabase);
     if (!canEdit) throw new Error("You need edit permission to change launch settings.");
     const { error } = await supabase.from("platform_settings").upsert({
       key: "launch",
@@ -182,7 +192,23 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
-    const nowIso = new Date().toISOString();
+    const nowIso = data.asOf ?? new Date().toISOString();
+    if (data.reports) {
+      await assertReportPermission(supabase, "view_reports");
+      if (data.download) await assertReportPermission(supabase, "download_raw_data");
+      if (data.includeEmails) await assertReportPermission(supabase, "include_email_addresses");
+    }
+    const rosterResult = data.reports
+      ? await admin.rpc("reports_people_rows", {
+          _from: data.from,
+          _to: data.to,
+          _filters: data.reports,
+          _as_of: nowIso,
+        })
+      : null;
+    if (rosterResult?.error) throw databaseError(rosterResult.error);
+    const roster = rosterResult ? z.array(ReportPerson).parse(rosterResult.data) : null;
+    const sharedScope = roster && data.reports ? launchRosterScope(roster, data.reports) : null;
 
     const settingsRow = checkRow<Pick<Tables<"platform_settings">, "value">>(
       await admin.from("platform_settings").select("value").eq("key", "launch").maybeSingle(),
@@ -203,7 +229,7 @@ export const getLaunchReports = createServerFn({ method: "GET" })
           )
           .eq("kind", "agency_onboarding")
           .eq("status", "accepted"),
-        loadInviteRows(admin),
+        loadInviteRows(admin, !!data.reports),
         admin.from("agency_members").select("user_id, agency_id"),
         admin
           .from("agency_talent_links")
@@ -223,17 +249,36 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       scope === "all" ? true : scope === "test" ? !!isTest : !isTest;
     const agencyById = new Map(check(agencyRows).map((a) => [a.id, a]));
     const allTalent = check(talent);
-    const talentRows = allTalent.filter((t) => inScope(t.is_test));
-    const agencyAcc = check(agencyAccepted).filter((a) =>
-      inScope(a.agency_id ? agencyById.get(a.agency_id)?.is_test : false),
+    const talentRows = allTalent.filter(
+      (t) =>
+        inScope(t.is_test) && (!sharedScope || (t.user_id && sharedScope.users.has(t.user_id))),
     );
-    const scopedInvites = invites.filter((i) => inScope(i.is_test));
+    const agencyAcc = check(agencyAccepted).filter(
+      (a) =>
+        inScope(a.agency_id ? agencyById.get(a.agency_id)?.is_test : false) &&
+        (!sharedScope ||
+          sharedScope.keepInvitation({ email: a.email, type: "agency", agency_id: a.agency_id })),
+    );
+    const scopedInvites = invites.filter(
+      (i) =>
+        inScope(i.is_test) &&
+        (!sharedScope || sharedScope.keepInvitation(i)) &&
+        (!data.reports ||
+          (i.status !== "draft" && (!i.first_sent_at || i.first_sent_at <= nowIso))),
+    );
+    const registeredDate = (t: (typeof talentRows)[number]) =>
+      data.reports
+        ? (roster?.find((p) => p.person_id === t.user_id)?.registered_at ?? null)
+        : t.activation_completed_at;
+    const range = sastRange(data.from, data.to);
+    const inSelectedPeriod = (date: string | null) =>
+      !data.reports || (!!date && date >= range.fromIso && date <= range.toIso && date <= nowIso);
 
     // 1. Launch progress — activated talent and accepted agency onboarding.
     const progress = launchProgress(
       {
-        talentJoined: talentRows.map((t) => t.activation_completed_at),
-        agenciesJoined: agencyAcc.map((a) => a.accepted_at),
+        talentJoined: talentRows.map(registeredDate).filter(inSelectedPeriod),
+        agenciesJoined: agencyAcc.map((a) => a.accepted_at).filter(inSelectedPeriod),
       },
       settings,
     );
@@ -246,11 +291,13 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       [...offer.agency.rows, ...offer.talent.rows].map((r) => [r.id, r.place]),
     );
     const offerRows = [...offer.agency.rows, ...offer.talent.rows].filter(
-      (r) => data.type === "all" || r.type === data.type,
+      (r) =>
+        (data.type === "all" || r.type === data.type) &&
+        (!data.reports || scopedInvites.some((i) => i.id === r.id)) &&
+        inSelectedPeriod(r.first_sent_at),
     );
 
     // 3. Invitation conversion.
-    const range = sastRange(data.from, data.to);
     const funnel = invitationFunnel(
       scopedInvites,
       { ...range, type: data.type, segment: data.segment },
@@ -276,8 +323,10 @@ export const getLaunchReports = createServerFn({ method: "GET" })
       string,
       Pick<Tables<"profiles">, "id" | "email" | "display_name" | "first_name" | "last_name">
     >();
-    const memberIds = [...new Set(check(members).map((m) => m.user_id))].filter((id) =>
-      inScope(agencyById.get(memberAgency.get(id) ?? "")?.is_test),
+    const memberIds = [...new Set(check(members).map((m) => m.user_id))].filter(
+      (id) =>
+        inScope(agencyById.get(memberAgency.get(id) ?? "")?.is_test) &&
+        (!sharedScope || sharedScope.users.has(id)),
     );
     if (memberIds.length) {
       const p = check(
@@ -335,7 +384,10 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     const scopedUsers = new Set<string | null>([...talentRows.map((t) => t.user_id), ...memberIds]);
     const accInRange = accRows
       .filter((a) => scopedUsers.has(a.user_id))
-      .filter((a) => a.accepted_at >= range.fromIso && a.accepted_at <= range.toIso)
+      .filter(
+        (a) =>
+          a.accepted_at >= range.fromIso && a.accepted_at <= range.toIso && a.accepted_at <= nowIso,
+      )
       .filter((a) => data.type === "all" || a.doc_type === data.type)
       .map((a) => ({ ...a, is_current: currentIds.has(a.document_id) }));
 
@@ -346,7 +398,9 @@ export const getLaunchReports = createServerFn({ method: "GET" })
     for (const i of invites)
       if (i.type === "talent" && !inviteByEmail.has(i.email)) inviteByEmail.set(i.email, i);
     const recordTalent = talentRows
-      .filter((t) => inLaunchWindow(t.activation_completed_at, settings))
+      .filter(
+        (t) => inLaunchWindow(registeredDate(t), settings) && inSelectedPeriod(registeredDate(t)),
+      )
       .map((t) => {
         const inv = inviteByEmail.get(
           String(t.email ?? "")
@@ -362,13 +416,13 @@ export const getLaunchReports = createServerFn({ method: "GET" })
           is_test: !!t.is_test,
           agency: ags.length ? ags.join(", ") : "Independent",
           invited_at: inv?.first_sent_at ?? inv?.created_at ?? null,
-          signed_up_at: t.activation_completed_at,
+          signed_up_at: registeredDate(t),
           status: "active",
           offer_place: inv ? (placeById.get(inv.id) ?? null) : null,
         };
       });
     const recordAgencies = agencyAcc
-      .filter((a) => inLaunchWindow(a.accepted_at, settings))
+      .filter((a) => inLaunchWindow(a.accepted_at, settings) && inSelectedPeriod(a.accepted_at))
       .map((a) => {
         const ag = a.agency_id ? agencyById.get(a.agency_id) : null;
         return {
@@ -404,8 +458,9 @@ export const getLaunchReports = createServerFn({ method: "GET" })
         offer_place: placeById.get(r.id) ?? null,
       }));
 
-    return {
+    const result = {
       generatedAt: nowIso,
+      missingRegistrationDates: talentRows.filter((t) => !registeredDate(t)).length,
       settings,
       progress,
       records: { talent: recordTalent, agencies: recordAgencies, invitations: recordInvites },
@@ -435,4 +490,22 @@ export const getLaunchReports = createServerFn({ method: "GET" })
         peopleInScope: peopleFiltered.length,
       },
     };
+    if (data.reports && data.download) {
+      const receipt = await supabase.from("reports_export_history").insert({
+        admin_id: userId,
+        dataset: "Launch",
+        filters: { ...data.reports, from: data.from, to: data.to, as_of: nowIso },
+        email_included: data.includeEmails,
+        row_count:
+          result.records.talent.length +
+          result.records.agencies.length +
+          result.records.invitations.length +
+          result.offer.rows.length +
+          result.terms.acceptances.length +
+          result.terms.outstanding.length,
+      });
+      if (receipt.error) throw databaseError(receipt.error, "The download could not be recorded.");
+      await assertReportPermission(supabase, "download_raw_data");
+    }
+    return data.reports && !data.includeEmails ? redactReportEmails(result) : result;
   });

@@ -36,6 +36,8 @@ import { peopleCsv } from "@/lib/reports-download";
 import { downloadCsv } from "@/lib/billing-reports";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/friendly-error";
+import { useSessionReady } from "@/hooks/use-session-ready";
+import { ReportEvidence } from "@/components/admin/report-evidence";
 const text = (value: string) => fallback(z.string(), value).default(value);
 const searchSchema = z.object({
   tab: text("overview"),
@@ -78,6 +80,7 @@ export const Route = createFileRoute("/admin/reporting")({
   component: ReportsPage,
 });
 function ReportsPage() {
+  const sessionReady = useSessionReady();
   const search = Route.useSearch(),
     navigate = useNavigate({ from: "/admin/reporting" });
   const parsed = ReportFilters.safeParse(search),
@@ -91,13 +94,15 @@ function ReportsPage() {
   const options = useQuery({
     queryKey: ["admin", "reports-options"],
     queryFn: () => optionsFn(),
+    enabled: sessionReady,
+    retry: false,
     staleTime: 30000,
   });
   const o = options.data,
     period = o ? reportPeriod(filters, o.as_of, o.launch_date, o.first_date) : null;
   const summary = useQuery({
     queryKey: ["admin", "reports-summary", filters, period, o?.as_of],
-    enabled: !!period && !!o && (tab === "overview" || tab === "engagement"),
+    enabled: sessionReady && !!period && !!o && (tab === "overview" || tab === "engagement"),
     queryFn: () => {
       if (!period || !o) throw new Error("Choose a reporting period.");
       return summaryFn({ data: { filters, ...period, asOf: o.as_of } });
@@ -105,7 +110,7 @@ function ReportsPage() {
   });
   const north = useQuery({
     queryKey: ["admin", "reports-north-star", filters, period, o?.as_of],
-    enabled: !!period && !!o && tab === "overview",
+    enabled: sessionReady && !!period && !!o && tab === "overview",
     queryFn: () => {
       if (!period || !o) throw new Error("Choose a reporting period.");
       return northFn({ data: { filters, from: period.from, to: period.to, asOf: o.as_of } });
@@ -208,7 +213,7 @@ function ReportsPage() {
                 {filters.accounts === "all"
                   ? "All accounts"
                   : `${filters.accounts === "real" ? "Real" : "Test"} accounts`}{" "}
-                · South African time · Sign-ins tracked since{" "}
+                · South African time · First observed sign-in{" "}
                 {fmtDate(o.first_login, "Not recorded")}
               </>
             }
@@ -263,6 +268,16 @@ function ReportsPage() {
                         View contributing people
                       </Button>
                     </header>
+                    <div className="mt-3">
+                      <ReportEvidence
+                        dataset="relationships"
+                        filters={filters}
+                        from={period.from}
+                        to={period.to}
+                        asOf={o.as_of}
+                        role={o.role}
+                      />
+                    </div>
                     {north.isPending && (
                       <p className="text-muted-foreground mt-3">Calculating relationships…</p>
                     )}
@@ -293,10 +308,30 @@ function ReportsPage() {
                       </>
                     )}
                   </section>
+                  <ReportEvidence
+                    dataset="sign_in_events"
+                    filters={filters}
+                    from={period.from}
+                    to={period.to}
+                    asOf={o.as_of}
+                    role={o.role}
+                  />
                   {signIn}
                 </>
               )}
-              {tab === "engagement" && signIn}
+              {tab === "engagement" && (
+                <>
+                  <ReportEvidence
+                    dataset="sign_in_events"
+                    filters={filters}
+                    from={period.from}
+                    to={period.to}
+                    asOf={o.as_of}
+                    role={o.role}
+                  />
+                  <div className="mt-4">{signIn}</div>
+                </>
+              )}
               {tab === "people" && (
                 <ReportsPeople
                   key={JSON.stringify({ filters, period })}
@@ -329,19 +364,42 @@ function ReportsPage() {
                   </p>
                 </section>
               )}
-              {tab === "launch" &&
-                (o.role === "owner" ? (
-                  <LaunchReports from={period.from} to={period.to} />
-                ) : (
-                  <p className="text-sm text-muted-foreground py-6">
-                    Identifiable launch offer and Terms records require Owner access.
-                  </p>
-                ))}
+              {tab === "launch" && (
+                <LaunchReports
+                  from={period.from}
+                  to={period.to}
+                  filters={filters}
+                  role={o.role}
+                  asOf={o.as_of}
+                />
+              )}
               {(tab === "growth" || tab === "agencies" || tab === "business") && (
                 <section className="py-5">
-                  <h2 className="tvp-h2">{REPORT_TAB_LABELS[tab]}</h2>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center">
+                      <h2 className="tvp-h2">{REPORT_TAB_LABELS[tab]}</h2>
+                      <ReportDefinition
+                        definition={
+                          tab === "growth"
+                            ? "registered"
+                            : tab === "agencies"
+                              ? "onboarded"
+                              : "accounts"
+                        }
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      disabled={!roleCan(o.role, "download_raw_data") || downloading}
+                      onClick={() => void exportPeople()}
+                    >
+                      <Download />
+                      Download underlying People CSV
+                    </Button>
+                  </div>
                   <p className="text-sm text-muted-foreground mt-3">
-                    Additional analysis is not yet available.
+                    Additional analysis is not yet available. Underlying People evidence follows the
+                    selected filters; no unavailable figures are substituted.
                   </p>
                   <Button variant="link" className="!px-0 mt-2" onClick={() => openPeople()}>
                     View People with these filters

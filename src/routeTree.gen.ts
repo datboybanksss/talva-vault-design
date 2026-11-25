@@ -24,6 +24,7 @@ import { Route as AdminAgenciesRouteImport } from './routes/admin.agencies'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminEnroll2faRouteImport } from './routes/admin.enroll-2fa'
 import { Route as AdminInvitationsRouteImport } from './routes/admin.invitations'
+import { Route as AdminLaunchReportsRouteImport } from './routes/admin.launch-reports'
 import { Route as AdminMyAccountRouteImport } from './routes/admin.my-account'
 import { Route as AdminQuotesInvoicesRouteImport } from './routes/admin.quotes-invoices'
 import { Route as AdminReportingRouteImport } from './routes/admin.reporting'
@@ -148,6 +149,11 @@ const AdminEnroll2faRoute = AdminEnroll2faRouteImport.update({
 const AdminInvitationsRoute = AdminInvitationsRouteImport.update({
   id: '/invitations',
   path: '/invitations',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLaunchReportsRoute = AdminLaunchReportsRouteImport.update({
+  id: '/launch-reports',
+  path: '/launch-reports',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMyAccountRoute = AdminMyAccountRouteImport.update({
@@ -424,6 +430,7 @@ export interface FileRoutesByFullPath {
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
+  '/admin/launch-reports': typeof AdminLaunchReportsRoute
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/admin/reporting': typeof AdminReportingRoute
@@ -486,6 +493,7 @@ export interface FileRoutesByTo {
   '/admin/administrators': typeof AdminAdministratorsRouteWithChildren
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
+  '/admin/launch-reports': typeof AdminLaunchReportsRoute
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/admin/reporting': typeof AdminReportingRoute
@@ -553,6 +561,7 @@ export interface FileRoutesById {
   '/admin/audit': typeof AdminAuditRoute
   '/admin/enroll-2fa': typeof AdminEnroll2faRoute
   '/admin/invitations': typeof AdminInvitationsRouteWithChildren
+  '/admin/launch-reports': typeof AdminLaunchReportsRoute
   '/admin/my-account': typeof AdminMyAccountRoute
   '/admin/quotes-invoices': typeof AdminQuotesInvoicesRoute
   '/admin/reporting': typeof AdminReportingRoute
@@ -622,6 +631,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/enroll-2fa'
     | '/admin/invitations'
+    | '/admin/launch-reports'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/admin/reporting'
@@ -684,6 +694,7 @@ export interface FileRouteTypes {
     | '/admin/administrators'
     | '/admin/audit'
     | '/admin/enroll-2fa'
+    | '/admin/launch-reports'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/admin/reporting'
@@ -750,6 +761,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/enroll-2fa'
     | '/admin/invitations'
+    | '/admin/launch-reports'
     | '/admin/my-account'
     | '/admin/quotes-invoices'
     | '/admin/reporting'
@@ -930,6 +942,13 @@ declare module '@tanstack/react-router' {
       path: '/invitations'
       fullPath: '/admin/invitations'
       preLoaderRoute: typeof AdminInvitationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/launch-reports': {
+      id: '/admin/launch-reports'
+      path: '/launch-reports'
+      fullPath: '/admin/launch-reports'
+      preLoaderRoute: typeof AdminLaunchReportsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/my-account': {
@@ -1337,6 +1356,7 @@ interface AdminRouteChildren {
   AdminAuditRoute: typeof AdminAuditRoute
   AdminEnroll2faRoute: typeof AdminEnroll2faRoute
   AdminInvitationsRoute: typeof AdminInvitationsRouteWithChildren
+  AdminLaunchReportsRoute: typeof AdminLaunchReportsRoute
   AdminMyAccountRoute: typeof AdminMyAccountRoute
   AdminQuotesInvoicesRoute: typeof AdminQuotesInvoicesRoute
   AdminReportingRoute: typeof AdminReportingRoute
@@ -1353,6 +1373,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAuditRoute: AdminAuditRoute,
   AdminEnroll2faRoute: AdminEnroll2faRoute,
   AdminInvitationsRoute: AdminInvitationsRouteWithChildren,
+  AdminLaunchReportsRoute: AdminLaunchReportsRoute,
   AdminMyAccountRoute: AdminMyAccountRoute,
   AdminQuotesInvoicesRoute: AdminQuotesInvoicesRoute,
   AdminReportingRoute: AdminReportingRoute,

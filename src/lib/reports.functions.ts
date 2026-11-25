@@ -27,7 +27,9 @@ const Options = z.object({
 export const getReportsOptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("reports_options");
+    const { data, error } = await context.supabase
+      .rpc("reports_options")
+      .abortSignal(AbortSignal.timeout(15000));
     if (error)
       throw databaseError(error, "The Reports filters could not be loaded. Please try again.");
     return Options.parse(data);
@@ -99,6 +101,8 @@ export const exportReportsPeople = createServerFn({ method: "POST" })
       row_count: rows.length,
     });
     if (error) throw databaseError(error, "The download could not be recorded. Please try again.");
+    await assertReportPermission(context.supabase, "download_raw_data");
+    if (d.includeEmails) await assertReportPermission(context.supabase, "include_email_addresses");
     return { rows, asOf };
   });
 export const getReportsAccess = createServerFn({ method: "GET" })
@@ -247,4 +251,63 @@ export const getReportsNorthStar = createServerFn({ method: "GET" })
     return z
       .object({ active: z.number(), total: z.number(), people: z.array(z.string()) })
       .parse(data);
+  });
+
+const EvidenceInput = ReportsInput.and(
+  z.object({ dataset: z.enum(["sign_in_events", "relationships"]) }),
+);
+const EvidencePage = z.object({
+  total: z.number(),
+  columns: z.array(z.string()),
+  rows: z.array(z.array(z.union([z.string(), z.number(), z.null()]))),
+});
+async function evidencePage(
+  client: SupabaseClient<Database>,
+  input: z.infer<typeof EvidenceInput>,
+  download: boolean,
+) {
+  const result = await client.rpc("reports_evidence_page", {
+    _from: input.from,
+    _to: input.to,
+    _filters: input.filters,
+    _dataset: input.dataset,
+    _limit: input.limit,
+    _offset: input.offset,
+    _download: download,
+    ...(input.asOf ? { _as_of: input.asOf } : {}),
+  });
+  if (result.error)
+    throw databaseError(result.error, "The evidence could not be loaded. Please try again.");
+  return EvidencePage.parse(result.data);
+}
+export const getReportsEvidence = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => EvidenceInput.parse(d))
+  .handler(({ context, data }) => evidencePage(context.supabase, data, false));
+export const exportReportsEvidence = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => EvidenceInput.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertReportPermission(context.supabase, "download_raw_data");
+    const asOf = data.asOf ?? new Date().toISOString();
+    const first = await evidencePage(
+      context.supabase,
+      { ...data, asOf, offset: 0, limit: 200 },
+      true,
+    );
+    const rows = await allReportRows(async (offset) =>
+      offset === 0
+        ? first
+        : evidencePage(context.supabase, { ...data, asOf, offset, limit: 200 }, true),
+    );
+    const receipt = await context.supabase.from("reports_export_history").insert({
+      admin_id: context.userId,
+      dataset: data.dataset,
+      filters: { ...data.filters, from: data.from, to: data.to, as_of: asOf },
+      email_included: false,
+      row_count: rows.length,
+    });
+    if (receipt.error) throw databaseError(receipt.error, "The download could not be recorded.");
+    await assertReportPermission(context.supabase, "download_raw_data");
+    return { columns: first.columns, rows, asOf };
   });

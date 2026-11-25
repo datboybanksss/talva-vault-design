@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { INVITE_FLOWS, type InviteEmailConflict } from "@/lib/invite-email-check";
-import { assertAdminOperationalAccess } from "./reports-access";
 
 /** Inline duplicate check for the invitation forms (Save draft / leaving the email field). */
 export const checkInviteEmail = createServerFn({ method: "POST" })
@@ -20,7 +19,6 @@ export const checkInviteEmail = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     let agencyId: string | null = null;
     if (data.flow.startsWith("admin_")) {
-      await assertAdminOperationalAccess(supabase);
       const { data: isAdmin } = await supabase.rpc("has_role", {
         _user_id: userId,
         _role: "admin",

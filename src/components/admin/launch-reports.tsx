@@ -1,5 +1,8 @@
 import { privateReportCsv } from "@/lib/report-download";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { ReportDefinition } from "./report-definition";
+import { roleCan, type ReportsFilters, type ReportRole } from "@/lib/reports-contract";
+import { allReportRows } from "@/lib/report-download";
 import { matchesSearch } from "@/lib/search";
 import { proofDocumentId } from "@/lib/proof-display";
 import { FilterBar } from "@/components/shared/filter-bar";
@@ -69,32 +72,38 @@ function download(name: string, rows: (string | number | null | undefined)[][]) 
   URL.revokeObjectURL(a.href);
 }
 
-export function LaunchReports({ from, to }: { from: string; to: string }) {
-  const search = useSearch({ from: "/admin/reporting" });
-  const navigate = useNavigate({ from: "/admin/reporting" });
-  const type =
-    search.account_type === "agency_staff"
+export function LaunchReports({
+  from,
+  to,
+  filters,
+  role,
+  asOf,
+  legacy,
+}: {
+  from: string;
+  to: string;
+  filters?: ReportsFilters;
+  role?: ReportRole;
+  asOf?: string;
+  legacy?: {
+    type: "all" | "agency" | "talent";
+    segment: "all" | "agency_linked" | "independent";
+    accounts: "real" | "test" | "all";
+    onChange: (key: string, value: string) => void;
+    onClear: () => void;
+  };
+}) {
+  const type = filters
+    ? filters.account_type === "agency_staff"
       ? "agency"
-      : search.account_type === "talent"
+      : filters.account_type === "talent"
         ? "talent"
-        : search.type === "agency" || search.type === "talent"
-          ? search.type
-          : "all";
-  const segment =
-    search.talent === "agency_linked" || search.talent === "independent" ? search.talent : "all";
-  const accounts =
-    search.accounts === "test" || search.accounts === "all" ? search.accounts : "real";
+        : "all"
+    : (legacy?.type ?? "all");
+  const segment = filters?.talent ?? legacy?.segment ?? "all";
+  const accounts = filters?.accounts ?? legacy?.accounts ?? "real";
+  const canDownload = !role || roleCan(role, "download_raw_data");
   const [viewing, setViewing] = useState<null | "talent" | "agencies" | "invitations">(null);
-  const setFilter = (key: string, value: string) =>
-    navigate({
-      search: (prev) => {
-        const dflt = key === "accounts" ? "real" : "all";
-        const next = { ...prev, [key]: value === dflt ? dflt : value };
-        if (key === "type" && value === "agency") next.talent = "all";
-        return next as typeof prev;
-      },
-      replace: true,
-    });
   const [offerOffset, setOfferOffset] = useState(0);
   const [termsOffset, setTermsOffset] = useState(0);
   const [outstandingOffset, setOutstandingOffset] = useState(0);
@@ -103,10 +112,18 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
     setOfferOffset(0);
     setTermsOffset(0);
     setOutstandingOffset(0);
-  }, [type, segment, accounts, from, to]);
+  }, [type, segment, accounts, from, to, filters]);
 
   const fn = useServerFn(getLaunchReports);
-  const base = { from, to, type, segment: type === "agency" ? "all" : segment, accounts } as const;
+  const base = {
+    from,
+    to,
+    type,
+    segment: type === "agency" ? "all" : segment,
+    accounts,
+    ...(filters ? { reports: filters } : {}),
+    ...(asOf ? { asOf } : {}),
+  } as const;
   const q = useQuery({
     queryKey: ["admin", "launch-reports", base, offerOffset, termsOffset, outstandingOffset],
     queryFn: () =>
@@ -118,7 +135,44 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
 
   async function exportCsv(kind: "funnel" | "offer" | "terms" | "outstanding") {
     try {
-      const all = await fn({ data: { ...base, limit: 5000 } });
+      const first = await fn({ data: { ...base, download: true, limit: 200 } });
+      const rows =
+        kind === "offer"
+          ? await allReportRows(async (offset) => {
+              const page =
+                offset === 0
+                  ? first
+                  : await fn({
+                      data: { ...base, download: true, offerOffset: offset, limit: 200 },
+                    });
+              return { total: page.offer.total, rows: page.offer.rows };
+            })
+          : null;
+      const acceptances =
+        kind === "terms"
+          ? await allReportRows(async (offset) => {
+              const page =
+                offset === 0
+                  ? first
+                  : await fn({
+                      data: { ...base, download: true, termsOffset: offset, limit: 200 },
+                    });
+              return { total: page.terms.acceptancesTotal, rows: page.terms.acceptances };
+            })
+          : null;
+      const outstanding =
+        kind === "outstanding"
+          ? await allReportRows(async (offset) => {
+              const page =
+                offset === 0
+                  ? first
+                  : await fn({
+                      data: { ...base, download: true, outstandingOffset: offset, limit: 200 },
+                    });
+              return { total: page.terms.outstandingTotal, rows: page.terms.outstanding };
+            })
+          : null;
+      const all = first;
       const stamp = `${from}_${to}`;
       if (kind === "funnel") {
         const f = all.funnel;
@@ -137,7 +191,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
       } else if (kind === "offer") {
         download(`launch-offer_${stamp}.csv`, [
           ["Place", "Type", "Name", "Email", "First sent", "Accepted", "Free until"],
-          ...all.offer.rows.map((r) => [
+          ...(rows ?? []).map((r) => [
             r.place,
             r.type,
             r.name,
@@ -162,7 +216,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             "Proof reference",
             "Hash added later",
           ],
-          ...all.terms.acceptances.map((a) => [
+          ...(acceptances ?? []).map((a) => [
             a.user_full_name,
             a.user_email,
             a.user_role,
@@ -179,7 +233,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
       } else {
         download(`terms-not-accepted_${stamp}.csv`, [
           ["Name", "Email", "Terms", "Current version", "Last accepted version"],
-          ...all.terms.outstanding.map((p) => [
+          ...(outstanding ?? []).map((p) => [
             p.name,
             p.email,
             p.docType,
@@ -225,60 +279,66 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
     ) : null;
 
   const Csv = ({ kind }: { kind: "funnel" | "offer" | "terms" | "outstanding" }) => (
-    <button className="tvp-secondary" onClick={() => exportCsv(kind)} disabled={!d}>
+    <Button
+      variant="outline"
+      onClick={() => void exportCsv(kind)}
+      disabled={!d || !canDownload}
+      title={
+        !canDownload ? "Your Reports role does not allow downloads" : "Download every matching row"
+      }
+    >
       <Download className="h-4 w-4" /> CSV
-    </button>
+    </Button>
   );
 
   return (
     <section className="tvp-stack" aria-label="Launch reports">
-      <div className="tvp-card tvp-panel">
+      <div className="min-w-0 border-b border-border pb-5 mb-5">
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Launch reports</h2>
           <button className="tvp-secondary" onClick={() => setEditing(true)}>
             <Settings2 className="h-4 w-4" /> Launch settings
           </button>
         </div>
-        <FilterBar
-          active={type !== "all" || segment !== "all"}
-          onChange={setFilter}
-          onClear={() =>
-            navigate({
-              search: (prev) => ({
-                ...prev,
-                type: undefined,
-                talent: undefined,
-              }),
-              replace: true,
-            })
-          }
-          filters={[
-            {
-              key: "type",
-              label: "Type",
-              value: type,
-              options: [
-                { value: "all", label: "All users" },
-                { value: "agency", label: "Agency" },
-                { value: "talent", label: "Talent" },
-              ],
-            },
-            ...(type !== "agency"
-              ? [
-                  {
-                    key: "talent",
-                    label: "Talent",
-                    value: segment,
-                    options: [
-                      { value: "all", label: "All talent" },
-                      { value: "agency_linked", label: "Agency-linked" },
-                      { value: "independent", label: "Independent" },
-                    ],
-                  },
-                ]
-              : []),
-          ]}
-        />
+        {legacy && (
+          <FilterBar
+            active={type !== "all" || segment !== "all" || accounts !== "real"}
+            onChange={legacy.onChange}
+            onClear={legacy.onClear}
+            filters={[
+              {
+                key: "type",
+                label: "Type",
+                value: type,
+                options: [
+                  { value: "all", label: "All users" },
+                  { value: "agency", label: "Agency" },
+                  { value: "talent", label: "Talent" },
+                ],
+              },
+              {
+                key: "talent",
+                label: "Talent",
+                value: segment,
+                options: [
+                  { value: "all", label: "All talent" },
+                  { value: "agency_linked", label: "Agency-linked" },
+                  { value: "independent", label: "Independent" },
+                ],
+              },
+              {
+                key: "accounts",
+                label: "Accounts",
+                value: accounts,
+                options: [
+                  { value: "real", label: "Real" },
+                  { value: "test", label: "Test" },
+                  { value: "all", label: "All" },
+                ],
+              },
+            ]}
+          />
+        )}
         {q.isLoading && <p className="tvp-muted">Loading launch reports…</p>}
         {q.isError && (
           <p className="tvp-muted">
@@ -289,13 +349,23 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
 
       {d && (
         <>
-          <div className="tvp-card tvp-panel">
+          <div className="min-w-0 border-b border-border pb-5 mb-5">
             <div className="tvp-panel-head">
-              <h2 className="tvp-h2">Launch progress</h2>
+              <div className="flex items-center">
+                <h2 className="tvp-h2">Launch progress</h2>
+                <ReportDefinition definition="registered" />
+              </div>
               <span className="tvp-muted">
                 Launch period: {fmtDate(d.progress.windowStart)} – {fmtDate(d.progress.windowEnd)}
               </span>
             </div>
+            {filters && (
+              <p className="text-xs text-muted-foreground mb-3">
+                Selected period intersected with the launch window. {d.missingRegistrationDates}{" "}
+                talent have no recorded registration date; they are included in People without proxy
+                dates.
+              </p>
+            )}
             <div className="tvp-kpi-pair">
               {(
                 [
@@ -331,7 +401,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             </div>
           </div>
 
-          <div className="tvp-card tvp-panel">
+          <div className="min-w-0 border-b border-border pb-5 mb-5">
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Launch offer · {d.settings.offer_free_months} months free</h2>
               <Csv kind="offer" />
@@ -386,9 +456,12 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             <Pager offset={offerOffset} total={d.offer.total} set={setOfferOffset} />
           </div>
 
-          <div className="tvp-card tvp-panel">
+          <div className="min-w-0 border-b border-border pb-5 mb-5">
             <div className="tvp-panel-head">
-              <h2 className="tvp-h2">Invitation conversion</h2>
+              <div className="flex items-center">
+                <h2 className="tvp-h2">Invitation conversion</h2>
+                <ReportDefinition definition="funnel" />
+              </div>
               <div className="tvp-actions">
                 <button
                   type="button"
@@ -453,7 +526,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             </p>
           </div>
 
-          <div className="tvp-card tvp-panel">
+          <div className="min-w-0 border-b border-border pb-5 mb-5">
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Terms acceptances</h2>
               <Csv kind="terms" />
@@ -509,7 +582,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
             <Pager offset={termsOffset} total={d.terms.acceptancesTotal} set={setTermsOffset} />
           </div>
 
-          <div className="tvp-card tvp-panel">
+          <div className="min-w-0 border-b border-border pb-5 mb-5">
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">
                 Not yet accepted the current Terms · {d.terms.outstandingTotal}
@@ -573,6 +646,7 @@ export function LaunchReports({ from, to }: { from: string; to: string }) {
           }
           rows={d.records[viewing]}
           fileName={`${viewing}_${accounts}_${from}_${to}.csv`}
+          canDownload={canDownload}
           onClose={() => setViewing(null)}
         />
       )}
@@ -599,10 +673,12 @@ function RecordsDialog({
   rows,
   fileName,
   onClose,
+  canDownload,
 }: {
   title: string;
   rows: RecordRow[];
   fileName: string;
+  canDownload: boolean;
   onClose: () => void;
 }) {
   const [term, setTerm] = useState("");
@@ -697,7 +773,7 @@ function RecordsDialog({
         </table>
       </div>
       <div className="tvp-footer-actions">
-        <button className="tvp-secondary" onClick={csv}>
+        <button className="tvp-secondary" onClick={csv} disabled={!canDownload}>
           <Download className="h-4 w-4" /> CSV
         </button>
         <button className="tvp-primary" onClick={onClose}>

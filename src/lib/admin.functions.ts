@@ -1,6 +1,5 @@
 import { duplicateOnboardingName, blockedReplacements } from "./onboarding-documents";
 import { databaseError } from "./security-errors";
-import { assertAdminOperationalAccess } from "./reports-access";
 import { allQueryRows } from "./query-results";
 import { agencyInvitationStatusInput } from "./invitation-status-input";
 import { createServerFn } from "@tanstack/react-start";
@@ -103,7 +102,6 @@ async function assertAdminIdentity(supabase: AdminClient, userId: string) {
 
 async function assertAdmin(supabase: AdminClient, userId: string) {
   await assertAdminIdentity(supabase, userId);
-  await assertAdminOperationalAccess(supabase);
 }
 
 async function assertAdminCanEdit(supabase: AdminClient, userId: string) {
