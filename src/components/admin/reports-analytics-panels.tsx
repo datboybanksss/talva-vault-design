@@ -1,6 +1,8 @@
-import { useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Download, ArrowUp, ArrowDown, Minus, Columns3 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { ChevronRight, Download, ArrowUp, ArrowDown, Minus, Columns3, Plus } from "lucide-react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -13,36 +15,99 @@ import {
   LabelList,
   Cell,
 } from "recharts";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ReportDefinition } from "./report-definition";
-import { pct, SIGN_IN_HISTORY_NOTE, type Analytics, type Metric } from "@/lib/reports-analytics";
+import {
+  pct,
+  channelLabel,
+  CHANNEL_KEYS,
+  SIGN_IN_HISTORY_NOTE,
+  type Analytics,
+  type Metric,
+  type SectionId,
+} from "@/lib/reports-analytics";
+import { setReportChannelSpend } from "@/lib/reports-analytics.functions";
 import type { ReportDefinitionKey } from "@/lib/reports-definitions";
 import { fmtDate } from "@/lib/display-dates";
-export type PanelProps = {
-  data: Analytics;
-  onPeople: (ids: string[]) => void;
-  onDownload: (dataset: string) => void;
+import { friendlyError } from "@/lib/friendly-error";
+
+export type ReportActions = {
+  /** Opens People filtered to exactly these people. */
+  onPeople: (ids: string[], label: string) => void;
+  onDownload: (section: SectionId | "north_star") => void;
+  onTab: (tab: "growth") => void;
+  onInvestorPack: () => void;
   canDownload: boolean;
+  canManageSpend: boolean;
 };
+const Actions = createContext<ReportActions | null>(null);
+export const ReportActionsProvider = Actions.Provider;
+function useActions() {
+  const actions = useContext(Actions);
+  if (!actions) throw new Error("Report sections need their actions.");
+  return actions;
+}
+export type PanelProps = { data: Analytics };
+const FILE_TYPES: Record<string, string> = {
+  "application/pdf": "PDF",
+  "image/jpeg": "Photo (JPEG)",
+  "image/png": "Image (PNG)",
+  "image/webp": "Image (WebP)",
+  "image/heic": "Photo (HEIC)",
+  "application/msword": "Word document",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "Excel spreadsheet",
+};
+const fileTypeLabel = (mime: string) => FILE_TYPES[mime] ?? mime;
+/** "Sep 2026" — the same month names as every other date in the app. */
+const monthLabel = (month: string) => fmtDate(`${month}-01T12:00:00Z`).replace(/^\d+ /, "");
+const figure = (value: number) =>
+  Number.isInteger(value) ? value.toLocaleString("en-ZA") : String(value);
+const rand = (n: number) =>
+  `R ${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Any number on the page: opens People with exactly the people behind it. */
+export function Drill({
+  people,
+  label,
+  children,
+  className = "",
+}: {
+  people: string[];
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const { onPeople } = useActions();
+  return (
+    <Button
+      variant="link"
+      className={`report-drill ${className}`}
+      data-drill={people.length}
+      title={`See the ${people.length} ${people.length === 1 ? "person" : "people"} behind this figure`}
+      onClick={() => onPeople(people, label)}
+    >
+      {children}
+    </Button>
+  );
+}
 export function ReportPanel({
   title,
   description,
   definition,
-  dataset,
+  section,
   children,
-  onDownload,
-  canDownload,
 }: {
   title: string;
   description: string;
   definition: ReportDefinitionKey;
-  dataset: string;
+  section: SectionId;
   children: ReactNode;
-  onDownload: (s: string) => void;
-  canDownload: boolean;
 }) {
+  const { onDownload, canDownload } = useActions();
   return (
     <section className="report-card">
       <header className="report-section-head">
@@ -52,7 +117,7 @@ export function ReportPanel({
         </div>
         <div className="report-head-actions">
           <ReportDefinition definition={definition} />
-          <Button variant="outline" disabled={!canDownload} onClick={() => onDownload(dataset)}>
+          <Button variant="outline" disabled={!canDownload} onClick={() => onDownload(section)}>
             <Download />
             Download CSV
           </Button>
@@ -76,55 +141,94 @@ export function Comparison({ value, previous }: { value: number | string; previo
     </span>
   );
 }
+const peopleWord = (n: number) => `${n} ${n === 1 ? "person" : "people"}`;
 export function MetricCards({
   metrics,
-  onPeople,
+  group = "",
+  comparison = true,
 }: {
   metrics: Metric[];
-  onPeople: (ids: string[]) => void;
+  group?: string;
+  comparison?: boolean;
 }) {
+  const { onPeople } = useActions();
   return (
     <div className="report-kpi-grid">
-      {metrics.map((m) => (
-        <Button
-          variant="ghost"
-          key={m.label}
-          className="report-kpi"
-          onClick={() => onPeople(m.people)}
-        >
-          <span className="report-kpi-label">
-            {m.label}
-            <ChevronRight />
-          </span>
-          <strong>
-            {typeof m.value === "number" ? m.value.toLocaleString("en-ZA") : m.value}
-            {m.unit}
-          </strong>
-          <span className="report-meta">
-            {m.helper ??
-              (m.total !== undefined && typeof m.value === "number"
-                ? `${m.value} of ${m.total} · ${pct(m.value, m.total)}%`
-                : "In the selected period")}
-          </span>
-          {m.total !== undefined && m.total < 5 && (
-            <span className="report-meta">Small sample</span>
-          )}
-          <Comparison
-            value={m.value}
-            {...(m.previous !== undefined ? { previous: m.previous } : {})}
-          />
-        </Button>
+      {metrics.map((m) => {
+        const numeric = typeof m.value === "number";
+        const body = (
+          <>
+            <span className="report-kpi-label">
+              {m.label}
+              {numeric && <ChevronRight />}
+            </span>
+            <strong>
+              {typeof m.value === "number" ? figure(m.value) : m.value}
+              {m.unit}
+            </strong>
+            <span className="report-meta">
+              {m.helper ??
+                (m.total !== undefined && typeof m.value === "number"
+                  ? `${m.value} of ${m.total} · ${pct(m.value, m.total)}%`
+                  : numeric
+                    ? "In the selected period"
+                    : "")}
+            </span>
+            {numeric && m.value !== m.people.length && (
+              <span className="report-meta">{peopleWord(m.people.length)} behind this figure</span>
+            )}
+            {numeric && m.total !== undefined && m.total < 5 && (
+              <span className="report-meta">Small sample</span>
+            )}
+            {comparison && numeric && (
+              <Comparison
+                value={m.value}
+                {...(m.previous !== undefined ? { previous: m.previous } : {})}
+              />
+            )}
+          </>
+        );
+        return numeric ? (
+          <Button
+            variant="ghost"
+            key={m.label}
+            className="report-kpi"
+            data-drill={m.people.length}
+            onClick={() => onPeople(m.people, group ? `${group} · ${m.label}` : m.label)}
+          >
+            {body}
+          </Button>
+        ) : (
+          <div key={m.label} className="report-kpi report-kpi-static">
+            {body}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+function Bars({ rows, group }: { rows: Metric[]; group: string }) {
+  return (
+    <div className="report-depth">
+      {rows.map((r) => (
+        <div key={r.label}>
+          <span className="report-depth-label">{r.label}</span>
+          <progress value={Number(r.value)} max={r.total || 1} />
+          <Drill people={r.people} label={`${group} · ${r.label}`}>
+            {r.value} of {r.total ?? 0} · {pct(Number(r.value), r.total ?? 0)}%
+          </Drill>
+        </div>
       ))}
     </div>
   );
 }
 function Funnel({
   rows,
-  onPeople,
+  group,
   compact = false,
 }: {
   rows: Analytics["funnels"]["talent"];
-  onPeople: (ids: string[]) => void;
+  group: string;
   compact?: boolean;
 }) {
   return (
@@ -137,9 +241,9 @@ function Funnel({
           </div>
           <div className="report-funnel-bar">
             <progress max={100} value={r.sent} />
-            <Button variant="link" onClick={() => onPeople(r.people)}>
+            <Drill people={r.people} label={`${group} · ${r.label}`}>
               {r.count} · {r.previous}% of previous step
-            </Button>
+            </Drill>
           </div>
           {!compact && (
             <div className="report-meta">
@@ -149,77 +253,82 @@ function Funnel({
             </div>
           )}
           {!compact && i > 0 && (
-            <Button variant="link" onClick={() => onPeople(r.stopped)}>
+            <Drill
+              people={r.stopped}
+              label={`${group} · have not ${i === 1 ? "registered" : i === 2 ? "onboarded" : "returned"}`}
+            >
               {r.stopped.length} have not{" "}
               {i === 1 ? "registered" : i === 2 ? "onboarded" : "returned"}
               <ChevronRight />
-            </Button>
+            </Drill>
           )}
         </div>
       ))}
     </div>
   );
 }
-function Trend({
-  data,
-  invites = false,
-  onPeople,
-}: {
-  data: Analytics;
-  invites?: boolean;
-  onPeople: (ids: string[]) => void;
-}) {
+type TrendRow = Analytics["trends"]["week"][number];
+function Trend({ data, invites = false }: { data: Analytics; invites?: boolean }) {
+  const { onPeople } = useActions();
   const [group, setGroup] = useState<"week" | "day" | "month">("week"),
-    [measure, setMeasure] = useState("active");
+    [chosen, setMeasure] = useState("active");
+  const measure = invites ? "invitations_registrations" : chosen;
+  const pick = (r: TrendRow) =>
+    measure === "documents"
+      ? { bar: r.documents, line: null, barPeople: r.people.documents, linePeople: [] }
+      : measure === "invitations"
+        ? {
+            bar: r.sent,
+            line: r.accepted,
+            barPeople: r.people.sent,
+            linePeople: r.people.accepted,
+          }
+        : measure === "invitations_registrations"
+          ? {
+              bar: r.sent,
+              line: r.registrations,
+              barPeople: r.people.sent,
+              linePeople: r.people.registrations,
+            }
+          : measure === "sign_ins"
+            ? {
+                bar: r.sign_ins,
+                line: r.days_active,
+                barPeople: r.people.active,
+                linePeople: r.people.active,
+              }
+            : {
+                bar: r.active,
+                line: r.registrations,
+                barPeople: r.people.active,
+                linePeople: r.people.registrations,
+              };
   const rows = data.trends[group].map((r) => ({
     ...r,
-    label:
-      group === "month"
-        ? new Date(`${r.label}-01T12:00Z`).toLocaleDateString("en-ZA", {
-            month: "short",
-            year: "numeric",
-          })
-        : fmtDate(r.from),
-    bar: invites
-      ? r.sent
-      : measure === "documents"
-        ? r.documents
-        : measure === "invitations"
-          ? r.sent
-          : measure === "sign_ins"
-            ? r.sign_ins
-            : r.active,
-    line:
-      invites || measure === "active"
-        ? r.registrations
-        : measure === "invitations"
-          ? r.accepted
-          : measure === "sign_ins"
-            ? r.days_active
-            : null,
+    ...pick(r),
+    label: group === "month" ? monthLabel(r.label) : fmtDate(r.from),
   }));
-  const barLabel = invites
-      ? "Invitations sent"
-      : measure === "documents"
+  const barLabel =
+      measure === "documents"
         ? "Documents uploaded"
-        : measure === "invitations"
+        : measure === "invitations" || measure === "invitations_registrations"
           ? "Invitations sent"
           : measure === "sign_ins"
             ? "Sign-ins"
             : "Active users",
     lineLabel =
-      invites || measure === "active"
-        ? "New registrations"
-        : measure === "invitations"
-          ? "Invitations accepted"
-          : "Days active";
+      measure === "invitations"
+        ? "Invitations accepted"
+        : measure === "sign_ins"
+          ? "Days active"
+          : "New registrations";
   return (
     <>
       <div className="report-chart-controls">
         {!invites && (
           <label>
             Measure
-            <select value={measure} onChange={(e) => setMeasure(e.target.value)}>
+            <select value={chosen} onChange={(e) => setMeasure(e.target.value)}>
               <option value="active">Active users and registrations</option>
               <option value="sign_ins">Sign-ins and days active</option>
               <option value="documents">Documents uploaded</option>
@@ -273,14 +382,16 @@ function Trend({
                 borderColor: "var(--report-border)",
                 color: "var(--report-ink)",
               }}
-              formatter={(v: number, name: string) => [v, name === "bar" ? barLabel : lineLabel]}
+              formatter={(v: number, name: string) => [v, name]}
             />
             <Bar
               dataKey="bar"
               name={barLabel}
               fill="var(--report-bar)"
               maxBarSize={34}
-              onClick={(r) => onPeople(r.people ?? [])}
+              onClick={(r: { barPeople?: string[]; label?: string }) =>
+                onPeople(r.barPeople ?? [], `${barLabel} · ${r.label ?? ""}`)
+              }
               radius={[3, 3, 0, 0]}
             >
               {rows.map((r) => (
@@ -305,9 +416,10 @@ function Trend({
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      {!invites && (measure === "active" || measure === "sign_ins") && (
+      {(measure === "active" || measure === "sign_ins") && (
         <p className="report-meta">
-          {SIGN_IN_HISTORY_NOTE} Weeks with missing sign-ins are not shown as zero.
+          {SIGN_IN_HISTORY_NOTE} Periods with missing sign-ins are shown as “Not recorded”, never as
+          zero.
         </p>
       )}
       <details className="report-trend-data">
@@ -318,15 +430,33 @@ function Trend({
               <tr>
                 <th>Period</th>
                 <th>{barLabel}</th>
-                <th>{lineLabel}</th>
+                {measure !== "documents" && <th>{lineLabel}</th>}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.from}>
                   <td>{r.label}</td>
-                  <td>{r.bar ?? "Not recorded"}</td>
-                  <td>{r.line ?? "—"}</td>
+                  <td>
+                    {r.bar === null ? (
+                      "Not recorded"
+                    ) : (
+                      <Drill people={r.barPeople} label={`${barLabel} · ${r.label}`}>
+                        {r.bar}
+                      </Drill>
+                    )}
+                  </td>
+                  {measure !== "documents" && (
+                    <td>
+                      {r.line === null ? (
+                        "Not recorded"
+                      ) : (
+                        <Drill people={r.linePeople} label={`${lineLabel} · ${r.label}`}>
+                          {r.line}
+                        </Drill>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -338,16 +468,13 @@ function Trend({
 }
 export function OverviewPanels({
   data: d,
-  onPeople,
-  onDownload,
-  canDownload,
   north,
   previousNorth,
 }: {
   north?: { active: number; total: number; people: string[] };
   previousNorth?: { active: number; total: number };
 } & PanelProps) {
-  const common = { onDownload, canDownload };
+  const { onDownload, onTab, onPeople, canDownload } = useActions();
   return (
     <>
       <section className="report-card report-north">
@@ -357,18 +484,27 @@ export function OverviewPanels({
           <p>Agency and talent both active in their relationship.</p>
           <div className="report-head-actions">
             <ReportDefinition definition="north_star" />
-            <Button variant="outline" disabled={!canDownload} onClick={() => onDownload("links")}>
+            <Button
+              variant="outline"
+              disabled={!canDownload}
+              onClick={() => onDownload("north_star")}
+            >
               <Download />
               Download CSV
             </Button>
           </div>
         </div>
         <div className="report-north-result">
-          <Button variant="link" onClick={() => onPeople(north?.people ?? [])}>
-            <strong>{north ? pct(north.active, north.total) : "—"}%</strong>
-          </Button>
+          {north ? (
+            <Drill people={north.people} label="Two-sided engagement">
+              <strong>{pct(north.active, north.total)}%</strong>
+            </Drill>
+          ) : (
+            <strong>—</strong>
+          )}
           <p>
             {north?.active ?? "—"} of {north?.total ?? "—"} relationships
+            {north ? ` · ${peopleWord(north.people.length)}` : ""}
           </p>
           <Comparison
             value={north ? pct(north.active, north.total) : "—"}
@@ -380,51 +516,59 @@ export function OverviewPanels({
           </p>
         </div>
       </section>
-      <MetricCards metrics={d.metrics} onPeople={onPeople} />
-      <p className="report-meta report-grid-helper">
-        Select any figure to see the people behind it, with their full details and a download.
-      </p>
+      <MetricCards metrics={d.metrics} />
+      <div className="report-grid-helper">
+        <p className="report-meta">
+          Select any figure to see the people behind it, with their full details and a download.
+        </p>
+        <Button
+          variant="outline"
+          disabled={!canDownload}
+          onClick={() => onDownload("overview_kpis")}
+        >
+          <Download />
+          Download CSV
+        </Button>
+      </div>
       <ReportPanel
-        {...common}
         title="Weekly trend"
         description="Activity and new registrations over the selected period."
         definition="sign_ins"
-        dataset="sign_ins"
+        section="overview_trend"
       >
-        <Trend data={d} onPeople={onPeople} />
+        <Trend data={d} />
       </ReportPanel>
       <div className="report-two-columns">
         <ReportPanel
-          {...common}
           title="Talent onboarding"
           description="From the first invitation to returning on a second day."
           definition="funnel"
-          dataset="registrations"
+          section="overview_funnel"
         >
-          <Funnel rows={d.funnels.talent} onPeople={onPeople} compact />
-          <Button variant="link" onClick={() => onPeople(d.funnels.talent[0]?.people ?? [])}>
+          <Funnel rows={d.funnels.talent} group="Talent onboarding" compact />
+          <Button variant="link" onClick={() => onTab("growth")}>
             Open full funnel
             <ChevronRight />
           </Button>
         </ReportPanel>
         <ReportPanel
-          {...common}
           title="Needs attention"
           description="People and agencies that may need support."
           definition="dormant"
-          dataset="people"
+          section="overview_attention"
         >
           {d.attention.map((r) => (
             <Button
               variant="ghost"
               className="report-attention-row"
               key={r.label}
-              onClick={() => onPeople(r.people)}
+              data-drill={r.people.length}
+              onClick={() => onPeople(r.people, r.label)}
             >
               <span>
                 <strong>{r.label}</strong>
                 <span className="report-meta">
-                  {r.people.length} people · {r.helper}
+                  {peopleWord(r.people.length)} · {r.helper}
                 </span>
               </span>
               <ChevronRight />
@@ -438,29 +582,29 @@ export function OverviewPanels({
     </>
   );
 }
-export function GrowthPanels({ data: d, onPeople, onDownload, canDownload }: PanelProps) {
-  const [type, setType] = useState<"talent" | "agency">("talent"),
-    common = { onDownload, canDownload };
+export function GrowthPanels({ data: d }: PanelProps) {
+  const [type, setType] = useState<"talent" | "agency">("talent");
   return (
     <>
       <ReportPanel
-        {...common}
         title="Launch progress"
         description="Registered accounts against the targets in Launch settings."
         definition="registered"
-        dataset="registrations"
+        section="growth_launch"
       >
         <div className="report-two-columns">
-          {[
-            { label: "Talent", n: d.launch.talent, target: d.launch.talent_target },
-            { label: "Agencies", n: d.launch.agencies, target: d.launch.agency_target },
-          ].map((r) => (
+          {d.figures.launch.map((r) => (
             <div key={r.label} className="report-launch-progress">
               <h3>{r.label}</h3>
-              <Button variant="link" onClick={() => onPeople(d.people)}>
-                {r.n} of {r.target ?? "Target not set"} target · {pct(r.n, r.target ?? 0)}%
-              </Button>
-              <progress value={r.n} max={r.target ?? 1} />
+              <Drill people={r.people} label={`Launch progress · ${r.label}`}>
+                {r.total === undefined
+                  ? `${r.value} · target not set`
+                  : `${r.value} of ${r.total} target · ${pct(Number(r.value), r.total)}%`}
+              </Drill>
+              <progress value={Number(r.value)} max={r.total ?? 1} />
+              {r.value !== r.people.length && (
+                <p className="report-meta">{peopleWord(r.people.length)} in these agencies</p>
+              )}
             </div>
           ))}
         </div>
@@ -474,11 +618,10 @@ export function GrowthPanels({ data: d, onPeople, onDownload, canDownload }: Pan
         </p>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Where invitations come from"
         description="First sends only; drafts and connection requests are separate."
         definition="funnel"
-        dataset="invitations"
+        section="growth_sources"
       >
         <div className="report-table-scroll">
           <table>
@@ -494,35 +637,57 @@ export function GrowthPanels({ data: d, onPeople, onDownload, canDownload }: Pan
             <tbody>
               {d.sources.map((r) => (
                 <tr key={r.source}>
-                  <td>{r.source.replaceAll("_", " ")}</td>
+                  <td>{channelLabel(r.source)}</td>
                   <td>
-                    <Button variant="link" onClick={() => onPeople(r.people)}>
+                    <Drill people={r.people} label={`Invitations sent · ${channelLabel(r.source)}`}>
                       {r.sent}
-                    </Button>
+                    </Drill>
                   </td>
                   <td>
-                    {r.accepted} of {r.sent} · {r.rate}%
+                    <Drill
+                      people={r.accepted_people}
+                      label={`Invitations accepted · ${channelLabel(r.source)}`}
+                    >
+                      {r.accepted} of {r.sent}
+                    </Drill>
                   </td>
                   <td>{r.rate}%</td>
                   <td>{r.median === null ? "—" : `${r.median} days`}</td>
                 </tr>
               ))}
+              {d.sources.length === 0 && (
+                <tr>
+                  <td colSpan={5}>No invitations were sent in this period.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
         {d.sources.map((r) => (
-          <p className="report-meta mt-2" key={r.source}>
-            {r.source.replaceAll("_", " ")}:{" "}
-            {r.statuses.map((s) => `${s.count} ${s.status}`).join(" · ")}
+          <p className="report-meta report-status-line" key={r.source}>
+            {channelLabel(r.source)}:
+            {r.statuses.map((s) => (
+              <Drill
+                key={s.status}
+                people={s.people}
+                label={`Invitations ${s.status} · ${channelLabel(r.source)}`}
+              >
+                {s.count} {s.status}
+              </Drill>
+            ))}
           </p>
         ))}
+        <p className="report-meta mt-2">
+          An invitation sent to someone who already has a row in People opens that person.
+          {d.funnel_unlisted > 0 &&
+            ` ${d.funnel_unlisted} invitations went to people who are not in the People list for these filters.`}
+        </p>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Onboarding funnel"
         description="Every dated step from invitation to a second active day."
         definition="funnel"
-        dataset="registrations"
+        section="growth_funnel"
       >
         <div className="report-segment report-local-segment">
           <Button
@@ -540,42 +705,44 @@ export function GrowthPanels({ data: d, onPeople, onDownload, canDownload }: Pan
             Agencies
           </Button>
         </div>
-        <Funnel rows={d.funnels[type]} onPeople={onPeople} />
+        <Funnel
+          rows={d.funnels[type]}
+          group={type === "talent" ? "Talent funnel" : "Agency funnel"}
+        />
         <p className="report-meta mt-3">
           {SIGN_IN_HISTORY_NOTE} Returning figures use recorded days only.
         </p>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Registrations and invitations by week"
         description="Sent invitations and new registrations throughout the selected period."
         definition="registered"
-        dataset="invitations"
+        section="growth_weekly"
       >
-        <Trend data={d} invites onPeople={onPeople} />
+        <Trend data={d} invites />
       </ReportPanel>
     </>
   );
 }
-export function EngagementPanels({ data: d, onPeople, onDownload, canDownload }: PanelProps) {
-  const [type, setType] = useState("talent"),
+const ACTIVITY_GROUPS = [
+  { id: "agency_staff", label: "Agency staff" },
+  { id: "talent", label: "Talent" },
+  { id: "trusted_contact", label: "Trusted contacts" },
+] as const;
+export function EngagementPanels({ data: d }: PanelProps) {
+  const [type, setType] = useState<(typeof ACTIVITY_GROUPS)[number]["id"]>("talent"),
     g = d.activity.find((a) => a.type === type),
-    common = { onDownload, canDownload };
+    groupLabel = ACTIVITY_GROUPS.find((t) => t.id === type)?.label ?? "";
   return (
     <>
       <ReportPanel
-        {...common}
         title="Sign-in activity"
-        description="Separate account sign-ins and successful trusted-contact access-code visits."
+        description="Account sign-ins, and separately the successful access-code visits by trusted contacts."
         definition="sign_ins"
-        dataset="sign_ins"
+        section="engagement_activity"
       >
         <div className="report-segment report-local-segment">
-          {[
-            { id: "agency_staff", label: "Agency staff" },
-            { id: "talent", label: "Talent" },
-            { id: "trusted_contact", label: "Trusted contacts" },
-          ].map((t) => (
+          {ACTIVITY_GROUPS.map((t) => (
             <Button
               key={t.id}
               variant="ghost"
@@ -588,8 +755,10 @@ export function EngagementPanels({ data: d, onPeople, onDownload, canDownload }:
         </div>
         {g && (
           <>
-            <MetricCards metrics={g.metrics} onPeople={onPeople} />
-            <h3 className="mt-5">When people sign in</h3>
+            <MetricCards metrics={g.metrics} group={groupLabel} comparison={false} />
+            <h3 className="mt-5">
+              {type === "trusted_contact" ? "When people visit" : "When people sign in"}
+            </h3>
             <div className="report-weekdays">
               {g.weekdays.map((day) => (
                 <div
@@ -597,41 +766,59 @@ export function EngagementPanels({ data: d, onPeople, onDownload, canDownload }:
                   className={day.count > 0 ? "report-day-active" : "report-day-empty"}
                 >
                   <span>{day.label}</span>
-                  <strong>{day.count}</strong>
+                  <Drill people={day.people} label={`${groupLabel} · ${day.label}`}>
+                    {day.count}
+                  </Drill>
                 </div>
               ))}
             </div>
-            <p className="report-meta">
-              Busiest hours (South African time):{" "}
+            <p className="report-meta report-status-line">
+              Busiest hours (South African time):
               {g.hours.length
-                ? g.hours
-                    .map((h) => `${String(h.hour).padStart(2, "0")}:00 · ${h.count}`)
-                    .join(" · ")
-                : "No recorded visits or sign-ins"}
+                ? g.hours.map((h) => (
+                    <Drill
+                      key={h.hour}
+                      people={h.people}
+                      label={`${groupLabel} · ${String(h.hour).padStart(2, "0")}:00`}
+                    >
+                      {String(h.hour).padStart(2, "0")}:00 · {h.count}
+                    </Drill>
+                  ))
+                : " none recorded"}
             </p>
             <h3 className="mt-4">Devices</h3>
             <div className="report-device-bar">
               {g.devices.map((device) => (
                 <span key={device.device} className={`report-device-${device.device}`}>
-                  {device.device}: {device.count}
+                  <Drill people={device.people} label={`${groupLabel} · ${device.device} device`}>
+                    {device.device === "unknown"
+                      ? "Not recorded"
+                      : device.device === "mobile"
+                        ? "Mobile"
+                        : "Desktop"}
+                    : {device.count}
+                  </Drill>
                 </span>
               ))}
             </div>
-            <p className="report-meta">{g.new_devices} new-device sign-ins</p>
+            <p className="report-meta report-status-line">
+              <Drill people={g.new_device_people} label={`${groupLabel} · new-device sign-ins`}>
+                {g.new_devices} new-device sign-ins
+              </Drill>
+            </p>
           </>
         )}
         <p className="report-meta mt-4">
           {type === "trusted_contact"
-            ? `Trusted-contact visits are recorded from ${fmtDate(d.contacts.started_at)}. A visit is a successful access-code entry, not an account sign-in.`
+            ? `Trusted-contact visits are recorded from ${fmtDate(d.contacts_started_at)}. A visit is a successful access-code entry, not an account sign-in.`
             : SIGN_IN_HISTORY_NOTE}
         </p>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Retention by joining month"
         description="People who signed in around their 30-, 60- and 90-day milestones."
         definition="retention"
-        dataset="sign_ins"
+        section="engagement_retention"
       >
         <div className="report-table-scroll">
           <table>
@@ -647,11 +834,11 @@ export function EngagementPanels({ data: d, onPeople, onDownload, canDownload }:
             <tbody>
               {d.cohorts.map((r) => (
                 <tr key={r.month}>
-                  <td>{r.month}</td>
+                  <td>{monthLabel(r.month)}</td>
                   <td>
-                    <Button variant="link" onClick={() => onPeople(r.people)}>
+                    <Drill people={r.people} label={`Joined ${monthLabel(r.month)}`}>
                       {r.count}
-                    </Button>
+                    </Drill>
                   </td>
                   {r.cells.map((c, i) => (
                     <td
@@ -663,9 +850,12 @@ export function EngagementPanels({ data: d, onPeople, onDownload, canDownload }:
                       }
                     >
                       {c.status === "known" ? (
-                        <Button variant="link" onClick={() => onPeople(c.people)}>
+                        <Drill
+                          people={c.people}
+                          label={`Joined ${monthLabel(r.month)} · active at ${[30, 60, 90][i]} days`}
+                        >
                           {c.percent}% · {c.n} of {c.m}
-                        </Button>
+                        </Drill>
                       ) : (
                         c.status
                       )}
@@ -679,71 +869,29 @@ export function EngagementPanels({ data: d, onPeople, onDownload, canDownload }:
         <p className="report-meta mt-3">{SIGN_IN_HISTORY_NOTE}</p>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Vault depth"
         description="Documents held per registered talent at the selected cut-off."
         definition="onboarded"
-        dataset="documents"
+        section="engagement_depth"
       >
-        <div className="report-depth">
-          {d.depth.map((r) => (
-            <div key={r.label}>
-              <Button variant="link" onClick={() => onPeople(r.people)}>
-                {r.label}
-              </Button>
-              <progress value={r.count} max={r.total || 1} />
-              <span>
-                {r.count} of {r.total} · {pct(r.count, r.total)}%
-              </span>
-            </div>
-          ))}
-        </div>
-        <MetricCards
-          onPeople={onPeople}
-          metrics={[
-            {
-              label: "Documents per active talent",
-              value: d.documents.per_active,
-              people: d.people,
-            },
-            {
-              label: "Uploaded a second document",
-              value: d.documents.second,
-              total: d.total_talent,
-              people: d.documents.second_people,
-            },
-          ]}
+        <Bars
+          group="Vault depth"
+          rows={d.depth.map((r) => ({
+            label: r.label,
+            value: r.count,
+            total: r.total,
+            people: r.people,
+          }))}
         />
+        <MetricCards metrics={d.figures.depth} group="Vault depth" comparison={false} />
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Documents"
         description="Document dates, types and sharing — never file contents."
         definition="onboarded"
-        dataset="documents"
+        section="engagement_documents"
       >
-        <MetricCards
-          onPeople={onPeople}
-          metrics={[
-            { label: "Uploaded", value: d.documents.uploaded, people: d.all_document_people },
-            {
-              label: "Shared with an agency",
-              value: d.documents.shared,
-              total: d.documents.uploaded,
-              people: d.shared_document_people,
-            },
-            {
-              label: "Kept in private vaults",
-              value: d.documents.private,
-              people: d.private_document_people,
-            },
-            {
-              label: "Expiring in the next 60 days",
-              value: d.documents.expiring,
-              people: d.expiring_document_people,
-            },
-          ]}
-        />
+        <MetricCards metrics={d.figures.documents} group="Documents" comparison={false} />
         <div className="report-table-scroll mt-4">
           <table>
             <thead>
@@ -758,128 +906,81 @@ export function EngagementPanels({ data: d, onPeople, onDownload, canDownload }:
             <tbody>
               {d.documentTypes.map((r) => (
                 <tr key={r.type}>
-                  <td>{r.type}</td>
+                  <td>{fileTypeLabel(r.type)}</td>
                   <td>
-                    <Button variant="link" onClick={() => onPeople(r.people)}>
+                    <Drill people={r.people} label={`${fileTypeLabel(r.type)} · uploaded`}>
                       {r.uploaded}
-                    </Button>
+                    </Drill>
                   </td>
-                  <td>{r.talent}</td>
-                  <td>{r.shared}</td>
-                  <td>{r.private}</td>
+                  <td>
+                    <Drill people={r.people} label={`${fileTypeLabel(r.type)} · talent with one`}>
+                      {r.talent}
+                    </Drill>
+                  </td>
+                  <td>
+                    <Drill people={r.shared_people} label={`${fileTypeLabel(r.type)} · shared`}>
+                      {r.shared}
+                    </Drill>
+                  </td>
+                  <td>
+                    <Drill people={r.private_people} label={`${fileTypeLabel(r.type)} · private`}>
+                      {r.private}
+                    </Drill>
+                  </td>
                 </tr>
               ))}
+              {d.documentTypes.length === 0 && (
+                <tr>
+                  <td colSpan={5}>No documents were uploaded in this period.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Trusted contacts"
         description="People given access and their successful visits."
         definition="trusted_contacts"
-        dataset="shares"
+        section="engagement_contacts"
       >
-        <MetricCards
-          onPeople={onPeople}
-          metrics={[
-            {
-              label: "Recipients given access",
-              value: d.contacts.recipients,
-              people: d.contact_recipients,
-            },
-            { label: "Shares created", value: d.contacts.shares, people: d.contacts.people },
-            { label: "Visits", value: d.contacts.visits, people: d.contact_visitors },
-            {
-              label: "Documents opened or downloaded",
-              value: d.contacts.documents,
-              people: d.contact_document_people,
-            },
-          ]}
-        />
+        <MetricCards metrics={d.figures.contacts} group="Trusted contacts" comparison={false} />
         <p className="report-meta mt-3">
-          Visits are recorded from {fmtDate(d.contacts.started_at)}.
+          Visits are recorded from {fmtDate(d.contacts_started_at)}.
         </p>
       </ReportPanel>
     </>
   );
 }
-export function AgencyPanels({ data: d, onPeople, onDownload, canDownload }: PanelProps) {
+const AGENCY_COLUMNS = [
+  "Staff",
+  "Staff active",
+  "Talent invited",
+  "Registered",
+  "Active talent",
+  "Documents",
+  "Invoiced (R)",
+  "Last activity",
+  "Health",
+];
+export function AgencyPanels({ data: d }: PanelProps) {
   const [search, setSearch] = useState(""),
     [health, setHealth] = useState("all"),
     [choose, setChoose] = useState(false),
-    [columns, setColumns] = useState([
-      "Staff",
-      "Staff active",
-      "Talent invited",
-      "Registered",
-      "Active talent",
-      "Documents",
-      "Invoiced (R)",
-      "Last activity",
-      "Health",
-    ]);
-  const allColumns = [
-      "Staff",
-      "Staff active",
-      "Talent invited",
-      "Registered",
-      "Active talent",
-      "Documents",
-      "Invoiced (R)",
-      "Last activity",
-      "Health",
-    ],
-    rows = d.agencyRows.filter(
-      (a) =>
-        a.name.toLowerCase().includes(search.toLowerCase()) &&
-        (health === "all" || a.health === health),
-    );
-  const common = { onDownload, canDownload },
-    onboarded = d.agencyRows.filter((a) => a.onboarded),
-    active = d.agencyRows.filter((a) => a.active > 0),
-    received = d.agencyRows.reduce((n, a) => n + a.received, 0);
+    [columns, setColumns] = useState(AGENCY_COLUMNS);
+  const rows = d.agencyRows.filter(
+    (a) =>
+      a.name.toLowerCase().includes(search.toLowerCase()) &&
+      (health === "all" || a.health === health),
+  );
   return (
     <>
-      <MetricCards
-        onPeople={onPeople}
-        metrics={[
-          {
-            label: "Agencies onboarded vs target",
-            value: onboarded.length,
-            total: d.launch.agency_target ?? undefined,
-            people: onboarded.flatMap((a) => a.people),
-          },
-          {
-            label: "Agencies with active talent",
-            value: active.length,
-            total: d.agencyRows.length,
-            people: active.flatMap((a) => a.people),
-          },
-          {
-            label: "Talent per agency",
-            value: d.agencyRows.length
-              ? Math.round(
-                  (d.agencyRows.reduce((n, a) => n + a.registered, 0) / d.agencyRows.length) * 10,
-                ) / 10
-              : 0,
-            people: d.people,
-          },
-          {
-            label: "Quotes and invoices issued",
-            value: received,
-            unit: " R",
-            people: d.people,
-            helper: "Payments received in ZAR",
-          },
-        ]}
-      />
+      <MetricCards metrics={d.figures.agencies} group="Agencies" comparison={false} />
       <ReportPanel
-        {...common}
         title="Agency performance"
         description="Current membership with dated activity and billing."
         definition="health"
-        dataset="links"
+        section="agencies_performance"
       >
         <div className="report-chart-controls">
           <label>
@@ -912,14 +1013,31 @@ export function AgencyPanels({ data: d, onPeople, onDownload, canDownload }: Pan
             </thead>
             <tbody>
               {rows.map((a) => {
+                const drill = (people: string[], what: string, text: ReactNode) => (
+                  <Drill people={people} label={`${a.name.trim()} · ${what}`}>
+                    {text}
+                  </Drill>
+                );
                 const values: Record<string, ReactNode> = {
-                  Staff: a.staff,
-                  "Staff active": `${a.staff_active} of ${a.staff} · ${pct(a.staff_active, a.staff)}%`,
-                  "Talent invited": a.invited,
-                  Registered: a.registered,
-                  "Active talent": `${a.active} of ${a.registered} · ${pct(a.active, a.registered)}%`,
-                  Documents: a.documents,
-                  "Invoiced (R)": a.invoiced.toLocaleString("en-ZA", { minimumFractionDigits: 2 }),
+                  Staff: drill(a.people_by.staff, "staff", a.staff),
+                  "Staff active": drill(
+                    a.people_by.staff_active,
+                    "active staff",
+                    `${a.staff_active} of ${a.staff} · ${pct(a.staff_active, a.staff)}%`,
+                  ),
+                  "Talent invited": drill(a.people_by.invited, "talent invited", a.invited),
+                  Registered: drill(a.people_by.registered, "registered talent", a.registered),
+                  "Active talent": drill(
+                    a.people_by.active,
+                    "active talent",
+                    `${a.active} of ${a.registered} · ${pct(a.active, a.registered)}%`,
+                  ),
+                  Documents: drill(a.people_by.documents, "documents", a.documents),
+                  "Invoiced (R)": drill(
+                    a.people_by.invoiced,
+                    "quotes and invoices",
+                    a.invoiced.toLocaleString("en-ZA", { minimumFractionDigits: 2 }),
+                  ),
                   "Last activity": fmtDate(a.last_activity),
                   Health: (
                     <span
@@ -942,26 +1060,30 @@ export function AgencyPanels({ data: d, onPeople, onDownload, canDownload }: Pan
                   </tr>
                 );
               })}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={columns.length + 1}>No agencies match these filters.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
         <p className="report-meta mt-3">
           Healthy: at least half of registered talent active. Needs support: recent activity, fewer
-          active talent. Dormant: no activity for 30 days with complete sign-in history. New: joined
-          fewer than 30 days ago.
+          active talent. Dormant: no activity for 30 days. New: joined fewer than 30 days ago.
         </p>
       </ReportPanel>
       <Dialog open={choose} onOpenChange={setChoose}>
         <DialogContent>
           <DialogTitle>Agency columns</DialogTitle>
-          {allColumns.map((c) => (
+          {AGENCY_COLUMNS.map((c) => (
             <label key={c} className="flex gap-3 items-center min-h-11">
               <Checkbox
                 checked={columns.includes(c)}
                 onCheckedChange={(v) =>
                   setColumns(
                     v
-                      ? allColumns.filter((x) => x === c || columns.includes(x))
+                      ? AGENCY_COLUMNS.filter((x) => x === c || columns.includes(x))
                       : columns.filter((x) => x !== c),
                   )
                 }
@@ -974,16 +1096,134 @@ export function AgencyPanels({ data: d, onPeople, onDownload, canDownload }: Pan
     </>
   );
 }
-export function BusinessPanels({ data: d, onPeople, onDownload, canDownload }: PanelProps) {
-  const common = { onDownload, canDownload },
-    last = d.months.at(-1),
-    before = d.months.at(-2),
-    growth = before?.total ? pct((last?.total ?? 0) - before.total, before.total) : null;
+function SpendDialog({
+  data: d,
+  open,
+  onOpenChange,
+}: {
+  data: Analytics;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const save = useServerFn(setReportChannelSpend),
+    client = useQueryClient();
+  const [channel, setChannel] = useState("admin"),
+    [month, setMonth] = useState(d.period.to.slice(0, 7)),
+    [amount, setAmount] = useState(""),
+    [busy, setBusy] = useState(false);
+  const channels = [...new Set([...CHANNEL_KEYS, ...d.spend.map((s) => s.channel)])];
+  async function submit(value: number | null, target = { channel, month }) {
+    setBusy(true);
+    try {
+      await save({ data: { ...target, amount: value } });
+      await client.invalidateQueries({ queryKey: ["admin", "reports-historical-analytics"] });
+      toast.success(value === null ? "Spend entry removed." : "Monthly spend saved.");
+      setAmount("");
+    } catch (e) {
+      toast.error(friendlyError(e, "The spend could not be saved. Please try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+  const parsed = Number(amount.replace(",", ".")),
+    valid =
+      amount.trim() !== "" && Number.isFinite(parsed) && parsed >= 0 && /^\d{4}-\d{2}$/.test(month);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto">
+        <DialogTitle>Monthly spend</DialogTitle>
+        <p className="report-meta">
+          Record what was spent on a channel in a month, in rand. Saving again for the same channel
+          and month replaces the amount. Every change is recorded in the audit log.
+        </p>
+        <form
+          className="report-spend-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (valid) void submit(parsed);
+          }}
+        >
+          <label>
+            Channel
+            <select value={channel} onChange={(e) => setChannel(e.target.value)}>
+              {channels.map((c) => (
+                <option key={c} value={c}>
+                  {channelLabel(c)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Month
+            <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+          </label>
+          <label>
+            Amount (R)
+            <input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+            />
+          </label>
+          <Button type="submit" disabled={!valid || busy}>
+            Save spend
+          </Button>
+        </form>
+        <h3 className="mt-2">Recorded spend</h3>
+        {d.spend.length === 0 ? (
+          <p className="report-meta">No spend has been recorded yet.</p>
+        ) : (
+          <div className="report-table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Channel</th>
+                  <th>Amount</th>
+                  <th>
+                    <span className="sr-only">Remove</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.spend.map((s) => (
+                  <tr key={`${s.channel}-${s.month}`}>
+                    <td>{monthLabel(s.month)}</td>
+                    <td>{channelLabel(s.channel)}</td>
+                    <td>{rand(s.amount_cents / 100)}</td>
+                    <td>
+                      <Button
+                        variant="link"
+                        disabled={busy}
+                        onClick={() => void submit(null, { channel: s.channel, month: s.month })}
+                      >
+                        Remove
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+export function BusinessPanels({ data: d }: PanelProps) {
+  const { onInvestorPack, canDownload, canManageSpend } = useActions();
+  const [spendOpen, setSpendOpen] = useState(false);
   return (
     <>
       <section className="report-card report-investor">
-        <h2>Investor pack</h2>
-        <p>Real accounts, full historical growth and shared definitions.</p>
+        <div>
+          <h2>Investor pack</h2>
+          <p>
+            A board-ready PDF of these figures, the monthly series since the first record, the
+            definitions and the data dictionary. Always real accounts.
+          </p>
+        </div>
         <div className="report-head-actions">
           <Button
             variant="outline"
@@ -993,7 +1233,7 @@ export function BusinessPanels({ data: d, onPeople, onDownload, canDownload }: P
           >
             View definitions
           </Button>
-          <Button variant="outline" disabled={!canDownload} onClick={() => onDownload("investor")}>
+          <Button variant="outline" disabled={!canDownload} onClick={onInvestorPack}>
             <Download />
             Download investor pack
           </Button>
@@ -1001,27 +1241,10 @@ export function BusinessPanels({ data: d, onPeople, onDownload, canDownload }: P
       </section>
       <p className="report-meta mb-4">Business always uses real accounts.</p>
       <MetricCards
-        onPeople={onPeople}
+        group="Business"
+        comparison={false}
         metrics={[
-          {
-            label: "Accounts on TalVault",
-            value: d.total_talent + d.launch.agencies,
-            people: d.people,
-            helper: "Talent plus registered agencies",
-          },
-          {
-            label: "Month-on-month growth",
-            value: growth ?? "No previous registrations",
-            unit: growth === null ? "" : "%",
-            people: last?.people ?? [],
-          },
-          {
-            label: "Monthly active share",
-            value: pct(d.monthly_active_people.length, d.total_users),
-            unit: "%",
-            total: d.total_users,
-            people: d.monthly_active_people,
-          },
+          ...d.figures.business,
           {
             label: "Committed monthly revenue",
             value: "Not set",
@@ -1031,16 +1254,16 @@ export function BusinessPanels({ data: d, onPeople, onDownload, canDownload }: P
         ]}
       />
       <ReportPanel
-        {...common}
         title="Revenue"
         description="Paid plans start in 2027; plan prices have not been set."
         definition="accounts"
-        dataset="billing"
+        section="business_revenue"
       >
         <MetricCards
-          onPeople={onPeople}
+          group="Revenue"
+          comparison={false}
           metrics={[
-            { label: "Paying accounts", value: 0, people: [], helper: "No paid plan records" },
+            { label: "Paying accounts", value: 0, people: [], helper: "Paid plans start in 2027" },
             {
               label: "Accounts in free period",
               value: "Not set",
@@ -1078,21 +1301,22 @@ export function BusinessPanels({ data: d, onPeople, onDownload, canDownload }: P
         </div>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Launch discount"
         description="Keep-by dates and eligibility require the verified sign-up sheet."
         definition="accounts"
-        dataset="people"
+        section="business_discount"
       >
         <p>Awaiting the verified launch sign-up sheet</p>
-        <p className="report-meta">Members · Kept · At risk · Lost · Earliest keep-by date</p>
+        <p className="report-meta">
+          Members, kept, at risk, lost and the earliest keep-by date appear here once the sheet is
+          imported.
+        </p>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Growth by month"
         description="Every joining month since the first record."
         definition="registered"
-        dataset="registrations"
+        section="business_months"
       >
         <div className="report-table-scroll">
           <table>
@@ -1108,58 +1332,57 @@ export function BusinessPanels({ data: d, onPeople, onDownload, canDownload }: P
             <tbody>
               {d.months.map((r) => (
                 <tr key={r.month}>
-                  <td>{r.month}</td>
-                  <td>{r.talent}</td>
-                  <td>{r.agencies}</td>
+                  <td>{monthLabel(r.month)}</td>
                   <td>
-                    <Button variant="link" onClick={() => onPeople(r.people)}>
-                      {r.total}
-                    </Button>
+                    <Drill people={r.talent_people} label={`${monthLabel(r.month)} · new talent`}>
+                      {r.talent}
+                    </Drill>
                   </td>
-                  <td>{r.active ?? "Not recorded"}</td>
+                  <td>
+                    <Drill people={r.agency_people} label={`${monthLabel(r.month)} · new agencies`}>
+                      {r.agencies}
+                    </Drill>
+                  </td>
+                  <td>
+                    <Drill people={r.people} label={`${monthLabel(r.month)} · new accounts`}>
+                      {r.total}
+                    </Drill>
+                  </td>
+                  <td>
+                    {r.active === null ? (
+                      "Not recorded"
+                    ) : (
+                      <Drill
+                        people={r.active_people}
+                        label={`${monthLabel(r.month)} · active users`}
+                      >
+                        {r.active}
+                      </Drill>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <p className="report-meta mt-3">
+          An agency opens its staff in People, so the number of people can differ from the number of
+          agencies.
+        </p>
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Network effect"
         description="Connections between talent, agencies and trusted contacts."
         definition="north_star"
-        dataset="links"
+        section="business_network"
       >
-        <MetricCards
-          onPeople={onPeople}
-          metrics={[
-            {
-              label: "Talent linked to agencies",
-              value: d.network.linked,
-              total: d.total_talent,
-              people: d.network_linked_people,
-            },
-            {
-              label: "Talent with multiple agencies",
-              value: d.network.multi,
-              total: d.total_talent,
-              people: d.network_multi_people,
-            },
-            {
-              label: "Talent sharing with trusted contacts",
-              value: d.network.contact_talent,
-              total: d.total_talent,
-              people: d.contacts.people,
-            },
-          ]}
-        />
+        <MetricCards metrics={d.figures.network} group="Network effect" comparison={false} />
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Acquisition cost by channel"
-        description="Cost per registered account from recorded monthly spend."
+        description="Cost per registered account, from the monthly spend recorded for the selected period."
         definition="registered"
-        dataset="invitations"
+        section="business_acquisition"
       >
         <div className="report-table-scroll">
           <table>
@@ -1167,108 +1390,82 @@ export function BusinessPanels({ data: d, onPeople, onDownload, canDownload }: P
               <tr>
                 <th>Channel</th>
                 <th>Registered</th>
-                <th>Monthly spend</th>
+                <th>Spend in period</th>
                 <th>Cost per registration</th>
               </tr>
             </thead>
             <tbody>
-              {d.sources.map((r) => (
-                <tr key={r.source}>
-                  <td>{r.source.replaceAll("_", " ")}</td>
-                  <td>{r.accepted}</td>
-                  <td>Not supplied</td>
-                  <td>Not available</td>
+              {d.acquisition.map((r) => (
+                <tr key={r.channel}>
+                  <td>{channelLabel(r.channel)}</td>
+                  <td>
+                    <Drill people={r.people} label={`Registered · ${channelLabel(r.channel)}`}>
+                      {r.registered}
+                    </Drill>
+                  </td>
+                  <td>{r.spend === null ? "Not supplied" : rand(r.spend)}</td>
+                  <td>{r.cost === null ? "Not available" : rand(r.cost)}</td>
                 </tr>
               ))}
+              {d.acquisition.length === 0 && (
+                <tr>
+                  <td colSpan={4}>No invitations or spend in this period.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-        <Button
-          variant="outline"
-          disabled
-          className="mt-3"
-          title="Monthly spend entry is not available yet"
-        >
-          Add monthly spend
-        </Button>
-        <p className="report-meta">Monthly spend has not been supplied.</p>
+        {canManageSpend ? (
+          <Button variant="outline" className="mt-3" onClick={() => setSpendOpen(true)}>
+            <Plus />
+            Add monthly spend
+          </Button>
+        ) : (
+          <p className="report-meta mt-3">
+            Reports Owners and Operations administrators can record monthly spend.
+          </p>
+        )}
+        {spendOpen && <SpendDialog data={d} open onOpenChange={setSpendOpen} />}
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Feature adoption"
         description="Talent using documents and sharing at the selected cut-off."
         definition="onboarded"
-        dataset="activity"
+        section="business_adoption"
       >
-        <div className="report-depth">
-          {[
-            { label: "Own document upload", count: d.funnels.talent[2]?.count ?? 0 },
-            { label: "Agency connections", count: d.network.linked },
-            { label: "Trusted-contact sharing", count: d.network.contact_talent },
-            { label: "Second document upload", count: d.documents.second },
-          ].map((r) => (
-            <div key={r.label}>
-              <Button variant="link" onClick={() => onPeople(d.people)}>
-                {r.label}
-              </Button>
-              <progress value={r.count} max={d.total_talent || 1} />
-              <span>
-                {r.count} of {d.total_talent} · {pct(r.count, d.total_talent)}%
-              </span>
-            </div>
-          ))}
-        </div>
+        <Bars rows={d.figures.adoption} group="Feature adoption" />
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Trust and security"
         description="Terms acceptances and document validation, without private contents."
         definition="privacy"
-        dataset="terms"
+        section="business_trust"
       >
-        <MetricCards
-          onPeople={onPeople}
-          metrics={[
-            {
-              label: "Terms accepted",
-              value: d.trust.terms,
-              total: d.total_users,
-              people: d.terms_people,
-            },
-            {
-              label: "Validated uploads",
-              value: d.trust.validated,
-              total: d.documents.uploaded,
-              people: d.validated_people,
-            },
-            {
-              label: "Uploads awaiting validation",
-              value: d.trust.unvalidated,
-              total: d.documents.uploaded,
-              people: d.unvalidated_people,
-            },
-          ]}
-        />
+        <MetricCards metrics={d.figures.trust} group="Trust and security" comparison={false} />
       </ReportPanel>
       <ReportPanel
-        {...common}
         title="Data quality"
         description="What is excluded and why."
         definition="privacy"
-        dataset="people"
+        section="business_quality"
       >
         <ul className="report-quality">
           <li>Administrators and deleted profiles are excluded from usage figures.</li>
           <li>Test accounts are excluded from Business.</li>
-          <li>{SIGN_IN_HISTORY_NOTE} Missing sign-ins never establish inactivity.</li>
-          <li>{d.quality.undated} people have no joining date; no date is invented.</li>
-          <li>{d.quality.unknown_devices} sign-ins have no device information.</li>
-          <li>
-            {d.quality.other_currencies} non-rand billing records are excluded from rand totals;
-            their original currencies remain in downloads.
-          </li>
+          <li>{SIGN_IN_HISTORY_NOTE} Missing sign-ins never count as inactivity.</li>
+          {d.figures.quality.map((f) => (
+            <li key={f.label}>
+              {f.label}:{" "}
+              <Drill people={f.people} label={f.label}>
+                {f.value}
+              </Drill>
+              {f.label.startsWith("Billing") &&
+                " — left out of rand totals; original currencies remain in downloads."}
+              {f.label.startsWith("People") && " — no date is invented."}
+            </li>
+          ))}
           <li>Launch-discount eligibility awaits the verified sign-up sheet.</li>
-          <li>Plan prices, free-period dates and acquisition spend have not been supplied.</li>
+          <li>Plan prices and free-period dates have not been supplied.</li>
         </ul>
       </ReportPanel>
     </>

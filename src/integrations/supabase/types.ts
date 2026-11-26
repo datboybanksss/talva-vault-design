@@ -2618,6 +2618,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reports_channel_spend: {
+        Row: {
+          amount_cents: number
+          channel: string
+          currency: string
+          month: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount_cents: number
+          channel: string
+          currency?: string
+          month: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          channel?: string
+          currency?: string
+          month?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       reports_export_history: {
         Row: {
           admin_id: string
@@ -4108,6 +4135,10 @@ export type Database = {
       }
       reports_set_access: {
         Args: { _role: string; _user_id: string }
+        Returns: undefined
+      }
+      reports_set_channel_spend: {
+        Args: { _amount_cents?: number; _channel: string; _month: string }
         Returns: undefined
       }
       reports_sign_in_summary: {

@@ -287,13 +287,13 @@ export function LaunchReports({
         !canDownload ? "Your Reports role does not allow downloads" : "Download every matching row"
       }
     >
-      <Download className="h-4 w-4" /> CSV
+      <Download className="h-4 w-4" /> Download CSV
     </Button>
   );
 
   return (
-    <section className="tvp-stack" aria-label="Launch reports">
-      <div className="min-w-0 border-b border-border pb-5 mb-5">
+    <section className="report-launch" aria-label="Launch reports">
+      <div className="report-launch-head">
         <div className="tvp-panel-head">
           <h2 className="tvp-h2">Launch reports</h2>
           <button className="tvp-secondary" onClick={() => setEditing(true)}>
@@ -349,7 +349,7 @@ export function LaunchReports({
 
       {d && (
         <>
-          <div className="min-w-0 border-b border-border pb-5 mb-5">
+          <div className="report-card report-launch-card">
             <div className="tvp-panel-head">
               <div className="flex items-center">
                 <h2 className="tvp-h2">Launch progress</h2>
@@ -401,7 +401,7 @@ export function LaunchReports({
             </div>
           </div>
 
-          <div className="min-w-0 border-b border-border pb-5 mb-5">
+          <div className="report-card report-launch-card">
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Launch offer · {d.settings.offer_free_months} months free</h2>
               <Csv kind="offer" />
@@ -456,7 +456,7 @@ export function LaunchReports({
             <Pager offset={offerOffset} total={d.offer.total} set={setOfferOffset} />
           </div>
 
-          <div className="min-w-0 border-b border-border pb-5 mb-5">
+          <div className="report-card report-launch-card">
             <div className="tvp-panel-head">
               <div className="flex items-center">
                 <h2 className="tvp-h2">Invitation conversion</h2>
@@ -474,8 +474,8 @@ export function LaunchReports({
               </div>
             </div>
             <p className="tvp-muted">
-              Invitations created in the date range. Each invitation counts once, however often it
-              was resent.
+              Invitations first sent in the date range. Each invitation counts once, however often
+              it was resent.
             </p>
             <div className="tvp-table-wrap">
               <table className="tvp-table">
@@ -526,7 +526,7 @@ export function LaunchReports({
             </p>
           </div>
 
-          <div className="min-w-0 border-b border-border pb-5 mb-5">
+          <div className="report-card report-launch-card">
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">Terms acceptances</h2>
               <Csv kind="terms" />
@@ -582,7 +582,7 @@ export function LaunchReports({
             <Pager offset={termsOffset} total={d.terms.acceptancesTotal} set={setTermsOffset} />
           </div>
 
-          <div className="min-w-0 border-b border-border pb-5 mb-5">
+          <div className="report-card report-launch-card">
             <div className="tvp-panel-head">
               <h2 className="tvp-h2">
                 Not yet accepted the current Terms · {d.terms.outstandingTotal}
@@ -774,7 +774,7 @@ function RecordsDialog({
       </div>
       <div className="tvp-footer-actions">
         <button className="tvp-secondary" onClick={csv} disabled={!canDownload}>
-          <Download className="h-4 w-4" /> CSV
+          <Download className="h-4 w-4" /> Download CSV
         </button>
         <button className="tvp-primary" onClick={onClose}>
           Close

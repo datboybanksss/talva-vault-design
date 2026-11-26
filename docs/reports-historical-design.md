@@ -26,3 +26,11 @@
 
 ## Rollback
 Restore prior Reports app files and the previous reports_options/people_rows definitions while preserving the later people-ID filter. Revoke service_role execution of reports_history_snapshot and reports_login_history only after reverting their callers. Never restore broad Admin restrictions, remove history, or alter roles/account flags/two-step settings.
+
+## 26 Nov 2026 — drill-downs, section downloads, spend and investor pack
+
+- Every figure carries the exact People rows behind it (`rosterOnly` in `src/lib/reports-analytics.ts`); a figure opens People with those ids and a "People behind" chip. A person outside the People list for the current filters is never counted in a people figure.
+- Each section's "Download CSV" exports that section's own records through `exportReportSection` (`sectionRows`); email addresses are never included and every download is logged.
+- Monthly acquisition spend: table `reports_channel_spend`, written only through `reports_set_channel_spend` (Reports permission `manage_spend`: Owner and Operations), audited as `set_report_channel_spend`. Migrations 0042–0043, canonical copies `20261126000042`–`43`. Rollback notes are in the files.
+- Investor pack: `exportInvestorPack` (always real accounts, first record to today) rendered to PDF in the browser by `src/lib/reports-investor-pack.ts`.
+- Data changes (audited, recorded in `20261126000044_reports_test_flags_and_send_dates.sql`): five agency records flagged Test; `first_sent_at` restored on 17 agency and 19 talent invitations from the earliest recorded send. Launch invitation figures now date sent invitations by first send.

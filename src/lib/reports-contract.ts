@@ -33,6 +33,7 @@ export const REPORT_PERMISSIONS = [
   "include_email_addresses",
   "send_messages",
   "approve_large_sends",
+  "manage_spend",
   "manage_access",
 ] as const;
 export type ReportPermission = (typeof REPORT_PERMISSIONS)[number];
@@ -42,7 +43,9 @@ export function roleCan(role: ReportRole, permission: ReportPermission) {
   if (permission === "view_reports") return true;
   if (permission === "download_raw_data") return role === "operations" || role === "analyst";
   return (
-    (permission === "send_messages" || permission === "approve_large_sends") &&
+    (permission === "send_messages" ||
+      permission === "approve_large_sends" ||
+      permission === "manage_spend") &&
     role === "operations"
   );
 }

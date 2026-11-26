@@ -4,9 +4,12 @@ import {
   trendRows,
   analyseHistory,
   datasetRows,
+  sectionRows,
+  SECTION_IDS,
   HistorySnapshot,
 } from "./reports-analytics";
-import { ReportPerson } from "./reports-contract";
+import { ReportPerson, roleCan } from "./reports-contract";
+import { matchesInviteFilter } from "./launch-reporting-core";
 import { matrixCsv } from "./reports-export-browser";
 const person = ReportPerson.parse({
   person_id: "talent-a",
@@ -103,4 +106,112 @@ describe("historical Reports rules", () => {
   });
   it("CSV prevents spreadsheet formula injection", () =>
     expect(matrixCsv(["Name"], [["=HYPERLINK(x)"]])).toContain("'=HYPERLINK(x)"));
+});
+
+describe("drill-downs, section downloads and spend", () => {
+  const args = ["2026-07-13", "2026-11-26", null, "2026-07-13"] as const;
+  const withStranger = HistorySnapshot.parse({
+    ...history,
+    records: [
+      ...history.records,
+      // Someone outside the People list for these filters (for example an administrator).
+      { id: "d", kind: "document", at: "2026-09-20T10:00:00Z", person_id: "not-listed" },
+      { id: "d2", kind: "document", at: "2026-09-20T10:00:00Z", person_id: "talent-a" },
+      {
+        id: "i2",
+        kind: "invitation",
+        type: "talent",
+        source: "admin",
+        at: "2026-08-01T09:00:00Z",
+        person_id: "not-listed",
+        status: "pending",
+      },
+    ],
+  });
+  it("every figure's people are rows of the People list", () => {
+    const a = analyseHistory(withStranger, ...args);
+    const listed = new Set(withStranger.people.map((p) => p.person_id));
+    const all = [
+      ...a.metrics,
+      ...Object.values(a.figures).flat(),
+      ...a.attention.map((r) => ({ people: r.people })),
+      ...a.funnels.talent,
+      ...a.sources,
+    ].flatMap((f) => f.people);
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.every((id) => listed.has(id))).toBe(true);
+  });
+  it("a people figure equals the number of people it opens", () => {
+    const a = analyseHistory(withStranger, ...args);
+    const sent = a.funnels.talent[0];
+    expect(sent?.count).toBe(1);
+    expect(sent?.people).toEqual(["talent-a"]);
+    expect(a.funnel_unlisted).toBe(1);
+    const uploaded = a.figures.documents.find((f) => f.label === "Uploaded");
+    // Two documents were uploaded; one person in the People list is behind them.
+    expect(uploaded?.value).toBe(2);
+    expect(uploaded?.people).toEqual(["talent-a"]);
+  });
+  it("section downloads never carry an email address", () => {
+    const a = analyseHistory(withStranger, ...args);
+    for (const section of SECTION_IDS) {
+      const text = JSON.stringify(sectionRows(withStranger, a, section));
+      expect(text).not.toContain("a@example.com");
+      expect(text).not.toMatch(/"email"/);
+    }
+  });
+  it("a section download holds that section's own records", () => {
+    const a = analyseHistory(withStranger, ...args);
+    expect(sectionRows(withStranger, a, "engagement_documents")).toHaveLength(2);
+    expect(sectionRows(withStranger, a, "growth_sources")).toHaveLength(2);
+    expect(sectionRows(withStranger, a, "business_months")).toHaveLength(5);
+  });
+  it("cost per registration is the period's spend divided by registrations from that channel", () => {
+    const a = analyseHistory(history, ...args, [
+      { channel: "admin", month: "2026-07", amount_cents: 100000 },
+      { channel: "admin", month: "2026-08", amount_cents: 50000 },
+      // Outside the selected period: ignored.
+      { channel: "admin", month: "2026-06", amount_cents: 999900 },
+    ]);
+    const admin = a.acquisition.find((r) => r.channel === "admin");
+    expect(admin?.registered).toBe(1);
+    expect(admin?.spend).toBe(1500);
+    expect(admin?.cost).toBe(1500);
+  });
+  it("no spend recorded means no cost is shown", () => {
+    const admin = analyseHistory(history, ...args).acquisition.find((r) => r.channel === "admin");
+    expect(admin?.spend).toBeNull();
+    expect(admin?.cost).toBeNull();
+  });
+  it("only Owner and Operations may record spend", () => {
+    expect(roleCan("owner", "manage_spend")).toBe(true);
+    expect(roleCan("operations", "manage_spend")).toBe(true);
+    expect(roleCan("analyst", "manage_spend")).toBe(false);
+    expect(roleCan("viewer", "manage_spend")).toBe(false);
+  });
+  it("launch invitation figures date a sent invitation by its first send", () => {
+    const filter = {
+      fromIso: "2026-08-01T00:00:00Z",
+      toIso: "2026-08-31T23:59:59Z",
+      type: "all" as const,
+      segment: "all" as const,
+    };
+    const row = {
+      id: "i",
+      type: "talent" as const,
+      segment: "independent" as const,
+      status: "pending",
+      email: "a@example.com",
+      created_at: "2026-07-20T10:00:00Z",
+      expires_at: null,
+      first_sent_at: "2026-08-03T10:00:00Z",
+      accepted_at: null,
+      source: null,
+    };
+    expect(matchesInviteFilter(row, filter)).toBe(true);
+    // A draft was never sent, so it stays dated by creation.
+    expect(matchesInviteFilter({ ...row, status: "draft", first_sent_at: null }, filter)).toBe(
+      false,
+    );
+  });
 });

@@ -18,6 +18,7 @@ export const PEOPLE_COLUMNS = [
   "Launch-discount status",
   "Keep-by date",
 ];
+const sentence = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 export function peopleCells(p: ReportsPerson, emails = false): (string | number)[] {
   const cells: (string | number)[] = [
     p.name,
@@ -25,9 +26,9 @@ export function peopleCells(p: ReportsPerson, emails = false): (string | number)
     p.account_type === "trusted_contact"
       ? "Not applicable"
       : p.agency_names.join(", ") || "Independent",
-    p.status,
+    sentence(p.status),
     fmtDateTime(p.registered_at, "Not recorded"),
-    p.stage,
+    sentence(p.stage),
     fmtDateTime(p.last_sign_in, "Not recorded"),
     p.days_since_last ?? "Not recorded",
     p.capture_complete || p.active_days > 0 ? p.active_days : "Not tracked",

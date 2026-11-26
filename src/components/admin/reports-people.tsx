@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  ArrowDown,
+  ArrowUp,
   ChevronLeft,
   ChevronRight,
   Columns3,
@@ -9,6 +11,8 @@ import {
   FileSpreadsheet,
   Mail,
   RefreshCw,
+  Search,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,19 +37,54 @@ type Props = {
   asOf: string;
   role: ReportRole;
   onChange: (f: ReportsFilters) => void;
+  /** The figure this list was opened from, when it was opened from a figure. */
+  drill?: string;
+  onClearDrill?: () => void;
 };
-export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Props) {
+type SortKey =
+  | "name"
+  | "sign_ins"
+  | "active_days"
+  | "registered_at"
+  | "last_sign_in"
+  | "documents"
+  | "stage"
+  | "status";
+/** Sortable People columns, by their position in PEOPLE_COLUMNS. */
+const SORT_BY_COLUMN: Partial<Record<number, SortKey>> = {
+  0: "name",
+  3: "status",
+  4: "registered_at",
+  5: "stage",
+  6: "last_sign_in",
+  8: "active_days",
+  9: "sign_ins",
+  11: "documents",
+};
+const STAGE_LABEL: Record<string, string> = {
+  invited: "Invited",
+  registered: "Registered",
+  onboarded: "Onboarded",
+  returned: "Returned",
+};
+const ACTIVITY_LABEL: Record<string, string> = {
+  active: "Active",
+  returning: "Returning",
+  dormant: "Dormant",
+  never: "Never signed in",
+};
+export function ReportsPeople({
+  filters: f,
+  from,
+  to,
+  asOf,
+  role,
+  onChange,
+  drill = "",
+  onClearDrill,
+}: Props) {
   const [offset, setOffset] = useState(0),
-    [sort, setSort] = useState<
-      | "name"
-      | "sign_ins"
-      | "active_days"
-      | "registered_at"
-      | "last_sign_in"
-      | "documents"
-      | "stage"
-      | "status"
-    >("name"),
+    [sort, setSort] = useState<SortKey>("name"),
     [direction, setDirection] = useState<"asc" | "desc">("asc"),
     [emails, setEmails] = useState(false),
     [busy, setBusy] = useState(false),
@@ -116,62 +155,54 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
       setOffset(0);
     }
   }
+  const canDownload = !!q.data && !busy && roleCan(role, "download_raw_data");
+  const chips = [
+    ...(f.stage !== "all"
+      ? [{ key: "stage" as const, text: `Stage: ${STAGE_LABEL[f.stage] ?? f.stage}` }]
+      : []),
+    ...(f.activity !== "all"
+      ? [
+          {
+            key: "activity" as const,
+            text: `Activity: ${ACTIVITY_LABEL[f.activity] ?? f.activity}`,
+          },
+        ]
+      : []),
+    ...(f.search ? [{ key: "search" as const, text: `Name contains “${f.search}”` }] : []),
+  ];
   return (
-    <section aria-label="People report" className="min-w-0">
-      <header className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <div className="flex items-center">
-          <h2 className="tvp-h2">People</h2>
+    <section aria-label="People report" className="report-card report-people">
+      <header className="report-section-head">
+        <div>
+          <h2>People</h2>
+          <p className="report-meta">
+            Everyone behind the figures, with their details. Email addresses are left out unless you
+            include them.
+          </p>
+        </div>
+        <div className="report-head-actions">
           <ReportDefinition definition="registered" />
           <ReportDefinition definition="onboarded" />
         </div>
-        <div className="flex gap-1">
-          <Button variant="outline" className="h-11" onClick={() => setChooser(true)}>
-            <Columns3 />
-            Columns
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-11 w-11"
-            title="Download CSV"
-            aria-label="Download People CSV"
-            disabled={!q.data || busy || !roleCan(role, "download_raw_data")}
-            onClick={() => void download("csv")}
-          >
-            <Download />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-11 w-11"
-            title="Download Excel"
-            aria-label="Download People Excel"
-            disabled={!q.data || busy || !roleCan(role, "download_raw_data")}
-            onClick={() => void download("xlsx")}
-          >
-            <FileSpreadsheet />
-          </Button>
-        </div>
       </header>
-      <div className="!grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 !gap-3 tvp-form-group mb-4">
-        <label className="text-xs font-medium">
-          Search name
-          <input
-            className="mt-1 !h-11 !w-full"
-            value={f.search}
-            onChange={(e) => {
-              onChange({ ...f, search: e.target.value });
-              setOffset(0);
-            }}
-          />
+      <div className="report-people-controls">
+        <label className="report-people-search">
+          <span>Search</span>
+          <span className="report-search-field">
+            <Search aria-hidden="true" />
+            <input
+              value={f.search}
+              placeholder="Search by name"
+              onChange={(e) => {
+                onChange({ ...f, search: e.target.value });
+                setOffset(0);
+              }}
+            />
+          </span>
         </label>
-        <label className="text-xs font-medium">
-          Onboarding stage
-          <select
-            className="mt-1 !h-11 !w-full"
-            value={f.stage}
-            onChange={(e) => change("stage", e.target.value)}
-          >
+        <label>
+          <span>Onboarding stage</span>
+          <select value={f.stage} onChange={(e) => change("stage", e.target.value)}>
             <option value="all">All stages</option>
             <option value="invited">Invited</option>
             <option value="registered">Registered</option>
@@ -179,116 +210,56 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
             <option value="returned">Returned</option>
           </select>
         </label>
-        <label className="text-xs font-medium">
-          Activity
-          <select
-            className="mt-1 !h-11 !w-full"
-            value={f.activity}
-            onChange={(e) => change("activity", e.target.value)}
-          >
-            <option value="all">All, including no activity</option>
+        <label>
+          <span>Activity</span>
+          <select value={f.activity} onChange={(e) => change("activity", e.target.value)}>
+            <option value="all">All activity</option>
             <option value="active">Active</option>
             <option value="returning">Returning</option>
-            <option value="dormant">Dormant (recorded history)</option>
-            <option value="never">Never signed in (recorded history)</option>
+            <option value="dormant">Dormant</option>
+            <option value="never">Never signed in</option>
           </select>
         </label>
-        <label className="text-xs font-medium">
-          Sort by
-          <select
-            className="mt-1 !h-11 !w-full"
-            value={sort}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (
-                v === "name" ||
-                v === "sign_ins" ||
-                v === "active_days" ||
-                v === "registered_at" ||
-                v === "last_sign_in" ||
-                v === "documents" ||
-                v === "stage" ||
-                v === "status"
-              ) {
-                setSort(v);
-                setOffset(0);
-              }
-            }}
-          >
-            <option value="name">Name</option>
-            <option value="sign_ins">Sign-ins / visits</option>
-            <option value="active_days">Days active</option>
-            <option value="registered_at">Joined</option>
-            <option value="last_sign_in">Last sign-in / visit</option>
-            <option value="documents">Documents</option>
-            <option value="stage">Stage</option>
-            <option value="status">Status</option>
-          </select>
-        </label>
-        <label className="text-xs font-medium">
-          Order
-          <select
-            className="mt-1 !h-11 !w-full"
-            value={direction}
-            onChange={(e) => {
-              setDirection(e.target.value === "desc" ? "desc" : "asc");
-              setOffset(0);
-            }}
-          >
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
-        </label>
+        <Button variant="outline" onClick={() => setChooser(true)}>
+          <Columns3 />
+          Columns
+        </Button>
       </div>
-      <div className="flex flex-wrap gap-2 mb-3">
-        {(["stage", "activity", "search"] as const)
-          .filter((key) => f[key] && f[key] !== "all")
-          .map((key) => (
+      {(drill || chips.length > 0) && (
+        <div className="report-chips">
+          {drill && (
             <Button
-              key={key}
               variant="outline"
-              className="text-xs"
-              aria-label={`Remove ${key} filter`}
-              onClick={() => onChange({ ...f, [key]: key === "search" ? "" : "all" })}
+              className="report-chip report-chip-drill"
+              aria-label="Show everyone again"
+              onClick={onClearDrill}
             >
-              {key === "stage" ? "Onboarding stage" : key === "activity" ? "Activity" : "Search"}:{" "}
-              {f[key]} ×
+              People behind: {drill}
+              <X />
+            </Button>
+          )}
+          {chips.map((chip) => (
+            <Button
+              key={chip.key}
+              variant="outline"
+              className="report-chip"
+              aria-label={`Remove filter: ${chip.text}`}
+              onClick={() => onChange({ ...f, [chip.key]: chip.key === "search" ? "" : "all" })}
+            >
+              {chip.text}
+              <X />
             </Button>
           ))}
-      </div>
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-3">
-        <div className="flex flex-wrap gap-3 items-center">
-          <label className="flex gap-2 items-center text-sm min-h-11">
-            <Checkbox
-              checked={selection.all}
-              onCheckedChange={(v) => setSelection({ all: v === true, ids: new Set() })}
-            />
-            Select all {total} matching people
-          </label>
-          <Button variant="outline" disabled title="Messaging is not available yet">
-            <Mail />
-            Message {count} people
-          </Button>
         </div>
-        {roleCan(role, "include_email_addresses") && (
-          <label className="flex gap-2 items-center text-sm min-h-11">
-            <Checkbox checked={emails} onCheckedChange={(v) => setEmails(v === true)} />
-            Include email addresses
-          </label>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-        {total} people · {q.data?.registered ?? "—"} registered · {count} selected. Email addresses
-        are omitted by default.
-      </p>
+      )}
       {q.isPending && (
-        <p role="status" className="text-sm text-muted-foreground py-8">
+        <p role="status" className="report-meta py-8">
           Loading people…
         </p>
       )}
       {q.isError && (
         <div className="flex flex-wrap gap-3 items-center py-5">
-          <p className="text-sm text-muted-foreground">The People report could not be loaded.</p>
+          <p className="report-meta">The People report could not be loaded.</p>
           <Button variant="outline" onClick={() => void q.refetch()}>
             <RefreshCw />
             Retry
@@ -297,21 +268,56 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
       )}
       {q.data && (
         <>
-          <div className="overflow-x-auto w-full border border-border rounded-md">
-            <table className="tvp-table !mb-0 min-w-[1100px]">
+          <div className="report-table-scroll">
+            <table className="report-people-table">
               <thead>
                 <tr>
-                  <th className="!w-12">Select</th>
-                  {columns.map((i) => (
-                    <th key={i}>{PEOPLE_COLUMNS[i]}</th>
-                  ))}
+                  <th className="report-select-cell">
+                    <Checkbox
+                      aria-label={`Select all ${total} matching people`}
+                      checked={selection.all}
+                      onCheckedChange={(v) => setSelection({ all: v === true, ids: new Set() })}
+                    />
+                  </th>
+                  {columns.map((i) => {
+                    const key = SORT_BY_COLUMN[i];
+                    return (
+                      <th
+                        key={i}
+                        aria-sort={
+                          key && sort === key
+                            ? direction === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : undefined
+                        }
+                      >
+                        {key ? (
+                          <Button
+                            variant="ghost"
+                            className="report-sort"
+                            onClick={() => {
+                              setDirection(sort === key && direction === "asc" ? "desc" : "asc");
+                              setSort(key);
+                              setOffset(0);
+                            }}
+                          >
+                            {PEOPLE_COLUMNS[i]}
+                            {sort === key && (direction === "asc" ? <ArrowUp /> : <ArrowDown />)}
+                          </Button>
+                        ) : (
+                          PEOPLE_COLUMNS[i]
+                        )}
+                      </th>
+                    );
+                  })}
                   {input.includeEmails && <th>Email</th>}
                 </tr>
               </thead>
               <tbody>
                 {q.data.rows.map((p) => (
                   <tr key={p.person_id}>
-                    <td>
+                    <td className="report-select-cell">
                       <Checkbox
                         aria-label={`Select ${p.name}`}
                         checked={checked(p.person_id)}
@@ -319,13 +325,9 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
                       />
                     </td>
                     {columns.map((i) => (
-                      <td key={i} className="!whitespace-normal min-w-28 max-w-64 break-words">
+                      <td key={i}>
                         {i === 0 ? (
-                          <Button
-                            variant="link"
-                            className="!px-0 h-auto !whitespace-normal text-left"
-                            onClick={() => setPerson(p)}
-                          >
+                          <Button variant="link" onClick={() => setPerson(p)}>
                             {peopleCells(p, input.includeEmails)[i]}
                           </Button>
                         ) : (
@@ -338,18 +340,24 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
                     )}
                   </tr>
                 ))}
+                {total === 0 && (
+                  <tr>
+                    <td colSpan={columns.length + 1 + (input.includeEmails ? 1 : 0)}>
+                      No people match these filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-          {total === 0 && (
-            <p className="text-sm text-muted-foreground py-8">No people match these filters.</p>
-          )}
-          <footer className="flex flex-wrap items-center justify-between gap-3 py-4">
-            <p className="text-xs text-muted-foreground">
-              Showing {total ? offset + 1 : 0}–{offset + q.data.rows.length} of {total}
-              {total < 5 ? " · Small sample" : ""}
-            </p>
-            <div className="flex gap-2">
+          <footer className="report-people-footer">
+            <div className="report-people-paging">
+              <p className="report-meta" data-people-total={total}>
+                Showing {total ? offset + 1 : 0}–{offset + q.data.rows.length} of {total}
+                {" · "}
+                {q.data.registered} registered
+                {total > 0 && total < 5 ? " · Small sample" : ""}
+              </p>
               <Button
                 variant="outline"
                 disabled={offset === 0}
@@ -365,6 +373,39 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
               >
                 Next
                 <ChevronRight />
+              </Button>
+            </div>
+            <div className="report-people-downloads">
+              {roleCan(role, "include_email_addresses") && (
+                <label className="report-check">
+                  <Checkbox checked={emails} onCheckedChange={(v) => setEmails(v === true)} />
+                  Include email addresses
+                </label>
+              )}
+              <Button
+                variant="outline"
+                disabled
+                title="Available when messaging launches"
+                aria-label={`Message ${count} people — available when messaging launches`}
+              >
+                <Mail />
+                Message {count} selected
+              </Button>
+              <Button
+                variant="outline"
+                disabled={!canDownload}
+                onClick={() => void download("csv")}
+              >
+                <Download />
+                Download CSV
+              </Button>
+              <Button
+                variant="outline"
+                disabled={!canDownload}
+                onClick={() => void download("xlsx")}
+              >
+                <FileSpreadsheet />
+                Download Excel
               </Button>
             </div>
           </footer>

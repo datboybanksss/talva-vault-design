@@ -138,8 +138,10 @@ describe("invitation conversion", () => {
   it("date range uses SAST midnight", () => {
     const r = sastRange("2026-11-20", "2026-11-20");
     const rows = [
-      inv({ created_at: "2026-11-19T21:59:59.999Z" }),
-      inv({ created_at: "2026-11-19T22:00:00.000Z" }),
+      // A sent invitation is dated by its first send, a draft by its creation.
+      inv({ first_sent_at: "2026-11-19T21:59:59.999Z" }),
+      inv({ first_sent_at: "2026-11-19T22:00:00.000Z" }),
+      inv({ status: "draft", first_sent_at: null, created_at: "2026-11-19T21:59:59.999Z" }),
     ];
     expect(invitationFunnel(rows, { ...r, type: "all", segment: "all" }, NOW).total).toBe(1);
   });

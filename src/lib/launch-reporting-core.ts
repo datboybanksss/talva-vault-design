@@ -138,7 +138,9 @@ export type InviteFilter = {
 };
 
 export function matchesInviteFilter(r: InviteRow, f: InviteFilter) {
-  if (r.created_at < f.fromIso || r.created_at > f.toIso) return false;
+  // Sent invitations are dated by their first send; drafts (never sent) by creation.
+  const dated = r.first_sent_at ?? r.created_at;
+  if (dated < f.fromIso || dated > f.toIso) return false;
   if (f.type !== "all" && r.type !== f.type) return false;
   if (f.segment !== "all" && r.type === "talent" && r.segment !== f.segment) return false;
   if (f.segment !== "all" && r.type === "agency" && f.type === "talent") return false;

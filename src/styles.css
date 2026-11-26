@@ -8773,3 +8773,274 @@ a.tvp-entity-card:focus-visible {
     border-top: 0;
   }
 }
+/* Reports: drill-downs, People layout, spend entry, Launch admin */
+.reports-foundation .report-drill {
+  padding: 0;
+  height: auto;
+  min-height: 32px;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--report-teal);
+  white-space: nowrap;
+}
+.reports-foundation .report-kpi-static {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+}
+.report-grid-helper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.report-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 8px;
+}
+.report-depth-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--report-ink);
+}
+.report-investor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.report-investor > div:first-child {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.report-people-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+.report-people-controls label,
+.report-spend-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--report-ink);
+  min-width: 0;
+}
+.report-people-controls select,
+.report-people-controls input,
+.report-spend-form select,
+.report-spend-form input {
+  height: 44px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--report-border);
+  border-radius: 10px;
+  background: var(--report-surface);
+  color: var(--report-body);
+  font-size: 14px;
+  font-weight: 400;
+  padding: 0 12px;
+}
+.report-search-field {
+  position: relative;
+  display: block;
+}
+.report-search-field svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  color: var(--report-muted);
+  pointer-events: none;
+}
+.report-people-controls .report-search-field input {
+  padding-left: 36px;
+}
+.report-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.reports-foundation .report-chip {
+  min-height: 32px;
+  height: auto;
+  padding: 4px 10px 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  white-space: normal;
+  text-align: left;
+  background: var(--report-tint);
+  border-color: var(--report-tint);
+  color: var(--report-ink);
+  max-width: 100%;
+}
+.reports-foundation .report-chip svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.reports-foundation .report-chip-drill {
+  font-weight: 600;
+}
+.reports-foundation .report-people-table td {
+  white-space: normal;
+  min-width: 110px;
+  max-width: 260px;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.reports-foundation .report-people-table td button {
+  white-space: normal;
+  text-align: left;
+}
+.reports-foundation .report-people-table .report-select-cell {
+  min-width: 0;
+  width: 44px;
+}
+.reports-foundation .report-sort {
+  padding: 0;
+  height: auto;
+  min-height: 32px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--report-muted);
+  gap: 4px;
+}
+.reports-foundation .report-sort svg {
+  width: 13px;
+  height: 13px;
+}
+.report-people-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+}
+.report-people-paging,
+.report-people-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.report-people-paging p {
+  margin-right: 6px;
+}
+.report-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--report-body);
+  margin-right: 4px;
+}
+.report-spend-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin: 8px 0 4px;
+}
+.report-spend-form button {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 44px;
+}
+@media (max-width: 767px) {
+  .report-people-controls {
+    grid-template-columns: 1fr;
+  }
+  .report-people-controls > button {
+    justify-self: start;
+  }
+  .report-spend-form {
+    grid-template-columns: 1fr;
+  }
+  .report-people-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+.reports-foundation .report-select-cell button {
+  min-height: 0;
+  height: 16px;
+  width: 16px;
+  padding: 0;
+}
+.reports-foundation .report-kpi {
+  justify-content: flex-start;
+}
+.report-launch-head {
+  margin-bottom: 16px;
+  min-width: 0;
+}
+.reports-foundation .report-launch .tvp-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+.reports-foundation .report-launch .tvp-h2 {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--report-ink);
+  letter-spacing: 0;
+}
+.reports-foundation .report-launch .tvp-muted {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--report-muted);
+}
+.reports-foundation .report-launch .tvp-table-wrap {
+  overflow: auto;
+  max-width: 100%;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.reports-foundation .report-launch th {
+  text-transform: none;
+  letter-spacing: 0;
+  background: transparent;
+}
+.reports-foundation .report-launch .tvp-card.tvp-kpi {
+  background: var(--report-surface);
+  border: 1px solid var(--report-border);
+  border-radius: 14px;
+  box-shadow: none;
+}
+.reports-foundation .report-launch .tvp-secondary {
+  min-height: 44px;
+}
+.reports-foundation .report-check button {
+  min-height: 0;
+  height: 16px;
+  width: 16px;
+  padding: 0;
+  flex: none;
+}
+.reports-foundation .report-device-bar .report-drill {
+  color: inherit;
+  min-height: 24px;
+}
