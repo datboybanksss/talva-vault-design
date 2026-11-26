@@ -42,8 +42,7 @@ REVOKE EXECUTE ON FUNCTION public.admin_sign_in_summary(date,date,text,timestamp
 
 Use a forward migration for revokes/re-grants; do not delete applied history. Retain access rows, milestones, private saved views, export receipts, audit and uploaded documents. Reports role rollback is a separately approved, audited data change; never revert user_roles, invitations, account flags, legal proof or MFA settings. Do not reintroduce broad Admin policies or storage/operational RPC guards. Re-enable only the endpoint grants above after the matching app is verified.
 
-## Remaining release gates (25 November 2026)
-- No existing account has `lara@talvault.com`; the two Lara Admin accounts are `admin1@talvault.com` (Lara) and `laranel@outlook.com` (Lara Prasad). Do not guess which should become Owner. Await product-owner clarification.
-- Israel Noko remains Owner; Lindo Noko and Omar-Raphael Tabengwa were assigned Operations with audit entries. Both Lara accounts remain Viewer pending clarification.
-- Existing-self session verifies Lara Prasad as Viewer. Specific-account sign-in is unavailable in this environment, so Owner/Operations browser downloads and access-management checks remain unverified.
-- Production-scale query plans, historical capture completeness and future-phase analytics are not claimed. Phases 2–5 remain unbuilt.
+## Release status (26 November 2026)
+- Product-owner decision: both Lara Admin accounts (`laranel@outlook.com`, `admin1@talvault.com`) are Reports Owners, with audit entries. Israel Noko remains Owner; Lindo Noko and Omar-Raphael Tabengwa are Operations.
+- Owner browser verification passed (desktop/mobile, light/dark): eight tabs, People CSV/Excel downloads, email-free default and explicit email inclusion, Reports access page and an audited role change that was reversed.
+- Operations browser verification is still outstanding: specific-account sign-in is unavailable in this environment. Operations and last-Owner rules are covered by the database permission tests.
