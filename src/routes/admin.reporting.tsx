@@ -8,9 +8,15 @@ import { Download, Printer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReportsFilterBar } from "@/components/admin/reports-filter-bar";
 import { ReportsPeople } from "@/components/admin/reports-people";
-import { SignInActivity } from "@/components/admin/sign-in-activity";
-import { ReportDefinition } from "@/components/admin/report-definition";
 import { LaunchReports } from "@/components/admin/launch-reports";
+import { ReportsDataExports } from "@/components/admin/reports-data-exports";
+import {
+  OverviewPanels,
+  GrowthPanels,
+  EngagementPanels,
+  AgencyPanels,
+  BusinessPanels,
+} from "@/components/admin/reports-analytics-panels";
 import {
   REPORT_TABS,
   REPORT_TAB_LABELS,
@@ -20,24 +26,18 @@ import {
   roleCan,
   type ReportsFilters,
 } from "@/lib/reports-contract";
-import {
-  getReportsOptions,
-  getReportsSummary,
-  getReportsNorthStar,
-  exportReportsPeople,
-} from "@/lib/reports.functions";
+import { getReportsOptions, getReportsNorthStar } from "@/lib/reports.functions";
+import { getReportsAnalytics, exportHistoricalReport } from "@/lib/reports-analytics.functions";
+import { downloadReportTables } from "@/lib/reports-export-browser";
 import {
   REPORTS_DEFINITIONS,
   REPORTS_DEFINITIONS_DATE,
   REPORTS_DEFINITIONS_VERSION,
 } from "@/lib/reports-definitions";
-import { fmtDate, fmtDateTime } from "@/lib/display-dates";
-import { peopleCsv } from "@/lib/reports-download";
-import { downloadCsv } from "@/lib/billing-reports";
+import { fmtDate } from "@/lib/display-dates";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/friendly-error";
 import { useSessionReady } from "@/hooks/use-session-ready";
-import { ReportEvidence } from "@/components/admin/report-evidence";
 const text = (value: string) => fallback(z.string(), value).default(value);
 const searchSchema = z.object({
   tab: text("overview"),
@@ -66,12 +66,12 @@ export const Route = createFileRoute("/admin/reporting")({
       {
         name: "description",
         content:
-          "Permission-controlled TalVault Reports with shared filters, sign-in activity and downloadable People evidence.",
+          "Permission-controlled TalVault Reports with shared filters, sign-in activity and downloadable People records.",
       },
       { property: "og:title", content: "Reports · TalVault Admin" },
       {
         property: "og:description",
-        content: "TalVault registration, sign-in activity and private reporting evidence.",
+        content: "TalVault registration, sign-in activity and private reporting data.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -80,17 +80,18 @@ export const Route = createFileRoute("/admin/reporting")({
   component: ReportsPage,
 });
 function ReportsPage() {
-  const sessionReady = useSessionReady();
-  const search = Route.useSearch(),
+  const sessionReady = useSessionReady(),
+    search = Route.useSearch(),
     navigate = useNavigate({ from: "/admin/reporting" });
   const parsed = ReportFilters.safeParse(search),
-    filters = parsed.success ? parsed.data : reportDefaults;
-  const tab = REPORT_TABS.find((t) => t === search.tab) ?? "overview";
+    filters = parsed.success ? parsed.data : reportDefaults,
+    tab = REPORT_TABS.find((t) => t === search.tab) ?? "overview";
   const optionsFn = useServerFn(getReportsOptions),
-    summaryFn = useServerFn(getReportsSummary),
+    analyticsFn = useServerFn(getReportsAnalytics),
     northFn = useServerFn(getReportsNorthStar),
-    download = useServerFn(exportReportsPeople);
-  const [downloading, setDownloading] = useState(false);
+    exportFn = useServerFn(exportHistoricalReport);
+  const [busy, setBusy] = useState(false),
+    [fullHistory, setFullHistory] = useState(false);
   const options = useQuery({
     queryKey: ["admin", "reports-options"],
     queryFn: () => optionsFn(),
@@ -100,98 +101,140 @@ function ReportsPage() {
   });
   const o = options.data,
     period = o ? reportPeriod(filters, o.as_of, o.launch_date, o.first_date) : null;
-  const summary = useQuery({
-    queryKey: ["admin", "reports-summary", filters, period, o?.as_of],
-    enabled: sessionReady && !!period && !!o && (tab === "overview" || tab === "engagement"),
+  const analyticsFilters =
+    tab === "business"
+      ? { ...filters, accounts: "real" as const }
+      : tab === "exports" && fullHistory
+        ? { ...reportDefaults, accounts: "all" as const }
+        : filters;
+  const from = tab === "exports" && fullHistory ? (o?.first_date ?? period?.from) : period?.from;
+  const input =
+    period && o && from
+      ? {
+          filters: analyticsFilters,
+          from,
+          to: period.to,
+          prior: period.prior,
+          asOf: o.as_of,
+          firstDate: o.first_date ?? from,
+        }
+      : null;
+  const analytics = useQuery({
+    queryKey: ["admin", "reports-historical-analytics", input],
+    enabled: sessionReady && !!input,
     queryFn: () => {
-      if (!period || !o) throw new Error("Choose a reporting period.");
-      return summaryFn({ data: { filters, ...period, asOf: o.as_of } });
+      if (!input) throw new Error("Choose valid reporting dates.");
+      return analyticsFn({ data: input });
     },
+    retry: false,
   });
   const north = useQuery({
     queryKey: ["admin", "reports-north-star", filters, period, o?.as_of],
     enabled: sessionReady && !!period && !!o && tab === "overview",
     queryFn: () => {
-      if (!period || !o) throw new Error("Choose a reporting period.");
+      if (!period || !o) throw new Error("Choose valid reporting dates.");
       return northFn({ data: { filters, from: period.from, to: period.to, asOf: o.as_of } });
     },
   });
-  const change = (next: ReportsFilters) => {
+  const previousNorth = useQuery({
+    queryKey: ["admin", "reports-north-star-prior", filters, period?.prior, o?.as_of],
+    enabled: sessionReady && !!period?.prior && !!o && tab === "overview",
+    queryFn: () => {
+      if (!period?.prior || !o) throw new Error("Choose a comparison period.");
+      return northFn({ data: { filters, ...period.prior, asOf: o.as_of } });
+    },
+  });
+  function change(next: ReportsFilters) {
     void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
-  };
-  const openPeople = (next: Partial<ReportsFilters> = {}) => {
-    void navigate({ search: (prev) => ({ ...prev, ...next, tab: "people" }) });
-  };
-  async function exportPeople() {
-    if (!period || !o) return;
-    setDownloading(true);
+  }
+  function openPeople(ids: string[]) {
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        tab: "people",
+        people: [...new Set(ids)].length ? [...new Set(ids)] : ["no-matching-people"],
+        stage: "all",
+        activity: "all",
+      }),
+    });
+  }
+  async function download(
+    dataset: string,
+    format: "csv" | "xlsx" = "csv",
+    includeEmails = false,
+    full = false,
+  ) {
+    if (!input) return;
+    setBusy(true);
     try {
-      const d = await download({
-        data: { filters, from: period.from, to: period.to, asOf: o.as_of },
+      const investor = dataset === "investor";
+      const tables = await exportFn({
+        data: {
+          ...input,
+          filters: investor ? { ...reportDefaults, accounts: "real" } : input.filters,
+          dataset: investor ? "all" : dataset,
+          includeEmails,
+          fullHistory: full,
+        },
       });
-      downloadCsv(
-        `talvault-people-${filters.accounts}-${period.from}-${period.to}.csv`,
-        peopleCsv(d.rows, false),
-      );
+      await downloadReportTables(tables, format, dataset === "all" || investor);
+      toast.success("Report downloaded.");
     } catch (e) {
       toast.error(friendlyError(e, "The report could not be downloaded."));
     } finally {
-      setDownloading(false);
+      setBusy(false);
     }
   }
-  const signIn =
-    period && o ? (
-      <SignInActivity
-        from={period.from}
-        to={period.to}
-        accounts={filters.accounts}
-        summary={
-          summary.data
-            ? {
-                ...summary.data,
-                groups: summary.data.groups.filter(
-                  (g) => filters.account_type === "all" || g.type === filters.account_type,
-                ),
-              }
-            : undefined
-        }
-        isPending={summary.isPending}
-        isError={summary.isError}
-        retry={() => void summary.refetch()}
-        onPeople={(d) => openPeople({ account_type: d.type, activity: d.population, people: [] })}
-      />
-    ) : null;
+  const scope =
+    filters.accounts === "all"
+      ? "all accounts"
+      : filters.accounts === "test"
+        ? "test accounts"
+        : "real accounts";
+  const data = analytics.data,
+    canDownload = !!o && roleCan(o.role, "download_raw_data") && !busy;
+  const panel = data
+    ? { data, onPeople: openPeople, onDownload: (d: string) => void download(d), canDownload }
+    : null;
   return (
-    <div className="min-w-0 reports-foundation">
-      <header className="flex flex-wrap items-start justify-between gap-3 mb-4">
+    <div className="reports-foundation">
+      <header className="report-page-head">
         <div>
-          <h1 className="tvp-h1">Reports</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {REPORTS_DEFINITIONS_VERSION} · {REPORTS_DEFINITIONS_DATE}
-            {o ? ` · ${o.role.charAt(0).toUpperCase()}${o.role.slice(1)}` : ""}
+          <h1>Reports</h1>
+          <p className="mt-1">
+            How TalVault is performing, for {scope}
+            {filters.accounts === "real" ? " unless you change the filter." : "."}
           </p>
         </div>
-        <Button
-          variant="outline"
-          className="h-11 print:hidden"
-          title="Print current Reports view"
-          onClick={() => window.print()}
-        >
-          <Printer />
-          Print / Save PDF
-        </Button>
+        <div className="report-header-right">
+          <p className="report-meta">
+            {o
+              ? `Data refreshed today, ${new Date(o.as_of).toLocaleTimeString("en-ZA", { timeZone: "Africa/Johannesburg", hour: "2-digit", minute: "2-digit" })}`
+              : "Loading latest data…"}
+          </p>
+          <div>
+            <Button
+              variant="outline"
+              onClick={() => void navigate({ search: (prev) => ({ ...prev, tab: "exports" }) })}
+            >
+              <Download />
+              Download raw data
+            </Button>
+            <Button onClick={() => window.print()}>
+              <Printer />
+              Print or save PDF
+            </Button>
+          </div>
+        </div>
       </header>
       {options.isPending && (
-        <p role="status" className="text-muted-foreground">
+        <p role="status" className="report-meta">
           Checking Reports access…
         </p>
       )}
       {options.isError && (
-        <div className="flex flex-wrap gap-3 items-center py-6">
-          <p className="text-sm text-muted-foreground">
-            Reports access or filters could not be loaded. Ask a Reports Owner to review your
-            access, or retry.
-          </p>
+        <div className="flex flex-wrap gap-3 py-6">
+          <p>Reports could not be opened. Please retry.</p>
           <Button variant="outline" onClick={() => void options.refetch()}>
             <RefreshCw />
             Retry
@@ -207,31 +250,18 @@ function ReportsPage() {
             summary={
               <>
                 {period
-                  ? `${fmtDate(period.from)}–${fmtDate(period.to)} · ${period.prior ? `Compared with ${fmtDate(period.prior.from)}–${fmtDate(period.prior.to)}` : "No comparison"}`
+                  ? `${fmtDate(period.from)} – ${fmtDate(period.to)}${period.prior ? ` vs ${fmtDate(period.prior.from)} – ${fmtDate(period.prior.to)}` : ""}`
                   : "Choose valid dates"}{" "}
-                ·{" "}
-                {filters.accounts === "all"
-                  ? "All accounts"
-                  : `${filters.accounts === "real" ? "Real" : "Test"} accounts`}{" "}
-                · South African time · First observed sign-in{" "}
-                {fmtDate(o.first_login, "Not recorded")}
+                · {scope.charAt(0).toUpperCase() + scope.slice(1)} · South African time · Sign-ins
+                recorded since {fmtDate(o.first_login)}
               </>
             }
           />
-          {!parsed.success && (
-            <p className="text-xs text-muted-foreground mb-3">
-              Some filters are invalid. Reset filters to choose a valid view.
-            </p>
-          )}
-          <nav
-            aria-label="Reports tabs"
-            className="flex overflow-x-auto border-b border-border gap-1 mb-5 print:hidden"
-          >
+          <nav className="report-tabs" aria-label="Reports tabs">
             {REPORT_TABS.map((t) => (
               <Button
                 key={t}
-                variant={tab === t ? "secondary" : "ghost"}
-                className="h-11 shrink-0 rounded-none border-b-2 border-transparent aria-[current=page]:border-primary"
+                variant="ghost"
                 aria-current={tab === t ? "page" : undefined}
                 onClick={() => void navigate({ search: (prev) => ({ ...prev, tab: t }) })}
               >
@@ -239,99 +269,34 @@ function ReportsPage() {
               </Button>
             ))}
           </nav>
-          <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-            Recorder installed {fmtDateTime(o.capture_started_at)}; earlier history and rollout
-            coverage are incomplete. Missing capture never establishes inactivity. Current agency
-            membership, account status and test flags are used where historical changes were not
-            recorded.
-          </p>
           {!period ? (
-            <p className="text-muted-foreground py-8">
-              Choose valid reporting dates. Missing launch or first-record dates are not
-              substituted.
-            </p>
+            <p>Choose valid reporting dates.</p>
           ) : (
             <>
-              {tab === "overview" && (
-                <>
-                  <section className="border-b border-border pb-5 mb-6">
-                    <header className="flex flex-wrap justify-between items-center gap-3">
-                      <div className="flex items-center">
-                        <h2 className="tvp-h2">Two-sided engagement</h2>
-                        <ReportDefinition definition="north_star" />
-                      </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => openPeople({ people: north.data?.people ?? [] })}
-                        disabled={!north.data?.people.length}
-                      >
-                        View contributing people
-                      </Button>
-                    </header>
-                    <div className="mt-3">
-                      <ReportEvidence
-                        dataset="relationships"
-                        filters={filters}
-                        from={period.from}
-                        to={period.to}
-                        asOf={o.as_of}
-                        role={o.role}
-                      />
-                    </div>
-                    {north.isPending && (
-                      <p className="text-muted-foreground mt-3">Calculating relationships…</p>
-                    )}
-                    {north.isError && (
-                      <p className="text-muted-foreground mt-3">
-                        Two-sided engagement could not be calculated.
-                      </p>
-                    )}
-                    {north.data && (
-                      <>
-                        <Button
-                          variant="link"
-                          className="!px-0 h-auto text-2xl font-semibold my-3"
-                          disabled={!north.data.people.length}
-                          onClick={() => openPeople({ people: north.data.people })}
-                        >
-                          {north.data.active} of {north.data.total} ·{" "}
-                          {north.data.total
-                            ? Math.round((north.data.active / north.data.total) * 100)
-                            : 0}
-                          %
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          Live relationships with activity on both sides; a staff sign-in alone
-                          never qualifies. Relationship counts are not People-row counts.
-                          {north.data.people.length < 5 ? " Small sample." : ""}
-                        </p>
-                      </>
-                    )}
-                  </section>
-                  <ReportEvidence
-                    dataset="sign_in_events"
-                    filters={filters}
-                    from={period.from}
-                    to={period.to}
-                    asOf={o.as_of}
-                    role={o.role}
-                  />
-                  {signIn}
-                </>
+              {analytics.isPending && tab !== "people" && tab !== "launch" && (
+                <p role="status" className="report-meta py-8">
+                  Loading historical figures…
+                </p>
               )}
-              {tab === "engagement" && (
-                <>
-                  <ReportEvidence
-                    dataset="sign_in_events"
-                    filters={filters}
-                    from={period.from}
-                    to={period.to}
-                    asOf={o.as_of}
-                    role={o.role}
-                  />
-                  <div className="mt-4">{signIn}</div>
-                </>
+              {analytics.isError && tab !== "people" && tab !== "launch" && (
+                <div className="flex flex-wrap gap-3 py-6">
+                  <p>Historical figures could not be loaded.</p>
+                  <Button variant="outline" onClick={() => void analytics.refetch()}>
+                    <RefreshCw />
+                    Retry
+                  </Button>
+                </div>
               )}
+              {panel && tab === "overview" && (
+                <OverviewPanels
+                  {...panel}
+                  {...(north.data ? { north: north.data } : {})}
+                  {...(previousNorth.data ? { previousNorth: previousNorth.data } : {})}
+                />
+              )}
+              {panel && tab === "growth" && <GrowthPanels {...panel} />}
+              {panel && tab === "engagement" && <EngagementPanels {...panel} />}
+              {panel && tab === "agencies" && <AgencyPanels {...panel} />}
               {tab === "people" && (
                 <ReportsPeople
                   key={JSON.stringify({ filters, period })}
@@ -343,26 +308,15 @@ function ReportsPage() {
                   onChange={change}
                 />
               )}
-              {tab === "exports" && (
-                <section className="py-3">
-                  <header className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center">
-                      <h2 className="tvp-h2">People · current filters</h2>
-                      <ReportDefinition definition="privacy" />
-                    </div>
-                    <Button
-                      disabled={!roleCan(o.role, "download_raw_data") || downloading}
-                      onClick={() => void exportPeople()}
-                    >
-                      <Download />
-                      {downloading ? "Preparing…" : "Download CSV"}
-                    </Button>
-                  </header>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Email addresses omitted. All matching rows, not just the visible page. Excel is
-                    available in People.
-                  </p>
-                </section>
+              {panel && tab === "business" && <BusinessPanels {...panel} />}
+              {data && tab === "exports" && (
+                <ReportsDataExports
+                  role={o.role}
+                  counts={data.dataset_counts}
+                  busy={busy}
+                  onFullHistory={setFullHistory}
+                  onDownload={(d, f, e, full) => void download(d, f, e, full)}
+                />
               )}
               {tab === "launch" && (
                 <LaunchReports
@@ -373,51 +327,18 @@ function ReportsPage() {
                   asOf={o.as_of}
                 />
               )}
-              {(tab === "growth" || tab === "agencies" || tab === "business") && (
-                <section className="py-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center">
-                      <h2 className="tvp-h2">{REPORT_TAB_LABELS[tab]}</h2>
-                      <ReportDefinition
-                        definition={
-                          tab === "growth"
-                            ? "registered"
-                            : tab === "agencies"
-                              ? "onboarded"
-                              : "accounts"
-                        }
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      disabled={!roleCan(o.role, "download_raw_data") || downloading}
-                      onClick={() => void exportPeople()}
-                    >
-                      <Download />
-                      Download underlying People CSV
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-3">
-                    Additional analysis is not yet available. Underlying People evidence follows the
-                    selected filters; no unavailable figures are substituted.
-                  </p>
-                  <Button variant="link" className="!px-0 mt-2" onClick={() => openPeople()}>
-                    View People with these filters
-                  </Button>
-                </section>
-              )}
             </>
           )}
-          <section className="border-t border-border mt-6 pt-5">
-            <h2 className="tvp-h2 mb-3">Definitions and data dictionary</h2>
-            <p className="text-xs text-muted-foreground mb-3">
+          <section className="report-definitions" id="report-definitions">
+            <h2>Definitions and data dictionary</h2>
+            <p className="report-meta my-3">
               {REPORTS_DEFINITIONS_VERSION} · {REPORTS_DEFINITIONS_DATE}
             </p>
             <dl className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
               {Object.entries(REPORTS_DEFINITIONS).map(([key, d]) => (
                 <div key={key}>
-                  <dt className="text-sm font-semibold">{d.title}</dt>
-                  <dd className="text-xs text-muted-foreground leading-relaxed mt-1">{d.text}</dd>
+                  <dt className="font-semibold">{d.title}</dt>
+                  <dd className="report-meta mt-1">{d.text}</dd>
                 </div>
               ))}
             </dl>

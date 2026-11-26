@@ -4,7 +4,7 @@ export const REPORTS_DEFINITIONS_DATE = "24 Nov 2026";
 export const REPORTS_DEFINITIONS = {
   registered: {
     title: "Registered",
-    text: "Accepted an invitation and created an account, nothing more. Missing historical invitation evidence is disclosed; no registration date is invented.",
+    text: "Accepted an invitation and created an account, nothing more. Historical joining dates use accepted invitations or the actual account creation date; no date is invented.",
   },
   onboarded: {
     title: "Onboarded",
@@ -16,15 +16,15 @@ export const REPORTS_DEFINITIONS = {
   },
   sign_ins: {
     title: "Sign-in activity",
-    text: "One completed login row is one sign-in. Active users have at least one sign-in in the period; returning users signed in on two or more separate South African calendar days. Days active = distinct SAST days. Registered people are the base; administrators are excluded, with agency staff taking priority over talent. Paused and suspended people are included; soft-deleted profiles are excluded.",
+    text: "One completed login row is one sign-in. Active users have at least one sign-in in the period; returning users signed in on two or more separate South African calendar days. Days active = distinct SAST days. Sign-ins are recorded from 14 September 2026; 15–24 November 2026 are not recorded. Registered people are the base; administrators are excluded, with agency staff taking priority over talent. Paused and suspended people are included; soft-deleted profiles are excluded.",
   },
   dormant: {
     title: "Dormant users",
-    text: "No sign-in for 30 or more days at the selected period end, or today if ongoing. Never-signed-in users count after being registered for 30 days. Missing registration dates or incomplete sign-in capture cannot establish inactivity.",
+    text: "No sign-in for 30 or more days at the selected period end, or today if ongoing. Never-signed-in users count after being registered for 30 days. Missing registration dates or missing sign-ins cannot establish inactivity.",
   },
   retention: {
     title: "Retention",
-    text: "Registered people are the base. Active at 30/60/90 days means a sign-in in the preceding 30 days up to that checkpoint after registering. A future checkpoint is Not yet due; missing capture is Not tracked, never zero.",
+    text: "Registered people are the base. Active at 30/60/90 days means a sign-in in the preceding 30 days up to that checkpoint after registering. A future checkpoint is Not yet due; missing sign-ins are Not recorded, never zero.",
   },
   funnel: {
     title: "Onboarding funnel",
@@ -47,7 +47,7 @@ export const REPORTS_DEFINITIONS = {
     text: "South African time (Africa/Johannesburg) throughout; weeks Monday–Sunday. Cut-off is period end or today if ongoing. Expiring soon is within 60 days. The previous comparison has equal length; last-month dates clamp to the last calendar day. All-time comparisons are unavailable.",
   },
   privacy: {
-    title: "Evidence and privacy",
+    title: "Raw data and privacy",
     text: "Every raw download follows server-side permissions and selected filters. Emails, including embedded addresses, are omitted unless the admin has permission and explicitly includes them. Documents are metadata only. Fewer than five people is a Small sample. Current agency membership, test flags and statuses are used where historical changes were not recorded.",
   },
 } as const;

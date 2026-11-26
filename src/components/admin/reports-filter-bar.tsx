@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { Copy, Filter, RotateCcw, Save, Trash2 } from "lucide-react";
+import { Copy, Filter, RotateCcw, Save, Trash2, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { type ReportsFilters, ReportFilters, reportDefaults } from "@/lib/reports-contract";
@@ -9,7 +11,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { deleteReportView, listReportViews, saveReportView } from "@/lib/reports.functions";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/friendly-error";
-type Options = { agencies: { id: string; name: string }[]; joined_months: string[] };
+type Options = {
+  agencies: { id: string; name: string; is_test?: boolean }[];
+  joined_months: string[];
+};
 export function ReportsFilterBar({
   filters: f,
   options,
@@ -23,7 +28,8 @@ export function ReportsFilterBar({
 }) {
   const [expanded, setExpanded] = useState(false),
     [saveOpen, setSaveOpen] = useState(false),
-    [name, setName] = useState("");
+    [name, setName] = useState(""),
+    [agencySearch, setAgencySearch] = useState("");
   const load = useServerFn(listReportViews),
     save = useServerFn(saveReportView),
     remove = useServerFn(deleteReportView),
@@ -78,14 +84,11 @@ export function ReportsFilterBar({
     );
   }
   return (
-    <section
-      aria-label="Report filters"
-      className="sticky top-0 z-20 bg-background border-b border-border py-3 mb-5"
-    >
-      <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+    <section aria-label="Report filters" className="report-filter-card mb-5">
+      <div className="report-mobile-filter">
         <Button
           variant="outline"
-          className="md:hidden h-11"
+          className="h-11"
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
           aria-controls="reports-global-filters"
@@ -93,48 +96,11 @@ export function ReportsFilterBar({
           <Filter />
           Filters ({active})
         </Button>
-        <p className="text-xs text-muted-foreground leading-relaxed flex-1 min-w-48">{summary}</p>
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11"
-            title="Reset filters"
-            aria-label="Reset filters"
-            onClick={() => onChange(reportDefaults)}
-          >
-            <RotateCcw />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11"
-            title="Copy link to this view"
-            aria-label="Copy link to this view"
-            onClick={() => {
-              void navigator.clipboard.writeText(window.location.href).then(
-                () => toast.success("View link copied."),
-                () => toast.error("The link could not be copied. Please try again."),
-              );
-            }}
-          >
-            <Copy />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11"
-            title="Save view"
-            aria-label="Save view"
-            onClick={() => setSaveOpen(true)}
-          >
-            <Save />
-          </Button>
-        </div>
+        <p className="report-meta">{summary}</p>
       </div>
       <div
         id="reports-global-filters"
-        className={`${expanded ? "!grid" : "!hidden"} md:!grid grid-cols-1 min-[430px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 !gap-3 tvp-form-group`}
+        className={`${expanded ? "!grid" : "!hidden"} md:!grid report-filter-fields !gap-3`}
       >
         {select("preset", "Period", [
           { value: "7d", label: "Last 7 days" },
@@ -151,42 +117,72 @@ export function ReportsFilterBar({
           { value: "last_month", label: "Same period last month" },
           { value: "none", label: "None" },
         ])}
-        {select("accounts", "Accounts", [
-          { value: "real", label: "Real" },
-          { value: "test", label: "Test" },
-          { value: "all", label: "All" },
-        ])}
+        <div className="report-filter-label">
+          Accounts
+          <div className="report-segment" aria-label="Accounts">
+            {(["real", "test", "all"] as const).map((scope) => (
+              <Button
+                key={scope}
+                variant="ghost"
+                aria-pressed={f.accounts === scope}
+                onClick={() => onChange({ ...f, accounts: scope, agencies: [] })}
+              >
+                {scope === "real" ? "Real" : scope === "test" ? "Test" : "All"}
+              </Button>
+            ))}
+          </div>
+        </div>
         {select("account_type", "Account type", [
           { value: "all", label: "All" },
           ...Object.entries(SIGN_IN_TYPE_LABEL).map(([value, label]) => ({ value, label })),
         ])}
-        <label className="min-w-0 text-xs font-medium">
+        <div className="report-filter-label report-agency-field">
           Agency
-          <select
-            multiple
-            aria-label="Agency multi-select"
-            className="!w-full !min-w-0 !h-24 mt-1"
-            value={f.agencies}
-            onChange={(e) =>
-              onChange({ ...f, agencies: Array.from(e.target.selectedOptions, (o) => o.value) })
-            }
-          >
-            {options.agencies.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-          {f.agencies.length > 0 && (
-            <Button
-              variant="link"
-              className="!px-0 text-xs"
-              onClick={() => onChange({ ...f, agencies: [] })}
-            >
-              All agencies
-            </Button>
-          )}
-        </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="report-agency-trigger"
+                aria-label="Agency filter"
+              >
+                {f.agencies.length ? `${f.agencies.length} agencies` : "All agencies"}
+                <ChevronDown />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="report-agency-menu" align="start">
+              <input
+                aria-label="Search agencies"
+                placeholder="Search agencies"
+                value={agencySearch}
+                onChange={(e) => setAgencySearch(e.target.value)}
+              />
+              <div className="max-h-64 overflow-y-auto">
+                {options.agencies
+                  .filter((a) => f.accounts === "all" || !!a.is_test === (f.accounts === "test"))
+                  .filter((a) => a.name.toLowerCase().includes(agencySearch.toLowerCase()))
+                  .map((a) => (
+                    <label key={a.id} className="flex items-center gap-3 py-3 text-sm">
+                      <Checkbox
+                        checked={f.agencies.includes(a.id)}
+                        onCheckedChange={(checked) =>
+                          onChange({
+                            ...f,
+                            agencies: checked
+                              ? [...f.agencies, a.id]
+                              : f.agencies.filter((id) => id !== a.id),
+                          })
+                        }
+                      />
+                      {a.name}
+                    </label>
+                  ))}
+              </div>
+              <Button variant="ghost" onClick={() => onChange({ ...f, agencies: [] })}>
+                All agencies
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </div>
         {select("talent", "Talent", [
           { value: "all", label: "All" },
           { value: "agency_linked", label: "Agency-linked" },
@@ -215,41 +211,6 @@ export function ReportsFilterBar({
           { value: "paused", label: "Paused" },
           { value: "suspended", label: "Suspended" },
         ])}
-        <div className="min-w-0">
-          <label className="text-xs font-medium">
-            Saved views
-            <select
-              className="!w-full !min-w-0 !h-11 mt-1"
-              value=""
-              onChange={(e) => {
-                const view = views.data?.find((v) => v.id === e.target.value);
-                if (view) onChange(view.filters);
-              }}
-            >
-              <option value="">Choose a private view</option>
-              {views.data?.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {views.data?.map((v) => (
-            <div className="flex items-center justify-between gap-2 text-xs" key={v.id}>
-              <span className="truncate">{v.name}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                title={`Remove ${v.name}`}
-                aria-label={`Remove ${v.name}`}
-                onClick={() => deleted.mutate(v.id)}
-                disabled={deleted.isPending}
-              >
-                <Trash2 />
-              </Button>
-            </div>
-          ))}
-        </div>
         {f.preset === "custom" && (
           <>
             <label className="text-xs font-medium">
@@ -275,6 +236,65 @@ export function ReportsFilterBar({
           </>
         )}
       </div>
+      <footer className="report-filter-footer">
+        <p className="report-meta report-desktop-summary">{summary}</p>
+        <div className="report-filter-actions">
+          <Button variant="ghost" onClick={() => onChange(reportDefaults)}>
+            <RotateCcw />
+            Reset filters
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              void navigator.clipboard.writeText(window.location.href).then(
+                () => toast.success("View link copied."),
+                () => toast.error("The link could not be copied. Please try again."),
+              )
+            }
+          >
+            <Copy />
+            Copy link to this view
+          </Button>
+          <Button variant="outline" onClick={() => setSaveOpen(true)}>
+            <Save />
+            Save view
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                Saved views
+                <ChevronDown />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end">
+              <p className="text-sm font-semibold mb-2">Private saved views</p>
+              {!views.data?.length && (
+                <p className="text-sm text-muted-foreground">No saved views yet.</p>
+              )}
+              {views.data?.map((v) => (
+                <div key={v.id} className="flex gap-2 items-center">
+                  <Button
+                    variant="ghost"
+                    className="flex-1 justify-start truncate"
+                    onClick={() => onChange(v.filters)}
+                  >
+                    {v.name}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Remove ${v.name}`}
+                    disabled={deleted.isPending}
+                    onClick={() => deleted.mutate(v.id)}
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              ))}
+            </PopoverContent>
+          </Popover>
+        </div>
+      </footer>
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent>
           <DialogTitle>Save private view</DialogTitle>

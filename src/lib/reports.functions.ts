@@ -15,7 +15,7 @@ import { SignInSummarySchema } from "./sign-in-metering";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 const Options = z.object({
-  agencies: z.array(z.object({ id: z.string(), name: z.string() })),
+  agencies: z.array(z.object({ id: z.string(), name: z.string(), is_test: z.boolean() })),
   joined_months: z.array(z.string()),
   launch_date: z.string().nullable(),
   first_date: z.string().nullable(),

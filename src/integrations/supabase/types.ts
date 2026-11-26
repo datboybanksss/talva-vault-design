@@ -4052,6 +4052,25 @@ export type Database = {
         }
         Returns: Json
       }
+      reports_history_snapshot: {
+        Args: { _as_of?: string; _filters: Json; _from: string; _to: string }
+        Returns: Json
+      }
+      reports_login_history: {
+        Args: never
+        Returns: {
+          action: string
+          actor_id: string
+          created_at: string
+          detail: Json
+          id: string
+          user_agent: string
+        }[]
+      }
+      reports_login_range_complete: {
+        Args: { _from: string; _to: string }
+        Returns: boolean
+      }
       reports_north_star: {
         Args: { _as_of?: string; _filters: Json; _from: string; _to: string }
         Returns: Json

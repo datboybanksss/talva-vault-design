@@ -7,7 +7,7 @@ CREATE TEMP TABLE user_roles(user_id uuid,role text);
 CREATE TEMP TABLE talent_profiles(id uuid,user_id uuid,full_name text,activation_completed_at timestamptz,created_at timestamptz,deleted_at timestamptz,is_test boolean,paused_at timestamptz,suspended_at timestamptz);
 CREATE TEMP TABLE agency_talent_links(talent_user_id uuid,agency_id uuid,status text,ended_at timestamptz,created_at timestamptz);
 CREATE TEMP TABLE loved_one_shares(id uuid,talent_id uuid,loved_one_email text,loved_one_name text,created_at timestamptz,access_code_hash text);
-CREATE TEMP TABLE talent_audit_log(actor_id uuid,actor_email text,action text,target_type text,target_id uuid,target_label text,detail jsonb,ip_address text,user_agent text,sign_in_session_id uuid,created_at timestamptz DEFAULT now());
+CREATE TEMP TABLE talent_audit_log(id uuid DEFAULT gen_random_uuid(),actor_id uuid,actor_email text,action text,target_type text,target_id uuid,target_label text,detail jsonb,ip_address text,user_agent text,sign_in_session_id uuid,created_at timestamptz DEFAULT now());
 CREATE TEMP TABLE loved_one_share_access_events(share_id uuid,event text,created_at timestamptz);
 ALTER TABLE talent_profiles ADD email text;
 ALTER TABLE agencies ADD paused_at timestamptz, ADD status text DEFAULT 'accepted';
@@ -21,6 +21,9 @@ CREATE TEMP TABLE reports_talent_milestones(user_id uuid,first_validated_upload_
 CREATE TEMP TABLE talent_private_documents(user_id uuid,validated_at timestamptz,quarantine_reason text,created_at timestamptz);
 CREATE TEMP TABLE talent_shared_documents(uploaded_by uuid,talent_link_id uuid,validated_at timestamptz,quarantine_reason text,copied_from_vault_at timestamptz,created_at timestamptz);
 ALTER TABLE agency_talent_links ADD id uuid DEFAULT gen_random_uuid();
+ALTER TABLE agency_invitations ADD email_sent_at timestamptz, ADD last_sent_at timestamptz;
+ALTER TABLE independent_talent_invitations ADD email_sent_at timestamptz, ADD last_sent_at timestamptz;
+ALTER TABLE talent_invitations ADD email_sent_at timestamptz, ADD last_sent_at timestamptz;
 CREATE FUNCTION pg_temp.reports_can(text) RETURNS boolean LANGUAGE sql AS $$ SELECT coalesce(current_setting('metering.admin',true),'yes') <> 'no' $$;
 CREATE FUNCTION pg_temp.invitation_counts_as_test(text,uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT coalesce((SELECT is_test FROM pg_temp.agencies WHERE id=$2),false) $$;
 CREATE FUNCTION pg_temp.jwt() RETURNS jsonb LANGUAGE sql AS $$ SELECT current_setting('request.jwt.claims',true)::jsonb $$;
@@ -29,7 +32,7 @@ CREATE FUNCTION pg_temp.mfa_ok() RETURNS boolean LANGUAGE sql AS $$ SELECT coale
 CREATE FUNCTION pg_temp.account_ok(uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
 CREATE FUNCTION pg_temp.is_admin(uuid,text) RETURNS boolean LANGUAGE sql AS $$ SELECT coalesce(current_setting('metering.admin',true),'yes') <> 'no' $$;
 DO $$ DECLARE n text; d text; t text; BEGIN
-  FOREACH n IN ARRAY ARRAY['sign_in_capture_started_at()','reports_people_rows(date,date,jsonb,timestamptz)','reports_sign_in_summary(date,date,jsonb,date,date,timestamptz)','admin_sign_in_people(date,date,text,timestamptz)','admin_sign_in_summary(date,date,text,timestamptz)','admin_sign_in_page(date,date,text,text,text,uuid,text,text,integer,integer,timestamptz)','record_completed_sign_in(text,text,text,boolean)'] LOOP
+  FOREACH n IN ARRAY ARRAY['reports_login_range_complete(date,date)','reports_login_history()','sign_in_capture_started_at()','reports_people_rows(date,date,jsonb,timestamptz)','reports_sign_in_summary(date,date,jsonb,date,date,timestamptz)','admin_sign_in_people(date,date,text,timestamptz)','admin_sign_in_summary(date,date,text,timestamptz)','admin_sign_in_page(date,date,text,text,text,uuid,text,text,integer,integer,timestamptz)','record_completed_sign_in(text,text,text,boolean)'] LOOP
     d:=pg_get_functiondef(('public.'||n)::regprocedure);
     d:=replace(d,'auth.jwt()','pg_temp.jwt()');
     d:=replace(d,'auth.uid()','pg_temp.uid()');
@@ -39,7 +42,7 @@ DO $$ DECLARE n text; d text; t text; BEGIN
     d:=replace(d,'public.reports_can','pg_temp.reports_can');
     d:=replace(d,'public.invitation_counts_as_test','pg_temp.invitation_counts_as_test');
     FOREACH t IN ARRAY ARRAY['reports_people_rows','reports_sign_in_summary','reports_talent_milestones','independent_talent_invitations','talent_invitations','talent_invite_private','talent_private_documents','talent_shared_documents'] LOOP d:=replace(d,'public.'||t,'pg_temp.'||t); END LOOP;
-    FOREACH t IN ARRAY ARRAY['sign_in_capture_started_at','admin_sign_in_people','admin_sign_in_summary','admin_sign_in_page','record_completed_sign_in','profiles','agencies','agency_members','agency_invitations','user_roles','talent_profiles','agency_talent_links','loved_one_shares','talent_audit_log','loved_one_share_access_events'] LOOP
+    FOREACH t IN ARRAY ARRAY['reports_login_range_complete','reports_login_history','sign_in_capture_started_at','admin_sign_in_people','admin_sign_in_summary','admin_sign_in_page','record_completed_sign_in','profiles','agencies','agency_members','agency_invitations','user_roles','talent_profiles','agency_talent_links','loved_one_shares','talent_audit_log','loved_one_share_access_events'] LOOP
       d:=replace(d,'public.'||t,'pg_temp.'||t);
     END LOOP;
     IF n='sign_in_capture_started_at()' THEN d:= 'CREATE FUNCTION pg_temp.sign_in_capture_started_at() RETURNS timestamptz LANGUAGE sql AS ''SELECT ''''2026-08-01''''::timestamptz'''; END IF;

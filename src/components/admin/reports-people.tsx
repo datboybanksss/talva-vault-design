@@ -166,7 +166,7 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
           />
         </label>
         <label className="text-xs font-medium">
-          Stage
+          Onboarding stage
           <select
             className="mt-1 !h-11 !w-full"
             value={f.stage}
@@ -189,8 +189,8 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
             <option value="all">All, including no activity</option>
             <option value="active">Active</option>
             <option value="returning">Returning</option>
-            <option value="dormant">Dormant (complete capture)</option>
-            <option value="never">Never signed in (complete capture)</option>
+            <option value="dormant">Dormant (recorded history)</option>
+            <option value="never">Never signed in (recorded history)</option>
           </select>
         </label>
         <label className="text-xs font-medium">
@@ -240,6 +240,22 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
           </select>
         </label>
       </div>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {(["stage", "activity", "search"] as const)
+          .filter((key) => f[key] && f[key] !== "all")
+          .map((key) => (
+            <Button
+              key={key}
+              variant="outline"
+              className="text-xs"
+              aria-label={`Remove ${key} filter`}
+              onClick={() => onChange({ ...f, [key]: key === "search" ? "" : "all" })}
+            >
+              {key === "stage" ? "Onboarding stage" : key === "activity" ? "Activity" : "Search"}:{" "}
+              {f[key]} ×
+            </Button>
+          ))}
+      </div>
       <div className="flex flex-wrap justify-between items-center gap-3 mb-3">
         <div className="flex flex-wrap gap-3 items-center">
           <label className="flex gap-2 items-center text-sm min-h-11">
@@ -262,11 +278,8 @@ export function ReportsPeople({ filters: f, from, to, asOf, role, onChange }: Pr
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-        {total} people · {q.data?.registered ?? "—"} registered · {count} selected. Emails are
-        omitted unless explicitly included with permission. Recorded activity in incomplete periods
-        is a lower bound, not proof of inactivity. Document counts are currently recorded validated
-        own uploads in the period; the onboarding milestone survives deletion. Launch discount and
-        message history are Not tracked.
+        {total} people · {q.data?.registered ?? "—"} registered · {count} selected. Email addresses
+        are omitted by default.
       </p>
       {q.isPending && (
         <p role="status" className="text-sm text-muted-foreground py-8">
@@ -411,7 +424,7 @@ function PersonTimeline({
         <DialogTitle>{person.name}</DialogTitle>
         <p className="text-xs text-muted-foreground">
           Timeline up to {fmtDateTime(asOf)}. Missing registration dates are not substituted.
-          Messages received: Not tracked.
+          Messages are available when messaging launches.
         </p>
         {q.isPending && <p role="status">Loading timeline…</p>}
         {q.isError && (

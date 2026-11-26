@@ -47,3 +47,5 @@
 - Billing/response contracts use lib's helpers and rules. Why: typed stored data.
 
 - Onboarding uses staging; talent-registration-core checks age/date/slots before Terms and creation, with database copy/privacy guards. Why: no rejected data or ID collection.
+
+- Historical Reports metadata is exposed only through permission-checked Reports functions and the service-only history snapshot; client-safe analytics share date-gap rules and exports. Why: retain operational access and export privacy while using all dated history.

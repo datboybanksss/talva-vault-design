@@ -96,12 +96,12 @@ describe.skipIf(!process.env["PGHOST"])("installed sign-in SQL on isolated data"
       ),
     ).toEqual(["all refused"]);
   });
-  it("includes four legacy people and discloses missing registration dates by scope", () => {
+  it("uses actual profile creation dates for the four legacy people without activation dates", () => {
     expect(
       run(
         `SELECT pg_temp.admin_sign_in_summary('2026-10-01','2026-10-31','all','2026-11-02')->>'missing_registration_dates'; SELECT pg_temp.admin_sign_in_summary('2026-10-01','2026-10-31','real','2026-11-02')->>'missing_registration_dates'; SELECT pg_temp.admin_sign_in_summary('2026-10-01','2026-10-31','test','2026-11-02')->>'missing_registration_dates';`,
       ),
-    ).toEqual(["4", "3", "1"]);
+    ).toEqual(["0", "0", "0"]);
   });
   it("the installed trigger refuses forged login writes while other audit actions remain allowed", () => {
     expect(

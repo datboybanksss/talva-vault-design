@@ -361,9 +361,9 @@ export function LaunchReports({
             </div>
             {filters && (
               <p className="text-xs text-muted-foreground mb-3">
-                Selected period intersected with the launch window. {d.missingRegistrationDates}{" "}
-                talent have no recorded registration date; they are included in People without proxy
-                dates.
+                Showing the selected dates within the launch window. {d.missingRegistrationDates}{" "}
+                talent have no recorded registration date; they are included in People without an
+                invented date.
               </p>
             )}
             <div className="tvp-kpi-pair">

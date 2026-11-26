@@ -274,6 +274,27 @@
       "when": 1795599938803,
       "tag": "0038_reports_contact_evidence_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795696173788,
+      "tag": "0039_reports_historical_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795696215134,
+      "tag": "0040_reports_history_datasets",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795696730588,
+      "tag": "0041_reports_legacy_invitation_history",
+      "breakpoints": true
     }
   ]
 }
